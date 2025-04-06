@@ -45,20 +45,11 @@ export default function RootLayout() {
         key={`root-status-bar-${isDarkColorScheme ? 'light' : 'dark'}`}
         style={isDarkColorScheme ? 'light' : 'dark'}
       />
-      {/* WRAP YOUR APP WITH ANY ADDITIONAL PROVIDERS HERE */}
-      {/* <ExampleProvider> */}
+      
       <ThemeProvider value={NAV_THEME[colorScheme]}>
-        {/* <Stack>
-          {!isLoggedIn ? (
-            <Stack.Screen name='index' options={{ headerShown: false }} />
-          ) : (
-            <Stack.Screen name='Home' options={{ headerShown: false }} />
-          )}
-          <Stack.Screen name='+not-found' />
-        </Stack>
-        <StatusBar style='auto' /> */}
+        
 
-        <Stack screenOptions={SCREEN_OPTIONS}>
+        <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name='index' options={INDEX_OPTIONS} />
           <Stack.Screen name='Home' options={MODAL_OPTIONS} />
           <Stack.Screen

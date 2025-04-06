@@ -86,18 +86,19 @@ export default function Login() {
           }}>
           <Text
             style={{
+              marginTop: 70,
               color: '#113E55',
               fontSize: 40,
               fontWeight: '400',
               textAlign: 'center',
             }}>
-            Welcome!
+            Welcome !
           </Text>
           <Text
             style={{
               color: 'black',
               fontWeight: '500',
-              fontSize: 12,
+              fontSize: 10,
               textAlign: 'center',
               marginTop: 4,
             }}>

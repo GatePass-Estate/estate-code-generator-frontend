@@ -11,7 +11,7 @@ export default function ModalScreen() {
         style={
           Platform.OS === 'ios'
             ? 'light'
-            : colorScheme === 'dark'
+            : colorScheme === 'light'
             ? 'light'
             : 'dark'
         }

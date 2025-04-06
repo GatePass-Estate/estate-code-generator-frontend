@@ -1,61 +1,87 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Pressable } from 'react-native';
 import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
 import HomeScreen from './HomeScreen';
 import MyGuest from './MyGuest';
 import { Text } from '@/components/nativewindui/Text';
+import AddGuest from './AddGuest';
+import { Link } from 'expo-router';
+import Icon from 'react-native-vector-icons/Ionicons';
 
 const Tab = createBottomTabNavigator();
 
 // Dummy Screens
-
 const EmptyScreen = () => <View />; // Placeholder for floating button
 
 // Custom Floating Button
 const FloatingButton = ({ onPress }: any) => {
   return (
     <TouchableOpacity style={styles.fab} onPress={onPress}>
-      <FontAwesome name='plus' size={24} color='white' />
+      <FontAwesome name='plus' size={15} color='#113E55' />
     </TouchableOpacity>
   );
 };
+
+// Header Right Icons
+function SettingsIcon() {
+  return (
+    <Link href='/modal' asChild>
+      <Pressable className='opacity-80'>
+        {({ pressed }) => (
+          <View style={{ opacity: pressed ? 0.5 : 0.9 }}>
+            <Icon name='person' size={24} color='#113E55' />
+          </View>
+        )}
+      </Pressable>
+    </Link>
+  );
+}
+
 
 export default function App() {
   return (
     <Tab.Navigator
       screenOptions={{
         tabBarStyle: styles.tabBar,
-        tabBarShowLabel: false,
-        tabBarActiveTintColor: '#000',
+        tabBarShowLabel: true,
+        tabBarActiveTintColor: '#113E55',
         tabBarInactiveTintColor: '#888',
-        headerShown: false,
       }}>
       <Tab.Screen
         name='Home'
         component={HomeScreen}
         options={{
+          title: 'Active Codes',
+          headerRight: () => <SettingsIcon />,
           tabBarIcon: ({ color }) => (
             <View>
-              <MaterialIcons name='home' size={24} color={color} />
-              <Text>Home</Text>
+              <MaterialIcons name='home' size={35} color={color} />
+              <Text style={{ fontSize: 7, fontWeight: 'light', color: '#113E55' }}></Text>
             </View>
           ),
         }}
       />
       <Tab.Screen
         name='Add'
-        component={EmptyScreen}
+        component={AddGuest}
         options={{
+          title: 'Active Codes',
+          headerShown: true, // Hide header for floating button
           tabBarButton: (props) => <FloatingButton {...props} />,
         }}
       />
       <Tab.Screen
-        name='My Guests'
+        name='My Guest'
         component={MyGuest}
         options={{
+          title: 'My Guest',
+          headerRight: () => <SettingsIcon />, // Different headerRight for this screen
           tabBarIcon: ({ color }) => (
-            <MaterialIcons name='person' size={24} color={color} />
+            <View>
+              <MaterialIcons name='person' size={35} color={color} />
+              <Text style={{ fontSize: 7, fontWeight: 'light', color: '#113E55' }}></Text>
+            </View>
           ),
         }}
       />
@@ -66,23 +92,20 @@ export default function App() {
 const styles = StyleSheet.create({
   tabBar: {
     position: 'absolute',
-    backgroundColor: '#E0E7EC',
-    height: 60,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    backgroundColor: '#CEE5ED',
+    height: 70,
+    bottom: 50,
   },
   fab: {
-    top: -30,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#007AFF',
+    top: -40,
+    right: -22,
+    width: 70,
+    height: 70,
+    borderRadius: 50,
+    backgroundColor: '#CEE5ED',
+    borderColor: '#FBFEFF',
+    borderWidth: 4,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
   },
 });

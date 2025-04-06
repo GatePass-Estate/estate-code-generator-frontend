@@ -4,11 +4,7 @@ import { View, Text, Button, StyleSheet} from 'react-native';
 const MyGuest = ({navigation}) => {
     return(
         <View style={styles.container}>
-            <Text>Add Guest</Text>
-            <Button
-                title="click here"
-                onPress={()=> alert('Button pressed')}
-                />
+            <Text>No Guest</Text>
         </View>
     );
 };
@@ -20,6 +16,5 @@ const styles = StyleSheet.create({
         flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: 'green'
     }
 })
