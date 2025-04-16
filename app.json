@@ -16,6 +16,7 @@
 
       "tsconfigPaths": true
     },
+    
 
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -29,13 +30,15 @@
     },
     "assetBundlePatterns": ["**/*"],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.specialone.gms"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/gate.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.specialone.gms"
     }
   }
 }

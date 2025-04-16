@@ -28,8 +28,8 @@ export default function Login() {
 
   const [request, response, promptAsync] = Google.useAuthRequest({
     clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID, // Use your Web Client ID
-    iosClientId: 'your-ios-client-id.apps.googleusercontent.com',
-    androidClientId: 'your-android-client-id.apps.googleusercontent.com',
+    iosClientId: '747446141313-4600vppfo3sefbvk9om458q3j802e7a4.apps.googleusercontent.com',
+    androidClientId: '747446141313-pc9ucol0het3lt0thep83ejgtt31e197.apps.googleusercontent.com',
     redirectUri: makeRedirectUri({ useProxy: true }),
   });
 

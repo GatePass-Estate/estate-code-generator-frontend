@@ -52,6 +52,7 @@ export default function RootLayout() {
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name='index' options={INDEX_OPTIONS} />
           <Stack.Screen name='Home' options={MODAL_OPTIONS} />
+          <Stack.Screen name="MyGuest"  options={MODAL_OPTIONS}/>
           <Stack.Screen
             name='active_codes'
             options={{ title: 'Active Codes' }}
