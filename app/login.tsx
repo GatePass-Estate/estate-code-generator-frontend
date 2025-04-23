@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigation } from '@react-navigation/native';
 import {
   Platform,
   View,
@@ -14,6 +13,7 @@ import { useColorScheme } from '@/lib/useColorScheme';
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
 import { makeRedirectUri } from 'expo-auth-session';
+import { useAuth } from '@/hooks/useAuthContext';
 import { useRouter } from 'expo-router';
 
 WebBrowser.maybeCompleteAuthSession();
@@ -22,23 +22,23 @@ const ROOT_STYLE: ViewStyle = { flex: 1, flexDirection: 'row' };
 
 export default function Login() {
   const { colors } = useColorScheme();
-  const navigation = useNavigation();
   const { width } = useWindowDimensions();
-  const [userInfo, setUserInfo] = useState(null);
+  const { signIn } = useAuth();
+  const router = useRouter();
 
   const [request, response, promptAsync] = Google.useAuthRequest({
-    clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID, // Use your Web Client ID
+    clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID,
     iosClientId: 'your-ios-client-id.apps.googleusercontent.com',
     androidClientId: 'your-android-client-id.apps.googleusercontent.com',
-    redirectUri: makeRedirectUri({ useProxy: true }),
+    redirectUri: makeRedirectUri(),
   });
-
-  const router = useRouter();
 
   useEffect(() => {
     if (response?.type === 'success') {
       const { authentication } = response;
-      fetchUserInfo(authentication.accessToken);
+      if (authentication?.accessToken) {
+        fetchUserInfo(authentication.accessToken);
+      }
     }
   }, [response]);
 
@@ -47,11 +47,19 @@ export default function Login() {
       headers: { Authorization: `Bearer ${token}` },
     });
     const user = await res.json();
-    setUserInfo(user);
+    signIn(user); // Use the auth context to sign in
   }
 
   const handleSignInPress = () => {
-    router.replace('/HomeScreen');
+    // For email/password login, you would validate credentials first
+    // Then call signIn() with the user data
+    signIn({
+      id: 'demo-user',
+      name: 'Demo User',
+      email: 'demo@example.com',
+      role: 'admin',
+      token: 'demo-token',
+    });
   };
 
   const isLargeScreen = width > 768;

@@ -1,5 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  ScrollView,
+} from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 
 interface Guest {
@@ -8,12 +16,17 @@ interface Guest {
   relationship: string;
 }
 
-const AddGuest = ({ navigation }) => {
+import { NavigationProp } from '@react-navigation/native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuth } from '@/hooks/useAuthContext';
+
+const AddGuest = ({ navigation }: { navigation: NavigationProp<any> }) => {
   const [guestName, setGuestName] = useState('');
   const [gender, setGender] = useState('');
   const [relationship, setRelationship] = useState('');
   const [isChecked, setIsChecked] = useState(false);
   const [guestList, setGuestList] = useState<Guest[]>([]);
+  const { signOut } = useAuth();
 
   const handleCheckboxChange = () => {
     setIsChecked(!isChecked);
@@ -28,24 +41,30 @@ const AddGuest = ({ navigation }) => {
       setGender('');
       setRelationship('');
       setIsChecked(false);
-      Alert.alert('Guest Added', `${guestName} has been added to the guest list.`);
+      Alert.alert(
+        'Guest Added',
+        `${guestName} has been added to the guest list.`
+      );
 
       // Navigate to MyGuest and pass the guestList
       navigation.navigate('MyGuest', { guestList: updatedGuestList });
     } else {
-      Alert.alert('Error', 'Please fill out all fields and agree to add the guest.');
+      Alert.alert(
+        'Error',
+        'Please fill out all fields and agree to add the guest.'
+      );
     }
   };
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
       <Text style={styles.subHeader}>Fill in your guest information</Text>
 
       {/* Name Input */}
       <Text style={styles.label}>Name</Text>
       <TextInput
         style={styles.input}
-        placeholder="Enter Guest Name..."
+        placeholder='Enter Guest Name...'
         value={guestName}
         onChangeText={setGuestName}
       />
@@ -56,12 +75,11 @@ const AddGuest = ({ navigation }) => {
         <Picker
           selectedValue={gender}
           onValueChange={(itemValue) => setGender(itemValue)}
-          style={styles.picker}
-        >
-          <Picker.Item label="Select the gender of your guest" value="" />
-          <Picker.Item label="Male" value="male" />
-          <Picker.Item label="Female" value="female" />
-          <Picker.Item label="Other" value="other" />
+          style={styles.picker}>
+          <Picker.Item label='Select the gender of your guest' value='' />
+          <Picker.Item label='Male' value='male' />
+          <Picker.Item label='Female' value='female' />
+          <Picker.Item label='Other' value='other' />
         </Picker>
       </View>
 
@@ -69,17 +87,14 @@ const AddGuest = ({ navigation }) => {
       <Text style={styles.label}>Relationship</Text>
       <TextInput
         style={styles.input}
-        placeholder="Enter your relationship with guest"
+        placeholder='Enter your relationship with guest'
         value={relationship}
         onChangeText={setRelationship}
       />
 
       {/* Checkbox */}
       <View style={styles.checkboxContainer}>
-        <Text
-          style={styles.checkboxText}
-          onPress={handleCheckboxChange}
-        >
+        <Text style={styles.checkboxText} onPress={handleCheckboxChange}>
           {isChecked ? '✔️ Add to My Guest List' : '❌ Add to My Guest List'}
         </Text>
       </View>
@@ -92,7 +107,7 @@ const AddGuest = ({ navigation }) => {
       <TouchableOpacity style={styles.saveButton} onPress={handleAddGuest}>
         <Text style={styles.saveText}>Save Guest</Text>
       </TouchableOpacity>
-    </View>
+    </ScrollView>
   );
 };
 
@@ -104,6 +119,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 40,
     backgroundColor: '#fff',
+    marginBottom: 70,
   },
   subHeader: {
     fontSize: 14,
@@ -148,7 +164,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#113E55',
     paddingVertical: 15,
     borderRadius: 8,
-    marginTop: 50,
+    marginTop: 30,
     alignItems: 'center',
   },
   buttonText: {
@@ -156,7 +172,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   saveButton: {
-    marginTop: 15,
+    marginTop: 12,
     alignItems: 'center',
   },
   saveText: {
