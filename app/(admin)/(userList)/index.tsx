@@ -17,7 +17,7 @@ const SeeAllUsersScreen = () => {
   return (
     <View style={styles.container}>
       <TouchableOpacity onPress={() => router.back()}>
-        <Text style={styles.back}>{'<   Back'}</Text>
+        <Text style={styles.back}>{'<  Back'}</Text>
       </TouchableOpacity>
 
       <Text style={styles.heading}>See All Users</Text>
@@ -52,7 +52,9 @@ const SeeAllUsersScreen = () => {
         data={users}
         keyExtractor={(_, index) => index.toString()}
         renderItem={({ item }) => (
-          <TouchableOpacity style={styles.userCard}>
+          <TouchableOpacity
+            style={styles.userCard}
+            onPress={() => router.push('/(admin)/(userProfile)')}>
             <Icon
               name='home'
               size={20}

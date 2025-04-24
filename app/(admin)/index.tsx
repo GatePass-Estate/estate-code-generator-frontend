@@ -58,7 +58,11 @@ export default function AdminDashboard() {
             <FontAwesome name='user' size={20} color='#113E55' />
             <Text style={styles.iconLabel}>See All Users</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.iconButton}>
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={() => {
+              router.push('/(admin)/(adminReg)');
+            }}>
             <Feather name='user-plus' size={20} color='#113E55' />
             <Text style={styles.iconLabel}>Register User</Text>
           </TouchableOpacity>
@@ -76,7 +80,7 @@ export default function AdminDashboard() {
           <Text style={styles.userListTitle}>All Users</Text>
           <TouchableOpacity
             onPress={() => {
-              router.push('/(userList)');
+              router.push('/(admin)/(userList)');
             }}>
             <Text style={styles.viewAll}>View All</Text>
           </TouchableOpacity>

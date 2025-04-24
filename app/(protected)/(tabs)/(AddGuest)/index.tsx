@@ -104,7 +104,8 @@ const AddGuest = ({ navigation }: { navigation: NavigationProp<any> }) => {
         <Text style={styles.buttonText}>Generate Code</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.saveButton} onPress={handleAddGuest}>
+      {/* <TouchableOpacity style={styles.saveButton} onPress={handleAddGuest}> */}
+      <TouchableOpacity style={styles.saveButton} onPress={signOut}>
         <Text style={styles.saveText}>Save Guest</Text>
       </TouchableOpacity>
     </ScrollView>

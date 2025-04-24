@@ -25,7 +25,10 @@ export default function AdminLayout() {
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name='(admin)' options={{ headerShown: false }} />
       <Stack.Screen name='(userList)' options={{ headerShown: false }} />
+      <Stack.Screen name='(userProfile)' options={{ headerShown: false }} />
+      <Stack.Screen name='(adminReg)' options={{ headerShown: false }} />
     </Stack>
   );
 }
