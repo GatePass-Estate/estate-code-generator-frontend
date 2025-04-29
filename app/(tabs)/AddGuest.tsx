@@ -80,7 +80,7 @@ const AddGuest = ({ navigation }) => {
           style={styles.checkboxText}
           onPress={handleCheckboxChange}
         >
-          {isChecked ? '✔️ Add to My Guest List' : '❌ Add to My Guest List'}
+          {/* {isChecked ? '✔️ Add to My Guest List' : '❌ Add to My Guest List'} */}
         </Text>
       </View>
 
@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   picker: {
-    height: 50,
+    height: 52,
     width: '100%',
   },
   checkboxContainer: {

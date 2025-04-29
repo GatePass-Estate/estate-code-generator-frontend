@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import {
   Platform,
@@ -15,8 +15,10 @@ import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
 import { makeRedirectUri } from 'expo-auth-session';
 import { useRouter } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
 
 WebBrowser.maybeCompleteAuthSession();
+SplashScreen.preventAutoHideAsync(); // Keep splash screen visible
 
 const ROOT_STYLE: ViewStyle = { flex: 1, flexDirection: 'row' };
 
@@ -25,9 +27,10 @@ export default function Login() {
   const navigation = useNavigation();
   const { width } = useWindowDimensions();
   const [userInfo, setUserInfo] = useState(null);
+  const [appIsReady, setAppIsReady] = useState(false);
 
   const [request, response, promptAsync] = Google.useAuthRequest({
-    clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID, // Use your Web Client ID
+    clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID,
     iosClientId: '747446141313-4600vppfo3sefbvk9om458q3j802e7a4.apps.googleusercontent.com',
     androidClientId: '747446141313-pc9ucol0het3lt0thep83ejgtt31e197.apps.googleusercontent.com',
     redirectUri: makeRedirectUri({ useProxy: true }),
@@ -50,6 +53,29 @@ export default function Login() {
     setUserInfo(user);
   }
 
+  // Splash screen management
+  useEffect(() => {
+    const prepare = async () => {
+      try {
+        // Simulate loading or fetch resources
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      } catch (e) {
+        console.warn(e);
+      } finally {
+        setAppIsReady(true);
+      }
+    };
+    prepare();
+  }, []);
+
+  const onLayoutRootView = useCallback(async () => {
+    if (appIsReady) {
+      await SplashScreen.hideAsync();
+    }
+  }, [appIsReady]);
+
+  if (!appIsReady) return null;
+
   const handleSignInPress = () => {
     router.replace('/HomeScreen');
   };
@@ -57,7 +83,7 @@ export default function Login() {
   const isLargeScreen = width > 768;
 
   return (
-    <SafeAreaView style={ROOT_STYLE}>
+    <SafeAreaView style={ROOT_STYLE} onLayout={onLayoutRootView}>
       {isLargeScreen && (
         <View
           style={{

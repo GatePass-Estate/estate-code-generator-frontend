@@ -8,7 +8,7 @@
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/gatepass_ng_Gp.png"
     },
     "plugins": ["expo-router"],
     "experiments": {
@@ -19,12 +19,12 @@
     
 
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/gatepass_ng_Gp.png",
 
     "userInterfaceStyle": "automatic",
 
     "splash": {
-      "image": "./assets/gate.png",
+      "image": "./assets/gatepass_ng_Gp.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -35,7 +35,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/gate.png",
+        "foregroundImage": "./assets/gatepass_ng_Gp.png",
         "backgroundColor": "#ffffff"
       },
       "package": "com.specialone.gms"

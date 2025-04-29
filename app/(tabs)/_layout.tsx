@@ -67,9 +67,13 @@ export default function App() {
         component={AddGuest}
         options={{
           title: 'Active Codes',
+          tabBarActiveTintColor: '#113E55',
+          tabBarInactiveTintColor: '#888',
           headerShown: true, // Hide header for floating button
           tabBarButton: (props) => <FloatingButton {...props} />,
+          
         }}
+        
       />
       <Tab.Screen
         name='My Guest'
