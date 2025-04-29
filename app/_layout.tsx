@@ -1,13 +1,9 @@
-import {
-  DarkTheme,
-  DefaultTheme,
-  ThemeProvider,
-} from '@react-navigation/native';
+import React from 'react';
 import { useFonts } from 'expo-font';
 import { Link, Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import 'react-native-reanimated';
 
 import { useColorScheme, useInitialAndroidBarSync } from '@/lib/useColorScheme';
@@ -16,6 +12,8 @@ import { Pressable, View } from 'react-native';
 import { cn } from '@/lib/cn';
 import { Icon } from '@roninoss/icons';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { AuthProvider, useAuth } from '@/hooks/useAuthContext';
+import { ThemeProvider } from '@react-navigation/native';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -26,8 +24,6 @@ export default function RootLayout() {
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
-
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
     if (loaded) {
@@ -52,7 +48,6 @@ export default function RootLayout() {
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name='index' options={INDEX_OPTIONS} />
           <Stack.Screen name='Home' options={MODAL_OPTIONS} />
-          <Stack.Screen name="MyGuest"  options={MODAL_OPTIONS}/>
           <Stack.Screen
             name='active_codes'
             options={{ title: 'Active Codes' }}
@@ -62,35 +57,3 @@ export default function RootLayout() {
     </>
   );
 }
-
-const SCREEN_OPTIONS = {
-  animation: 'ios_from_right', // for android
-} as const;
-
-const INDEX_OPTIONS = {
-  headerLargeTitle: true,
-  title: 'GMS',
-  headerRight: () => <SettingsIcon />,
-} as const;
-
-function SettingsIcon() {
-  const { colors } = useColorScheme();
-  return (
-    <Link href='/modal' asChild>
-      <Pressable className='opacity-80'>
-        {({ pressed }) => (
-          <View className={cn(pressed ? 'opacity-50' : 'opacity-90')}>
-            <Icon name='cog-outline' color={colors.foreground} />
-          </View>
-        )}
-      </Pressable>
-    </Link>
-  );
-}
-
-const MODAL_OPTIONS = {
-  presentation: 'modal',
-  animation: 'fade_from_bottom', // for android
-  title: 'Settings',
-  headerRight: () => <ThemeToggle />,
-} as const;

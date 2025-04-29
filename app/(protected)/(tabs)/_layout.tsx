@@ -2,12 +2,10 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { View, TouchableOpacity, StyleSheet, Pressable } from 'react-native';
 import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
-import HomeScreen from './HomeScreen';
-import MyGuest from './MyGuest';
 import { Text } from '@/components/nativewindui/Text';
-import AddGuest from './AddGuest';
 import { Link } from 'expo-router';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { Tabs } from 'expo-router';
 
 const Tab = createBottomTabNavigator();
 
@@ -38,58 +36,68 @@ function SettingsIcon() {
   );
 }
 
-
-export default function App() {
+export default function UserTab() {
   return (
-    <Tab.Navigator
+    <Tabs
       screenOptions={{
         tabBarStyle: styles.tabBar,
         tabBarShowLabel: true,
         tabBarActiveTintColor: '#113E55',
         tabBarInactiveTintColor: '#888',
       }}>
-      <Tab.Screen
-        name='Home'
-        component={HomeScreen}
+      <Tabs.Screen
+        name='(home)'
         options={{
           title: 'Active Codes',
           headerRight: () => <SettingsIcon />,
           tabBarIcon: ({ color }) => (
             <View>
               <MaterialIcons name='home' size={35} color={color} />
-              <Text style={{ fontSize: 7, fontWeight: 'light', color: '#113E55' }}></Text>
+              <Text
+                style={{
+                  fontSize: 7,
+                  fontWeight: 'light',
+                  color: '#113E55',
+                }}></Text>
             </View>
           ),
         }}
       />
-      <Tab.Screen
-        name='Add'
-        component={AddGuest}
+      <Tabs.Screen
+        name='(AddGuest)'
         options={{
           title: 'Active Codes',
+<<<<<<< HEAD:app/(tabs)/_layout.tsx
           tabBarActiveTintColor: '#113E55',
           tabBarInactiveTintColor: '#888',
           headerShown: true, // Hide header for floating button
+=======
+          headerShown: false, // Hide header for floating button
+>>>>>>> e50ede94493db8aed9d9e1fdbf52af98d070a264:app/(protected)/(tabs)/_layout.tsx
           tabBarButton: (props) => <FloatingButton {...props} />,
           
         }}
         
       />
-      <Tab.Screen
-        name='My Guest'
-        component={MyGuest}
+      <Tabs.Screen
+        name='(MyGuest)'
         options={{
           title: 'My Guest',
           headerRight: () => <SettingsIcon />, // Different headerRight for this screen
           tabBarIcon: ({ color }) => (
             <View>
               <MaterialIcons name='person' size={35} color={color} />
-              <Text style={{ fontSize: 7, fontWeight: 'light', color: '#113E55' }}></Text>
+              <Text
+                style={{
+                  fontSize: 7,
+                  fontWeight: 'light',
+                  color: '#113E55',
+                }}></Text>
             </View>
           ),
         }}
       />
-    </Tab.Navigator>
+    </Tabs>
   );
 }
 

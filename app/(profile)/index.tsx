@@ -9,8 +9,10 @@ const ProfileScreen = () => {
   return (
     <View style={styles.container}>
       {/* Back Button */}
-      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-        <Icon name="arrow-back" size={20} color="#113E55" />
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() => navigation.goBack()}>
+        <Icon name='arrow-back' size={20} color='#113E55' />
         <Text style={styles.backText}>Back</Text>
       </TouchableOpacity>
 
@@ -22,16 +24,19 @@ const ProfileScreen = () => {
         <Text style={styles.sectionTitle}>
           PERSONAL DETAILS
           <TouchableOpacity style={styles.editIcon}>
-            <Icon name="pencil" size={16} color="#113E55" />
+            <Icon name='pencil' size={16} color='#113E55' />
           </TouchableOpacity>
         </Text>
 
         {/* Profile Card */}
         <View style={styles.card}>
-          <ProfileDetail label="Name" value="Sandra Happiness" />
-          <ProfileDetail label="Address" value="Flat 1, 18A Olayinka Something Street, U3 Estate" />
-          <ProfileDetail label="Email Address" value="sandaroJ@hmo.com" />
-          <ProfileDetail label="Phone Number" value="0902 443 422 3324" />
+          <ProfileDetail label='Name' value='Sandra Happiness' />
+          <ProfileDetail
+            label='Address'
+            value='Flat 1, 18A Olayinka Something Street, U3 Estate'
+          />
+          <ProfileDetail label='Email Address' value='sandaroJ@hmo.com' />
+          <ProfileDetail label='Phone Number' value='0902 443 422 3324' />
         </View>
       </View>
 
@@ -44,7 +49,13 @@ const ProfileScreen = () => {
 };
 
 // Reusable Component for Profile Details
-const ProfileDetail = ({ label, value }) => (
+// Define the props interface for ProfileDetail
+interface ProfileDetailProps {
+  label: string;
+  value: string;
+}
+
+const ProfileDetail = ({ label, value }: ProfileDetailProps) => (
   <View style={styles.detailRow}>
     <Text style={styles.detailLabel}>{label} :</Text>
     <Text style={styles.detailValue}>{value}</Text>
