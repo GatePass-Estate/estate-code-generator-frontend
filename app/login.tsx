@@ -1,9 +1,4 @@
-<<<<<<< HEAD:app/index.tsx
 import React, { useEffect, useState, useCallback } from 'react';
-import { useNavigation } from '@react-navigation/native';
-=======
-import React, { useEffect, useState } from 'react';
->>>>>>> e50ede94493db8aed9d9e1fdbf52af98d070a264:app/login.tsx
 import {
   Platform,
   View,
@@ -29,9 +24,10 @@ const ROOT_STYLE: ViewStyle = { flex: 1, flexDirection: 'row' };
 
 export default function Login() {
   const { colors } = useColorScheme();
+  const { signIn } = useAuth();
+  const router = useRouter();
   const { width } = useWindowDimensions();
-<<<<<<< HEAD:app/index.tsx
-  const [userInfo, setUserInfo] = useState(null);
+
   const [appIsReady, setAppIsReady] = useState(false);
 
   const [request, response, promptAsync] = Google.useAuthRequest({
@@ -39,16 +35,6 @@ export default function Login() {
     iosClientId: '747446141313-4600vppfo3sefbvk9om458q3j802e7a4.apps.googleusercontent.com',
     androidClientId: '747446141313-pc9ucol0het3lt0thep83ejgtt31e197.apps.googleusercontent.com',
     redirectUri: makeRedirectUri({ useProxy: true }),
-=======
-  const { signIn } = useAuth();
-  const router = useRouter();
-
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID,
-    iosClientId: 'your-ios-client-id.apps.googleusercontent.com',
-    androidClientId: 'your-android-client-id.apps.googleusercontent.com',
-    redirectUri: makeRedirectUri(),
->>>>>>> e50ede94493db8aed9d9e1fdbf52af98d070a264:app/login.tsx
   });
 
   useEffect(() => {
@@ -68,11 +54,9 @@ export default function Login() {
     signIn(user); // Use the auth context to sign in
   }
 
-  // Splash screen management
   useEffect(() => {
     const prepare = async () => {
       try {
-        // Simulate loading or fetch resources
         await new Promise(resolve => setTimeout(resolve, 2000));
       } catch (e) {
         console.warn(e);
@@ -92,8 +76,6 @@ export default function Login() {
   if (!appIsReady) return null;
 
   const handleSignInPress = () => {
-    // For email/password login, you would validate credentials first
-    // Then call signIn() with the user data
     signIn({
       id: 'demo-user',
       name: 'Demo User',

@@ -9,16 +9,15 @@ import {
   ScrollView,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
+import { NavigationProp } from '@react-navigation/native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuth } from '@/hooks/useAuthContext';
 
 interface Guest {
   name: string;
   gender: string;
   relationship: string;
 }
-
-import { NavigationProp } from '@react-navigation/native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAuth } from '@/hooks/useAuthContext';
 
 const AddGuest = ({ navigation }: { navigation: NavigationProp<any> }) => {
   const [guestName, setGuestName] = useState('');
@@ -46,7 +45,6 @@ const AddGuest = ({ navigation }: { navigation: NavigationProp<any> }) => {
         `${guestName} has been added to the guest list.`
       );
 
-      // Navigate to MyGuest and pass the guestList
       navigation.navigate('MyGuest', { guestList: updatedGuestList });
     } else {
       Alert.alert(
@@ -60,7 +58,6 @@ const AddGuest = ({ navigation }: { navigation: NavigationProp<any> }) => {
     <ScrollView style={styles.container}>
       <Text style={styles.subHeader}>Fill in your guest information</Text>
 
-      {/* Name Input */}
       <Text style={styles.label}>Name</Text>
       <TextInput
         style={styles.input}
@@ -69,7 +66,6 @@ const AddGuest = ({ navigation }: { navigation: NavigationProp<any> }) => {
         onChangeText={setGuestName}
       />
 
-      {/* Gender Dropdown */}
       <Text style={styles.label}>Gender</Text>
       <View style={styles.pickerContainer}>
         <Picker
@@ -83,7 +79,6 @@ const AddGuest = ({ navigation }: { navigation: NavigationProp<any> }) => {
         </Picker>
       </View>
 
-      {/* Relationship Input */}
       <Text style={styles.label}>Relationship</Text>
       <TextInput
         style={styles.input}
@@ -92,27 +87,16 @@ const AddGuest = ({ navigation }: { navigation: NavigationProp<any> }) => {
         onChangeText={setRelationship}
       />
 
-      {/* Checkbox */}
       <View style={styles.checkboxContainer}>
-<<<<<<< HEAD:app/(tabs)/AddGuest.tsx
-        <Text
-          style={styles.checkboxText}
-          onPress={handleCheckboxChange}
-        >
-          {/* {isChecked ? '✔️ Add to My Guest List' : '❌ Add to My Guest List'} */}
-=======
         <Text style={styles.checkboxText} onPress={handleCheckboxChange}>
           {isChecked ? '✔️ Add to My Guest List' : '❌ Add to My Guest List'}
->>>>>>> e50ede94493db8aed9d9e1fdbf52af98d070a264:app/(protected)/(tabs)/(AddGuest)/index.tsx
         </Text>
       </View>
 
-      {/* Buttons */}
       <TouchableOpacity style={styles.generateButton} onPress={handleAddGuest}>
         <Text style={styles.buttonText}>Generate Code</Text>
       </TouchableOpacity>
 
-      {/* <TouchableOpacity style={styles.saveButton} onPress={handleAddGuest}> */}
       <TouchableOpacity style={styles.saveButton} onPress={signOut}>
         <Text style={styles.saveText}>Save Guest</Text>
       </TouchableOpacity>

@@ -25,9 +25,11 @@ export default function AdminDashboard() {
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.header}>
           <Text style={styles.headerText}>Admin</Text>
-          <View style={styles.profileCircle}>
+          <View style={styles.profileCircle} >
+            
             <Text style={styles.profileInitials}>GD</Text>
           </View>
+
         </View>
 
         <View style={styles.statsRow}>
@@ -39,7 +41,7 @@ export default function AdminDashboard() {
           <View style={[styles.statBox, styles.securityBox]}>
             <Ionicons name='shield-checkmark' size={24} color='#2A9D8F' />
             <Text style={styles.securityText}>Security P...</Text>
-            <Text style={styles.statNumber}>178</Text>
+            <Text style={styles.statSNumber} >178</Text>
           </View>
         </View>
 
@@ -171,6 +173,13 @@ const styles = StyleSheet.create({
     marginTop: 5,
     fontSize: 20,
     fontWeight: '600',
+    color:'#E76F51'
+  },
+  statSNumber:{
+    marginTop: 5,
+    fontSize: 20,
+    fontWeight: '600',
+    color:'green'
   },
   totalBox: {
     width: '48%',

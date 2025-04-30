@@ -11,7 +11,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { useAuth } from '@/hooks/useAuthContext';
 
 export const unstable_home_settings = {
-  initialRouteName: '(tabs)',
+  initialRouteName: '(tabs)', 
 };
 
 export default function ProtectedLayout() {

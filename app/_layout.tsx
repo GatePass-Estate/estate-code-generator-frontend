@@ -1,21 +1,17 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useFonts } from 'expo-font';
-import { Link, Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
-import 'react-native-reanimated';
+import { Stack } from 'expo-router';
 
 import { useColorScheme, useInitialAndroidBarSync } from '@/lib/useColorScheme';
 import { NAV_THEME } from '@/theme';
-import { Pressable, View } from 'react-native';
-import { cn } from '@/lib/cn';
-import { Icon } from '@roninoss/icons';
-import { ThemeToggle } from '@/components/ThemeToggle';
-import { AuthProvider, useAuth } from '@/hooks/useAuthContext';
+import { AuthProvider } from '@/hooks/useAuthContext';
 import { ThemeProvider } from '@react-navigation/native';
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
+import 'react-native-reanimated';
+
+// Keep splash screen visible while loading fonts
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
@@ -41,19 +37,16 @@ export default function RootLayout() {
         key={`root-status-bar-${isDarkColorScheme ? 'light' : 'dark'}`}
         style={isDarkColorScheme ? 'light' : 'dark'}
       />
+      <AuthProvider>
+        <ThemeProvider value={NAV_THEME[colorScheme]}>
+          <Stack initialRouteName="login">
+            <Stack.Screen name="login" options={{ headerShown: false, animation: 'none' }} />
+            <Stack.Screen name="(admin)" options={{ headerShown: false }} />
+            <Stack.Screen name="(protected)" options={{ headerShown: false }} />
+          </Stack>
+        </ThemeProvider>
+      </AuthProvider>
       
-      <ThemeProvider value={NAV_THEME[colorScheme]}>
-        
-
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name='index' options={INDEX_OPTIONS} />
-          <Stack.Screen name='Home' options={MODAL_OPTIONS} />
-          <Stack.Screen
-            name='active_codes'
-            options={{ title: 'Active Codes' }}
-          />
-        </Stack>
-      </ThemeProvider>
     </>
   );
 }

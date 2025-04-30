@@ -8,7 +8,7 @@ export default function HomeScreen() {
     <SafeAreaView
       style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
       <View>
-        <Stack.Screen options={{ headerShown: true }} />
+        <Stack.Screen options={{ headerShown: false }} />
         <Image
           source={require('../../../../assets/images/Ghost.png')} // Replace with your image path
           style={{ width: 150, height: 150, left: 80, bottom: 50 }}

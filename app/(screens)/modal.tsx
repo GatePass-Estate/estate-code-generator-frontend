@@ -1,10 +1,15 @@
-import React from 'react';
+import React, { useLayoutEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 
 const ProfileScreen = () => {
   const navigation = useNavigation();
+
+  // Hide the header
+  useLayoutEffect(() => {
+    navigation.setOptions({ headerShown: false });
+  }, [navigation]);
 
   return (
     <View style={styles.container}>
@@ -22,20 +27,22 @@ const ProfileScreen = () => {
         <Text style={styles.sectionTitle}>
           PERSONAL DETAILS
           <TouchableOpacity style={styles.editIcon}>
-            <Icon name="pencil" size={16} color="#113E55"  borderRadius={30} />
+            <Icon name="pencil" size={16} color="#113E55" borderRadius={30} />
           </TouchableOpacity>
         </Text>
+
         {/* Access Code Card */}
         <View style={accesstyles.access}>
-        <Text style={accesstyles.text}>My access code:  90t 76E</Text>
+          <Text style={accesstyles.text}>My access code:  90t 76E</Text>
         </View>
-                {/* Expire Card */}
-                <View style={styles.expire}>
-                <Text style={accesstyles.textExpire}><Icon name="alert-circle-outline" size={20} color="#113E55" />
-                Code expires on 31st May 2003</Text>
 
+        {/* Expire Card */}
+        <View style={styles.expire}>
+          <Text style={accesstyles.textExpire}>
+            <Icon name="alert-circle-outline" size={20} color="#113E55" />
+            Code expires on 31st May 2003
+          </Text>
         </View>
-      
 
         {/* Profile Card */}
         <View style={styles.card}>
@@ -48,7 +55,7 @@ const ProfileScreen = () => {
 
       {/* Logout Button */}
       <TouchableOpacity style={styles.logoutButton}>
-        <Text style={styles.logoutText}>Log Out</Text>
+        <Text style={styles.logoutText} >Log Out</Text>
       </TouchableOpacity>
     </View>
   );
@@ -69,7 +76,6 @@ const accesstyles = StyleSheet.create({
     color: '#113E55',
     height: 50,
     width: '100%',
-    // marginBottom: 30,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 5,
@@ -78,13 +84,16 @@ const accesstyles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 2,
   },
+  text: {
+    color: '#113E55',
+    fontWeight: 'bold',
+  },
   textExpire: {
     color: '#113E55',
     marginBottom: 40,
     fontStyle: 'italic',
   }
-  
-})
+});
 
 // Styles
 const styles = StyleSheet.create({
@@ -156,7 +165,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-  
+  expire: {
+    marginTop: 10,
+    marginBottom: 10,
+  },
 });
 
 export default ProfileScreen;

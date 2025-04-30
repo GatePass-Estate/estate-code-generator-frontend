@@ -27,9 +27,9 @@ function SettingsIcon() {
     <Link href='/modal' asChild>
       <Pressable className='opacity-80'>
         {({ pressed }) => (
-          <View style={{ opacity: pressed ? 0.5 : 0.9 }}>
-            <Icon name='person' size={24} color='#113E55' />
-          </View>
+          <View style={styles.profileCircle}>
+                      <Text style={styles.profileInitials}>GD</Text>
+                    </View>
         )}
       </Pressable>
     </Link>
@@ -53,12 +53,7 @@ export default function UserTab() {
           tabBarIcon: ({ color }) => (
             <View>
               <MaterialIcons name='home' size={35} color={color} />
-              <Text
-                style={{
-                  fontSize: 7,
-                  fontWeight: 'light',
-                  color: '#113E55',
-                }}></Text>
+              <Text style={{ fontSize: 7, fontWeight: 'light', color: '#113E55' }}></Text>
             </View>
           ),
         }}
@@ -67,32 +62,19 @@ export default function UserTab() {
         name='(AddGuest)'
         options={{
           title: 'Active Codes',
-<<<<<<< HEAD:app/(tabs)/_layout.tsx
-          tabBarActiveTintColor: '#113E55',
-          tabBarInactiveTintColor: '#888',
-          headerShown: true, // Hide header for floating button
-=======
-          headerShown: false, // Hide header for floating button
->>>>>>> e50ede94493db8aed9d9e1fdbf52af98d070a264:app/(protected)/(tabs)/_layout.tsx
+          headerShown: true,
           tabBarButton: (props) => <FloatingButton {...props} />,
-          
         }}
-        
       />
       <Tabs.Screen
         name='(MyGuest)'
         options={{
           title: 'My Guest',
-          headerRight: () => <SettingsIcon />, // Different headerRight for this screen
+          headerRight: () => <SettingsIcon />,
           tabBarIcon: ({ color }) => (
             <View>
               <MaterialIcons name='person' size={35} color={color} />
-              <Text
-                style={{
-                  fontSize: 7,
-                  fontWeight: 'light',
-                  color: '#113E55',
-                }}></Text>
+              <Text style={{ fontSize: 7, fontWeight: 'light', color: '#113E55' }}></Text>
             </View>
           ),
         }}
@@ -120,4 +102,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  profileCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#113E55',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 20,
+  },
+  profileInitials: {
+    color: '#113E55',
+    fontWeight: '600',
+  }
 });
