@@ -28,6 +28,9 @@ export default function ProtectedLayout() {
   if (user.role === 'admin') {
     return <Redirect href='/(admin)' />;
   }
+  if (user.role === 'security'){
+    return <Redirect href='(security)' />;
+  }
 
   return (
     <Stack>

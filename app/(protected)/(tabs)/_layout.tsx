@@ -48,12 +48,12 @@ export default function UserTab() {
       <Tabs.Screen
         name='(home)'
         options={{
-          title: 'Active Codes',
+          title: 'Home',
           headerRight: () => <SettingsIcon />,
           tabBarIcon: ({ color }) => (
             <View>
               <MaterialIcons name='home' size={35} color={color} />
-              <Text style={{ fontSize: 7, fontWeight: 'light', color: '#113E55' }}></Text>
+              <Text style={{ fontSize: 7, fontWeight: 'light', color: '#113E55', }}></Text>
             </View>
           ),
         }}

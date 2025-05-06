@@ -80,7 +80,7 @@ export default function Login() {
       id: 'demo-user',
       name: 'Demo User',
       email: 'demo@example.com',
-      role: 'admin',
+      role: 'user',
       token: 'demo-token',
     });
   };
