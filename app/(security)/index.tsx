@@ -16,7 +16,6 @@ export default function SecurityVerification() {
   const router = useRouter(); // ✅ You forgot this line!
 
   const handleChange = (text, index) => {
-    const newCode = [...code];
     newCode[index] = text;
     setCode(newCode);
 
@@ -36,12 +35,12 @@ export default function SecurityVerification() {
     // Optional: Validate enteredCode here
 
     // ✅ Navigate to validation result page
-    router.push('/(security)/validationResult');
+    router.push('/(security)/(validationResult)');
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.subtitle}>Verify incoming guest’s code</Text>
+      <Text style={styles.subtitle}>Verify incoming {'\n'} guest’s code</Text>
       <Text style={styles.instructions}>Enter the code from guest here</Text>
 
       <View style={styles.inputRow}>
@@ -58,7 +57,7 @@ export default function SecurityVerification() {
         ))}
       </View>
 
-      <TouchableOpacity style={styles.button} onPress={validateCode}>
+      <TouchableOpacity style={styles.button} onPress={validateCode}> 
         <Text style={styles.buttonText}>Validate Code</Text>
       </TouchableOpacity>
     </SafeAreaView>
@@ -67,6 +66,7 @@ export default function SecurityVerification() {
 
 const styles = StyleSheet.create({
   container: {
+      fontFamily: 'ubuntu',
     padding: 20,
     backgroundColor: '#fff',
     flex: 1,
@@ -80,9 +80,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   subtitle: {
-    color: 'lightblue',
+    color: '#113E55',
     fontSize: 20,
-    fontWeight: '500',
+    fontWeight: '400',
+    fontFamily: 'Ubuntu',
     textAlign: 'center',
     marginBottom: 5,
   },
@@ -94,7 +95,7 @@ const styles = StyleSheet.create({
   inputRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 30,
+    marginBottom: 150,
   },
   inputBox: {
     borderBottomWidth: 1,
@@ -110,6 +111,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#113E55',
     padding: 15,
     borderRadius: 8,
+    width: 240,
+    left: 40,
   },
   buttonText: {
     color: '#fff',

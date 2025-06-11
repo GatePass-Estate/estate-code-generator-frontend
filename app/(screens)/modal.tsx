@@ -2,8 +2,12 @@ import React, { useLayoutEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { useAuth } from '@/hooks/useAuthContext';
+import { Image } from 'react-native';
+
 
 const ProfileScreen = () => {
+  const { signOut } = useAuth();
   const navigation = useNavigation();
 
   // Hide the header
@@ -27,7 +31,10 @@ const ProfileScreen = () => {
         <Text style={styles.sectionTitle}>
           PERSONAL DETAILS
           <TouchableOpacity style={styles.editIcon}>
-            <Icon name="pencil" size={16} color="#113E55" borderRadius={30} />
+            <Image
+                source={require('@/assets/icons/Vector.png')} // Update this path to your image
+                style={{ width: 20, height: 15, resizeMode: 'contain', marginTop: 9, left: 10, top: 2 }}
+              />
           </TouchableOpacity>
         </Text>
 
@@ -39,7 +46,7 @@ const ProfileScreen = () => {
         {/* Expire Card */}
         <View style={styles.expire}>
           <Text style={accesstyles.textExpire}>
-            <Icon name="alert-circle-outline" size={20} color="#113E55" />
+            {/* <Icon name="alert-circle-outline" size={20} color="#113E55"   /> */}
             Code expires on 31st May 2003
           </Text>
         </View>
@@ -49,13 +56,13 @@ const ProfileScreen = () => {
           <ProfileDetail label="Name" value="Sandra Happiness" />
           <ProfileDetail label="Address" value="Flat 1, 18A Olayinka Street" />
           <ProfileDetail label="Email Address" value="sandaroJ@hmo.com" />
-          <ProfileDetail label="Phone Number" value="0902 443 422 3324" />
+          <ProfileDetail label="Phone Number" value="0902 443 4224" />
         </View>
       </View>
 
       {/* Logout Button */}
-      <TouchableOpacity style={styles.logoutButton}>
-        <Text style={styles.logoutText} >Log Out</Text>
+      <TouchableOpacity style={styles.logoutButton} onPress={signOut}>
+        <Text style={styles.logoutText} >Log Out </Text>
       </TouchableOpacity>
     </View>
   );
@@ -119,6 +126,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   section: {
+    marginTop: 20,
     marginBottom: 20,
   },
   sectionTitle: {
@@ -133,6 +141,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   card: {
+    marginTop: -12,
     backgroundColor: '#FFFFFF',
     padding: 15,
     borderRadius: 10,
@@ -161,6 +170,7 @@ const styles = StyleSheet.create({
     marginTop: 30,
   },
   logoutText: {
+    top: 130,
     color: '#E63946',
     fontSize: 16,
     fontWeight: 'bold',

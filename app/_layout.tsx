@@ -17,9 +17,13 @@ SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
   useInitialAndroidBarSync();
   const { colorScheme, isDarkColorScheme } = useColorScheme();
-  const [loaded] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-  });
+ const [loaded] = useFonts({
+  RobotoItalic: require('../assets/fonts/Roboto-Italic-VariableFont_wdth,wght.ttf'),
+  UbuntuSans: require('../assets/fonts/UbuntuSans-VariableFont_wdth,wght.ttf'),
+});
+
+
+
 
   useEffect(() => {
     if (loaded) {
@@ -43,6 +47,7 @@ export default function RootLayout() {
             <Stack.Screen name="login" options={{ headerShown: false, animation: 'none' }} />
             <Stack.Screen name="(admin)" options={{ headerShown: false }} />
             <Stack.Screen name="(protected)" options={{ headerShown: false }} />
+            <Stack.Screen name="(security)" options={{ headerShown: false }} />
           </Stack>
         </ThemeProvider>
       </AuthProvider>

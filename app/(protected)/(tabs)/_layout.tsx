@@ -6,6 +6,8 @@ import { Text } from '@/components/nativewindui/Text';
 import { Link } from 'expo-router';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { Tabs } from 'expo-router';
+import { Image } from 'react-native';
+
 
 const Tab = createBottomTabNavigator();
 
@@ -28,8 +30,8 @@ function SettingsIcon() {
       <Pressable className='opacity-80'>
         {({ pressed }) => (
           <View style={styles.profileCircle}>
-                      <Text style={styles.profileInitials}>GD</Text>
-                    </View>
+            <Text style={styles.profileInitials}>GD</Text>
+          </View>
         )}
       </Pressable>
     </Link>
@@ -48,7 +50,7 @@ export default function UserTab() {
       <Tabs.Screen
         name='(home)'
         options={{
-          title: 'Home',
+          title: 'Active Codes',
           headerRight: () => <SettingsIcon />,
           tabBarIcon: ({ color }) => (
             <View>
@@ -62,6 +64,7 @@ export default function UserTab() {
         name='(AddGuest)'
         options={{
           title: 'Active Codes',
+          headerRight: () => <SettingsIcon />,
           headerShown: true,
           tabBarButton: (props) => <FloatingButton {...props} />,
         }}
@@ -72,13 +75,36 @@ export default function UserTab() {
           title: 'My Guest',
           headerRight: () => <SettingsIcon />,
           tabBarIcon: ({ color }) => (
-            <View>
-              <MaterialIcons name='person' size={35} color={color} />
-              <Text style={{ fontSize: 7, fontWeight: 'light', color: '#113E55' }}></Text>
+
+            <View style={{ alignItems: 'center' }}>
+              <Image
+                source={require('@/assets/icons/frame.png')} // Update this path to your image
+                style={{ width: 30, height: 30, resizeMode: 'contain', marginTop: 9 }}
+              />
+              <Text style={{ fontSize: 7, fontWeight: '300', color: '#113E55' }}>
+              </Text>
             </View>
           ),
         }}
       />
+      {/* <Tabs.Screen
+        name='invitePage'
+        options={{
+          title: 'Invite',
+          headerRight: () => <SettingsIcon />,
+          tabBarIcon: ({ color }) => (
+            <View style={{ alignItems: 'center' }}>
+              <Image
+                source={require('@/assets/icons/qr.png')} // Change to your actual QR icon
+                style={{ width: 30, height: 30, resizeMode: 'contain', marginTop: 9 }}
+              />
+              <Text style={{ fontSize: 7, fontWeight: '300', color: '#113E55' }}>
+              </Text>
+            </View>
+          ),
+        }}
+      /> */}
+
     </Tabs>
   );
 }

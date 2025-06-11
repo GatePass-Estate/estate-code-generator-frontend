@@ -24,9 +24,9 @@ export default function AdminLayout() {
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name='(security)' options={{ headerShown: false }} />
-      <Stack.Screen name='(validationResult)' options={{ headerShown: false }} />
+    <Stack screenOptions={{ headerShown: false, title: "Incoming Guest" }}>
+      <Stack.Screen name='(security)' options={{ headerShown: false,  }} />
+      <Stack.Screen name='(validationResult)' options={{ headerShown: false}} />
 
     </Stack>
   );

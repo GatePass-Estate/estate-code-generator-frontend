@@ -119,11 +119,13 @@ export default function Login() {
             style={{
               marginTop: 70,
               color: '#113E55',
+               fontFamily: 'UbuntuSans',
               fontSize: 40,
               fontWeight: '400',
               textAlign: 'center',
             }}>
             Welcome !
+            
           </Text>
           <Text
             style={{
@@ -185,7 +187,8 @@ export default function Login() {
                 Sign In
               </Text>
             </Button>
-            <Button
+            {/* Continue with google button */}
+            {/* <Button
               variant='primary'
               size={Platform.select({ ios: 'lg', default: 'lg' })}
               style={{
@@ -200,7 +203,7 @@ export default function Login() {
               <Text style={{ color: 'white', textAlign: 'center' }}>
                 Continue with Google
               </Text>
-            </Button>
+            </Button> */}
           </View>
         </View>
       </View>

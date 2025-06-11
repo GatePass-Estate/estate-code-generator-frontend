@@ -19,8 +19,8 @@ export default function ValidationResult() {
         <Text style={styles.code}>765 3E2</Text>
 
         {/* Guest Details */}
-        <View style={styles.guestBox}>
           <Text style={styles.sectionTitle}>GUEST DETAILS</Text>
+        <View style={styles.guestBox}>
           <View style={styles.infoRow}>
             <Text style={styles.labelText}>Name :</Text>
             <Text style={styles.valueText}>Sandy Happiness</Text>
@@ -36,8 +36,8 @@ export default function ValidationResult() {
         </View>
 
         {/* Resident Details */}
+          <Text style={styles.sectionTitle2}>RESIDENT DETAILS</Text>
         <View style={styles.residentBox}>
-          <Text style={styles.sectionTitle}>RESIDENT DETAILS</Text>
           <View style={styles.infoRow}>
             <Text style={styles.labelText}>Name :</Text>
             <Text style={styles.valueText}>Sandra Happiness</Text>
@@ -105,6 +105,11 @@ const styles = StyleSheet.create({
     borderColor: '#C9E4E1',
   },
   sectionTitle: {
+    fontWeight: '600',
+    marginBottom: 10,
+    color: '#E76F51',
+  },
+  sectionTitle2: {
     fontWeight: '600',
     marginBottom: 10,
     color: '#113E55',
