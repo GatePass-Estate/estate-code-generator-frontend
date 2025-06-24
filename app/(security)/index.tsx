@@ -12,10 +12,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function SecurityVerification() {
   const [code, setCode] = useState(['', '', '', '', '', '']);
+  const [errorMessage, setErrorMessage] = useState('');
   const inputs = useRef([]);
-  const router = useRouter(); // ✅ You forgot this line!
+  const router = useRouter();
 
   const handleChange = (text, index) => {
+    const newCode = [...code];
     newCode[index] = text;
     setCode(newCode);
 
@@ -32,14 +34,16 @@ export default function SecurityVerification() {
     const enteredCode = code.join('');
     Keyboard.dismiss();
 
-    // Optional: Validate enteredCode here
-
-    // ✅ Navigate to validation result page
-    router.push('/(security)/(validationResult)');
+    // Example: Assume valid code is '123456'
+    if (enteredCode === '123456') {
+      setErrorMessage('');
+      router.push('/(security)/(validationResult)');
+    } else {
+      setErrorMessage('Invalid Code');
+    }
   };
 
   return (
-    
     <SafeAreaView style={styles.container}>
       <Text style={styles.subtitle}>Verify incoming {'\n'} guest’s code</Text>
       <Text style={styles.instructions}>Enter the code from guest here</Text>
@@ -58,6 +62,10 @@ export default function SecurityVerification() {
         ))}
       </View>
 
+      {errorMessage ? (
+        <Text style={styles.errorText}>{errorMessage}</Text>
+      ) : null}
+
       <TouchableOpacity style={styles.button} onPress={validateCode}> 
         <Text style={styles.buttonText}>Validate Code</Text>
       </TouchableOpacity>
@@ -67,7 +75,7 @@ export default function SecurityVerification() {
 
 const styles = StyleSheet.create({
   container: {
-      fontFamily: 'ubuntu',
+    fontFamily: 'ubuntu',
     padding: 20,
     backgroundColor: '#fff',
     flex: 1,
@@ -96,7 +104,7 @@ const styles = StyleSheet.create({
   inputRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 150,
+    marginBottom: 30,
   },
   inputBox: {
     borderBottomWidth: 1,
@@ -113,11 +121,17 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 8,
     width: 240,
-    left: 40,
+    alignSelf: 'center',
   },
   buttonText: {
     color: '#fff',
     fontWeight: '600',
     textAlign: 'center',
+  },
+  errorText: {
+    color: 'red',
+    textAlign: 'center',
+    marginBottom: 20,
+    fontSize: 14,
   },
 });
