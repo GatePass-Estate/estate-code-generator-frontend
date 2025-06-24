@@ -30,22 +30,9 @@ export default function Login() {
   const { width } = useWindowDimensions();
 
   const [appIsReady, setAppIsReady] = useState(false);
-
-  // const [request, response, promptAsync] = Google.useAuthRequest({
-  //   clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID,
-  //   iosClientId: '747446141313-4600vppfo3sefbvk9om458q3j802e7a4.apps.googleusercontent.com',
-  //   androidClientId: '747446141313-pc9ucol0het3lt0thep83ejgtt31e197.apps.googleusercontent.com',
-  //   redirectUri: makeRedirectUri({ useProxy: true }),
-  // });
-
-  // useEffect(() => {
-  //   if (response?.type === 'success') {
-  //     const { authentication } = response;
-  //     if (authentication?.accessToken) {
-  //       fetchUserInfo(authentication.accessToken);
-  //     }
-  //   }
-  // }, [response]);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
   async function fetchUserInfo(token: string) {
     const res = await fetch('https://www.googleapis.com/userinfo/v2/me', {
@@ -77,13 +64,22 @@ export default function Login() {
   if (!appIsReady) return null;
 
   const handleSignInPress = () => {
-    signIn({
-      id: 'demo-user',
-      name: 'Demo User',
-      email: 'demo@example.com',
-      role: 'security',
-      token: 'demo-token',
-    });
+    try {
+      if (email === 'demo@example.com' && password === 'password123') {
+        signIn({
+          id: 'demo-user',
+          name: 'Demo User',
+          email: 'demo@example.com',
+          role: 'security',
+          token: 'demo-token',
+        });
+        setErrorMessage('');
+      } else {
+        throw new Error('Invalid credentials');
+      }
+    } catch (error) {
+      setErrorMessage('Incorrect email or password');
+    }
   };
 
   const isLargeScreen = width > 768;
@@ -98,15 +94,14 @@ export default function Login() {
             alignItems: 'center',
             backgroundColor: 'white',
           }}>
-         <Image
-  source={require('@/assets/Frame 12.png')}
-  resizeMode="contain"
-  style={{
-    width: 1000,
-    height: '120vh',
-  }}
-/>
-
+          <Image
+            source={require('@/assets/Frame 12.png')}
+            resizeMode="contain"
+            style={{
+              width: 1000,
+              height: '120vh',
+            }}
+          />
         </View>
       )}
       <View
@@ -127,13 +122,12 @@ export default function Login() {
             style={{
               marginTop: 70,
               color: '#113E55',
-               fontFamily: 'UbuntuSans',
+              fontFamily: 'UbuntuSans',
               fontSize: 40,
               fontWeight: '400',
               textAlign: 'center',
             }}>
             Welcome !
-            
           </Text>
           <Text
             style={{
@@ -154,6 +148,8 @@ export default function Login() {
             <TextInput
               placeholder='Enter your email address...'
               keyboardType='email-address'
+              value={email}
+              onChangeText={setEmail}
               style={{
                 backgroundColor: '#F7F9F9',
                 borderWidth: 1,
@@ -169,6 +165,8 @@ export default function Login() {
             <TextInput
               placeholder='Enter your password...'
               secureTextEntry
+              value={password}
+              onChangeText={setPassword}
               style={{
                 backgroundColor: '#F7F9F9',
                 borderWidth: 1,
@@ -179,6 +177,9 @@ export default function Login() {
               }}
             />
           </View>
+          {errorMessage ? (
+            <Text style={{ color: 'red', textAlign: 'center', marginTop: 8 }}>{errorMessage}</Text>
+          ) : null}
           <View style={{ gap: 20, marginTop: 16 }}>
             <Button
               size={Platform.select({ ios: 'lg', default: 'lg' })}
@@ -195,23 +196,6 @@ export default function Login() {
                 Sign In
               </Text>
             </Button>
-            {/* Continue with google button */}
-            {/* <Button
-              variant='primary'
-              size={Platform.select({ ios: 'lg', default: 'lg' })}
-              style={{
-                backgroundColor: '#1B998B',
-                height: 50,
-                width: '90%',
-                alignSelf: 'center',
-                justifyContent: 'center',
-                borderRadius: 8,
-              }}
-              onPress={() => promptAsync()}>
-              <Text style={{ color: 'white', textAlign: 'center' }}>
-                Continue with Google
-              </Text>
-            </Button> */}
           </View>
         </View>
       </View>
