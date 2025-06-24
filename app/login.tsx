@@ -3,6 +3,7 @@ import {
   Platform,
   View,
   TextInput,
+  Image,
   Text,
   type ViewStyle,
   useWindowDimensions,
@@ -11,7 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/nativewindui/Button';
 import { useColorScheme } from '@/lib/useColorScheme';
 import * as WebBrowser from 'expo-web-browser';
-import * as Google from 'expo-auth-session/providers/google';
+// import * as Google from 'expo-auth-session/providers/google';
 import { makeRedirectUri } from 'expo-auth-session';
 import { useAuth } from '@/hooks/useAuthContext';
 import { useRouter } from 'expo-router';
@@ -30,21 +31,21 @@ export default function Login() {
 
   const [appIsReady, setAppIsReady] = useState(false);
 
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID,
-    iosClientId: '747446141313-4600vppfo3sefbvk9om458q3j802e7a4.apps.googleusercontent.com',
-    androidClientId: '747446141313-pc9ucol0het3lt0thep83ejgtt31e197.apps.googleusercontent.com',
-    redirectUri: makeRedirectUri({ useProxy: true }),
-  });
+  // const [request, response, promptAsync] = Google.useAuthRequest({
+  //   clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID,
+  //   iosClientId: '747446141313-4600vppfo3sefbvk9om458q3j802e7a4.apps.googleusercontent.com',
+  //   androidClientId: '747446141313-pc9ucol0het3lt0thep83ejgtt31e197.apps.googleusercontent.com',
+  //   redirectUri: makeRedirectUri({ useProxy: true }),
+  // });
 
-  useEffect(() => {
-    if (response?.type === 'success') {
-      const { authentication } = response;
-      if (authentication?.accessToken) {
-        fetchUserInfo(authentication.accessToken);
-      }
-    }
-  }, [response]);
+  // useEffect(() => {
+  //   if (response?.type === 'success') {
+  //     const { authentication } = response;
+  //     if (authentication?.accessToken) {
+  //       fetchUserInfo(authentication.accessToken);
+  //     }
+  //   }
+  // }, [response]);
 
   async function fetchUserInfo(token: string) {
     const res = await fetch('https://www.googleapis.com/userinfo/v2/me', {
@@ -80,7 +81,7 @@ export default function Login() {
       id: 'demo-user',
       name: 'Demo User',
       email: 'demo@example.com',
-      role: 'user',
+      role: 'security',
       token: 'demo-token',
     });
   };
@@ -95,11 +96,17 @@ export default function Login() {
             width: '40%',
             justifyContent: 'center',
             alignItems: 'center',
-            backgroundColor: '#113E55',
+            backgroundColor: 'white',
           }}>
-          <Text style={{ fontSize: 48, fontWeight: 'bold', color: 'white' }}>
-            Logo
-          </Text>
+         <Image
+  source={require('@/assets/Frame 12.png')}
+  resizeMode="contain"
+  style={{
+    width: 1000,
+    height: '120vh',
+  }}
+/>
+
         </View>
       )}
       <View
@@ -107,6 +114,7 @@ export default function Login() {
           width: isLargeScreen ? '60%' : '100%',
           paddingHorizontal: 16,
           paddingVertical: 24,
+          backgroundColor: 'white',
         }}>
         <View
           style={{

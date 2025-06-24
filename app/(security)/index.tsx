@@ -39,6 +39,7 @@ export default function SecurityVerification() {
   };
 
   return (
+    
     <SafeAreaView style={styles.container}>
       <Text style={styles.subtitle}>Verify incoming {'\n'} guest’s code</Text>
       <Text style={styles.instructions}>Enter the code from guest here</Text>
@@ -50,7 +51,7 @@ export default function SecurityVerification() {
             ref={(ref) => (inputs.current[index] = ref)}
             style={styles.inputBox}
             maxLength={1}
-            keyboardType="text-pad"
+            keyboardType="default"
             onChangeText={(text) => handleChange(text, index)}
             value={digit}
           />

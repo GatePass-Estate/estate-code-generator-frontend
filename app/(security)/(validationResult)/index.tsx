@@ -9,12 +9,12 @@ export default function ValidationResult() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+      {/* <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
         <Ionicons name="arrow-back" size={20} color="#113E55" />
         <Text style={styles.backText}>Back</Text>
-      </TouchableOpacity>
+      </TouchableOpacity> */}
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 40, marginTop: 60 }}>
         <Text style={styles.label}>SECURITY CODE</Text>
         <Text style={styles.code}>765 3E2</Text>
 
@@ -44,7 +44,7 @@ export default function ValidationResult() {
           </View>
           <View style={styles.infoRow}>
             <Text style={styles.labelText}>Address :</Text>
-            <Text style={styles.valueText}>Flat 1, 18A Olayinka Something Street, U3 Estate</Text>
+            <Text style={styles.valueText}>Flat 1, 18A Olayinka  Street, U3 Estate</Text>
           </View>
           <View style={styles.infoRow}>
             <Text style={styles.labelText}>Email Address :</Text>
@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   code: {
-    fontSize: 32,
+    fontSize: 42,
     fontWeight: 'bold',
     textAlign: 'center',
     color: '#113E55',
@@ -126,6 +126,7 @@ const styles = StyleSheet.create({
   },
   valueText: {
     flex: 1,
+     textAlign: 'right',
     fontWeight: '400',
     color: '#222',
   },

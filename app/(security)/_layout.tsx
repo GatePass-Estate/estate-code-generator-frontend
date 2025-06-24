@@ -15,7 +15,7 @@ export default function SecurityLayout() {
 
   function SettingsIcon() {
     return (
-      <Link href="/modal" asChild>
+      <Link href="/profile" asChild>
         <Pressable className="opacity-80">
           <View style={styles.profileCircle}>
             <Text style={styles.profileInitials}>GD</Text>
@@ -28,13 +28,16 @@ export default function SecurityLayout() {
   return (
     <Stack
       screenOptions={{
-        headerShown: true,
+        headerShown: false,
         title: 'Incoming Guest',
         headerRight: () => <SettingsIcon />,
       }}
     >
-      <Stack.Screen name="index" options={{ headerShown: false }} />
+      <Stack.Screen name="(security)/index" options={{ headerShown: false }} />
+      <Stack.Screen name="index" options={{ headerShown: true }} />
       <Stack.Screen name="(validationResult)/index" options={{ headerShown: false }} />
+      {/* <Stack.Screen name="(security)/index" options={{ headerShown: true }} /> */}
+      
     </Stack>
   );
 }

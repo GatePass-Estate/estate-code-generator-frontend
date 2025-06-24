@@ -1,17 +1,19 @@
 {
   "expo": {
-    "name": "my-expo-app",
+    "name": "Estate Code Generator",
     "slug": "my-expo-app",
     "version": "1.0.0",
     "scheme": "my-expo-app",
     "web": {
       "bundler": "metro",
       "output": "static",
+      "image": "./assets/gatepass_ng_Gp.png",
       "favicon": "./assets/gatepass_ng_Gp.png"
     },
     "plugins": [
       "expo-router",
-      "expo-font"
+      "expo-font",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,
