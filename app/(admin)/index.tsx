@@ -179,7 +179,7 @@ const styles = StyleSheet.create({
     marginTop: 5,
     fontSize: 20,
     fontWeight: '600',
-    color:'green'
+    color:'#2A9D8F'
   },
   totalBox: {
     width: '48%',

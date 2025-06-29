@@ -31,30 +31,13 @@ const ProfileScreen = () => {
         <Text style={styles.sectionTitle}>
           PERSONAL DETAILS
           <TouchableOpacity style={styles.editIcon}>
-            <Image
-                source={require('@/assets/icons/Vector.png')} // Update this path to your image
-                style={{ width: 20, height: 15, resizeMode: 'contain', marginTop: 9, left: 10, top: 2 }}
-              />
+            
           </TouchableOpacity>
         </Text>
-
-        {/* Access Code Card */}
-        <View style={accesstyles.access}>
-          <Text style={accesstyles.text}>My access code:  90t 76E</Text>
-        </View>
-
-        {/* Expire Card */}
-        <View style={styles.expire}>
-          <Text style={accesstyles.textExpire}>
-            {/* <Icon name="alert-circle-outline" size={20} color="#113E55"   /> */}
-            Code expires on 31st May 2003
-          </Text>
-        </View>
 
         {/* Profile Card */}
         <View style={styles.card}>
           <ProfileDetail label="Name" value="Sandra Happiness" />
-          <ProfileDetail label="Address" value="Flat 1, 18A Olayinka Street" />
           <ProfileDetail label="Email Address" value="sandaroJ@hmo.com" />
           <ProfileDetail label="Phone Number" value="0902 443 4224" />
         </View>
@@ -105,6 +88,7 @@ const accesstyles = StyleSheet.create({
 // Styles
 const styles = StyleSheet.create({
   container: {
+    marginTop: 40,
     flex: 1,
     backgroundColor: '#F9FAFB',
     padding: 20,
@@ -120,6 +104,7 @@ const styles = StyleSheet.create({
     marginLeft: 5,
   },
   title: {
+    marginTop: 10,
     fontSize: 22,
     fontWeight: 'bold',
     color: '#113E55',
@@ -141,7 +126,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   card: {
-    marginTop: -12,
+    marginTop: 12,
     backgroundColor: '#FFFFFF',
     padding: 15,
     borderRadius: 10,
@@ -167,7 +152,7 @@ const styles = StyleSheet.create({
   },
   logoutButton: {
     alignSelf: 'center',
-    marginTop: 30,
+    marginTop: 90,
   },
   logoutText: {
     top: 130,

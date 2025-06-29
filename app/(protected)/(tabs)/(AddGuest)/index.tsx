@@ -8,10 +8,12 @@ import {
   Alert,
   ScrollView,
 } from 'react-native';
+import CheckBox from 'expo-checkbox';
 import { Picker } from '@react-native-picker/picker';
 import { NavigationProp } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAuth } from '@/hooks/useAuthContext';
+import { router } from 'expo-router';
+
 
 interface Guest {
   name: string;
@@ -25,7 +27,6 @@ const AddGuest = ({ navigation }: { navigation: NavigationProp<any> }) => {
   const [relationship, setRelationship] = useState('');
   const [isChecked, setIsChecked] = useState(false);
   const [guestList, setGuestList] = useState<Guest[]>([]);
-  const { signOut } = useAuth();
 
   const handleCheckboxChange = () => {
     setIsChecked(!isChecked);
@@ -87,17 +88,23 @@ const AddGuest = ({ navigation }: { navigation: NavigationProp<any> }) => {
         onChangeText={setRelationship}
       />
 
+
       <View style={styles.checkboxContainer}>
-        <Text style={styles.checkboxText} onPress={handleCheckboxChange}>
-          {isChecked ? '✔️ Add to My Guest List' : '❌ Add to My Guest List'}
+        <CheckBox
+          value={isChecked}
+          onValueChange={handleCheckboxChange}
+        />
+        <Text style={styles.checkboxText}>
+          {isChecked ? 'Add to My Guest List' : 'Add to My Guest List'}
         </Text>
       </View>
 
-      <TouchableOpacity style={styles.generateButton} onPress={handleAddGuest}>
+
+      <TouchableOpacity style={styles.generateButton} onPress={() => router.push('/invitePage')}>
         <Text style={styles.buttonText}>Generate Code</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.saveButton} onPress={signOut}>
+      <TouchableOpacity style={styles.saveButton} >
         <Text style={styles.saveText}>Save Guest</Text>
       </TouchableOpacity>
     </ScrollView>
@@ -108,6 +115,7 @@ export default AddGuest;
 
 const styles = StyleSheet.create({
   container: {
+    marginTop: -15,
     flex: 1,
     paddingHorizontal: 20,
     paddingTop: 40,
@@ -141,6 +149,7 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   picker: {
+    color: 'gray',
     height: 52,
     width: '100%',
   },
@@ -154,11 +163,14 @@ const styles = StyleSheet.create({
     color: '#113E55',
   },
   generateButton: {
+    left: 38,
+    width: 250,
     backgroundColor: '#113E55',
     paddingVertical: 15,
     borderRadius: 8,
-    marginTop: 30,
+    marginTop: 55,
     alignItems: 'center',
+    justifyContent: 'center'
   },
   buttonText: {
     color: '#fff',

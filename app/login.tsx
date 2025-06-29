@@ -3,6 +3,7 @@ import {
   Platform,
   View,
   TextInput,
+  Image,
   Text,
   type ViewStyle,
   useWindowDimensions,
@@ -11,7 +12,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/nativewindui/Button';
 import { useColorScheme } from '@/lib/useColorScheme';
 import * as WebBrowser from 'expo-web-browser';
-import * as Google from 'expo-auth-session/providers/google';
 import { makeRedirectUri } from 'expo-auth-session';
 import { useAuth } from '@/hooks/useAuthContext';
 import { useRouter } from 'expo-router';
@@ -20,7 +20,14 @@ import * as SplashScreen from 'expo-splash-screen';
 WebBrowser.maybeCompleteAuthSession();
 SplashScreen.preventAutoHideAsync(); // Keep splash screen visible
 
-const ROOT_STYLE: ViewStyle = { flex: 1, flexDirection: 'row' };
+const ROOT_STYLE: ViewStyle = {
+  flex: 1,
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'center',
+  backgroundColor: 'white',
+  marginTop: -120,
+};
 
 export default function Login() {
   const { colors } = useColorScheme();
@@ -29,22 +36,9 @@ export default function Login() {
   const { width } = useWindowDimensions();
 
   const [appIsReady, setAppIsReady] = useState(false);
-
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID,
-    iosClientId: '747446141313-4600vppfo3sefbvk9om458q3j802e7a4.apps.googleusercontent.com',
-    androidClientId: '747446141313-pc9ucol0het3lt0thep83ejgtt31e197.apps.googleusercontent.com',
-    redirectUri: makeRedirectUri({ useProxy: true }),
-  });
-
-  useEffect(() => {
-    if (response?.type === 'success') {
-      const { authentication } = response;
-      if (authentication?.accessToken) {
-        fetchUserInfo(authentication.accessToken);
-      }
-    }
-  }, [response]);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
   async function fetchUserInfo(token: string) {
     const res = await fetch('https://www.googleapis.com/userinfo/v2/me', {
@@ -76,13 +70,40 @@ export default function Login() {
   if (!appIsReady) return null;
 
   const handleSignInPress = () => {
-    signIn({
-      id: 'demo-user',
-      name: 'Demo User',
-      email: 'demo@example.com',
-      role: 'admin',
-      token: 'demo-token',
-    });
+    try {
+      if (email === 'user@example.com' && password === '1234') {
+        signIn({
+          id: 'demo-user',
+          name: 'Demo User',
+          email: 'user@example.com',
+          role: 'user',
+          token: 'demo-token',
+        });
+        setErrorMessage('');
+      } else if (email === 'admin@example.com' && password === '1234') {
+        signIn({
+          id: 'demo-user',
+          name: 'Demo User',
+          email: 'admin@example.com',
+          role: 'admin',
+          token: 'demo-token',
+        });
+        setErrorMessage('');
+      } else if (email === 'security@example.com' && password === '1234') {
+        signIn({
+          id: 'demo-user',
+          name: 'Demo User',
+          email: 'security@example.com',
+          role: 'security',
+          token: 'demo-token',
+        });
+        setErrorMessage('');
+      } else {
+        throw new Error('Invalid credentials');
+      }
+    } catch (error) {
+      setErrorMessage('Incorrect email or password');
+    }
   };
 
   const isLargeScreen = width > 768;
@@ -93,20 +114,29 @@ export default function Login() {
         <View
           style={{
             width: '40%',
+            height: '100%',
             justifyContent: 'center',
             alignItems: 'center',
-            backgroundColor: '#113E55',
+            backgroundColor: 'white',
           }}>
-          <Text style={{ fontSize: 48, fontWeight: 'bold', color: 'white' }}>
-            Logo
-          </Text>
+          <Image
+            source={require('@/assets/Frame 12.png')}
+            resizeMode="contain"
+            style={{
+              width: 300,
+              height: 300,
+            }}
+          />
         </View>
       )}
       <View
         style={{
           width: isLargeScreen ? '60%' : '100%',
+          maxWidth: 500,
           paddingHorizontal: 16,
           paddingVertical: 24,
+          backgroundColor: 'white',
+          alignSelf: 'center',
         }}>
         <View
           style={{
@@ -119,6 +149,7 @@ export default function Login() {
             style={{
               marginTop: 70,
               color: '#113E55',
+              fontFamily: 'UbuntuSans',
               fontSize: 40,
               fontWeight: '400',
               textAlign: 'center',
@@ -144,6 +175,8 @@ export default function Login() {
             <TextInput
               placeholder='Enter your email address...'
               keyboardType='email-address'
+              value={email}
+              onChangeText={setEmail}
               style={{
                 backgroundColor: '#F7F9F9',
                 borderWidth: 1,
@@ -159,6 +192,8 @@ export default function Login() {
             <TextInput
               placeholder='Enter your password...'
               secureTextEntry
+              value={password}
+              onChangeText={setPassword}
               style={{
                 backgroundColor: '#F7F9F9',
                 borderWidth: 1,
@@ -169,6 +204,9 @@ export default function Login() {
               }}
             />
           </View>
+          {errorMessage ? (
+            <Text style={{ color: 'red', textAlign: 'center', marginTop: 8 }}>{errorMessage}</Text>
+          ) : null}
           <View style={{ gap: 20, marginTop: 16 }}>
             <Button
               size={Platform.select({ ios: 'lg', default: 'lg' })}
@@ -183,22 +221,6 @@ export default function Login() {
               onPress={handleSignInPress}>
               <Text style={{ color: 'white', textAlign: 'center' }}>
                 Sign In
-              </Text>
-            </Button>
-            <Button
-              variant='primary'
-              size={Platform.select({ ios: 'lg', default: 'lg' })}
-              style={{
-                backgroundColor: '#1B998B',
-                height: 50,
-                width: '90%',
-                alignSelf: 'center',
-                justifyContent: 'center',
-                borderRadius: 8,
-              }}
-              onPress={() => promptAsync()}>
-              <Text style={{ color: 'white', textAlign: 'center' }}>
-                Continue with Google
               </Text>
             </Button>
           </View>

@@ -1,16 +1,16 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { View, TouchableOpacity, StyleSheet, Pressable } from 'react-native';
-import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
+import { FontAwesome } from '@expo/vector-icons';
 import { Text } from '@/components/nativewindui/Text';
 import { Link } from 'expo-router';
-import Icon from 'react-native-vector-icons/Ionicons';
 import { Tabs } from 'expo-router';
+import { Image } from 'react-native';
 
 const Tab = createBottomTabNavigator();
 
-// Dummy Screens
-const EmptyScreen = () => <View />; // Placeholder for floating button
+// Dummy Screen
+const EmptyScreen = () => <View />;
 
 // Custom Floating Button
 const FloatingButton = ({ onPress }: any) => {
@@ -21,15 +21,15 @@ const FloatingButton = ({ onPress }: any) => {
   );
 };
 
-// Header Right Icons
+// Header Right Icon
 function SettingsIcon() {
   return (
     <Link href='/modal' asChild>
       <Pressable className='opacity-80'>
         {({ pressed }) => (
           <View style={styles.profileCircle}>
-                      <Text style={styles.profileInitials}>GD</Text>
-                    </View>
+            <Text style={styles.profileInitials}>GD</Text>
+          </View>
         )}
       </Pressable>
     </Link>
@@ -48,11 +48,15 @@ export default function UserTab() {
       <Tabs.Screen
         name='(home)'
         options={{
-          title: 'Active Codes',
+          title: 'Home',
+           headerShown: false,
           headerRight: () => <SettingsIcon />,
           tabBarIcon: ({ color }) => (
             <View>
-              <MaterialIcons name='home' size={35} color={color} />
+              <Image
+                source={require('@/assets/images/home.png')}
+                style={{ width: 30, height: 30, resizeMode: 'contain', marginTop: 9 }}
+              />
               <Text style={{ fontSize: 7, fontWeight: 'light', color: '#113E55' }}></Text>
             </View>
           ),
@@ -62,6 +66,7 @@ export default function UserTab() {
         name='(AddGuest)'
         options={{
           title: 'Active Codes',
+          headerRight: () => <SettingsIcon />,
           headerShown: true,
           tabBarButton: (props) => <FloatingButton {...props} />,
         }}
@@ -69,12 +74,15 @@ export default function UserTab() {
       <Tabs.Screen
         name='(MyGuest)'
         options={{
-          title: 'My Guest',
+          title: 'My Guests',
           headerRight: () => <SettingsIcon />,
           tabBarIcon: ({ color }) => (
-            <View>
-              <MaterialIcons name='person' size={35} color={color} />
-              <Text style={{ fontSize: 7, fontWeight: 'light', color: '#113E55' }}></Text>
+            <View style={{ alignItems: 'center' }}>
+              <Image
+                source={require('@/assets/icons/frame.png')}
+                style={{ width: 30, height: 30, resizeMode: 'contain', marginTop: 9 }}
+              />
+              <Text style={{ fontSize: 7, fontWeight: '300', color: '#113E55' }}></Text>
             </View>
           ),
         }}
@@ -89,6 +97,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#CEE5ED',
     height: 70,
     bottom: 50,
+
+    // Remove shadow (iOS and Android)
+    elevation: 0, // Android
+    shadowColor: 'transparent', // iOS
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    borderTopWidth: 0,
   },
   fab: {
     top: -40,
@@ -101,6 +117,13 @@ const styles = StyleSheet.create({
     borderWidth: 4,
     justifyContent: 'center',
     alignItems: 'center',
+
+    // Remove shadow
+    elevation: 0,
+    shadowColor: 'transparent',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
   },
   profileCircle: {
     width: 40,
@@ -111,9 +134,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 20,
+
+    // Remove shadow
+    elevation: 0,
+    shadowColor: 'transparent',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
   },
   profileInitials: {
     color: '#113E55',
     fontWeight: '600',
-  }
+  },
 });
