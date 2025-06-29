@@ -85,6 +85,9 @@ export default function ActiveCodes() {
     headerShown: true,
     title: 'Active Codes',
     headerRight: () => <SettingsIcon />, 
+     headerTitleStyle: {
+      color: '#113E55', // 👈 Blue title text
+    },
     headerStyle: {
       marginTop: 30,
       elevation: 0, // Android

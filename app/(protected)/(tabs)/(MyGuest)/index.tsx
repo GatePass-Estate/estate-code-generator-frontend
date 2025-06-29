@@ -15,7 +15,7 @@ const MyGuest = () => {
     <View style={styles.container}>
       <View style={styles.searchBar}>
         <Ionicons name="search" size={18} color="#555" style={{ marginLeft: 8 }} />
-        <TextInput placeholder="Sandra something" style={styles.searchInput} />
+        <TextInput placeholder="Search" style={styles.searchInput} />
       </View>
 
       <Text style={styles.savedLabel}>All Saved Guests</Text>

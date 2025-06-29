@@ -51,6 +51,9 @@ export default function UserTab() {
           title: 'Home',
            headerShown: false,
           headerRight: () => <SettingsIcon />,
+           headerTitleStyle: {
+      color: '#113E55', // 👈 Blue title text
+    },
           tabBarIcon: ({ color }) => (
             <View>
               <Image
@@ -67,6 +70,9 @@ export default function UserTab() {
         options={{
           title: 'Active Codes',
           headerRight: () => <SettingsIcon />,
+           headerTitleStyle: {
+      color: '#113E55', // 👈 Blue title text
+    },
           headerShown: true,
           tabBarButton: (props) => <FloatingButton {...props} />,
         }}
@@ -76,6 +82,9 @@ export default function UserTab() {
         options={{
           title: 'My Guests',
           headerRight: () => <SettingsIcon />,
+           headerTitleStyle: {
+      color: '#113E55', // 👈 Blue title text
+    },
           tabBarIcon: ({ color }) => (
             <View style={{ alignItems: 'center' }}>
               <Image
@@ -117,6 +126,7 @@ const styles = StyleSheet.create({
     borderWidth: 4,
     justifyContent: 'center',
     alignItems: 'center',
+    
 
     // Remove shadow
     elevation: 0,
