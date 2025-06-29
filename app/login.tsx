@@ -12,7 +12,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/nativewindui/Button';
 import { useColorScheme } from '@/lib/useColorScheme';
 import * as WebBrowser from 'expo-web-browser';
-// import * as Google from 'expo-auth-session/providers/google';
 import { makeRedirectUri } from 'expo-auth-session';
 import { useAuth } from '@/hooks/useAuthContext';
 import { useRouter } from 'expo-router';
@@ -21,7 +20,14 @@ import * as SplashScreen from 'expo-splash-screen';
 WebBrowser.maybeCompleteAuthSession();
 SplashScreen.preventAutoHideAsync(); // Keep splash screen visible
 
-const ROOT_STYLE: ViewStyle = { flex: 1, flexDirection: 'row' };
+const ROOT_STYLE: ViewStyle = {
+  flex: 1,
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'center',
+  backgroundColor: 'white',
+  marginTop: -120,
+};
 
 export default function Login() {
   const { colors } = useColorScheme();
@@ -65,11 +71,29 @@ export default function Login() {
 
   const handleSignInPress = () => {
     try {
-      if (email === 'demo@example.com' && password === 'password123') {
+      if (email === 'user@example.com' && password === '1234') {
         signIn({
           id: 'demo-user',
           name: 'Demo User',
-          email: 'demo@example.com',
+          email: 'user@example.com',
+          role: 'user',
+          token: 'demo-token',
+        });
+        setErrorMessage('');
+      } else if (email === 'admin@example.com' && password === '1234') {
+        signIn({
+          id: 'demo-user',
+          name: 'Demo User',
+          email: 'admin@example.com',
+          role: 'admin',
+          token: 'demo-token',
+        });
+        setErrorMessage('');
+      } else if (email === 'security@example.com' && password === '1234') {
+        signIn({
+          id: 'demo-user',
+          name: 'Demo User',
+          email: 'security@example.com',
           role: 'security',
           token: 'demo-token',
         });
@@ -90,6 +114,7 @@ export default function Login() {
         <View
           style={{
             width: '40%',
+            height: '100%',
             justifyContent: 'center',
             alignItems: 'center',
             backgroundColor: 'white',
@@ -98,8 +123,8 @@ export default function Login() {
             source={require('@/assets/Frame 12.png')}
             resizeMode="contain"
             style={{
-              width: 1000,
-              height: '120vh',
+              width: 300,
+              height: 300,
             }}
           />
         </View>
@@ -107,9 +132,11 @@ export default function Login() {
       <View
         style={{
           width: isLargeScreen ? '60%' : '100%',
+          maxWidth: 500,
           paddingHorizontal: 16,
           paddingVertical: 24,
           backgroundColor: 'white',
+          alignSelf: 'center',
         }}>
         <View
           style={{

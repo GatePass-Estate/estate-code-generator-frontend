@@ -30,6 +30,9 @@
 // }
 import React from 'react';
 import { Stack } from 'expo-router';
+import { Link } from 'expo-router';
+import {  TouchableOpacity,  Pressable } from 'react-native';
+
 import {
   View,
   Text,
@@ -60,10 +63,37 @@ const CircleBadge = ({ count }: { count: number }) => {
   );
 };
 
+function SettingsIcon() {
+  return (
+    <Link href='/modal' asChild>
+      <Pressable className='opacity-80'>
+        {({ pressed }) => (
+          <View style={styles.profileCircle}>
+            <Text style={styles.profileInitials}>GD</Text>
+          </View>
+        )}
+      </Pressable>
+    </Link>
+  );
+}
+
 export default function ActiveCodes() {
   return (
     <SafeAreaView style={styles.container}>
-      <Stack.Screen options={{ headerShown: false }} />
+      <Stack.Screen
+  options={{
+    headerShown: true,
+    title: 'Active Codes',
+    headerRight: () => <SettingsIcon />, 
+    headerStyle: {
+      marginTop: 30,
+      elevation: 0, // Android
+      shadowOpacity: 0, // iOS
+      borderBottomWidth: 0, // Optional: removes bottom border on iOS
+    },// 👈 This is the custom header title
+  }}
+/>
+
 
       <Text style={styles.subText}>All incoming guest</Text>
 
@@ -93,7 +123,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   header: {
-    marginTop: 10,
+    marginTop: 30,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -118,7 +148,9 @@ const styles = StyleSheet.create({
   },
   subText: {
     fontSize: 13,
-    color: '#333',
+    fontWeight: 'bold',
+    marginTop: 40,
+    color: '#113E55',
     marginVertical: 15,
   },
   guestCard: {
@@ -126,6 +158,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: '#FFF',
+    borderWidth: 0.2, // 👈 Thin border
+    borderColor: '#113E55',
     borderRadius: 10,
     padding: 15,
     marginBottom: 12,
@@ -133,7 +167,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 4,
-    elevation: 2,
+    elevation: 0,
   },
   guestName: {
     fontSize: 13,
