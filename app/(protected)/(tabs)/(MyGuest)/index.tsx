@@ -13,7 +13,7 @@ import {
 const guests = [
   { name: 'Sandra', relation: 'Friend', gender: 'female', color: '#FFEFEA' },
   { name: 'Jeff', relation: 'Service Provider', gender: 'male' },
-  { name: 'Sandra', relation: 'Friend', gender: 'male' },
+  { name: 'Sandra', relation: 'Friend', gender: 'gender' },
   { name: 'Ben', relation: 'Partner', gender: 'male' },
   { name: 'Maya', relation: 'Friend', gender: 'female' },
 ];
@@ -58,6 +58,8 @@ const MyGuest = () => {
       </View>
 
       <Text style={styles.savedLabel}>All Saved Guests</Text>
+      <View style={styles.divider} />
+
 
       <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
         {guests.map((guest, index) => (
@@ -77,9 +79,11 @@ const MyGuest = () => {
               <TouchableOpacity style={{ marginRight: 15 }}>
                 <Ionicons name="trash-outline" size={20} color="#555" />
               </TouchableOpacity>
-              <TouchableOpacity>
+
+              {/* QRcode beside the deleete button */}
+              {/* <TouchableOpacity>
                 <MaterialIcons name="qr-code" size={20} color="#555" />
-              </TouchableOpacity>
+              </TouchableOpacity> */}
             </View>
           </View>
         ))}
@@ -93,10 +97,17 @@ export default MyGuest;
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    paddingTop: 50,
+    // flex: 1,
+    // paddingTop: 50,
+    // paddingHorizontal: 20,
+    // backgroundColor: '#fff',
+     flex: 1,
+    backgroundColor: "#FBFEFF",
     paddingHorizontal: 20,
-    backgroundColor: '#fff',
+    paddingTop: 35,
+     elevation: 0,
+            shadowOpacity: 0,
+            borderBottomWidth: 0,
   },
   title: {
     fontSize: 22,
@@ -148,6 +159,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     alignItems: 'center',
     borderWidth: 1,
+    height: 60,
     borderColor: '#e5e5e5',
   },
   guestInfo: {
@@ -179,4 +191,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     elevation: 5,
   },
+ divider: {
+  height: 0.5,
+  backgroundColor: '#113E55', // match your theme
+  marginTop: 4,
+  marginBottom: 15,
+  width: '100%',
+}
+
+
 });
