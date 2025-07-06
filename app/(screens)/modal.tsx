@@ -4,6 +4,8 @@ import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useAuth } from '@/hooks/useAuthContext';
 import { Image } from 'react-native';
+import { router } from 'expo-router';
+
 
 
 const ProfileScreen = () => {
@@ -30,12 +32,20 @@ const ProfileScreen = () => {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>
           PERSONAL DETAILS
-          <TouchableOpacity style={styles.editIcon}>
-            <Image
-                source={require('@/assets/icons/Vector.png')} // Update this path to your image
-                style={{ width: 20, height: 15, resizeMode: 'contain', marginTop: 9, left: 10, top: 2 }}
-              />
-          </TouchableOpacity>
+          <TouchableOpacity style={styles.editIcon} onPress={() => router.push('/edit-request')}>
+  <Image
+    source={require('@/assets/icons/Vector.png')}
+    style={{
+      width: 20,
+      height: 15,
+      resizeMode: 'contain',
+      marginTop: 9,
+      left: 10,
+      top: 2,
+    }}
+  />
+</TouchableOpacity>
+
         </Text>
 
         {/* Access Code Card */}

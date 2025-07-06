@@ -147,6 +147,7 @@ const styles = StyleSheet.create({
   },
   savedLabel: {
     fontSize: 14,
+    marginTop: 20,
     marginBottom: 10,
     color: '#222',
   },

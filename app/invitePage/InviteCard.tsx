@@ -27,20 +27,18 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 20,
     width: '85%',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
     marginBottom: 30,
+    borderWidth: 0.2,
   },
   row: {
     fontSize: 13,
     marginBottom: 8,
     color: '#333',
+    // textAlign: "right",
   },
   label: {
     fontWeight: 'bold',
     color: '#113E55',
+    
   },
 });
