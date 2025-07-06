@@ -59,8 +59,9 @@ export default function UserTab() {
           tabBarIcon: ({ color }) => (
             <View>
               <Image
-                source={require("@/assets/images/home.png")}
+                source={require("@/assets/images/home2.png")}
                 style={{
+                  marginLeft: -3,
                   width: 30,
                   height: 25,
                   resizeMode: "contain",
