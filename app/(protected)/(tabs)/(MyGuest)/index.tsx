@@ -1,6 +1,14 @@
 import React from 'react';
 import { View, Text, StyleSheet, TextInput, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { Stack } from "expo-router";
+import { Link } from "expo-router";
+import {
+  FlatList,
+  SafeAreaView,
+  Pressable,
+} from "react-native";
+
 
 const guests = [
   { name: 'Sandra', relation: 'Friend', gender: 'female', color: '#FFEFEA' },
@@ -10,9 +18,40 @@ const guests = [
   { name: 'Maya', relation: 'Friend', gender: 'female' },
 ];
 
+function SettingsIcon() {
+  return (
+    <Link href="/modal" asChild>
+      <Pressable className="opacity-80">
+        {({ pressed }) => (
+          <View style={styles.profileCircle}>
+            <Text style={styles.profileInitials}>GD</Text>
+          </View>
+        )}
+      </Pressable>
+    </Link>
+  );
+}
 const MyGuest = () => {
   return (
     <View style={styles.container}>
+      <Stack.Screen
+              options={{
+                headerShown: true,
+                title: "My Guests",
+                headerRight: () => <SettingsIcon />,
+                headerTitleStyle: {
+                  color: "#113E55",
+                  fontFamily: "UbuntuSans",
+                  fontWeight: "bold",
+                  height: 50,
+                },
+                headerStyle: {
+                  elevation: 0,
+                  shadowOpacity: 0,
+                  borderBottomWidth: 0,
+                },
+              }}
+            />
       <View style={styles.searchBar}>
         <Ionicons name="search" size={18} color="#555" style={{ marginLeft: 8 }} />
         <TextInput placeholder="Search" style={styles.searchInput} />
@@ -72,6 +111,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 8,
     marginBottom: 20,
+  },
+  profileCircle: {
+    width: 35,
+    height: 35,
+    borderRadius: 17,
+    borderWidth: 1,
+    marginRight: 30,
+    borderColor: "#113E55",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  profileInitials: {
+    color: "#113E55",
+    fontWeight: "300",
+    fontFamily: "UbuntuSans",
+    fontSize: 23,
+    // height: ,
   },
   searchInput: {
     padding: 10,

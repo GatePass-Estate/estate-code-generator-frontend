@@ -8,11 +8,17 @@ import {
   Alert,
   ScrollView,
 } from 'react-native';
+import { Link } from "expo-router";
 import CheckBox from 'expo-checkbox';
 import { Picker } from '@react-native-picker/picker';
 import { NavigationProp } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { Stack } from "expo-router";
+import {
+  FlatList,
+  Pressable,
+} from "react-native";
 
 
 interface Guest {
@@ -54,9 +60,40 @@ const AddGuest = ({ navigation }: { navigation: NavigationProp<any> }) => {
       );
     }
   };
+  function SettingsIcon() {
+    return (
+      <Link href="/modal" asChild>
+        <Pressable className="opacity-80">
+          {({ pressed }) => (
+            <View style={styles.profileCircle}>
+              <Text style={styles.profileInitials}>GD</Text>
+            </View>
+          )}
+        </Pressable>
+      </Link>
+    );
+  }
 
   return (
     <ScrollView style={styles.container}>
+      <Stack.Screen
+              options={{
+                headerShown: true,
+                title: "Active Codes",
+                headerRight: () => <SettingsIcon />,
+                headerTitleStyle: {
+                  color: "#113E55",
+                  fontFamily: "UbuntuSans",
+                  fontWeight: "bold",
+                  height: 50,
+                },
+                headerStyle: {
+                  elevation: 0,
+                  shadowOpacity: 0,
+                  borderBottomWidth: 0,
+                },
+              }}
+            />
       <Text style={styles.subHeader}>Fill in your guest information</Text>
 
       <Text style={styles.label}>Name</Text>
@@ -175,6 +212,22 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#fff',
     fontWeight: 'bold',
+  },
+  profileCircle: {
+    width: 35,
+    height: 35,
+    marginRight: 46,
+    borderRadius: 17,
+    borderWidth: 1,
+    borderColor: "#113E55",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  profileInitials: {
+    color: "#113E55",
+    fontWeight: "300",
+    fontFamily: "UbuntuSans",
+    fontSize: 23,
   },
   saveButton: {
     marginTop: 12,
