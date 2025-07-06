@@ -39,17 +39,17 @@ const ProfileScreen = () => {
         </Text>
 
         {/* Access Code Card */}
-        <View style={accesstyles.access}>
+        {/* <View style={accesstyles.access}>
           <Text style={accesstyles.text}>My access code:  90t 76E</Text>
-        </View>
+        </View> */}
 
         {/* Expire Card */}
-        <View style={styles.expire}>
-          <Text style={accesstyles.textExpire}>
+        {/* <View style={styles.expire}>
+          <Text style={accesstyles.textExpire}> */}
             {/* <Icon name="alert-circle-outline" size={20} color="#113E55"   /> */}
-            Code expires on 31st May 2003
+            {/* Code expires on 31st May 2003
           </Text>
-        </View>
+        </View> */}
 
         {/* Profile Card */}
         <View style={styles.card}>
@@ -105,25 +105,31 @@ const accesstyles = StyleSheet.create({
 // Styles
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
-    padding: 20,
+     flex: 1,
+    backgroundColor: "#FBFEFF",
+    paddingHorizontal: 20,
+    paddingTop: 70,
+     elevation: 0,
+            shadowOpacity: 0,
+            borderBottomWidth: 0,
   },
   backButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 20,
   },
   backText: {
     color: '#113E55',
     fontSize: 16,
     marginLeft: 5,
+    fontFamily: "UbuntuSans",
   },
   title: {
     fontSize: 22,
-    fontWeight: 'bold',
+    fontWeight: 700,
     color: '#113E55',
     marginBottom: 20,
+    fontFamily: "UbuntuSans",
   },
   section: {
     marginTop: 20,
@@ -131,7 +137,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: 400,
     color: '#113E55',
     marginBottom: 10,
     flexDirection: 'row',
@@ -141,14 +147,11 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   card: {
-    marginTop: -12,
+    marginTop: 12,
     backgroundColor: '#FFFFFF',
     padding: 15,
     borderRadius: 10,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
+    borderWidth: 0.1,
   },
   detailRow: {
     flexDirection: 'row',
@@ -158,12 +161,13 @@ const styles = StyleSheet.create({
   detailLabel: {
     color: '#888',
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: 400,
   },
   detailValue: {
     color: '#113E55',
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: 400,
+    fontFamily: "UbuntuSans",
   },
   logoutButton: {
     alignSelf: 'center',
