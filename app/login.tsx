@@ -45,7 +45,7 @@ export default function Login() {
       headers: { Authorization: `Bearer ${token}` },
     });
     const user = await res.json();
-    signIn(user); // Use the auth context to sign in
+    signIn(user); // Use the auth context to sign i
   }
 
   useEffect(() => {
