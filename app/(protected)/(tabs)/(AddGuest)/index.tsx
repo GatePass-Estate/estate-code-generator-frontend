@@ -8,11 +8,17 @@ import {
   Alert,
   ScrollView,
 } from 'react-native';
+import { Link } from "expo-router";
 import CheckBox from 'expo-checkbox';
 import { Picker } from '@react-native-picker/picker';
 import { NavigationProp } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { Stack } from "expo-router";
+import {
+  FlatList,
+  Pressable,
+} from "react-native";
 
 
 interface Guest {
@@ -54,9 +60,41 @@ const AddGuest = ({ navigation }: { navigation: NavigationProp<any> }) => {
       );
     }
   };
+  function SettingsIcon() {
+    return (
+      <Link href="/modal" asChild>
+        <Pressable className="opacity-80">
+          {({ pressed }) => (
+            <View style={styles.profileCircle}>
+              <Text style={styles.profileInitials}>GD</Text>
+            </View>
+          )}
+        </Pressable>
+      </Link>
+    );
+  }
 
   return (
     <ScrollView style={styles.container}>
+      <Stack.Screen
+              options={{
+                headerShown: true,
+                title: "Active Codes",
+                fontFamily: "UbuntuSans",
+                headerRight: () => <SettingsIcon />,
+                headerTitleStyle: {
+                  color: "#113E55",
+                  fontFamily: "UbuntuSans",
+                  fontWeight: "700",
+                  // height: 510,
+                },
+                headerStyle: {
+                  elevation: 0,
+                  shadowOpacity: 0,
+                  borderBottomWidth: 0,
+                },
+              }}
+            />
       <Text style={styles.subHeader}>Fill in your guest information</Text>
 
       <Text style={styles.label}>Name</Text>
@@ -76,7 +114,7 @@ const AddGuest = ({ navigation }: { navigation: NavigationProp<any> }) => {
           <Picker.Item label='Select the gender of your guest' value='' />
           <Picker.Item label='Male' value='male' />
           <Picker.Item label='Female' value='female' />
-          <Picker.Item label='Other' value='other' />
+          <Picker.Item label="I'd prefer not to say" value="I'd prefer not to say" />
         </Picker>
       </View>
 
@@ -100,13 +138,16 @@ const AddGuest = ({ navigation }: { navigation: NavigationProp<any> }) => {
       </View>
 
 
-      <TouchableOpacity style={styles.generateButton} onPress={() => router.push('/invitePage')}>
-        <Text style={styles.buttonText}>Generate Code</Text>
-      </TouchableOpacity>
+      <View style={styles.buttonGroup}>
+  <TouchableOpacity style={styles.generateButton} onPress={() => router.push('/invitePage')}>
+    <Text style={styles.buttonText}>Generate Code</Text>
+  </TouchableOpacity>
 
-      <TouchableOpacity style={styles.saveButton} >
-        <Text style={styles.saveText}>Save Guest</Text>
-      </TouchableOpacity>
+  <TouchableOpacity style={styles.saveButton}>
+    <Text style={styles.saveText}>Save Guest</Text>
+  </TouchableOpacity>
+</View>
+
     </ScrollView>
   );
 };
@@ -115,16 +156,37 @@ export default AddGuest;
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: -15,
-    flex: 1,
+    // marginTop: -15,
+     flex: 1,
+    backgroundColor: "#FBFEFF",
     paddingHorizontal: 20,
-    paddingTop: 40,
-    backgroundColor: '#fff',
-    marginBottom: 70,
+    paddingTop: 3,
+     elevation: 0,
+            shadowOpacity: 0,
+            borderBottomWidth: 0,
+    
+  },
+   profileCircle: {
+    width: 35,
+    height: 35,
+    borderRadius: 17,
+    borderWidth: 1,
+    marginRight: 30,
+    borderColor: "#113E55",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  profileInitials: {
+    color: "#113E55",
+    fontWeight: "300",
+    fontFamily: "UbuntuSans",
+    fontSize: 23,
+    // height: ,
   },
   subHeader: {
     fontSize: 14,
     color: '#6b7280',
+    marginTop: 40,
     marginVertical: 10,
   },
   label: {
@@ -134,7 +196,7 @@ const styles = StyleSheet.create({
   },
   input: {
     backgroundColor: '#F7F9F9',
-    borderWidth: 1,
+    // borderWidth: 1,
     borderColor: '#D1D5DB',
     borderRadius: 8,
     paddingHorizontal: 16,
@@ -143,7 +205,7 @@ const styles = StyleSheet.create({
   },
   pickerContainer: {
     backgroundColor: '#F7F9F9',
-    borderWidth: 1,
+    // borderWidth: 1,
     borderColor: '#D1D5DB',
     borderRadius: 8,
     marginTop: 5,
@@ -160,29 +222,39 @@ const styles = StyleSheet.create({
   },
   checkboxText: {
     marginLeft: 8,
-    color: '#113E55',
+    color: '#167a6f',
   },
-  generateButton: {
-    left: 38,
-    width: 250,
-    backgroundColor: '#113E55',
-    paddingVertical: 15,
-    borderRadius: 8,
-    marginTop: 55,
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  buttonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  saveButton: {
-    marginTop: 12,
-    alignItems: 'center',
-  },
-  saveText: {
-    color: '#113E55',
-    fontSize: 16,
-    fontWeight: '500',
-  },
+  buttonGroup: {
+  alignItems: 'center',
+  marginTop: 55,
+},
+
+generateButton: {
+  width: 250,
+  backgroundColor: '#113E55',
+  paddingVertical: 15,
+  borderRadius: 8,
+  alignItems: 'center',
+  justifyContent: 'center',
+  fontFamily: "UbuntuSans",
+},
+
+buttonText: {
+  color: '#fff',
+  fontWeight: '600',
+  fontFamily: "UbuntuSans",
+},
+
+saveButton: {
+  marginTop: 12,
+  alignItems: 'center',
+},
+
+saveText: {
+  color: '#113E55',
+  fontSize: 16,
+  fontWeight: '600',
+  fontFamily: "UbuntuSans",
+},
+
 });

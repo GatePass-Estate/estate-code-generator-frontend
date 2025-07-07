@@ -24,7 +24,7 @@
     "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/gatepass_ng_Gp.png",
-      "resizeMode": "contain",
+      "resizeMode": "cover",
       "backgroundColor": "#ffffff"
     },
     "assetBundlePatterns": [

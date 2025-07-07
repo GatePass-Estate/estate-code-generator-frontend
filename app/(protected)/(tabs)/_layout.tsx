@@ -1,11 +1,11 @@
-import React from 'react';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { View, TouchableOpacity, StyleSheet, Pressable } from 'react-native';
-import { FontAwesome } from '@expo/vector-icons';
-import { Text } from '@/components/nativewindui/Text';
-import { Link } from 'expo-router';
-import { Tabs } from 'expo-router';
-import { Image } from 'react-native';
+import React from "react";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { View, TouchableOpacity, StyleSheet, Pressable } from "react-native";
+import { FontAwesome } from "@expo/vector-icons";
+import { Text } from "@/components/nativewindui/Text";
+import { Link } from "expo-router";
+import { Tabs } from "expo-router";
+import { Image } from "react-native";
 
 const Tab = createBottomTabNavigator();
 
@@ -16,7 +16,7 @@ const EmptyScreen = () => <View />;
 const FloatingButton = ({ onPress }: any) => {
   return (
     <TouchableOpacity style={styles.fab} onPress={onPress}>
-      <FontAwesome name='plus' size={15} color='#113E55' />
+      <FontAwesome name="plus" size={15} color="#113E55" />
     </TouchableOpacity>
   );
 };
@@ -24,8 +24,8 @@ const FloatingButton = ({ onPress }: any) => {
 // Header Right Icon
 function SettingsIcon() {
   return (
-    <Link href='/modal' asChild>
-      <Pressable className='opacity-80'>
+    <Link href="/modal" asChild>
+      <Pressable className="opacity-80">
         {({ pressed }) => (
           <View style={styles.profileCircle}>
             <Text style={styles.profileInitials}>GD</Text>
@@ -42,47 +42,79 @@ export default function UserTab() {
       screenOptions={{
         tabBarStyle: styles.tabBar,
         tabBarShowLabel: true,
-        tabBarActiveTintColor: '#113E55',
-        tabBarInactiveTintColor: '#888',
-      }}>
+        tabBarActiveTintColor: "#113E55",
+        tabBarInactiveTintColor: "#888",
+      }}
+    >
       <Tabs.Screen
-        name='(home)'
+        name="(home)"
         options={{
-          title: 'Home',
-           headerShown: false,
+          title: "Home",
+          headerShown: false,
           headerRight: () => <SettingsIcon />,
+          // headerTitleStyle: {
+          //   color: "#113E55", // 👈 Blue title text
+            
+          // },
           tabBarIcon: ({ color }) => (
             <View>
               <Image
-                source={require('@/assets/images/home.png')}
-                style={{ width: 30, height: 30, resizeMode: 'contain', marginTop: 9 }}
+                source={require("@/assets/images/home2.png")}
+                style={{
+                  marginLeft: -3,
+                  width: 30,
+                  height: 25,
+                  resizeMode: "contain",
+                  marginTop: 9,
+                }}
               />
-              <Text style={{ fontSize: 7, fontWeight: 'light', color: '#113E55' }}></Text>
+              <Text
+                style={{ fontSize: 7, fontWeight: "light", color: "#113E55" }}
+              ></Text>
             </View>
           ),
         }}
       />
       <Tabs.Screen
-        name='(AddGuest)'
+        name="(AddGuest)"
         options={{
-          title: 'Active Codes',
+          title: "Active Codes",
           headerRight: () => <SettingsIcon />,
-          headerShown: true,
+          headerTitleStyle: {
+            color: "#113E55", // 👈 Blue title text
+            fontFamily: "UbuntuSans",
+            fontWeight: "bold",
+          },
+          headerShown: false,
           tabBarButton: (props) => <FloatingButton {...props} />,
         }}
       />
       <Tabs.Screen
-        name='(MyGuest)'
+        name="(MyGuest)"
         options={{
-          title: 'My Guests',
+          title: "My Guests",
+                    headerShown: false,
+
           headerRight: () => <SettingsIcon />,
+          headerTitleStyle: {
+            color: "#113E55", // 👈 Blue title text
+            fontFamily: "UbuntuSans",
+            fontWeight: "bold",
+          },
           tabBarIcon: ({ color }) => (
-            <View style={{ alignItems: 'center' }}>
+            <View style={{ alignItems: "center" }}>
               <Image
-                source={require('@/assets/icons/frame.png')}
-                style={{ width: 30, height: 30, resizeMode: 'contain', marginTop: 9 }}
+                source={require("@/assets/icons/frame.png")}
+                style={{
+                  width: 30,
+                  height: 30,
+                  resizeMode: "contain",
+                  marginTop: 9,
+                }}
               />
-              <Text style={{ fontSize: 7, fontWeight: '300', color: '#113E55' }}></Text>
+              <Text
+                style={{ fontSize: 7, fontWeight: "300", color: "#113E55" }}
+              ></Text>
             </View>
           ),
         }}
@@ -93,14 +125,14 @@ export default function UserTab() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    position: 'absolute',
-    backgroundColor: '#CEE5ED',
+    position: "absolute",
+    backgroundColor: "#CEE5ED",
     height: 70,
     bottom: 50,
 
     // Remove shadow (iOS and Android)
     elevation: 0, // Android
-    shadowColor: 'transparent', // iOS
+    shadowColor: "transparent", // iOS
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0,
     shadowRadius: 0,
@@ -112,15 +144,15 @@ const styles = StyleSheet.create({
     width: 70,
     height: 70,
     borderRadius: 50,
-    backgroundColor: '#CEE5ED',
-    borderColor: '#FBFEFF',
+    backgroundColor: "#CEE5ED",
+    borderColor: "#FBFEFF",
     borderWidth: 4,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
 
     // Remove shadow
     elevation: 0,
-    shadowColor: 'transparent',
+    shadowColor: "transparent",
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0,
     shadowRadius: 0,
@@ -130,20 +162,22 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#113E55',
-    justifyContent: 'center',
-    alignItems: 'center',
+    borderColor: "#113E55",
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 20,
 
     // Remove shadow
     elevation: 0,
-    shadowColor: 'transparent',
+    shadowColor: "transparent",
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0,
     shadowRadius: 0,
   },
   profileInitials: {
-    color: '#113E55',
-    fontWeight: '600',
+    color: "#113E55",
+    fontWeight: "300",
+    fontFamily: "UbuntuSans",
+    fontSize: 23,
   },
 });

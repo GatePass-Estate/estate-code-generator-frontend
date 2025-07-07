@@ -1,11 +1,21 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Share } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Share,
+  Alert,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import Icon from 'react-native-vector-icons/Ionicons';
 import * as Clipboard from 'expo-clipboard';
-import InviteCard from './InviteCard';
-import QrBox from './QrBox';
+import { useNavigation } from '@react-navigation/native';
+import InviteCard from './InviteCard'; // Make sure this path is correct
+import QrBox from './QrBox';           // Make sure this path is correct
 
 export default function InvitePage() {
+  const navigation = useNavigation();
   const accessCode = '56T73E';
   const name = 'Sandra Happiness';
   const address = 'Flat 1, 18A Clayinka Something Street, U3 Estate';
@@ -14,7 +24,7 @@ export default function InvitePage() {
 
   const copyToClipboard = async () => {
     await Clipboard.setStringAsync(accessCode);
-    alert('Copied to clipboard');
+    Alert.alert('Copied to clipboard');
   };
 
   const handleShare = async () => {
@@ -23,19 +33,30 @@ export default function InvitePage() {
         message: `You're invited!\n\nName: ${name}\nAddress: ${address}\nDate: ${date}\nTime: ${time}\nCode: ${accessCode}`,
       });
     } catch (error) {
-      alert('Failed to share');
+      Alert.alert('Failed to share');
     }
   };
 
   return (
     <View style={styles.container}>
+      {/* Back Button */}
+      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+        <Icon name="arrow-back" size={20} color="#113E55" />
+        <Text style={styles.backText}>Back</Text>
+      </TouchableOpacity>
+
       <QrBox value={accessCode} />
 
       <View style={styles.codeRow}>
         <Text style={styles.code}>{accessCode}</Text>
-        <Ionicons name="copy-outline" size={18} color="#113E55" onPress={copyToClipboard} />
+        <Ionicons
+          name="copy-outline"
+          size={18}
+          color="#113E55"
+          onPress={copyToClipboard}
+        />
       </View>
-
+      
       <InviteCard
         name={name}
         address={address}
@@ -59,18 +80,29 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     alignItems: 'center',
-    paddingTop: 60,
+    paddingTop: 100,
     backgroundColor: '#fff',
+    paddingHorizontal: 20,
   },
-  backIcon: {
-    alignSelf: 'flex-start',
-    marginLeft: 20,
-    marginBottom: 10,
+  backButton: {
+    position: 'absolute',
+        // marginBottom: 20,
+    top: 70,
+    left: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  backText: {
+    color: '#113E55',
+    fontSize: 16,
+    marginLeft: 5,
+    fontFamily: 'UbuntuSans',
   },
   codeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    marginVertical: 20,
   },
   code: {
     fontSize: 20,
@@ -85,6 +117,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 30,
     borderRadius: 8,
     marginBottom: 12,
+    marginTop: 20,
   },
   primaryButtonText: {
     color: 'white',
@@ -92,7 +125,7 @@ const styles = StyleSheet.create({
   },
   cancelText: {
     color: '#113E55',
-    textDecorationLine: 'underline',
     fontSize: 14,
+    textDecorationLine: 'none',
   },
 });
