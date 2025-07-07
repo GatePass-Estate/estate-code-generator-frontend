@@ -1,36 +1,29 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Share,
-  Alert,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Share, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Icon from 'react-native-vector-icons/Ionicons';
 import * as Clipboard from 'expo-clipboard';
-import { useNavigation } from '@react-navigation/native';
-import InviteCard from './InviteCard'; // Make sure this path is correct
-import QrBox from './QrBox';           // Make sure this path is correct
+import InviteCard from './InviteCard';
+import QrBox from './QrBox';
+import { useLocalSearchParams, useNavigation } from 'expo-router';
 
 export default function InvitePage() {
+  const { name = "Sandra", code = "000 000" } = useLocalSearchParams();
   const navigation = useNavigation();
-  const accessCode = '56T73E';
-  const name = 'Sandra Happiness';
-  const address = 'Flat 1, 18A Clayinka Something Street, U3 Estate';
-  const date = '14/08/2023';
-  const time = '6:23pm to 7:23pm';
+
+  const address = "Flat 1, 18A Something Street";
+  const date = "14/08/2023";
+  const time = "6:00pm to 7:00pm";
 
   const copyToClipboard = async () => {
-    await Clipboard.setStringAsync(accessCode);
-    Alert.alert('Copied to clipboard');
+    await Clipboard.setStringAsync(code);
+    Alert.alert("Copied", "Code copied to clipboard");
   };
 
   const handleShare = async () => {
     try {
       await Share.share({
-        message: `You're invited!\n\nName: ${name}\nAddress: ${address}\nDate: ${date}\nTime: ${time}\nCode: ${accessCode}`,
+        message: `You're invited!\n\nName: ${name}\nAddress: ${address}\nDate: ${date}\nTime: ${time}\nCode: ${code}`,
       });
     } catch (error) {
       Alert.alert('Failed to share');
@@ -45,24 +38,19 @@ export default function InvitePage() {
         <Text style={styles.backText}>Back</Text>
       </TouchableOpacity>
 
-      <QrBox value={accessCode} />
+      <QrBox value={code} />
 
       <View style={styles.codeRow}>
-        <Text style={styles.code}>{accessCode}</Text>
-        <Ionicons
-          name="copy-outline"
-          size={18}
-          color="#113E55"
-          onPress={copyToClipboard}
-        />
+        <Text style={styles.code}>{code}</Text>
+        <Ionicons name="copy-outline" size={18} color="#113E55" onPress={copyToClipboard} />
       </View>
-      
+
       <InviteCard
-        name={name}
+        name={name.toString()}
         address={address}
         date={date}
         time={time}
-        code={accessCode}
+        code={code.toString()}
       />
 
       <TouchableOpacity style={styles.primaryButton} onPress={handleShare}>
@@ -80,29 +68,26 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     alignItems: 'center',
-    paddingTop: 100,
+    paddingTop: 60,
     backgroundColor: '#fff',
-    paddingHorizontal: 20,
   },
   backButton: {
     position: 'absolute',
-        // marginBottom: 20,
-    top: 70,
+    top: 40,
     left: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    zIndex: 10,
   },
   backText: {
     color: '#113E55',
     fontSize: 16,
     marginLeft: 5,
-    fontFamily: 'UbuntuSans',
+    fontFamily: "UbuntuSans",
   },
   codeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 20,
+    marginBottom: 20,
   },
   code: {
     fontSize: 20,
@@ -117,7 +102,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 30,
     borderRadius: 8,
     marginBottom: 12,
-    marginTop: 20,
   },
   primaryButtonText: {
     color: 'white',
@@ -125,7 +109,7 @@ const styles = StyleSheet.create({
   },
   cancelText: {
     color: '#113E55',
-    fontSize: 14,
     textDecorationLine: 'none',
+    fontSize: 14,
   },
 });

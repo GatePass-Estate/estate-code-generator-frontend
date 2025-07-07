@@ -79,7 +79,7 @@ const AddGuest = ({ navigation }: { navigation: NavigationProp<any> }) => {
       <Stack.Screen
               options={{
                 headerShown: true,
-                title: "Active Codes",
+                title: "Add Guest",
                 fontFamily: "UbuntuSans",
                 headerRight: () => <SettingsIcon />,
                 headerTitleStyle: {

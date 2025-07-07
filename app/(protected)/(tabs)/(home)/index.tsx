@@ -29,13 +29,8 @@
 //   );
 // }
 import React from "react";
-import { Stack } from "expo-router";
-import { Link } from "expo-router";
+import { Stack, Link, router } from "expo-router";
 import CountdownRing from "@/components/CountdownRing";
-import { StatusBar, Platform } from 'react-native';
-
-
-
 import {
   View,
   Text,
@@ -47,9 +42,9 @@ import {
 
 const guestData = [
   { name: "Sandra", code: "765 3E2", count: 45 },
-  { name: "Sandra", code: "765 3E2", count: 30 },
-  { name: "Sandra", code: "765 3E2", count: 15 },
-  { name: "Sandra", code: "765 3E2", count: 60 },
+  { name: "Maya", code: "123 9ZQ", count: 30 },
+  { name: "Daniel", code: "556 LKP", count: 15 },
+  { name: "Fola", code: "990 XTD", count: 60 },
 ];
 
 function SettingsIcon() {
@@ -72,14 +67,13 @@ export default function ActiveCodes() {
       <Stack.Screen
         options={{
           headerShown: true,
-          title: "Active Codes",
+          title: "  Active Codes",
           fontFamily: "UbuntuSans",
           headerRight: () => <SettingsIcon />,
           headerTitleStyle: {
             color: "#113E55",
             fontFamily: "UbuntuSans",
             fontWeight: "700",
-            // height: 510,
           },
           headerStyle: {
             elevation: 0,
@@ -96,13 +90,24 @@ export default function ActiveCodes() {
         keyExtractor={(_, index) => index.toString()}
         contentContainerStyle={{ paddingBottom: 100 }}
         renderItem={({ item }) => (
-          <View style={styles.guestCard}>
+          <Pressable
+            style={styles.guestCard}
+            onPress={() =>
+              router.push({
+                pathname: "/invitePage",
+                params: {
+                  name: item.name,
+                  code: item.code,
+                },
+              })
+            }
+          >
             <View style={{ flex: 1 }}>
               <Text style={styles.guestName}>{item.name}</Text>
               <Text style={styles.guestCode}>{item.code}</Text>
             </View>
             <CountdownRing size={55} storageKey={`guest-${item.code}`} />
-          </View>
+          </Pressable>
         )}
       />
     </SafeAreaView>
@@ -115,10 +120,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#FBFEFF",
     paddingHorizontal: 20,
     paddingTop: 3,
-     elevation: 0,
-            shadowOpacity: 0,
-            borderBottomWidth: 0,
-    
   },
   profileCircle: {
     width: 35,
@@ -131,11 +132,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   profileInitials: {
-    color: "#113E55",
+    color: "#167a6f",
     fontWeight: "300",
     fontFamily: "UbuntuSans",
     fontSize: 23,
-    // height: ,
   },
   subText: {
     fontSize: 13,
@@ -143,8 +143,7 @@ const styles = StyleSheet.create({
     fontFamily: "UbuntuSans",
     marginTop: 40,
     marginBottom: 30,
-    color: "#113E55",
-    marginVertical: 15,
+    color: "#04121a",
   },
   guestCard: {
     flexDirection: "row",
@@ -168,6 +167,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     letterSpacing: 5,
     color: "#E05930",
-    fontFamily: 'UbuntuSans'
+    fontFamily: "UbuntuSans",
   },
 });
