@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Alert,
   ScrollView,
+  Image
 } from 'react-native';
 import { Stack, useNavigation } from 'expo-router';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -36,7 +37,10 @@ export default function EditRequest() {
 
       {/* Back Button */}
       <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-        <Icon name="arrow-back" size={20} color="#113E55" />
+        <Image
+          source={require('@/assets/icons/keyboard_arrow_left.png')} // update path if needed
+          style={styles.backIcon}
+        />
         <Text style={styles.backText}>Back</Text>
       </TouchableOpacity>
 
@@ -103,8 +107,14 @@ const styles = StyleSheet.create({
     color: '#113E55',
     fontSize: 16,
     marginLeft: 5,
+    top: 3,
     fontFamily: 'UbuntuSans',
   },
+  backIcon: {
+  width: 25,
+  height: 25,
+  resizeMode: 'contain',
+},
   subHeader: {
     fontSize: 14,
     color: '#6b7280',
