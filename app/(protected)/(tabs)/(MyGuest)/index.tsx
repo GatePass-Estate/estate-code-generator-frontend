@@ -1,21 +1,34 @@
-import React from 'react';
-import { View, Text, StyleSheet, TextInput, ScrollView, TouchableOpacity } from 'react-native';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import React from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  ScrollView,
+  TouchableOpacity,
+} from "react-native";
+import { Ionicons, Entypo  } from "@expo/vector-icons";
 import { Stack } from "expo-router";
 import { Link } from "expo-router";
-import {
-  FlatList,
-  SafeAreaView,
-  Pressable,
-} from "react-native";
+import { Image } from "react-native";
 
+
+
+<TouchableOpacity>
+  <Image
+    source={require("@/assets/images/generatecode(2).png")} 
+    style={{ width: 26, height: 26, resizeMode: "contain" }}
+  />
+</TouchableOpacity>;
+
+import { FlatList, SafeAreaView, Pressable } from "react-native";
 
 const guests = [
-  { name: 'Sandra', relation: 'Friend', gender: 'female', color: '#FFEFEA' },
-  { name: 'Jeff', relation: 'Service Provider', gender: 'male' },
-  { name: 'Sandra', relation: 'Friend', gender: 'gender' },
-  { name: 'Ben', relation: 'Partner', gender: 'male' },
-  { name: 'Maya', relation: 'Friend', gender: 'female' },
+  { name: "Sandra", relation: "Friend", gender: "female", color: "#FFEFEA" },
+  { name: "Jeff", relation: "Service Provider", gender: "male" },
+  { name: "Sandra", relation: "Friend", gender: "prefer not to say" },
+  { name: "Ben", relation: "Partner", gender: "male" },
+  { name: "Maya", relation: "Friend", gender: "female" },
 ];
 
 function SettingsIcon() {
@@ -35,54 +48,75 @@ const MyGuest = () => {
   return (
     <View style={styles.container}>
       <Stack.Screen
-              options={{
-                headerShown: true,
-                title: "My Guests",
-                headerRight: () => <SettingsIcon />,
-                headerTitleStyle: {
-                  color: "#113E55",
+        options={{
+          headerShown: true,
+          title: "My Guests",
+          headerRight: () => <SettingsIcon />,
+          headerTitleStyle: {
+            color: "#113E55",
             fontFamily: "UbuntuSans",
             fontWeight: "700",
-                },
-              }}
-            />
+          },
+        }}
+      />
       <View style={styles.searchBar}>
-        <Ionicons name="search" size={18} color="#555" style={{ marginLeft: 8 }} />
+        <Ionicons
+          name="search"
+          size={18}
+          color="#555"
+          style={{ marginLeft: 8 }}
+        />
         <TextInput placeholder="Search" style={styles.searchInput} />
       </View>
 
       <Text style={styles.savedLabel}>All Saved Guests</Text>
       <View style={styles.divider} />
 
-
       <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
         {guests.map((guest, index) => (
-          <View key={index} style={[styles.card, guest.color ? { backgroundColor: guest.color } : {}]}>
-            <View style={styles.guestInfo}>
-              <Ionicons
-                name={guest.gender === 'male' ? 'male' : 'female'}
-                size={18}
-                color={guest.gender === 'male' ? '#2980b9' : '#e74c3c'}
-              />
-              <View style={{ marginLeft: 10 }}>
-                <Text style={styles.guestName}>{guest.name}</Text>
-                <Text style={styles.guestRelation}>{guest.relation}</Text>
-              </View>
-            </View>
+          <View
+            key={index}
+            style={[
+              styles.card,
+              guest.color ? { backgroundColor: guest.color } : {},
+            ]}
+          >
+           <View style={styles.guestInfo}>
+  {
+    guest.gender === 'male' ? (
+      <Ionicons name="male" size={18} color="#167a6f" />
+    ) : guest.gender === 'female' ? (
+      <Ionicons name="female" size={18} color="#e74c3c" />
+    ) : (
+       <Image source={require('@/assets/icons/not-saying.png')} style={{ width: 19, height: 19 }} />
+    )
+  }
+
+  <View style={{ marginLeft: 10 }}>
+    <Text style={styles.guestName}>{guest.name}</Text>
+    <Text style={styles.guestRelation}>{guest.relation}</Text>
+  </View>
+</View>
+
             <View style={styles.actions}>
               <TouchableOpacity style={{ marginRight: 15 }}>
-                <Ionicons name="trash-outline" size={20} color="#555" />
+                <Image
+                  source={require("@/assets/images/delete(1).png")} 
+                  style={{ width: 35, height: 35, resizeMode: "contain", tintColor: "#a6a4a4",}}
+                />
               </TouchableOpacity>
 
               {/* QRcode beside the deleete button */}
-              {/* <TouchableOpacity>
-                <MaterialIcons name="qr-code" size={20} color="#555" />
-              </TouchableOpacity> */}
+              <TouchableOpacity>
+                <Image
+                  source={require("@/assets/images/generatecode(2).png")} 
+                  style={{ width: 35, height: 35, resizeMode: "contain", tintColor: "#a6a4a4",}}
+                />
+              </TouchableOpacity>
             </View>
           </View>
         ))}
       </ScrollView>
-
     </View>
   );
 };
@@ -95,25 +129,25 @@ const styles = StyleSheet.create({
     // paddingTop: 50,
     // paddingHorizontal: 20,
     // backgroundColor: '#fff',
-     flex: 1,
+    flex: 1,
     backgroundColor: "#FBFEFF",
     paddingHorizontal: 20,
     paddingTop: 35,
-     elevation: 0,
-            shadowOpacity: 0,
-            borderBottomWidth: 0,
+    elevation: 0,
+    shadowOpacity: 0,
+    borderBottomWidth: 0,
   },
   title: {
     fontSize: 22,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 15,
-    color: '#113E55',
+    color: "#113E55",
   },
   searchBar: {
-    flexDirection: 'row',
-    backgroundColor: '#F1F1F1',
+    flexDirection: "row",
+    backgroundColor: "#F1F1F1",
     borderRadius: 8,
-    alignItems: 'center',
+    alignItems: "center",
     paddingHorizontal: 8,
     marginBottom: 20,
   },
@@ -143,56 +177,55 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 20,
     marginBottom: 10,
-    color: '#222',
+    color: "#222",
   },
   card: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     padding: 12,
     borderRadius: 10,
-    backgroundColor: '#F6F6F6',
+    backgroundColor: "#F6F6F6",
     marginBottom: 10,
-    alignItems: 'center',
+    alignItems: "center",
     borderWidth: 1,
     height: 60,
-    borderColor: '#e5e5e5',
+    borderColor: "#e5e5e5",
   },
   guestInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   guestName: {
-    fontWeight: 'bold',
-    fontSize: 16,
-    color: '#333',
+    fontWeight: "light",
+    fontSize: 18,
+    color: "#04121a",
   },
   guestRelation: {
+    fontWeight: "bold",
     fontSize: 13,
-    color: '#777',
+    color: "#113e55",
   },
   actions: {
-    flexDirection: 'row',
+    flexDirection: "row",
   },
   fab: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 20,
-    left: '50%',
+    left: "50%",
     transform: [{ translateX: -30 }],
-    backgroundColor: '#113E55',
+    backgroundColor: "#113E55",
     width: 60,
     height: 60,
     borderRadius: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     elevation: 5,
   },
- divider: {
-  height: 0.5,
-  backgroundColor: '#113E55', // match your theme
-  marginTop: 4,
-  marginBottom: 15,
-  width: '100%',
-}
-
-
+  divider: {
+    height: 0.5,
+    backgroundColor: "#113E55", // match your theme
+    marginTop: 4,
+    marginBottom: 15,
+    width: "100%",
+  },
 });
