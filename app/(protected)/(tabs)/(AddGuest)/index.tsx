@@ -81,7 +81,6 @@ const AddGuest = ({ navigation }: { navigation: NavigationProp<any> }) => {
                 headerShown: true,
                 title: "Add Guest",
                 headerTitleAlign: "left",
-                fontFamily: "UbuntuSans",
                 headerRight: () => <SettingsIcon />,
                 headerTitleStyle: {
                   color: "#113E55",

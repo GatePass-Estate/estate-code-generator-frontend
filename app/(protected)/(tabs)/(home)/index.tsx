@@ -68,7 +68,6 @@ export default function ActiveCodes() {
         options={{
           headerShown: true,
           title: "Active Codes",
-          fontFamily: "UbuntuSans",
           headerRight: () => <SettingsIcon />,
           headerTitleStyle: {
             color: "#113E55",
