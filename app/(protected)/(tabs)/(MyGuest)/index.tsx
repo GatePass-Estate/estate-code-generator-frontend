@@ -41,14 +41,8 @@ const MyGuest = () => {
                 headerRight: () => <SettingsIcon />,
                 headerTitleStyle: {
                   color: "#113E55",
-                  fontFamily: "UbuntuSans",
-                  fontWeight: "bold",
-                  height: 50,
-                },
-                headerStyle: {
-                  elevation: 0,
-                  shadowOpacity: 0,
-                  borderBottomWidth: 0,
+            fontFamily: "UbuntuSans",
+            fontWeight: "700",
                 },
               }}
             />
@@ -129,12 +123,12 @@ const styles = StyleSheet.create({
     borderRadius: 17,
     borderWidth: 1,
     marginRight: 30,
-    borderColor: "#113E55",
+    borderColor: "#167a6f",
     justifyContent: "center",
     alignItems: "center",
   },
   profileInitials: {
-    color: "#113E55",
+    color: "#167a6f",
     fontWeight: "300",
     fontFamily: "UbuntuSans",
     fontSize: 23,

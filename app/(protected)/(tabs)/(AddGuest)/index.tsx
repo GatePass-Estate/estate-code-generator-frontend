@@ -79,19 +79,13 @@ const AddGuest = ({ navigation }: { navigation: NavigationProp<any> }) => {
       <Stack.Screen
               options={{
                 headerShown: true,
-                title: "Active Codes",
-                fontFamily: "UbuntuSans",
+                title: "Add Guest",
+                headerTitleAlign: "left",
                 headerRight: () => <SettingsIcon />,
                 headerTitleStyle: {
                   color: "#113E55",
                   fontFamily: "UbuntuSans",
                   fontWeight: "700",
-                  // height: 510,
-                },
-                headerStyle: {
-                  elevation: 0,
-                  shadowOpacity: 0,
-                  borderBottomWidth: 0,
                 },
               }}
             />
@@ -112,8 +106,8 @@ const AddGuest = ({ navigation }: { navigation: NavigationProp<any> }) => {
           onValueChange={(itemValue) => setGender(itemValue)}
           style={styles.picker}>
           <Picker.Item label='Select the gender of your guest' value='' />
-          <Picker.Item label='Male' value='male' />
           <Picker.Item label='Female' value='female' />
+          <Picker.Item label='Male' value='male' />
           <Picker.Item label="I'd prefer not to say" value="I'd prefer not to say" />
         </Picker>
       </View>
@@ -172,12 +166,12 @@ const styles = StyleSheet.create({
     borderRadius: 17,
     borderWidth: 1,
     marginRight: 30,
-    borderColor: "#113E55",
+    borderColor: "#167a6f",
     justifyContent: "center",
     alignItems: "center",
   },
   profileInitials: {
-    color: "#113E55",
+    color: "#167a6f",
     fontWeight: "300",
     fontFamily: "UbuntuSans",
     fontSize: 23,
@@ -214,6 +208,7 @@ const styles = StyleSheet.create({
     color: 'gray',
     height: 52,
     width: '100%',
+    // borderRadius:30,
   },
   checkboxContainer: {
     flexDirection: 'row',

@@ -21,9 +21,12 @@ const ProfileScreen = () => {
     <View style={styles.container}>
       {/* Back Button */}
       <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-        <Icon name="arrow-back" size={20} color="#113E55" />
-        <Text style={styles.backText}>Back</Text>
-      </TouchableOpacity>
+  <Image
+    source={require('@/assets/icons/keyboard_arrow_left.png')} // update path if needed
+    style={styles.backIcon}
+  />
+  <Text style={styles.backText}>Back</Text>
+</TouchableOpacity>
 
       {/* Profile Title */}
       <Text style={styles.title}>My Profile</Text>
@@ -58,7 +61,7 @@ const ProfileScreen = () => {
           <Text style={accesstyles.textExpire}> */}
             {/* <Icon name="alert-circle-outline" size={20} color="#113E55"   /> */}
             {/* Code expires on 31st May 2003
-          </Text>
+          </Text> 
         </View> */}
 
         {/* Profile Card */}
@@ -134,6 +137,11 @@ const styles = StyleSheet.create({
     marginLeft: 5,
     fontFamily: "UbuntuSans",
   },
+  backIcon: {
+  width: 25,
+  height: 25,
+  resizeMode: 'contain',
+},
   title: {
     fontSize: 22,
     fontWeight: 700,
