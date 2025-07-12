@@ -37,18 +37,12 @@ const MyGuest = () => {
       <Stack.Screen
               options={{
                 headerShown: true,
-                title: "  My Guests",
+                title: "My Guests",
                 headerRight: () => <SettingsIcon />,
                 headerTitleStyle: {
                   color: "#113E55",
-                  fontFamily: "UbuntuSans",
-                  fontWeight: "bold",
-                  height: 50,
-                },
-                headerStyle: {
-                  elevation: 0,
-                  shadowOpacity: 0,
-                  borderBottomWidth: 0,
+            fontFamily: "UbuntuSans",
+            fontWeight: "700",
                 },
               }}
             />

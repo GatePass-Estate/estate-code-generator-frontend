@@ -67,18 +67,13 @@ export default function ActiveCodes() {
       <Stack.Screen
         options={{
           headerShown: true,
-          title: "  Active Codes",
+          title: "Active Codes",
           fontFamily: "UbuntuSans",
           headerRight: () => <SettingsIcon />,
           headerTitleStyle: {
             color: "#113E55",
             fontFamily: "UbuntuSans",
             fontWeight: "700",
-          },
-          headerStyle: {
-            elevation: 0,
-            shadowOpacity: 0,
-            borderBottomWidth: 0,
           },
         }}
       />
