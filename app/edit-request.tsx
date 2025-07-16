@@ -38,7 +38,7 @@ export default function EditRequest() {
       {/* Back Button */}
       <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
         <Image
-          source={require('@/assets/icons/keyboard_arrow_left.png')} // update path if needed
+          source={require('@/assets/icons/keyboard_arrow_left (1).png')} // update path if needed
           style={styles.backIcon}
         />
         <Text style={styles.backText}>Back</Text>
@@ -105,6 +105,7 @@ const styles = StyleSheet.create({
   },
   backText: {
     color: '#113E55',
+    fontWeight: "bold",
     fontSize: 16,
     marginLeft: 5,
     top: 3,
@@ -113,6 +114,7 @@ const styles = StyleSheet.create({
   backIcon: {
   width: 25,
   height: 25,
+  top: 1,
   resizeMode: 'contain',
 },
   subHeader: {
