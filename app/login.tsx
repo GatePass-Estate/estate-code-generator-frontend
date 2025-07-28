@@ -83,7 +83,9 @@ export default function Login() {
         router.replace("/(admin)");
       } else if (result.role === "resident") {
         router.replace("/(protected)");
-      } else {
+      } else if (result.role === "security"){
+        router.replace("./(security)")
+      }else {
         setErrorMessage("Incorrect username or password");
       }
     } catch (error: any) {
