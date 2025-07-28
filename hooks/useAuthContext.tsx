@@ -5,11 +5,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 SplashScreen.preventAutoHideAsync();
 
 type User = {
-  id: string;
-  name: string;
-  email: string;
-  photo?: string;
-  role: 'admin' | 'user';
+  role: 'primary_admin' | 'root' | 'admin' | 'security' | 'resident';
   token: string;
 } | null;
 
@@ -52,23 +48,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (userData: any) => {
     const newUser = {
-      id: userData.id,
-      name: userData.name,
-      email: userData.email,
-      photo: userData.picture,
-      role: userData.role || 'user',
+    
+      role: userData.role,
       token: userData.token,
     };
     setUser(newUser);
     setIsReady(true);
     await storeAuthState(newUser);
 
-    // Redirect based on role
-    if (newUser.role === 'admin') {
-      router.replace('/(admin)');
-    } else {
-      router.replace('/(protected)');
-    }
   };
 
   const signOut = async () => {
