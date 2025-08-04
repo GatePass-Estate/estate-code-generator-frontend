@@ -16,7 +16,8 @@ const EmptyScreen = () => <View />;
 const FloatingButton = ({ onPress }: any) => {
   return (
     <TouchableOpacity style={styles.fab} onPress={onPress}>
-      <FontAwesome name="plus" size={15} color="#113E55" />
+      {/* c */}
+      <FontAwesome name="plus" size={15} color="#113E55" /> 
     </TouchableOpacity>
   );
 };
@@ -43,7 +44,7 @@ export default function UserTab() {
         tabBarStyle: styles.tabBar,
         tabBarShowLabel: true,
         tabBarActiveTintColor: "#113E55",
-        tabBarInactiveTintColor: "#888",
+        tabBarInactiveTintColor: "#113E55",
       }}
     >
       <Tabs.Screen
@@ -56,23 +57,28 @@ export default function UserTab() {
           //   color: "#113E55", // 👈 Blue title text
             
           // },
-          tabBarIcon: ({ color }) => (
-            <View>
-              <Image
-                source={require("@/assets/images/home2.png")}
-                style={{
-                  marginLeft: -3,
-                  width: 30,
-                  height: 25,
-                  resizeMode: "contain",
-                  marginTop: 9,
-                }}
-              />
-              <Text
-                style={{ fontSize: 7, fontWeight: "light", color: "#113E55" }}
-              ></Text>
-            </View>
-          ),
+          tabBarIcon: ({ color, focused }) => (
+  <View>
+    <Image
+      source={
+        focused
+          ? require("@/assets/images/active-button.png")
+          : require("@/assets/images/menu icon.png")
+      }
+      style={{
+        marginLeft: -3,
+        width: 30,
+        height: 25,
+        resizeMode: "contain",
+        marginTop: 9,
+      }}
+    />
+    <Text
+      style={{ fontSize: 7, fontWeight: "light", color: "#113E55" }}
+    ></Text>
+  </View>
+),
+
         }}
       />
       <Tabs.Screen
@@ -104,7 +110,7 @@ export default function UserTab() {
           tabBarIcon: ({ color }) => (
             <View style={{ alignItems: "center" }}>
               <Image
-                source={require("@/assets/icons/frame.png")}
+                source={require("@/assets/icons/Guest-icon.png")}
                 style={{
                   width: 30,
                   height: 30,

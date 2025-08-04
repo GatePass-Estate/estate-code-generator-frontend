@@ -22,7 +22,7 @@ const ProfileScreen = () => {
       {/* Back Button */}
       <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
   <Image
-    source={require('@/assets/icons/keyboard_arrow_left.png')} // update path if needed
+    source={require('@/assets/icons/keyboard_arrow_left (1).png')} // update path if needed
     style={styles.backIcon}
   />
   <Text style={styles.backText}>Back</Text>
@@ -37,7 +37,7 @@ const ProfileScreen = () => {
           PERSONAL DETAILS
           <TouchableOpacity style={styles.editIcon} onPress={() => router.push('/edit-request')}>
   <Image
-    source={require('@/assets/icons/Vector.png')}
+    source={require('@/assets/icons/edit-button.png')}
     style={{
       width: 20,
       height: 15,
@@ -68,7 +68,7 @@ const ProfileScreen = () => {
         <View style={styles.card}>
           <ProfileDetail label="Name" value="Sandra Happiness" />
           <ProfileDetail label="Address" value="Flat 1, 18A Olayinka Street" />
-          <ProfileDetail label="Email Address" value="sandaroJ@hmo.com" />
+          <ProfileDetail label="Email Address" value="ckmdkcmdcdmckdmckmdkcmkmhfffffbhbgyroJ@gmail.com" />
           <ProfileDetail label="Phone Number" value="0902 443 4224" />
         </View>
       </View>
@@ -85,7 +85,17 @@ const ProfileScreen = () => {
 const ProfileDetail = ({ label, value }) => (
   <View style={styles.detailRow}>
     <Text style={styles.detailLabel}>{label} :</Text>
-    <Text style={styles.detailValue}>{value}</Text>
+
+
+
+    <Text numberOfLines={2}
+  ellipsizeMode="head"
+  style={{
+    flexWrap: "wrap",
+    // textAlign: "justify",
+    fontSize: 14,
+  }}>{value}</Text>
+    
   </View>
 );
 
@@ -136,6 +146,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginLeft: 5,
     fontFamily: "UbuntuSans",
+    fontWeight: "bold",
+  },
+  value:{
+    flexWrap: "wrap",        // ✅ allow wrapping
+    width: "20%", 
   },
   backIcon: {
   width: 25,
@@ -169,6 +184,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     padding: 15,
     borderRadius: 10,
+    width: "100%",
     borderWidth: 0.1,
   },
   detailRow: {

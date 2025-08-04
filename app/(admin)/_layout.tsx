@@ -1,34 +1,35 @@
 import { useAuth } from '@/hooks/useAuthContext';
 import { Redirect, Stack } from 'expo-router';
-import { useContext } from 'react';
 
 export const unstable_settings = {
-  initialRouteName: '(admin)',
+  initialRouteName: 'dashboard', // Default admin screen
 };
 
 export default function AdminLayout() {
-  const authState = useAuth();
-  const { user, isReady } = authState;
-  console.log('AdminLayout', isReady);
+  const { user, isReady } = useAuth();
 
-  if (!isReady) {
-    return null;
-  }
+  // Ensure auth state is fully loaded
+  if (!isReady) return null;
 
+  // Redirect unauthenticated users
   if (!user) {
-    return <Redirect href='/login' />;
+    return <Redirect href="/login" />;
   }
 
-  if (user.role !== 'admin') {
-    return <Redirect href='./(protected)' />;
+  // Restrict access to only primary_admin and root roles
+  const isAuthorizedAdmin = ['primary_admin', 'root'].includes(user.role);
+
+  if (!isAuthorizedAdmin) {
+    return <Redirect href="/(protected)" />;
   }
 
+  // Render admin-only stack
   return (
     <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name='(admin)' options={{ headerShown: false }} />
-      <Stack.Screen name='(userList)' options={{ headerShown: false }} />
-      <Stack.Screen name='(userProfile)' options={{ headerShown: false }} />
-      <Stack.Screen name='(adminReg)' options={{ headerShown: false }} />
+      <Stack.Screen name="dashboard" />
+      <Stack.Screen name="userList" />
+      <Stack.Screen name="userProfile" />
+      <Stack.Screen name="adminReg" />
     </Stack>
   );
 }
