@@ -39,6 +39,8 @@ import {
   StyleSheet,
   Pressable,
 } from "react-native";
+import { useAuth } from "@/hooks/useAuthContext"; // Import your auth context
+
 
 const guestData = [
   { name: "Sandra", code: "765 3E2", count: 45 },
@@ -47,19 +49,22 @@ const guestData = [
   { name: "Fola", code: "990 XTD", count: 60 },
 ];
 
-function SettingsIcon() {
-  return (
-    <Link href="/modal" asChild>
-      <Pressable className="opacity-80">
-        {({ pressed }) => (
+ function SettingsIcon() {
+    const { user } = useAuth();
+    const initials =
+      user?.first_name && user?.last_name
+        ? `${user.first_name[0]}${user.last_name[0]}`.toUpperCase()
+        : 'N/A';  
+    return (
+      <Link href="/modal" asChild>
+        <Pressable className="opacity-80">
           <View style={styles.profileCircle}>
-            <Text style={styles.profileInitials}>GD</Text>
+            <Text style={styles.profileInitials}>{initials}</Text>
           </View>
-        )}
-      </Pressable>
-    </Link>
-  );
-}
+        </Pressable>
+      </Link>
+    );
+  }
 
 export default function ActiveCodes() {
   return (

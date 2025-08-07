@@ -1,37 +1,41 @@
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { View, TouchableOpacity, StyleSheet, Pressable } from "react-native";
+import { View, TouchableOpacity, StyleSheet, Pressable, Image } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
 import { Text } from "@/components/nativewindui/Text";
 import { Link } from "expo-router";
 import { Tabs } from "expo-router";
-import { Image } from "react-native";
+import { useAuth } from "@/hooks/useAuthContext"; // Import your auth context
 
 const Tab = createBottomTabNavigator();
 
 // Dummy Screen
 const EmptyScreen = () => <View />;
 
-// Custom Floating Button
+// Floating Action Button
 const FloatingButton = ({ onPress }: any) => {
   return (
     <TouchableOpacity style={styles.fab} onPress={onPress}>
-      {/* c */}
-      <FontAwesome name="plus" size={15} color="#113E55" /> 
+      <FontAwesome name="plus" size={15} color="#113E55" />
     </TouchableOpacity>
   );
 };
 
-// Header Right Icon
+// Profile Icon with Initials
 function SettingsIcon() {
+  const { user } = useAuth();
+  const initials =
+    user?.first_name && user?.last_name
+      ? `${user.first_name[0]}${user.last_name[0]}`.toUpperCase()
+      : 'RT';
+console.log("User from context:", user, "hello");
+
   return (
     <Link href="/modal" asChild>
       <Pressable className="opacity-80">
-        {({ pressed }) => (
-          <View style={styles.profileCircle}>
-            <Text style={styles.profileInitials}>GD</Text>
-          </View>
-        )}
+        <View style={styles.profileCircle}>
+          <Text style={styles.profileInitials}>{initials}</Text>
+        </View>
       </Pressable>
     </Link>
   );
@@ -53,32 +57,24 @@ export default function UserTab() {
           title: "Home",
           headerShown: false,
           headerRight: () => <SettingsIcon />,
-          // headerTitleStyle: {
-          //   color: "#113E55", // 👈 Blue title text
-            
-          // },
           tabBarIcon: ({ color, focused }) => (
-  <View>
-    <Image
-      source={
-        focused
-          ? require("@/assets/images/active-button.png")
-          : require("@/assets/images/menu icon.png")
-      }
-      style={{
-        marginLeft: -3,
-        width: 30,
-        height: 25,
-        resizeMode: "contain",
-        marginTop: 9,
-      }}
-    />
-    <Text
-      style={{ fontSize: 7, fontWeight: "light", color: "#113E55" }}
-    ></Text>
-  </View>
-),
-
+            <View>
+              <Image
+                source={
+                  focused
+                    ? require("@/assets/images/active-button.png")
+                    : require("@/assets/images/menu icon.png")
+                }
+                style={{
+                  marginLeft: -3,
+                  width: 30,
+                  height: 25,
+                  resizeMode: "contain",
+                  marginTop: 9,
+                }}
+              />
+            </View>
+          ),
         }}
       />
       <Tabs.Screen
@@ -87,7 +83,7 @@ export default function UserTab() {
           title: "Active Codes",
           headerRight: () => <SettingsIcon />,
           headerTitleStyle: {
-            color: "#113E55", // 👈 Blue title text
+            color: "#113E55",
             fontFamily: "UbuntuSans",
             fontWeight: "bold",
           },
@@ -99,11 +95,10 @@ export default function UserTab() {
         name="(MyGuest)"
         options={{
           title: "My Guests",
-                    headerShown: false,
-
+          headerShown: false,
           headerRight: () => <SettingsIcon />,
           headerTitleStyle: {
-            color: "#113E55", // 👈 Blue title text
+            color: "#113E55",
             fontFamily: "UbuntuSans",
             fontWeight: "bold",
           },
@@ -118,9 +113,6 @@ export default function UserTab() {
                   marginTop: 9,
                 }}
               />
-              <Text
-                style={{ fontSize: 7, fontWeight: "300", color: "#113E55" }}
-              ></Text>
             </View>
           ),
         }}
@@ -135,10 +127,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#CEE5ED",
     height: 70,
     bottom: 50,
-
-    // Remove shadow (iOS and Android)
-    elevation: 0, // Android
-    shadowColor: "transparent", // iOS
+    elevation: 0,
+    shadowColor: "transparent",
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0,
     shadowRadius: 0,
@@ -155,8 +145,6 @@ const styles = StyleSheet.create({
     borderWidth: 4,
     justifyContent: "center",
     alignItems: "center",
-
-    // Remove shadow
     elevation: 0,
     shadowColor: "transparent",
     shadowOffset: { width: 0, height: 0 },
@@ -172,8 +160,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginRight: 20,
-
-    // Remove shadow
     elevation: 0,
     shadowColor: "transparent",
     shadowOffset: { width: 0, height: 0 },

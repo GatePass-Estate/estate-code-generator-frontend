@@ -1,16 +1,12 @@
 import React, { useLayoutEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import Icon from 'react-native-vector-icons/Ionicons';
 import { useAuth } from '@/hooks/useAuthContext';
-import { Image } from 'react-native';
 import { router } from 'expo-router';
 
-
-
 const ProfileScreen = () => {
-  const { signOut } = useAuth();
   const navigation = useNavigation();
+  const { user, signOut } = useAuth(); // ✅ useAuth moved inside the component
 
   // Hide the header
   useLayoutEffect(() => {
@@ -21,12 +17,12 @@ const ProfileScreen = () => {
     <View style={styles.container}>
       {/* Back Button */}
       <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-  <Image
-    source={require('@/assets/icons/keyboard_arrow_left (1).png')} // update path if needed
-    style={styles.backIcon}
-  />
-  <Text style={styles.backText}>Back</Text>
-</TouchableOpacity>
+        <Image
+          source={require('@/assets/icons/keyboard_arrow_left (1).png')}
+          style={styles.backIcon}
+        />
+        <Text style={styles.backText}>Back</Text>
+      </TouchableOpacity>
 
       {/* Profile Title */}
       <Text style={styles.title}>My Profile</Text>
@@ -36,46 +32,32 @@ const ProfileScreen = () => {
         <Text style={styles.sectionTitle}>
           PERSONAL DETAILS
           <TouchableOpacity style={styles.editIcon} onPress={() => router.push('/edit-request')}>
-  <Image
-    source={require('@/assets/icons/edit-button.png')}
-    style={{
-      width: 20,
-      height: 15,
-      resizeMode: 'contain',
-      marginTop: 9,
-      left: 10,
-      top: 2,
-    }}
-  />
-</TouchableOpacity>
-
+            <Image
+              source={require('@/assets/icons/edit-button.png')}
+              style={{
+                width: 20,
+                height: 15,
+                resizeMode: 'contain',
+                marginTop: 9,
+                left: 10,
+                top: 2,
+              }}
+            />
+          </TouchableOpacity>
         </Text>
-
-        {/* Access Code Card */}
-        {/* <View style={accesstyles.access}>
-          <Text style={accesstyles.text}>My access code:  90t 76E</Text>
-        </View> */}
-
-        {/* Expire Card */}
-        {/* <View style={styles.expire}>
-          <Text style={accesstyles.textExpire}> */}
-            {/* <Icon name="alert-circle-outline" size={20} color="#113E55"   /> */}
-            {/* Code expires on 31st May 2003
-          </Text> 
-        </View> */}
 
         {/* Profile Card */}
         <View style={styles.card}>
-          <ProfileDetail label="Name" value="Sandra Happiness" />
-          <ProfileDetail label="Address" value="Flat 1, 18A Olayinka Street" />
-          <ProfileDetail label="Email Address" value="ckmdkcmdcdmckdmckmdkcmkmhfffffbhbgyroJ@gmail.com" />
-          <ProfileDetail label="Phone Number" value="0902 443 4224" />
+          <ProfileDetail label="Name" value={`${user?.first_name} ${user?.last_name}`} />
+          <ProfileDetail label="Address" value={user?.home_address || 'N/A'} />
+          <ProfileDetail label="Email Address" value={user?.email || 'N/A'} />
+          <ProfileDetail label="Phone Number" value={user?.phone_number || 'N/A'} />
         </View>
       </View>
 
       {/* Logout Button */}
       <TouchableOpacity style={styles.logoutButton} onPress={signOut}>
-        <Text style={styles.logoutText} >Log Out </Text>
+        <Text style={styles.logoutText}>Log Out</Text>
       </TouchableOpacity>
     </View>
   );
@@ -85,19 +67,21 @@ const ProfileScreen = () => {
 const ProfileDetail = ({ label, value }) => (
   <View style={styles.detailRow}>
     <Text style={styles.detailLabel}>{label} :</Text>
-
-
-
-    <Text numberOfLines={2}
-  ellipsizeMode="head"
-  style={{
-    flexWrap: "wrap",
-    // textAlign: "justify",
-    fontSize: 14,
-  }}>{value}</Text>
-    
+    <Text
+      numberOfLines={2}
+      ellipsizeMode="head"
+      style={{
+        flexWrap: 'wrap',
+        fontSize: 14,
+      }}
+    >
+      {value}
+    </Text>
   </View>
 );
+
+// ... keep styles the same
+
 
 // accesstyles
 const accesstyles = StyleSheet.create({

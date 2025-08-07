@@ -63,37 +63,40 @@ export default function Login() {
 
   if (!appIsReady) return null;
 
-  const handleSignInPress = async () => {
-    setIsLoading(true);
-    try {
-      const result = await loginUser(email, password);
+ const handleSignInPress = async () => {
+  setIsLoading(true);
+  try {
+    const result = await loginUser(email, password);
 
-      const userPayload = {
-        role: result.role,
-        token: result.access_token,
-      };
+    console.log("Login result:", result); // ✅ Check that this includes access_token
 
-      signIn(userPayload);
-      setErrorMessage("");
-      //TO-DO root would eventually have a separate page
-      // Route user based on role
-      if (
-        result.role === "primary_admin" || result.role === "root" || result.role === "admin"
-      ) {
-        router.replace("/(admin)");
-      } else if (result.role === "resident") {
-        router.replace("/(protected)");
-      } else if (result.role === "security"){
-        router.replace("./(security)")
-      }else {
-        setErrorMessage("Incorrect username or password");
-      }
-    } catch (error: any) {
-      setErrorMessage(error.message || "Login failed");
-    } finally {
-      setIsLoading(false);
+    // ✅ Pass full response directly to signIn
+    await signIn(result);
+    
+
+    setErrorMessage("");
+
+    // Route user based on role
+    if (
+      result.role === "primary_admin" ||
+      result.role === "root" ||
+      result.role === "admin"
+    ) {
+      router.replace("/(admin)");
+    } else if (result.role === "resident") {
+      router.replace("/(protected)");
+    } else if (result.role === "security") {
+      router.replace("/(security)");
+    } else {
+      setErrorMessage("Incorrect username or password");
     }
-  };
+  } catch (error: any) {
+    setErrorMessage(error.message || "Login failed");
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   const isLargeScreen = width > 768;
 

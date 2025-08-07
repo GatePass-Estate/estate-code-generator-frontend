@@ -19,6 +19,8 @@ import {
   FlatList,
   Pressable,
 } from "react-native";
+import { useAuth } from "@/hooks/useAuthContext"; // Import your auth context
+
 
 
 interface Guest {
@@ -61,18 +63,22 @@ const AddGuest = ({ navigation }: { navigation: NavigationProp<any> }) => {
     }
   };
   function SettingsIcon() {
+    const { user } = useAuth();
+    const initials =
+      user?.first_name && user?.last_name
+        ? `${user.first_name[0]}${user.last_name[0]}`.toUpperCase()
+        : 'N/A';  
     return (
       <Link href="/modal" asChild>
         <Pressable className="opacity-80">
-          {({ pressed }) => (
-            <View style={styles.profileCircle}>
-              <Text style={styles.profileInitials}>GD</Text>
-            </View>
-          )}
+          <View style={styles.profileCircle}>
+            <Text style={styles.profileInitials}>{initials}</Text>
+          </View>
         </Pressable>
       </Link>
     );
   }
+  
 
   return (
     <ScrollView style={styles.container}>

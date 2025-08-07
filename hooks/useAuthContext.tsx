@@ -5,6 +5,11 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 SplashScreen.preventAutoHideAsync();
 
 type User = {
+  first_name: string;
+  last_name: string;
+  email?: string;
+  home_address?: string;
+  phone_number?: string;
   role: 'primary_admin' | 'root' | 'admin' | 'security' | 'resident';
   token: string;
 } | null;
@@ -34,7 +39,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const jsonValue = JSON.stringify(userData);
       await AsyncStorage.setItem(authStorageKey, jsonValue);
     } catch (error) {
-      console.log('Error saving auth state', error);
+      // console.log('Error saving auth state', error);
     }
   };
 
@@ -42,21 +47,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await AsyncStorage.removeItem(authStorageKey);
     } catch (error) {
-      console.log('Error clearing auth state', error);
+      // console.log('Error clearing auth state', error);
     }
   };
 
   const signIn = async (userData: any) => {
+  // userData is the raw response from /auth/login, not just the token
+  const token = userData.access_token;
+  const role = userData.role;
+
+  // console.log("Using token:", token);
+
+  try {
+    const profileRes = await fetch('http://10.234.76.195:9034/api/v1/users/profile/me', {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    const responseText = await profileRes.text();
+    // console.log("Profile fetch status:", profileRes.status);
+    // console.log("Profile fetch response:", responseText);
+
+    if (!profileRes.ok) {
+      throw new Error("Failed to fetch profile");
+    }
+
+    const profile = JSON.parse(responseText);
+
     const newUser = {
-    
-      role: userData.role,
-      token: userData.token,
+      first_name: profile.first_name,
+      last_name: profile.last_name,
+      email: profile.email,
+      home_address: profile.home_address,
+      phone_number: profile.phone_number,
+      role: role,
+      token: token,
     };
+
     setUser(newUser);
     setIsReady(true);
     await storeAuthState(newUser);
+  } catch (error) {
+    // console.log("Error during signIn:", error);
+  }
+};
 
-  };
+
 
   const signOut = async () => {
     setUser(null);
@@ -67,9 +106,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const loadAuthState = async () => {
-      // Simulate loading delay (remove in production)
       await new Promise((resolve) => setTimeout(resolve, 1000));
-
       try {
         const jsonValue = await AsyncStorage.getItem(authStorageKey);
         if (jsonValue) {
@@ -77,7 +114,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(savedUser);
         }
       } catch (error) {
-        console.log('Error loading auth state', error);
+        // console.log('Error loading auth state', error);
       } finally {
         setIsReady(true);
       }

@@ -11,6 +11,8 @@ import { Ionicons, Entypo  } from "@expo/vector-icons";
 import { Stack } from "expo-router";
 import { Link } from "expo-router";
 import { Image } from "react-native";
+import { useAuth } from "@/hooks/useAuthContext"; // Import your auth context
+
 
 
 
@@ -31,19 +33,22 @@ const guests = [
   { name: "Maya", relation: "Friend", gender: "female" },
 ];
 
-function SettingsIcon() {
-  return (
-    <Link href="/modal" asChild>
-      <Pressable className="opacity-80">
-        {({ pressed }) => (
+ function SettingsIcon() {
+    const { user } = useAuth();
+    const initials =
+      user?.first_name && user?.last_name
+        ? `${user.first_name[0]}${user.last_name[0]}`.toUpperCase()
+        : 'N/A';  
+    return (
+      <Link href="/modal" asChild>
+        <Pressable className="opacity-80">
           <View style={styles.profileCircle}>
-            <Text style={styles.profileInitials}>GD</Text>
+            <Text style={styles.profileInitials}>{initials}</Text>
           </View>
-        )}
-      </Pressable>
-    </Link>
-  );
-}
+        </Pressable>
+      </Link>
+    );
+  }
 const MyGuest = () => {
   return (
     <View style={styles.container}>
