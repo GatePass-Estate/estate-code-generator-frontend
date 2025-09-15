@@ -1,189 +1,135 @@
-import React from "react";
-import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { View, TouchableOpacity, StyleSheet, Pressable } from "react-native";
-import { FontAwesome } from "@expo/vector-icons";
-import { Text } from "@/components/nativewindui/Text";
-import { Link } from "expo-router";
-import { Tabs } from "expo-router";
-import { Image } from "react-native";
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { View, StyleSheet, Pressable } from 'react-native';
+import { FontAwesome } from '@expo/vector-icons';
+import { Text } from '@/components/nativewindui/Text';
+import { Tabs } from 'expo-router';
+import { Image } from 'react-native';
 
 const Tab = createBottomTabNavigator();
 
-// Dummy Screen
-const EmptyScreen = () => <View />;
-
 // Custom Floating Button
-const FloatingButton = ({ onPress }: any) => {
-  return (
-    <TouchableOpacity style={styles.fab} onPress={onPress}>
-      {/* c */}
-      <FontAwesome name="plus" size={15} color="#113E55" /> 
-    </TouchableOpacity>
-  );
+const FloatingButton = ({ focused }: any) => {
+	return (
+		<View style={[styles.fab, !focused ? { backgroundColor: '#CEE5ED' } : { backgroundColor: '#113E55' }]}>
+			<FontAwesome name="plus" size={20} color={`${focused ? '#CEE5ED' : '#113E55'}`} />
+		</View>
+	);
 };
 
-// Header Right Icon
-function SettingsIcon() {
-  return (
-    <Link href="/modal" asChild>
-      <Pressable className="opacity-80">
-        {({ pressed }) => (
-          <View style={styles.profileCircle}>
-            <Text style={styles.profileInitials}>GD</Text>
-          </View>
-        )}
-      </Pressable>
-    </Link>
-  );
-}
-
 export default function UserTab() {
-  return (
-    <Tabs
-      screenOptions={{
-        tabBarStyle: styles.tabBar,
-        tabBarShowLabel: true,
-        tabBarActiveTintColor: "#113E55",
-        tabBarInactiveTintColor: "#113E55",
-      }}
-    >
-      <Tabs.Screen
-        name="(home)"
-        options={{
-          title: "Home",
-          headerShown: false,
-          headerRight: () => <SettingsIcon />,
-          // headerTitleStyle: {
-          //   color: "#113E55", // 👈 Blue title text
-            
-          // },
-          tabBarIcon: ({ color, focused }) => (
-  <View>
-    <Image
-      source={
-        focused
-          ? require("@/assets/images/active-button.png")
-          : require("@/assets/images/menu icon.png")
-      }
-      style={{
-        marginLeft: -3,
-        width: 30,
-        height: 25,
-        resizeMode: "contain",
-        marginTop: 9,
-      }}
-    />
-    <Text
-      style={{ fontSize: 7, fontWeight: "light", color: "#113E55" }}
-    ></Text>
-  </View>
-),
+	return (
+		<Tabs
+			screenOptions={{
+				tabBarStyle: styles.tabBar,
+				tabBarShowLabel: true,
+				tabBarActiveTintColor: '#113E55',
+				tabBarInactiveTintColor: '#113E55',
+				tabBarLabelStyle: { display: 'none' },
+				tabBarButton: (props: any) => <Pressable {...props} android_ripple={null} />,
+			}}
+		>
+			<Tabs.Screen
+				name="(home)"
+				options={{
+					animation: 'none',
+					title: 'Home',
+					headerShown: false,
+					headerTitleStyle: {
+						color: '#000',
+					},
+					tabBarIcon: ({ focused }) => (
+						<View style={{ alignItems: 'center', width: 300, marginTop: 25, gap: 4 }}>
+							<Image
+								source={focused ? require('@/assets/images/active-button.png') : require('@/assets/images/menu icon.png')}
+								style={{
+									marginLeft: -3,
+									width: 30,
+									height: 25,
+									resizeMode: 'contain',
+								}}
+							/>
+							<Text style={{ fontSize: 12, fontWeight: focused ? 700 : 500, color: '#113E55' }}>Home</Text>
+						</View>
+					),
+				}}
+			/>
 
-        }}
-      />
-      <Tabs.Screen
-        name="(AddGuest)"
-        options={{
-          title: "Active Codes",
-          headerRight: () => <SettingsIcon />,
-          headerTitleStyle: {
-            color: "#113E55", // 👈 Blue title text
-            fontFamily: "UbuntuSans",
-            fontWeight: "bold",
-          },
-          headerShown: false,
-          tabBarButton: (props) => <FloatingButton {...props} />,
-        }}
-      />
-      <Tabs.Screen
-        name="(MyGuest)"
-        options={{
-          title: "My Guests",
-                    headerShown: false,
+			<Tabs.Screen
+				name="(AddGuest)"
+				options={{
+					title: 'Add Guest',
+					headerTitleStyle: {
+						color: '#113E55',
+						fontFamily: 'UbuntuSans',
+						fontWeight: 'bold',
+					},
+					headerShown: false,
+					tabBarIcon: (props) => <FloatingButton {...props} />,
+				}}
+			/>
 
-          headerRight: () => <SettingsIcon />,
-          headerTitleStyle: {
-            color: "#113E55", // 👈 Blue title text
-            fontFamily: "UbuntuSans",
-            fontWeight: "bold",
-          },
-          tabBarIcon: ({ color }) => (
-            <View style={{ alignItems: "center" }}>
-              <Image
-                source={require("@/assets/icons/Guest-icon.png")}
-                style={{
-                  width: 30,
-                  height: 30,
-                  resizeMode: "contain",
-                  marginTop: 9,
-                }}
-              />
-              <Text
-                style={{ fontSize: 7, fontWeight: "300", color: "#113E55" }}
-              ></Text>
-            </View>
-          ),
-        }}
-      />
-    </Tabs>
-  );
+			<Tabs.Screen
+				name="(MyGuest)"
+				options={{
+					title: 'My Guests',
+					headerShown: false,
+					headerTitleStyle: {
+						color: '#113E55',
+						fontFamily: 'UbuntuSans',
+						fontWeight: 'bold',
+					},
+					tabBarIcon: ({ focused }) => (
+						<View style={{ alignItems: 'center', width: 300, marginTop: 25, gap: 4 }}>
+							<Image
+								source={focused ? require('@/assets/images/active-account.png') : require('@/assets/icons/Guest-icon.png')}
+								style={{
+									width: 30,
+									height: 30,
+									resizeMode: 'contain',
+								}}
+							/>
+							<Text style={{ fontSize: 12, fontWeight: focused ? 700 : 500, color: '#113E55' }}>My Guests</Text>
+						</View>
+					),
+				}}
+			/>
+		</Tabs>
+	);
 }
 
 const styles = StyleSheet.create({
-  tabBar: {
-    position: "absolute",
-    backgroundColor: "#CEE5ED",
-    height: 70,
-    bottom: 50,
+	tabBar: {
+		position: 'absolute',
+		backgroundColor: '#CEE5ED',
+		height: 80,
+		flex: 1,
+		alignItems: 'center',
+		justifyContent: 'center',
 
-    // Remove shadow (iOS and Android)
-    elevation: 0, // Android
-    shadowColor: "transparent", // iOS
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0,
-    shadowRadius: 0,
-    borderTopWidth: 0,
-  },
-  fab: {
-    top: -40,
-    right: -22,
-    width: 70,
-    height: 70,
-    borderRadius: 50,
-    backgroundColor: "#CEE5ED",
-    borderColor: "#FBFEFF",
-    borderWidth: 4,
-    justifyContent: "center",
-    alignItems: "center",
+		// Remove shadow (iOS and Android)
+		elevation: 0, // Android
+		shadowColor: 'transparent', // iOS
+		shadowOffset: { width: 0, height: 0 },
+		shadowOpacity: 0,
+		shadowRadius: 0,
+		borderTopWidth: 0,
+	},
 
-    // Remove shadow
-    elevation: 0,
-    shadowColor: "transparent",
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0,
-    shadowRadius: 0,
-  },
-  profileCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "#113E55",
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 20,
+	fab: {
+		top: -20,
+		width: 90,
+		height: 90,
+		borderRadius: 50,
+		borderColor: '#FBFEFF',
+		borderWidth: 6,
+		justifyContent: 'center',
+		alignItems: 'center',
 
-    // Remove shadow
-    elevation: 0,
-    shadowColor: "transparent",
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0,
-    shadowRadius: 0,
-  },
-  profileInitials: {
-    color: "#113E55",
-    fontWeight: "300",
-    fontFamily: "UbuntuSans",
-    fontSize: 23,
-  },
+		// Remove shadow
+		elevation: 0,
+		shadowColor: 'transparent',
+		shadowOffset: { width: 0, height: 0 },
+		shadowOpacity: 0,
+		shadowRadius: 0,
+	},
 });

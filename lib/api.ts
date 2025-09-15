@@ -3,7 +3,7 @@ const BASE_URL = 'http://10.234.76.195:9034/api/v1'; // Replace with your local 
 
 export async function loginUser(email: string, password: string) {
 	return {
-		role: 'primary_admin',
+		role: 'resident',
 		token: 'doduh',
 	};
 

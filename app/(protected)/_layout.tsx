@@ -11,30 +11,30 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { useAuth } from '@/hooks/useAuthContext';
 
 export const unstable_home_settings = {
-  initialRouteName: '(tabs)', 
+	initialRouteName: '(tabs)',
 };
 
 export default function ProtectedLayout() {
-  const { user, isReady } = useAuth();
+	const { user, isReady } = useAuth();
 
-  if (!isReady) {
-    return null;
-  }
+	if (!isReady) {
+		return null;
+	}
 
-  if (!user) {
-    return <Redirect href='/login' />;
-  }
+	if (!user) {
+		return <Redirect href="/login" />;
+	}
 
-  if (user.role === 'admin') {
-    return <Redirect href='/(admin)' />;
-  }
-  if (user.role === 'security'){
-    return <Redirect href='(security)' />;
-  }
+	if (user.role === 'admin') {
+		return <Redirect href="/(admin)" />;
+	}
+	if (user.role === 'security') {
+		return <Redirect href="(security)" />;
+	}
 
-  return (
-    <Stack>
-      <Stack.Screen name='(tabs)' options={{ headerShown: false }} />
-    </Stack>
-  );
+	return (
+		<Stack>
+			<Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+		</Stack>
+	);
 }

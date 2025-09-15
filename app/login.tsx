@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Platform, View, TextInput, Image, Text, ActivityIndicator, type ViewStyle, useWindowDimensions } from 'react-native';
+import { Platform, View, TextInput, Image, Text, ActivityIndicator, type ViewStyle, useWindowDimensions, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/nativewindui/Button';
 import { useColorScheme } from '@/lib/useColorScheme';
@@ -71,7 +71,7 @@ export default function Login() {
 			if (result.role === 'primary_admin' || result.role === 'root' || result.role === 'admin') {
 				router.replace('/(admin)');
 			} else if (result.role === 'resident') {
-				router.replace('/(protected)');
+				router.replace('/(protected)/(tabs)/(home)');
 			} else if (result.role === 'security') {
 				router.replace('./(security)');
 			} else {
@@ -146,37 +146,11 @@ export default function Login() {
 				<View style={{ gap: 16 }}>
 					<View>
 						<Text style={{ color: '#113E55', paddingBottom: 4 }}>Email Address</Text>
-						<TextInput
-							placeholder="Enter your email address..."
-							keyboardType="email-address"
-							value={email}
-							onChangeText={setEmail}
-							style={{
-								backgroundColor: '#F7F9F9',
-								borderWidth: 1,
-								borderColor: '#D1D5DB',
-								borderRadius: 8,
-								paddingHorizontal: 16,
-								paddingVertical: 12,
-							}}
-						/>
+						<TextInput placeholder="Enter your email address..." keyboardType="email-address" value={email} onChangeText={setEmail} style={Styles.input} />
 					</View>
 					<View>
 						<Text style={{ color: '#113E55', paddingBottom: 4 }}>Password</Text>
-						<TextInput
-							placeholder="Enter your password..."
-							secureTextEntry
-							value={password}
-							onChangeText={setPassword}
-							style={{
-								backgroundColor: '#F7F9F9',
-								borderWidth: 1,
-								borderColor: '#D1D5DB',
-								borderRadius: 8,
-								paddingHorizontal: 16,
-								paddingVertical: 12,
-							}}
-						/>
+						<TextInput placeholder="Enter your password..." secureTextEntry value={password} onChangeText={setPassword} style={Styles.input} />
 					</View>
 					{errorMessage ? (
 						<Text
@@ -213,3 +187,14 @@ export default function Login() {
 		</SafeAreaView>
 	);
 }
+
+const Styles = StyleSheet.create({
+	input: {
+		backgroundColor: '#F7F9F9',
+		borderColor: '#D1D5DB',
+		borderRadius: 8,
+		paddingHorizontal: 16,
+		paddingVertical: 20,
+		marginTop: 5,
+	},
+});

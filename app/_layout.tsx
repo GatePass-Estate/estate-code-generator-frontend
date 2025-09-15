@@ -15,52 +15,49 @@ import 'react-native-reanimated';
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  useInitialAndroidBarSync();
-  const { colorScheme, isDarkColorScheme } = useColorScheme();
+	useInitialAndroidBarSync();
+	const { colorScheme, isDarkColorScheme } = useColorScheme();
 
-  const [loaded] = useFonts({
-    RobotoItalic: require('../assets/fonts/Roboto-Italic-VariableFont_wdth,wght.ttf'),
-    UbuntuSans: require('../assets/fonts/UbuntuSans-VariableFont_wdth,wght.ttf'),
-  });
+	const [loaded] = useFonts({
+		RobotoItalic: require('../assets/fonts/Roboto-Italic-VariableFont_wdth,wght.ttf'),
+		UbuntuSans: require('../assets/fonts/UbuntuSans-VariableFont_wdth,wght.ttf'),
+	});
 
-  useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
-    }
-  }, [loaded]);
+	useEffect(() => {
+		if (loaded) {
+			SplashScreen.hideAsync();
+		}
+	}, [loaded]);
 
-  if (!loaded) {
-    return null;
-  }
+	if (!loaded) {
+		return null;
+	}
 
-  return (
-    <>
-      <StatusBar
-        key={`root-status-bar-${isDarkColorScheme ? 'light' : 'dark'}`}
-        style={isDarkColorScheme ? 'light' : 'dark'}
-      />
-      <AuthProvider>
-        <ThemeProvider value={NAV_THEME[colorScheme]}>
-          <Stack
-            initialRouteName="login"
-            screenOptions={{
-              headerShown: false,
-              headerStyle: {
-                elevation: 0, // Android
-                shadowColor: 'transparent', // iOS
-              },
-              cardStyle: {
-                backgroundColor: 'white',
-              },
-            }}
-          >
-            <Stack.Screen name="login" options={{ animation: 'none' }} />
-            <Stack.Screen name="(admin)" />
-            <Stack.Screen name="(protected)" />
-            <Stack.Screen name="(security)" />
-          </Stack>
-        </ThemeProvider>
-      </AuthProvider>
-    </>
-  );
+	return (
+		<>
+			<StatusBar key={`root-status-bar-${isDarkColorScheme ? 'light' : 'dark'}`} style={isDarkColorScheme ? 'light' : 'dark'} />
+			<AuthProvider>
+				<ThemeProvider value={NAV_THEME[colorScheme]}>
+					<Stack
+						initialRouteName="login"
+						screenOptions={{
+							headerShown: false,
+							// headerStyle: {
+							//   elevation: 0, // Android
+							//   shadowColor: 'transparent', // iOS
+							// },
+							// cardStyle: {
+							// 	backgroundColor: 'white',
+							// },
+						}}
+					>
+						<Stack.Screen name="login" options={{ animation: 'none' }} />
+						<Stack.Screen name="(admin)" />
+						<Stack.Screen name="(protected)" />
+						<Stack.Screen name="(security)" />
+					</Stack>
+				</ThemeProvider>
+			</AuthProvider>
+		</>
+	);
 }

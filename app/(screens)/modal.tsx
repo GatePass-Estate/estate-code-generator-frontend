@@ -27,7 +27,7 @@ const ProfileScreen = () => {
 			</TouchableOpacity>
 
 			{/* Profile Title */}
-			<Text style={styles.title}>My Profile</Text>
+			<Text style={styles.title}>My Profiles</Text>
 
 			{/* Personal Details Section */}
 			<View style={styles.section}>
@@ -48,19 +48,6 @@ const ProfileScreen = () => {
 					</TouchableOpacity>
 				</Text>
 
-				{/* Access Code Card */}
-				{/* <View style={accesstyles.access}>
-          <Text style={accesstyles.text}>My access code:  90t 76E</Text>
-        </View> */}
-
-				{/* Expire Card */}
-				{/* <View style={styles.expire}>
-          <Text style={accesstyles.textExpire}> */}
-				{/* <Icon name="alert-circle-outline" size={20} color="#113E55"   /> */}
-				{/* Code expires on 31st May 2003
-          </Text> 
-        </View> */}
-
 				{/* Profile Card */}
 				<View style={styles.card}>
 					<ProfileDetail label="Name" value="Sandra Happiness" />
@@ -79,9 +66,9 @@ const ProfileScreen = () => {
 };
 
 // Reusable Component for Profile Details
-const ProfileDetail = ({ label, value }) => (
+const ProfileDetail = ({ label, value }: { label: string; value: string }) => (
 	<View style={styles.detailRow}>
-		<Text style={styles.detailLabel}>{label} :</Text>
+		<Text style={styles.detailLabel}>{label}</Text>
 
 		<Text
 			numberOfLines={2}
@@ -97,32 +84,6 @@ const ProfileDetail = ({ label, value }) => (
 	</View>
 );
 
-// accesstyles
-const accesstyles = StyleSheet.create({
-	access: {
-		backgroundColor: '#CEE5ED',
-		color: '#113E55',
-		height: 50,
-		width: '100%',
-		alignItems: 'center',
-		justifyContent: 'center',
-		borderRadius: 5,
-		shadowColor: '#000',
-		shadowOpacity: 0.1,
-		shadowRadius: 3,
-		elevation: 2,
-	},
-	text: {
-		color: '#113E55',
-		fontWeight: 'bold',
-	},
-	textExpire: {
-		color: '#113E55',
-		marginBottom: 40,
-		fontStyle: 'italic',
-	},
-});
-
 // Styles
 const styles = StyleSheet.create({
 	container: {
@@ -134,11 +95,13 @@ const styles = StyleSheet.create({
 		shadowOpacity: 0,
 		borderBottomWidth: 0,
 	},
+
 	backButton: {
 		flexDirection: 'row',
 		alignItems: 'center',
 		marginBottom: 20,
 	},
+
 	backText: {
 		color: '#113E55',
 		fontSize: 16,
@@ -146,15 +109,18 @@ const styles = StyleSheet.create({
 		fontFamily: 'UbuntuSans',
 		fontWeight: 'bold',
 	},
+
 	value: {
 		flexWrap: 'wrap', // ✅ allow wrapping
 		width: '20%',
 	},
+
 	backIcon: {
 		width: 25,
 		height: 25,
 		resizeMode: 'contain',
 	},
+
 	title: {
 		fontSize: 22,
 		fontWeight: 700,
@@ -162,10 +128,12 @@ const styles = StyleSheet.create({
 		marginBottom: 20,
 		fontFamily: 'UbuntuSans',
 	},
+
 	section: {
 		marginTop: 20,
 		marginBottom: 20,
 	},
+
 	sectionTitle: {
 		fontSize: 14,
 		fontWeight: 400,
@@ -173,10 +141,12 @@ const styles = StyleSheet.create({
 		marginBottom: 10,
 		flexDirection: 'row',
 	},
+
 	editIcon: {
 		marginLeft: 10,
 		borderRadius: 20,
 	},
+
 	card: {
 		marginTop: 12,
 		backgroundColor: '#FFFFFF',
@@ -185,32 +155,38 @@ const styles = StyleSheet.create({
 		width: '100%',
 		borderWidth: 0.1,
 	},
+
 	detailRow: {
-		flexDirection: 'row',
+		gap: 4,
 		justifyContent: 'space-between',
 		marginBottom: 40,
 	},
+
 	detailLabel: {
-		color: '#888',
-		fontSize: 14,
+		color: '#888888da',
+		fontSize: 12,
 		fontWeight: 400,
 	},
+
 	detailValue: {
 		color: '#113E55',
 		fontSize: 14,
 		fontWeight: 400,
 		fontFamily: 'UbuntuSans',
 	},
+
 	logoutButton: {
 		alignSelf: 'center',
 		marginTop: 30,
 	},
+
 	logoutText: {
 		top: 130,
 		color: '#E63946',
 		fontSize: 16,
 		fontWeight: 'bold',
 	},
+
 	expire: {
 		marginTop: 10,
 		marginBottom: 10,
