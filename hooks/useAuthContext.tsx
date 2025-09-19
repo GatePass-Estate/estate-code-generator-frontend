@@ -1,104 +1,67 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { fetchMe } from '@/lib/api/auth';
+import { clearAuthState, getAuthState, storeAuthState } from '@/lib/helpers';
+import { useAuthStore } from '@/lib/stores/authStore';
+import { useUserStore } from '@/lib/stores/userStore';
+import { AuthContextType } from '@/types/auth';
+import { User } from '@/types/user';
 import { SplashScreen, useRouter } from 'expo-router';
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, use, useContext, useEffect, useState } from 'react';
 
 SplashScreen.preventAutoHideAsync();
 
-type User = {
-  role: 'primary_admin' | 'root' | 'admin' | 'security' | 'resident';
-  token: string;
-} | null;
-
-type AuthContextType = {
-  user: User;
-  isReady: boolean;
-  signIn: (userData: any) => Promise<void>;
-  signOut: () => Promise<void>;
-};
-
-const authStorageKey = 'auth-key';
 const AuthContext = createContext<AuthContextType>({
-  user: null,
-  isReady: false,
-  signIn: async () => {},
-  signOut: async () => {},
+	isReady: false,
+	signIn: async () => {},
+	signOut: async () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User>(null);
-  const [isReady, setIsReady] = useState(false);
-  const router = useRouter();
+	const [isReady, setIsReady] = useState(false);
+	const router = useRouter();
 
-  const storeAuthState = async (userData: User) => {
-    try {
-      const jsonValue = JSON.stringify(userData);
-      await AsyncStorage.setItem(authStorageKey, jsonValue);
-    } catch (error) {
-      console.log('Error saving auth state', error);
-    }
-  };
+	const signIn = async (userData: User) => {
+		useUserStore.setState({ ...userData });
+		setIsReady(true);
+	};
 
-  const clearAuthState = async () => {
-    try {
-      await AsyncStorage.removeItem(authStorageKey);
-    } catch (error) {
-      console.log('Error clearing auth state', error);
-    }
-  };
+	const signOut = async () => {
+		setIsReady(false);
+		useUserStore.getState().clearUser();
+		useAuthStore.getState().clearAuth();
+		clearAuthState();
+		router.replace('/login');
+	};
 
-  const signIn = async (userData: any) => {
-    const newUser = {
-    
-      role: userData.role,
-      token: userData.token,
-    };
-    setUser(newUser);
-    setIsReady(true);
-    await storeAuthState(newUser);
+	useEffect(() => {
+		const loadAuthState = async () => {
+			const localData = await getAuthState();
 
-  };
+			console.log('Loaded auth state from storage:', localData);
+			if (localData?.access_token) {
+				useAuthStore.setState({ access_token: localData.access_token, role: localData.role });
+			}
 
-  const signOut = async () => {
-    setUser(null);
-    setIsReady(false);
-    await clearAuthState();
-    router.replace('/login');
-  };
+			try {
+				const myProfile = (await fetchMe()) as User;
+				console.log('Fetched profile:', myProfile);
+				if (myProfile && myProfile.status) {
+					await signIn(myProfile);
+					await SplashScreen.hideAsync();
+					router.replace('/(protected)/(tabs)/(home)');
+				}
+			} catch (error) {
+				console.log('Error loading auth state', error);
+			} finally {
+				setIsReady(true);
+			}
+		};
 
-  useEffect(() => {
-    const loadAuthState = async () => {
-      // Simulate loading delay (remove in production)
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+		loadAuthState();
+	}, []);
 
-      try {
-        const jsonValue = await AsyncStorage.getItem(authStorageKey);
-        if (jsonValue) {
-          const savedUser = JSON.parse(jsonValue);
-          setUser(savedUser);
-        }
-      } catch (error) {
-        console.log('Error loading auth state', error);
-      } finally {
-        setIsReady(true);
-      }
-    };
-
-    loadAuthState();
-  }, []);
-
-  useEffect(() => {
-    if (isReady) {
-      SplashScreen.hideAsync();
-    }
-  }, [isReady]);
-
-  return (
-    <AuthContext.Provider value={{ user, isReady, signIn, signOut }}>
-      {children}
-    </AuthContext.Provider>
-  );
+	return <AuthContext.Provider value={{ isReady, signIn, signOut }}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
-  return useContext(AuthContext);
+	return useContext(AuthContext);
 }

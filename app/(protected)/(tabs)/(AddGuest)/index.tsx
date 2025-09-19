@@ -44,7 +44,7 @@ const AddGuest = ({ navigation }: { navigation: NavigationProp<any> }) => {
 	};
 	function SettingsIcon() {
 		return (
-			<Link href="/modal" asChild>
+			<Link href="/(screens)/my-profile" asChild>
 				<Pressable className="opacity-80">
 					{({ pressed }) => (
 						<View style={styles.profileCircle}>

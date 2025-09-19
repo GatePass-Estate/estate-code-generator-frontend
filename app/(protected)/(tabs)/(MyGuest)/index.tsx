@@ -1,24 +1,64 @@
-import { View, Text, StyleSheet, TextInput, ScrollView, TouchableOpacity, Animated } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Animated, FlatList, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Stack } from 'expo-router';
+import { router, Stack } from 'expo-router';
 import { Image } from 'react-native';
 import UserIcon from '@/components/UserIcon';
-import { useRef, useState } from 'react';
-
-const guests = [
-	{ name: 'Sandra', relation: 'Friend', gender: 'female' },
-	{ name: 'Jeff', relation: 'Service Provider', gender: 'male' },
-	{ name: 'Sandra', relation: 'Friend', gender: 'prefer not to say' },
-	{ name: 'Ben', relation: 'Partner', gender: 'male' },
-	{ name: 'Maya', relation: 'Friend', gender: 'female' },
-];
+import { useEffect, useRef, useState } from 'react';
+import { Guest } from '@/types/guests';
+import { deleteMyGuest, getMyGuests } from '@/lib/api/guests';
 
 const MyGuest = () => {
 	const [searchQuery, setSearchQuery] = useState('');
+	const [guests, setGuests] = useState<Guest[]>([]);
+	const [loading, setLoading] = useState(true);
+	const [deleting, setDeleting] = useState(false);
 
-	const filteredGuests = guests.filter((guest) => guest.name.toLowerCase().includes(searchQuery.toLowerCase()) || guest.relation.toLowerCase().includes(searchQuery.toLowerCase()));
+	const filteredGuests = guests.filter((guest) => guest.guest_name.toLowerCase().includes(searchQuery.toLowerCase()) || guest.relationship.toLowerCase().includes(searchQuery.toLowerCase()));
 
 	const bounceValue = useRef(new Animated.Value(0)).current;
+
+	const fetchGuests = async () => {
+		setLoading(true);
+		try {
+			const result = await getMyGuests();
+			setGuests(result.items);
+		} catch (error) {
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	const deleteGuest = async (id: string) => {
+		setDeleting(true);
+		try {
+			await deleteMyGuest(id);
+			setGuests((prev) => prev.filter((g) => g.id !== id));
+		} catch (error) {
+		} finally {
+			setDeleting(false);
+		}
+	};
+
+	useEffect(() => {
+		Animated.loop(
+			Animated.sequence([
+				Animated.timing(bounceValue, {
+					toValue: -10,
+					duration: 500,
+					useNativeDriver: true,
+				}),
+				Animated.timing(bounceValue, {
+					toValue: 0,
+					duration: 500,
+					useNativeDriver: true,
+				}),
+			])
+		).start();
+	}, [bounceValue]);
+
+	useEffect(() => {
+		fetchGuests();
+	}, []);
 
 	return (
 		<View style={styles.container}>
@@ -38,17 +78,28 @@ const MyGuest = () => {
 					},
 				}}
 			/>
-			<View style={styles.searchBar}>
-				<Ionicons name="search" size={18} color="#555" style={{ marginLeft: 8 }} />
-				<TextInput placeholder="Search" style={styles.searchInput} value={searchQuery} onChangeText={setSearchQuery} />
-			</View>
+			{filteredGuests.length > 10 && (
+				<View style={styles.searchBar}>
+					<Ionicons name="search" size={18} color="#555" style={{ marginLeft: 8 }} />
+					<TextInput placeholder="Search" style={styles.searchInput} value={searchQuery} onChangeText={setSearchQuery} />
+				</View>
+			)}
 
-			<Text style={styles.savedLabel}>All Saved Guests</Text>
-			<View style={styles.divider} />
+			{filteredGuests.length > 0 && (
+				<>
+					<Text style={styles.savedLabel}>All Saved Guests</Text>
+					<View style={styles.divider} />
+				</>
+			)}
 
-			<ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
-				{filteredGuests.length === 0 ? (
-					<View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+			<FlatList
+				data={filteredGuests}
+				keyExtractor={(_, index) => index.toString()}
+				// contentContainerStyle={{ paddingBottom: 100, flexGrow: 1 }}
+				refreshing={loading}
+				onRefresh={fetchGuests}
+				ListEmptyComponent={() => (
+					<View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 40 }}>
 						<Animated.Image
 							source={require('@/assets/images/ghost.png')}
 							style={{
@@ -58,35 +109,67 @@ const MyGuest = () => {
 								transform: [{ translateY: bounceValue }],
 							}}
 						/>
-
 						<Text style={{ textAlign: 'center', fontSize: 23, opacity: 0.2 }}>{`Click the ‘+’ to add \nyour guest`}</Text>
 					</View>
-				) : (
-					filteredGuests.map((guest, index) => (
-						<View key={index} style={[styles.card, { backgroundColor: guest.gender == 'female' ? '#f45f36e' : guest.gender == 'male' ? '#167a6ec' : '#dcdcdc30', borderColor: guest.gender == 'female' ? '#F46036' : guest.gender == 'male' ? '#167a6f' : '#dcdcdc' }]}>
+				)}
+				renderItem={({ item }) => {
+					return (
+						<View
+							style={[
+								styles.card,
+								{
+									backgroundColor: item.gender == 'female' ? '#f45f36e' : item.gender == 'male' ? '#167a6ec' : '#dcdcdc30',
+									borderColor: item.gender == 'female' ? '#F46036' : item.gender == 'male' ? '#167a6f' : '#dcdcdc',
+								},
+							]}
+						>
 							<View style={styles.guestInfo}>
-								{guest.gender === 'male' ? <Ionicons name="male" size={18} color="#167a6f" /> : guest.gender === 'female' ? <Ionicons name="female" size={18} color="#F46036" /> : <Image source={require('@/assets/icons/not-saying.png')} style={{ width: 19, height: 19 }} />}
+								{item.gender === 'male' ? <Ionicons name="male" size={18} color="#167a6f" /> : item.gender === 'female' ? <Ionicons name="female" size={18} color="#F46036" /> : <Image source={require('@/assets/icons/not-saying.png')} style={{ width: 19, height: 19 }} />}
 
 								<View style={{ marginLeft: 10 }}>
-									<Text style={styles.guestName}>{guest.name}</Text>
-									<Text style={styles.guestRelation}>{guest.relation}</Text>
+									<Text style={styles.guestName}>{item.guest_name}</Text>
+									<Text style={styles.guestRelation}>{item.relationship}</Text>
 								</View>
 							</View>
 
 							<View style={styles.actions}>
-								<TouchableOpacity style={{ marginRight: 15 }}>
+								<TouchableOpacity
+									onPress={() => {
+										Alert.alert(
+											'Delete guest',
+											`Are you sure you want to delete ${item.guest_name}?`,
+											[
+												{ text: 'Cancel', style: 'cancel' },
+												{
+													text: 'Delete',
+													style: 'destructive',
+													onPress: () => deleteGuest(item.id),
+												},
+											],
+											{ cancelable: true }
+										);
+									}}
+								>
 									<Image source={require('@/assets/images/delete(1).png')} style={{ width: 35, height: 35, resizeMode: 'contain', tintColor: '#a6a4a4' }} />
 								</TouchableOpacity>
 
-								{/* QRcode beside the deleete button */}
-								<TouchableOpacity>
+								<TouchableOpacity
+									onPress={() =>
+										router.push({
+											pathname: '/invite-screen',
+											params: {
+												name: item.id,
+											},
+										})
+									}
+								>
 									<Image source={require('@/assets/images/generatecode(2).png')} style={{ width: 35, height: 35, resizeMode: 'contain', tintColor: '#a6a4a4' }} />
 								</TouchableOpacity>
 							</View>
 						</View>
-					))
-				)}
-			</ScrollView>
+					);
+				}}
+			/>
 		</View>
 	);
 };
@@ -203,8 +286,8 @@ const styles = StyleSheet.create({
 	divider: {
 		height: 0.5,
 		backgroundColor: '#113E55',
-		marginTop: 4,
-		marginBottom: 15,
+		marginTop: 8,
+		marginBottom: 20,
 		width: '100%',
 	},
 });

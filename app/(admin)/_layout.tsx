@@ -1,35 +1,40 @@
 import { useAuth } from '@/hooks/useAuthContext';
+import { useAuthStore } from '@/lib/stores/authStore';
+import { useUserStore } from '@/lib/stores/userStore';
 import { Redirect, Stack } from 'expo-router';
 
 export const unstable_settings = {
-  initialRouteName: 'dashboard', // Default admin screen
+	initialRouteName: 'dashboard', // Default admin screen
 };
 
 export default function AdminLayout() {
-  const { user, isReady } = useAuth();
+	const { isReady } = useAuth();
 
-  // Ensure auth state is fully loaded
-  if (!isReady) return null;
+	const role = useAuthStore((state) => state.role);
+	const status = useUserStore((state) => state.status);
 
-  // Redirect unauthenticated users
-  if (!user) {
-    return <Redirect href="/login" />;
-  }
+	// Ensure auth state is fully loaded
+	if (!isReady) return null;
 
-  // Restrict access to only primary_admin and root roles
-  const isAuthorizedAdmin = ['primary_admin', 'root'].includes(user.role);
+	// Redirect unauthenticated users
+	if (!status) {
+		return <Redirect href="/login" />;
+	}
 
-  if (!isAuthorizedAdmin) {
-    return <Redirect href="/(protected)" />;
-  }
+	// Restrict access to only primary_admin and root roles
+	const isAuthorizedAdmin = ['primary_admin', 'root'].includes(role || '');
 
-  // Render admin-only stack
-  return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="dashboard" />
-      <Stack.Screen name="userList" />
-      <Stack.Screen name="userProfile" />
-      <Stack.Screen name="adminReg" />
-    </Stack>
-  );
+	if (!isAuthorizedAdmin) {
+		return <Redirect href="/(protected)/(tabs)/(home)" />;
+	}
+
+	// Render admin-only stack
+	return (
+		<Stack screenOptions={{ headerShown: false }}>
+			<Stack.Screen name="dashboard" />
+			<Stack.Screen name="userList" />
+			<Stack.Screen name="userProfile" />
+			<Stack.Screen name="adminReg" />
+		</Stack>
+	);
 }

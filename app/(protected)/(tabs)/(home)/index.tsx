@@ -63,7 +63,7 @@ export default function ActiveCodes() {
 								style={styles.guestCard}
 								onPress={() =>
 									router.push({
-										pathname: '/invitePage',
+										pathname: '/invite-screen',
 										params: {
 											name: item.name,
 											code: item.code,

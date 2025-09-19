@@ -1,24 +1,45 @@
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '@/hooks/useAuthContext';
 import { Image } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Back from '@/components/Back';
+import { useUserStore } from '@/lib/stores/userStore';
+
+export const SingleDetail = ({ label, value }: { label: String; value: String | null }) => (
+	<View style={styles.detailRow}>
+		<Text style={styles.detailLabel}>{label}</Text>
+
+		<Text
+			numberOfLines={2}
+			ellipsizeMode="head"
+			style={{
+				flexWrap: 'wrap',
+				fontSize: 15,
+			}}
+		>
+			{value}
+		</Text>
+	</View>
+);
 
 const ProfileScreen = () => {
 	const { signOut } = useAuth();
-	const navigation = useNavigation();
+
+	const first_name = useUserStore((state) => state.first_name);
+	const last_name = useUserStore((state) => state.last_name);
+	const address = useUserStore((state) => state.home_address);
+	const estate_name = useUserStore((state) => state.estate_name);
+	const email = useUserStore((state) => state.email);
+	const phone_number = useUserStore((state) => state.phone_number);
 
 	return (
 		<SafeAreaView style={styles.container}>
 			<Back />
 
 			<View>
-				{/* Profile Title */}
 				<Text style={styles.title}>My Profiles</Text>
 
-				{/* Personal Details Section */}
 				<View style={styles.section}>
 					<Text style={styles.sectionTitle}>
 						PERSONAL DETAILS
@@ -37,16 +58,14 @@ const ProfileScreen = () => {
 						</TouchableOpacity>
 					</Text>
 
-					{/* Profile Card */}
 					<View style={styles.card}>
-						<ProfileDetail label="Name" value="Sandra Happiness" />
-						<ProfileDetail label="Address" value="Flat 1, 18A Olayinka Street" />
-						<ProfileDetail label="Email Address" value="ckmdkcmdcdmckdmckmdkcmkmhfffffbhbgyroJ@gmail.com" />
-						<ProfileDetail label="Phone Number" value="0902 443 4224" />
+						<SingleDetail label="Name" value={`${first_name} ${last_name} `} />
+						<SingleDetail label="Address" value={`${estate_name}, ${address} `} />
+						<SingleDetail label="Email Address" value={email} />
+						<SingleDetail label="Phone Number" value={phone_number} />
 					</View>
 				</View>
 
-				{/* Logout Button */}
 				<TouchableOpacity style={styles.logoutButton} onPress={signOut}>
 					<Text style={styles.logoutText}>Log Out </Text>
 				</TouchableOpacity>
@@ -54,25 +73,6 @@ const ProfileScreen = () => {
 		</SafeAreaView>
 	);
 };
-
-// Reusable Component for Profile Details
-const ProfileDetail = ({ label, value }: { label: string; value: string }) => (
-	<View style={styles.detailRow}>
-		<Text style={styles.detailLabel}>{label}</Text>
-
-		<Text
-			numberOfLines={2}
-			ellipsizeMode="head"
-			style={{
-				flexWrap: 'wrap',
-				// textAlign: "justify",
-				fontSize: 14,
-			}}
-		>
-			{value}
-		</Text>
-	</View>
-);
 
 // Styles
 const styles = StyleSheet.create({
@@ -86,8 +86,23 @@ const styles = StyleSheet.create({
 		borderBottomWidth: 0,
 	},
 
+	backButton: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		marginBottom: 50,
+		marginLeft: -5,
+	},
+
+	backText: {
+		color: '#113E55',
+		fontSize: 16,
+		marginLeft: 5,
+		fontFamily: 'UbuntuSans',
+		fontWeight: 'bold',
+	},
+
 	value: {
-		flexWrap: 'wrap', // ✅ allow wrapping
+		flexWrap: 'wrap',
 		width: '20%',
 	},
 
@@ -135,7 +150,7 @@ const styles = StyleSheet.create({
 	detailRow: {
 		gap: 4,
 		justifyContent: 'space-between',
-		marginBottom: 40,
+		marginBottom: 20,
 	},
 
 	detailLabel: {
@@ -161,7 +176,6 @@ const styles = StyleSheet.create({
 		color: '#E63946',
 		fontSize: 16,
 		fontWeight: 'bold',
-		padding: 15,
 	},
 
 	expire: {

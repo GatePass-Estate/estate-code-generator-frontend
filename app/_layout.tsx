@@ -1,14 +1,11 @@
-import React, { useEffect } from 'react';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { Stack } from 'expo-router';
-
-import { useColorScheme, useInitialAndroidBarSync } from '@/lib/useColorScheme';
+import { useColorScheme, useInitialAndroidBarSync } from '@/hooks/useColorScheme';
 import { NAV_THEME } from '@/theme';
 import { AuthProvider } from '@/hooks/useAuthContext';
 import { ThemeProvider } from '@react-navigation/native';
-
 import 'react-native-reanimated';
 
 // Keep splash screen visible while loading fonts
@@ -23,12 +20,6 @@ export default function RootLayout() {
 		UbuntuSans: require('../assets/fonts/UbuntuSans-VariableFont_wdth,wght.ttf'),
 	});
 
-	useEffect(() => {
-		if (loaded) {
-			SplashScreen.hideAsync();
-		}
-	}, [loaded]);
-
 	if (!loaded) {
 		return null;
 	}
@@ -42,13 +33,6 @@ export default function RootLayout() {
 						initialRouteName="login"
 						screenOptions={{
 							headerShown: false,
-							// headerStyle: {
-							//   elevation: 0, // Android
-							//   shadowColor: 'transparent', // iOS
-							// },
-							// cardStyle: {
-							// 	backgroundColor: 'white',
-							// },
 						}}
 					>
 						<Stack.Screen name="login" options={{ animation: 'none' }} />

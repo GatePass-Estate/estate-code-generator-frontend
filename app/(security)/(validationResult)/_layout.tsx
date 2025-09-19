@@ -1,33 +1,35 @@
 import { useAuth } from '@/hooks/useAuthContext';
+import { useAuthStore } from '@/lib/stores/authStore';
+import { useUserStore } from '@/lib/stores/userStore';
 import { Redirect, Stack } from 'expo-router';
-import { useContext } from 'react';
 
 export const unstable_settings = {
-  initialRouteName: '(security)',
+	initialRouteName: '(security)',
 };
 
 export default function AdminLayout() {
-  const authState = useAuth();
-  const { user, isReady } = authState;
-  console.log('SecurityLayout', isReady);
+	const authState = useAuth();
+	const { isReady } = authState;
 
-  if (!isReady) {
-    return null;
-  }
+	const role = useAuthStore((state) => state.role);
+	const status = useUserStore((state) => state.status);
 
-  if (!user) {
-    return <Redirect href='/login' />;
-  }
+	if (!isReady) {
+		return null;
+	}
 
-  if (user.role !== 'security') {
-    return <Redirect href='./(protected)' />;
-  }
+	if (!status) {
+		return <Redirect href="/login" />;
+	}
 
-  return (
-    <Stack screenOptions={{ headerShown: false, title: "Incoming Guest" }}>
-      <Stack.Screen name='(security)' options={{ headerShown: false,  }} />
-      <Stack.Screen name='(validationResult)' options={{ headerShown: false}} />
+	if (role !== 'security') {
+		return <Redirect href="./(protected)" />;
+	}
 
-    </Stack>
-  );
+	return (
+		<Stack screenOptions={{ headerShown: false, title: 'Incoming Guest' }}>
+			<Stack.Screen name="(security)" options={{ headerShown: false }} />
+			<Stack.Screen name="(validationResult)" options={{ headerShown: false }} />
+		</Stack>
+	);
 }
