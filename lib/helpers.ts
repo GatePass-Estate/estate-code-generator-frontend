@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthState } from './stores/authStore';
+import axios from 'axios';
 
 const authStorageKey = process.env.EXPO_PUBLIC_AUTH_STORAGE_KEY!;
 
@@ -30,4 +31,13 @@ export const getAuthState = async (): Promise<AuthState | null> => {
 		console.log('Error retrieving auth state', error);
 		return null;
 	}
+};
+
+export const getErrorMessage = (error: any): string => {
+	if (axios.isAxiosError(error) && error.response) {
+		if (error.response.data.detail) {
+			return error.response.data.detail;
+		}
+	}
+	return error.message;
 };

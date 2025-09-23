@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Back from '@/components/Back';
 import { useUserStore } from '@/lib/stores/userStore';
+import images from '@/constants/images';
 
 export const SingleDetail = ({ label, value }: { label: String; value: String | null }) => (
 	<View style={styles.detailRow}>
@@ -45,7 +46,7 @@ const ProfileScreen = () => {
 						PERSONAL DETAILS
 						<TouchableOpacity style={styles.editIcon} onPress={() => router.push('/edit-profile-request')}>
 							<Image
-								source={require('@/assets/icons/edit-button.png')}
+								source={images.editButtonImg}
 								style={{
 									width: 20,
 									height: 15,

@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { useAuthStore } from '../stores/authStore';
 
-const Api = async () => {
+const Api = () => {
 	const access_token = useAuthStore.getState().access_token;
 
 	return axios.create({

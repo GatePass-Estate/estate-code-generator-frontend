@@ -1,10 +1,10 @@
 import { DeleteGuestResponse, Guest, GuestApiResponse } from '@/types/guests';
 import Api from './';
 
+const api = Api();
+
 export const getMyGuests = async () => {
 	try {
-		const api = await Api();
-
 		const axiosRes = await api.get(`/users/guest`);
 
 		const ok = axiosRes.status >= 200 && axiosRes.status < 300;
@@ -22,8 +22,6 @@ export const getMyGuests = async () => {
 
 export const deleteMyGuest = async (id: string) => {
 	try {
-		const api = await Api();
-
 		const axiosRes = await api.delete(`/users/guest/${id}`);
 
 		const ok = axiosRes.status >= 200 && axiosRes.status < 300;

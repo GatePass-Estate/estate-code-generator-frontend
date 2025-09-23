@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image } from 'react-native';
 import { useNavigation } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import images from '@/constants/images';
 
 export default function EditRequest() {
 	const [name, setName] = useState('');
@@ -22,10 +23,7 @@ export default function EditRequest() {
 		<SafeAreaView style={styles.container}>
 			{/* Back Button */}
 			<TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-				<Image
-					source={require('@/assets/icons/keyboard_arrow_left (1).png')} // update path if needed
-					style={styles.backIcon}
-				/>
+				<Image source={images.backImg} style={styles.backIcon} />
 				<Text style={styles.backText}>Back</Text>
 			</TouchableOpacity>
 

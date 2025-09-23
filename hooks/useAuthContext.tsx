@@ -1,11 +1,11 @@
 import { fetchMe } from '@/lib/api/auth';
-import { clearAuthState, getAuthState, storeAuthState } from '@/lib/helpers';
+import { clearAuthState, getAuthState } from '@/lib/helpers';
 import { useAuthStore } from '@/lib/stores/authStore';
 import { useUserStore } from '@/lib/stores/userStore';
 import { AuthContextType } from '@/types/auth';
 import { User } from '@/types/user';
 import { SplashScreen, useRouter } from 'expo-router';
-import React, { createContext, use, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 
 SplashScreen.preventAutoHideAsync();
 

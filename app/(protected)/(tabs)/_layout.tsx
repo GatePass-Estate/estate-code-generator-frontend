@@ -1,9 +1,10 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { View, StyleSheet, Pressable } from 'react-native';
+import { View, StyleSheet, Pressable, Text } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
-import { Text } from '@/components/nativewindui/Text';
 import { Tabs } from 'expo-router';
 import { Image } from 'react-native';
+import images from '@/constants/images';
+import icons from '@/constants/icons';
 
 const Tab = createBottomTabNavigator();
 
@@ -38,9 +39,9 @@ export default function UserTab() {
 						color: '#000',
 					},
 					tabBarIcon: ({ focused }) => (
-						<View style={{ alignItems: 'center', width: 300, marginTop: 25, gap: 4 }}>
+						<View className="items-center w-80 mt-6 gap-1">
 							<Image
-								source={focused ? require('@/assets/images/active-button.png') : require('@/assets/images/menu icon.png')}
+								source={focused ? images.activeBtnImg : icons.menuIcon}
 								style={{
 									marginLeft: -3,
 									width: 30,

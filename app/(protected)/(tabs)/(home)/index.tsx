@@ -1,8 +1,9 @@
 import { Stack, router } from 'expo-router';
 import CountdownRing from '@/components/CountdownRing';
-import { View, Text, FlatList, SafeAreaView, StyleSheet, Pressable, Image, Animated } from 'react-native';
+import { View, Text, FlatList, SafeAreaView, StyleSheet, Pressable, Image, Animated, RefreshControl } from 'react-native';
 import UserIcon from '@/components/UserIcon';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import images from '@/constants/images';
 
 const guestData: any = [
 	{ name: 'Sandra', code: '765 3E2', count: 45 },
@@ -13,6 +14,7 @@ const guestData: any = [
 
 export default function ActiveCodes() {
 	const bounceValue = useRef(new Animated.Value(0)).current;
+	const [refreshing, setRefreshing] = useState(false);
 
 	useEffect(() => {
 		Animated.loop(
@@ -52,15 +54,21 @@ export default function ActiveCodes() {
 
 			{guestData.length > 0 ? (
 				<>
-					<Text style={styles.subText}>All incoming guests</Text>
+					<Text style={styles.subText} className="">
+						All incoming guests
+					</Text>
 
 					<FlatList
 						data={guestData}
 						keyExtractor={(_, index) => index.toString()}
+						refreshing={refreshing}
+						refreshControl={<RefreshControl refreshing={refreshing} />}
+						onRefresh={() => {}}
 						contentContainerStyle={{ paddingBottom: 100 }}
 						renderItem={({ item }) => (
 							<Pressable
 								style={styles.guestCard}
+								className={``}
 								onPress={() =>
 									router.push({
 										pathname: '/invite-screen',
@@ -72,8 +80,12 @@ export default function ActiveCodes() {
 								}
 							>
 								<View style={{ flex: 1 }}>
-									<Text style={styles.guestName}>{item.name}</Text>
-									<Text style={styles.guestCode}>{item.code}</Text>
+									<Text style={styles.guestName} className={``}>
+										{item.name}
+									</Text>
+									<Text style={styles.guestCode} className={``}>
+										{item.code}
+									</Text>
 								</View>
 								<CountdownRing size={55} storageKey={`guest-${item.code}`} />
 							</Pressable>
@@ -81,18 +93,17 @@ export default function ActiveCodes() {
 					/>
 				</>
 			) : (
-				<View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+				<View className="flex-1 justify-center items-center">
 					<Animated.Image
-						source={require('@/assets/images/ghost.png')}
+						source={images.ghostImg}
+						className={`w-80 h-80 res`}
 						style={{
-							width: 300,
-							height: 300,
 							resizeMode: 'contain',
 							transform: [{ translateY: bounceValue }],
 						}}
 					/>
 
-					<Text style={{ textAlign: 'center', fontSize: 23, opacity: 0.2 }}>{`Click the ‘+’ to add \nyour guest`}</Text>
+					<Text className="text-center text-2xl opacity-20">{`Click the ‘+’ to add \nyour guest`}</Text>
 				</View>
 			)}
 		</SafeAreaView>

@@ -7,18 +7,31 @@ import { NAV_THEME } from '@/theme';
 import { AuthProvider } from '@/hooks/useAuthContext';
 import { ThemeProvider } from '@react-navigation/native';
 import 'react-native-reanimated';
+import './global.css';
+import { useEffect } from 'react';
+import { Platform } from 'react-native';
 
 // Keep splash screen visible while loading fonts
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-	useInitialAndroidBarSync();
+	if (Platform.OS === 'android') {
+		useInitialAndroidBarSync();
+	}
+
 	const { colorScheme, isDarkColorScheme } = useColorScheme();
 
 	const [loaded] = useFonts({
 		RobotoItalic: require('../assets/fonts/Roboto-Italic-VariableFont_wdth,wght.ttf'),
 		UbuntuSans: require('../assets/fonts/UbuntuSans-VariableFont_wdth,wght.ttf'),
 	});
+
+	useEffect(() => {
+		if (loaded) {
+			console.log('Hiding splash screen');
+			SplashScreen.hideAsync();
+		}
+	}, [loaded]);
 
 	if (!loaded) {
 		return null;

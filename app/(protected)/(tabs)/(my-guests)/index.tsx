@@ -6,6 +6,7 @@ import UserIcon from '@/components/UserIcon';
 import { useEffect, useRef, useState } from 'react';
 import { Guest } from '@/types/guests';
 import { deleteMyGuest, getMyGuests } from '@/lib/api/guests';
+import images from '@/constants/images';
 
 const MyGuest = () => {
 	const [searchQuery, setSearchQuery] = useState('');
@@ -101,7 +102,7 @@ const MyGuest = () => {
 				ListEmptyComponent={() => (
 					<View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 40 }}>
 						<Animated.Image
-							source={require('@/assets/images/ghost.png')}
+							source={images.ghostImg}
 							style={{
 								width: 300,
 								height: 300,
@@ -124,7 +125,7 @@ const MyGuest = () => {
 							]}
 						>
 							<View style={styles.guestInfo}>
-								{item.gender === 'male' ? <Ionicons name="male" size={18} color="#167a6f" /> : item.gender === 'female' ? <Ionicons name="female" size={18} color="#F46036" /> : <Image source={require('@/assets/icons/not-saying.png')} style={{ width: 19, height: 19 }} />}
+								{item.gender === 'male' ? <Ionicons name="male" size={18} color="#167a6f" /> : item.gender === 'female' ? <Ionicons name="female" size={18} color="#F46036" /> : <Image source={images.notSaying} style={{ width: 19, height: 19 }} />}
 
 								<View style={{ marginLeft: 10 }}>
 									<Text style={styles.guestName}>{item.guest_name}</Text>
@@ -150,7 +151,7 @@ const MyGuest = () => {
 										);
 									}}
 								>
-									<Image source={require('@/assets/images/delete(1).png')} style={{ width: 35, height: 35, resizeMode: 'contain', tintColor: '#a6a4a4' }} />
+									<Image source={images.deleteImg} style={{ width: 35, height: 35, resizeMode: 'contain', tintColor: '#a6a4a4' }} />
 								</TouchableOpacity>
 
 								<TouchableOpacity
@@ -163,7 +164,7 @@ const MyGuest = () => {
 										})
 									}
 								>
-									<Image source={require('@/assets/images/generatecode(2).png')} style={{ width: 35, height: 35, resizeMode: 'contain', tintColor: '#a6a4a4' }} />
+									<Image source={images.generatedCodeImg} style={{ width: 35, height: 35, resizeMode: 'contain', tintColor: '#a6a4a4' }} />
 								</TouchableOpacity>
 							</View>
 						</View>

@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Back from '@/components/Back';
 import { SingleDetail } from './my-profile';
 import QRCode from 'react-native-qrcode-svg';
+import images from '@/constants/images';
 
 export default function InvitePage() {
 	let { name = 'Sandra', code = '000 000' } = useLocalSearchParams();
@@ -42,7 +43,7 @@ export default function InvitePage() {
 
 			<Back />
 
-			<View style={{ alignItems: 'center', marginBottom: 20 }}>
+			<View className="mb-5 items-center">
 				<View style={styles.qrWrapper}>
 					<QRCode value={code} size={150} backgroundColor="white" color="#F95F35" />
 				</View>
@@ -50,13 +51,7 @@ export default function InvitePage() {
 				<View style={styles.codeRow}>
 					<Text style={styles.code}>{code.replace(/\s+/g, '')}</Text>
 					<Pressable onPress={copyToClipboard}>
-						<Image
-							source={require('@/assets/images/copy.png')}
-							style={{
-								width: 18,
-								height: 18,
-							}}
-						/>
+						<Image source={images.copyImg} className="w-5 h-5" />
 					</Pressable>
 				</View>
 

@@ -108,7 +108,7 @@ const AddGuest = ({ navigation }: { navigation: NavigationProp<any> }) => {
 			</View>
 
 			<View style={styles.buttonGroup}>
-				<TouchableOpacity style={styles.generateButton} onPress={() => router.push('/invitePage')}>
+				<TouchableOpacity style={styles.generateButton} onPress={() => router.push('/(screens)/invite-screen')}>
 					<Text style={styles.buttonText}>Generate Code</Text>
 				</TouchableOpacity>
 
