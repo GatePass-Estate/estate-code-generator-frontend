@@ -53,7 +53,7 @@ export const menuRoutes = [
 
 	{ name: 'profile/index', link: '/profile', title: 'My Profile', TabIcon: GuestIcon, for: 'web', activeIcon: icons.activeProfileIcon, inactiveIcon: icons.inactiveProfileIcon },
 
-	{ name: 'admin/index', link: '/admin', title: 'Admin Access', for: 'web', activeIcon: icons.activeAdminIcon, inactiveIcon: icons.inactiveAdminIcon },
+	// { name: 'admin/index', link: '/admin', title: 'Admin Access', for: 'web', activeIcon: icons.activeAdminIcon, inactiveIcon: icons.inactiveAdminIcon },
 ];
 
 export default function RootLayout() {
