@@ -1,0 +1,92 @@
+import { View, StyleSheet, Text } from 'react-native';
+import { FontAwesome } from '@expo/vector-icons';
+import { Image } from 'react-native';
+import images from '@/src/constants/images';
+import icons from '@/src/constants/icons';
+import NavigationContainer from '@/src/components/common/NavigationContainer';
+
+const FloatingButton: React.FC<{ focused?: boolean }> = ({ focused = false }) => {
+	return (
+		<View style={[menuStyles.fab, !focused ? { backgroundColor: '#CEE5ED' } : { backgroundColor: '#113E55' }]}>
+			<FontAwesome name="plus" size={20} color={`${focused ? '#CEE5ED' : '#113E55'}`} />
+		</View>
+	);
+};
+
+const HomeIcon: React.FC<{ focused?: boolean }> = ({ focused = false }) => (
+	<View className="items-center w-80 mt-6 gap-1">
+		<Image
+			source={focused ? images.activeBtnImg : icons.menuIcon}
+			style={{
+				marginLeft: -3,
+				width: 30,
+				height: 25,
+				resizeMode: 'contain',
+			}}
+		/>
+		<Text style={{ fontSize: 12, fontWeight: focused ? 700 : 500, color: '#113E55' }}>Home</Text>
+	</View>
+);
+
+const GuestIcon: React.FC<{ focused?: boolean }> = ({ focused = false }) => (
+	<View style={{ alignItems: 'center', width: 300, marginTop: 25, gap: 4 }}>
+		<Image
+			source={focused ? images.activeGuestIcon : images.inactiveGuestIcon}
+			style={{
+				width: 30,
+				height: 30,
+				resizeMode: 'contain',
+			}}
+		/>
+		<Text style={{ fontSize: 12, fontWeight: focused ? 700 : 500, color: '#113E55' }}>My Guests</Text>
+	</View>
+);
+
+export const menuRoutes = [
+	{ name: 'index', link: '/user', title: 'Home', TabIcon: HomeIcon, for: 'both', activeIcon: icons.activeHomeIcon, inactiveIcon: icons.inactiveHomeIcon },
+
+	{ name: 'guests/add/index', link: '/user/guests/add', title: 'Add Guest', TabIcon: FloatingButton, for: 'native' },
+
+	{ name: 'guests/add/index', link: '/user/guests/add', title: 'Generate Code', TabIcon: FloatingButton, for: 'web', activeIcon: icons.activeCodeIcon, inactiveIcon: icons.inactiveCodeIcon },
+
+	{ name: 'guests/index', link: '/user/guests', title: 'My Guests', TabIcon: GuestIcon, for: 'native' },
+
+	{ name: 'profile/index', link: '/profile', title: 'My Profile', TabIcon: GuestIcon, for: 'web', activeIcon: icons.activeProfileIcon, inactiveIcon: icons.inactiveProfileIcon },
+
+	{ name: 'admin/index', link: '/admin', title: 'Admin Access', for: 'web', activeIcon: icons.activeAdminIcon, inactiveIcon: icons.inactiveAdminIcon },
+];
+
+export default function RootLayout() {
+	return <NavigationContainer routes={menuRoutes} tabBarStyle={menuStyles.tabBar} />;
+}
+
+export const menuStyles = StyleSheet.create({
+	tabBar: {
+		position: 'absolute',
+		backgroundColor: '#CEE5ED',
+		height: 80,
+		flex: 1,
+		elevation: 0,
+		shadowColor: 'transparent',
+		shadowOffset: { width: 0, height: 0 },
+		shadowOpacity: 0,
+		shadowRadius: 0,
+		borderTopWidth: 0,
+	},
+
+	fab: {
+		top: -20,
+		width: 90,
+		height: 90,
+		borderRadius: 50,
+		borderColor: '#FBFEFF',
+		borderWidth: 6,
+		justifyContent: 'center',
+		alignItems: 'center',
+		elevation: 0,
+		shadowColor: 'transparent',
+		shadowOffset: { width: 0, height: 0 },
+		shadowOpacity: 0,
+		shadowRadius: 0,
+	},
+});

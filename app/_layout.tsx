@@ -2,9 +2,9 @@ import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { Stack } from 'expo-router';
-import { useColorScheme, useInitialAndroidBarSync } from '@/hooks/useColorScheme';
-import { NAV_THEME } from '@/theme';
-import { AuthProvider } from '@/hooks/useAuthContext';
+import { useColorScheme, useInitialAndroidBarSync } from '@/src/hooks/useColorScheme';
+import { NAV_THEME } from '@/src/theme';
+import { AuthProvider } from '@/src/hooks/useAuthContext';
 import { ThemeProvider } from '@react-navigation/native';
 import 'react-native-reanimated';
 import './global.css';
@@ -22,13 +22,12 @@ export default function RootLayout() {
 	const { colorScheme, isDarkColorScheme } = useColorScheme();
 
 	const [loaded] = useFonts({
-		RobotoItalic: require('../assets/fonts/Roboto-Italic-VariableFont_wdth,wght.ttf'),
-		UbuntuSans: require('../assets/fonts/UbuntuSans-VariableFont_wdth,wght.ttf'),
+		RobotoItalic: require('../src/assets/fonts/Roboto-Italic-VariableFont_wdth,wght.ttf'),
+		UbuntuSans: require('../src/assets/fonts/UbuntuSans-VariableFont_wdth,wght.ttf'),
 	});
 
 	useEffect(() => {
 		if (loaded) {
-			console.log('Hiding splash screen');
 			SplashScreen.hideAsync();
 		}
 	}, [loaded]);
@@ -41,19 +40,17 @@ export default function RootLayout() {
 		<>
 			<StatusBar key={`root-status-bar-${isDarkColorScheme ? 'light' : 'dark'}`} style={isDarkColorScheme ? 'light' : 'dark'} />
 			<AuthProvider>
-				<ThemeProvider value={NAV_THEME[colorScheme]}>
-					<Stack
-						initialRouteName="login"
-						screenOptions={{
-							headerShown: false,
-						}}
-					>
-						<Stack.Screen name="login" options={{ animation: 'none' }} />
-						<Stack.Screen name="(admin)" />
-						<Stack.Screen name="(protected)" />
-						<Stack.Screen name="(security)" />
-					</Stack>
-				</ThemeProvider>
+				{/* <ThemeProvider value={NAV_THEME[colorScheme]}> */}
+				<Stack
+					initialRouteName="auth/login"
+					screenOptions={{
+						headerShown: false,
+					}}
+				>
+					<Stack.Screen name="auth/login" options={{ animation: 'none' }} />
+					<Stack.Screen name="(protected)" />
+				</Stack>
+				{/* </ThemeProvider> */}
 			</AuthProvider>
 		</>
 	);

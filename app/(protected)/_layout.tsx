@@ -1,11 +1,11 @@
 import { Redirect, Stack } from 'expo-router';
 import 'react-native-reanimated';
-import { useAuth } from '@/hooks/useAuthContext';
-import { useAuthStore } from '@/lib/stores/authStore';
-import { useUserStore } from '@/lib/stores/userStore';
+import { useAuth } from '@/src/hooks/useAuthContext';
+import { useAuthStore } from '@/src/lib/stores/authStore';
+import { useUserStore } from '@/src/lib/stores/userStore';
 
 export const unstable_home_settings = {
-	initialRouteName: '(tabs)',
+	initialRouteName: '(protected)',
 };
 
 export default function ProtectedLayout() {
@@ -19,19 +19,19 @@ export default function ProtectedLayout() {
 	}
 
 	if (!status) {
-		return <Redirect href="/login" />;
+		return <Redirect href="/auth" />;
 	}
 
 	if (role === 'admin') {
-		return <Redirect href="/(admin)" />;
+		return <Redirect href="/admin" />;
 	}
 	if (role === 'security') {
-		return <Redirect href="/(security)" />;
+		return <Redirect href="/security" />;
 	}
 
 	return (
-		<Stack>
-			<Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+		<Stack screenOptions={{ headerShown: false }}>
+			<Stack.Screen name="user" />
 		</Stack>
 	);
 }
