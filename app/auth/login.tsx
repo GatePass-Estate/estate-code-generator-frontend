@@ -115,7 +115,6 @@ export default function Login() {
 		<SafeAreaView className={`h-full ${isLargeScreen ? 'grid grid-cols-12' : 'flex-1 flex-row items-center justify-center bg-white'}`} onLayout={onLayoutRootView}>
 			{isLargeScreen && (
 				<View className="justify-center items-center overflow-hidden col-span-6 relative h-screen">
-					{/* Background image stretched to fill the column */}
 					<Image source={Images.loginImage} resizeMode="cover" className="absolute inset-0 w-full h-full" />
 				</View>
 			)}

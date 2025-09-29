@@ -2,6 +2,7 @@ import WebNavLink from './WebNavLink';
 import { Image } from 'react-native';
 import images from '@/src/constants/images';
 import { usePathname } from 'expo-router';
+import { useAuth } from '@/src/hooks/useAuthContext';
 
 type WebSidebarProps = {
 	routes: { name: string; title: string; link: string; activeIcon?: any; inactiveIcon?: any }[];
@@ -10,6 +11,7 @@ type WebSidebarProps = {
 
 export default function WebSidebar({ routes, onNavigate }: WebSidebarProps) {
 	const pathname = usePathname();
+	const { signOut } = useAuth();
 
 	return (
 		<div className="flex-col hidden sm:flex bg-primary p-6 h-screen text-white justify-center items-center w-56 md:w-72 lg:w-80 fixed">
@@ -27,7 +29,7 @@ export default function WebSidebar({ routes, onNavigate }: WebSidebarProps) {
 				})}
 			</div>
 
-			<div className="mt-auto text-center flex items-center justify-center gap-3 cursor-pointer">
+			<div className="mt-auto text-center flex items-center justify-center gap-3 cursor-pointer" onClick={signOut}>
 				<Image source={images.logoutIcon} style={{ width: 18, height: 18 }} resizeMode="contain" />
 				<span>Log Out</span>
 			</div>
