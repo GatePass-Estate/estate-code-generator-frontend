@@ -2,10 +2,10 @@ import { View, Text, StyleSheet, TouchableOpacity, Share, Alert, Image, Pressabl
 import * as Clipboard from 'expo-clipboard';
 import { Stack, useLocalSearchParams, useNavigation } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Back from '@/src/components/Back';
 import QRCode from 'react-native-qrcode-svg';
 import images from '@/src/constants/images';
 import { SingleDetail } from '@/src/components/mobile/SIngleDetail';
+import Back from '@/src/components/mobile/Back';
 
 export default function InvitePage() {
 	let { name = 'Sandra', code = '000 000' } = useLocalSearchParams();

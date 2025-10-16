@@ -3,7 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Platform, ScrollVi
 import { Picker } from '@react-native-picker/picker';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import UserTypeModal from '@/src/components/selectUser';
+import UserTypeModal from '@/src/components/mobile/selectUser';
 
 const Sidebar = () => (
 	<View style={styles.sidebar}>

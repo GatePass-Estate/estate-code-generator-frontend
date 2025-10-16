@@ -1,6 +1,13 @@
+import { useEffect } from 'react';
 import { GuestsProps } from '.';
+import { Platform } from 'react-native';
 
 const MyGuest = ({ searchQuery, guests, loading, deleting, fetchGuests, deleteGuest, setSearchQuery, setLoading, setDeleting, filteredGuests }: GuestsProps) => {
+	useEffect(() => {
+		if (Platform.OS === 'web') {
+			document.title = 'Guests - GatePass';
+		}
+	}, []);
 	return (
 		<div className="p-4">
 			<div className="mb-4">

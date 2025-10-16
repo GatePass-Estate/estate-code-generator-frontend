@@ -40,7 +40,7 @@ const CodeCard = ({ code, details, variant = 'default' }: CodeCardProps) => {
 				<div className="flex justify-between items-center">
 					<div>
 						<h3 className="uppercase text-xs">access code</h3>
-						<p className="text-4xl font-bold tracking-[0.25em] mt-2">{code}</p>
+						<p className="text-4xl font-medium tracking-[0.25em] mt-2">{code}</p>
 					</div>
 
 					<div>

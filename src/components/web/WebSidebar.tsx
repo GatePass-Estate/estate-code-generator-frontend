@@ -14,7 +14,7 @@ export default function WebSidebar({ routes, onNavigate }: WebSidebarProps) {
 	const { signOut } = useAuth();
 
 	return (
-		<div className="flex-col hidden sm:flex bg-primary p-6 h-screen text-white justify-center items-center w-56 md:w-72 lg:w-80 fixed">
+		<div className="flex-col hidden sm:flex bg-primary p-6 h-screen text-white justify-center items-center w-56 lg:w-72 xl:w-80 fixed">
 			<Image source={images.logo} style={{ width: 110, height: 110 }} resizeMode="contain" />
 
 			<div className="mt-10 flex flex-col gap-2 w-full">
@@ -29,7 +29,7 @@ export default function WebSidebar({ routes, onNavigate }: WebSidebarProps) {
 				})}
 			</div>
 
-			<div className="mt-auto text-center flex items-center justify-center gap-3 cursor-pointer" onClick={signOut}>
+			<div className="mt-auto text-center flex items-center justify-center gap-3 cursor-pointer hover:bg-white hover:text-primary hover:font-medium w-full p-3 rounded-md" onClick={signOut}>
 				<Image source={images.logoutIcon} style={{ width: 18, height: 18 }} resizeMode="contain" />
 				<span>Log Out</span>
 			</div>

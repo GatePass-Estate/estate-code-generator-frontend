@@ -26,6 +26,7 @@ export default function NavigationContainer({ routes, headerStyle, tabBarStyle, 
 			<>
 				<Stack
 					screenOptions={{
+						title: 'Estate Code Generator',
 						headerShown: false,
 						...headerStyle,
 					}}

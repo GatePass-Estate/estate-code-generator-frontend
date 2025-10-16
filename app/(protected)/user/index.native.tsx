@@ -1,7 +1,7 @@
 import { Stack, router } from 'expo-router';
 import CountdownRing from '@/src/components/common/CountdownRing';
 import { View, Text, FlatList, SafeAreaView, StyleSheet, Pressable, Image, Animated, RefreshControl, Platform } from 'react-native';
-import UserIcon from '@/src/components/UserIcon';
+import UserIcon from '@/src/components/mobile/UserIcon';
 import { useEffect, useRef, useState } from 'react';
 import images from '@/src/constants/images';
 
@@ -17,20 +17,25 @@ export default function HomeMobile({}) {
 	const [refreshing, setRefreshing] = useState(false);
 
 	useEffect(() => {
-		Animated.loop(
+		const anim = Animated.loop(
 			Animated.sequence([
 				Animated.timing(bounceValue, {
 					toValue: -10,
 					duration: 500,
-					useNativeDriver: true,
+					useNativeDriver: Platform.OS !== 'web',
 				}),
 				Animated.timing(bounceValue, {
 					toValue: 0,
 					duration: 500,
-					useNativeDriver: true,
+					useNativeDriver: Platform.OS !== 'web',
 				}),
 			])
-		).start();
+		);
+		anim.start();
+
+		return () => {
+			anim.stop();
+		};
 	}, [bounceValue]);
 
 	return (

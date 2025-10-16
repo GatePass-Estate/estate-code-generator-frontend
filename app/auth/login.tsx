@@ -1,10 +1,10 @@
+import * as WebBrowser from 'expo-web-browser';
+import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState, useCallback } from 'react';
 import { Platform, View, TextInput, Image, Text, ActivityIndicator, useWindowDimensions, StyleSheet, Pressable } from 'react-native';
 import { FontAwesome, AntDesign } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/src/components/nativewindui/Button';
-import * as WebBrowser from 'expo-web-browser';
-import * as SplashScreen from 'expo-splash-screen';
 import { useAuth } from '@/src/hooks/useAuthContext';
 import { useRouter } from 'expo-router';
 import { fetchMe, loginUser } from '@/src/lib/api/auth';
@@ -53,6 +53,7 @@ export default function Login() {
 	if (!appIsReady) return null;
 
 	const handleSignInPress = async () => {
+		setErrorMessage('');
 		setIsLoading(true);
 		try {
 			if (!email) {
@@ -79,23 +80,12 @@ export default function Login() {
 
 			const result = await loginUser(emailValue, password);
 
-			console.log('Login result:', result);
-
 			useAuthStore.setState({ access_token: result.access_token, role: result.role });
 			await storeAuthState(result);
 
-			const me = await fetchMe(result.access_token);
+			signIn(await fetchMe(result.access_token));
 
-			const userPayload = {
-				...me,
-			};
-
-			signIn(userPayload);
-
-			setErrorMessage('');
-			if (result.role === 'primary_admin' || result.role === 'root' || result.role === 'admin') {
-				router.replace('/admin');
-			} else if (result.role === 'resident') {
+			if (result.role === 'primary_admin' || result.role === 'resident' || result.role === 'admin') {
 				router.replace('/user');
 			} else if (result.role === 'security') {
 				router.replace('/security');
@@ -118,6 +108,7 @@ export default function Login() {
 					<Image source={Images.loginImage} resizeMode="cover" className="absolute inset-0 w-full h-full" />
 				</View>
 			)}
+
 			<View className={cn(`p-6 w-full self-center ${isLargeScreen ? 'col-span-6' : ''}`)}>
 				<View className={`${!isLargeScreen && 'justify-center items-center'} mb-10 text-center font-normal`}>
 					<Text
@@ -142,14 +133,15 @@ export default function Login() {
 				<View className="gap-4 relative max-w-xl">
 					{errorMessage && (
 						<View style={{ backgroundColor: '#F8D7DA', padding: 20, borderRadius: 5, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-							<View style={{ flexDirection: 'row', alignItems: 'center' }}>
+							<View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
 								<FontAwesome name="warning" size={15} color="red" />
 
 								<Text
 									style={{
 										color: 'red',
+										flexShrink: 1,
 									}}
-									className="text-left flex-wrap ml-2"
+									className="text-left ml-2"
 								>
 									{errorMessage}
 								</Text>

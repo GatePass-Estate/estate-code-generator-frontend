@@ -1,7 +1,7 @@
 import { useNavigation } from 'expo-router';
 import { Image, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import images from '../constants/images';
+import images from '../../constants/images';
 
 const Back = ({ type = 'long-arrow' }: { type?: 'long-arrow' | 'short-arrow' }) => {
 	const navigation = useNavigation();

@@ -1,30 +1,71 @@
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Animated, FlatList, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Animated, FlatList, Alert, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, Stack } from 'expo-router';
 import { Image } from 'react-native';
-import UserIcon from '@/src/components/UserIcon';
-import { useEffect, useRef } from 'react';
+import UserIcon from '@/src/components/mobile/UserIcon';
+import { useEffect, useRef, useState } from 'react';
 import images from '@/src/constants/images';
-import { GuestsProps } from '.';
+import { deleteMyGuest, getMyGuests } from '@/src/lib/api/guests';
+import { Guest } from '@/src/types/guests';
 
-const MyGuest = ({ searchQuery, guests, loading, deleting, fetchGuests, deleteGuest, setSearchQuery, setLoading, setDeleting, filteredGuests }: GuestsProps) => {
+const limit = 10;
+
+const MyGuest = () => {
+	const [searchQuery, setSearchQuery] = useState('');
+	const [guests, setGuests] = useState<Guest[]>([]);
+	const [loading, setLoading] = useState(true);
+	const [deleting, setDeleting] = useState(false);
+
+	const filteredGuests = guests.filter((guest) => guest.guest_name.toLowerCase().includes(searchQuery.toLowerCase()) || guest.relationship.toLowerCase().includes(searchQuery.toLowerCase()));
+
+	const fetchGuests = async () => {
+		setLoading(true);
+		try {
+			const result = await getMyGuests();
+			setGuests(result.items);
+		} catch (error) {
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	const deleteGuest = async (id: string) => {
+		setDeleting(true);
+		try {
+			await deleteMyGuest(id);
+			setGuests((prev) => prev.filter((g) => g.id !== id));
+		} catch (error) {
+		} finally {
+			setDeleting(false);
+		}
+	};
+
+	useEffect(() => {
+		fetchGuests();
+	}, []);
+
 	const bounceValue = useRef(new Animated.Value(0)).current;
 
 	useEffect(() => {
-		Animated.loop(
+		const anim = Animated.loop(
 			Animated.sequence([
 				Animated.timing(bounceValue, {
 					toValue: -10,
 					duration: 500,
-					useNativeDriver: true,
+					useNativeDriver: Platform.OS !== 'web',
 				}),
 				Animated.timing(bounceValue, {
 					toValue: 0,
 					duration: 500,
-					useNativeDriver: true,
+					useNativeDriver: Platform.OS !== 'web',
 				}),
 			])
-		).start();
+		);
+		anim.start();
+
+		return () => {
+			anim.stop();
+		};
 	}, [bounceValue]);
 
 	return (
@@ -45,7 +86,8 @@ const MyGuest = ({ searchQuery, guests, loading, deleting, fetchGuests, deleteGu
 					},
 				}}
 			/>
-			{filteredGuests?.length > 10 && (
+
+			{filteredGuests?.length > limit && (
 				<View style={styles.searchBar}>
 					<Ionicons name="search" size={18} color="#555" style={{ marginLeft: 8 }} />
 					<TextInput placeholder="Search" style={styles.searchInput} value={searchQuery} onChangeText={setSearchQuery} />
@@ -54,7 +96,16 @@ const MyGuest = ({ searchQuery, guests, loading, deleting, fetchGuests, deleteGu
 
 			{filteredGuests?.length > 0 && (
 				<>
-					<Text style={styles.savedLabel}>All Saved Guests</Text>
+					<Text
+						style={[
+							styles.savedLabel,
+							{
+								marginTop: filteredGuests?.length > limit ? 20 : 0,
+							},
+						]}
+					>
+						All Saved Guests
+					</Text>
 					<View style={styles.divider} />
 				</>
 			)}
@@ -197,7 +248,6 @@ const styles = StyleSheet.create({
 
 	savedLabel: {
 		fontSize: 14,
-		marginTop: 20,
 		marginBottom: 10,
 		color: '#222',
 	},

@@ -5,6 +5,12 @@ module.exports = {
 	presets: [require('nativewind/preset')],
 	theme: {
 		extend: {
+			fontSize: {
+				md: '17px',
+			},
+			fontFamily: {
+				UbuntuSans: ['"Ubuntu Sans"', 'system-ui', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
+			},
 			colors: {
 				primary: '#113E55',
 				secondary: '#1E40AF',
@@ -12,10 +18,17 @@ module.exports = {
 				orange: '#F46036',
 				teal: '#1B998B',
 				grey: '#9B9797',
+				tertiary: '#F46036',
 				'light-orange': '#FFF8F5',
 				'light-teal': '#F4FFFE',
 				'light-grey': '#F7F9F9',
+				'dark-teal': '#167a6f',
 				body: '#FBFEFF',
+				'input-border': '#D1D5DB',
+				danger: '#E63946',
+			},
+			borderWidth: {
+				micro: '0.1px',
 			},
 		},
 	},

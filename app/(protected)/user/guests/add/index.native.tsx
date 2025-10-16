@@ -1,11 +1,9 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, Modal, Pressable, Platform } from 'react-native';
 import CheckBox from 'expo-checkbox';
 import { Picker } from '@react-native-picker/picker';
-import { NavigationProp } from '@react-navigation/native';
-import { router } from 'expo-router';
-import { Stack } from 'expo-router';
-import UserIcon from '@/src/components/UserIcon';
+import { Stack, useRouter } from 'expo-router';
+import UserIcon from '@/src/components/mobile/UserIcon';
 
 interface Guest {
 	name: string;
@@ -13,36 +11,30 @@ interface Guest {
 	relationship: string;
 }
 
-const AddGuest = ({ navigation }: { navigation: NavigationProp<any> }) => {
+const AddGuest = () => {
 	const [guestName, setGuestName] = useState('');
 	const [gender, setGender] = useState('');
 	const [relationship, setRelationship] = useState('');
 	const [isChecked, setIsChecked] = useState(false);
-	const [guestList, setGuestList] = useState<Guest[]>([]);
+	const [isPickerVisible, setIsPickerVisible] = useState(false);
+	const router = useRouter();
 
 	const handleCheckboxChange = () => {
 		setIsChecked(!isChecked);
 	};
 
-	const handleAddGuest = () => {
+	const generateCode = async () => {
 		if (guestName && gender && relationship && isChecked) {
 			const newGuest: Guest = { name: guestName, gender, relationship };
-			const updatedGuestList = [...guestList, newGuest];
-			setGuestList(updatedGuestList);
-			setGuestName('');
-			setGender('');
-			setRelationship('');
-			setIsChecked(false);
 			Alert.alert('Guest Added', `${guestName} has been added to the guest list.`);
-
-			navigation.navigate('MyGuest', { guestList: updatedGuestList });
+			router.push('/user/guests');
 		} else {
 			Alert.alert('Error', 'Please fill out all fields and agree to add the guest.');
 		}
 	};
 
 	return (
-		<ScrollView style={styles.container}>
+		<ScrollView className="container">
 			<Stack.Screen
 				options={{
 					headerShown: true,
@@ -59,46 +51,67 @@ const AddGuest = ({ navigation }: { navigation: NavigationProp<any> }) => {
 					},
 				}}
 			/>
-			<Text style={styles.subHeader}>Fill in your guest information</Text>
+
+			<Text className="text-md text-gray-700 mt-10 my-3">Fill in your guest information</Text>
 
 			<View style={{ gap: 10 }}>
 				<View>
-					<Text style={styles.label}>Name</Text>
-					<TextInput style={styles.input} placeholder="Enter Guest Name..." value={guestName} onChangeText={setGuestName} />
+					<Text className="input-label">Name</Text>
+					<TextInput className="input-style" placeholder="Enter Guest Name..." value={guestName} onChangeText={setGuestName} />
 				</View>
 
-				<View>
-					<Text style={styles.label}>Gender</Text>
-					<View style={styles.pickerContainer}>
-						<Picker selectedValue={gender} onValueChange={(itemValue) => setGender(itemValue)} style={styles.picker}>
-							<Picker.Item label="Select the gender of your guest" value="" enabled={false} />
-							<Picker.Item label="Female" value="female" />
-							<Picker.Item label="Male" value="male" />
-							<Picker.Item label="I'd prefer not to say" value="I'd prefer not to say" />
-						</Picker>
+				{isChecked && (
+					<View>
+						<Text className="input-label">Gender</Text>
+						{Platform.OS === 'ios' ? (
+							<>
+								<Pressable className="input-style" onPress={() => setIsPickerVisible(true)}>
+									<Text style={{ color: gender ? '#000' : '#9CA3AF' }}>{gender || 'Select the gender of your guest'}</Text>
+								</Pressable>
+								<Modal transparent={true} visible={isPickerVisible} animationType="slide" onRequestClose={() => setIsPickerVisible(false)}>
+									<Pressable style={styles.modalOverlay} onPress={() => setIsPickerVisible(false)}>
+										<View className="bg-gray-800">
+											<Picker selectedValue={gender} onValueChange={(itemValue) => setGender(itemValue)} className="text-gray-300 h-14 w-full" style={{ color: 'red' }}>
+												<Picker.Item label="Select the gender of your guest" value="" enabled={false} />
+												<Picker.Item label="Female" value="female" />
+												<Picker.Item label="Male" value="male" style={{ color: 'red' }} />
+												<Picker.Item label="I'd prefer not to say" value="I'd prefer not to say" />
+											</Picker>
+										</View>
+									</Pressable>
+								</Modal>
+							</>
+						) : (
+							<View className="bg-light-grey border-input-border rounded-lg mt-1">
+								<Picker selectedValue={gender} onValueChange={(itemValue) => setGender(itemValue)} className="text-gray-300 h-14 w-full text-sm" style={{ color: 'gray' }}>
+									<Picker.Item label="Select the gender of your guest" value="" enabled={false} />
+									<Picker.Item label="Female" value="female" />
+									<Picker.Item label="Male" value="male" />
+									<Picker.Item label="I'd prefer not to say" value="I'd prefer not to say" />
+								</Picker>
+							</View>
+						)}
 					</View>
+				)}
+
+				<View>
+					<Text className="input-label">Relationship</Text>
+					<TextInput className="input-style" placeholder="Enter your relationship with guest" value={relationship} onChangeText={setRelationship} />
 				</View>
 
 				<View>
-					<Text style={styles.label}>Relationship</Text>
-					<TextInput style={styles.input} placeholder="Enter your relationship with guest" value={relationship} onChangeText={setRelationship} />
-				</View>
-
-				<View>
-					<View style={styles.checkboxContainer}>
+					<View className="flex-row items-center mt-4">
 						<CheckBox value={isChecked} onValueChange={handleCheckboxChange} />
-						<Text style={styles.checkboxText}>{isChecked ? 'Add to My Guest List' : 'Add to My Guest List'}</Text>
+						<Text className="text-dark-teal p-2" onPress={handleCheckboxChange}>
+							Add to My Guest List
+						</Text>
 					</View>
 				</View>
 			</View>
 
-			<View style={styles.buttonGroup}>
-				<TouchableOpacity style={styles.generateButton} onPress={() => router.push('/invite')}>
-					<Text style={styles.buttonText}>Generate Code</Text>
-				</TouchableOpacity>
-
-				<TouchableOpacity style={styles.saveButton}>
-					<Text style={styles.saveText}>Save Guest</Text>
+			<View className="mt-14 items-center">
+				<TouchableOpacity className="w-64 bg-primary justify-center items-center py-4 font-UbuntuSans rounded-lg" onPress={generateCode}>
+					<Text className="text-white font-semibold font-UbuntuSans text-md">Generate Code</Text>
 				</TouchableOpacity>
 			</View>
 		</ScrollView>
@@ -108,112 +121,9 @@ const AddGuest = ({ navigation }: { navigation: NavigationProp<any> }) => {
 export default AddGuest;
 
 const styles = StyleSheet.create({
-	container: {
+	modalOverlay: {
 		flex: 1,
-		backgroundColor: '#FBFEFF',
-		paddingHorizontal: 20,
-		paddingTop: 3,
-		elevation: 0,
-		shadowOpacity: 0,
-		borderBottomWidth: 0,
-	},
-
-	profileCircle: {
-		width: 35,
-		height: 35,
-		borderRadius: 17,
-		borderWidth: 1,
-		marginRight: 30,
-		borderColor: '#167a6f',
-		justifyContent: 'center',
-		alignItems: 'center',
-	},
-
-	profileInitials: {
-		color: '#167a6f',
-		fontWeight: '300',
-		fontFamily: 'UbuntuSans',
-		fontSize: 23,
-	},
-
-	subHeader: {
-		fontSize: 14,
-		color: '#6b7280',
-		marginTop: 40,
-		marginVertical: 10,
-	},
-
-	label: {
-		fontSize: 14,
-		color: '#113E55',
-		marginTop: 15,
-	},
-
-	input: {
-		backgroundColor: '#F7F9F9',
-		borderColor: '#D1D5DB',
-		borderRadius: 8,
-		paddingHorizontal: 16,
-		paddingVertical: 20,
-		marginTop: 5,
-	},
-
-	pickerContainer: {
-		backgroundColor: '#F7F9F9',
-		borderColor: '#D1D5DB',
-		borderRadius: 8,
-		marginTop: 5,
-	},
-
-	picker: {
-		color: 'gray',
-		height: 52,
-		width: '100%',
-	},
-
-	checkboxContainer: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		marginTop: 15,
-	},
-
-	checkboxText: {
-		marginLeft: 8,
-		color: '#167a6f',
-	},
-
-	buttonGroup: {
-		alignItems: 'center',
-		gap: 10,
-		marginTop: 55,
-	},
-
-	generateButton: {
-		width: 250,
-		backgroundColor: '#113E55',
-		paddingVertical: 15,
-		borderRadius: 8,
-		alignItems: 'center',
-		justifyContent: 'center',
-		fontFamily: 'UbuntuSans',
-	},
-
-	buttonText: {
-		color: '#fff',
-		fontWeight: '600',
-		fontSize: 17,
-		fontFamily: 'UbuntuSans',
-	},
-
-	saveButton: {
-		marginTop: 12,
-		alignItems: 'center',
-	},
-
-	saveText: {
-		color: '#113E55',
-		fontSize: 16,
-		fontWeight: '700',
-		fontFamily: 'UbuntuSans',
+		backgroundColor: 'rgba(0, 0, 0, 0.5)',
+		justifyContent: 'flex-end',
 	},
 });

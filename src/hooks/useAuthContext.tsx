@@ -46,7 +46,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 				console.log('Fetched profile:', myProfile);
 				if (myProfile && myProfile.status) {
 					await signIn(myProfile);
-					await SplashScreen.hideAsync();
 					router.replace('/user');
 				} else {
 					router.replace('/auth/login');
@@ -56,6 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 				console.log('Error loading auth state', error);
 			} finally {
 				setIsReady(true);
+				await SplashScreen.hideAsync();
 			}
 		};
 

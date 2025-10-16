@@ -21,3 +21,15 @@ export type DeleteGuestResponse = {
 	is_deleted: boolean;
 	deleted_at: string;
 };
+
+export type CreateGuestPayload = {
+	guest_name: string;
+	gender: string;
+	relationship: string;
+	resident_id: string;
+};
+
+export type CreateGuestApiResponse = {
+	id: string;
+	created_at: string;
+};

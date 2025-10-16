@@ -26,12 +26,6 @@ export default function RootLayout() {
 		UbuntuSans: require('../src/assets/fonts/UbuntuSans-VariableFont_wdth,wght.ttf'),
 	});
 
-	useEffect(() => {
-		if (loaded) {
-			SplashScreen.hideAsync();
-		}
-	}, [loaded]);
-
 	if (!loaded) {
 		return null;
 	}

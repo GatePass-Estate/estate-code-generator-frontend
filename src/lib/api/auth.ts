@@ -1,10 +1,13 @@
+import { LoginResponse } from '@/src/types/auth';
 import Api from '.';
 import { getErrorMessage } from '../helpers';
 
 const api = Api();
 
-export async function loginUser(email: string, password: string) {
+export async function loginUser(email: string, password: string): Promise<LoginResponse> {
 	try {
+		console.log('Logging in user with email:', email);
+
 		const axiosRes = await api.post(`/auth/login`, { email, password });
 		const data = axiosRes.data;
 

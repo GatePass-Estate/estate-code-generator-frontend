@@ -2,8 +2,7 @@ import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image } from 'react-native';
 import { useNavigation } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import images from '@/src/constants/images';
-import Back from '@/src/components/Back';
+import Back from '@/src/components/mobile/Back';
 
 export default function EditRequest() {
 	const [name, setName] = useState('');
