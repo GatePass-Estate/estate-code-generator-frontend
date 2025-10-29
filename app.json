@@ -20,8 +20,14 @@
 		"userInterfaceStyle": "automatic",
 		"splash": {
 			"image": "./src/assets/gatepass_ng_Gp.png",
-			"resizeMode": "cover",
-			"backgroundColor": "#ffffff"
+			"resizeMode": "contain",
+			"backgroundColor": "#ffffff",
+			"mdpi": "./src/assets/gatepass_ng_Gp.png",
+			"hdpi": "./src/assets/gatepass_ng_Gp.png",
+			"xhdpi": "./src/assets/gatepass_ng_Gp.png",
+			"xxhdpi": "./src/assets/gatepass_ng_Gp.png",
+			"xxxhdpi": "./src/assets/gatepass_ng_Gp.png",
+			"layout": "splashscreen"
 		},
 		"assetBundlePatterns": ["**/*"],
 		"ios": {
@@ -33,7 +39,14 @@
 				"foregroundImage": "./src/assets/gatepass_ng_Gp.png",
 				"backgroundColor": "#ffffff"
 			},
-			"package": "com.specialone.gms"
+			"package": "com.specialone.gms",
+			"splash": {
+				"image": "./src/assets/gatepass_ng_Gp.png",
+				"resizeMode": "cover",
+				"backgroundColor": "#ffffff",
+				"hideExponentText": true,
+				"theme": "@style/Theme.App.Splash"
+			}
 		}
 	}
 }

@@ -1,19 +1,12 @@
 import { Stack, router } from 'expo-router';
 import CountdownRing from '@/src/components/common/CountdownRing';
-import { View, Text, FlatList, SafeAreaView, StyleSheet, Pressable, Image, Animated, RefreshControl, Platform } from 'react-native';
+import { View, Text, FlatList, SafeAreaView, StyleSheet, Pressable, Animated, Platform } from 'react-native';
 import UserIcon from '@/src/components/mobile/UserIcon';
 import { useEffect, useRef, useState } from 'react';
 import images from '@/src/constants/images';
 import { Codes } from '@/src/types/codes';
 import { getAllCodes } from '@/src/lib/api/codes';
 import { useUserStore } from '@/src/lib/stores/userStore';
-
-const guestData: any = [
-	{ name: 'Sandra', code: '765 3E2', count: 45 },
-	{ name: 'Maya', code: '123 9ZQ', count: 30 },
-	{ name: 'Daniel', code: '556 LKP', count: 15 },
-	{ name: 'Fola', code: '990 XTD', count: 60 },
-];
 
 export default function HomeMobile({}) {
 	const bounceValue = useRef(new Animated.Value(0)).current;
@@ -31,6 +24,8 @@ export default function HomeMobile({}) {
 			setRefreshing(false);
 		}
 	};
+
+	const filteredCodes = codes;
 
 	useEffect(() => {
 		fetchCodes();
@@ -77,95 +72,93 @@ export default function HomeMobile({}) {
 				}}
 			/>
 
-			{guestData.length > 0 ? (
-				<View
-					style={{
-						paddingHorizontal: Platform.OS != 'android' ? 20 : 0,
-					}}
-				>
-					<Text style={styles.subText} className="">
-						All incoming guests
-					</Text>
+			<View
+				style={{
+					paddingHorizontal: Platform.OS != 'android' ? 20 : 0,
+				}}
+			>
+				<Text style={styles.subText} className="">
+					All incoming guests
+				</Text>
 
-					<FlatList
-						data={codes}
-						keyExtractor={(_, index) => index.toString()}
-						refreshing={refreshing}
-						refreshControl={<RefreshControl refreshing={refreshing} />}
-						onRefresh={fetchCodes}
-						contentContainerStyle={{ paddingBottom: 100 }}
-						renderItem={({ item }) => {
-							const iso = String(item.valid_until ?? '')
-								.replace(' ', 'T')
-								.replace(/([+-]\d{2})(\d{2})$/, '$1:$2');
-							const parsed = new Date(iso);
+				<FlatList
+					data={filteredCodes}
+					keyExtractor={(_, index) => index.toString()}
+					refreshing={refreshing}
+					onRefresh={fetchCodes}
+					contentContainerStyle={{ paddingBottom: 100 }}
+					ListEmptyComponent={() => (
+						<View className="flex-1 justify-center items-center">
+							<Animated.Image
+								source={images.ghostImg}
+								className={`w-80 h-80 res`}
+								style={{
+									resizeMode: 'contain',
+									transform: [{ translateY: bounceValue }],
+								}}
+							/>
 
-							let formattedDate = 'Invalid date';
-							let timeframe = 'Unknown';
-							let timeLeftMinutes = 0;
+							<Text className="text-center text-2xl opacity-20">{`Click the ‘+’ to add \nyour guest`}</Text>
+						</View>
+					)}
+					renderItem={({ item }) => {
+						const iso = String(item.valid_until ?? '')
+							.replace(' ', 'T')
+							.replace(/([+-]\d{2})(\d{2})$/, '$1:$2');
+						const parsed = new Date(iso);
 
-							if (!isNaN(parsed.getTime())) {
-								const day = String(parsed.getDate()).padStart(2, '0');
-								const month = String(parsed.getMonth() + 1).padStart(2, '0');
-								const year = parsed.getFullYear();
-								formattedDate = `${day}/${month}/${year}`;
+						let formattedDate = 'Invalid date';
+						let timeframe = 'Unknown';
+						let timeLeftMinutes = 0;
 
-								const diffMs = parsed.getTime() - Date.now();
-								if (diffMs <= 0) {
-									timeframe = 'Expired';
-								} else {
-									const startDate = new Date(parsed.getTime() - 60 * 60 * 1000);
-									const formatTime = (d: Date) => d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true }).replace(/\s+/g, '').toLowerCase();
-									timeLeftMinutes = Math.floor((diffMs % 3600000) / 60000);
-									timeframe = `${formatTime(startDate)} to ${formatTime(parsed)}`;
-								}
+						if (!isNaN(parsed.getTime())) {
+							const day = String(parsed.getDate()).padStart(2, '0');
+							const month = String(parsed.getMonth() + 1).padStart(2, '0');
+							const year = parsed.getFullYear();
+							formattedDate = `${day}/${month}/${year}`;
+
+							const diffMs = parsed.getTime() - Date.now();
+							if (diffMs <= 0) {
+								timeframe = 'Expired';
+							} else {
+								const startDate = new Date(parsed.getTime() - 60 * 60 * 1000);
+								const formatTime = (d: Date) => d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true }).replace(/\s+/g, '').toLowerCase();
+								timeLeftMinutes = Math.floor((diffMs % 3600000) / 60000);
+								timeframe = `${formatTime(startDate)} to ${formatTime(parsed)}`;
 							}
+						}
 
-							return (
-								<Pressable
-									style={styles.guestCard}
-									className={``}
-									onPress={() =>
-										router.push({
-											pathname: '/invite',
-											params: {
-												name: item.visitor_fullname,
-												code: item.hashed_code,
-												timeframe,
-												address: `${useUserStore.getState().home_address}, ${useUserStore.getState().estate_name}.`,
-												date: formattedDate,
-											},
-										})
-									}
-								>
-									<View style={{ flex: 1 }}>
-										<Text style={styles.guestName} className={``}>
-											{item.visitor_fullname}
-										</Text>
-										<Text style={styles.guestCode} className={``}>
-											{item.hashed_code}
-										</Text>
-									</View>
-									<CountdownRing size={55} initialMinutes={timeLeftMinutes} />
-								</Pressable>
-							);
-						}}
-					/>
-				</View>
-			) : (
-				<View className="flex-1 justify-center items-center">
-					<Animated.Image
-						source={images.ghostImg}
-						className={`w-80 h-80 res`}
-						style={{
-							resizeMode: 'contain',
-							transform: [{ translateY: bounceValue }],
-						}}
-					/>
-
-					<Text className="text-center text-2xl opacity-20">{`Click the ‘+’ to add \nyour guest`}</Text>
-				</View>
-			)}
+						return (
+							<Pressable
+								style={styles.guestCard}
+								className={``}
+								onPress={() =>
+									router.push({
+										pathname: '/invite',
+										params: {
+											name: item.visitor_fullname,
+											code: item.hashed_code,
+											timeframe,
+											address: `${useUserStore.getState().home_address}, ${useUserStore.getState().estate_name}.`,
+											date: formattedDate,
+										},
+									})
+								}
+							>
+								<View style={{ flex: 1 }}>
+									<Text style={styles.guestName} className={``}>
+										{item.visitor_fullname}
+									</Text>
+									<Text style={styles.guestCode} className={``}>
+										{item.hashed_code}
+									</Text>
+								</View>
+								<CountdownRing size={55} initialMinutes={timeLeftMinutes} />
+							</Pressable>
+						);
+					}}
+				/>
+			</View>
 		</SafeAreaView>
 	);
 }

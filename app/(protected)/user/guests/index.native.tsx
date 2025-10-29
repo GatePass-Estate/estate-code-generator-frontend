@@ -82,7 +82,7 @@ const MyGuest = () => {
 					headerTitleStyle: {
 						color: '#113E55',
 						fontFamily: 'UbuntuSans',
-						fontWeight: '700',
+						fontWeight: '600',
 					},
 				}}
 			/>

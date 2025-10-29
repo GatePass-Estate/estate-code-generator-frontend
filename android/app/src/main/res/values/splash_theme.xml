@@ -1,0 +1,15 @@
+<!-- android/app/src/main/res/values/splash_theme.xml -->
+<resources>
+    <!-- This theme is applied ONLY to the splash activity -->
+    <style name="Theme.App.Splash" parent="Theme.SplashScreen">
+        <!-- 1. White background (removes the dark band) -->
+        <item name="windowSplashScreenBackground">@android:color/white</item>
+
+        <!-- 2. Your PNG (centered, cover) -->
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_icon</item>
+
+        <!-- 3. Hide the app-name text -->
+        <item name="windowSplashScreenAnimationDuration">0</item>
+        <item name="postSplashScreenTheme">@style/Theme.MyExpoApp</item>
+    </style>
+</resources>
