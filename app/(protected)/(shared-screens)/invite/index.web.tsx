@@ -13,7 +13,7 @@ import { Codes } from '@/src/types/codes';
 export default function ShareInvitePage() {
 	const router = useRouter();
 	const [showCopyModal, setShowCopyModal] = useState(false);
-	const { code: codeParam, estate_id } = useLocalSearchParams();
+	const { code: codeParam } = useLocalSearchParams();
 
 	const [code, setCode] = useState<
 		Codes & {
@@ -88,7 +88,7 @@ export default function ShareInvitePage() {
 
 	useEffect(() => {
 		fetchData();
-		if (Platform.OS === 'web') document.title = 'Home - GatePasses';
+		if (Platform.OS === 'web') document.title = 'Invite Share - GatePass';
 	}, []);
 
 	return (

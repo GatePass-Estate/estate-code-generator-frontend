@@ -8,12 +8,8 @@ import { SingleDetail } from '@/src/components/mobile/SIngleDetail';
 import Back from '@/src/components/mobile/Back';
 
 export default function InvitePage() {
-	let { name = 'Sandra', code = '000 000' } = useLocalSearchParams();
+	let { name, code, date, timeframe, address } = useLocalSearchParams();
 	const navigation = useNavigation();
-
-	const address = 'Flat 1, 18A Something Street';
-	const date = '14/08/2023';
-	const time = '6:00pm to 7:00pm';
 
 	code = Array.isArray(code) ? code.join(' ') : code ?? '';
 
@@ -25,7 +21,7 @@ export default function InvitePage() {
 	const handleShare = async () => {
 		try {
 			await Share.share({
-				message: `You're invited!\n\nName: ${name}\nAddress: ${address}\nDate: ${date}\nTime: ${time}\nCode: ${code}`,
+				message: `You're invited!\n\nName: ${name}\nAddress: ${address}\nDate: ${date}\nTime: ${timeframe}\nCode: ${code}`,
 			});
 		} catch (error) {
 			Alert.alert('Failed to share');
@@ -56,11 +52,11 @@ export default function InvitePage() {
 				</View>
 
 				<View style={styles.card}>
-					<SingleDetail label="Name" value="Sandra Happiness" />
-					<SingleDetail label="Address" value="Flat 1, 18A Olayinka Something Street, U3 Estate" />
-					<SingleDetail label="Date" value="14/08/2023" />
-					<SingleDetail label="Time" value="6:23pm to 7:23pm" />
-					<SingleDetail label="Access Code" value="567TE3" />
+					<SingleDetail label="Name" value={name as string} />
+					<SingleDetail label="Address" value={address as string} />
+					<SingleDetail label="Date" value={date as string} />
+					<SingleDetail label="Time" value={timeframe as string} />
+					<SingleDetail label="Access Code" value={code as string} />
 				</View>
 
 				<TouchableOpacity style={styles.primaryButton} onPress={handleShare}>
@@ -95,12 +91,13 @@ const styles = StyleSheet.create({
 		letterSpacing: 6,
 		color: '#113E55',
 		marginRight: 10,
+		textTransform: 'uppercase',
 	},
 
 	primaryButton: {
 		backgroundColor: '#113E55',
-		paddingVertical: 12,
-		paddingHorizontal: 30,
+		paddingVertical: 14,
+		paddingHorizontal: 60,
 		borderRadius: 8,
 		marginBottom: 20,
 	},

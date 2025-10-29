@@ -62,7 +62,7 @@ const ProfileScreen = () => {
 
 					<View className="mt-3 bg-white p-4 rounded-lg w-full border-micro">
 						<SingleDetail label="Name" value={`${first_name} ${last_name} `} />
-						<SingleDetail label="Address" value={`${estate_name}, ${address} `} />
+						<SingleDetail label="Address" value={`${address}, ${estate_name}.`} />
 						<SingleDetail label="Email Address" value={email} />
 						<SingleDetail label="Phone Number" value={phone_number} />
 					</View>

@@ -4,6 +4,9 @@ import { View, Text, FlatList, SafeAreaView, StyleSheet, Pressable, Image, Anima
 import UserIcon from '@/src/components/mobile/UserIcon';
 import { useEffect, useRef, useState } from 'react';
 import images from '@/src/constants/images';
+import { Codes } from '@/src/types/codes';
+import { getAllCodes } from '@/src/lib/api/codes';
+import { useUserStore } from '@/src/lib/stores/userStore';
 
 const guestData: any = [
 	{ name: 'Sandra', code: '765 3E2', count: 45 },
@@ -14,7 +17,24 @@ const guestData: any = [
 
 export default function HomeMobile({}) {
 	const bounceValue = useRef(new Animated.Value(0)).current;
-	const [refreshing, setRefreshing] = useState(false);
+	const [refreshing, setRefreshing] = useState(true);
+	const [codes, setCodes] = useState<Codes[]>([]);
+
+	const fetchCodes = async () => {
+		setRefreshing(true);
+		try {
+			const result = await getAllCodes(useUserStore.getState().user_id);
+			setCodes(result.items.filter((code) => !code.is_expired));
+		} catch (error) {
+			console.error('Failed to fetch codes:', error);
+		} finally {
+			setRefreshing(false);
+		}
+	};
+
+	useEffect(() => {
+		fetchCodes();
+	}, []);
 
 	useEffect(() => {
 		const anim = Animated.loop(
@@ -52,7 +72,7 @@ export default function HomeMobile({}) {
 					headerTitleStyle: {
 						color: '#113E55',
 						fontFamily: 'UbuntuSans',
-						fontWeight: '700',
+						fontWeight: 'semibold',
 					},
 				}}
 			/>
@@ -68,37 +88,68 @@ export default function HomeMobile({}) {
 					</Text>
 
 					<FlatList
-						data={guestData}
+						data={codes}
 						keyExtractor={(_, index) => index.toString()}
 						refreshing={refreshing}
 						refreshControl={<RefreshControl refreshing={refreshing} />}
-						onRefresh={() => {}}
+						onRefresh={fetchCodes}
 						contentContainerStyle={{ paddingBottom: 100 }}
-						renderItem={({ item }) => (
-							<Pressable
-								style={styles.guestCard}
-								className={``}
-								onPress={() =>
-									router.push({
-										pathname: '/invite',
-										params: {
-											name: item.name,
-											code: item.code,
-										},
-									})
+						renderItem={({ item }) => {
+							const iso = String(item.valid_until ?? '')
+								.replace(' ', 'T')
+								.replace(/([+-]\d{2})(\d{2})$/, '$1:$2');
+							const parsed = new Date(iso);
+
+							let formattedDate = 'Invalid date';
+							let timeframe = 'Unknown';
+							let timeLeftMinutes = 0;
+
+							if (!isNaN(parsed.getTime())) {
+								const day = String(parsed.getDate()).padStart(2, '0');
+								const month = String(parsed.getMonth() + 1).padStart(2, '0');
+								const year = parsed.getFullYear();
+								formattedDate = `${day}/${month}/${year}`;
+
+								const diffMs = parsed.getTime() - Date.now();
+								if (diffMs <= 0) {
+									timeframe = 'Expired';
+								} else {
+									const startDate = new Date(parsed.getTime() - 60 * 60 * 1000);
+									const formatTime = (d: Date) => d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true }).replace(/\s+/g, '').toLowerCase();
+									timeLeftMinutes = Math.floor((diffMs % 3600000) / 60000);
+									timeframe = `${formatTime(startDate)} to ${formatTime(parsed)}`;
 								}
-							>
-								<View style={{ flex: 1 }}>
-									<Text style={styles.guestName} className={``}>
-										{item.name}
-									</Text>
-									<Text style={styles.guestCode} className={``}>
-										{item.code}
-									</Text>
-								</View>
-								<CountdownRing size={55} storageKey={`guest-${item.code}`} />
-							</Pressable>
-						)}
+							}
+
+							return (
+								<Pressable
+									style={styles.guestCard}
+									className={``}
+									onPress={() =>
+										router.push({
+											pathname: '/invite',
+											params: {
+												name: item.visitor_fullname,
+												code: item.hashed_code,
+												timeframe,
+												address: `${useUserStore.getState().home_address}, ${useUserStore.getState().estate_name}.`,
+												date: formattedDate,
+											},
+										})
+									}
+								>
+									<View style={{ flex: 1 }}>
+										<Text style={styles.guestName} className={``}>
+											{item.visitor_fullname}
+										</Text>
+										<Text style={styles.guestCode} className={``}>
+											{item.hashed_code}
+										</Text>
+									</View>
+									<CountdownRing size={55} initialMinutes={timeLeftMinutes} />
+								</Pressable>
+							);
+						}}
 					/>
 				</View>
 			) : (
@@ -128,8 +179,8 @@ const styles = StyleSheet.create({
 	},
 	subText: {
 		fontSize: 15,
-		fontWeight: 'semibold',
-		fontFamily: 'UbuntuSans',
+		fontWeight: '500',
+		fontFamily: 'Inter',
 		marginTop: 40,
 		marginBottom: 30,
 		color: '#04121a',
@@ -147,14 +198,15 @@ const styles = StyleSheet.create({
 	guestName: {
 		fontSize: 13,
 		fontWeight: '600',
-		color: '#5C5C5C',
+		color: '#9B9797',
 		marginBottom: 5,
 	},
 	guestCode: {
-		fontSize: 25,
+		fontSize: 27,
 		fontWeight: '600',
 		letterSpacing: 5,
 		color: '#E05930',
 		fontFamily: 'UbuntuSans',
+		textTransform: 'uppercase',
 	},
 });

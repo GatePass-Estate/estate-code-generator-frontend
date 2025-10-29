@@ -1,5 +1,4 @@
 import { View, StyleSheet, Text } from 'react-native';
-import { FontAwesome } from '@expo/vector-icons';
 import { Image } from 'react-native';
 import images from '@/src/constants/images';
 import icons from '@/src/constants/icons';
@@ -8,7 +7,15 @@ import NavigationContainer from '@/src/components/common/NavigationContainer';
 const FloatingButton: React.FC<{ focused?: boolean }> = ({ focused = false }) => {
 	return (
 		<View style={[menuStyles.fab, !focused ? { backgroundColor: '#CEE5ED' } : { backgroundColor: '#113E55' }]}>
-			<FontAwesome name="plus" size={20} color={`${focused ? '#CEE5ED' : '#113E55'}`} />
+			<Image
+				source={focused ? icons.plusActive : icons.plus}
+				style={{
+					marginLeft: -3,
+					width: 16,
+					height: 16,
+					resizeMode: 'contain',
+				}}
+			/>
 		</View>
 	);
 };

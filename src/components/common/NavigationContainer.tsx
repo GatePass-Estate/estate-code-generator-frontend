@@ -42,7 +42,7 @@ export default function NavigationContainer({ routes, headerStyle, tabBarStyle, 
 				tabBarShowLabel: false,
 				tabBarActiveTintColor: '#113E55',
 				tabBarInactiveTintColor: '#113E55',
-				tabBarLabelStyle: { display: 'none' },
+				tabBarLabelStyle: { display: 'none', fontFamily: 'UbuntuSans' },
 				tabBarButton: (props: any) => <Pressable {...props} android_ripple={null} />,
 			}}
 		>
@@ -58,7 +58,7 @@ export default function NavigationContainer({ routes, headerStyle, tabBarStyle, 
 								headerTitleStyle: {
 									color: '#113E55',
 									fontFamily: 'UbuntuSans',
-									fontWeight: 'bold',
+									fontWeight: 'semibold',
 								},
 
 								headerShown: false,

@@ -16,7 +16,7 @@ const MyGuest = () => {
 	const [loading, setLoading] = useState(true);
 	const [deleting, setDeleting] = useState(false);
 
-	const filteredGuests = guests.filter((guest) => guest.guest_name.toLowerCase().includes(searchQuery.toLowerCase()) || guest.relationship.toLowerCase().includes(searchQuery.toLowerCase()));
+	const filteredGuests = guests.filter((guest) => guest.guest_name.toLowerCase().includes(searchQuery.toLowerCase()) || guest.relationship?.includes(searchQuery.toLowerCase()));
 
 	const fetchGuests = async () => {
 		setLoading(true);
@@ -172,14 +172,14 @@ const MyGuest = () => {
 								</TouchableOpacity>
 
 								<TouchableOpacity
-									onPress={() =>
-										router.push({
-											pathname: '/invite',
-											params: {
-												name: item.id,
-											},
-										})
-									}
+									onPress={() => {
+										// router.push({
+										// 	pathname: '/invite',
+										// 	params: {
+										// 		name: item.id,
+										// 	},
+										// })
+									}}
 								>
 									<Image source={images.generatedCodeImg} style={{ width: 35, height: 35, resizeMode: 'contain', tintColor: '#a6a4a4' }} />
 								</TouchableOpacity>

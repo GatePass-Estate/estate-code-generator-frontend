@@ -34,6 +34,10 @@ import refresh from '../assets/icons/refresh.png';
 import warning from '../assets/icons/warning.png';
 // @ts-ignore
 import cancel from '../assets/icons/cancel.png';
+// @ts-ignore
+import plus from '../assets/icons/plus-vector.png';
+// @ts-ignore
+import plusActive from '../assets/icons/plus-vector-active.png';
 
 const icons = {
 	menuIcon,
@@ -54,6 +58,8 @@ const icons = {
 	refresh,
 	warning,
 	cancel,
+	plus,
+	plusActive,
 };
 
 export default icons;
