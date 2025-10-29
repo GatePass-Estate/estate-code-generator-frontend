@@ -1,10 +1,12 @@
+import { GenderType, RelationshipType } from './general';
+
 export interface Guest {
 	id: string;
 	resident_id: string;
 	guest_name: string;
-	gender: 'female' | 'male';
+	gender: GenderType;
 	guest_phone_number: string | null;
-	relationship: string;
+	relationship: RelationshipType;
 	created_at: string;
 	updated_at: string;
 	is_deleted: boolean;

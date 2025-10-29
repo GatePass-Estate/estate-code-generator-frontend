@@ -110,24 +110,9 @@ export default function Login() {
 			)}
 
 			<View className={cn(`p-6 w-full self-center ${isLargeScreen ? 'col-span-6' : ''}`)}>
-				<View className={`${!isLargeScreen && 'justify-center items-center'} mb-10 text-center font-normal`}>
-					<Text
-						className="text-5xl"
-						style={{
-							color: '#113E55',
-							fontFamily: 'UbuntuSans',
-						}}
-					>
-						Welcome !
-					</Text>
-					<Text
-						className="text-xs font-medium mt-1"
-						style={{
-							color: 'black',
-						}}
-					>
-						Sign in to send invites to your guests
-					</Text>
+				<View className={`justify-center items-center mb-10 text-center font-normal max-w-xl`}>
+					<Text className={`${isLargeScreen ? 'text-7xl' : 'text-5xl'} text-primary font-UbuntuSans`}>Welcome !</Text>
+					<Text className={`${isLargeScreen ? 'text-base' : 'text-xs font-medium'} mt-1 text-black font-Inter`}>Sign in to send invites to your guests</Text>
 				</View>
 
 				<View className="gap-4 relative max-w-xl">
@@ -138,10 +123,9 @@ export default function Login() {
 
 								<Text
 									style={{
-										color: 'red',
 										flexShrink: 1,
 									}}
-									className="text-left ml-2"
+									className="text-left ml-2 text-danger"
 								>
 									{errorMessage}
 								</Text>
@@ -154,36 +138,22 @@ export default function Login() {
 					)}
 
 					<View className="">
-						<Text className="pb-1" style={{ color: '#113E55' }}>
-							Email Address
-						</Text>
+						<Text className={`${isLargeScreen && 'text-base'}pb-1 text-grey`}>Email Address</Text>
 						<TextInput placeholder="Enter your email address..." keyboardType="email-address" value={email} onChangeText={setEmail} autoCapitalize="none" editable={!isLoading} style={Styles.input} />
 					</View>
 
 					<View>
-						<Text className="pb-1" style={{ color: '#113E55' }}>
-							Password
-						</Text>
+						<Text className={`${isLargeScreen && 'text-base'}pb-1 text-grey`}>Password</Text>
 						<TextInput placeholder="Enter your password..." secureTextEntry value={password} onChangeText={setPassword} editable={!isLoading} style={Styles.input} />
 					</View>
 
 					<View className="mt-4 gap-5">
-						<Button
-							className={`self-center rounded-lg flex-row items-center justify-center ${isLoading ? 'opacity-70' : ''} w-11/12 h-12`}
-							size={Platform.select({ ios: 'lg', default: 'lg' })}
-							style={{
-								backgroundColor: '#113E55',
-							}}
-							onPress={handleSignInPress}
-							disabled={isLoading}
-						>
-							{isLoading ? (
-								<ActivityIndicator color="#fff" />
-							) : (
-								<Text className="text-center" style={{ color: 'white', textAlign: 'center' }}>
-									Sign In
-								</Text>
-							)}
+						<Button className={`self-center rounded-lg flex-row items-center justify-center ${isLoading ? 'opacity-70' : ''} w-11/12 h-12 text-primary`} size={Platform.select({ ios: 'lg', default: 'lg' })} onPress={handleSignInPress} disabled={isLoading}>
+							{isLoading ? <ActivityIndicator color="#fff" /> : <Text className="text-center text-white font-semibold font-UbuntuSans">Sign In</Text>}
+						</Button>
+
+						<Button className={`self-center rounded-lg flex-row items-center justify-center ${isLoading ? 'opacity-70' : ''} w-11/12 h-12 bg-dark-teal`} size={Platform.select({ ios: 'lg', default: 'lg' })} disabled={isLoading}>
+							<Text className="text-center text-white font-semibold font-UbuntuSans">Continue With Google</Text>
 						</Button>
 					</View>
 				</View>

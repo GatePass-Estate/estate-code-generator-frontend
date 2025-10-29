@@ -11,6 +11,7 @@ type Actions = {
 type UserStore = State & Actions;
 
 const initialState: State = {
+	user_id: '',
 	first_name: null,
 	last_name: null,
 	home_address: null,
@@ -18,6 +19,7 @@ const initialState: State = {
 	phone_number: null,
 	gender: null,
 	estate_name: null,
+	estate_id: null,
 	household_primary_resident: null,
 	status: true,
 };

@@ -14,8 +14,8 @@ export default function WebSidebar({ routes, onNavigate }: WebSidebarProps) {
 	const { signOut } = useAuth();
 
 	return (
-		<div className="flex-col hidden sm:flex bg-primary p-6 h-screen text-white justify-center items-center w-56 lg:w-72 xl:w-80 fixed">
-			<Image source={images.logo} style={{ width: 110, height: 110 }} resizeMode="contain" />
+		<div className="flex-col hidden sm:flex bg-primary p-6 h-screen text-white justify-center items-center w-48 lg:w-56 xl:w-64 fixed">
+			<Image source={images.logo} style={{ width: 80, height: 80 }} resizeMode="contain" />
 
 			<div className="mt-10 flex flex-col gap-2 w-full">
 				{routes.map(({ name, title, link, activeIcon, inactiveIcon }) => {

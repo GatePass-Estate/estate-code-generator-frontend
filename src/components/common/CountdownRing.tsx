@@ -2,98 +2,90 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, AppState } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import Animated, { useSharedValue, useAnimatedProps, withTiming } from 'react-native-reanimated';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
-const CountdownRing = ({ size = 90, strokeWidth = 7, storageKey = 'countdownStart' }) => {
+type CountdownRingProps = {
+	totalMinutes?: number;
+	initialMinutes?: number;
+
+	size?: number;
+	strokeWidth?: number;
+};
+
+const CountdownRing = ({ totalMinutes = 60, initialMinutes, size = 90, strokeWidth = 7 }: CountdownRingProps) => {
 	const radius = (size - strokeWidth) / 2;
 	const circumference = 2 * Math.PI * radius;
 
-	const [remainingMinutes, setRemainingMinutes] = useState(60);
-	const progress = useSharedValue(1); // 1 = full circle
+	const totalSeconds = totalMinutes * 60;
+	const startSeconds = Math.min((initialMinutes ?? totalMinutes) * 60, totalSeconds);
 
-	const saveStartTime = async () => {
+	const [remainingSeconds, setRemainingSeconds] = useState(startSeconds);
+	const progress = useSharedValue(startSeconds / totalSeconds);
+
+	const startTimeRef = React.useRef(Date.now() - (totalSeconds - startSeconds) * 1000);
+
+	const updateCountdown = () => {
 		const now = Date.now();
-		await AsyncStorage.setItem(storageKey, now.toString());
-	};
+		const elapsedSec = Math.floor((now - startTimeRef.current) / 1000);
+		const remainingSec = Math.max(0, totalSeconds - elapsedSec);
 
-	const loadRemainingTime = async () => {
-		const saved = await AsyncStorage.getItem(storageKey);
-		const now = Date.now();
+		setRemainingSeconds(remainingSec);
+		progress.value = withTiming(remainingSec / totalSeconds, { duration: 800 });
 
-		if (saved) {
-			const elapsed = Math.floor((now - parseInt(saved)) / 15); // in seconds
-			const remaining = 3600 - elapsed;
-
-			if (remaining <= 0) {
-				// Restart timer if it reached zero
-				await saveStartTime();
-				setRemainingMinutes(60);
-				progress.value = withTiming(1, { duration: 500 });
-			} else {
-				const minutes = Math.max(0, Math.ceil(remaining / 60));
-				setRemainingMinutes(minutes);
-				progress.value = withTiming(remaining / 3600, { duration: 800 });
-			}
-		} else {
-			await saveStartTime();
+		if (remainingSec <= 0) {
+			// optional: auto-restart
+			startTimeRef.current = now;
+			setRemainingSeconds(totalSeconds);
+			progress.value = withTiming(1, { duration: 500 });
 		}
 	};
 
 	useEffect(() => {
-		// loadRemainingTime();
+		updateCountdown();
 
-		const interval = setInterval(loadRemainingTime, 1000);
-		const sub = AppState.addEventListener('change', (state) => {
-			if (state === 'active') loadRemainingTime();
+		const minuteInterval = 60_000; // 1 minute
+		const intervalId = setInterval(updateCountdown, minuteInterval);
+
+		const sub = AppState.addEventListener('change', (nextState) => {
+			if (nextState === 'active') updateCountdown();
 		});
 
 		return () => {
-			if (interval) clearInterval(interval);
+			clearInterval(intervalId);
 			sub.remove();
 		};
-	}, []);
+	}, [totalSeconds]);
 
 	const animatedProps = useAnimatedProps(() => ({
 		strokeDashoffset: circumference * (1 - progress.value),
 	}));
 
+	const remainingMinutes = Math.ceil(remainingSeconds / 60);
+
 	const getRingColor = () => {
-		if (remainingMinutes <= 15) return '#FF3B30'; // red
-		if (remainingMinutes <= 30) return '#FFA500'; // orange
-		return '#46ee6a'; // green
+		if (remainingMinutes <= 15) return '#FF3B30';
+		if (remainingMinutes <= 30) return '#FFA500';
+		return '#46ee6a';
 	};
-
 	const getBackgroundRingColor = () => {
-		if (remainingMinutes <= 15) return '#ffd6d6'; // Light red
-		if (remainingMinutes <= 30) return '#ffeac2'; // Light orange
-		return '#dcfae7'; // Light green
+		if (remainingMinutes <= 15) return '#ffd6d6';
+		if (remainingMinutes <= 30) return '#ffeac2';
+		return '#dcfae7';
 	};
-
-	const getTextColor = () => {
-		return getRingColor();
-		return remainingMinutes <= 15 ? '#FF3B30' : '#113E55';
-	};
+	const getTextColor = () => getRingColor();
 
 	return (
 		<View style={{ width: size, height: size }}>
 			<Svg width={size} height={size}>
-				{/* Background ring with same stroke width */}
-				<Circle
-					fill="transparent"
-					stroke={getBackgroundRingColor()} // ← dynamic background color
-					cx={size / 2}
-					cy={size / 2}
-					r={radius}
-					strokeWidth={strokeWidth}
-				/>
+				{/* background ring */}
+				<Circle fill="transparent" stroke={getBackgroundRingColor()} cx={size / 2} cy={size / 2} r={radius} strokeWidth={strokeWidth} />
 
-				{/* Animated countdown arc */}
+				{/* animated arc */}
 				<AnimatedCircle fill="transparent" stroke={getRingColor()} cx={size / 2} cy={size / 2} r={radius} strokeWidth={strokeWidth} strokeLinecap="butt" strokeDasharray={circumference} animatedProps={animatedProps} rotation="90" originX={size / 2} originY={size / 2} />
 			</Svg>
 
-			{/* Countdown text */}
+			{/* minutes text */}
 			<View style={styles.centerText}>
 				<Text style={[styles.text, { color: getTextColor() }]}>{remainingMinutes}</Text>
 			</View>

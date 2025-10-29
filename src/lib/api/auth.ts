@@ -2,12 +2,10 @@ import { LoginResponse } from '@/src/types/auth';
 import Api from '.';
 import { getErrorMessage } from '../helpers';
 
-const api = Api();
-
 export async function loginUser(email: string, password: string): Promise<LoginResponse> {
 	try {
 		console.log('Logging in user with email:', email);
-
+		const api = Api();
 		const axiosRes = await api.post(`/auth/login`, { email, password });
 		const data = axiosRes.data;
 
@@ -19,6 +17,7 @@ export async function loginUser(email: string, password: string): Promise<LoginR
 
 export async function fetchMe(token: string) {
 	try {
+		const api = Api();
 		const axiosRes = await api.get(`/users/profile/me`, {
 			headers: {
 				Authorization: `Bearer ${token}`,

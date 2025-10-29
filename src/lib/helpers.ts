@@ -34,9 +34,18 @@ export const getAuthState = async (): Promise<AuthState | null> => {
 };
 
 export const getErrorMessage = (error: any): string => {
-	if (axios.isAxiosError(error) && error.response) {
-		if (error.response.data.detail) {
-			return error.response.data.detail;
+	if (axios.isAxiosError(error) && error.response?.data) {
+		const data = error.response.data;
+
+		if (Array.isArray(data.detail)) {
+			const first = data.detail[0];
+			if (first?.msg) {
+				return first.msg;
+			}
+		}
+
+		if (typeof data.detail === 'string') {
+			return data.detail;
 		}
 	}
 
@@ -54,5 +63,5 @@ export const getErrorMessage = (error: any): string => {
 		if (error.message.includes('timeout') || error.message.includes('timed out') || error.message.includes('exceeded')) return 'Request timed out - please check your network connection and try again.';
 	}
 
-	return error.message;
+	return error.message ?? 'An unknown error occurred';
 };

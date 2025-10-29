@@ -1,69 +1,115 @@
 import { ChangeEvent, useEffect, useState } from 'react';
-import { Alert, Platform } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import { Image, Platform } from 'react-native';
 import WebSidebar from '@/src/components/web/WebSidebar';
 import { menuRoutes } from '../../_layout';
 import { useRouter } from 'expo-router';
+import icons from '@/src/constants/icons';
+import Modal from '@/src/components/web/Modal';
+import { generateCode } from '@/src/lib/api/codes';
+import { useUserStore } from '@/src/lib/stores/userStore';
+import { createGuest } from '@/src/lib/api/guests';
+import { GenderType, RelationshipType } from '@/src/types/general';
 
-const GENDERS = ['Female', 'Male', "I'd prefer not to say"];
-const RELATIONSHIPS = ['Spouse', 'Friends', 'Family', 'Delivery', 'Taxi', 'Service Provider'];
+const GENDERS = ['female', 'male', "i'd prefer not to say"];
+const RELATIONSHIPS = ['spouse', 'friends', 'family', 'taxi', 'service provider', 'other'];
 
 export default function AddGuestScreen() {
 	const router = useRouter();
 
 	const [name, setName] = useState<string>('');
-	const [selectedGender, setSelectedGender] = useState<string>('Male');
-	const [selectedRelationships, setSelectedRelationships] = useState<string>('Friends');
+	const [selectedGender, setSelectedGender] = useState<GenderType>('female');
+	const [selectedRelationships, setSelectedRelationships] = useState<RelationshipType>('friends');
 	const [otherRelationship, setOtherRelationship] = useState<string>('');
 	const [saveToList, setSaveToList] = useState<boolean>(false);
+	const [running, setRunning] = useState<boolean>(false);
+	const [error, setError] = useState('');
 
-	function handleSaveGuest() {
+	const inputChecks = (): boolean => {
 		if (!name.trim()) {
-			Alert.alert('Validation', "Please enter the guest's name.");
-			return;
+			setError("Please enter the guest's name.");
+			return false;
 		}
-		if (!selectedGender) {
-			Alert.alert('Validation', 'Please select a gender.');
-			return;
-		}
-		if (!otherRelationship.trim()) {
-			Alert.alert('Validation', 'Please select or enter a relationship.');
-			return;
-		}
-		const payload = {
-			name: name.trim(),
-			gender: selectedGender,
-			relationships: selectedRelationships,
-			saveToList,
-		};
 
-		console.log('Save guest:', payload);
-		Alert.alert('Success', 'Guest saved (see console).');
+		if (!selectedGender) {
+			setError('Please select a gender.');
+			return false;
+		}
+
+		if (selectedRelationships == 'other' && !otherRelationship.trim()) {
+			setError('Please select or enter a relationship.');
+			return false;
+		}
+
+		return true;
+	};
+
+	async function handleSaveGuest() {
+		if (inputChecks()) {
+			setRunning(true);
+			try {
+				await createGuest({
+					resident_id: useUserStore.getState().user_id,
+					guest_name: name,
+					relationship: selectedRelationships,
+					gender: selectedGender,
+				});
+
+				router.push('/user');
+			} catch (error) {
+				setError('Failed to generate code. Please try again.');
+			} finally {
+				setRunning(false);
+			}
+		}
 	}
 
-	function handleGenerateCode() {
-		router.push('/invite');
+	async function handleGenerateCode() {
+		if (inputChecks()) {
+			setRunning(true);
+			try {
+				const result = await generateCode({
+					user_id: useUserStore.getState().user_id,
+					estate_id: useUserStore.getState().estate_id ?? '',
+					visitor_fullname: name,
+					relationship_with_resident: selectedRelationships,
+					gender: selectedGender,
+				});
+
+				if (saveToList) {
+					await createGuest({
+						resident_id: useUserStore.getState().user_id,
+						guest_name: name,
+						relationship: selectedRelationships,
+						gender: selectedGender,
+					});
+				}
+
+				router.push(`/invite?code=${result.hashed_code}&estate_id=${useUserStore.getState().estate_id}`);
+			} catch (error) {
+				setError('Failed to generate code. Please try again.');
+			} finally {
+				setRunning(false);
+			}
+		}
 	}
 
 	useEffect(() => {
-		if (Platform.OS === 'web') {
-			document.title = 'Generate Code - GatePass';
-		}
+		if (Platform.OS === 'web') document.title = 'Generate Code - GatePass';
 	}, []);
 
 	return (
 		<div className="flex h-full w-screen overflow-y-scroll bg-body">
 			<WebSidebar routes={menuRoutes.filter((el) => el.for == 'web' || el.for == 'both').map(({ name, title, link, activeIcon, inactiveIcon }) => ({ name, title, link, activeIcon, inactiveIcon }))} onNavigate={(route) => router.push(route as any)} />
 
-			<div className="web-body">
-				<div className="flex flex-col justify-center gap-7 mt-10" />
+			<div className="web-body pb-20">
+				<div className="flex flex-col justify-center gap-7 mt-20" />
 
 				<div className="">
-					<h1 className="text-4xl">Generate Code</h1>
-					<p className="text-base text-tertiary mt-3">Fill in your guest details, it will take only a couple of minutes</p>
+					<h1 className="text-4xl font-UbuntuSans">Add Guest</h1>
+					<p className="text-base text-tertiary mt-1">Fill in your guest details, it will take only a couple of minutes</p>
 				</div>
 
-				<div className="border border-[#d8e3e0] rounded-lg px-8 py-6 mt-10 bg-white flex flex-col gap-6 min-w-3xl">
+				<div className="border-mini border-primary rounded-lg px-8 py-10 mt-10 bg-white flex flex-col gap-6 min-w-3xl">
 					<div className="input-group-web">
 						<label htmlFor="name" className="input-label-web">
 							Name
@@ -79,9 +125,9 @@ export default function AddGuestScreen() {
 							{GENDERS.map((g) => {
 								const active = selectedGender === g;
 								return (
-									<div key={g} className={`flex flex-row items-center px-4 py-2 rounded-md bg-light-grey ${active && 'bg-[#e6f4ef] border border-[##cfe7db]'} gap-3 cursor-pointer`} onClick={() => setSelectedGender(g)}>
-										<p>{g}</p>
-										{active && <MaterialIcons name="check-circle" size={18} color="#2f855a" />}
+									<div key={g} className={`flex flex-row items-center px-4 py-2 rounded-md bg-light-grey ${active && 'bg-[#e6f4ef] border border-[##cfe7db]'} gap-3 cursor-pointer`} onClick={() => setSelectedGender(g as GenderType)}>
+										<p className="text-primary capitalize">{g}</p>
+										{active && <Image source={icons.checkIcon} style={{ width: 20, height: 20 }} resizeMode="contain" />}
 									</div>
 								);
 							})}
@@ -96,49 +142,54 @@ export default function AddGuestScreen() {
 							{RELATIONSHIPS.map((r) => {
 								const active = selectedRelationships === r;
 								return (
-									<div key={r} className={`flex flex-row items-center px-4 py-2 rounded-md bg-light-grey ${active && 'bg-[#e6f4ef] border border-[##cfe7db]'} gap-3 cursor-pointer`} onClick={() => setSelectedRelationships(r)}>
-										<p>{r}</p>
-										{active && <MaterialIcons name="check-circle" size={18} color="#2f855a" />}
+									<div key={r} className={`flex flex-row items-center px-4 py-2 rounded-md bg-light-grey ${active && 'bg-[#e6f4ef] border border-[##cfe7db]'} gap-3 cursor-pointer`} onClick={() => setSelectedRelationships(r as RelationshipType)}>
+										<p className="text-primary capitalize">{r}</p>
+										{active && <Image source={icons.checkIcon} style={{ width: 20, height: 20 }} resizeMode="contain" />}
 									</div>
 								);
 							})}
 						</div>
 					</div>
 
-					<div className="input-group-web">
-						<label htmlFor="other" className="input-label-web">
-							Other:
-						</label>
+					{selectedRelationships === 'other' && (
+						<div className="input-group-web flex !flex-row items-end !gap-4">
+							<label htmlFor="other" className="input-label-web">
+								Other:
+							</label>
 
-						<input name="other" placeholder="Specify other relationship" value={otherRelationship} onChange={(e) => setOtherRelationship(e.target.value)} className="input-style-web" />
-					</div>
+							<input name="other" placeholder="Specify other relationship" value={otherRelationship} onChange={(e) => setOtherRelationship(e.target.value)} className="input-style-web" />
+						</div>
+					)}
 				</div>
 
-				<div className="mt-4 flex items-center gap-2">
+				<div className="mt-4 flex items-center gap-4">
 					<input
 						type="checkbox"
 						name="saveDetails"
 						id="saveDetails"
-						className="mt-1 p-2 h-4 w-4"
+						className="mt-1 p-2 h-4 w-4 border-2 outline-2 border-primary outline-primary"
 						onChange={(e: ChangeEvent<HTMLInputElement>) => {
 							const { checked } = e.target;
 							setSaveToList(checked);
 						}}
 					/>
-					<label htmlFor="saveDetails">
-						<span className=" text-dark-teal text-sm">Save details to my guest list</span>
+					<label htmlFor="saveDetails" className="mt-1">
+						<span className="text-dark-teal text-sm">Save details to my guest list</span>
 					</label>
 				</div>
 
 				<div className="mt-7 flex flex-row justify-end gap-3">
-					<button className="bg-dark-teal rounded-md px-10 py-3">
+					<button className={`bg-dark-teal rounded-md px-10 py-3 ${running && 'cursor-not-allowed opacity-75'}`} disabled={running} onClick={handleSaveGuest}>
 						<p className="text-white text-sm font-semibold">Save Guest</p>
 					</button>
 
-					<button className="bg-primary rounded-md px-10 py-3" onClick={handleGenerateCode}>
+					<button className={`bg-primary rounded-md px-10 py-3 ${running && 'cursor-not-allowed opacity-75'}`} disabled={running} onClick={handleGenerateCode}>
 						<p className="text-white text-sm font-semibold">Generate Code</p>
 					</button>
 				</div>
+
+				{error && <Modal closeModal={() => setError('')} heading={'Validation Error'} message={error} cancelText={'Close'} />}
+				<br />
 			</div>
 		</div>
 	);

@@ -3,19 +3,20 @@
 @tailwind utilities;
 
 .web-access-code-details {
-	@apply flex justify-between gap-10;
+	@apply flex;
 }
 
 .web-access-code-details-heading {
-	@apply font-semibold text-sm;
+	@apply font-medium text-xs w-20;
 }
 
 .web-access-code-details-content {
-	@apply text-sm;
+	@apply text-xs font-medium;
 }
 
 .web-body {
-	@apply ml-0 sm:ml-64 lg:ml-80 xl:ml-96 p-4 sm:p-1;
+	@apply ml-0 sm:ml-60 lg:ml-72 xl:ml-80 p-4 sm:p-1 w-full;
+	@apply mr-0 sm:mr-8 lg:mr-10 xl:mr-12;
 }
 
 .input-style {
@@ -31,17 +32,47 @@
 }
 
 .input-style-web {
-	@apply bg-light-grey border-input-border rounded-lg p-3 mt-1 justify-center;
+	@apply bg-light-grey border-input-border rounded-2xl pl-8 p-5 mt-1 justify-center;
 }
 
 .input-label-web {
-	@apply text-sm text-grey;
+	@apply text-base text-grey;
 }
 
 .input-group-web {
-	@apply flex flex-col gap-1;
+	@apply flex flex-col gap-2;
 }
 
 .share-detail-style {
-	@apply text-lg text-primary font-normal;
+	@apply text-xl text-black font-normal font-UbuntuSans;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+	@apply font-UbuntuSans;
+}
+
+span,
+p,
+a,
+li,
+div {
+	@apply font-Inter;
+}
+
+p,
+span {
+	@apply text-base;
+}
+
+.full-btn {
+	@apply bg-primary text-white font-medium font-UbuntuSans text-base rounded-lg py-3 px-10 cursor-pointer;
+}
+
+button {
+	@apply font-UbuntuSans;
 }

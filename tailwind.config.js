@@ -9,7 +9,8 @@ module.exports = {
 				md: '17px',
 			},
 			fontFamily: {
-				UbuntuSans: ['"Ubuntu Sans"', 'system-ui', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
+				UbuntuSans: ['"UbuntuSans"', 'system-ui', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
+				Inter: ['"Inter"', 'system-ui', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
 			},
 			colors: {
 				primary: '#113E55',
@@ -25,10 +26,12 @@ module.exports = {
 				'dark-teal': '#167a6f',
 				body: '#FBFEFF',
 				'input-border': '#D1D5DB',
-				danger: '#E63946',
+				danger: '#ED0808',
+				black: '#04121A',
 			},
 			borderWidth: {
 				micro: '0.1px',
+				mini: '0.5px',
 			},
 		},
 	},

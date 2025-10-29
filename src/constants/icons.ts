@@ -24,6 +24,16 @@ import deleteIcon from '../assets/icons/weui_delete-filled.png';
 import femaleIcon from '../assets/icons/gender-selection-female.png';
 // @ts-ignore
 import maleIcon from '../assets/icons/gender-selection-male.png';
+// @ts-ignore
+import checkIcon from '../assets/icons/lets-icons_check-ring-duotone.png';
+// @ts-ignore
+import edit from '../assets/icons/edit.png';
+// @ts-ignore
+import refresh from '../assets/icons/refresh.png';
+// @ts-ignore
+import warning from '../assets/icons/warning.png';
+// @ts-ignore
+import cancel from '../assets/icons/cancel.png';
 
 const icons = {
 	menuIcon,
@@ -39,6 +49,11 @@ const icons = {
 	deleteIcon,
 	maleIcon,
 	femaleIcon,
+	checkIcon,
+	edit,
+	refresh,
+	warning,
+	cancel,
 };
 
 export default icons;

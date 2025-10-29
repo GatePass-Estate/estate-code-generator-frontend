@@ -1,11 +1,18 @@
 export type User = {
-	first_name: String | null;
-	last_name: String | null;
-	home_address: String | null;
-	email: String | null;
-	phone_number: String | null;
+	user_id: string;
+	first_name: string | null;
+	last_name: string | null;
+	home_address: string | null;
+	email: string | null;
+	phone_number: string | null;
 	gender: 'male' | 'female' | 'prefer not to say' | 'other' | null;
-	estate_name: String | null;
-	household_primary_resident: String | null;
+	estate_name: string | null;
+	estate_id: string | null;
+	household_primary_resident: string | null;
 	status: boolean | null;
+};
+
+export type UpdatePasswordPayload = {
+	success: boolean;
+	message: string;
 };

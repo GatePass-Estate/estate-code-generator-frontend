@@ -7,7 +7,7 @@ import { useUserStore } from '@/src/lib/stores/userStore';
 import images from '@/src/constants/images';
 import Back from '@/src/components/mobile/Back';
 
-export const SingleDetail = ({ label, value }: { label: String; value: String | null }) => (
+export const SingleDetail = ({ label, value }: { label: string; value: string | null }) => (
 	<View className="gap-1 justify-between mb-5">
 		<Text className="text-sm text-grey font-UbuntuSans">{label}</Text>
 

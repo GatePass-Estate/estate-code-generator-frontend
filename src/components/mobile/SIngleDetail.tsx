@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-export const SingleDetail = ({ label, value }: { label: String; value: String | null }) => (
+export const SingleDetail = ({ label, value }: { label: string; value: string | null }) => (
 	<View style={styles.detailRow}>
 		<Text style={styles.detailLabel}>{label}</Text>
 
