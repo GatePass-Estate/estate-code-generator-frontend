@@ -241,7 +241,7 @@ export default function HomeWeb() {
 											estate_id={code.estate_id}
 											details={{
 												name: code.visitor_fullname || 'Guest',
-												address: '123 Main St, City, Country.',
+												address: `${useUserStore.getState().home_address}, ${useUserStore.getState().estate_name}.`,
 												date: formattedDate,
 												timeframe,
 											}}

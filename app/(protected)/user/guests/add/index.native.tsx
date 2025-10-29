@@ -65,6 +65,7 @@ const AddGuest = () => {
 						gender: gender,
 					});
 				}
+				setRunning(false);
 
 				router.push({
 					pathname: `/invite`,
@@ -183,9 +184,9 @@ const AddGuest = () => {
 			</View>
 
 			<View className="mt-14 items-center">
-				<Button className={`w-64 bg-primary justify-center items-center py-4 font-UbuntuSans rounded-md ${running ? 'opacity-70' : ''}`} onPress={handleGenerateCode} disabled={running}>
+				<TouchableOpacity className={`w-64 bg-primary justify-center items-center py-4 font-UbuntuSans !rounded-md ${running ? 'opacity-70' : ''}`} onPress={handleGenerateCode} disabled={running}>
 					<Text className="text-white font-semibold font-UbuntuSans text-md">Generate Code</Text>
-				</Button>
+				</TouchableOpacity>
 			</View>
 		</ScrollView>
 	);

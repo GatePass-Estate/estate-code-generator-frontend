@@ -7,6 +7,9 @@ import { useEffect, useRef, useState } from 'react';
 import images from '@/src/constants/images';
 import { deleteMyGuest, getMyGuests } from '@/src/lib/api/guests';
 import { Guest } from '@/src/types/guests';
+import { GenderType, RelationshipType } from '@/src/types/general';
+import { useUserStore } from '@/src/lib/stores/userStore';
+import { generateCode } from '@/src/lib/api/codes';
 
 const limit = 10;
 
@@ -15,6 +18,7 @@ const MyGuest = () => {
 	const [guests, setGuests] = useState<Guest[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [deleting, setDeleting] = useState(false);
+	const [running, setRunning] = useState<boolean>(false);
 
 	const filteredGuests = guests.filter((guest) => guest.guest_name.toLowerCase().includes(searchQuery.toLowerCase()) || guest.relationship?.includes(searchQuery.toLowerCase()));
 
@@ -43,6 +47,60 @@ const MyGuest = () => {
 	useEffect(() => {
 		fetchGuests();
 	}, []);
+
+	async function handleGenerateCode({ name, relationship_with_resident, gender }: { name: string; gender: GenderType; relationship_with_resident: RelationshipType }) {
+		setRunning(true);
+		try {
+			const result = await generateCode({
+				user_id: useUserStore.getState().user_id,
+				estate_id: useUserStore.getState().estate_id ?? '',
+				visitor_fullname: name,
+				relationship_with_resident,
+				gender,
+			});
+
+			const iso = String(result.valid_until ?? '')
+				.replace(' ', 'T')
+				.replace(/([+-]\d{2})(\d{2})$/, '$1:$2');
+			const parsed = new Date(iso);
+
+			let formattedDate = 'Invalid date';
+			let timeframe = 'Unknown';
+			let timeLeftMinutes = 0;
+
+			if (!isNaN(parsed.getTime())) {
+				const day = String(parsed.getDate()).padStart(2, '0');
+				const month = String(parsed.getMonth() + 1).padStart(2, '0');
+				const year = parsed.getFullYear();
+				formattedDate = `${day}/${month}/${year}`;
+
+				const diffMs = parsed.getTime() - Date.now();
+				if (diffMs <= 0) {
+					timeframe = 'Expired';
+				} else {
+					const startDate = new Date(parsed.getTime() - 60 * 60 * 1000);
+					const formatTime = (d: Date) => d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true }).replace(/\s+/g, '').toLowerCase();
+					timeLeftMinutes = Math.floor((diffMs % 3600000) / 60000);
+					timeframe = `${formatTime(startDate)} to ${formatTime(parsed)}`;
+				}
+			}
+
+			router.push({
+				pathname: '/invite',
+				params: {
+					name,
+					code: result.hashed_code,
+					address: `${useUserStore.getState().home_address}, ${useUserStore.getState().estate_name}.`,
+					timeframe,
+					date: formattedDate,
+				},
+			});
+		} catch (error) {
+			Alert.alert('Error', 'Failed to generate code. Please try again.');
+		} finally {
+			setRunning(false);
+		}
+	}
 
 	const bounceValue = useRef(new Animated.Value(0)).current;
 
@@ -113,7 +171,6 @@ const MyGuest = () => {
 			<FlatList
 				data={filteredGuests}
 				keyExtractor={(_, index) => index.toString()}
-				// contentContainerStyle={{ paddingBottom: 100, flexGrow: 1 }}
 				refreshing={loading}
 				onRefresh={fetchGuests}
 				ListEmptyComponent={() => (
@@ -172,14 +229,13 @@ const MyGuest = () => {
 								</TouchableOpacity>
 
 								<TouchableOpacity
-									onPress={() => {
-										// router.push({
-										// 	pathname: '/invite',
-										// 	params: {
-										// 		name: item.id,
-										// 	},
-										// })
-									}}
+									onPress={() =>
+										handleGenerateCode({
+											name: item.guest_name,
+											relationship_with_resident: item.relationship as RelationshipType,
+											gender: item.gender as GenderType,
+										})
+									}
 								>
 									<Image source={images.generatedCodeImg} style={{ width: 35, height: 35, resizeMode: 'contain', tintColor: '#a6a4a4' }} />
 								</TouchableOpacity>
