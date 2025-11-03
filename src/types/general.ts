@@ -1,2 +1,2 @@
-export type GenderType = 'male' | 'female' | 'prefer not to say' | 'other' | null;
-export type RelationshipType = 'spouse' | 'friends' | 'family' | 'taxi' | 'service provider' | 'other' | null;
+export type GenderType = 'male' | 'female' | 'prefer_not_to_say' | null;
+export type RelationshipType = 'partner' | 'friend' | 'family' | 'taxi' | 'delivery' | 'technician' | 'other' | null;

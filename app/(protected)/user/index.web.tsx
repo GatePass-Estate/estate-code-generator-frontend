@@ -12,29 +12,7 @@ import { deleteCode, generateCode, getAllCodes } from '@/src/lib/api/codes';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { Codes } from '@/src/types/codes';
 import { GenderType, RelationshipType } from '@/src/types/general';
-
-// Simple pagination component used by this page (Prev / Next + page indicator)
-const Pagination = ({ currentPage, totalPages, onPageChange }: { currentPage: number; totalPages: number; onPageChange: (n: number) => void }) => {
-	return (
-		<div className="flex items-center gap-2">
-			<button type="button" className="flex items-center justify-center w-10 h-10 rounded-lg border border-gray-300 bg-white disabled:opacity-50 disabled:cursor-not-allowed" onClick={() => onPageChange(Math.max(1, currentPage - 1))} disabled={currentPage <= 1}>
-				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-					<path d="M15 18L9 12L15 6" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-				</svg>
-			</button>
-
-			<div className="px-3 text-sm text-gray-600">
-				Page {currentPage} of {totalPages}
-			</div>
-
-			<button type="button" className="flex items-center justify-center w-10 h-10 rounded-lg border border-gray-300 bg-white disabled:opacity-50 disabled:cursor-not-allowed" onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))} disabled={currentPage >= totalPages}>
-				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-					<path d="M9 6L15 12L9 18" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-				</svg>
-			</button>
-		</div>
-	);
-};
+import { Pagination } from '@/src/components/web/Pagination';
 
 const CODES_PAGE_SIZE = 3;
 const GUESTS_PAGE_SIZE = 6;
@@ -53,6 +31,7 @@ export default function HomeWeb() {
 	const [pendingType, setPendingType] = useState<'guest' | 'code' | null>(null);
 	const [running, setRunning] = useState<boolean>(false);
 	const [error, setError] = useState('');
+	const [generatingGuestId, setGeneratingGuestId] = useState<string | null>(null);
 
 	const filteredGuests = guests.filter((guest) => guest.guest_name.toLowerCase().includes(searchQuery.toLowerCase()) || guest.relationship?.toLowerCase().includes(searchQuery.toLowerCase()));
 
@@ -116,8 +95,9 @@ export default function HomeWeb() {
 		}
 	};
 
-	async function handleGenerateCode({ name, relationship_with_resident, gender }: { name: string; gender: GenderType; relationship_with_resident: RelationshipType }) {
+	async function handleGenerateCode({ name, relationship_with_resident, gender, guestId }: { name: string; gender: GenderType; relationship_with_resident: RelationshipType; guestId: string }) {
 		setRunning(true);
+		setGeneratingGuestId(guestId);
 		try {
 			const result = await generateCode({
 				user_id: useUserStore.getState().user_id,
@@ -132,6 +112,7 @@ export default function HomeWeb() {
 			setError('Failed to generate code. Please try again.');
 		} finally {
 			setRunning(false);
+			setGeneratingGuestId(null);
 		}
 	}
 
@@ -152,41 +133,6 @@ export default function HomeWeb() {
 	useEffect(() => {
 		setGuestsPage(1);
 	}, [searchQuery]);
-
-	const Pagination = ({ currentPage, totalPages, onPageChange }: { currentPage: number; totalPages: number; onPageChange: (page: number) => void }) => {
-		if (totalPages <= 1) return null;
-
-		return (
-			<div className="flex items-center gap-2">
-				<button onClick={() => onPageChange(Math.max(1, currentPage - 1))} disabled={currentPage === 1 || running} className="flex items-center justify-center w-10 h-10 rounded-lg border border-gray-300 bg-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50">
-					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-						<path d="M15 18L9 12L15 6" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-					</svg>
-				</button>
-
-				{Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-					<button
-						key={page}
-						onClick={() => onPageChange(page)}
-						disabled={running}
-						className={`flex items-center justify-center w-10 h-10 rounded-lg border ${page === currentPage ? 'border-primary bg-primary text-white' : 'border-gray-300 bg-white hover:bg-gray-50'} disabled:opacity-50 disabled:cursor-not-allowed`}
-					>
-						{page}
-					</button>
-				))}
-
-				<button
-					onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
-					disabled={currentPage === totalPages || running}
-					className="flex items-center justify-center w-10 h-10 rounded-lg border border-gray-300 bg-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-				>
-					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-						<path d="M9 6L15 12L9 18" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-					</svg>
-				</button>
-			</div>
-		);
-	};
 
 	return (
 		<div className="flex h-full w-screen overflow-y-scroll bg-body">
@@ -259,7 +205,7 @@ export default function HomeWeb() {
 								</div>
 							) : (
 								<div className="flex justify-end mb-6">
-									<Pagination currentPage={codesPage} totalPages={codesTotalPages} onPageChange={setCodesPage} />
+									<Pagination currentPage={codesPage} totalPages={codesTotalPages} onPageChange={setCodesPage} condition={running} />
 								</div>
 							)}
 						</div>
@@ -267,13 +213,14 @@ export default function HomeWeb() {
 						<div className="flex flex-col justify-center gap-4 mt-6">
 							<div className="flex items-center justify-between">
 								<h2 className="text-2xl font-semibold text-blackq">My Guest List</h2>
-								<input type="text" placeholder="Search guests..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary" />
+
+								{guestsPaginated.length > 0 && <input type="text" placeholder="Search guests..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary" />}
 							</div>
 
 							<div className="grid grid-cols-1 xl:grid-cols-2 gap-4 mb-6">
 								{guestsPaginated.map((item) => (
 									<div key={item.id} className="flex gap-4 items-center p-3 bg-light-grey w-full rounded-lg">
-										<Image source={item.gender === 'male' ? icons.maleIcon : icons.femaleIcon} style={{ width: 25, height: 25 }} />
+										<Image source={item.gender === 'male' ? icons.maleIcon : item.gender === 'prefer_not_to_say' ? icons.notSayingGender : icons.femaleIcon} style={{ width: 25, height: 25 }} />
 
 										<div className="flex flex-col">
 											<p className="text-xl capitalize font-UbuntuSans">{item.guest_name}</p>
@@ -281,22 +228,23 @@ export default function HomeWeb() {
 										</div>
 
 										<div className="flex gap-3 ml-auto">
-											<button type="button" className="capitalize px-6 py-2 bg-teal font-semibold rounded-lg text-white text-base" onClick={() => requestDeleteGuest(item.id)} disabled={running}>
+											<button type="button" className={`capitalize px-6 py-2 bg-teal font-semibold rounded-lg text-white text-base ${!!generatingGuestId && 'opacity-65'}`} onClick={() => requestDeleteGuest(item.id)} disabled={running}>
 												delete
 											</button>
 											<button
 												type="button"
-												className="capitalize px-8 py-3 bg-primary font-semibold rounded-lg text-white text-base"
+												className={`capitalize px-8 py-3 bg-primary font-semibold rounded-lg text-white text-base ${!!generatingGuestId && 'opacity-65'}`}
 												onClick={() =>
 													handleGenerateCode({
 														name: item.guest_name,
 														relationship_with_resident: item.relationship,
 														gender: item.gender,
+														guestId: item.id,
 													})
 												}
-												disabled={running}
+												disabled={!!generatingGuestId}
 											>
-												{running ? 'Generating...' : 'generate code'}
+												{generatingGuestId === item.id ? 'Generating code...' : 'generate code'}
 											</button>
 										</div>
 									</div>
@@ -309,7 +257,10 @@ export default function HomeWeb() {
 								</div>
 							) : (
 								<div className="flex justify-end mt-4">
-									<Pagination currentPage={guestsPage} totalPages={guestsTotalPages} onPageChange={setGuestsPage} />
+									<Pagination currentPage={guestsPage} totalPages={guestsTotalPages} onPageChange={setGuestsPage} condition={running} />
+									<br />
+									<br />
+									<br />
 								</div>
 							)}
 						</div>

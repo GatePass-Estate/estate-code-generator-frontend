@@ -10,15 +10,27 @@ import { useUserStore } from '@/src/lib/stores/userStore';
 import { createGuest } from '@/src/lib/api/guests';
 import { GenderType, RelationshipType } from '@/src/types/general';
 
-const GENDERS = ['female', 'male', "i'd prefer not to say"];
-const RELATIONSHIPS = ['spouse', 'friends', 'family', 'taxi', 'service provider', 'other'];
+const GENDERS = [
+	{ name: 'female', value: 'female' },
+	{ name: 'male', value: 'male' },
+	{ name: "I'd prefer not to say", value: 'prefer_not_to_say' },
+];
+const RELATIONSHIPS = [
+	{ name: 'spouse', value: 'partner' },
+	{ name: 'friends', value: 'friend' },
+	{ name: 'family', value: 'family' },
+	{ name: 'taxi', value: 'taxi' },
+	{ name: 'delivery', value: 'delivery' },
+	{ name: 'technician', value: 'technician' },
+	{ name: 'other', value: 'other' },
+];
 
 export default function AddGuestScreen() {
 	const router = useRouter();
 
 	const [name, setName] = useState<string>('');
 	const [selectedGender, setSelectedGender] = useState<GenderType>('female');
-	const [selectedRelationships, setSelectedRelationships] = useState<RelationshipType>('friends');
+	const [selectedRelationships, setSelectedRelationships] = useState<RelationshipType>('friend');
 	const [otherRelationship, setOtherRelationship] = useState<string>('');
 	const [saveToList, setSaveToList] = useState<boolean>(false);
 	const [running, setRunning] = useState<boolean>(false);
@@ -123,10 +135,10 @@ export default function AddGuestScreen() {
 						</label>
 						<div className="flex flex-row flex-wrap gap-2 text-sm mt-1">
 							{GENDERS.map((g) => {
-								const active = selectedGender === g;
+								const active = selectedGender === g.value;
 								return (
-									<div key={g} className={`flex flex-row items-center px-4 py-2 rounded-md bg-light-grey ${active && 'bg-[#e6f4ef] border border-[##cfe7db]'} gap-3 cursor-pointer`} onClick={() => setSelectedGender(g as GenderType)}>
-										<p className="text-primary capitalize">{g}</p>
+									<div key={g.value} className={`flex flex-row items-center px-4 py-2 rounded-md bg-light-grey ${active && 'bg-[#e6f4ef] border border-[##cfe7db]'} gap-3 cursor-pointer`} onClick={() => setSelectedGender(g.value as GenderType)}>
+										<p className="text-primary capitalize">{g.name}</p>
 										{active && <Image source={icons.checkIcon} style={{ width: 20, height: 20 }} resizeMode="contain" />}
 									</div>
 								);
@@ -140,10 +152,10 @@ export default function AddGuestScreen() {
 						</label>
 						<div className="flex flex-row flex-wrap gap-2 text-sm mt-1">
 							{RELATIONSHIPS.map((r) => {
-								const active = selectedRelationships === r;
+								const active = selectedRelationships === r.value;
 								return (
-									<div key={r} className={`flex flex-row items-center px-4 py-2 rounded-md bg-light-grey ${active && 'bg-[#e6f4ef] border border-[##cfe7db]'} gap-3 cursor-pointer`} onClick={() => setSelectedRelationships(r as RelationshipType)}>
-										<p className="text-primary capitalize">{r}</p>
+									<div key={r.value} className={`flex flex-row items-center px-4 py-2 rounded-md bg-light-grey ${active && 'bg-[#e6f4ef] border border-[##cfe7db]'} gap-3 cursor-pointer`} onClick={() => setSelectedRelationships(r.value as RelationshipType)}>
+										<p className="text-primary capitalize">{r.name}</p>
 										{active && <Image source={icons.checkIcon} style={{ width: 20, height: 20 }} resizeMode="contain" />}
 									</div>
 								);

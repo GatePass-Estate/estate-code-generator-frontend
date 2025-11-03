@@ -8,8 +8,6 @@ import { generateCode } from '@/src/lib/api/codes';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { createGuest } from '@/src/lib/api/guests';
 import { GenderType, RelationshipType } from '@/src/types/general';
-import { Guest } from '@/src/types/guests';
-import { Button } from '@/src/components/nativewindui/Button';
 
 const AddGuest = () => {
 	const [guestName, setGuestName] = useState('');

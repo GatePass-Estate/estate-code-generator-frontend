@@ -38,6 +38,8 @@ import cancel from '../assets/icons/cancel.png';
 import plus from '../assets/icons/plus-vector.png';
 // @ts-ignore
 import plusActive from '../assets/icons/plus-vector-active.png';
+// @ts-ignore
+import notSayingGender from '../assets/icons/not-saying.png';
 
 const icons = {
 	menuIcon,
@@ -60,6 +62,7 @@ const icons = {
 	cancel,
 	plus,
 	plusActive,
+	notSayingGender,
 };
 
 export default icons;
