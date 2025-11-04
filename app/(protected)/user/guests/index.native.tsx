@@ -143,6 +143,7 @@ const MyGuest = () => {
 					headerShown: true,
 					title: 'My Guests',
 					headerShadowVisible: false,
+					headerTitleAlign: 'left',
 					headerStyle: sharedStyles.header,
 					headerTitleStyle: sharedStyles.title,
 					headerRight: () => <UserIcon />,

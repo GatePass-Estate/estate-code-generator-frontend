@@ -82,6 +82,7 @@ export default function SecurityVerificationMobile() {
 					title: 'Incoming Guest',
 					headerShown: true,
 					headerShadowVisible: false,
+					headerTitleAlign: 'left',
 					headerStyle: sharedStyles.header,
 					headerTitleStyle: sharedStyles.title,
 					headerRight: () => <UserIcon />,
@@ -121,8 +122,11 @@ export default function SecurityVerificationMobile() {
 							onChangeText={(t) => handleChange(t, idx)}
 							ref={inputRefs[idx]}
 							accessibilityLabel={`Digit ${idx + 1}`}
-							returnKeyType={idx === 5 ? 'done' : 'next'}
-							blurOnSubmit={false}
+							returnKeyType={'done'}
+							blurOnSubmit={true}
+							// onSubmitEditing={() => {
+							// 	if (idx < 5) inputs.current[idx + 1]?.focus();
+							// }}
 						/>
 					))}
 				</View>

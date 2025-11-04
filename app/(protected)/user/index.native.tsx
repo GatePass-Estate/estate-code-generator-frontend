@@ -61,6 +61,7 @@ export default function HomeMobile({}) {
 					title: 'Active Codes',
 					headerShown: true,
 					headerShadowVisible: false,
+					headerTitleAlign: 'left',
 					headerStyle: sharedStyles.header,
 					headerTitleStyle: sharedStyles.title,
 					headerRight: () => <UserIcon />,

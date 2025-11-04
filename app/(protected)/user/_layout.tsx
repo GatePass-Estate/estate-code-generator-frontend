@@ -12,8 +12,8 @@ const FloatingButton: React.FC<{ focused?: boolean }> = ({ focused = false }) =>
 				source={focused ? icons.plusActive : icons.plus}
 				style={{
 					marginLeft: -3,
-					width: 16,
-					height: 16,
+					width: 15,
+					height: 15,
 					resizeMode: 'contain',
 				}}
 			/>
@@ -27,8 +27,8 @@ const HomeIcon: React.FC<{ focused?: boolean }> = ({ focused = false }) => (
 			source={focused ? (Platform.OS == 'ios' ? icons.iosHomeActive : images.activeBtnImg) : Platform.OS == 'ios' ? icons.iosHomeInActive : icons.menuIcon}
 			style={{
 				marginLeft: -3,
-				width: 30,
-				height: 25,
+				width: 20,
+				height: 20,
 				resizeMode: 'contain',
 			}}
 		/>
@@ -41,8 +41,8 @@ const GuestIcon: React.FC<{ focused?: boolean }> = ({ focused = false }) => (
 		<Image
 			source={focused ? (Platform.OS == 'ios' ? icons.iosGuestActive : images.activeGuestIcon) : Platform.OS == 'ios' ? icons.iosGuestInActive : images.inactiveGuestIcon}
 			style={{
-				width: 30,
-				height: 30,
+				width: 20,
+				height: 20,
 				resizeMode: 'contain',
 			}}
 		/>

@@ -120,6 +120,7 @@ const AddGuestMobile = () => {
 					headerShown: true,
 					title: 'Add Guest',
 					headerShadowVisible: false,
+					headerTitleAlign: 'left',
 					headerStyle: sharedStyles.header,
 					headerTitleStyle: sharedStyles.title,
 					headerRight: () => <UserIcon />,
