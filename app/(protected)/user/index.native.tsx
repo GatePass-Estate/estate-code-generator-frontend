@@ -1,12 +1,13 @@
 import { Stack, router } from 'expo-router';
 import CountdownRing from '@/src/components/common/CountdownRing';
-import { View, Text, FlatList, SafeAreaView, StyleSheet, Pressable, Animated, Platform } from 'react-native';
+import { View, Text, FlatList, Pressable, Animated, Platform } from 'react-native';
 import UserIcon from '@/src/components/mobile/UserIcon';
 import { useEffect, useRef, useState } from 'react';
 import images from '@/src/constants/images';
 import { Codes } from '@/src/types/codes';
 import { getAllCodes } from '@/src/lib/api/codes';
 import { useUserStore } from '@/src/lib/stores/userStore';
+import { sharedStyles } from '@/src/theme/styles';
 
 export default function HomeMobile({}) {
 	const bounceValue = useRef(new Animated.Value(0)).current;
@@ -54,21 +55,15 @@ export default function HomeMobile({}) {
 	}, [bounceValue]);
 
 	return (
-		<SafeAreaView style={styles.container}>
+		<View style={sharedStyles.container}>
 			<Stack.Screen
 				options={{
-					headerShown: true,
 					title: 'Active Codes',
-					headerStyle: {
-						backgroundColor: '#FBFEFF',
-					},
+					headerShown: true,
 					headerShadowVisible: false,
+					headerStyle: sharedStyles.header,
+					headerTitleStyle: sharedStyles.title,
 					headerRight: () => <UserIcon />,
-					headerTitleStyle: {
-						color: '#113E55',
-						fontFamily: 'UbuntuSans',
-						fontWeight: 'semibold',
-					},
 				}}
 			/>
 
@@ -77,15 +72,16 @@ export default function HomeMobile({}) {
 					paddingHorizontal: Platform.OS != 'android' ? 20 : 0,
 				}}
 			>
-				<Text style={styles.subText} className="">
-					All incoming guests
-				</Text>
+				<Text className="text-base font-Inter font-medium text-black mt-8 mb-7">All incoming guest</Text>
 
 				<FlatList
 					data={filteredCodes}
 					keyExtractor={(_, index) => index.toString()}
 					refreshing={refreshing}
 					onRefresh={fetchCodes}
+					style={{
+						marginBottom: 70,
+					}}
 					contentContainerStyle={{ paddingBottom: 100 }}
 					ListEmptyComponent={() => (
 						<View className="flex-1 justify-center items-center">
@@ -130,8 +126,7 @@ export default function HomeMobile({}) {
 
 						return (
 							<Pressable
-								style={styles.guestCard}
-								className={``}
+								className={`flex flex-row justify-between items-center border-[0.5px] border-accent rounded-lg p-4 mb-4 bg-[#F9FDFF]`}
 								onPress={() =>
 									router.push({
 										pathname: '/invite',
@@ -146,60 +141,16 @@ export default function HomeMobile({}) {
 								}
 							>
 								<View style={{ flex: 1 }}>
-									<Text style={styles.guestName} className={``}>
-										{item.visitor_fullname}
-									</Text>
-									<Text style={styles.guestCode} className={``}>
-										{item.hashed_code}
-									</Text>
+									<Text className={`text-sm font-medium text-grey mb-1`}>{item.visitor_fullname}</Text>
+
+									<Text className={`text-[27px] font-UbuntuSans uppercase text-orange tracking-[5px] font-bold`}>{item.hashed_code.slice(0, 3) + ' ' + item.hashed_code.slice(3)}</Text>
 								</View>
-								<CountdownRing size={55} initialMinutes={timeLeftMinutes} />
+								<CountdownRing size={50} initialMinutes={timeLeftMinutes} />
 							</Pressable>
 						);
 					}}
 				/>
 			</View>
-		</SafeAreaView>
+		</View>
 	);
 }
-
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		backgroundColor: '#FBFEFF',
-		paddingHorizontal: 20,
-		paddingTop: 3,
-	},
-	subText: {
-		fontSize: 15,
-		fontWeight: '500',
-		fontFamily: 'Inter',
-		marginTop: 40,
-		marginBottom: 30,
-		color: '#04121a',
-	},
-	guestCard: {
-		flexDirection: 'row',
-		justifyContent: 'space-between',
-		alignItems: 'center',
-		borderWidth: 0.2,
-		borderColor: '#6d909c',
-		borderRadius: 10,
-		padding: 15,
-		marginBottom: 12,
-	},
-	guestName: {
-		fontSize: 13,
-		fontWeight: '600',
-		color: '#9B9797',
-		marginBottom: 5,
-	},
-	guestCode: {
-		fontSize: 27,
-		fontWeight: '600',
-		letterSpacing: 5,
-		color: '#E05930',
-		fontFamily: 'UbuntuSans',
-		textTransform: 'uppercase',
-	},
-});

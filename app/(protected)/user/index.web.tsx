@@ -13,6 +13,7 @@ import { useUserStore } from '@/src/lib/stores/userStore';
 import { Codes } from '@/src/types/codes';
 import { GenderType, RelationshipType } from '@/src/types/general';
 import { Pagination } from '@/src/components/web/Pagination';
+import images from '@/src/constants/images';
 
 const CODES_PAGE_SIZE = 3;
 const GUESTS_PAGE_SIZE = 6;
@@ -200,7 +201,8 @@ export default function HomeWeb() {
 							</div>
 
 							{codes.length === 0 ? (
-								<div className="mb-28">
+								<div className="mb-28 flex flex-col justify-center items-center gap-2">
+									<Image source={images.ghostImg} style={{ width: 100, height: 100 }} />
 									<p className="text-lg text-center text-gray-400">No active codes found.</p>
 								</div>
 							) : (
@@ -214,7 +216,7 @@ export default function HomeWeb() {
 							<div className="flex items-center justify-between">
 								<h2 className="text-2xl font-semibold text-blackq">My Guest List</h2>
 
-								{guestsPaginated.length > 0 && <input type="text" placeholder="Search guests..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary" />}
+								<input type="text" placeholder="Search guests..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary" />
 							</div>
 
 							<div className="grid grid-cols-1 xl:grid-cols-2 gap-4 mb-6">
@@ -252,7 +254,8 @@ export default function HomeWeb() {
 							</div>
 
 							{filteredGuests.length === 0 ? (
-								<div className="mb-28">
+								<div className="mb-28 flex flex-col justify-center items-center gap-2">
+									<Image source={images.ghostImg} style={{ width: 100, height: 100 }} />
 									<p className="text-lg text-center text-gray-400">{searchQuery ? 'No guests match your search.' : 'No guests were found'}</p>
 								</div>
 							) : (

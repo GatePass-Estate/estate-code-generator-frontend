@@ -40,6 +40,20 @@ import plus from '../assets/icons/plus-vector.png';
 import plusActive from '../assets/icons/plus-vector-active.png';
 // @ts-ignore
 import notSayingGender from '../assets/icons/not-saying.png';
+// @ts-ignore
+import warningInfo from '../assets/icons/warning-info.png';
+// @ts-ignore
+import eye from '../assets/icons/eye.png';
+// @ts-ignore
+import hiddenEye from '../assets/icons/eye-hidden.png';
+// @ts-ignore
+import iosHomeInActive from '../assets/icons/ios-home-inactive.png';
+// @ts-ignore
+import iosHomeActive from '../assets/icons/ios-home-active.png';
+// @ts-ignore
+import iosGuestInActive from '../assets/icons/ios-guest-inactive.png';
+// @ts-ignore
+import iosGuestActive from '../assets/icons/ios-guest-active.png';
 
 const icons = {
 	menuIcon,
@@ -63,6 +77,13 @@ const icons = {
 	plus,
 	plusActive,
 	notSayingGender,
+	warningInfo,
+	eye,
+	hiddenEye,
+	iosHomeInActive,
+	iosHomeActive,
+	iosGuestInActive,
+	iosGuestActive,
 };
 
 export default icons;

@@ -65,3 +65,26 @@ export const getErrorMessage = (error: any): string => {
 
 	return error.message ?? 'An unknown error occurred';
 };
+
+export const ordinalSuffix = (day: number): string => {
+	if (day > 3 && day < 21) return 'th';
+	switch (day % 10) {
+		case 1:
+			return 'st';
+		case 2:
+			return 'nd';
+		case 3:
+			return 'rd';
+		default:
+			return 'th';
+	}
+};
+
+const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+export const formatDateWithOrdinal = (date: Date): string => {
+	const d = date.getDate();
+	const m = monthNames[date.getMonth()];
+	const y = date.getFullYear();
+	return `${d}${ordinalSuffix(d)} ${m} ${y}`;
+};

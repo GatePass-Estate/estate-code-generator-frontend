@@ -68,12 +68,18 @@ const CountdownRing = ({ totalMinutes = 60, initialMinutes, size = 90, strokeWid
 		if (remainingMinutes <= 30) return '#FFA500';
 		return '#46ee6a';
 	};
+
+	const getRingTextColor = () => {
+		if (remainingMinutes <= 15) return '#FF3B30';
+		if (remainingMinutes <= 30) return '#FFA500';
+		return '#113E55';
+	};
+
 	const getBackgroundRingColor = () => {
 		if (remainingMinutes <= 15) return '#ffd6d6';
 		if (remainingMinutes <= 30) return '#ffeac2';
 		return '#dcfae7';
 	};
-	const getTextColor = () => getRingColor();
 
 	return (
 		<View style={{ width: size, height: size }}>
@@ -87,7 +93,7 @@ const CountdownRing = ({ totalMinutes = 60, initialMinutes, size = 90, strokeWid
 
 			{/* minutes text */}
 			<View style={styles.centerText}>
-				<Text style={[styles.text, { color: getTextColor() }]}>{remainingMinutes}</Text>
+				<Text style={[styles.text, { color: getRingTextColor() }]}>{remainingMinutes}</Text>
 			</View>
 		</View>
 	);

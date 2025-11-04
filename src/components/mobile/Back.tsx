@@ -41,10 +41,10 @@ const styles = StyleSheet.create({
 
 	backText: {
 		color: '#113E55',
-		fontSize: 16,
+		fontSize: 17,
 		marginLeft: 5,
-		fontWeight: 'bold',
-		fontFamily: 'UbuntuSans',
+		fontWeight: 'medium',
+		fontFamily: 'Roboto',
 	},
 
 	backIcon: {

@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Animated, FlatList, Alert, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { router, Stack } from 'expo-router';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { Image } from 'react-native';
 import UserIcon from '@/src/components/mobile/UserIcon';
 import { useEffect, useRef, useState } from 'react';
@@ -10,8 +10,9 @@ import { Guest } from '@/src/types/guests';
 import { GenderType, RelationshipType } from '@/src/types/general';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { generateCode } from '@/src/lib/api/codes';
+import { sharedStyles } from '@/src/theme/styles';
 
-const limit = 10;
+const limit = 2;
 
 const MyGuest = () => {
 	const [searchQuery, setSearchQuery] = useState('');
@@ -19,6 +20,8 @@ const MyGuest = () => {
 	const [loading, setLoading] = useState(true);
 	const [deleting, setDeleting] = useState(false);
 	const [running, setRunning] = useState<boolean>(false);
+
+	let { refresh } = useLocalSearchParams();
 
 	const filteredGuests = guests.filter((guest) => guest.guest_name.toLowerCase().includes(searchQuery.toLowerCase()) || guest.relationship?.includes(searchQuery.toLowerCase()));
 
@@ -47,6 +50,13 @@ const MyGuest = () => {
 	useEffect(() => {
 		fetchGuests();
 	}, []);
+
+	useEffect(() => {
+		if (refresh == 'true') {
+			fetchGuests();
+			refresh = 'false';
+		}
+	}, [refresh]);
 
 	async function handleGenerateCode({ name, relationship_with_resident, gender }: { name: string; gender: GenderType; relationship_with_resident: RelationshipType }) {
 		setRunning(true);
@@ -127,87 +137,85 @@ const MyGuest = () => {
 	}, [bounceValue]);
 
 	return (
-		<View style={styles.container}>
+		<View style={sharedStyles.container}>
 			<Stack.Screen
 				options={{
 					headerShown: true,
 					title: 'My Guests',
 					headerShadowVisible: false,
-					headerStyle: {
-						backgroundColor: '#FBFEFF',
-					},
+					headerStyle: sharedStyles.header,
+					headerTitleStyle: sharedStyles.title,
 					headerRight: () => <UserIcon />,
-					headerTitleStyle: {
-						color: '#113E55',
-						fontFamily: 'UbuntuSans',
-						fontWeight: '600',
-					},
 				}}
 			/>
 
-			{filteredGuests?.length > limit && (
-				<View style={styles.searchBar}>
-					<Ionicons name="search" size={18} color="#555" style={{ marginLeft: 8 }} />
-					<TextInput placeholder="Search" style={styles.searchInput} value={searchQuery} onChangeText={setSearchQuery} />
-				</View>
-			)}
+			<View className="flex-row bg-light-grey rounded-xl items-center px-2 mb-5 mt-4">
+				<Ionicons name="search" size={18} color="#555" style={{ marginLeft: 8 }} />
+				<TextInput placeholder="Search" style={styles.searchInput} value={searchQuery} onChangeText={setSearchQuery} />
+			</View>
 
-			{filteredGuests?.length > 0 && (
-				<>
-					<Text
-						style={[
-							styles.savedLabel,
-							{
-								marginTop: filteredGuests?.length > limit ? 20 : 0,
-							},
-						]}
-					>
-						All Saved Guests
-					</Text>
-					<View style={styles.divider} />
-				</>
-			)}
+			<>
+				<Text
+					style={[
+						styles.savedLabel,
+						{
+							marginTop: filteredGuests?.length > limit ? 20 : 0,
+						},
+					]}
+				>
+					All Saved Guests
+				</Text>
+				<View style={styles.divider} />
+			</>
 
 			<FlatList
 				data={filteredGuests}
 				keyExtractor={(_, index) => index.toString()}
 				refreshing={loading}
 				onRefresh={fetchGuests}
-				ListEmptyComponent={() => (
-					<View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 40 }}>
-						<Animated.Image
-							source={images.ghostImg}
-							style={{
-								width: 300,
-								height: 300,
-								resizeMode: 'contain',
-								transform: [{ translateY: bounceValue }],
-							}}
-						/>
-						<Text style={{ textAlign: 'center', fontSize: 23, opacity: 0.2 }}>{`Click the ‘+’ to add \nyour guest`}</Text>
-					</View>
-				)}
+				style={{
+					marginBottom: 100,
+				}}
+				ListEmptyComponent={() =>
+					running ? (
+						<></>
+					) : (
+						<View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 40 }}>
+							<Animated.Image
+								source={images.ghostImg}
+								style={{
+									width: 300,
+									height: 300,
+									resizeMode: 'contain',
+									transform: [{ translateY: bounceValue }],
+								}}
+							/>
+							<Text style={{ textAlign: 'center', fontSize: 23, opacity: 0.2 }}>{`Click the ‘+’ to add \nyour guest`}</Text>
+						</View>
+					)
+				}
 				renderItem={({ item }) => {
 					return (
 						<View
 							style={[
 								styles.card,
 								{
-									backgroundColor: item.gender == 'female' ? '#f45f36e' : item.gender == 'male' ? '#167a6ec' : '#dcdcdc30',
-									borderColor: item.gender == 'female' ? '#F46036' : item.gender == 'male' ? '#167a6f' : '#dcdcdc',
+									backgroundColor: item.gender == 'female' ? '#f45f36e' : item.gender == 'male' ? '#167a6ec' : '#F7F9F9',
+									borderColor: item.gender == 'female' ? '#F46036' : item.gender == 'male' ? '#167a6f' : '#9B9797',
 								},
 							]}
 						>
 							<View style={styles.guestInfo}>
-								{item.gender === 'male' ? <Ionicons name="male" size={18} color="#167a6f" /> : item.gender === 'female' ? <Ionicons name="female" size={18} color="#F46036" /> : <Image source={images.notSaying} style={{ width: 19, height: 19 }} />}
+								{item.gender === 'male' ? <Ionicons name="male" size={24} color="#167a6f" /> : item.gender === 'female' ? <Ionicons name="female" size={24} color="#F46036" /> : <Image source={images.notSaying} style={{ width: 24, height: 24 }} />}
 
 								<View style={{ marginLeft: 10 }}>
-									<Text style={styles.guestName}>{item.guest_name}</Text>
-									<Text style={styles.guestRelation}>{item.relationship}</Text>
+									<Text className="font-Inter text-[16px] font-normal text-black">{item.guest_name}</Text>
+
+									<Text className="capitalize text-[14px] text-primary font-Inter text-sm font-semibold">{item.relationship}</Text>
 								</View>
 							</View>
 
-							<View style={styles.actions}>
+							<View className="gap-2 flex-row">
 								<TouchableOpacity
 									onPress={() => {
 										Alert.alert(
@@ -324,22 +332,6 @@ const styles = StyleSheet.create({
 	guestInfo: {
 		flexDirection: 'row',
 		alignItems: 'center',
-	},
-
-	guestName: {
-		fontWeight: 'light',
-		fontSize: 18,
-		color: '#04121a',
-	},
-
-	guestRelation: {
-		fontWeight: 'semibold',
-		fontSize: 13,
-		color: '#113e55',
-	},
-
-	actions: {
-		flexDirection: 'row',
 	},
 
 	fab: {

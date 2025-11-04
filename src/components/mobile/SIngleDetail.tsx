@@ -1,32 +1,18 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 export const SingleDetail = ({ label, value }: { label: string; value: string | null }) => (
-	<View style={styles.detailRow}>
-		<Text style={styles.detailLabel}>{label}</Text>
+	<View className="gap-1 flex-row items-center justify-between mb-5">
+		<Text className="text-[14px] text-grey font-UbuntuSans">{label}: </Text>
 
 		<Text
 			numberOfLines={2}
 			ellipsizeMode="head"
 			style={{
 				flexWrap: 'wrap',
-				fontSize: 15,
+				fontSize: 14,
 			}}
 		>
-			{value}
+			{value}{' '}
 		</Text>
 	</View>
 );
-
-const styles = StyleSheet.create({
-	detailRow: {
-		gap: 4,
-		justifyContent: 'space-between',
-		marginBottom: 20,
-	},
-
-	detailLabel: {
-		color: '#888888da',
-		fontSize: 12,
-		fontWeight: 400,
-	},
-});

@@ -8,10 +8,14 @@ module.exports = {
 			fontSize: {
 				md: '17px',
 			},
+
 			fontFamily: {
 				UbuntuSans: ['"UbuntuSans"', 'system-ui', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
+				UbuntuSansItalic: ['"UbuntuSansItalic"', 'system-ui', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
 				Inter: ['"Inter"', 'system-ui', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
+				Roboto: ['Roboto', 'Helvetica', 'Arial', 'sans-serif'],
 			},
+
 			colors: {
 				primary: '#113E55',
 				secondary: '#1E40AF',
@@ -29,6 +33,7 @@ module.exports = {
 				danger: '#ED0808',
 				black: '#04121A',
 			},
+
 			borderWidth: {
 				micro: '0.1px',
 				mini: '0.5px',

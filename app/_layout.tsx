@@ -3,12 +3,9 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { Stack } from 'expo-router';
 import { useColorScheme, useInitialAndroidBarSync } from '@/src/hooks/useColorScheme';
-import { NAV_THEME } from '@/src/theme';
 import { AuthProvider } from '@/src/hooks/useAuthContext';
-import { ThemeProvider } from '@react-navigation/native';
 import 'react-native-reanimated';
 import './global.css';
-import { useEffect } from 'react';
 import { Platform } from 'react-native';
 
 // Keep splash screen visible while loading fonts
@@ -23,7 +20,9 @@ export default function RootLayout() {
 
 	const [loaded] = useFonts({
 		RobotoItalic: require('../src/assets/fonts/Roboto-Italic-VariableFont_wdth,wght.ttf'),
+		Roboto: require('../src/assets/fonts/Roboto-VariableFont_wdth,wght.ttf'),
 		UbuntuSans: require('../src/assets/fonts/UbuntuSans-VariableFont_wdth,wght.ttf'),
+		UbuntuSansItalic: require('../src/assets/fonts/UbuntuSans-Italic-VariableFont_wdth,wght.ttf'),
 	});
 
 	if (!loaded) {

@@ -1,4 +1,4 @@
-import { View, StyleSheet, Text } from 'react-native';
+import { View, StyleSheet, Text, Platform } from 'react-native';
 import { Image } from 'react-native';
 import images from '@/src/constants/images';
 import icons from '@/src/constants/icons';
@@ -23,7 +23,7 @@ const FloatingButton: React.FC<{ focused?: boolean }> = ({ focused = false }) =>
 const HomeIcon: React.FC<{ focused?: boolean }> = ({ focused = false }) => (
 	<View className="items-center w-80 mt-6 gap-1">
 		<Image
-			source={focused ? images.activeBtnImg : icons.menuIcon}
+			source={focused ? (Platform.OS == 'ios' ? icons.iosHomeActive : images.activeBtnImg) : Platform.OS == 'ios' ? icons.iosHomeInActive : icons.menuIcon}
 			style={{
 				marginLeft: -3,
 				width: 30,
@@ -38,7 +38,7 @@ const HomeIcon: React.FC<{ focused?: boolean }> = ({ focused = false }) => (
 const GuestIcon: React.FC<{ focused?: boolean }> = ({ focused = false }) => (
 	<View style={{ alignItems: 'center', width: 300, marginTop: 25, gap: 4 }}>
 		<Image
-			source={focused ? images.activeGuestIcon : images.inactiveGuestIcon}
+			source={focused ? (Platform.OS == 'ios' ? icons.iosGuestActive : images.activeGuestIcon) : Platform.OS == 'ios' ? icons.iosGuestInActive : images.inactiveGuestIcon}
 			style={{
 				width: 30,
 				height: 30,

@@ -38,7 +38,6 @@ export default function ShareInvitePage() {
 
 	const fetchData = async () => {
 		setLoading(true);
-		console.log(codeParam);
 
 		try {
 			const result = await getAllCodes(useUserStore.getState().user_id);
