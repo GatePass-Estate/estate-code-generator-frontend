@@ -1,5 +1,5 @@
 import { fetchMe } from '@/src/lib/api/auth';
-import { clearAuthState, getAuthState } from '@/src/lib/helpers';
+import { getAuthState } from '@/src/lib/helpers';
 import { useAuthStore } from '@/src/lib/stores/authStore';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { AuthContextType } from '@/src/types/auth';
@@ -25,11 +25,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 	};
 
 	const signOut = async () => {
-		setIsReady(false);
-		useUserStore.getState().clearUser();
-		useAuthStore.getState().clearAuth();
-		clearAuthState();
-		router.replace('/auth/login');
+		router.replace({
+			pathname: '/auth/login',
+			params: {
+				loggedOut: 'true',
+			},
+		});
 	};
 
 	useEffect(() => {
@@ -63,9 +64,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		};
 
 		loadAuthState();
+
+		router.prefetch('/auth/login');
 	}, []);
 
-	return <AuthContext.Provider value={{ isReady, signIn, signOut }}>{children}</AuthContext.Provider>;
+	return <AuthContext.Provider value={{ isReady, signIn, signOut, setIsReady }}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

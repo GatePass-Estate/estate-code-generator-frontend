@@ -16,8 +16,6 @@ export default function RootLayout() {
 		useInitialAndroidBarSync();
 	}
 
-	const { colorScheme, isDarkColorScheme } = useColorScheme();
-
 	const [loaded] = useFonts({
 		RobotoItalic: require('../src/assets/fonts/Roboto-Italic-VariableFont_wdth,wght.ttf'),
 		Roboto: require('../src/assets/fonts/Roboto-VariableFont_wdth,wght.ttf'),
@@ -31,7 +29,7 @@ export default function RootLayout() {
 
 	return (
 		<>
-			<StatusBar key={`root-status-bar-${isDarkColorScheme ? 'light' : 'dark'}`} style={isDarkColorScheme ? 'light' : 'dark'} />
+			<StatusBar key={`root-status-bar-light`} style={'dark'} />
 			<AuthProvider>
 				{/* <ThemeProvider value={NAV_THEME[colorScheme]}> */}
 				<Stack
