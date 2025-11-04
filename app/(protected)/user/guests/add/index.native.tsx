@@ -10,7 +10,7 @@ import { createGuest } from '@/src/lib/api/guests';
 import { GenderType, RelationshipType } from '@/src/types/general';
 import { sharedStyles } from '@/src/theme/styles';
 
-const AddGuest = () => {
+const AddGuestMobile = () => {
 	const [guestName, setGuestName] = useState('');
 	const [gender, setGender] = useState<GenderType>(null);
 	const [relationship, setRelationship] = useState<RelationshipType>(null);
@@ -229,7 +229,7 @@ const AddGuest = () => {
 	);
 };
 
-export default AddGuest;
+export default AddGuestMobile;
 
 const styles = StyleSheet.create({
 	modalOverlay: {

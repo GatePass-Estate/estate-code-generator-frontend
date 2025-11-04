@@ -1,5 +1,18 @@
 import { GenderType, RelationshipType } from './general';
 
+export type GuestsProps = {
+	searchQuery: string;
+	guests: Guest[];
+	loading: boolean;
+	deleting: boolean;
+	fetchGuests: () => void;
+	deleteGuest: (id: string) => void;
+	setSearchQuery: (query: string) => void;
+	setLoading: (loading: boolean) => void;
+	setDeleting: (deleting: boolean) => void;
+	filteredGuests: Guest[];
+};
+
 export interface Guest {
 	id: string;
 	resident_id: string;

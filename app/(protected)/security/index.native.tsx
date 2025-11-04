@@ -1,34 +1,44 @@
 import { useRef, useState, useEffect } from 'react';
 import { Stack, useRouter } from 'expo-router';
-import { View, Text, TextInput, TouchableOpacity, Keyboard, Pressable } from 'react-native';
+import { View, Text, TextInput, Keyboard, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { sharedStyles } from '@/src/theme/styles';
 import UserIcon from '@/src/components/mobile/UserIcon';
 import { validateCode } from '@/src/lib/api/codes';
 
-export default function SecurityVerification() {
+export default function SecurityVerificationMobile() {
 	const [code, setCode] = useState<string[]>(['', '', '', '', '', '']);
 	const [errorMessage, setErrorMessage] = useState<string>('');
 	const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
-	const inputs = useRef<Array<TextInput | null>>([]);
+	const input1Ref = useRef<TextInput>(null);
+	const input2Ref = useRef<TextInput>(null);
+	const input3Ref = useRef<TextInput>(null);
+	const input4Ref = useRef<TextInput>(null);
+	const input5Ref = useRef<TextInput>(null);
+	const input6Ref = useRef<TextInput>(null);
+	const inputContainer = useRef(null);
+
+	const inputRefs = [input1Ref, input2Ref, input3Ref, input4Ref, input5Ref, input6Ref];
+
 	const router = useRouter();
 
 	const handleChange = (text: string, index: number) => {
 		setErrorMessage('');
-		const digit = text.slice(0, 1); // keep only the first char
+		const digit = text.slice(-1);
 		const newCode = [...code];
 		newCode[index] = digit;
 		setCode(newCode);
 
-		// focus next field
-		if (digit && index < 5) {
-			inputs.current[index + 1]?.focus();
-		}
-		// focus previous when deleting
-		else if (!digit && index > 0) {
-			inputs.current[index - 1]?.focus();
-		}
+		console.log(inputContainer.current);
+
+		requestAnimationFrame(() => {
+			if (digit && index < 5) {
+				inputRefs[index + 1].current?.focus();
+			} else if (!digit && index > 0) {
+				inputRefs[index - 1].current?.focus();
+			}
+		});
 	};
 
 	const handleValidation = async () => {
@@ -65,16 +75,6 @@ export default function SecurityVerification() {
 		}
 	};
 
-	useEffect(() => {
-		const firstEmpty = code.findIndex((c) => c === '');
-
-		console.log(inputs);
-
-		// if (firstEmpty >= 0) {
-		inputs.current[firstEmpty]?.focus();
-		// }
-	}, [code]);
-
 	return (
 		<SafeAreaView style={sharedStyles.container}>
 			<Stack.Screen
@@ -92,7 +92,7 @@ export default function SecurityVerification() {
 				style={{
 					flex: 1,
 					justifyContent: 'center',
-					marginTop: -50,
+					marginTop: -60,
 				}}
 			>
 				<View className="gap-4 mb-12">
@@ -100,7 +100,7 @@ export default function SecurityVerification() {
 					<Text className="text-tertiary text-center text-sm">Enter the code from guest here</Text>
 				</View>
 
-				<View style={{ flexDirection: 'row', justifyContent: 'center', gap: 12 }}>
+				<View style={{ flexDirection: 'row', justifyContent: 'center', gap: 12 }} ref={inputContainer}>
 					{code.map((digit, idx) => (
 						<TextInput
 							key={idx}
@@ -119,14 +119,10 @@ export default function SecurityVerification() {
 							maxLength={1}
 							value={digit}
 							onChangeText={(t) => handleChange(t, idx)}
-							ref={(ref) => {
-								inputs.current[idx] = ref;
-							}}
+							ref={inputRefs[idx]}
 							accessibilityLabel={`Digit ${idx + 1}`}
 							returnKeyType={idx === 5 ? 'done' : 'next'}
-							onSubmitEditing={() => {
-								if (idx < 5) inputs.current[idx + 1]?.focus();
-							}}
+							blurOnSubmit={false}
 						/>
 					))}
 				</View>

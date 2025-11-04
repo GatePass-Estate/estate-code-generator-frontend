@@ -25,7 +25,7 @@ const RELATIONSHIPS = [
 	{ name: 'other', value: 'other' },
 ];
 
-export default function AddGuestScreen() {
+export default function AddGuestWeb() {
 	const router = useRouter();
 
 	const [name, setName] = useState<string>('');
