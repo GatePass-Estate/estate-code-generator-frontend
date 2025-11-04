@@ -1,5 +1,5 @@
-import { Redirect, Stack } from 'expo-router';
 import 'react-native-reanimated';
+import { Redirect, Stack } from 'expo-router';
 import { useAuth } from '@/src/hooks/useAuthContext';
 import { useAuthStore } from '@/src/lib/stores/authStore';
 import { useUserStore } from '@/src/lib/stores/userStore';
@@ -24,9 +24,6 @@ export default function ProtectedLayout() {
 
 	if (role === 'admin') {
 		return <Redirect href="/admin" />;
-	}
-	if (role === 'security') {
-		return <Redirect href="/security" />;
 	}
 
 	return (

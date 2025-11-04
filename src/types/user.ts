@@ -1,3 +1,5 @@
+import { GenderType, UserRolesType } from './general';
+
 export type User = {
 	user_id: string;
 	first_name: string | null;
@@ -5,7 +7,8 @@ export type User = {
 	home_address: string | null;
 	email: string | null;
 	phone_number: string | null;
-	gender: 'male' | 'female' | 'prefer not to say' | 'other' | null;
+	gender: GenderType;
+	role: UserRolesType;
 	estate_name: string | null;
 	estate_id: string | null;
 	household_primary_resident: string | null;

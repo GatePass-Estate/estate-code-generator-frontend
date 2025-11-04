@@ -1,8 +1,9 @@
+import { UserRolesType } from '@/src/types/general';
 import { create, StateCreator } from 'zustand';
 
 export type AuthState = {
 	access_token: string | null;
-	role: 'primary_admin' | 'root' | 'admin' | 'security' | 'resident' | null;
+	role: UserRolesType;
 };
 
 type Actions = {

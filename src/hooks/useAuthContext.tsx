@@ -36,17 +36,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		const loadAuthState = async () => {
 			const localData = await getAuthState();
 
-			console.log('Loaded auth state from storage:', localData);
 			if (localData?.access_token) {
 				useAuthStore.setState({ access_token: localData.access_token, role: localData.role });
 			}
 
 			try {
 				const myProfile = (await fetchMe(localData?.access_token || '')) as User;
-				console.log('Fetched profile:', myProfile);
+
 				if (myProfile && myProfile.status) {
 					await signIn(myProfile);
-					router.replace('/user');
+					if (myProfile.role === 'security') {
+						router.replace('/security');
+					} else {
+						router.replace('/user');
+					}
 				} else {
 					router.replace('/auth/login');
 				}

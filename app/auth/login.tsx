@@ -77,7 +77,7 @@ export default function Login() {
 			await storeAuthState(result);
 			signIn(await fetchMe(result.access_token));
 
-			if (['primary_admin', 'resident', 'admin'].includes(result.role)) {
+			if (['primary_admin', 'resident', 'admin'].includes(result.role!)) {
 				router.replace('/user');
 			} else if (result.role === 'security') {
 				router.replace('/security');
@@ -117,7 +117,13 @@ export default function Login() {
 				</View>
 			)}
 
-			<View className={cn(`p-6 w-full self-center ${isLargeScreen ? 'col-span-6' : ''}`)}>
+			<View
+				className={cn(`p-6 w-full self-center ${isLargeScreen ? 'col-span-6' : ''} `)}
+				style={{
+					flex: 1,
+					justifyContent: 'center',
+				}}
+			>
 				<View className="items-center mb-10 text-center max-w-xl">
 					<Text className={`text-primary font-UbuntuSans ${isLargeScreen ? 'text-7xl' : 'text-5xl'}`}>Welcome !</Text>
 					<Text className={`mt-1 text-black font-Inter ${isLargeScreen ? 'text-base' : 'text-xs font-medium'}`}>Sign in to send invites to your guests</Text>
@@ -126,13 +132,11 @@ export default function Login() {
 				<View className="gap-4 max-w-xl">
 					{ErrorBanner}
 
-					{/* Email */}
 					<View>
 						<Text className={`pb-1 text-grey ${isLargeScreen ? 'text-base' : ''}`}>Email Address</Text>
 						<TextInput placeholder="Enter your email address..." keyboardType="email-address" value={email} onChangeText={setEmail} autoCapitalize="none" editable={!isLoading} className="bg-[#F7F9F9] border border-[#D1D5DB] rounded-lg px-4 py-5 mt-1" />
 					</View>
 
-					{/* Password */}
 					<View>
 						<Text className={`pb-1 text-grey ${isLargeScreen ? 'text-base' : ''}`}>Password</Text>
 						<View className="relative">
@@ -143,13 +147,12 @@ export default function Login() {
 						</View>
 					</View>
 
-					{/* Buttons */}
 					<View className="mt-4 gap-5">
-						<Button className={`self-center rounded-lg flex-row items-center justify-center w-11/12 h-12 ${isLoading ? 'opacity-70' : ''}`} size={Platform.select({ ios: 'lg', default: 'lg' })} onPress={handleSignInPress} disabled={isLoading}>
+						<Button className={`self-center rounded-lg flex-row items-center justify-center w-11/12 h-14 ${isLoading ? 'opacity-70' : ''}`} size={Platform.select({ ios: 'lg', default: 'lg' })} onPress={handleSignInPress} disabled={isLoading}>
 							{isLoading ? <ActivityIndicator color="#fff" /> : <Text className="text-white font-UbuntuSans font-semibold text-center">Sign In</Text>}
 						</Button>
 
-						<Button className={`self-center rounded-lg flex-row items-center justify-center w-11/12 h-12 bg-dark-teal ${isLoading ? 'opacity-70' : ''}`} size={Platform.select({ ios: 'lg', default: 'lg' })} disabled={isLoading}>
+						<Button className={`self-center rounded-lg flex-row items-center justify-center w-11/12 h-14 bg-dark-teal ${isLoading ? 'opacity-70' : ''}`} size={Platform.select({ ios: 'lg', default: 'lg' })} disabled={isLoading}>
 							<Text className="text-white font-UbuntuSans font-semibold text-center">Continue With Google</Text>
 						</Button>
 					</View>

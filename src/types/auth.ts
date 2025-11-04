@@ -1,3 +1,5 @@
+import { UserRolesType } from './general';
+
 export type AuthContextType = {
 	isReady: boolean;
 	signIn: (userData: any) => Promise<void>;
@@ -6,5 +8,5 @@ export type AuthContextType = {
 
 export type LoginResponse = {
 	access_token: string;
-	role: 'resident' | 'primary_admin' | 'admin' | 'security';
+	role: UserRolesType;
 };
