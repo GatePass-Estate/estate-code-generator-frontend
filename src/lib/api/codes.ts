@@ -27,6 +27,18 @@ export async function getMyCode(id: string): Promise<Codes> {
 	}
 }
 
+export async function validateCode(code: string): Promise<Codes> {
+	try {
+		const api = Api('code');
+		const axiosRes = await api.get(`/codeservice/${code}/?receiver=visitor`);
+		const data = axiosRes.data;
+
+		return data;
+	} catch (error: any) {
+		throw new Error(`${getErrorMessage(error) || 'Could not fetch code'} `);
+	}
+}
+
 export const deleteCode = async (code: string): Promise<Boolean> => {
 	try {
 		const api = Api('code');

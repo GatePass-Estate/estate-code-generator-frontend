@@ -14,7 +14,7 @@ type NavRoute = {
 };
 
 type NavigationContainerProps = {
-	routes: NavRoute[];
+	routes?: NavRoute[];
 	headerStyle?: object;
 	tabBarStyle?: object;
 	enableForMobile?: boolean;
@@ -46,27 +46,28 @@ export default function NavigationContainer({ routes, headerStyle, tabBarStyle, 
 				tabBarButton: (props: any) => <Pressable {...props} android_ripple={null} />,
 			}}
 		>
-			{routes
-				.filter((el) => el.for == 'native' || el.for == 'both')
-				.map(({ name, title, TabIcon }) =>
-					TabIcon ? (
-						<Tabs.Screen
-							key={name}
-							name={name}
-							options={{
-								title,
-								headerTitleStyle: {
-									color: '#113E55',
-									fontFamily: 'UbuntuSans',
-									fontWeight: 'semibold',
-								},
+			{routes &&
+				routes
+					.filter((el) => el.for == 'native' || el.for == 'both')
+					.map(({ name, title, TabIcon }) =>
+						TabIcon ? (
+							<Tabs.Screen
+								key={name}
+								name={name}
+								options={{
+									title,
+									headerTitleStyle: {
+										color: '#113E55',
+										fontFamily: 'UbuntuSans',
+										fontWeight: 'semibold',
+									},
 
-								headerShown: false,
-								tabBarIcon: ({ focused }) => (TabIcon ? <TabIcon focused={focused} /> : null),
-							}}
-						/>
-					) : null
-				)}
+									headerShown: false,
+									tabBarIcon: ({ focused }) => (TabIcon ? <TabIcon focused={focused} /> : null),
+								}}
+							/>
+						) : null
+					)}
 		</Tabs>
 	) : (
 		<Stack screenOptions={{ headerShown: false }} />

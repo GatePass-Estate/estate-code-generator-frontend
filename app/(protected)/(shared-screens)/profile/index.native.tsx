@@ -15,7 +15,7 @@ import { formatDateWithOrdinal } from '@/src/lib/helpers';
 const ProfileScreen = () => {
 	const { signOut } = useAuth();
 
-	const { first_name, last_name, home_address, estate_name, email, phone_number, user_id, estate_id } = useUserStore.getState();
+	const { first_name, last_name, home_address, estate_name, email, phone_number, user_id, estate_id, role } = useUserStore.getState();
 
 	const [code, setCode] = useState<string | null>(null);
 	const [expiry, setExpiry] = useState<string | null>(null);
@@ -48,7 +48,7 @@ const ProfileScreen = () => {
 	}, [user_id, estate_id]);
 
 	useEffect(() => {
-		fetchMyCode();
+		if (role != 'security') fetchMyCode();
 	}, [fetchMyCode]);
 
 	const { expiring, formattedDate } = useMemo(() => {
@@ -95,7 +95,7 @@ const ProfileScreen = () => {
 			<View className="flex-1">
 				<Text className="text-2xl font-bold text-primary mb-5 font-UbuntuSans mt-8">My Profile</Text>
 
-				<CodeRow />
+				{role != 'security' && <CodeRow />}
 				<ExpiryWarning />
 
 				<View className="my-5 mt-10">

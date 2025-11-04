@@ -3,10 +3,11 @@ import { Image } from 'react-native';
 import images from '@/src/constants/images';
 import icons from '@/src/constants/icons';
 import NavigationContainer from '@/src/components/common/NavigationContainer';
+import { sharedStyles } from '@/src/theme/styles';
 
 const FloatingButton: React.FC<{ focused?: boolean }> = ({ focused = false }) => {
 	return (
-		<View style={[menuStyles.fab, !focused ? { backgroundColor: '#CEE5ED' } : { backgroundColor: '#113E55' }]}>
+		<View style={[sharedStyles.fab, !focused ? { backgroundColor: '#CEE5ED' } : { backgroundColor: '#113E55' }]}>
 			<Image
 				source={focused ? icons.plusActive : icons.plus}
 				style={{
@@ -60,40 +61,9 @@ export const menuRoutes = [
 
 	{ name: 'profile/index', link: '/profile', title: 'My Profile', TabIcon: GuestIcon, for: 'web', activeIcon: icons.activeProfileIcon, inactiveIcon: icons.inactiveProfileIcon },
 
-	// { name: 'admin/index', link: '/admin', title: 'Admin Access', for: 'web', activeIcon: icons.activeAdminIcon, inactiveIcon: icons.inactiveAdminIcon },
+	{ name: 'admin/index', link: '/admin', title: 'Admin Access', for: 'web', activeIcon: icons.activeAdminIcon, inactiveIcon: icons.inactiveAdminIcon },
 ];
 
 export default function RootLayout() {
-	return <NavigationContainer routes={menuRoutes} tabBarStyle={menuStyles.tabBar} />;
+	return <NavigationContainer routes={menuRoutes} tabBarStyle={sharedStyles.tabBar} />;
 }
-
-export const menuStyles = StyleSheet.create({
-	tabBar: {
-		position: 'absolute',
-		backgroundColor: '#CEE5ED',
-		height: 80,
-		flex: 1,
-		elevation: 0,
-		shadowColor: 'transparent',
-		shadowOffset: { width: 0, height: 0 },
-		shadowOpacity: 0,
-		shadowRadius: 0,
-		borderTopWidth: 0,
-	},
-
-	fab: {
-		top: -20,
-		width: 90,
-		height: 90,
-		borderRadius: 50,
-		borderColor: '#FBFEFF',
-		borderWidth: 6,
-		justifyContent: 'center',
-		alignItems: 'center',
-		elevation: 0,
-		shadowColor: 'transparent',
-		shadowOffset: { width: 0, height: 0 },
-		shadowOpacity: 0,
-		shadowRadius: 0,
-	},
-});

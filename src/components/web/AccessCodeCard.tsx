@@ -19,7 +19,7 @@ type CodeCardProps = {
 	removeCode: (code: string) => Promise<void>;
 };
 
-const variantStyles = {
+export const variantStyles = {
 	other: {
 		container: 'bg-light-grey border-grey',
 		text: 'text-grey',
