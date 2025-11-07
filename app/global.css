@@ -76,3 +76,11 @@ span {
 button {
 	@apply font-UbuntuSans;
 }
+
+.security-bg {
+	background: radial-gradient(ellipse at 10% 80%, rgba(131, 184, 176, 0.08) 0%, transparent 30%), radial-gradient(ellipse at 90% 20%, rgba(180, 150, 206, 0.06) 0%, transparent 30%), #fbf0ee;
+}
+
+.search-code-input-web {
+	@apply w-full h-full text-center bg-transparent outline-none caret-primary text-primary text-3xl;
+}

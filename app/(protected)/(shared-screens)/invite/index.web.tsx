@@ -92,7 +92,7 @@ export default function ShareInvitePage() {
 
 	return (
 		<div className="flex h-full w-screen overflow-y-scroll bg-body">
-			<WebSidebar routes={menuRoutes.filter((el) => el.for == 'web' || el.for == 'both').map(({ name, title, link, activeIcon, inactiveIcon }) => ({ name, title, link, activeIcon, inactiveIcon }))} onNavigate={(route) => router.push(route as any)} />
+			<WebSidebar routes={menuRoutes.filter((el) => el.for == 'web' || el.for == 'both').map((data) => data)} onNavigate={(route) => router.push(route as any)} />
 
 			<div className="web-body">
 				{loading ? (
@@ -108,12 +108,7 @@ export default function ShareInvitePage() {
 
 						<div className="flex gap-12 mt-14">
 							<div className="flex flex-col items-center">
-								<div
-									className="bg-[#F15A29] p-6 mb-5 rounded-md"
-									style={{
-										boxShadow: '4px 4px 36px 0px #D6CFCB',
-									}}
-								>
+								<div className="bg-[#F15A29] p-6 mb-5 rounded-md shadow-[4px_4px_36px_0px_#D6CFCB]">
 									<QRCode value={code?.hashed_code as string} size={350} backgroundColor="#F15A29" color="#fff" />
 								</div>
 

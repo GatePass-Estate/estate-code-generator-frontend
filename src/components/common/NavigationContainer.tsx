@@ -1,20 +1,10 @@
 import { Platform, Pressable } from 'react-native';
-import { Tabs, Stack, useRouter } from 'expo-router';
-import WebSidebar from '../web/WebSidebar';
+import { Tabs, Stack } from 'expo-router';
 import { StyleSheet } from 'react-native';
-
-type NavRoute = {
-	name: string;
-	link: string;
-	title: string;
-	for: 'web' | 'native' | 'both' | string;
-	activeIcon?: any;
-	inactiveIcon?: any;
-	TabIcon?: React.ComponentType<{ focused?: boolean }>;
-};
+import { menuRouteType } from '@/src/types/general';
 
 type NavigationContainerProps = {
-	routes?: NavRoute[];
+	routes?: menuRouteType[];
 	headerStyle?: object;
 	tabBarStyle?: object;
 	enableForMobile?: boolean;

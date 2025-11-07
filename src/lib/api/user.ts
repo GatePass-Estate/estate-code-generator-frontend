@@ -6,8 +6,6 @@ export const updatepassword = async (payload: { user_id: string; current_passwor
 	try {
 		const api = Api();
 
-		console.log(payload);
-
 		const axiosRes = await api.post(`/users/password/update`, {
 			user_id: payload.user_id,
 			current_password: payload.current_password,

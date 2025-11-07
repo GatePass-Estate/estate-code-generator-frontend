@@ -24,6 +24,8 @@ import inactiveGuestIcon from '../assets/icons/Guest-icon.png';
 import logo from '../assets/gatepass_ng_Gp.png';
 // @ts-ignore
 import logoutIcon from '../assets/images/logout.png';
+// @ts-ignore
+import securityBg from '../assets/images/security-bg.png';
 
 const images = {
 	activeBtnImg,
@@ -39,6 +41,7 @@ const images = {
 	activeGuestIcon,
 	logo,
 	logoutIcon,
+	securityBg,
 };
 
 export default images;

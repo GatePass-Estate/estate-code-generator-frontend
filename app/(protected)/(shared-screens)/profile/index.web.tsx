@@ -10,9 +10,6 @@ import { generateCode, getMyCode } from '@/src/lib/api/codes';
 import { formatDateWithOrdinal } from '@/src/lib/helpers';
 import { Animated, Easing } from 'react-native';
 
-// ────────────────────────────────────────────────────────────────
-// Password Input with Eye Toggle (Web)
-// ────────────────────────────────────────────────────────────────
 interface WebPasswordInputProps {
 	label: string;
 	placeholder: string;
@@ -142,18 +139,7 @@ export default function MyProfile() {
 
 	return (
 		<div className="flex h-full w-screen overflow-y-scroll bg-body">
-			<WebSidebar
-				routes={menuRoutes
-					.filter((el) => el.for === 'web' || el.for === 'both')
-					.map(({ name, title, link, activeIcon, inactiveIcon }) => ({
-						name,
-						title,
-						link,
-						activeIcon,
-						inactiveIcon,
-					}))}
-				onNavigate={(route) => router.push(route as any)}
-			/>
+			<WebSidebar routes={menuRoutes.filter((el) => el.for === 'web' || el.for === 'both').map((data) => data)} onNavigate={(route) => router.push(route as any)} />
 
 			<div className="web-body">
 				{loading ? (
@@ -234,7 +220,6 @@ export default function MyProfile() {
 				)}
 			</div>
 
-			{/* ─── Update Password Modal ─── */}
 			{showUpdatePassword && (
 				<div className="fixed inset-0 z-50 flex items-center justify-center">
 					<div className="absolute inset-0 bg-primary opacity-80" onClick={() => setShowUpdatePassword(false)} />

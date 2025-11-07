@@ -111,7 +111,7 @@ export default function AddGuestWeb() {
 
 	return (
 		<div className="flex h-full w-screen overflow-y-scroll bg-body">
-			<WebSidebar routes={menuRoutes.filter((el) => el.for == 'web' || el.for == 'both').map(({ name, title, link, activeIcon, inactiveIcon }) => ({ name, title, link, activeIcon, inactiveIcon }))} onNavigate={(route) => router.push(route as any)} />
+			<WebSidebar routes={menuRoutes.filter((el) => el.for == 'web' || el.for == 'both').map((data) => data)} onNavigate={(route) => router.push(route as any)} />
 
 			<div className="web-body pb-20">
 				<div className="flex flex-col justify-center gap-7 mt-20" />

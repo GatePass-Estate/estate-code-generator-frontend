@@ -1,28 +1,26 @@
 import * as WebBrowser from 'expo-web-browser';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect, useState, useCallback, useMemo, use } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { Platform, View, TextInput, Image, Text, ActivityIndicator, useWindowDimensions, Pressable } from 'react-native';
 import { FontAwesome, AntDesign } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/src/components/nativewindui/Button';
 import { useAuth } from '@/src/hooks/useAuthContext';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { fetchMe, loginUser } from '@/src/lib/api/auth';
 import { useAuthStore } from '@/src/lib/stores/authStore';
-import { clearAuthState, storeAuthState } from '@/src/lib/helpers';
+import { storeAuthState } from '@/src/lib/helpers';
 import Images from '@/src/constants/images';
 import { cn } from '@/src/lib/cn';
 import icons from '@/src/constants/icons';
-import { useUserStore } from '@/src/lib/stores/userStore';
+import LoadingTransition from '@/src/components/common/LoadingTransition';
 
 WebBrowser.maybeCompleteAuthSession();
 SplashScreen.preventAutoHideAsync();
 
 export default function Login() {
-	const { signIn, setIsReady } = useAuth();
+	const { signIn } = useAuth();
 	const router = useRouter();
-	let { loggedOut } = useLocalSearchParams();
-
 	const { width } = useWindowDimensions();
 
 	const [appIsReady, setAppIsReady] = useState(false);
@@ -36,7 +34,7 @@ export default function Login() {
 
 	useEffect(() => {
 		const prepare = async () => {
-			await new Promise((r) => setTimeout(r, 2000));
+			await new Promise((r) => setTimeout(r, 1000));
 			setAppIsReady(true);
 		};
 		prepare();
@@ -95,13 +93,7 @@ export default function Login() {
 	}, [email, password, signIn, router]);
 
 	useEffect(() => {
-		if (loggedOut && loggedOut === 'true') {
-			setIsReady && setIsReady(false);
-
-			useUserStore.getState().clearUser();
-			useAuthStore.getState().clearAuth();
-			clearAuthState();
-		}
+		if (Platform.OS === 'web') document.title = 'Login - GatePass';
 	}, []);
 
 	const ErrorBanner = useMemo(
@@ -120,7 +112,7 @@ export default function Login() {
 		[errorMessage]
 	);
 
-	if (!appIsReady) return null;
+	if (!appIsReady) return <LoadingTransition />;
 
 	return (
 		<SafeAreaView className={`h-full ${isLargeScreen ? 'grid grid-cols-12' : 'flex-1 bg-white'}`} onLayout={onLayoutRootView}>

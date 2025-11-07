@@ -48,3 +48,14 @@ export type CreateGuestApiResponse = {
 	id: string;
 	created_at: string;
 };
+
+export type GuestDetails = {
+	visitor_fullname: string;
+	relationship_with_resident: string;
+	gender: string;
+	resident_name: string;
+	resident_address: string;
+	resident_email: string;
+	resident_phone_number: string;
+	code: string;
+};
