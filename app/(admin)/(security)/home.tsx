@@ -1,9 +1,13 @@
 // ...existing code...
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
+import { useRouter } from "expo-router";
 
 export default function Home() {
+  const router = useRouter();
+  const elRef = useRef<HTMLElement | null>(null);
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     if ((window as any).customElements?.get("ecg-search-page")) return;
@@ -234,5 +238,27 @@ export default function Home() {
     (window as any).customElements.define("ecg-search-page", ECGSearchPage);
   }, []);
 
-  return <ecg-search-page />;
+  // listen for validated event and open invite modal when valid
+  useEffect(() => {
+    const el =
+      elRef.current ||
+      (document.querySelector("ecg-search-page") as HTMLElement | null);
+    if (!el) return;
+
+    const onValidated = (e: Event) => {
+      const detail = (e as CustomEvent).detail || {};
+      if (detail.valid) {
+        // open modal route in same folder
+        router.push("invite");
+      }
+    };
+
+    el.addEventListener("validated", onValidated as EventListener);
+    return () => {
+      el.removeEventListener("validated", onValidated as EventListener);
+    };
+  }, [router]);
+
+  return <ecg-search-page ref={elRef as any} />;
 }
+// ...existing code...

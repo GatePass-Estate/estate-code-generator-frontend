@@ -7,6 +7,10 @@ export default function UserListLayout() {
         name="index"
         options={{ title: "Admin Register", headerShown: false }}
       />
+      <Stack.Screen
+        name="invite"
+        options={{ headerShown: false, presentation: "modal" as any }}
+      />
     </Stack>
   );
 }
