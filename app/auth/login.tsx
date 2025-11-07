@@ -44,10 +44,6 @@ export default function Login() {
 		if (errorMessage) setErrorMessage('');
 	}, [email, password]);
 
-	const onLayoutRootView = useCallback(async () => {
-		if (appIsReady) await SplashScreen.hideAsync();
-	}, [appIsReady]);
-
 	const handleSignInPress = useCallback(async () => {
 		setErrorMessage('');
 		setIsLoading(true);
@@ -115,7 +111,7 @@ export default function Login() {
 	if (!appIsReady) return <LoadingTransition />;
 
 	return (
-		<SafeAreaView className={`h-full ${isLargeScreen ? 'grid grid-cols-12' : 'flex-1 bg-white'}`} onLayout={onLayoutRootView}>
+		<SafeAreaView className={`h-full ${isLargeScreen ? 'grid grid-cols-12' : 'flex-1 bg-white'}`}>
 			{isLargeScreen && (
 				<View className="col-span-6 relative h-screen overflow-hidden">
 					<Image source={Images.loginImage} resizeMode="cover" className="absolute inset-0 w-full h-full" />

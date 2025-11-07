@@ -1,12 +1,5 @@
-import { Platform } from 'react-native';
-import IndexMobile from './index.native';
-import IndexWeb from './index.web';
+import LoadingTransition from '@/src/components/common/LoadingTransition';
 
 export default function Index() {
-	const Component = Platform.select({
-		web: () => <IndexWeb />,
-		default: () => <IndexMobile />,
-	});
-
-	return <Component />;
+	return <LoadingTransition />;
 }

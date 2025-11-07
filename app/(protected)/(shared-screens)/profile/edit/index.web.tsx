@@ -8,13 +8,17 @@ import { Platform } from 'react-native';
 export const EditProfileForm = ({ centralize = false }: { centralize?: boolean }) => {
 	const router = useRouter();
 
+	const handleSubmission = (e: React.FormEvent) => {
+		e.preventDefault();
+	};
+
 	return (
 		<div className="flex flex-col justify-center mt-20">
 			<div>
 				<h1 className={`text-4xl ${centralize && 'text-center'}`}>Edit Profile</h1>
 				<p className={`text-base text-tertiary mt-1 ${centralize && 'text-center'}`}>Send a request to edit your personal details</p>
 			</div>
-			<form className="py-7 flex flex-col gap-6 min-w-[400px]  md:min-w-[500px] lg:min-w-[600px]">
+			<form className="py-7 flex flex-col gap-6 min-w-[400px]  md:min-w-[500px] lg:min-w-[600px]" onSubmit={handleSubmission}>
 				<div
 					className=" bg-white border-micro
 							 border-primary rounded-lg p-8 flex flex-col gap-6 "
@@ -47,7 +51,7 @@ export const EditProfileForm = ({ centralize = false }: { centralize?: boolean }
 						{centralize ? 'Back' : 'Cancel Request'}
 					</button>
 
-					<button type="submit" onClick={() => router.push('/profile/edit')} className="self-end bg-primary text-white font-medium text-sm rounded-lg py-3 px-14 cursor-pointer">
+					<button type="submit" className="self-end bg-primary text-white font-medium text-sm rounded-lg py-3 px-14 cursor-pointer">
 						Send Request
 					</button>
 				</div>
