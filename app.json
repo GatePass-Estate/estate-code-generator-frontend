@@ -1,15 +1,15 @@
 {
 	"expo": {
-		"name": "Estate Code Generator",
+		"name": "GatePass",
 		"slug": "my-expo-app",
 		"version": "1.0.0",
 		"scheme": "my-expo-app",
 		"orientation": "portrait",
 		"icon": "./src/assets/gatepass_ng_Gp.png",
 		"userInterfaceStyle": "automatic",
-		"plugins": ["expo-router", "expo-font", "expo-web-browser"],
+		"newArchEnabled": true,
 		"splash": {
-			"image": "./src/assets/gatepass_ng_Gp.png",
+			"image": "./src/assets/gate.png",
 			"resizeMode": "contain",
 			"backgroundColor": "#ffffff"
 		},
@@ -18,17 +18,35 @@
 			"adaptiveIcon": {
 				"foregroundImage": "./src/assets/gatepass_ng_Gp.png",
 				"backgroundColor": "#ffffff"
-			},
-			"splash": {
-				"image": "./src/assets/gatepass_ng_Gp.png",
-				"resizeMode": "contain",
-				"backgroundColor": "#ffffff"
 			}
 		},
 		"ios": {
 			"supportsTablet": true,
 			"bundleIdentifier": "com.specialone.gms"
 		},
+		"web": {
+			"bundler": "metro",
+			"output": "static",
+			"image": "./src/assets/gatepass_ng_Gp.png",
+			"favicon": "./src/assets/gatepass_ng_Gp.png"
+		},
+		"plugins": [
+			"expo-router",
+			"expo-font",
+			"expo-web-browser",
+			[
+				"expo-splash-screen",
+				{
+					"backgroundColor": "#ffffff",
+					"image": "./src/assets/gatepass_ng_Gp.png",
+					"dark": {
+						"image": "./src/assets/gatepass_ng_Gp.png",
+						"backgroundColor": "#000000"
+					},
+					"imageWidth": 200
+				}
+			]
+		],
 		"assetBundlePatterns": ["**/*"]
 	}
 }
