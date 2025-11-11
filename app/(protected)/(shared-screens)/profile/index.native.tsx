@@ -3,7 +3,6 @@ import { useAuth } from '@/src/hooks/useAuthContext';
 import { router, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useUserStore } from '@/src/lib/stores/userStore';
-import images from '@/src/constants/images';
 import icons from '@/src/constants/icons';
 import Back from '@/src/components/mobile/Back';
 import { SingleDetail } from '@/src/components/mobile/SIngleDetail';
@@ -20,15 +19,17 @@ const ProfileScreen = () => {
 	const [code, setCode] = useState<string | null>(null);
 	const [expiry, setExpiry] = useState<string | null>(null);
 	const [loading, setLoading] = useState(true);
+	const [noCode, setNoCode] = useState(false);
 
 	const fetchMyCode = useCallback(async () => {
 		setLoading(true);
 		try {
 			const { hashed_code, valid_until } = await getMyCode(user_id);
 			setCode(hashed_code);
+			setNoCode(false);
 			setExpiry(valid_until);
 		} catch (e) {
-			console.error('Failed to fetch code:', e);
+			setNoCode(true);
 		} finally {
 			setLoading(false);
 		}
@@ -40,6 +41,7 @@ const ProfileScreen = () => {
 			const { hashed_code, valid_until } = await generateCode({ user_id, estate_id: estate_id ?? '' }, 'resident');
 			setCode(hashed_code);
 			setExpiry(valid_until);
+			setNoCode(false);
 		} catch (e) {
 			console.error('Failed to generate code:', e);
 		} finally {
@@ -80,12 +82,19 @@ const ProfileScreen = () => {
 		!loading && formattedDate ? (
 			<View className="flex-row items-center gap-2 mt-2">
 				<Image source={expiring ? icons.warning : icons.warningInfo} style={{ width: 20, height: 20 }} resizeMode="contain" />
-				<Text className={`text-base font-medium font-Inter italic ${expiring ? 'text-tertiary' : 'text-primary'}`}>
+				<Text className={`text-base font-inter-medium-italic ${expiring ? 'text-tertiary' : 'text-primary'}`}>
 					Code expires on {formattedDate}
 					{expiring && ': Regenerate Code now'}
 				</Text>
 			</View>
-		) : null;
+		) : (
+			noCode && (
+				<View className="flex-row items-center gap-2 mt-2">
+					<Image source={icons.warning} style={{ width: 20, height: 20 }} resizeMode="contain" />
+					<Text className={`text-base font-inter-medium-italic text-tertiary`}>You do not have a code, please generate your code.</Text>
+				</View>
+			)
+		);
 
 	return (
 		<SafeAreaView style={[sharedStyles.container, sharedStyles.modalContainer]}>
@@ -93,7 +102,7 @@ const ProfileScreen = () => {
 			<Back type="short-arrow" />
 
 			<View className="flex-1">
-				<Text className="text-2xl font-bold text-primary mb-5 font-UbuntuSans mt-8">My Profile</Text>
+				<Text className="text-2xl text-primary mb-5 font-ubuntu-bold mt-8">My Profile</Text>
 
 				{role != 'security' && <CodeRow />}
 				<ExpiryWarning />
@@ -101,7 +110,7 @@ const ProfileScreen = () => {
 				<View className="my-5 mt-10">
 					<TouchableOpacity className="flex-row items-center justify-between" onPress={() => router.push('/profile/edit')}>
 						<Text className="text-base font-medium text-primary">PERSONAL DETAILS</Text>
-						<Image source={images.editButtonImg} style={{ width: 20, height: 20 }} resizeMode="contain" />
+						<Image source={icons.edit} style={{ width: 20, height: 20 }} resizeMode="contain" />
 					</TouchableOpacity>
 
 					<View className="mt-3 bg-transparent p-4 rounded-lg border-micro">

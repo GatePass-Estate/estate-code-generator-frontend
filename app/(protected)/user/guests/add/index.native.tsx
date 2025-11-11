@@ -145,10 +145,10 @@ const AddGuestMobile = () => {
 							<Modal transparent={true} visible={isPickerVisible} animationType="slide" onRequestClose={() => setIsPickerVisible(false)}>
 								<Pressable style={styles.modalOverlay} onPress={() => setIsPickerVisible(false)}>
 									<View className="bg-gray-800">
-										<Picker selectedValue={gender} onValueChange={(itemValue) => setGender(itemValue)} className="text-gray-300 h-14 w-full" style={{ color: 'red' }}>
+										<Picker selectedValue={gender} onValueChange={(itemValue) => setGender(itemValue)} className="text-gray-300 h-14 w-full">
 											<Picker.Item label="Select the gender of your guest" value="" enabled={false} />
 											<Picker.Item label="Female" value="female" />
-											<Picker.Item label="Male" value="male" style={{ color: 'red' }} />
+											<Picker.Item label="Male" value="male" />
 											<Picker.Item label="I'd prefer not to say" value="prefer_not_to_say" />
 										</Picker>
 									</View>
@@ -219,11 +219,11 @@ const AddGuestMobile = () => {
 
 			<View className="mt-14 items-center gap-2">
 				<TouchableOpacity className={`px-20 bg-primary justify-center items-center py-4 font-UbuntuSans !rounded-md ${running ? 'opacity-70' : ''}`} onPress={handleGenerateCode} disabled={running}>
-					<Text className="text-white font-semibold font-UbuntuSans text-md">Generate Code</Text>
+					<Text className="text-white font-ubuntu-semibold text-md">Generate Code</Text>
 				</TouchableOpacity>
 
 				<TouchableOpacity onPress={handleSaveGuest} disabled={running} className="py-4 px-20">
-					<Text className="text-primary text-[16px] ">Save Guest </Text>
+					<Text className="text-primary text-[16px] font-ubuntu-medium">Save Guest </Text>
 				</TouchableOpacity>
 			</View>
 		</ScrollView>

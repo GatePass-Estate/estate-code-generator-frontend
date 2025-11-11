@@ -104,7 +104,7 @@ const CodeCard = ({ code, details, variant = 'other', timeLeftMinutes, estate_id
 				</div>
 
 				<div className="cursor-pointer" onClick={() => router.push(`/invite?code=${code}&estate_id=${estate_id}`)}>
-					<Image source={icons.shareIcon} />
+					<Image source={icons.shareIcon} resizeMode="contain" style={{ width: 24, height: 24 }} />
 				</div>
 
 				{confirmOpen && (

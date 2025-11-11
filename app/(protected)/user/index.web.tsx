@@ -14,6 +14,7 @@ import { Codes } from '@/src/types/codes';
 import { GenderType, RelationshipType } from '@/src/types/general';
 import { Pagination } from '@/src/components/web/Pagination';
 import images from '@/src/constants/images';
+import { timeCalc } from '@/src/lib/helpers';
 
 const CODES_PAGE_SIZE = 3;
 const GUESTS_PAGE_SIZE = 6;
@@ -155,31 +156,7 @@ export default function HomeWeb() {
 
 									if (gender !== 'male' && gender !== 'female') gender = 'other';
 
-									const iso = String(code.valid_until ?? '')
-										.replace(' ', 'T')
-										.replace(/([+-]\d{2})(\d{2})$/, '$1:$2');
-									const parsed = new Date(iso);
-
-									let formattedDate = 'Invalid date';
-									let timeframe = 'Unknown';
-									let timeLeftMinutes = 0;
-
-									if (!isNaN(parsed.getTime())) {
-										const day = String(parsed.getDate()).padStart(2, '0');
-										const month = String(parsed.getMonth() + 1).padStart(2, '0');
-										const year = parsed.getFullYear();
-										formattedDate = `${day}/${month}/${year}`;
-
-										const diffMs = parsed.getTime() - Date.now();
-										if (diffMs <= 0) {
-											timeframe = 'Expired';
-										} else {
-											const startDate = new Date(parsed.getTime() - 60 * 60 * 1000);
-											const formatTime = (d: Date) => d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true }).replace(/\s+/g, '').toLowerCase();
-											timeLeftMinutes = Math.floor((diffMs % 3600000) / 60000);
-											timeframe = `${formatTime(startDate)} to ${formatTime(parsed)}`;
-										}
-									}
+									let { timeLeftMinutes, formattedDate, timeframe } = timeCalc(code);
 
 									return (
 										<AccessCodeCard
@@ -222,7 +199,7 @@ export default function HomeWeb() {
 							<div className="grid grid-cols-1 xl:grid-cols-2 gap-4 mb-6">
 								{guestsPaginated.map((item) => (
 									<div key={item.id} className="flex gap-4 items-center p-3 bg-light-grey w-full rounded-lg">
-										<Image source={item.gender === 'male' ? icons.maleIcon : item.gender === 'prefer_not_to_say' ? icons.notSayingGender : icons.femaleIcon} style={{ width: 25, height: 25 }} />
+										<Image source={item.gender === 'male' ? icons.maleIcon : item.gender === 'prefer_not_to_say' ? icons.notSayingGender : icons.femaleIcon} style={{ width: 25, height: item.gender === 'female' ? 37 : 25 }} />
 
 										<div className="flex flex-col">
 											<p className="text-xl capitalize font-UbuntuSans">{item.guest_name}</p>

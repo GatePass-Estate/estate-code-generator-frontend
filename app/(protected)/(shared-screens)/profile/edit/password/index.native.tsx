@@ -6,7 +6,6 @@ import Back from '@/src/components/mobile/Back';
 import { updatepassword } from '@/src/lib/api/user';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { router } from 'expo-router';
-import Images from '@/src/constants/images';
 import icons from '@/src/constants/icons';
 
 interface PasswordInputProps {
@@ -104,7 +103,7 @@ export default function EditRequest() {
 		<SafeAreaView style={[sharedStyles.container, sharedStyles.modalContainer]}>
 			<Back type="short-arrow" />
 
-			<Text className="text-primary mt-10 text-xl font-UbuntuSans font-bold mb-6">Change Password</Text>
+			<Text className="text-primary mt-10 text-3xl font-ubuntu-semibold mb-6">Change Password</Text>
 
 			<PasswordInput label="Current Password" value={currentPassword} onChange={setCurrentPassword} show={showCurrent} setShow={setShowCurrent} placeholder="Enter your current password" disabled={running} />
 
@@ -113,8 +112,8 @@ export default function EditRequest() {
 			<PasswordInput label="Confirm Password" value={confirmPassword} onChange={setConfirmPassword} show={showConfirm} setShow={setShowConfirm} placeholder="Confirm your new password" disabled={running} />
 
 			<View className="items-center mt-auto mb-12">
-				<TouchableOpacity onPress={changePassword} disabled={running} className={`bg-primary rounded-xl py-4 px-24 justify-center items-center ${running ? 'opacity-90' : ''}`}>
-					<Text className="text-white font-UbuntuSans font-bold text-base">{running ? 'Saving Password...' : 'Save Password'}</Text>
+				<TouchableOpacity onPress={changePassword} disabled={running} className={`bg-primary rounded-xl py-5 px-20 justify-center items-center ${running ? 'opacity-90' : ''}`}>
+					<Text className="text-white font-ubuntu-semibold text-lg">{running ? 'Saving Password...' : 'Save Password'}</Text>
 				</TouchableOpacity>
 			</View>
 		</SafeAreaView>

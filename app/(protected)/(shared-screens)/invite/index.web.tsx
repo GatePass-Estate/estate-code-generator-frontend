@@ -3,12 +3,12 @@ import WebSidebar from '@/src/components/web/WebSidebar';
 import { menuRoutes } from '../../user/_layout';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Image, Platform } from 'react-native';
-import images from '@/src/constants/images';
 import Modal from '@/src/components/web/Modal';
 import { useEffect, useState } from 'react';
 import { getAllCodes } from '@/src/lib/api/codes';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { Codes } from '@/src/types/codes';
+import icons from '@/src/constants/icons';
 
 export default function ShareInvitePage() {
 	const router = useRouter();
@@ -115,7 +115,7 @@ export default function ShareInvitePage() {
 								<div className="flex items-center mt-2">
 									<h3 className="text-5xl tracking-[24px] font-bold text-primary uppercase">{code?.hashed_code}</h3>
 									<button onClick={handleCopy} className="">
-										<Image source={images.copyImg} style={{ width: 40, height: 40 }} resizeMode="contain" />
+										<Image source={icons.copyIcon} style={{ width: 40, height: 40 }} resizeMode="contain" />
 									</button>
 								</div>
 							</div>

@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthState } from './stores/authStore';
 import axios from 'axios';
+import { Codes } from '../types/codes';
 
 const authStorageKey = process.env.EXPO_PUBLIC_AUTH_STORAGE_KEY!;
 
@@ -87,4 +88,40 @@ export const formatDateWithOrdinal = (date: Date): string => {
 	const m = monthNames[date.getMonth()];
 	const y = date.getFullYear();
 	return `${d}${ordinalSuffix(d)} ${m} ${y}`;
+};
+
+export const timeCalc = (
+	code: Codes
+): {
+	formattedDate: string;
+	timeframe: string;
+	timeLeftMinutes: number;
+} => {
+	const iso = String(code.valid_until ?? '')
+		.replace(' ', 'T')
+		.replace(/([+-]\d{2})(\d{2})$/, '$1:$2');
+	const parsed = new Date(iso);
+
+	let formattedDate = 'Invalid date';
+	let timeframe = 'Unknown';
+	let timeLeftMinutes = 0;
+
+	if (!isNaN(parsed.getTime())) {
+		const day = String(parsed.getDate()).padStart(2, '0');
+		const month = String(parsed.getMonth() + 1).padStart(2, '0');
+		const year = parsed.getFullYear();
+		formattedDate = `${day}/${month}/${year}`;
+
+		const diffMs = parsed.getTime() - Date.now();
+		if (diffMs <= 0) {
+			timeframe = 'Expired';
+		} else {
+			const startDate = new Date(parsed.getTime() - 60 * 60 * 1000);
+			const formatTime = (d: Date) => d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true }).replace(/\s+/g, '').toLowerCase();
+			timeLeftMinutes = Math.floor((diffMs % 3600000) / 60000);
+			timeframe = `${formatTime(startDate)} to ${formatTime(parsed)}`;
+		}
+	}
+
+	return { formattedDate, timeframe, timeLeftMinutes };
 };

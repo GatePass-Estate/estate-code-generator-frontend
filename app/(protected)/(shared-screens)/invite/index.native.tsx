@@ -3,10 +3,10 @@ import * as Clipboard from 'expo-clipboard';
 import { Stack, useLocalSearchParams, useNavigation } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import QRCode from 'react-native-qrcode-svg';
-import images from '@/src/constants/images';
 import { SingleDetail } from '@/src/components/mobile/SIngleDetail';
 import Back from '@/src/components/mobile/Back';
 import { sharedStyles } from '@/src/theme/styles';
+import icons from '@/src/constants/icons';
 
 export default function InvitePage() {
 	let { name, code, date, timeframe, address } = useLocalSearchParams();
@@ -16,7 +16,6 @@ export default function InvitePage() {
 
 	const copyToClipboard = async () => {
 		await Clipboard.setStringAsync(code);
-		Alert.alert('Copied', 'Code copied to clipboard');
 	};
 
 	const handleShare = async () => {
@@ -46,10 +45,10 @@ export default function InvitePage() {
 				</View>
 
 				<View className="flex-row items-center mb-5">
-					<Text className="text-[24px] font-UbuntuSans uppercase font-extrabold tracking-[6px] mr-2">{code.replace(/\s+/g, '')}</Text>
+					<Text className="text-[26px] uppercase font-ubuntu-extrabold text-primary tracking-[6px] mr-2">{code.replace(/\s+/g, '')}</Text>
 
 					<Pressable onPress={copyToClipboard}>
-						<Image source={images.copyImg} className="w-5 h-5" />
+						<Image source={icons.copyIcon} className="w-6 h-6" />
 					</Pressable>
 				</View>
 
@@ -66,7 +65,7 @@ export default function InvitePage() {
 				</TouchableOpacity>
 
 				<TouchableOpacity onPress={() => navigation.goBack()}>
-					<Text className="text-primary text-[16px]">Cancel Invite </Text>
+					<Text className="text-primary text-[17px] font-ubuntu-medium">Cancel Invite </Text>
 				</TouchableOpacity>
 			</View>
 		</SafeAreaView>

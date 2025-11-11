@@ -9,15 +9,16 @@
 		"userInterfaceStyle": "automatic",
 		"newArchEnabled": true,
 		"splash": {
-			"image": "./src/assets/gate.png",
+			"image": "./src/assets/gatepass_ng_Gp.png",
 			"resizeMode": "contain",
-			"backgroundColor": "#ffffff"
+			"backgroundColor": "#000000",
+			"color": "#000000"
 		},
 		"android": {
 			"package": "com.specialone.gms",
 			"adaptiveIcon": {
 				"foregroundImage": "./src/assets/gatepass_ng_Gp.png",
-				"backgroundColor": "#ffffff"
+				"backgroundColor": "#000000"
 			}
 		},
 		"ios": {
@@ -37,7 +38,7 @@
 			[
 				"expo-splash-screen",
 				{
-					"backgroundColor": "#ffffff",
+					"backgroundColor": "#000000",
 					"image": "./src/assets/gatepass_ng_Gp.png",
 					"dark": {
 						"image": "./src/assets/gatepass_ng_Gp.png",

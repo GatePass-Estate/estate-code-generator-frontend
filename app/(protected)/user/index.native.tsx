@@ -8,6 +8,7 @@ import { Codes } from '@/src/types/codes';
 import { getAllCodes } from '@/src/lib/api/codes';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { sharedStyles } from '@/src/theme/styles';
+import { timeCalc } from '@/src/lib/helpers';
 
 export default function HomeMobile({}) {
 	const bounceValue = useRef(new Animated.Value(0)).current;
@@ -68,11 +69,7 @@ export default function HomeMobile({}) {
 				}}
 			/>
 
-			<View
-				style={{
-					paddingHorizontal: Platform.OS != 'android' ? 20 : 0,
-				}}
-			>
+			<View>
 				<Text className="text-base font-Inter font-medium text-black mt-8 mb-7">All incoming guest</Text>
 
 				<FlatList
@@ -99,31 +96,7 @@ export default function HomeMobile({}) {
 						</View>
 					)}
 					renderItem={({ item }) => {
-						const iso = String(item.valid_until ?? '')
-							.replace(' ', 'T')
-							.replace(/([+-]\d{2})(\d{2})$/, '$1:$2');
-						const parsed = new Date(iso);
-
-						let formattedDate = 'Invalid date';
-						let timeframe = 'Unknown';
-						let timeLeftMinutes = 0;
-
-						if (!isNaN(parsed.getTime())) {
-							const day = String(parsed.getDate()).padStart(2, '0');
-							const month = String(parsed.getMonth() + 1).padStart(2, '0');
-							const year = parsed.getFullYear();
-							formattedDate = `${day}/${month}/${year}`;
-
-							const diffMs = parsed.getTime() - Date.now();
-							if (diffMs <= 0) {
-								timeframe = 'Expired';
-							} else {
-								const startDate = new Date(parsed.getTime() - 60 * 60 * 1000);
-								const formatTime = (d: Date) => d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true }).replace(/\s+/g, '').toLowerCase();
-								timeLeftMinutes = Math.floor((diffMs % 3600000) / 60000);
-								timeframe = `${formatTime(startDate)} to ${formatTime(parsed)}`;
-							}
-						}
+						let { timeLeftMinutes, formattedDate, timeframe } = timeCalc(item);
 
 						return (
 							<Pressable
@@ -144,7 +117,7 @@ export default function HomeMobile({}) {
 								<View style={{ flex: 1 }}>
 									<Text className={`text-sm font-medium text-grey mb-1`}>{item.visitor_fullname}</Text>
 
-									<Text className={`text-[27px] font-UbuntuSans uppercase text-orange tracking-[5px] font-bold`}>{item.hashed_code.slice(0, 3) + ' ' + item.hashed_code.slice(3)}</Text>
+									<Text className={`text-[27px] font-ubuntu-semibold uppercase text-orange tracking-[5px]`}>{item.hashed_code.slice(0, 3) + ' ' + item.hashed_code.slice(3)}</Text>
 								</View>
 								<CountdownRing size={50} initialMinutes={timeLeftMinutes} />
 							</Pressable>

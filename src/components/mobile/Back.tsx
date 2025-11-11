@@ -1,7 +1,7 @@
 import { useNavigation } from 'expo-router';
 import { Image, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import images from '../../constants/images';
+import icons from '@/src/constants/icons';
 
 const Back = ({ type = 'long-arrow' }: { type?: 'long-arrow' | 'short-arrow' }) => {
 	const navigation = useNavigation();
@@ -16,8 +16,8 @@ const Back = ({ type = 'long-arrow' }: { type?: 'long-arrow' | 'short-arrow' }) 
 
 	if (type === 'short-arrow')
 		return (
-			<TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-				<Image source={images.backImg} style={styles.backIcon} />
+			<TouchableOpacity style={[styles.backButton, { gap: 8 }]} onPress={() => navigation.goBack()}>
+				<Image source={icons.backIcon} style={styles.backIcon} />
 				<Text style={styles.backText}>Back</Text>
 			</TouchableOpacity>
 		);
@@ -48,8 +48,8 @@ const styles = StyleSheet.create({
 	},
 
 	backIcon: {
-		width: 25,
-		height: 25,
+		width: 9,
+		height: 12,
 		top: 1,
 		resizeMode: 'contain',
 	},

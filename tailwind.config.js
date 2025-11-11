@@ -23,6 +23,7 @@ module.exports = {
 				'inter-light': ['Inter_18pt-Light', 'system-ui'],
 				'inter-regular': ['Inter_18pt-Regular', 'system-ui'],
 				'inter-medium': ['Inter_18pt-Medium', 'system-ui'],
+				'inter-medium-italic': ['Inter_18pt-mediumItalic', 'system-ui'],
 				'inter-semibold': ['Inter_18pt-SemiBold', 'system-ui'],
 				roboto: ['Roboto', 'system-ui'],
 				UbuntuSans: ['"UbuntuSans"', 'system-ui'],

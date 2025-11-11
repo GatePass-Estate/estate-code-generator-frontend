@@ -110,10 +110,10 @@ const styles = StyleSheet.create({
 		justifyContent: 'center',
 		zIndex: 10,
 	},
+
 	text: {
-		fontSize: 20,
-		fontWeight: 'bold',
-		fontFamily: 'UbuntuSans',
+		fontSize: 22.5,
+		fontFamily: 'UbuntuSans-SemiBold',
 		paddingHorizontal: 6,
 		paddingVertical: 2,
 		borderRadius: 6,

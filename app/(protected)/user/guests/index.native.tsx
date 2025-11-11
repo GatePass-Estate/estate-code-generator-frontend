@@ -11,6 +11,7 @@ import { GenderType, RelationshipType } from '@/src/types/general';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { generateCode } from '@/src/lib/api/codes';
 import { sharedStyles } from '@/src/theme/styles';
+import icons from '@/src/constants/icons';
 
 const limit = 2;
 
@@ -151,7 +152,7 @@ const MyGuest = () => {
 			/>
 
 			<View className="flex-row bg-light-grey rounded-xl items-center px-2 mb-5 mt-4">
-				<Ionicons name="search" size={18} color="#555" style={{ marginLeft: 8 }} />
+				<Image source={icons.searchIcon} style={{ width: 18, height: 18 }} />
 				<TextInput placeholder="Search" style={styles.searchInput} value={searchQuery} onChangeText={setSearchQuery} />
 			</View>
 
@@ -207,16 +208,22 @@ const MyGuest = () => {
 							]}
 						>
 							<View style={styles.guestInfo}>
-								{item.gender === 'male' ? <Ionicons name="male" size={24} color="#167a6f" /> : item.gender === 'female' ? <Ionicons name="female" size={24} color="#F46036" /> : <Image source={images.notSaying} style={{ width: 24, height: 24 }} />}
+								{item.gender === 'male' ? (
+									<Image source={icons.maleIcon} style={{ width: 24, height: 24 }} />
+								) : item.gender === 'female' ? (
+									<Image source={icons.femaleIcon} style={{ width: 20, height: 28.5 }} />
+								) : (
+									<Image source={icons.notSayingGender} style={{ width: 24, height: 24 }} />
+								)}
 
 								<View style={{ marginLeft: 10 }}>
 									<Text className="font-Inter text-[16px] font-normal text-black">{item.guest_name}</Text>
 
-									<Text className="capitalize text-[14px] text-primary font-Inter text-sm font-semibold">{item.relationship}</Text>
+									<Text className="capitalize text-[14px] text-primary font-inter-semibold text-sm ">{item.relationship}</Text>
 								</View>
 							</View>
 
-							<View className="gap-2 flex-row">
+							<View className="gap-5 flex-row">
 								<TouchableOpacity
 									onPress={() => {
 										Alert.alert(
@@ -234,7 +241,7 @@ const MyGuest = () => {
 										);
 									}}
 								>
-									<Image source={images.deleteImg} style={{ width: 35, height: 35, resizeMode: 'contain', tintColor: '#a6a4a4' }} />
+									<Image source={icons.deleteMobileIcon} style={{ width: 22, height: 22, resizeMode: 'contain', tintColor: '#a6a4a4' }} />
 								</TouchableOpacity>
 
 								<TouchableOpacity
@@ -246,7 +253,7 @@ const MyGuest = () => {
 										})
 									}
 								>
-									<Image source={images.generatedCodeImg} style={{ width: 35, height: 35, resizeMode: 'contain', tintColor: '#a6a4a4' }} />
+									<Image source={icons.generateCodeIcon} style={{ width: 22, height: 22, resizeMode: 'contain', tintColor: '#a6a4a4' }} />
 								</TouchableOpacity>
 							</View>
 						</View>

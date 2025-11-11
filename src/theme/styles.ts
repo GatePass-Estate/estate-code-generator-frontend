@@ -9,8 +9,9 @@ export const sharedStyles = StyleSheet.create({
 
 	title: {
 		color: '#113E55',
-		fontFamily: 'UbuntuSans-Bold',
+		fontFamily: 'UbuntuSans-SemiBold',
 		textAlign: 'left',
+		fontSize: 23,
 	},
 
 	header: {

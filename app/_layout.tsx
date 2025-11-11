@@ -35,6 +35,7 @@ export default function RootLayout() {
 		[Inter.regular]: require('../src/assets/fonts/Inter_18pt-Regular.ttf'),
 		[Inter.medium]: require('../src/assets/fonts/Inter_18pt-Medium.ttf'),
 		[Inter.semiBold]: require('../src/assets/fonts/Inter_18pt-SemiBold.ttf'),
+		[Inter.mediumItalic]: require('../src/assets/fonts/Inter_18pt-MediumItalic.ttf'),
 	});
 
 	if (!loaded) {

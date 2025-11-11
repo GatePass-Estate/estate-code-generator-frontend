@@ -25,7 +25,7 @@ const FloatingButton: React.FC<{ focused?: boolean }> = ({ focused = false }) =>
 const HomeIcon: React.FC<{ focused?: boolean }> = ({ focused = false }) => (
 	<View className="items-center w-80 mt-6 gap-1">
 		<Image
-			source={focused ? (Platform.OS == 'ios' ? icons.iosHomeActive : images.activeBtnImg) : Platform.OS == 'ios' ? icons.iosHomeInActive : icons.menuIcon}
+			source={focused ? (Platform.OS == 'ios' ? icons.iosHomeActive : icons.activeBtnImg) : Platform.OS == 'ios' ? icons.iosHomeInActive : icons.menuIcon}
 			style={{
 				marginLeft: -3,
 				width: 20,
@@ -40,7 +40,7 @@ const HomeIcon: React.FC<{ focused?: boolean }> = ({ focused = false }) => (
 const GuestIcon: React.FC<{ focused?: boolean }> = ({ focused = false }) => (
 	<View style={{ alignItems: 'center', width: 300, marginTop: 25, gap: 4 }}>
 		<Image
-			source={focused ? (Platform.OS == 'ios' ? icons.iosGuestActive : images.activeGuestIcon) : Platform.OS == 'ios' ? icons.iosGuestInActive : images.inactiveGuestIcon}
+			source={focused ? (Platform.OS == 'ios' ? icons.iosGuestActive : icons.activeGuestIcon) : Platform.OS == 'ios' ? icons.iosGuestInActive : icons.inactiveGuestIcon}
 			style={{
 				width: 20,
 				height: 20,
@@ -52,7 +52,9 @@ const GuestIcon: React.FC<{ focused?: boolean }> = ({ focused = false }) => (
 );
 
 export const menuRoutes: menuRouteType[] = [
-	{ name: 'index', link: '/user', title: 'Home', TabIcon: HomeIcon, for: 'both', activeIcon: icons.activeHomeIcon, inactiveIcon: icons.inactiveHomeIcon },
+	{ name: 'index', link: '/user', title: 'Home', TabIcon: HomeIcon, for: 'native', activeIcon: icons.activeHomeIcon, inactiveIcon: icons.inactiveHomeIcon },
+
+	{ name: 'index', link: '/user', title: 'Home', TabIcon: HomeIcon, for: 'web', activeIcon: icons.webHomeActiveIcon, inactiveIcon: icons.webHomeInActiveIcon },
 
 	{ name: 'guests/add/index', link: '/user/guests/add', title: 'Add Guest', TabIcon: FloatingButton, for: 'native' },
 

@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState } from 'react';
 import { Stack, useRouter } from 'expo-router';
 import { View, Text, TextInput, Keyboard, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
