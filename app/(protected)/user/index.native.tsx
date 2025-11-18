@@ -96,7 +96,7 @@ export default function HomeMobile({}) {
 						</View>
 					)}
 					renderItem={({ item }) => {
-						let { timeLeftMinutes, formattedDate, timeframe } = timeCalc(item);
+						let { timeLeftMinutes, formattedDate, timeframe } = timeCalc(item.valid_until);
 
 						return (
 							<Pressable

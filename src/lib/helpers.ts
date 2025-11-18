@@ -91,13 +91,13 @@ export const formatDateWithOrdinal = (date: Date): string => {
 };
 
 export const timeCalc = (
-	code: Codes
+	valid_until: string | Date | undefined
 ): {
 	formattedDate: string;
 	timeframe: string;
 	timeLeftMinutes: number;
 } => {
-	const iso = String(code.valid_until ?? '')
+	const iso = String(valid_until ?? '')
 		.replace(' ', 'T')
 		.replace(/([+-]\d{2})(\d{2})$/, '$1:$2');
 	const parsed = new Date(iso);

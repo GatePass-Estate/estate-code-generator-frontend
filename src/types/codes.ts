@@ -1,10 +1,12 @@
+import { GenderType } from './general';
+
 export type Codes = {
 	user_id: string;
 	estate_id: string | null;
 	visitor_fullname: string | null;
 	relationship_with_resident: string;
 	hashed_code: string;
-	gender: 'male' | 'female' | 'prefer not to say' | 'other' | null;
+	gender: GenderType;
 	estate_name: string | null;
 	valid_until: string;
 	is_expired: boolean;

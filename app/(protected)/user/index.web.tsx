@@ -154,9 +154,9 @@ export default function HomeWeb() {
 								{codesPaginated.map((code, i) => {
 									let gender = code.gender;
 
-									if (gender !== 'male' && gender !== 'female') gender = 'other';
+									if (gender !== 'male' && gender !== 'female') gender = 'prefer_not_to_say';
 
-									let { timeLeftMinutes, formattedDate, timeframe } = timeCalc(code);
+									let { timeLeftMinutes, formattedDate, timeframe } = timeCalc(code.valid_until);
 
 									return (
 										<AccessCodeCard

@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Image } from 'react-native';
 import CountdownRing from '../common/CountdownRing';
 import icons from '@/src/constants/icons';
 import { useRouter } from 'expo-router';
 import Modal from './Modal';
+import { GenderType } from '@/src/types/general';
 
 type CodeCardProps = {
 	code: string;
@@ -14,13 +15,13 @@ type CodeCardProps = {
 		date: string;
 		timeframe: string;
 	};
-	variant?: 'other' | 'female' | 'male';
+	variant?: GenderType;
 	timeLeftMinutes?: number;
 	removeCode: (code: string) => Promise<void>;
 };
 
 export const variantStyles = {
-	other: {
+	prefer_not_to_say: {
 		container: 'bg-light-grey border-grey',
 		text: 'text-grey',
 		action: 'bg-grey',
@@ -37,10 +38,10 @@ export const variantStyles = {
 	},
 };
 
-const CodeCard = ({ code, details, variant = 'other', timeLeftMinutes, estate_id, removeCode }: CodeCardProps) => {
+const CodeCard = ({ code, details, variant = 'prefer_not_to_say', timeLeftMinutes, estate_id, removeCode }: CodeCardProps) => {
 	const router = useRouter();
 
-	const styles = variantStyles[variant];
+	const styles = variantStyles[variant!];
 
 	const [confirmOpen, setConfirmOpen] = useState(false);
 	const [deleting, setDeleting] = useState(false);

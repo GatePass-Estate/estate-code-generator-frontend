@@ -9,6 +9,7 @@ import { getAllCodes } from '@/src/lib/api/codes';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { Codes } from '@/src/types/codes';
 import icons from '@/src/constants/icons';
+import { timeCalc } from '@/src/lib/helpers';
 
 export default function ShareInvitePage() {
 	const router = useRouter();
@@ -44,33 +45,7 @@ export default function ShareInvitePage() {
 			result.items
 				.filter((code) => code.hashed_code == codeParam)
 				.forEach((matchedCode) => {
-					let date = matchedCode.valid_until;
-					const iso = String(date ?? '')
-						.replace(' ', 'T')
-						.replace(/([+-]\d{2})(\d{2})$/, '$1:$2'); // turn "+0000" into "+00:00"
-					const parsed = new Date(iso);
-
-					let formattedDate = 'Invalid date';
-					let timeframe = 'Unknown';
-
-					if (!isNaN(parsed.getTime())) {
-						const day = String(parsed.getDate()).padStart(2, '0');
-						const month = String(parsed.getMonth() + 1).padStart(2, '0');
-						const year = parsed.getFullYear();
-						formattedDate = `${day}/${month}/${year}`;
-
-						const diffMs = parsed.getTime() - Date.now();
-						if (diffMs <= 0) {
-							timeframe = 'Expired';
-						} else {
-							timeframe = (() => {
-								const endDate = parsed;
-								const startDate = new Date(endDate.getTime() - 60 * 60 * 1000); // 1 hour window
-								const formatTime = (d: Date) => d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true }).replace(/\s+/g, '').toLowerCase();
-								return `${formatTime(startDate)} to ${formatTime(endDate)}`;
-							})();
-						}
-					}
+					let { formattedDate, timeframe } = timeCalc(matchedCode.valid_until);
 
 					setCode({
 						...matchedCode,

@@ -9,6 +9,7 @@ import { useUserStore } from '@/src/lib/stores/userStore';
 import { createGuest } from '@/src/lib/api/guests';
 import { GenderType, RelationshipType } from '@/src/types/general';
 import { sharedStyles } from '@/src/theme/styles';
+import { timeCalc } from '@/src/lib/helpers';
 
 const AddGuestMobile = () => {
 	const [guestName, setGuestName] = useState('');
@@ -74,9 +75,18 @@ const AddGuestMobile = () => {
 				setRunning(false);
 
 				clearInput();
+
+				let { formattedDate, timeframe } = timeCalc(result.valid_until);
+
 				router.push({
 					pathname: `/invite`,
-					params: { code: result.hashed_code, name: guestName, address: `${useUserStore.getState().home_address}, ${useUserStore.getState().estate_name}.` },
+					params: {
+						code: result.hashed_code,
+						name: guestName,
+						address: `${useUserStore.getState().home_address}, ${useUserStore.getState().estate_name}.`,
+						timeframe,
+						date: formattedDate,
+					},
 				});
 			} catch (error) {
 				setError('Failed to generate code. Please try again.');
