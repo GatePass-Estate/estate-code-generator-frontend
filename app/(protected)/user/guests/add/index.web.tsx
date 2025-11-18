@@ -9,6 +9,7 @@ import { generateCode } from '@/src/lib/api/codes';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { createGuest } from '@/src/lib/api/guests';
 import { GenderType, RelationshipType } from '@/src/types/general';
+import { timeCalc } from '@/src/lib/helpers';
 
 const GENDERS = [
 	{ name: 'female', value: 'female' },
@@ -96,7 +97,18 @@ export default function AddGuestWeb() {
 					});
 				}
 
-				router.push(`/invite?code=${result.hashed_code}&estate_id=${useUserStore.getState().estate_id}`);
+				let { formattedDate, timeframe } = timeCalc(result.valid_until);
+
+				router.push({
+					pathname: `/invite`,
+					params: {
+						code: result.hashed_code,
+						name,
+						address: `${useUserStore.getState().home_address}, ${useUserStore.getState().estate_name}.`,
+						timeframe,
+						date: formattedDate,
+					},
+				});
 			} catch (error) {
 				setError('Failed to generate code. Please try again.');
 			} finally {
