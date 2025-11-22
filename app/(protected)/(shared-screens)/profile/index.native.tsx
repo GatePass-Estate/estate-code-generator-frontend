@@ -102,7 +102,14 @@ const ProfileScreen = () => {
 			<Back type="short-arrow" />
 
 			<View className="flex-1">
-				<Text className="text-2xl text-primary mb-5 font-ubuntu-bold mt-8">My Profile</Text>
+				<Text
+					className="text-2xl text-primary mb-5 font-ubuntu-bold mt-8"
+					style={{
+						fontSize: 21.33,
+					}}
+				>
+					My Profile
+				</Text>
 
 				{role != 'security' && <CodeRow />}
 				<ExpiryWarning />

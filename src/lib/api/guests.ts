@@ -7,11 +7,7 @@ export const getMyGuests = async (): Promise<GuestApiResponse> => {
 	try {
 		const api = Api();
 		const axiosRes = await api.get(`/users/guest`);
-
-		const ok = axiosRes.status >= 200 && axiosRes.status < 300;
 		const data = axiosRes.data;
-
-		if (!ok) throw new Error(data?.detail || data?.message || 'An error occured');
 
 		return data;
 	} catch (error: any) {
@@ -24,11 +20,7 @@ export const deleteMyGuest = async (id: string): Promise<DeleteGuestResponse> =>
 		const api = Api();
 
 		const axiosRes = await api.delete(`/users/guest/${id}`);
-
-		const ok = axiosRes.status >= 200 && axiosRes.status < 300;
 		const data = axiosRes.data;
-
-		if (!ok) throw new Error(data?.detail || data?.message || 'An error occured');
 
 		return data;
 	} catch (error: any) {
@@ -41,11 +33,7 @@ export const getSingleGuest = async (id: string): Promise<Guest> => {
 		const api = Api();
 
 		const axiosRes = await api.get(`/users/guest/${id}`);
-
-		const ok = axiosRes.status >= 200 && axiosRes.status < 300;
 		const data = axiosRes.data;
-
-		if (!ok) throw new Error(data?.detail || data?.message || 'An error occured');
 
 		return data;
 	} catch (error: any) {
@@ -58,11 +46,7 @@ export const createGuest = async (payload: { resident_id: string; guest_name: st
 		const api = Api();
 
 		const axiosRes = await api.post(`/users/guest/register`, payload);
-
-		const ok = axiosRes.status >= 200 && axiosRes.status < 300;
 		const data = axiosRes.data;
-
-		if (!ok) throw new Error(data?.detail || data?.message || 'An error occured');
 
 		return data;
 	} catch (error: any) {

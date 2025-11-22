@@ -10,7 +10,7 @@ export default function UserIcon() {
 
 	return (
 		<Link href="/profile" asChild>
-			<Pressable className="opacity-80">
+			<Pressable>
 				{() => (
 					<View style={styles.profileCircle}>
 						<Text className="uppercase" style={styles.profileInitials}>

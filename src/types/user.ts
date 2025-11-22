@@ -8,11 +8,15 @@ export type User = {
 	email: string | null;
 	phone_number: string | null;
 	gender: GenderType;
-	role: UserRolesType;
 	estate_name: string | null;
+	role: UserRolesType;
 	estate_id: string | null;
-	household_primary_resident: string | null;
+
+	household_id: string | null;
 	status: boolean | null;
+	created_at: string | null;
+	updated_at: string | null;
+	is_deleted: false;
 };
 
 export type UpdatePasswordPayload = {

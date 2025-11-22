@@ -76,6 +76,7 @@ function SearchCode({ setResult, setModalOpen }: { setResult: (data: GuestDetail
 
 	const handleChange = (index: number, value: string) => {
 		const cleaned = value.replace(/[^0-9a-zA-Z]/g, '').slice(0, 1);
+		setErrorMessage('');
 		// .toUpperCase();
 		const next = [...values];
 		next[index] = cleaned;
@@ -239,15 +240,7 @@ export default function SecurityVerificationWeb() {
 	const [modalOpen, setModalOpen] = useState(false);
 
 	return (
-		<ImageBackground
-			source={images.securityBg}
-			style={{
-				backgroundSize: 'cover',
-				backgroundPosition: 'center',
-				backgroundRepeat: 'no-repeat',
-			}}
-			className="min-h-screen font-UbuntuSans text-primary security-bg relative"
-		>
+		<ImageBackground source={images.securityBg} imageStyle={{ resizeMode: 'cover', alignSelf: 'center' }} className="min-h-screen font-UbuntuSans text-primary security-bg relative">
 			<div className="mx-auto p-4 px-20 flex flex-col min-h-screen">
 				<header className="flex items-center justify-center mt-5 pb-10">
 					<Image source={images.logo} style={{ width: 100, height: 100 }} resizeMode="contain" className="absolute left-20" />

@@ -5,23 +5,25 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { sharedStyles } from '@/src/theme/styles';
 import UserIcon from '@/src/components/mobile/UserIcon';
 import { validateCode } from '@/src/lib/api/codes';
+import { InputRefsStorage } from '@/src/types/general';
+import { getUserById } from '@/src/lib/api/user';
+import { User } from '@/src/types/user';
 
 export default function SecurityVerificationMobile() {
 	const [code, setCode] = useState<string[]>(['', '', '', '', '', '']);
 	const [errorMessage, setErrorMessage] = useState<string>('');
 	const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
-	const input1Ref = useRef<TextInput>(null);
-	const input2Ref = useRef<TextInput>(null);
-	const input3Ref = useRef<TextInput>(null);
-	const input4Ref = useRef<TextInput>(null);
-	const input5Ref = useRef<TextInput>(null);
-	const input6Ref = useRef<TextInput>(null);
+	const inputs = useRef<InputRefsStorage>({});
 	const inputContainer = useRef(null);
 
-	const inputRefs = [input1Ref, input2Ref, input3Ref, input4Ref, input5Ref, input6Ref];
-
 	const router = useRouter();
+
+	const setInputRef = (el: TextInput | null, index: number) => {
+		if (el) {
+			inputs.current[index] = el;
+		}
+	};
 
 	const handleChange = (text: string, index: number) => {
 		setErrorMessage('');
@@ -30,15 +32,14 @@ export default function SecurityVerificationMobile() {
 		newCode[index] = digit;
 		setCode(newCode);
 
-		console.log(inputContainer.current);
-
-		requestAnimationFrame(() => {
+		// Uses a timeout to ensure the component is ready before focusing
+		setTimeout(() => {
 			if (digit && index < 5) {
-				inputRefs[index + 1].current?.focus();
+				inputs.current[index + 1]?.focus();
 			} else if (!digit && index > 0) {
-				inputRefs[index - 1].current?.focus();
+				inputs.current[index - 1]?.focus();
 			}
-		});
+		}, 50);
 	};
 
 	const handleValidation = async () => {
@@ -54,17 +55,24 @@ export default function SecurityVerificationMobile() {
 
 		try {
 			const result = await validateCode(entered);
+
+			let resident = {} as User;
+			try {
+				resident = await getUserById(result.user_id);
+			} catch (err) {}
+
 			setCode(['', '', '', '', '', '']);
+
 			router.push({
 				pathname: '/security/result',
 				params: {
 					visitor_fullname: result.visitor_fullname,
 					relationship_with_resident: result.relationship_with_resident,
 					gender: result.gender,
-					resident_name: '',
-					resident_address: '',
-					resident_email: '',
-					resident_phone_number: '',
+					resident_name: `${resident?.first_name ?? ''} ${resident?.last_name ?? ''}`,
+					resident_address: resident?.home_address,
+					resident_email: resident?.email,
+					resident_phone_number: resident?.phone_number,
 					code: result.hashed_code,
 				},
 			});
@@ -85,7 +93,11 @@ export default function SecurityVerificationMobile() {
 					headerTitleAlign: 'left',
 					headerStyle: sharedStyles.header,
 					headerTitleStyle: sharedStyles.title,
-					headerRight: () => <UserIcon />,
+					headerRight: () => (
+						<View style={{ marginRight: -20 }}>
+							<UserIcon />
+						</View>
+					),
 				}}
 			/>
 
@@ -120,13 +132,12 @@ export default function SecurityVerificationMobile() {
 							maxLength={1}
 							value={digit}
 							onChangeText={(t) => handleChange(t, idx)}
-							ref={inputRefs[idx]}
+							onLayout={(e) => {
+								setInputRef(e.target as unknown as TextInput, idx);
+							}}
 							accessibilityLabel={`Digit ${idx + 1}`}
 							returnKeyType={'done'}
 							blurOnSubmit={true}
-							// onSubmitEditing={() => {
-							// 	if (idx < 5) inputs.current[idx + 1]?.focus();
-							// }}
 						/>
 					))}
 				</View>

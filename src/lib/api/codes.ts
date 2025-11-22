@@ -44,11 +44,7 @@ export const deleteCode = async (code: string): Promise<Boolean> => {
 		const api = Api('code');
 
 		const axiosRes = await api.delete(`/codeservice/${code}`);
-
-		const ok = axiosRes.status >= 200 && axiosRes.status < 300;
 		const data = axiosRes.data;
-
-		if (!ok) throw new Error(data?.detail || data?.message || 'An error occured');
 
 		return data;
 	} catch (error: any) {
@@ -67,11 +63,7 @@ export const generateCode = async (payload: { user_id: string; estate_id: string
 			relationship_with_resident: payload.relationship_with_resident,
 			gender: payload.gender,
 		});
-
-		const ok = axiosRes.status >= 200 && axiosRes.status < 300;
 		const data = axiosRes.data;
-
-		if (!ok) throw new Error(data?.detail || data?.message || 'An error occured');
 
 		return data;
 	} catch (error: any) {
