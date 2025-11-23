@@ -6,7 +6,7 @@ import { sharedStyles } from '@/src/theme/styles';
 import UserIcon from '@/src/components/mobile/UserIcon';
 import { validateCode } from '@/src/lib/api/codes';
 import { InputRefsStorage } from '@/src/types/general';
-import { getUserById } from '@/src/lib/api/user';
+import { getUserByIdSecurity } from '@/src/lib/api/user';
 import { User } from '@/src/types/user';
 
 export default function SecurityVerificationMobile() {
@@ -55,11 +55,7 @@ export default function SecurityVerificationMobile() {
 
 		try {
 			const result = await validateCode(entered);
-
-			let resident = {} as User;
-			try {
-				resident = await getUserById(result.user_id);
-			} catch (err) {}
+			const resident = await getUserByIdSecurity(result.user_id);
 
 			setCode(['', '', '', '', '', '']);
 

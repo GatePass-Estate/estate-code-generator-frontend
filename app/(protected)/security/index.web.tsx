@@ -6,6 +6,8 @@ import { GuestDetails } from '@/src/types/guests';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { useAuth } from '@/src/hooks/useAuthContext';
 import { router } from 'expo-router';
+import { User } from '@/src/types/user';
+import { getUserByIdSecurity } from '@/src/lib/api/user';
 
 function InviteDetailsModal({ result, setModalOpen }: { result: GuestDetails | null; setModalOpen: (open: boolean) => void }) {
 	return (
@@ -120,15 +122,17 @@ function SearchCode({ setResult, setModalOpen }: { setResult: (data: GuestDetail
 
 		try {
 			const result = await validateCode(entered);
+			const resident = await getUserByIdSecurity(result.user_id);
+
 			setValues(['', '', '', '', '', '']);
 			setResult({
 				visitor_fullname: result.visitor_fullname,
 				relationship_with_resident: result.relationship_with_resident,
 				gender: result.gender,
-				resident_name: '',
-				resident_address: '',
-				resident_email: '',
-				resident_phone_number: '',
+				resident_name: `${resident?.first_name ?? ''} ${resident?.last_name ?? ''}`,
+				resident_address: resident?.home_address,
+				resident_email: resident?.email,
+				resident_phone_number: resident?.phone_number,
 				code: result.hashed_code,
 			} as GuestDetails);
 			setModalOpen(true);

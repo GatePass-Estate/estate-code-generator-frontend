@@ -20,11 +20,24 @@ export const updatepassword = async (payload: { user_id: string; current_passwor
 	}
 };
 
-export const getUserById = async (id: string): Promise<User> => {
+export const getUserByIdAdmin = async (id: string): Promise<User> => {
 	try {
 		const api = Api();
 
 		const axiosRes = await api.get(`/users/${id}`);
+		const data = axiosRes.data;
+
+		return data;
+	} catch (error: any) {
+		throw new Error(`${getErrorMessage(error) || 'An error occured'} `);
+	}
+};
+
+export const getUserByIdSecurity = async (id: string): Promise<User> => {
+	try {
+		const api = Api();
+
+		const axiosRes = await api.get(`/users/profile/${id}`);
 		const data = axiosRes.data;
 
 		return data;
