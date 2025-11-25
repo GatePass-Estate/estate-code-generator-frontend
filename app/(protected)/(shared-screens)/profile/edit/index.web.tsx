@@ -20,7 +20,7 @@ export const EditProfileForm = ({ centralize = false }: { centralize?: boolean }
 			</div>
 			<form className="py-7 flex flex-col gap-6 min-w-[400px]  md:min-w-[500px] lg:min-w-[600px]" onSubmit={handleSubmission}>
 				<div
-					className=" bg-white border-micro
+					className=" bg-[#FBFEFF] border-micro
 							 border-primary rounded-lg p-8 flex flex-col gap-6 "
 				>
 					<div className="flex flex-col gap-2">
@@ -46,12 +46,12 @@ export const EditProfileForm = ({ centralize = false }: { centralize?: boolean }
 					</div>
 				</div>
 
-				<div className="self-end flex gap-4">
-					<button onClick={() => router.back()} type="button" className={`text-primary font-medium py-3 px-14 cursor-pointer ${centralize && 'border border-accent px-20 rounded-lg'}`}>
+				<div className=" flex gap-4 pr-2 pl-14">
+					<button onClick={() => router.back()} type="button" className={`text-primary font-medium py-3 px-14 flex-1 cursor-pointer ${centralize && 'border border-accent px-20 rounded-lg'}`}>
 						{centralize ? 'Back' : 'Cancel Request'}
 					</button>
 
-					<button type="submit" className="self-end bg-primary text-white font-medium text-sm rounded-lg py-3 px-14 cursor-pointer">
+					<button type="submit" className="self-end bg-primary text-white font-medium text-sm rounded-lg py-3 px-14 flex-1 cursor-pointer">
 						Send Request
 					</button>
 				</div>
