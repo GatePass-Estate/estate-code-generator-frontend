@@ -1,0 +1,86 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.web-access-code-details {
+	@apply flex;
+}
+
+.web-access-code-details-heading {
+	@apply font-medium text-xs w-20;
+}
+
+.web-access-code-details-content {
+	@apply text-xs font-medium;
+}
+
+.web-body {
+	@apply ml-0 sm:ml-60 lg:ml-72 xl:ml-80 p-4 sm:p-1 w-full;
+	@apply mr-0 sm:mr-8 lg:mr-10 xl:mr-12;
+}
+
+.input-style {
+	@apply bg-light-grey border-input-border rounded-lg px-4 py-5 mt-1 justify-center;
+}
+
+.input-label {
+	@apply text-sm  text-primary mt-4;
+}
+
+.container {
+	@apply flex bg-body px-5 pt-5 border-b-0;
+}
+
+.input-style-web {
+	@apply bg-light-grey border-input-border rounded-2xl pl-8 p-5 mt-1 justify-center;
+}
+
+.input-label-web {
+	@apply text-base text-grey;
+}
+
+.input-group-web {
+	@apply flex flex-col gap-2;
+}
+
+.share-detail-style {
+	@apply text-xl text-black font-normal font-UbuntuSans;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+	@apply font-UbuntuSans;
+}
+
+span,
+p,
+a,
+li,
+div {
+	@apply font-Inter;
+}
+
+p,
+span {
+	@apply text-base;
+}
+
+.full-btn {
+	@apply bg-primary text-white font-medium font-UbuntuSans text-base rounded-lg py-3 px-10 cursor-pointer;
+}
+
+button {
+	@apply font-UbuntuSans;
+}
+
+.security-bg {
+	background: radial-gradient(ellipse at 10% 80%, rgba(131, 184, 176, 0.08) 0%, transparent 30%), radial-gradient(ellipse at 90% 20%, rgba(180, 150, 206, 0.06) 0%, transparent 30%), #fbf0ee;
+}
+
+.search-code-input-web {
+	@apply w-full h-full text-center bg-transparent outline-none caret-primary text-primary text-3xl;
+}

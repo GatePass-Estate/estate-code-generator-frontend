@@ -1,40 +1,34 @@
-import { Link, Redirect, Stack } from 'expo-router';
-
 import 'react-native-reanimated';
-
-import { useColorScheme } from '@/lib/useColorScheme';
-import { NAV_THEME } from '@/theme';
-import { Pressable, View } from 'react-native';
-import { cn } from '@/lib/cn';
-import { Icon } from '@roninoss/icons';
-import { ThemeToggle } from '@/components/ThemeToggle';
-import { useAuth } from '@/hooks/useAuthContext';
+import { Redirect, Stack } from 'expo-router';
+import { useAuth } from '@/src/hooks/useAuthContext';
+import { useAuthStore } from '@/src/lib/stores/authStore';
+import { useUserStore } from '@/src/lib/stores/userStore';
 
 export const unstable_home_settings = {
-  initialRouteName: '(tabs)', 
+	initialRouteName: '(protected)',
 };
 
 export default function ProtectedLayout() {
-  const { user, isReady } = useAuth();
+	const { isReady } = useAuth();
 
-  if (!isReady) {
-    return null;
-  }
+	const role = useAuthStore((state) => state.role);
+	const status = useUserStore((state) => state.status);
 
-  if (!user) {
-    return <Redirect href='/login' />;
-  }
+	if (!isReady) {
+		return null;
+	}
 
-  if (user.role === 'admin') {
-    return <Redirect href='/(admin)' />;
-  }
-  if (user.role === 'security'){
-    return <Redirect href='(security)' />;
-  }
+	if (!status) {
+		return <Redirect href="/auth" />;
+	}
 
-  return (
-    <Stack>
-      <Stack.Screen name='(tabs)' options={{ headerShown: false }} />
-    </Stack>
-  );
+	if (role === 'admin') {
+		return <Redirect href="/admin" />;
+	}
+
+	return (
+		<Stack screenOptions={{ headerShown: false }}>
+			<Stack.Screen name="user" />
+		</Stack>
+	);
 }
