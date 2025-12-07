@@ -74,7 +74,7 @@ const CodeCard = ({ code, details, variant = 'other', timeLeftMinutes, estate_id
 					</div>
 
 					<div>
-						<CountdownRing initialMinutes={timeLeftMinutes} size={55} />
+						<CountdownRing expiresAt={timeLeftMinutes!} size={55} />
 					</div>
 				</div>
 

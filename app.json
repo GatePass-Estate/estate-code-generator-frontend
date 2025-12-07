@@ -1,52 +1,49 @@
 {
 	"expo": {
-		"name": "Estate Code Generator",
+		"name": "Gate Pass",
 		"slug": "my-expo-app",
 		"version": "1.0.0",
-		"scheme": "my-expo-app",
-		"web": {
-			"bundler": "metro",
-			"output": "static",
-			"image": "./src/assets/gatepass_ng_Gp.png",
-			"favicon": "./src/assets/gatepass_ng_Gp.png"
-		},
-		"plugins": ["expo-router", "expo-font", "expo-web-browser"],
-		"experiments": {
-			"typedRoutes": true,
-			"tsconfigPaths": true
-		},
 		"orientation": "portrait",
 		"icon": "./src/assets/gatepass_ng_Gp.png",
-		"userInterfaceStyle": "automatic",
 		"splash": {
-			"image": "./src/assets/gatepass_ng_Gp.png",
+			"image": "./src/assets/splash.png",
 			"resizeMode": "contain",
-			"backgroundColor": "#ffffff",
-			"mdpi": "./src/assets/gatepass_ng_Gp.png",
-			"hdpi": "./src/assets/gatepass_ng_Gp.png",
-			"xhdpi": "./src/assets/gatepass_ng_Gp.png",
-			"xxhdpi": "./src/assets/gatepass_ng_Gp.png",
-			"xxxhdpi": "./src/assets/gatepass_ng_Gp.png",
-			"layout": "splashscreen"
+			"backgroundColor": "#ffffff" // or whatever solid colour you want behind the image
 		},
-		"assetBundlePatterns": ["**/*"],
-		"ios": {
-			"supportsTablet": true,
-			"bundleIdentifier": "com.specialone.gms"
-		},
+		"plugins": [
+			[
+				"expo-splash-screen",
+				{
+					// These settings disable the default Android/iOS splash layout (shadow + text)
+					"enable": true,
+					"backgroundColor": "#ffffff",
+					"image": "./assets/splash.png",
+					"imageWidth": 200, // width of your logo inside the splash
+					"resizeMode": "contain",
+
+					// This is the important part — disables the built-in UI
+					"androidDisableDefaultSplashLayout": true,
+					"iosDisableDefaultSplashStoryboard": true,
+
+					// Optional: completely hide the app name on Android
+					"hideAppNameOnAndroid": true,
+
+					"dark": {
+						"image": "./assets/splash-dark.png", // optional
+						"backgroundColor": "#000000"
+					}
+				}
+			]
+		],
 		"android": {
-			"adaptiveIcon": {
-				"foregroundImage": "./src/assets/gatepass_ng_Gp.png",
-				"backgroundColor": "#ffffff"
-			},
 			"package": "com.specialone.gms",
-			"splash": {
-				"image": "./src/assets/gatepass_ng_Gp.png",
-				"resizeMode": "cover",
-				"backgroundColor": "#ffffff",
-				"hideExponentText": true,
-				"theme": "@style/Theme.App.Splash"
+			"adaptiveIcon": {
+				"foregroundImage": "./src/assets/adaptive-icon.png",
+				"backgroundColor": "#ffffff"
 			}
+		},
+		"ios": {
+			"bundleIdentifier": "com.specialone.gms"
 		}
 	}
 }

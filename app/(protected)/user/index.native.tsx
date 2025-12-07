@@ -14,6 +14,9 @@ export default function HomeMobile({}) {
 	const [refreshing, setRefreshing] = useState(true);
 	const [codes, setCodes] = useState<Codes[]>([]);
 
+	// defined ZERO constant for clarity when an item hits zero minutes
+	const ZERO = 0;
+
 	const fetchCodes = async () => {
 		setRefreshing(true);
 		try {
@@ -76,7 +79,7 @@ export default function HomeMobile({}) {
 
 				<FlatList
 					data={filteredCodes}
-					keyExtractor={(_, index) => index.toString()}
+					keyExtractor={(item) => item.hashed_code}
 					refreshing={refreshing}
 					onRefresh={fetchCodes}
 					style={{
@@ -145,7 +148,13 @@ export default function HomeMobile({}) {
 
 									<Text className={`text-[27px] font-UbuntuSans uppercase text-orange tracking-[5px] font-bold`}>{item.hashed_code.slice(0, 3) + ' ' + item.hashed_code.slice(3)}</Text>
 								</View>
-								<CountdownRing size={50} initialMinutes={timeLeftMinutes} />
+								<CountdownRing
+									size={50}
+									expiresAt={parsed.getTime()}
+									onExpire={() => {
+										setCodes((prev) => prev.filter((c) => c.hashed_code !== item.hashed_code));
+									}}
+								/>
 							</Pressable>
 						);
 					}}

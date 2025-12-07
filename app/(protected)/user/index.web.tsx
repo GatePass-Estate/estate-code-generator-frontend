@@ -193,7 +193,7 @@ export default function HomeWeb() {
 												timeframe,
 											}}
 											variant={gender}
-											timeLeftMinutes={timeLeftMinutes}
+											timeLeftMinutes={parsed.getTime()}
 											removeCode={performRemoveCode}
 										/>
 									);
