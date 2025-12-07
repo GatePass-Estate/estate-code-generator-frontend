@@ -167,7 +167,31 @@ export default function HomeWeb() {
 
 									if (gender !== 'male' && gender !== 'female') gender = 'prefer_not_to_say';
 
-									let { timeLeftMinutes, formattedDate, timeframe } = timeCalc(code.valid_until);
+									const iso = String(code.valid_until ?? '')
+										.replace(' ', 'T')
+										.replace(/([+-]\d{2})(\d{2})$/, '$1:$2');
+									const parsed = new Date(iso);
+
+									let formattedDate = 'Invalid date';
+									let timeframe = 'Unknown';
+									let timeLeftMinutes = 0;
+
+									if (!isNaN(parsed.getTime())) {
+										const day = String(parsed.getDate()).padStart(2, '0');
+										const month = String(parsed.getMonth() + 1).padStart(2, '0');
+										const year = parsed.getFullYear();
+										formattedDate = `${day}/${month}/${year}`;
+
+										const diffMs = parsed.getTime() - Date.now();
+										if (diffMs <= 0) {
+											timeframe = 'Expired';
+										} else {
+											const startDate = new Date(parsed.getTime() - 60 * 60 * 1000);
+											const formatTime = (d: Date) => d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true }).replace(/\s+/g, '').toLowerCase();
+											timeLeftMinutes = Math.floor((diffMs % 3600000) / 60000);
+											timeframe = `${formatTime(startDate)} to ${formatTime(parsed)}`;
+										}
+									}
 
 									return (
 										<AccessCodeCard
@@ -181,8 +205,11 @@ export default function HomeWeb() {
 												timeframe,
 											}}
 											variant={gender}
-											timeLeftMinutes={timeLeftMinutes}
+											timeLeftMinutes={parsed.getTime()}
 											removeCode={performRemoveCode}
+											onExpire={() => {
+												setCodes((prev) => prev.filter((c) => c.hashed_code !== code.hashed_code));
+											}}
 										/>
 									);
 								})}
