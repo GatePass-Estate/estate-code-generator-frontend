@@ -18,6 +18,7 @@ type CodeCardProps = {
 	variant?: GenderType;
 	timeLeftMinutes?: number;
 	removeCode: (code: string) => Promise<void>;
+	onExpire?: () => void;
 };
 
 export const variantStyles = {
@@ -38,7 +39,7 @@ export const variantStyles = {
 	},
 };
 
-const CodeCard = ({ code, details, variant = 'prefer_not_to_say', timeLeftMinutes, estate_id, removeCode }: CodeCardProps) => {
+const CodeCard = ({ code, details, variant = 'prefer_not_to_say', timeLeftMinutes, estate_id, removeCode, onExpire }: CodeCardProps) => {
 	const router = useRouter();
 
 	const styles = variantStyles[variant!];
@@ -75,7 +76,7 @@ const CodeCard = ({ code, details, variant = 'prefer_not_to_say', timeLeftMinute
 					</div>
 
 					<div>
-						<CountdownRing initialMinutes={timeLeftMinutes} size={55} />
+						<CountdownRing expiresAt={timeLeftMinutes!} size={55} onExpire={onExpire} />
 					</div>
 				</div>
 

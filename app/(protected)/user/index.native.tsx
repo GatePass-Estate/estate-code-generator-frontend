@@ -74,7 +74,7 @@ export default function HomeMobile({}) {
 
 				<FlatList
 					data={filteredCodes}
-					keyExtractor={(_, index) => index.toString()}
+					keyExtractor={(item) => item.hashed_code}
 					refreshing={refreshing}
 					onRefresh={fetchCodes}
 					style={{
@@ -96,7 +96,31 @@ export default function HomeMobile({}) {
 						</View>
 					)}
 					renderItem={({ item }) => {
-						let { timeLeftMinutes, formattedDate, timeframe } = timeCalc(item.valid_until);
+						const iso = String(item.valid_until ?? '')
+							.replace(' ', 'T')
+							.replace(/([+-]\d{2})(\d{2})$/, '$1:$2');
+						const parsed = new Date(iso);
+
+						let formattedDate = 'Invalid date';
+						let timeframe = 'Unknown';
+						let timeLeftMinutes = 0;
+
+						if (!isNaN(parsed.getTime())) {
+							const day = String(parsed.getDate()).padStart(2, '0');
+							const month = String(parsed.getMonth() + 1).padStart(2, '0');
+							const year = parsed.getFullYear();
+							formattedDate = `${day}/${month}/${year}`;
+
+							const diffMs = parsed.getTime() - Date.now();
+							if (diffMs <= 0) {
+								timeframe = 'Expired';
+							} else {
+								const startDate = new Date(parsed.getTime() - 60 * 60 * 1000);
+								const formatTime = (d: Date) => d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true }).replace(/\s+/g, '').toLowerCase();
+								timeLeftMinutes = Math.floor((diffMs % 3600000) / 60000);
+								timeframe = `${formatTime(startDate)} to ${formatTime(parsed)}`;
+							}
+						}
 
 						return (
 							<Pressable
@@ -117,9 +141,15 @@ export default function HomeMobile({}) {
 								<View style={{ flex: 1 }}>
 									<Text className={`text-sm font-medium text-grey mb-1`}>{item.visitor_fullname}</Text>
 
-									<Text className={`text-[27px] font-ubuntu-semibold uppercase text-orange tracking-[5px]`}>{item.hashed_code.slice(0, 3) + ' ' + item.hashed_code.slice(3)}</Text>
+									<Text className={`text-[27px] font-UbuntuSans uppercase text-orange tracking-[5px] font-bold`}>{item.hashed_code.slice(0, 3) + ' ' + item.hashed_code.slice(3)}</Text>
 								</View>
-								<CountdownRing size={50} initialMinutes={timeLeftMinutes} />
+								<CountdownRing
+									size={50}
+									expiresAt={parsed.getTime()}
+									onExpire={() => {
+										setCodes((prev) => prev.filter((c) => c.hashed_code !== item.hashed_code));
+									}}
+								/>
 							</Pressable>
 						);
 					}}
