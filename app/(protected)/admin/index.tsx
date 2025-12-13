@@ -3,10 +3,28 @@ import { Ionicons, Feather, FontAwesome } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/src/hooks/useAuthContext';
 import { useRouter } from 'expo-router';
+import { getAllUsers } from '@/src/lib/api/user';
+import { useEffect, useState } from 'react';
+import { AllUsers } from '@/src/types/user';
 
 export default function AdminDashboard() {
 	const { signOut } = useAuth();
+	const [users, setUsers] = useState<AllUsers>({ total: 0, page: 1, limit: 10, items: [] });
 	const router = useRouter();
+
+	useEffect(() => {
+		const getAllUsersData = async () => {
+			try {
+				const data = await getAllUsers();
+				setUsers(data);
+			} catch (error) {
+				console.error('Error fetching users:', error);
+			}
+		};
+
+		getAllUsersData();
+	}, []);
+
 	return (
 		<SafeAreaView>
 			<ScrollView contentContainerStyle={styles.container}>
@@ -21,7 +39,7 @@ export default function AdminDashboard() {
 					<View style={[styles.statBox, styles.residentBox]}>
 						<Ionicons name="home" size={24} color="#E76F51" />
 						<Text style={styles.residentText}>Residents</Text>
-						<Text style={styles.statNumber}>178</Text>
+						<Text style={styles.statNumber}>{users.total}</Text>
 					</View>
 					<View style={[styles.statBox, styles.securityBox]}>
 						<Ionicons name="shield-checkmark" size={24} color="#2A9D8F" />

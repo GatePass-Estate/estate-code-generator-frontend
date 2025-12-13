@@ -23,3 +23,10 @@ export type UpdatePasswordPayload = {
 	success: boolean;
 	message: string;
 };
+
+export type AllUsers = {
+	total: number;
+	page: number;
+	limit: number;
+	items: User[];
+};

@@ -72,9 +72,12 @@ export default function Login() {
 			const result = await loginUser(emailValue, password);
 			useAuthStore.setState({ access_token: result.access_token, role: result.role });
 			await storeAuthState(result);
-			signIn(await fetchMe(result.access_token));
 
-			if (['primary_admin', 'resident', 'admin'].includes(result.role!)) {
+			if (!(result.role == 'admin' || result.role == 'primary_admin')) signIn(await fetchMe(result.access_token));
+
+			if (['primary_admin', 'admin'].includes(result.role!)) {
+				router.replace('/admin');
+			} else if (result.role === 'resident') {
 				router.replace('/user');
 			} else if (result.role === 'security') {
 				router.replace('/security');

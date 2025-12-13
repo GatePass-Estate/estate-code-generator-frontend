@@ -1,5 +1,4 @@
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Animated, FlatList, Alert, Platform } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { Image } from 'react-native';
 import UserIcon from '@/src/components/mobile/UserIcon';

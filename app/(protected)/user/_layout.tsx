@@ -1,6 +1,5 @@
-import { View, StyleSheet, Text, Platform } from 'react-native';
+import { View, Text, Platform } from 'react-native';
 import { Image } from 'react-native';
-import images from '@/src/constants/images';
 import icons from '@/src/constants/icons';
 import NavigationContainer from '@/src/components/common/NavigationContainer';
 import { sharedStyles } from '@/src/theme/styles';
