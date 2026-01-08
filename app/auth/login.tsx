@@ -73,7 +73,7 @@ export default function Login() {
 			useAuthStore.setState({ access_token: result.access_token, role: result.role });
 			await storeAuthState(result);
 
-			if (!(result.role == 'admin' || result.role == 'primary_admin')) signIn(await fetchMe(result.access_token));
+			signIn(await fetchMe(result.access_token));
 
 			if (['primary_admin', 'admin'].includes(result.role!)) {
 				router.replace('/admin');
