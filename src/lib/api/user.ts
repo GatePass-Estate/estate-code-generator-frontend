@@ -50,7 +50,7 @@ export const getAllUsers = async (): Promise<AllUsers> => {
 	try {
 		const api = Api();
 
-		const axiosRes = await api.get(`/users/profile/users`);
+		const axiosRes = await api.get(`/users/all?status=true`);
 		const data = axiosRes.data;
 
 		return data;
