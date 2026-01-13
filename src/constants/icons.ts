@@ -73,7 +73,29 @@ import generateCodeIcon from '../assets/icons/generate-code.png';
 // @ts-ignore
 import activeBtnImg from '../assets/icons/android-home-active.png';
 // @ts-ignore
-import activeGuestIcon from '../assets/icons/active-account.png';
+import activeGuestIcon from '../assets/icons/admin-home.png';
+// @ts-ignore
+import securityIcon from '../assets/icons/admin-security.png';
+// @ts-ignore
+import editRequestIcon from '../assets/icons/admin-edit-request.png';
+// @ts-ignore
+import addUserIcon from '../assets/icons/admin-add-user.png';
+// @ts-ignore
+import broadcastIcon from '../assets/icons/admin-broadcast.png';
+// @ts-ignore
+import adminHomeIcon from '../assets/icons/admin-home.png';
+// @ts-ignore
+import thinPlus from '../assets/icons/thin-plus.png';
+// @ts-ignore
+import filter from '../assets/icons/filter.png';
+// @ts-ignore
+import expand from '../assets/icons/expand.png';
+// @ts-ignore
+import caret from '../assets/icons/caret.png';
+// @ts-ignore
+import inactiveSelect from '../assets/icons/inactive-select.png';
+// @ts-ignore
+import activeSelect from '../assets/icons/active-select.png';
 
 const icons = {
 	menuIcon,
@@ -114,6 +136,17 @@ const icons = {
 	generateCodeIcon,
 	activeBtnImg,
 	activeGuestIcon,
+	securityIcon,
+	editRequestIcon,
+	addUserIcon,
+	broadcastIcon,
+	adminHomeIcon,
+	thinPlus,
+	filter,
+	expand,
+	caret,
+	inactiveSelect,
+	activeSelect,
 };
 
 export default icons;
