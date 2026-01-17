@@ -105,7 +105,7 @@ const ProfileScreen = () => {
 				<Text
 					className="text-2xl text-primary mb-5 font-ubuntu-bold mt-8"
 					style={{
-						fontSize: 21.33,
+						fontSize: 23,
 					}}
 				>
 					My Profile

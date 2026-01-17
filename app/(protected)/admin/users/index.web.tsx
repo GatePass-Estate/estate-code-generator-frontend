@@ -4,7 +4,7 @@ import Icon from 'react-native-vector-icons/Feather';
 
 const users = Array(7).fill({ name: 'Sandra Happiness', flat: 'Flat 56' });
 
-const SeeAllUsersScreen = () => {
+const AllUsersWeb = () => {
 	const router = useRouter();
 	return (
 		<View style={styles.container}>
@@ -132,4 +132,4 @@ const styles = StyleSheet.create({
 	},
 });
 
-export default SeeAllUsersScreen;
+export default AllUsersWeb;

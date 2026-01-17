@@ -2,6 +2,7 @@ import { GenderType, UserRolesType } from './general';
 
 export type User = {
 	user_id: string;
+	id: string;
 	first_name: string | null;
 	last_name: string | null;
 	home_address: string | null;
@@ -29,4 +30,16 @@ export type AllUsers = {
 	page: number;
 	limit: number;
 	items: User[];
+};
+
+export type RegisterUserPayload = {
+	first_name: string;
+	last_name: string;
+	home_address: string;
+	email: string;
+	role: UserRolesType;
+	gender: GenderType;
+	estate_id: string;
+	phone_number: string | null;
+	household_id: string | null;
 };

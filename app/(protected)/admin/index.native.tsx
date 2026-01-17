@@ -66,14 +66,13 @@ export default function AdminDashboard() {
 				</View>
 
 				<View className="flex-row gap-3 mb-10">
-					{/* Total Box */}
 					<View className="flex-1 border border-primary rounded-2xl p-4 py-7 items-center">
 						<Text className="text-grey/50 uppercase font-inter-medium tracking-wide">Total</Text>
 						<Text className="text-primary text-5xl font-ubuntu-bold">{users.total}</Text>
 					</View>
 
 					<View className="flex-1 justify-center items-center p-4 rounded-2xl">
-						<TouchableOpacity className="bg-light-grey rounded-full p-4">
+						<TouchableOpacity className="bg-light-grey rounded-full p-4" onPress={() => router.push('/admin/users/add')}>
 							<Image source={icons.thinPlus} className="opacity-30" style={{ width: 30, height: 30 }} />
 						</TouchableOpacity>
 					</View>
@@ -85,17 +84,17 @@ export default function AdminDashboard() {
 						<Text className="text-primary text-sm font-inter-regular mt-1.5 text-center">See All Users</Text>
 					</TouchableOpacity>
 
-					<TouchableOpacity className="flex-1 items-center py-5 px-2" onPress={() => router.push('/(admin)/(adminReg)')}>
+					<TouchableOpacity className="flex-1 items-center py-5 px-2" onPress={() => router.push('/admin/users/add')}>
 						<Image source={icons.addUserIcon} style={{ width: 30, height: 30 }} />
 						<Text className="text-primary text-sm font-inter-regular mt-1.5 text-center">Register User</Text>
 					</TouchableOpacity>
 
-					<TouchableOpacity className="flex-1 items-center py-5 px-2">
+					<TouchableOpacity className="flex-1 items-center py-5 px-2" onPress={() => router.push('/admin/broadcast')}>
 						<Image source={icons.broadcastIcon} style={{ width: 30, height: 30 }} />
 						<Text className="text-primary text-sm font-inter-regular mt-1.5 text-center">Broadcast</Text>
 					</TouchableOpacity>
 
-					<TouchableOpacity className="flex-1 items-center py-5 px-2" onPress={() => router.push('/(admin)/(editRequests)')}>
+					<TouchableOpacity className="flex-1 items-center py-5 px-2" onPress={() => router.push('/admin/edit-requests')}>
 						<Image source={icons.editRequestIcon} style={{ width: 30, height: 30 }} />
 						<Text className="text-primary text-sm font-inter-regular mt-1.5 text-center">Edit Requests</Text>
 					</TouchableOpacity>
@@ -103,14 +102,14 @@ export default function AdminDashboard() {
 
 				<View className="flex-row justify-between items-center mb-2">
 					<Text className="text-lg font-inter-regular text-gray-800">All Users</Text>
-					<TouchableOpacity onPress={() => router.push('/(admin)/(userList)')}>
+					<TouchableOpacity onPress={() => router.push('/admin/users/')}>
 						<Text className="font-ubuntu-medium text-teal text-sm">View All</Text>
 					</TouchableOpacity>
 				</View>
 
 				<View className="pl-2">
 					{limitedUsers.map((user, index) => (
-						<TouchableOpacity key={index} className={`flex-row items-center py-3.5 ${index === limitedUsers.length - 1 ? '' : 'border-b'} border-gray-200`}>
+						<TouchableOpacity key={index} className={`flex-row items-center py-3.5 ${index === limitedUsers.length - 1 ? '' : 'border-b'} border-gray-200`} onPress={() => router.push(`/(protected)/admin/users/${user.id}`)}>
 							<Image source={icons.adminHomeIcon} style={{ width: 25, height: 25 }} />
 							<View className="flex-1 ml-2.5">
 								<Text className="text-primary text-lg font-inter-regular">{`${user.first_name} ${user.last_name}`}</Text>

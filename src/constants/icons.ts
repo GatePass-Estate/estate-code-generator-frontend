@@ -73,7 +73,7 @@ import generateCodeIcon from '../assets/icons/generate-code.png';
 // @ts-ignore
 import activeBtnImg from '../assets/icons/android-home-active.png';
 // @ts-ignore
-import activeGuestIcon from '../assets/icons/admin-home.png';
+import activeGuestIcon from '../assets/icons/active-account.png';
 // @ts-ignore
 import securityIcon from '../assets/icons/admin-security.png';
 // @ts-ignore
