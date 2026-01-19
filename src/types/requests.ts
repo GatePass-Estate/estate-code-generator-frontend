@@ -29,3 +29,8 @@ export interface EditRequestView {
 export type RequestType = 'home_address_change' | 'vacate_residence' | 'email_change' | 'first_name_change' | 'last_name_change' | 'gender_change' | 'phone_number_change';
 
 export type RequestStatus = 'approved' | 'declined' | 'pending';
+
+export type PendingRequestsResponse = {
+	hasPending: boolean;
+	pending_requests: RequestItem[];
+};

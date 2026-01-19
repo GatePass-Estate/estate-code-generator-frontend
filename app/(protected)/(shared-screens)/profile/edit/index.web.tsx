@@ -5,7 +5,7 @@ import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 import { createRequest, checkPendingRequests } from '@/src/lib/api/requests';
-import { RequestType } from '@/src/types/requests';
+import { RequestType, PendingRequestsResponse } from '@/src/types/requests';
 
 interface ChangedField {
 	type: RequestType;
@@ -45,7 +45,7 @@ export const EditProfileForm = ({ centralize = false }: { centralize?: boolean }
 		setSuccess('');
 		setLoading(true);
 
-		const pendingChecks: Promise<boolean>[] = [];
+		const pendingChecks: Promise<PendingRequestsResponse>[] = [];
 		const changedFields: ChangedField[] = [];
 
 		// Check for changes and build pending request checks
@@ -114,24 +114,18 @@ export const EditProfileForm = ({ centralize = false }: { centralize?: boolean }
 			// Process each pending check result
 			pendingResults.forEach((result, index) => {
 				if (result.status === 'fulfilled') {
-					// If a pending request exists, add error
-					if (result.value) {
+					// Check if there's a pending request using the new response structure
+					if (result.value.hasPending) {
 						errorMessages.push(`A pending request already exists for ${changedFields[index].label}`);
 					} else {
 						// No pending request, add to valid requests
 						validRequests.push(changedFields[index]);
 					}
 				} else {
-					// Check if it's a 404 or Not Found error
+					// Handle errors
 					const error = result.reason;
 					const errorMessage = error?.message || '';
-					if (errorMessage.includes('404') || errorMessage.includes('Not Found')) {
-						// 404 means no pending request, so add to valid requests
-						validRequests.push(changedFields[index]);
-					} else {
-						// Other errors
-						errorMessages.push(`Error checking ${changedFields[index].label}: ${errorMessage}`);
-					}
+					errorMessages.push(`Error checking ${changedFields[index].label}: ${errorMessage}`);
 				}
 			});
 

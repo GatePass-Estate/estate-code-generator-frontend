@@ -1,5 +1,5 @@
 import Api from '.';
-import { GetRequestsResponse, RequestItem, RequestStatus, RequestType } from '@/src/types/requests';
+import { GetRequestsResponse, PendingRequestsResponse, RequestItem, RequestStatus, RequestType } from '@/src/types/requests';
 import { getErrorMessage } from '../helpers';
 
 export const approveRequests = async (ids: string[]): Promise<boolean> => {
@@ -61,7 +61,7 @@ export async function getRequestById(id: string): Promise<RequestItem> {
 	}
 }
 
-export async function checkPendingRequests(requestType: RequestType): Promise<boolean> {
+export async function checkPendingRequests(requestType: RequestType): Promise<PendingRequestsResponse> {
 	try {
 		const api = Api();
 		const axiosRes = await api.get(`/requests/edit/pending/check?request_type=${requestType}`);
