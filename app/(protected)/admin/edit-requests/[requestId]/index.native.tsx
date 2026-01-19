@@ -1,77 +1,34 @@
 import Back from '@/src/components/mobile/Back';
 import { SingleDetail } from '@/src/components/mobile/SIngleDetail';
 import { Toast, ToastType } from '@/src/components/mobile/Toast';
+import { getRequestById, approveRequests, declineRequests } from '@/src/lib/api/requests';
 import { sharedStyles } from '@/src/theme/styles';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { RequestItem, RequestType } from '@/src/types/requests';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-interface EditRequestData {
-	id: string;
-	userName: string;
-	oldData: {
-		name: string;
-		address: string;
-		email: string;
-		phoneNumber: string;
+const getFieldLabelFromType = (type: RequestType): string => {
+	const labels: Record<RequestType, string> = {
+		first_name_change: 'First Name',
+		last_name_change: 'Last Name',
+		email_change: 'Email Address',
+		home_address_change: 'Address',
+		gender_change: 'Gender',
+		vacate_residence: 'Vacate Residence',
+		phone_number_change: 'Phone Number',
 	};
-	newData: {
-		name: string;
-		address: string;
-		email: string;
-		phoneNumber: string;
-	};
-}
-
-// Dummy API functions
-const fetchEditRequest = async (requestId: string): Promise<EditRequestData> => {
-	return new Promise((resolve) => {
-		setTimeout(() => {
-			resolve({
-				id: requestId,
-				userName: 'Sandra Happiness',
-				oldData: {
-					name: 'Sandra Happiness',
-					address: 'Flat 1, 18A Olayinka Something Street, U3 Estate',
-					email: 'sandarons@hot.com',
-					phoneNumber: '0907 345 289',
-				},
-				newData: {
-					name: 'Sandra Happiness',
-					address: 'Flat 1, 18A Olayinka Something Street, U3 Estate',
-					email: 'sandarons@hot.com',
-					phoneNumber: '0907 345 289',
-				},
-			});
-		}, 1500);
-	});
-};
-
-const approveEditRequest = async (requestId: string): Promise<boolean> => {
-	return new Promise((resolve) => {
-		setTimeout(() => {
-			console.log('Approving edit request:', requestId);
-			resolve(Math.random() > 0.1); // 90% success rate
-		}, 1500);
-	});
-};
-
-const declineEditRequest = async (requestId: string): Promise<boolean> => {
-	return new Promise((resolve) => {
-		setTimeout(() => {
-			console.log('Declining edit request:', requestId);
-			resolve(Math.random() > 0.1); // 90% success rate
-		}, 1500);
-	});
+	return labels[type] || 'Unknown Field';
 };
 
 export default function EditSingleRequestMobile() {
 	const { requestId } = useLocalSearchParams();
+	const router = useRouter();
 	const [loading, setLoading] = useState(true);
 	const [processing, setProcessing] = useState(false);
 	const [error, setError] = useState<string | null>(null);
-	const [requestData, setRequestData] = useState<EditRequestData | null>(null);
+	const [requestData, setRequestData] = useState<RequestItem | null>(null);
 	const [toastVisible, setToastVisible] = useState(false);
 	const [toastMessage, setToastMessage] = useState('');
 	const [toastType, setToastType] = useState<ToastType>('success');
@@ -81,7 +38,7 @@ export default function EditSingleRequestMobile() {
 			try {
 				setLoading(true);
 				setError(null);
-				const data = await fetchEditRequest(requestId as string);
+				const data = await getRequestById(requestId as string);
 
 				if (!data) {
 					setError('Edit request not found');
@@ -103,7 +60,7 @@ export default function EditSingleRequestMobile() {
 		setProcessing(true);
 
 		try {
-			const success = await approveEditRequest(requestId as string);
+			const success = await approveRequests([requestId as string]);
 
 			if (success) {
 				setToastMessage('Edit request approved successfully!');
@@ -111,8 +68,8 @@ export default function EditSingleRequestMobile() {
 				setToastVisible(true);
 
 				setTimeout(() => {
-					// Navigate back after success
-				}, 2000);
+					router.back();
+				}, 1500);
 			} else {
 				setToastMessage('Failed to approve request. Please try again.');
 				setToastType('error');
@@ -132,7 +89,7 @@ export default function EditSingleRequestMobile() {
 		setProcessing(true);
 
 		try {
-			const success = await declineEditRequest(requestId as string);
+			const success = await declineRequests([requestId as string]);
 
 			if (success) {
 				setToastMessage('Edit request declined successfully!');
@@ -140,8 +97,8 @@ export default function EditSingleRequestMobile() {
 				setToastVisible(true);
 
 				setTimeout(() => {
-					// Navigate back after success
-				}, 2000);
+					router.back();
+				}, 1500);
 			} else {
 				setToastMessage('Failed to decline request. Please try again.');
 				setToastType('error');
@@ -186,7 +143,7 @@ export default function EditSingleRequestMobile() {
 									try {
 										setLoading(true);
 										setError(null);
-										const data = await fetchEditRequest(requestId as string);
+										const data = await getRequestById(requestId as string);
 										if (data) {
 											setRequestData(data);
 										} else {
@@ -207,23 +164,17 @@ export default function EditSingleRequestMobile() {
 				</View>
 			) : requestData ? (
 				<ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingTop: 40 }}>
-					<View className="flex-1">
-						<View className="mb-6">
-							<View className="bg-light-grey p-4 rounded-lg border border-grey/50">
-								<SingleDetail label="Name" value={requestData.oldData.name} />
-								<SingleDetail label="Address" value={requestData.oldData.address} />
-								<SingleDetail label="Email Address" value={requestData.oldData.email} />
-								<SingleDetail label="Phone Number" value={requestData.oldData.phoneNumber} />
-							</View>
+					<View className="flex-1 mb-8">
+						<Text className="text-lg font-ubuntu-semibold text-primary mb-4">Current Value</Text>
+						<View className="bg-light-grey p-4 rounded-lg border border-grey/50">
+							<SingleDetail label={getFieldLabelFromType(requestData.request_type)} value={requestData.old_value} />
 						</View>
+					</View>
 
-						<View className="mb-8">
-							<View className="bg-light-teal p-4 rounded-lg border border-teal/40">
-								<SingleDetail label="Name" value={requestData.newData.name} />
-								<SingleDetail label="Address" value={requestData.newData.address} />
-								<SingleDetail label="Email Address" value={requestData.newData.email} />
-								<SingleDetail label="Phone Number" value={requestData.newData.phoneNumber} />
-							</View>
+					<View className="flex-1 mb-8">
+						<Text className="text-lg font-ubuntu-semibold text-primary mb-4">Requested New Value</Text>
+						<View className="bg-light-teal p-4 rounded-lg border border-teal/40">
+							<SingleDetail label={getFieldLabelFromType(requestData.request_type)} value={requestData.new_value || 'N/A'} />
 						</View>
 					</View>
 

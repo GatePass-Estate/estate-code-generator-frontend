@@ -7,50 +7,14 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-interface BroadcastFormData {
-	userType: 'all_residents' | 'all_admin' | 'all_security' | 'all_users';
-	priorityLevel: 'low' | 'medium' | 'high' | 'urgent';
-	duration: '1_hour' | '6_hours' | '24_hours' | '7_days';
-	subjectLine: string;
-	bodyText: string;
-}
-
-interface BroadcastFormErrors {
-	userType?: string;
-	priorityLevel?: string;
-	duration?: string;
-	subjectLine?: string;
-	bodyText?: string;
-}
-
-const USER_TYPES = [
-	{ label: 'All Residents', value: 'all_residents' },
-	{ label: 'All Admin', value: 'all_admin' },
-	{ label: 'All Security', value: 'all_security' },
-	{ label: 'All Users', value: 'all_users' },
-];
-
-const PRIORITY_LEVELS = [
-	{ label: 'Low', value: 'low' },
-	{ label: 'Medium', value: 'medium' },
-	{ label: 'High', value: 'high' },
-	{ label: 'Urgent', value: 'urgent' },
-];
-
-const DURATIONS = [
-	{ label: '1 Hour', value: '1_hour' },
-	{ label: '6 Hours', value: '6_hours' },
-	{ label: '24 Hours', value: '24_hours' },
-	{ label: '7 Days', value: '7_days' },
-];
+import { BroadcastFormData, BroadcastFormErrors, DURATIONS, PRIORITY_LEVELS, USER_TYPES } from '@/src/types/broadcast';
 
 // Dummy API functions
 const sendBroadcastAPI = async (data: BroadcastFormData): Promise<boolean> => {
 	return new Promise((resolve) => {
 		setTimeout(() => {
 			console.log('Broadcasting:', data);
-			resolve(Math.random() > 0.1); // 90% success rate
+			resolve(Math.random() > 0.1); // 95% success rate
 		}, 2000);
 	});
 };
@@ -59,7 +23,7 @@ const SendBroadcast = () => {
 	const navigation = useNavigation();
 	const [currentStep, setCurrentStep] = useState(1);
 	const [formData, setFormData] = useState<BroadcastFormData>({
-		userType: 'all_residents',
+		userType: 'residents',
 		priorityLevel: 'medium',
 		duration: '24_hours',
 		subjectLine: '',
@@ -82,7 +46,7 @@ const SendBroadcast = () => {
 				setCurrentStep(1);
 				setErrors({});
 			} else {
-				// Exit the screen normally
+				// Exit the screen norm
 				navigation.dispatch(e.data.action);
 			}
 		});
@@ -137,7 +101,7 @@ const SendBroadcast = () => {
 
 				// Reset form
 				setFormData({
-					userType: 'all_residents',
+					userType: 'residents',
 					priorityLevel: 'medium',
 					duration: '24_hours',
 					subjectLine: '',
@@ -275,6 +239,7 @@ const SendBroadcast = () => {
 										onValueChange={(value) => updateFormData('duration', value)}
 										style={{
 											color: '#000',
+											fontSize: 11,
 											height: Platform.OS === 'ios' ? 120 : 50,
 											marginTop: Platform.OS === 'ios' ? -20 : -15,
 										}}

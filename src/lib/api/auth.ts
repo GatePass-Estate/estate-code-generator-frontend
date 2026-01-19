@@ -1,5 +1,5 @@
-import { LoginResponse } from '@/src/types/auth';
 import Api from '.';
+import { LoginResponse } from '@/src/types/auth';
 import { getErrorMessage } from '../helpers';
 
 export async function loginUser(email: string, password: string): Promise<LoginResponse> {

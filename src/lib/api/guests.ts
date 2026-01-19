@@ -1,5 +1,5 @@
-import { CreateGuestApiResponse, DeleteGuestResponse, Guest, GuestApiResponse } from '@/src/types/guests';
 import Api from '.';
+import { CreateGuestApiResponse, DeleteGuestResponse, Guest, GuestApiResponse } from '@/src/types/guests';
 import { getErrorMessage } from '../helpers';
 import { GenderType, RelationshipType } from '@/src/types/general';
 

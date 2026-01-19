@@ -1,38 +1,30 @@
 import Back from '@/src/components/mobile/Back';
 import { Toast, ToastType } from '@/src/components/mobile/Toast';
-import { approveRequests, declineRequests } from '@/src/lib/api/requests';
+import { approveRequests, declineRequests, getRequests } from '@/src/lib/api/requests';
 import { sharedStyles } from '@/src/theme/styles';
+import { EditRequestView } from '@/src/types/requests';
 import { router, Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 
-interface EditRequest {
-	id: string;
-	userName: string;
-	location: string;
-	selected: boolean;
-}
-
-// Dummy API functions
-const fetchEditRequests = async (): Promise<EditRequest[]> => {
-	return new Promise((resolve) => {
-		setTimeout(() => {
-			resolve([
-				{ id: '1', userName: 'Sandra Happiness', location: 'Flat 56', selected: false },
-				{ id: '2', userName: 'Sandra Happiness', location: 'Flat 56', selected: false },
-				{ id: '3', userName: 'Sandra Happiness', location: 'Flat 56', selected: false },
-				{ id: '4', userName: 'Sandra Happiness', location: 'Flat 56', selected: false },
-				{ id: '5', userName: 'Sandra Happiness', location: 'Flat 56', selected: false },
-				{ id: '6', userName: 'Sandra Happiness', location: 'Flat 56', selected: false },
-			]);
-		}, 1500);
-	});
+const fetchEditRequests = async (): Promise<EditRequestView[]> => {
+	try {
+		const data = await getRequests(1, 10, 'approved');
+		return data.items.map((item) => ({
+			id: item.id,
+			userName: item.resident_id || 'Unknown User',
+			location: item.estate_id || 'Unknown Location',
+			selected: false,
+		}));
+	} catch (error) {
+		return [];
+	}
 };
 
 const EditRequestMobile = () => {
-	const [requests, setRequests] = useState<EditRequest[]>([]);
+	const [requests, setRequests] = useState<EditRequestView[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [processing, setProcessing] = useState(false);
 	const [toastVisible, setToastVisible] = useState(false);

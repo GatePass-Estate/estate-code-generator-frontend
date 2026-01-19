@@ -4,14 +4,30 @@ import { getUserById } from '@/src/lib/api/user';
 import { sharedStyles } from '@/src/theme/styles';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator } from 'react-native';
-import { Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Modal, Animated, PanResponder } from 'react-native';
+import { Text, TouchableOpacity, View, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+// Dummy API function for deactivating user
+const deactivateUser = async (userId: string): Promise<boolean> => {
+	return new Promise((resolve) => {
+		setTimeout(() => {
+			console.log('Deactivating user:', userId);
+			resolve(true);
+		}, 1500);
+	});
+};
 
 export default function SingleUserMobile() {
 	const { userId } = useLocalSearchParams();
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
+	const [showDeactivateModal, setShowDeactivateModal] = useState(false);
+	const [deactivating, setDeactivating] = useState(false);
+	const [dialogMessage, setDialogMessage] = useState('');
+	const [dialogVisible, setDialogVisible] = useState(false);
+	const [dialogType, setDialogType] = useState<'success' | 'error'>('success');
+	const panY = new Animated.Value(0);
 	const [userData, setUserData] = useState<any>({
 		first_name: '',
 		last_name: '',
@@ -22,6 +38,23 @@ export default function SingleUserMobile() {
 		user_id: userId,
 		estate_id: '',
 		role: 'resident',
+	});
+
+	const panResponder = PanResponder.create({
+		onStartShouldSetPanResponder: () => true,
+		onMoveShouldSetPanResponder: (evt, gestureState) => gestureState.dy > 10,
+		onPanResponderMove: Animated.event([null, { dy: panY }], { useNativeDriver: false }),
+		onPanResponderRelease: (evt, gestureState) => {
+			if (gestureState.dy > 100) {
+				setShowDeactivateModal(false);
+				panY.setValue(0);
+			} else {
+				Animated.spring(panY, {
+					toValue: 0,
+					useNativeDriver: false,
+				}).start();
+			}
+		},
 	});
 
 	useEffect(() => {
@@ -57,6 +90,29 @@ export default function SingleUserMobile() {
 
 		fetchUserData();
 	}, []);
+
+	const handleDeactivate = async () => {
+		setDeactivating(true);
+
+		try {
+			const success = await deactivateUser(userId as string);
+
+			if (success) {
+				setShowDeactivateModal(false);
+				panY.setValue(0);
+				setDialogType('success');
+				setDialogMessage('User has been deactivated successfully!');
+				setDialogVisible(true);
+			}
+		} catch (err) {
+			console.error('Error deactivating user:', err);
+			setDialogType('error');
+			setDialogMessage('Failed to deactivate user. Please try again.');
+			setDialogVisible(true);
+		} finally {
+			setDeactivating(false);
+		}
+	};
 
 	return (
 		<>
@@ -126,14 +182,60 @@ export default function SingleUserMobile() {
 						</View>
 
 						<View className="mt-auto flex-row gap-5">
-							<TouchableOpacity className={`flex-1 bg-teal justify-center items-center py-5 !rounded-xl`}>
-								<Text className="text-white font-ubuntu-semibold text-md">Deactivate</Text>
+							<TouchableOpacity onPress={() => setShowDeactivateModal(true)} disabled={deactivating} className={`flex-1 bg-teal justify-center items-center py-5 !rounded-xl ${deactivating ? 'opacity-70' : ''}`}>
+								{deactivating ? <ActivityIndicator color="#fff" size="small" /> : <Text className="text-white font-ubuntu-semibold text-md">Deactivate</Text>}
 							</TouchableOpacity>
 
 							<TouchableOpacity className={`flex-1 bg-primary justify-center items-center py-5 !rounded-xl`}>
 								<Text className="text-white font-ubuntu-semibold text-md">Make Admin</Text>
 							</TouchableOpacity>
 						</View>
+
+						{/* Deactivate Confirmation Bottom Drawer */}
+						<Modal visible={showDeactivateModal} transparent animationType="none" onDismiss={() => panY.setValue(0)}>
+							<TouchableOpacity
+								activeOpacity={1}
+								onPress={() => {
+									setShowDeactivateModal(false);
+									panY.setValue(0);
+								}}
+								className="flex-1 bg-black/50 justify-end"
+							>
+								<Animated.View style={{ transform: [{ translateY: panY }] }} {...panResponder.panHandlers} className="bg-white rounded-t-3xl p-6 pb-10">
+									<View className="mb-2">
+										<View className="h-1 w-12 bg-grey rounded-full self-center mb-4" />
+									</View>
+
+									<Text className="text-2xl font-ubuntu-medium text-grey mb-3 text-center">Are You sure ?</Text>
+									<Text className="text-black text-base font-inter-regular mb-2 text-center">Confirm if you want to deactivate this user from the system</Text>
+									<Text className="text-black text- font-inter-regular mb-6 text-center">This action will be reviewed in 48 hours.</Text>
+
+									<View className="flex-row gap-3 mt-6">
+										<TouchableOpacity onPress={() => setShowDeactivateModal(false)} disabled={deactivating} className={`flex-1 border-2 bg-teal border-teal py-4 rounded-lg ${deactivating ? 'opacity-70' : ''}`}>
+											<Text className="text-white font-ubuntu-semibold text-center text-md">Cancel</Text>
+										</TouchableOpacity>
+
+										<TouchableOpacity onPress={handleDeactivate} disabled={deactivating} className={`flex-1 bg-primary py-4 rounded-lg ${deactivating ? 'opacity-70' : ''}`}>
+											{deactivating ? <ActivityIndicator color="#fff" size="small" /> : <Text className="text-white font-ubuntu-semibold text-center text-md">Proceed</Text>}
+										</TouchableOpacity>
+									</View>
+								</Animated.View>
+							</TouchableOpacity>
+						</Modal>
+
+						{/* Dialog Box for System Messages */}
+						<Modal visible={dialogVisible} transparent animationType="fade">
+							<View className="flex-1 justify-center items-center bg-black/50">
+								<View className="bg-white rounded-lg p-6 mx-4 max-w-xs">
+									<Text className={`text-lg font-ubuntu-semibold text-center mb-4 ${dialogType === 'success' ? 'text-green-600' : 'text-red-600'}`}>{dialogType === 'success' ? 'Success' : 'Error'}</Text>
+									<Text className="text-grey text-base font-ubuntu-regular text-center mb-6">{dialogMessage}</Text>
+
+									<TouchableOpacity onPress={() => setDialogVisible(false)} className="bg-primary py-3 rounded-lg">
+										<Text className="text-white font-ubuntu-semibold text-center">OK</Text>
+									</TouchableOpacity>
+								</View>
+							</View>
+						</Modal>
 					</>
 				)}
 			</SafeAreaView>
