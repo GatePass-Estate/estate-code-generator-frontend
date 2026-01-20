@@ -1,6 +1,6 @@
 import { Text, View } from 'react-native';
 
-export const SingleDetail = ({ label, value }: { label: string; value: string | null }) => (
+export const SingleDetail = ({ label, value, contentColor = 'text-black' }: { label: string; value: string | null; contentColor?: string }) => (
 	<View className="gap-1 flex-row items-center justify-between mb-5">
 		<Text className="text-[15px] text-grey font-UbuntuSans">{label}: </Text>
 
@@ -11,7 +11,7 @@ export const SingleDetail = ({ label, value }: { label: string; value: string | 
 				flexWrap: 'wrap',
 				fontSize: 15,
 			}}
-			className="text-black"
+			className={`${contentColor}`}
 		>
 			{value}{' '}
 		</Text>

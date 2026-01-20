@@ -4,7 +4,7 @@ import { useUserStore } from '@/src/lib/stores/userStore';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
-import { createRequest, checkPendingRequests } from '@/src/lib/api/requests';
+import { createRequest, checkPendingRequests, updatePendingRequest } from '@/src/lib/api/requests';
 import { RequestType, PendingRequestsResponse } from '@/src/types/requests';
 
 interface ChangedField {
@@ -48,7 +48,6 @@ export const EditProfileForm = ({ centralize = false }: { centralize?: boolean }
 		const pendingChecks: Promise<PendingRequestsResponse>[] = [];
 		const changedFields: ChangedField[] = [];
 
-		// Check for changes and build pending request checks
 		if (formData.firstName !== user.first_name) {
 			changedFields.push({
 				type: 'first_name_change' as const,
@@ -106,47 +105,49 @@ export const EditProfileForm = ({ centralize = false }: { centralize?: boolean }
 		}
 
 		try {
-			// Check for pending requests
 			const pendingResults = await Promise.allSettled(pendingChecks);
-			const validRequests: ChangedField[] = [];
+			const createRequests: ChangedField[] = [];
+			const updateRequests: { field: ChangedField; requestId: string }[] = [];
 			const errorMessages: string[] = [];
 
-			// Process each pending check result
 			pendingResults.forEach((result, index) => {
 				if (result.status === 'fulfilled') {
-					// Check if there's a pending request using the new response structure
-					if (result.value.hasPending) {
-						errorMessages.push(`A pending request already exists for ${changedFields[index].label}`);
+					console.log(`Result = `, result);
+
+					if (result.value.has_pending_request && result.value.pending_request) {
+						updateRequests.push({ field: changedFields[index], requestId: result.value.pending_request.id });
 					} else {
-						// No pending request, add to valid requests
-						validRequests.push(changedFields[index]);
+						createRequests.push(changedFields[index]);
 					}
 				} else {
-					// Handle errors
 					const error = result.reason;
 					const errorMessage = error?.message || '';
 					errorMessages.push(`Error checking ${changedFields[index].label}: ${errorMessage}`);
 				}
 			});
 
-			// Set any errors found during checking
 			if (errorMessages.length > 0) {
 				setErrors(errorMessages);
 			}
 
-			// If there are valid requests, submit them
-			if (validRequests.length > 0) {
-				await Promise.all(validRequests.map((req) => createRequest(req.type as any, req.old, req.new)));
+			const allRequests = [...createRequests, ...updateRequests.map((r) => r.field)];
 
-				const successMsg = validRequests.length === 1 ? '1 request submitted successfully. Awaiting admin approval.' : `${validRequests.length} requests submitted successfully. Awaiting admin approval.`;
-				setSuccess(successMsg);
+			if (allRequests.length > 0) {
+				try {
+					await Promise.all([...createRequests.map((req) => createRequest(req.type as any, req.old, req.new)), ...updateRequests.map((req) => updatePendingRequest(req.requestId, req.field.new))]);
 
-				setTimeout(() => {
-					router.back();
-				}, 1500);
+					const successMsg = allRequests.length === 1 ? '1 request submitted successfully. Awaiting admin approval.' : `${allRequests.length} requests submitted successfully. Awaiting admin approval.`;
+					setSuccess(successMsg);
+
+					setTimeout(() => {
+						router.back();
+					}, 1500);
+				} catch (submitErr: any) {
+					const submitMessage = submitErr?.message || 'Failed to submit requests';
+					setErrors([submitMessage]);
+				}
 			} else if (errorMessages.length === 0) {
-				// No errors and no valid requests (all had pending requests)
-				setErrors(['All selected fields have pending requests']);
+				setErrors(['No valid requests to submit']);
 			}
 		} catch (err: any) {
 			const message = err?.message || 'Failed to submit edit requests';

@@ -370,7 +370,7 @@ const RegisterUser = () => {
 
 							<TouchableOpacity disabled={loading} onPress={handleContinue} className={`px-24 bg-primary justify-center items-center py-5 font-UbuntuSans !rounded-xl ${loading ? 'opacity-70' : ''} gap-2 flex-row`} activeOpacity={0.8}>
 								{loading && <ActivityIndicator color="#fff" size="small" />}
-								<Text className="text-white font-semibold font-UbuntuSans text-md">{loading ? 'Saving User...' : 'Save User'}</Text>
+								<Text className="text-white font-ubuntu-semibold text-md">{loading ? 'Saving User...' : 'Save User'}</Text>
 							</TouchableOpacity>
 						</>
 					)}

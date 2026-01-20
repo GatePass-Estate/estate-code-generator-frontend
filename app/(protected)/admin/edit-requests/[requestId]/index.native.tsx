@@ -27,6 +27,7 @@ export default function EditSingleRequestMobile() {
 	const router = useRouter();
 	const [loading, setLoading] = useState(true);
 	const [processing, setProcessing] = useState(false);
+	const [processingAction, setProcessingAction] = useState<'approve' | 'decline' | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [requestData, setRequestData] = useState<RequestItem | null>(null);
 	const [toastVisible, setToastVisible] = useState(false);
@@ -57,12 +58,22 @@ export default function EditSingleRequestMobile() {
 	}, [requestId]);
 
 	const handleApprove = async () => {
+		if (!requestData?.new_value) {
+			setToastMessage('Cannot approve request: new value is missing');
+			setToastType('error');
+			setToastVisible(true);
+			return;
+		}
+
 		setProcessing(true);
+		setProcessingAction('approve');
 
 		try {
-			const success = await approveRequests([requestId as string]);
+			console.log(requestId);
 
-			if (success) {
+			const response = await approveRequests(requestId as string);
+
+			if (response && response.id) {
 				setToastMessage('Edit request approved successfully!');
 				setToastType('success');
 				setToastVisible(true);
@@ -82,16 +93,18 @@ export default function EditSingleRequestMobile() {
 			setToastVisible(true);
 		} finally {
 			setProcessing(false);
+			setProcessingAction(null);
 		}
 	};
 
 	const handleDecline = async () => {
 		setProcessing(true);
+		setProcessingAction('decline');
 
 		try {
-			const success = await declineRequests([requestId as string]);
+			const response = await declineRequests(requestId as string);
 
-			if (success) {
+			if (response && response.id) {
 				setToastMessage('Edit request declined successfully!');
 				setToastType('success');
 				setToastVisible(true);
@@ -111,6 +124,7 @@ export default function EditSingleRequestMobile() {
 			setToastVisible(true);
 		} finally {
 			setProcessing(false);
+			setProcessingAction(null);
 		}
 	};
 
@@ -167,7 +181,7 @@ export default function EditSingleRequestMobile() {
 					<View className="flex-1 mb-8">
 						<Text className="text-lg font-ubuntu-semibold text-primary mb-4">Current Value</Text>
 						<View className="bg-light-grey p-4 rounded-lg border border-grey/50">
-							<SingleDetail label={getFieldLabelFromType(requestData.request_type)} value={requestData.old_value} />
+							<SingleDetail label={getFieldLabelFromType(requestData.request_type)} value={requestData.old_value} contentColor="text-grey" />
 						</View>
 					</View>
 
@@ -180,11 +194,11 @@ export default function EditSingleRequestMobile() {
 
 					<View className="flex-row gap-4">
 						<TouchableOpacity disabled={processing} onPress={handleDecline} className={`flex-1 bg-teal justify-center items-center py-6 rounded-xl ${processing ? 'opacity-70' : ''}`} activeOpacity={0.8}>
-							{processing ? <ActivityIndicator color="#fff" size="small" /> : <Text className="text-white font-ubuntu-semibold text-md">Decline</Text>}
+							{processingAction === 'decline' ? <ActivityIndicator color="#fff" size="small" /> : <Text className="text-white font-ubuntu-semibold text-md">Decline</Text>}
 						</TouchableOpacity>
 
 						<TouchableOpacity disabled={processing} onPress={handleApprove} className={`flex-1 bg-primary justify-center items-center py-6 rounded-xl ${processing ? 'opacity-70' : ''}`} activeOpacity={0.8}>
-							{processing ? <ActivityIndicator color="#fff" size="small" /> : <Text className="text-white font-ubuntu-semibold text-md">Approve</Text>}
+							{processingAction === 'approve' ? <ActivityIndicator color="#fff" size="small" /> : <Text className="text-white font-ubuntu-semibold text-md">Approve</Text>}
 						</TouchableOpacity>
 					</View>
 				</ScrollView>

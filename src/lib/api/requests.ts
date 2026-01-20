@@ -1,11 +1,11 @@
 import Api from '.';
-import { GetRequestsResponse, PendingRequestsResponse, RequestItem, RequestStatus, RequestType } from '@/src/types/requests';
+import { EditRequestResponse, GetRequestsResponse, PendingRequestsResponse, RequestItem, RequestType, SearchRequestPayload } from '@/src/types/requests';
 import { getErrorMessage } from '../helpers';
 
-export const approveRequests = async (ids: string[]): Promise<boolean> => {
+export const approveRequests = async (id: string): Promise<EditRequestResponse> => {
 	try {
 		const api = Api();
-		const axiosRes = await api.get(`/users/guest`);
+		const axiosRes = await api.patch(`/requests/edit/${id}/status`, { status: 'approved' });
 		const data = axiosRes.data;
 
 		return data;
@@ -14,10 +14,10 @@ export const approveRequests = async (ids: string[]): Promise<boolean> => {
 	}
 };
 
-export const declineRequests = async (ids: string[]): Promise<boolean> => {
+export const declineRequests = async (id: string): Promise<EditRequestResponse> => {
 	try {
 		const api = Api();
-		const axiosRes = await api.get(`/users/guest`);
+		const axiosRes = await api.patch(`/requests/edit/${id}/status`, { status: 'rejected' });
 		const data = axiosRes.data;
 
 		return data;
@@ -26,10 +26,31 @@ export const declineRequests = async (ids: string[]): Promise<boolean> => {
 	}
 };
 
-export async function getRequests(page: number, limit: number, status?: RequestStatus): Promise<GetRequestsResponse> {
+export const updatePendingRequest = async (id: string, new_value: string): Promise<EditRequestResponse> => {
 	try {
 		const api = Api();
-		const axiosRes = await api.get(`/requests/edit?page=${page}&limit=${limit}&status=${status}`);
+		const axiosRes = await api.patch(`/requests/edit/${id}`, { new_value });
+		const data = axiosRes.data;
+
+		return data;
+	} catch (error: any) {
+		throw new Error(`${getErrorMessage(error) || 'An error occured'} `);
+	}
+};
+
+export async function getRequests(payload: SearchRequestPayload): Promise<GetRequestsResponse> {
+	try {
+		const api = Api();
+		const params = new URLSearchParams();
+		params.append('page', payload.page.toString());
+		params.append('limit', payload.limit.toString());
+		if (payload.request_type) params.append('request_type', payload.request_type);
+		if (payload.status) params.append('status', payload.status);
+		if (payload.resident_id) params.append('resident_id', payload.resident_id);
+		if (payload.from_date) params.append('from_date', payload.from_date);
+		if (payload.to_date) params.append('to_date', payload.to_date);
+
+		const axiosRes = await api.get(`/requests/edit?${params.toString()}`);
 		const data = axiosRes.data;
 
 		return data;

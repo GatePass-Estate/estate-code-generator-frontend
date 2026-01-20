@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, TouchableOpacity, Image, TextInput, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, TextInput, RefreshControl, Pressable } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Stack, router } from 'expo-router';
 import { getAllUsers } from '@/src/lib/api/user';
@@ -15,7 +15,7 @@ const AllUsersMobile = () => {
 	const [isLoading, setIsLoading] = useState(true);
 	const [isRefreshing, setIsRefreshing] = useState(false);
 	const [searchQuery, setSearchQuery] = useState('');
-	const [selectedRole, setSelectedRole] = useState<UserRolesType>(null);
+	const [selectedRole, setSelectedRole] = useState<UserRolesType>('resident');
 
 	useEffect(() => {
 		const getAllUsersData = async () => {
@@ -84,17 +84,17 @@ const AllUsersMobile = () => {
 
 				{/* Filter Buttons */}
 				<View className="flex-row gap-3 mb-6">
-					<TouchableOpacity className={`flex-row items-center px-8 py-2.5 rounded-2xl border ${selectedRole === 'resident' ? 'bg-orange border-orange' : 'bg-white border-gray-300'}`} onPress={() => setSelectedRole(selectedRole === 'resident' ? null : 'resident')}>
+					<Pressable className={`flex-row items-center px-8 py-2.5 rounded-2xl border ${selectedRole === 'resident' ? 'bg-orange/10 border-orange' : 'bg-white border-gray-300'}`} onPress={() => setSelectedRole(selectedRole === 'resident' ? null : 'resident')}>
 						<Image source={icons.adminHomeIcon} style={{ width: 20, height: 20 }} />
-					</TouchableOpacity>
+					</Pressable>
 
-					<TouchableOpacity className={`flex-row items-center px-8 py-2.5 rounded-2xl border ${selectedRole === 'security' ? 'bg-teal border-teal' : 'bg-white border-gray-300'}`} onPress={() => setSelectedRole(selectedRole === 'security' ? null : 'security')}>
+					<Pressable className={`flex-row items-center px-8 py-2.5 rounded-2xl border ${selectedRole === 'security' ? 'bg-teal/10 border-teal' : 'bg-white border-gray-300'}`} onPress={() => setSelectedRole(selectedRole === 'security' ? null : 'security')}>
 						<Image source={icons.securityIcon} style={{ width: 20, height: 20 }} />
-					</TouchableOpacity>
+					</Pressable>
 
-					<TouchableOpacity className={`flex-row items-center px-8 py-2.5 rounded-2xl border ${selectedRole === 'primary_admin' ? 'bg-gray-800 border-gray-800' : 'bg-white border-gray-300'}`} onPress={() => setSelectedRole(selectedRole === 'primary_admin' ? null : 'primary_admin')}>
+					<Pressable className={`flex-row items-center px-8 py-2.5 rounded-2xl border ${selectedRole === 'primary_admin' ? 'bg-gray-800 border-gray-800' : 'bg-white border-gray-300'}`} onPress={() => setSelectedRole(selectedRole === 'primary_admin' ? null : 'primary_admin')}>
 						<Image source={icons.inactiveGuestIcon} style={{ width: 20, height: 20 }} />
-					</TouchableOpacity>
+					</Pressable>
 				</View>
 
 				{isLoading ? (

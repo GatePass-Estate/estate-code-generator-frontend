@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, FlatList, RefreshControl } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useAuth } from '@/src/hooks/useAuthContext';
 import { Stack, useRouter } from 'expo-router';
@@ -12,7 +12,20 @@ import icons from '@/src/constants/icons';
 export default function AdminDashboard() {
 	const { signOut } = useAuth();
 	const [users, setUsers] = useState<AllUsers>({ total: 0, page: 1, limit: 10, items: [] });
+	const [refreshing, setRefreshing] = useState(false);
 	const router = useRouter();
+
+	const handleRefresh = async () => {
+		setRefreshing(true);
+		try {
+			const data = await getAllUsers();
+			setUsers(data);
+		} catch (error) {
+			console.error('Error refreshing users:', error);
+		} finally {
+			setRefreshing(false);
+		}
+	};
 
 	useEffect(() => {
 		const getAllUsersData = async () => {
@@ -107,18 +120,27 @@ export default function AdminDashboard() {
 					</TouchableOpacity>
 				</View>
 
-				<View className="pl-2">
-					{limitedUsers.map((user, index) => (
-						<TouchableOpacity key={index} className={`flex-row items-center py-3.5 ${index === limitedUsers.length - 1 ? '' : 'border-b'} border-gray-200`} onPress={() => router.push(`/(protected)/admin/users/${user.id}`)}>
+				<FlatList
+					data={limitedUsers}
+					keyExtractor={(item) => item.id}
+					scrollEnabled={false}
+					refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+					ListEmptyComponent={
+						<View className="py-8 items-center">
+							<Text className="text-grey text-center text-md font-inter-regular">No users at the moment</Text>
+						</View>
+					}
+					renderItem={({ item, index }) => (
+						<TouchableOpacity className={`flex-row items-center py-3.5 ${index === limitedUsers.length - 1 ? '' : 'border-b'} border-gray-200 pl-2`} onPress={() => router.push(`/(protected)/admin/users/${item.id}`)}>
 							<Image source={icons.adminHomeIcon} style={{ width: 25, height: 25 }} />
 							<View className="flex-1 ml-2.5">
-								<Text className="text-primary text-lg font-inter-regular">{`${user.first_name} ${user.last_name}`}</Text>
-								<Text className="text-primary text-sm font-inter-regular mt-0.5">{user.home_address}</Text>
+								<Text className="text-primary text-lg font-inter-regular">{`${item.first_name} ${item.last_name}`}</Text>
+								<Text className="text-primary text-sm font-inter-regular mt-0.5">{item.home_address}</Text>
 							</View>
 							<Feather name="chevron-right" size={20} color="#1B998B" />
 						</TouchableOpacity>
-					))}
-				</View>
+					)}
+				/>
 			</ScrollView>
 		</View>
 	);
