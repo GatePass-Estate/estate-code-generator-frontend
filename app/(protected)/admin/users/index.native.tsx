@@ -15,7 +15,7 @@ const AllUsersMobile = () => {
 	const [isLoading, setIsLoading] = useState(true);
 	const [isRefreshing, setIsRefreshing] = useState(false);
 	const [searchQuery, setSearchQuery] = useState('');
-	const [selectedRole, setSelectedRole] = useState<UserRolesType>('resident');
+	const [selectedRole, setSelectedRole] = useState<UserRolesType>(null);
 
 	useEffect(() => {
 		const getAllUsersData = async () => {
@@ -85,18 +85,17 @@ const AllUsersMobile = () => {
 				{/* Filter Buttons */}
 				<View className="flex-row gap-3 mb-6">
 					<Pressable className={`flex-row items-center px-8 py-2.5 rounded-2xl border ${selectedRole === 'resident' ? 'bg-orange/10 border-orange' : 'bg-white border-gray-300'}`} onPress={() => setSelectedRole(selectedRole === 'resident' ? null : 'resident')}>
-						<Image source={icons.adminHomeIcon} style={{ width: 20, height: 20 }} />
+						<Image source={icons.adminHomeIcon} style={{ width: 20, height: 20, opacity: selectedRole === 'resident' ? 1 : 0.4, tintColor: selectedRole === 'resident' ? undefined : '#999' }} />
 					</Pressable>
 
 					<Pressable className={`flex-row items-center px-8 py-2.5 rounded-2xl border ${selectedRole === 'security' ? 'bg-teal/10 border-teal' : 'bg-white border-gray-300'}`} onPress={() => setSelectedRole(selectedRole === 'security' ? null : 'security')}>
-						<Image source={icons.securityIcon} style={{ width: 20, height: 20 }} />
+						<Image source={icons.securityIcon} style={{ width: 20, height: 20, opacity: selectedRole === 'security' ? 1 : 0.4, tintColor: selectedRole === 'security' ? undefined : '#999' }} />
 					</Pressable>
 
-					<Pressable className={`flex-row items-center px-8 py-2.5 rounded-2xl border ${selectedRole === 'primary_admin' ? 'bg-gray-800 border-gray-800' : 'bg-white border-gray-300'}`} onPress={() => setSelectedRole(selectedRole === 'primary_admin' ? null : 'primary_admin')}>
-						<Image source={icons.inactiveGuestIcon} style={{ width: 20, height: 20 }} />
+					<Pressable className={`flex-row items-center px-8 py-2.5 rounded-2xl border ${selectedRole === 'primary_admin' ? 'bg-primary/10 border-primary' : 'bg-white border-gray-300'}`} onPress={() => setSelectedRole(selectedRole === 'primary_admin' ? null : 'primary_admin')}>
+						<Image source={icons.activeAdminIcon} style={{ width: 17, height: 20, opacity: selectedRole === 'primary_admin' ? 1 : 0.4, tintColor: selectedRole === 'primary_admin' ? undefined : '#999' }} />
 					</Pressable>
 				</View>
-
 				{isLoading ? (
 					<View className="flex-1 justify-center items-center py-10">
 						<Text className="text-primary font-inter-regular">Loading users...</Text>
@@ -106,7 +105,7 @@ const AllUsersMobile = () => {
 						<View className="px-5">
 							{filteredUsers.map((user, index) => (
 								<TouchableOpacity key={index} className={`flex-row items-center py-4 ${index !== filteredUsers.length - 1 ? 'border-b border-gray-200' : ''}`} onPress={() => router.push(`/(protected)/admin/users/${user.id}`)}>
-									<Image source={icons.adminHomeIcon} style={{ width: 28, height: 28 }} />
+									<Image source={user.role === 'resident' ? icons.adminHomeIcon : user.role === 'security' ? icons.securityIcon : icons.activeAdminIcon} style={{ width: user.role === 'admin' || user.role === 'primary_admin' ? 23 : 28, height: 28 }} />
 									<View className="flex-1 ml-4">
 										<Text className="text-primary text-lg font-inter-medium">{`${user.first_name} ${user.last_name}`}</Text>
 										<Text className="text-gray-500 text-sm font-inter-regular mt-1">{user.home_address}</Text>
