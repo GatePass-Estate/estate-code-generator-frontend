@@ -11,7 +11,7 @@ import { ActivityIndicator, FlatList, Pressable, RefreshControl, Text, Touchable
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 
-const fetchEditRequests = async (): Promise<EditRequestView[]> => {
+export const fetchEditRequests = async (): Promise<EditRequestView[]> => {
 	const { home_address, estate_name } = useUserStore.getState();
 
 	try {

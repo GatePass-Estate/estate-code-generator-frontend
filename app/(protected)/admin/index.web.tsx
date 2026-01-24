@@ -1,321 +1,228 @@
+import WebSidebar from '@/src/components/web/WebSidebar';
+import { router, usePathname } from 'expo-router';
+import { menuRoutes } from '../user/_layout';
+import { useEffect, useState, useMemo } from 'react';
+import { getAllUsers } from '@/src/lib/api/user';
+import { AllUsers } from '@/src/types/user';
+import { UserRolesType } from '@/src/types/general';
+import icons from '@/src/constants/icons';
+import { Pagination } from '@/src/components/web/Pagination';
+import { Image, Platform } from 'react-native';
+import { getRoleIcon, getRoleIconHeight, getRoleIconWidth } from '@/src/lib/helpers';
+import { adminRoutes } from './_layout';
+import WebNavLink from '@/src/components/web/WebNavLink';
+
+const USERS_PAGE_SIZE = 10;
+
 export default function AdminUsersPage() {
+	const [users, setUsers] = useState<AllUsers>({ total: 0, page: 1, limit: 100, items: [] });
+	const [loading, setLoading] = useState(true);
+	const [searchQuery, setSearchQuery] = useState('');
+	const [selectedRole, setSelectedRole] = useState<UserRolesType | null>(null);
+	const [currentPage, setCurrentPage] = useState(1);
+
+	useEffect(() => {
+		if (Platform.OS === 'web') document.title = 'Admin Access - GatePass';
+	}, []);
+
+	useEffect(() => {
+		const fetchUsers = async () => {
+			try {
+				setLoading(true);
+				const data = await getAllUsers();
+				setUsers(data);
+			} catch (error) {
+				console.error('Error fetching users:', error);
+			} finally {
+				setLoading(false);
+			}
+		};
+
+		fetchUsers();
+	}, []);
+
+	const filteredUsers = useMemo(() => {
+		return users.items.filter((user) => {
+			const matchesSearch =
+				`${user.first_name} ${user.last_name}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
+				user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+				user.phone_number?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+				user.home_address?.toLowerCase().includes(searchQuery.toLowerCase());
+
+			const matchesRole = !selectedRole || user.role === selectedRole;
+
+			return matchesSearch && matchesRole;
+		});
+	}, [users.items, searchQuery, selectedRole]);
+
+	const totalPages = Math.max(1, Math.ceil(filteredUsers.length / USERS_PAGE_SIZE));
+	const usersPaginated = filteredUsers.slice((currentPage - 1) * USERS_PAGE_SIZE, currentPage * USERS_PAGE_SIZE);
+
+	const residentsCount = users.items.filter((user) => user.role === 'resident').length;
+	const securityCount = users.items.filter((user) => user.role === 'security').length;
+
+	useEffect(() => {
+		if (currentPage > totalPages) setCurrentPage(Math.max(1, totalPages));
+	}, [filteredUsers, totalPages, currentPage]);
+
+	const pathname = usePathname();
+
+	function onNavigate(route: string): void {
+		router.push(route as any);
+	}
+
 	return (
-		<div className="min-h-screen flex bg-white font-[Inter] text-[#2B2B2B]">
-			{/* LEFT SIDEBAR */}
-			<aside className="w-[240px] bg-[#063C53] text-white flex flex-col justify-between py-8 px-6">
-				<div className="space-y-8">
-					<div className="text-xl font-semibold">Logo</div>
+		<div className="flex h-full w-screen overflow-y-scroll bg-body">
+			<WebSidebar routes={menuRoutes.filter((el) => el.for === 'web' || el.for === 'both').map((data) => data)} onNavigate={onNavigate} />
 
-					<nav className="space-y-6 text-sm">
-						<button className="flex items-center gap-3 opacity-90 hover:opacity-100">
-							<IconHomeSidebar /> Home
-						</button>
-						<button className="flex items-center gap-3 opacity-90 hover:opacity-100">
-							<IconCode /> Generate Code
-						</button>
-						<button className="flex items-center gap-3 opacity-90 hover:opacity-100">
-							<IconProfile /> My Profile
-						</button>
+			<div className="web-body">
+				<div className="mt-20 mb-10">
+					<div className="flex items-center justify-between mb-8">
+						<h1 className="text-5xl font-ubuntu-regular text-grey">Admin Access</h1>
+					</div>
 
-						<div className="space-y-3 pt-3">
-							<button className="flex items-center gap-3 w-full bg-[#D1DFE7] text-[#063C53] font-medium rounded-md py-2 px-3">
-								<IconLock /> Admin Access
-							</button>
+					<div className="grid grid-cols-4 gap-8 md:grid-cols-12 mb-10">
+						<div className="flex flex-col gap-5 w-full col-span-2">
+							{adminRoutes.map(({ name, title, link, icon }) => {
+								const isActive = pathname === link;
+
+								return (
+									<div key={name} onClick={() => onNavigate(link)} className={`flex gap-3 items-center cursor-pointer p-3 rounded-lg transition-all ${isActive ? 'bg-accent text-primary font-medium' : 'hover:bg-accent hover:text-primary hover:font-medium'}`}>
+										<Image source={icon} style={{ width: 24, height: 24 }} resizeMode="contain" />
+										<WebNavLink color="primary">{title}</WebNavLink>
+									</div>
+								);
+							})}
 						</div>
 
-						<div className="space-y-3 pl-2">
-							<button className="flex items-center gap-3 opacity-90 hover:opacity-100">
-								<IconUsers /> See All Users
-							</button>
-							<button className="flex items-center gap-3 opacity-90 hover:opacity-100">
-								<IconRegister /> Register User
-							</button>
-							<button className="flex items-center gap-3 opacity-90 hover:opacity-100">
-								<IconBroadcast /> Send a broadcast
-							</button>
-							<button className="flex items-center gap-3 opacity-90 hover:opacity-100">
-								<IconEdit /> Edit Requests
-							</button>
+						<div className="col-span-10">
+							<div className="grid grid-cols-12 gap-4 mb-8">
+								<div className="border border-orange rounded-xl p-6 bg-orange/5 flex items-center gap-4 col-span-1 md:col-span-4">
+									<Image source={icons.adminHomeIcon} style={{ width: 65, height: 60 }} />
+									<div>
+										<p className="text-grey text-2xl font-ubuntu-regular">Residents</p>
+										<p className="text-orange text-5xl font-ubuntu-bold">{residentsCount}</p>
+									</div>
+								</div>
+
+								<div className="border border-teal rounded-xl p-4 bg-teal/5 flex items-center gap-4 col-span-1 md:col-span-4">
+									<Image source={icons.securityIcon} style={{ width: 60, height: 60 }} />
+
+									<div>
+										<p className="text-grey text-2xl font-ubuntu-regular">Security Personnels</p>
+										<p className="text-teal text-5xl font-ubuntu-bold">{securityCount}</p>
+									</div>
+								</div>
+
+								<div className="border border-primary rounded-xl p-6 flex items-center justify-center col-span-1 md:col-span-2">
+									<div className="text-center">
+										<p className="text-grey text-2xl font-ubuntu-regular uppercase tracking-wide">Total</p>
+										<p className="text-primary text-5xl font-ubuntu-bold">{users.total}</p>
+									</div>
+								</div>
+
+								<div className="flex items-center justify-center col-span-1 md:col-span-2">
+									<button className="bg-grey/5 rounded-full p-4" onClick={() => router.push('/admin/users/add')}>
+										<Image source={icons.plus} className="opacity-80" style={{ width: 30, height: 30 }} />
+									</button>
+								</div>
+							</div>
+							{/* Search and Filter Section */}
+							<div className="mb-8">
+								<h2 className="text-2xl font-ubuntu-regular text-grey mb-4">All Users</h2>
+								<div className="flex gap-4 items-end">
+									<div className="flex flex-1 gap-0">
+										<div className="flex gap-2 w-full px-4 py-3 rounded-lg bg-light-grey focus-within:ring-1 focus-within:ring-primary focus-within:bg-white transition-all rounded-r-none">
+											<Image source={icons.webSearch} style={{ width: 20, height: 20 }} resizeMode="contain" />
+											<input
+												type="text"
+												placeholder="Search User List"
+												value={searchQuery}
+												onChange={(e) => {
+													setSearchQuery(e.target.value);
+													setCurrentPage(1);
+												}}
+												className="flex-1 focus:outline-none bg-transparent"
+											/>
+										</div>
+										<button className="bg-primary text-white px-3 py-3 rounded-lg font-medium hover:opacity-90 transition rounded-l-none">Go</button>
+										<button
+											onClick={() => {
+												setSelectedRole(selectedRole ? null : 'resident');
+											}}
+											className="flex items-center gap-2 px-6 py-3 rounded-lg hover:bg-primary/5 transition"
+										>
+											<Image source={icons.filter} style={{ width: 20, height: 20 }} resizeMode="contain" />
+											Filter
+										</button>
+									</div>
+								</div>
+							</div>
+							{loading ? (
+								<div className="flex justify-center items-center py-12">
+									<p className="text-grey">Loading users...</p>
+								</div>
+							) : usersPaginated.length > 0 ? (
+								<div className="overflow-x-auto">
+									<table className="w-full">
+										<thead>
+											<tr className="border border-gray-200 rounded-3xl">
+												<th className="text-left py-4 px-4 font-inter-regular text-grey text-sm">Type</th>
+												<th className="text-left py-4 px-4 font-inter-regular text-grey text-sm">Name</th>
+												<th className="text-left py-4 px-4 font-inter-regular text-grey text-sm">Email Address</th>
+												<th className="text-left py-4 px-4 font-inter-regular text-grey text-sm">Phone Number</th>
+												<th className="text-left py-4 px-4 font-inter-regular text-grey text-sm">Address</th>
+												<th className="text-left py-4 px-4 font-inter-regular text-grey text-sm">Action</th>
+											</tr>
+										</thead>
+										<tbody>
+											{usersPaginated.map((user, index) => (
+												<tr key={user.id} className={`border-b border-gray-100 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-gray-50 transition`}>
+													<td className="p-4">
+														<Image source={getRoleIcon(user.role)} style={{ width: getRoleIconWidth(user.role), height: getRoleIconHeight(user.role) }} resizeMode="contain" />
+													</td>
+													<td className="py-4 px-4">
+														<p className="text-primary text-sm font-inter-regular">{`${user.first_name} ${user.last_name}`}</p>
+													</td>
+													<td className="py-4 px-4">
+														<p className="text-primary text-sm font-inter-regular">{user.email}</p>
+													</td>
+													<td className="py-4 px-4">
+														<p className="text-primary text-sm font-inter-regular">{user.phone_number}</p>
+													</td>
+													<td className="py-4 px-4">
+														<p className="text-primary text-sm font-inter-regular">{user.home_address}</p>
+													</td>
+													<td className="py-4 px-4">
+														<div className="flex">
+															<button onClick={() => {}} className="p-2 hover:bg-gray-200 transition border-r-2 border-grey" title="Make Admin">
+																<Image source={icons.userIcon} style={{ width: 20, height: 20 }} resizeMode="contain" />
+															</button>
+															<button className="p-2 hover:bg-gray-200 transition" title="Deactivate User" onClick={() => {}}>
+																<Image source={icons.userEdit} style={{ width: 20, height: 20 }} resizeMode="contain" />
+															</button>
+														</div>
+													</td>
+												</tr>
+											))}
+										</tbody>
+									</table>
+								</div>
+							) : (
+								<div className="flex justify-center items-center py-12">
+									<p className="text-grey">No users found</p>
+								</div>
+							)}
+							{/* Pagination */}
+							{usersPaginated.length > 0 && (
+								<div className="flex justify-end mt-8">
+									<Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} condition={loading} />
+								</div>
+							)}
 						</div>
-					</nav>
-				</div>
-
-				<button className="flex items-center gap-3 text-sm opacity-80 hover:opacity-100">
-					<IconLogout /> Log Out
-				</button>
-			</aside>
-
-			{/* RIGHT SECTION */}
-			<main className="flex-1 px-12 py-10">
-				{/* PAGE TITLE */}
-				<h1 className="text-[28px] font-medium text-[#6E6E6E] mb-10">Admin Access</h1>
-
-				{/* TOP CARDS */}
-				<div className="flex items-center gap-4 mb-12">
-					<button className="flex items-center gap-3 bg-[#D1DFE7] text-[#063C53] rounded-md px-5 py-2 text-sm font-medium">
-						<IconUsers className="stroke-[#063C53]" /> See All Users
-					</button>
-
-					<div className="flex items-center gap-4">
-						<CardStat icon={<IconHouseFill />} count="178" label="Residents" bg="#FFF2EA" stroke="#EA6F36" />
-						<CardStat icon={<IconShieldFill />} count="178" label="Security Personnels" bg="#E9F5F3" stroke="#3A8B7A" />
-						<CardStat icon={null} count="600" label="TOTAL" bg="#F5FAFC" stroke="#063C53" />
-						<button className="w-[45px] h-[45px] rounded-full border border-[#D5E3E8] flex items-center justify-center">
-							<IconPlus />
-						</button>
 					</div>
-				</div>
-
-				{/* TABLE TITLE + SEARCH */}
-				<p className="text-[17px] font-medium text-[#6E6E6E] mb-4">All Users</p>
-
-				<div className="flex items-center gap-3 mb-6">
-					<div className="flex items-center flex-1 h-[48px] border border-[#D5E3E8] rounded-md px-3 gap-3">
-						<IconSearch />
-						<input placeholder="Search User List" className="flex-1 text-sm outline-none placeholder-[#A4A4A4]" />
-					</div>
-					<button className="bg-[#063C53] text-white rounded-md px-5 py-2 font-medium text-sm">Go</button>
-					<button className="flex items-center gap-1 text-sm text-[#063C53]">
-						<IconFilter /> Filter
-					</button>
-				</div>
-
-				{/* TABLE */}
-				<div className="border border-[#E5ECEF] rounded-md overflow-hidden">
-					<table className="w-full text-[13px]">
-						<thead className="bg-[#F8FBFC] text-[#6E6E6E]">
-							<tr className="h-[48px]">
-								<th className="font-medium px-4 text-left">Type</th>
-								<th className="font-medium px-4 text-left">Name</th>
-								<th className="font-medium px-4 text-left">Email Address</th>
-								<th className="font-medium px-4 text-left">Phone Number</th>
-								<th className="font-medium px-4 text-left">Address</th>
-								<th className="font-medium px-4 text-left">Action</th>
-							</tr>
-						</thead>
-
-						<tbody className="divide-y divide-[#EAEFF2]">
-							{Array.from({ length: 6 }).map((_, i) => (
-								<tr key={i} className="h-[48px] text-[#2B2B2B]">
-									<td className="px-4">{i % 2 === 0 ? <IconHouse stroke="#EA6F36" /> : <IconShield stroke="#3A8B7A" />}</td>
-									<td className="px-4">Sandra Happiness</td>
-									<td className="px-4">SandraHappiness@gmail.com</td>
-									<td className="px-4">09728367789</td>
-									<td className="px-4">Flat 56</td>
-									<td className="px-4 flex gap-3">
-										<IconView />
-										<IconEditLine />
-									</td>
-								</tr>
-							))}
-						</tbody>
-					</table>
-				</div>
-
-				{/* PAGINATION */}
-				<div className="flex items-center gap-2 mt-6">
-					<PagBtn>{'<'}</PagBtn>
-					<PagBtn active>1</PagBtn>
-					<PagBtn>2</PagBtn>
-					<PagBtn>3</PagBtn>
-					<PagBtn>{'...'}</PagBtn>
-					<PagBtn>{'>'}</PagBtn>
-				</div>
-			</main>
-		</div>
-	);
-}
-
-/* --------------------------------------
-   SMALL COMPONENTS FOR CLEANER VIEW
--------------------------------------- */
-
-function CardStat({ icon, count, label, bg, stroke }: any) {
-	return (
-		<div className="w-[205px] h-[92px] rounded-md border border-[#E5ECEF] flex flex-col justify-center px-5" style={{ backgroundColor: bg }}>
-			<div className="flex items-center gap-3">
-				{icon && (
-					<div className="w-6 h-6" style={{ color: stroke }}>
-						{icon}
-					</div>
-				)}
-				<div className="text-[24px] font-semibold" style={{ color: stroke }}>
-					{count}
 				</div>
 			</div>
-			<div className="text-[14px] text-[#6E6E6E] mt-1">{label}</div>
 		</div>
-	);
-}
-
-function PagBtn({ children, active }: any) {
-	return <button className={`w-[32px] h-[32px] rounded-md border border-[#D5E3E8] text-sm ${active ? 'bg-[#063C53] text-white' : 'bg-white text-[#2B2B2B]'}`}>{children}</button>;
-}
-
-/* --------------------------------------
-   INLINE SVG ICONS — FIGMA EXACT
--------------------------------------- */
-
-function IconHomeSidebar() {
-	return (
-		<svg width="18" height="18" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none">
-			<path d="M3 9L9 3L15 9V15H3V9Z" />
-		</svg>
-	);
-}
-
-function IconCode() {
-	return (
-		<svg width="18" height="18" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none">
-			<path d="M5 5L1 9L5 13" />
-			<path d="M13 5L17 9L13 13" />
-		</svg>
-	);
-}
-
-function IconProfile() {
-	return (
-		<svg width="18" height="18" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none">
-			<circle cx="9" cy="6" r="3" />
-			<path d="M2 15C2.5 12 5.5 10 9 10C12.5 10 15.5 12 16 15" />
-		</svg>
-	);
-}
-
-function IconLock() {
-	return (
-		<svg width="18" height="18" stroke="#063C53" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none">
-			<rect x="4" y="8" width="10" height="8" rx="2" />
-			<path d="M6 8V6A3 3 0 0 1 12 6V8" />
-		</svg>
-	);
-}
-
-function IconUsers(props?: any) {
-	return (
-		<svg width="18" height="18" {...props} stroke={props?.stroke || 'white'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none">
-			<circle cx="7" cy="6" r="3" />
-			<circle cx="13" cy="10" r="3" />
-			<path d="M2 15C2.5 12 5.5 10 9 10" />
-			<path d="M9 15C9.5 12 12.5 10 16 10" />
-		</svg>
-	);
-}
-
-function IconRegister() {
-	return (
-		<svg width="18" height="18" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none">
-			<circle cx="8" cy="7" r="3" />
-			<path d="M2 16C2.5 12.5 5.5 10.5 8 10.5C8.5 10.5 9 10.5 9.5 10.6" />
-			<path d="M14 5V9" />
-			<path d="M12 7H16" />
-		</svg>
-	);
-}
-
-function IconBroadcast() {
-	return (
-		<svg width="18" height="18" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none">
-			<circle cx="9" cy="9" r="2" />
-			<path d="M9 6V3" />
-			<path d="M9 12V15" />
-			<path d="M12 9H15" />
-			<path d="M3 9H6" />
-		</svg>
-	);
-}
-
-function IconEdit() {
-	return (
-		<svg width="18" height="18" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none">
-			<path d="M4 14L12 6L14 8L6 16H4V14Z" />
-		</svg>
-	);
-}
-
-function IconLogout() {
-	return (
-		<svg width="18" height="18" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none">
-			<path d="M7 4H3V16H7" />
-			<path d="M10 12L14 9L10 6" />
-			<path d="M14 9H7" />
-		</svg>
-	);
-}
-
-function IconHouse(props?: any) {
-	return (
-		<svg width="18" height="18" stroke={props?.stroke || '#EA6F36'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none">
-			<path d="M3 9L9 3L15 9V15H3V9Z" />
-		</svg>
-	);
-}
-
-function IconHouseFill() {
-	return (
-		<svg width="22" height="22" fill="#EA6F36">
-			<path d="M3 10L11 3L19 10V19H3V10Z" />
-		</svg>
-	);
-}
-
-function IconShield(props?: any) {
-	return (
-		<svg width="18" height="18" stroke={props?.stroke || '#3A8B7A'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none">
-			<path d="M9 2L15 4V9C15 13 12 15.5 9 17C6 15.5 3 13 3 9V4L9 2Z" />
-		</svg>
-	);
-}
-
-function IconShieldFill() {
-	return (
-		<svg width="22" height="22" fill="#3A8B7A">
-			<path d="M11 2L19 5V10C19 14.5 15.5 17.2 11 19C6.5 17.2 3 14.5 3 10V5L11 2Z" />
-		</svg>
-	);
-}
-
-function IconPlus() {
-	return (
-		<svg width="18" height="18" stroke="#063C53" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none">
-			<path d="M9 4V14" />
-			<path d="M4 9H14" />
-		</svg>
-	);
-}
-
-function IconSearch() {
-	return (
-		<svg width="18" height="18" stroke="#063C53" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none">
-			<circle cx="8" cy="8" r="5" />
-			<path d="M12 12L16 16" />
-		</svg>
-	);
-}
-
-function IconFilter() {
-	return (
-		<svg width="18" height="18" stroke="#063C53" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none">
-			<path d="M3 5H15" />
-			<path d="M7 10H15" />
-			<path d="M11 15H15" />
-		</svg>
-	);
-}
-
-function IconView() {
-	return (
-		<svg width="18" height="18" stroke="#063C53" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none">
-			<circle cx="9" cy="9" r="2.5" />
-			<path d="M2 9C3.5 5.5 6 3.5 9 3.5C12 3.5 14.5 5.5 16 9C14.5 12.5 12 14.5 9 14.5C6 14.5 3.5 12.5 2 9Z" />
-		</svg>
-	);
-}
-
-function IconEditLine() {
-	return (
-		<svg width="18" height="18" stroke="#063C53" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none">
-			<path d="M4 14L12 6L14 8L6 16H4V14Z" />
-		</svg>
 	);
 }

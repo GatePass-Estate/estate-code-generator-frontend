@@ -8,8 +8,9 @@ import { AllUsers } from '@/src/types/user';
 import { sharedStyles } from '@/src/theme/styles';
 import UserIcon from '@/src/components/mobile/UserIcon';
 import icons from '@/src/constants/icons';
+import { getRoleIcon, getRoleIconHeight, getRoleIconWidth } from '@/src/lib/helpers';
 
-export default function AdminDashboard() {
+export default function AdminUsersMobilePage() {
 	const { signOut } = useAuth();
 	const [users, setUsers] = useState<AllUsers>({ total: 0, page: 1, limit: 10, items: [] });
 	const [refreshing, setRefreshing] = useState(false);
@@ -62,7 +63,7 @@ export default function AdminDashboard() {
 			<ScrollView contentContainerStyle={{ paddingTop: 40 }}>
 				<View className="flex-row justify-between gap-3 mb-3">
 					<View className="flex-1 border border-orange rounded-2xl p-4 py-7 bg-orange/10 flex-row gap-5 items-center">
-						<Image source={icons.adminHomeIcon} style={{ width: 45, height: 40 }} />
+						<Image source={icons.adminHomeIcon} style={{ width: 58, height: 51 }} />
 						<View className="flex-col justify-center">
 							<Text className="text-orange font-inter-medium">Residents</Text>
 							<Text className="text-orange text-5xl font-ubuntu-bold">{residentsCount}</Text>
@@ -70,7 +71,7 @@ export default function AdminDashboard() {
 					</View>
 
 					<View className="flex-1 border border-teal rounded-2xl p-4 py-7 bg-teal/10 flex-row gap-5 items-center">
-						<Image source={icons.securityIcon} style={{ width: 40, height: 40 }} />
+						<Image source={icons.securityIcon} style={{ width: 45, height: 55 }} />
 						<View className="flex-col justify-center">
 							<Text className="text-teal font-inter-medium">Security p...</Text>
 							<Text className="text-teal text-5xl font-ubuntu-bold">{securityPersonnelCount}</Text>
@@ -132,7 +133,7 @@ export default function AdminDashboard() {
 					}
 					renderItem={({ item, index }) => (
 						<TouchableOpacity className={`flex-row items-center py-3.5 ${index === limitedUsers.length - 1 ? '' : 'border-b'} border-gray-200 pl-2`} onPress={() => router.push(`/(protected)/admin/users/${item.id}`)}>
-							<Image source={icons.adminHomeIcon} style={{ width: 25, height: 25 }} />
+							<Image source={getRoleIcon(item.role)} style={{ width: getRoleIconWidth(item.role), height: getRoleIconHeight(item.role) }} />
 							<View className="flex-1 ml-2.5">
 								<Text className="text-primary text-lg font-inter-regular">{`${item.first_name} ${item.last_name}`}</Text>
 								<Text className="text-primary text-sm font-inter-regular mt-0.5">{item.home_address}</Text>

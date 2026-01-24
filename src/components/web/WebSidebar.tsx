@@ -23,7 +23,7 @@ export default function WebSidebar({ routes, onNavigate }: WebSidebarProps) {
 
 			<div className="mt-10 flex flex-col gap-2 w-full">
 				{routes.map(({ name, title, link, activeIcon, inactiveIcon, role }) => {
-					const isActive = pathname === link;
+					const isActive = pathname === link || (link.includes('/admin') && pathname.includes('/admin'));
 
 					if (role && role !== userRole) return null;
 

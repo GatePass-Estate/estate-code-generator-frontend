@@ -96,6 +96,12 @@ import caret from '../assets/icons/caret.png';
 import inactiveSelect from '../assets/icons/inactive-select.png';
 // @ts-ignore
 import activeSelect from '../assets/icons/active-select.png';
+// @ts-ignore
+import webSearch from '../assets/icons/web-search.png';
+// @ts-ignore
+import userEdit from '../assets/icons/web-user-edit.png';
+// @ts-ignore
+import userIcon from '../assets/icons/web-user-icon.png';
 
 const icons = {
 	menuIcon,
@@ -147,6 +153,9 @@ const icons = {
 	caret,
 	inactiveSelect,
 	activeSelect,
+	webSearch,
+	userEdit,
+	userIcon,
 };
 
 export default icons;

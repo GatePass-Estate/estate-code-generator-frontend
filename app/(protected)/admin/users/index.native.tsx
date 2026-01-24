@@ -9,6 +9,7 @@ import { sharedStyles } from '@/src/theme/styles';
 import icons from '@/src/constants/icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Back from '@/src/components/mobile/Back';
+import { getRoleIcon, getRoleIconHeight, getRoleIconWidth } from '@/src/lib/helpers';
 
 const AllUsersMobile = () => {
 	const [users, setUsers] = useState<AllUsers>({ total: 0, page: 1, limit: 10, items: [] });
@@ -105,7 +106,7 @@ const AllUsersMobile = () => {
 						<View className="px-5">
 							{filteredUsers.map((user, index) => (
 								<TouchableOpacity key={index} className={`flex-row items-center py-4 ${index !== filteredUsers.length - 1 ? 'border-b border-gray-200' : ''}`} onPress={() => router.push(`/(protected)/admin/users/${user.id}`)}>
-									<Image source={user.role === 'resident' ? icons.adminHomeIcon : user.role === 'security' ? icons.securityIcon : icons.activeAdminIcon} style={{ width: user.role === 'admin' || user.role === 'primary_admin' ? 23 : 28, height: 28 }} />
+									<Image source={getRoleIcon(user.role)} style={{ width: getRoleIconWidth(user.role), height: getRoleIconHeight(user.role) }} />
 									<View className="flex-1 ml-4">
 										<Text className="text-primary text-lg font-inter-medium">{`${user.first_name} ${user.last_name}`}</Text>
 										<Text className="text-gray-500 text-sm font-inter-regular mt-1">{user.home_address}</Text>
