@@ -2,7 +2,7 @@ import { View, Text, ScrollView, TouchableOpacity, Image, FlatList, RefreshContr
 import { Feather } from '@expo/vector-icons';
 import { useAuth } from '@/src/hooks/useAuthContext';
 import { Stack, useRouter } from 'expo-router';
-import { getAllUsers } from '@/src/lib/api/user';
+import { getAllEstateUsers } from '@/src/lib/api/user';
 import { useEffect, useState } from 'react';
 import { AllUsers } from '@/src/types/user';
 import { sharedStyles } from '@/src/theme/styles';
@@ -19,7 +19,7 @@ export default function AdminUsersMobilePage() {
 	const handleRefresh = async () => {
 		setRefreshing(true);
 		try {
-			const data = await getAllUsers();
+			const data = await getAllEstateUsers();
 			setUsers(data);
 		} catch (error) {
 			console.error('Error refreshing users:', error);
@@ -29,16 +29,16 @@ export default function AdminUsersMobilePage() {
 	};
 
 	useEffect(() => {
-		const getAllUsersData = async () => {
+		const getAllEstateUsersData = async () => {
 			try {
-				const data = await getAllUsers();
+				const data = await getAllEstateUsers();
 				setUsers(data);
 			} catch (error) {
 				console.error('Error fetching users:', error);
 			}
 		};
 
-		getAllUsersData();
+		getAllEstateUsersData();
 	}, []);
 
 	const securityPersonnelCount = users.items.filter((user) => user.role === 'security').length;

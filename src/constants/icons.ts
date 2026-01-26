@@ -102,6 +102,8 @@ import webSearch from '../assets/icons/web-search.png';
 import userEdit from '../assets/icons/web-user-edit.png';
 // @ts-ignore
 import userIcon from '../assets/icons/web-user-icon.png';
+// @ts-ignore
+import addUser from '../assets/icons/web-user-edit-add.png';
 
 const icons = {
 	menuIcon,
@@ -156,6 +158,7 @@ const icons = {
 	webSearch,
 	userEdit,
 	userIcon,
+	addUser,
 };
 
 export default icons;

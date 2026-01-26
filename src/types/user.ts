@@ -12,9 +12,8 @@ export type User = {
 	estate_name: string | null;
 	role: UserRolesType;
 	estate_id: string | null;
-
 	household_id: string | null;
-	status: boolean | null;
+	status: boolean;
 	created_at: string | null;
 	updated_at: string | null;
 	is_deleted: false;
@@ -42,4 +41,11 @@ export type RegisterUserPayload = {
 	estate_id: string;
 	phone_number: string | null;
 	household_id: string | null;
+};
+
+export type UpdateUserRoleResponse = {
+	user_id: string;
+	estate_id: string;
+	message: string;
+	role: UserRolesType;
 };

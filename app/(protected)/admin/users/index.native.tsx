@@ -1,7 +1,7 @@
 import { View, Text, ScrollView, TouchableOpacity, Image, TextInput, RefreshControl, Pressable } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Stack, router } from 'expo-router';
-import { getAllUsers } from '@/src/lib/api/user';
+import { getAllEstateUsers } from '@/src/lib/api/user';
 import { useEffect, useState, useMemo } from 'react';
 import { AllUsers } from '@/src/types/user';
 import { UserRolesType } from '@/src/types/general';
@@ -19,10 +19,10 @@ const AllUsersMobile = () => {
 	const [selectedRole, setSelectedRole] = useState<UserRolesType>(null);
 
 	useEffect(() => {
-		const getAllUsersData = async () => {
+		const getAllEstateUsersData = async () => {
 			try {
 				setIsLoading(true);
-				const data = await getAllUsers();
+				const data = await getAllEstateUsers();
 				setUsers(data);
 			} catch (error) {
 				console.error('Error fetching users:', error);
@@ -31,13 +31,13 @@ const AllUsersMobile = () => {
 			}
 		};
 
-		getAllUsersData();
+		getAllEstateUsersData();
 	}, []);
 
 	const handleRefresh = async () => {
 		try {
 			setIsRefreshing(true);
-			const data = await getAllUsers();
+			const data = await getAllEstateUsers();
 			setUsers(data);
 		} catch (error) {
 			console.error('Error refreshing users:', error);

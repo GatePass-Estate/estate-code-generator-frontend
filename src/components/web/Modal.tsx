@@ -8,6 +8,7 @@ const Modal = ({
 	actionText,
 	runningText,
 	actionRunnig,
+	actionBtnClassName,
 }: {
 	closeModal: () => void;
 	action?: () => void;
@@ -18,6 +19,7 @@ const Modal = ({
 	actionText?: string;
 	actionRunnig?: boolean;
 	runningText?: string;
+	actionBtnClassName?: string;
 }) => {
 	return (
 		<div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -31,7 +33,7 @@ const Modal = ({
 					</button>
 
 					{action && (
-						<button className="px-4 py-2 bg-red-600 text-white rounded" onClick={action} disabled={btnDisabled}>
+						<button className={`px-4 py-2 text-white rounded ${actionBtnClassName ? actionBtnClassName : 'bg-red-600'}`} onClick={action} disabled={btnDisabled}>
 							{actionRunnig ? runningText : actionText}
 						</button>
 					)}
