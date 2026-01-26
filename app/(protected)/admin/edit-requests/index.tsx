@@ -1,8 +1,10 @@
-import { Platform } from 'react-native';
-import editRequestMobile from './index.native';
-import editRequestWeb from './index.web';
+import { useWindowDimensions } from 'react-native';
+import EditRequestWeb from './web';
+import EditRequestMobile from './native';
 
-export default Platform.select({
-	web: editRequestWeb,
-	default: editRequestMobile,
-});
+const editRequest = () => {
+	const { width } = useWindowDimensions();
+	return width >= 768 ? <EditRequestWeb /> : <EditRequestMobile />;
+};
+
+export default editRequest;

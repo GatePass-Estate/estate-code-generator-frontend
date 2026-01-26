@@ -1,8 +1,10 @@
-import { Platform } from 'react-native';
-import AllUsersMobile from './index.native';
-import AllUsersWeb from './index.web';
+import { useWindowDimensions } from 'react-native';
+import AllUsersMobile from './native';
+import AllUsersWeb from './web';
 
-export default Platform.select({
-	web: AllUsersWeb,
-	default: AllUsersMobile,
-});
+const AllUsers = () => {
+  const { width } = useWindowDimensions();
+  return width >= 768 ? <AllUsersWeb /> : <AllUsersMobile />;
+};
+
+export default AllUsers;

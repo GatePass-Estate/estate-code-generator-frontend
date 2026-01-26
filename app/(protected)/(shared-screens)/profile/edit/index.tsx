@@ -1,8 +1,10 @@
-import { Platform } from 'react-native';
-import EditProfileMobile from './index.native';
-import EditProfileWeb from './index.web';
+import { useWindowDimensions } from 'react-native';
+import EditProfileMobile from './native';
+import EditProfileWeb from './web';
 
-export default Platform.select({
-	web: EditProfileWeb,
-	default: EditProfileMobile,
-});
+const EditProfile = () => {
+  const { width } = useWindowDimensions();
+  return width >= 768 ? <EditProfileWeb /> : <EditProfileMobile />;
+};
+
+export default EditProfile;

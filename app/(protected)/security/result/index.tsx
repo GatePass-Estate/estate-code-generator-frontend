@@ -1,10 +1,9 @@
-import { Platform } from 'react-native';
-import HomeMobile from './index.native';
+import { useWindowDimensions } from 'react-native';
+import HomeMobile from './native';
 
-export default function Home() {
-	const Component = Platform.select({
-		default: () => <HomeMobile />,
-	});
+const Home = () => {
+	const { width } = useWindowDimensions();
+	return width >= 768 ? <></> : <HomeMobile />;
+};
 
-	return <Component />;
-}
+export default Home;

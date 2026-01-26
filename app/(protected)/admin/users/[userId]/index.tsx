@@ -1,8 +1,10 @@
-import { Platform } from 'react-native';
-import SingleUserMobile from './index.native';
-import SingleUserWeb from './index.web';
+import { useWindowDimensions } from 'react-native';
+import SingleUserMobile from './native';
+import SingleUserWeb from './web';
 
-export default Platform.select({
-	web: SingleUserWeb,
-	default: SingleUserMobile,
-});
+const SingleUser = () => {
+  const { width } = useWindowDimensions();
+  return width >= 768 ? <SingleUserWeb /> : <SingleUserMobile />;
+};
+
+export default SingleUser;

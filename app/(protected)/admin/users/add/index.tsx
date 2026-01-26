@@ -1,8 +1,10 @@
-import { Platform } from 'react-native';
-import AddUsersMobile from './index.native';
-import AddUsersWeb from './index.web';
+import { useWindowDimensions } from 'react-native';
+import AddUsersMobile from './native';
+import AddUsersWeb from './web';
 
-export default Platform.select({
-	web: AddUsersWeb,
-	default: AddUsersMobile,
-});
+const AddUsers = () => {
+  const { width } = useWindowDimensions();
+  return width >= 768 ? <AddUsersWeb /> : <AddUsersMobile />;
+};
+
+export default AddUsers;
