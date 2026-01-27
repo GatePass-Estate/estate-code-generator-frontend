@@ -134,7 +134,7 @@ export default function RegisterUserWeb() {
 
 					if (activatedUser) {
 						setMessageType('success');
-						setError('User registered successfully!');
+						setError('User registered and activated successfully!');
 						// Reset form
 						setFirstName('');
 						setLastName('');

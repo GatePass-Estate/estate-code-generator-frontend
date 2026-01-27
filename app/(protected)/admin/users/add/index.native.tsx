@@ -124,7 +124,7 @@ const RegisterUser = () => {
 				// });
 
 				if (activatedUser) {
-					setToastMessage('User registered successfully!');
+					setToastMessage('User registered and activated successfully!');
 					setToastType('success');
 					setToastVisible(true);
 					// Reset form
