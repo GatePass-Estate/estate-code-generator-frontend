@@ -126,11 +126,10 @@ export default function RegisterUserWeb() {
 				const registeredUser = await registerUser(payload);
 
 				if (registeredUser && registeredUser.id) {
-					let activatedUser = true;
-					// const activatedUser = await activateUser({
-					// 	user_id: registeredUser.id,
-					// 	new_password: password,
-					// });
+					const activatedUser = await activateUser({
+						user_id: registeredUser.id,
+						new_password: password,
+					});
 
 					if (activatedUser) {
 						setMessageType('success');

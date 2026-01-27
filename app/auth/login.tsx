@@ -75,9 +75,7 @@ export default function Login() {
 
 			signIn(await fetchMe(result.access_token));
 
-			if (['primary_admin', 'admin'].includes(result.role!)) {
-				router.replace('/admin');
-			} else if (result.role === 'resident') {
+			if (result.role === 'resident' || ['primary_admin', 'admin'].includes(result.role!)) {
 				router.replace('/user');
 			} else if (result.role === 'security') {
 				router.replace('/security');
@@ -108,7 +106,7 @@ export default function Login() {
 					</Pressable>
 				</View>
 			) : null,
-		[errorMessage]
+		[errorMessage],
 	);
 
 	if (!appIsReady) return <LoadingTransition />;

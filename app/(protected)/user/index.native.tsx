@@ -8,7 +8,6 @@ import { Codes } from '@/src/types/codes';
 import { getAllCodes } from '@/src/lib/api/codes';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { sharedStyles } from '@/src/theme/styles';
-import { timeCalc } from '@/src/lib/helpers';
 
 export default function HomeMobile({}) {
 	const bounceValue = useRef(new Animated.Value(0)).current;
