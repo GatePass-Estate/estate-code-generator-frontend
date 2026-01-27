@@ -46,7 +46,7 @@ export default function HomeMobile({}) {
 					duration: 500,
 					useNativeDriver: Platform.OS !== 'web',
 				}),
-			])
+			]),
 		);
 		anim.start();
 

@@ -57,7 +57,7 @@ export default function AdminUsersMobilePage() {
 					headerTitleAlign: 'left',
 					headerStyle: sharedStyles.header,
 					headerTitleStyle: sharedStyles.title,
-					headerRight: () => <UserIcon />,
+					headerRight: () => <UserIcon type="user" />,
 				}}
 			/>
 			<ScrollView contentContainerStyle={{ paddingTop: 40 }}>

@@ -32,7 +32,6 @@ export default function SecurityVerificationMobile() {
 		newCode[index] = digit;
 		setCode(newCode);
 
-		// Uses a timeout to ensure the component is ready before focusing
 		setTimeout(() => {
 			if (digit && index < 5) {
 				inputs.current[index + 1]?.focus();

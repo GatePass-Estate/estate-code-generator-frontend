@@ -1,25 +1,39 @@
+import icons from '@/src/constants/icons';
 import { useUserStore } from '@/src/lib/stores/userStore';
-import { Link } from 'expo-router';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { Link, useRouter } from 'expo-router';
+import { View, Text, StyleSheet, Pressable, Image } from 'react-native';
 
-export default function UserIcon() {
+export default function UserIcon({ type = 'admin' }: { type?: string }) {
 	const first_name = useUserStore((state) => state.first_name);
 	const last_name = useUserStore((state) => state.last_name);
+	const role = useUserStore((state) => state.role);
+	const router = useRouter();
 
 	const initials = `${first_name?.charAt(0) ?? ''}${last_name?.charAt(0) ?? ''}`;
 
 	return (
-		<Link href="/profile" asChild>
-			<Pressable>
-				{() => (
+		<>
+			{['admin', 'primary_admin'].includes(role) && (
+				<Pressable
+					className="mr-6"
+					onPress={() => {
+						router.replace(`${type === 'user' ? '/user' : '/admin'}`);
+					}}
+				>
+					<Image source={type === 'user' ? icons.webHomeActiveIcon : icons.activeAdminIcon} style={{ width: type === 'user' ? 23.5 : 21, height: 25 }} />
+				</Pressable>
+			)}
+
+			<Link href="/profile" asChild>
+				<Pressable>
 					<View style={styles.profileCircle}>
 						<Text className="uppercase" style={styles.profileInitials}>
 							{initials}
 						</Text>
 					</View>
-				)}
-			</Pressable>
-		</Link>
+				</Pressable>
+			</Link>
+		</>
 	);
 }
 

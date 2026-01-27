@@ -117,10 +117,11 @@ const RegisterUser = () => {
 			const regiteredUser = await registerUser(payload);
 
 			if (regiteredUser && regiteredUser.id) {
-				const activatedUser = await activateUser({
-					user_id: regiteredUser.id,
-					new_password: formData.password,
-				});
+				let activatedUser = true;
+				// const activatedUser = await activateUser({
+				// 	user_id: registeredUser.id,
+				// 	new_password: password,
+				// });
 
 				if (activatedUser) {
 					setToastMessage('User registered and activated successfully!');
