@@ -1,10 +1,8 @@
-import { useWindowDimensions } from 'react-native';
-import BroadcastMobile from './native';
-import BroadcastWeb from './web';
+import { Platform } from 'react-native';
+import broadcastMobile from './index.native';
+import broadcastWeb from './index.web';
 
-const broadcast = () => {
-	const { width } = useWindowDimensions();
-	return width >= 768 ? <BroadcastWeb /> : <BroadcastMobile />;
-};
-
-export default broadcast;
+export default Platform.select({
+	web: broadcastWeb,
+	default: broadcastMobile,
+});

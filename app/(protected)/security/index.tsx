@@ -1,10 +1,12 @@
-import { useWindowDimensions } from 'react-native';
-import SecurityVerificationMobile from './native';
-import SecurityVerificationWeb from './web';
+import { Platform } from 'react-native';
+import SecurityVerificationMobile from './index.native';
+import SecurityVerificationWeb from './index.web';
 
-const SecurityVerification = () => {
-  const { width } = useWindowDimensions();
-  return width >= 768 ? <SecurityVerificationWeb /> : <SecurityVerificationMobile />;
-};
+export default function Home() {
+	const Component = Platform.select({
+		web: () => <SecurityVerificationWeb />,
+		default: () => <SecurityVerificationMobile />,
+	});
 
-export default SecurityVerification;
+	return <Component />;
+}

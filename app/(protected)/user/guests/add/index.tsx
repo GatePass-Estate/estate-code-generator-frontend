@@ -1,10 +1,8 @@
-import { useWindowDimensions } from 'react-native';
-import AddGuestMobile from './native';
-import AddGuestWeb from './web';
+import { Platform } from 'react-native';
+import AddGuestMobile from './index.native';
+import AddGuestWeb from './index.web';
 
-const AddGuest = () => {
-  const { width } = useWindowDimensions();
-  return width >= 768 ? <AddGuestWeb /> : <AddGuestMobile />;
-};
-
-export default AddGuest;
+export default Platform.select({
+	web: AddGuestWeb,
+	default: AddGuestMobile,
+});

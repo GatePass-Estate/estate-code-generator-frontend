@@ -1,5 +1,5 @@
 import { Platform } from 'react-native';
-import EditSecurityProfileWeb from './web';
+import EditSecurityProfileWeb from './index.web';
 
 export default function EditSecurityProfile() {
 	const Component = Platform.select({
