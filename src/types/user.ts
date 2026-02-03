@@ -2,7 +2,7 @@ import { GenderType, UserRolesType } from './general';
 
 export type User = {
 	user_id: string;
-	id: string;
+	id?: string;
 	first_name: string | null;
 	last_name: string | null;
 	home_address: string | null;
@@ -12,11 +12,11 @@ export type User = {
 	estate_name: string | null;
 	role: UserRolesType;
 	estate_id: string | null;
-	household_id: string | null;
+	household_id?: string | null;
 	status: boolean;
-	created_at: string | null;
-	updated_at: string | null;
-	is_deleted: false;
+	created_at?: string | null;
+	updated_at?: string | null;
+	is_deleted?: false;
 };
 
 export type UpdatePasswordPayload = {

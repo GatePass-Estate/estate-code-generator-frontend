@@ -2,7 +2,7 @@ import Back from '@/src/components/mobile/Back';
 import { sharedStyles } from '@/src/theme/styles';
 import { Stack, useRouter } from 'expo-router';
 import { useState, useEffect } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FormData, FormErrors, MeansOfIdType } from '@/src/types/general';
@@ -11,6 +11,7 @@ import { useUserStore } from '@/src/lib/stores/userStore';
 import { Toast, ToastType } from '@/src/components/mobile/Toast';
 import { RegisterUserPayload } from '@/src/types/user';
 import { useNavigation } from '@react-navigation/native';
+import icons from '@/src/constants/icons';
 
 const MEANS_OF_IDENTIFICATION: { label: string; value: MeansOfIdType }[] = [
 	{ label: 'Drivers License', value: 'drivers_license' },
@@ -28,7 +29,7 @@ const RegisterUser = () => {
 		lastName: '',
 		email: '',
 		phoneNumber: '',
-		password: '',
+		password: 'NewPowerfulPassword',
 		userType: 'resident',
 		homeAddress: '',
 		meansOfIdentification: 'drivers_license',
@@ -39,6 +40,9 @@ const RegisterUser = () => {
 	const [toastVisible, setToastVisible] = useState(false);
 	const [toastMessage, setToastMessage] = useState('');
 	const [toastType, setToastType] = useState<ToastType>('success');
+	const [isUserTypePickerVisible, setIsUserTypePickerVisible] = useState(false);
+	const [isMeansOfIdPickerVisible, setIsMeansOfIdPickerVisible] = useState(false);
+	const [showPassword, setShowPassword] = useState(false);
 
 	// Handle custom back navigation
 	useEffect(() => {
@@ -280,7 +284,19 @@ const RegisterUser = () => {
 								>
 									Create password
 								</Text>
-								<TextInput placeholder="Enter password for user" placeholderTextColor="#999" value={formData.password} onChangeText={(value) => updateFormData('password', value)} secureTextEntry style={[sharedStyles.input, { borderColor: errors.password ? '#ef4444' : undefined }]} />
+								<View className="relative">
+									<TextInput
+										placeholder="Enter password for user"
+										placeholderTextColor="#999"
+										value={formData.password}
+										onChangeText={(value) => updateFormData('password', value)}
+										secureTextEntry={!showPassword}
+										style={[sharedStyles.input, { borderColor: errors.password ? '#ef4444' : undefined, paddingRight: 48 }]}
+									/>
+									<Pressable onPress={() => setShowPassword(!showPassword)} className="absolute right-3 top-6" disabled={loading}>
+										<Image source={showPassword ? icons.eye : icons.hiddenEye} style={{ width: 20, height: 20 }} resizeMode="contain" />
+									</Pressable>
+								</View>
 								{errors.password && <Text className="text-red-600 text-xs font-ubuntu-regular mt-1">{errors.password}</Text>}
 							</View>
 
@@ -295,20 +311,37 @@ const RegisterUser = () => {
 								>
 									Save User As
 								</Text>
-								<View style={sharedStyles.input}>
-									<Picker
-										selectedValue={formData.userType}
-										onValueChange={(value) => updateFormData('userType', value as 'resident' | 'admin')}
-										style={{
-											color: '#000',
-											height: Platform.OS === 'ios' ? 120 : 50,
-											marginTop: Platform.OS === 'ios' ? -20 : -15,
-										}}
-									>
-										<Picker.Item label="Resident" value="resident" />
-										<Picker.Item label="Security Personnel" value="security" />
-									</Picker>
-								</View>
+								{Platform.OS === 'ios' ? (
+									<>
+										<Pressable style={sharedStyles.input} onPress={() => setIsUserTypePickerVisible(true)}>
+											<Text style={{ color: formData.userType ? '#000' : '#9CA3AF' }}>{formData.userType === 'resident' ? 'Resident' : formData.userType === 'security' ? 'Security Personnel' : 'Select user type'}</Text>
+										</Pressable>
+										<Modal transparent={true} visible={isUserTypePickerVisible} animationType="slide" onRequestClose={() => setIsUserTypePickerVisible(false)}>
+											<Pressable style={styles.modalOverlay} onPress={() => setIsUserTypePickerVisible(false)}>
+												<View className="bg-gray-800">
+													<Picker
+														selectedValue={formData.userType}
+														onValueChange={(itemValue) => {
+															updateFormData('userType', itemValue as 'resident' | 'admin');
+															setIsUserTypePickerVisible(false);
+														}}
+														className="text-gray-300 h-14 w-full"
+													>
+														<Picker.Item label="Resident" value="resident" />
+														<Picker.Item label="Security Personnel" value="security" />
+													</Picker>
+												</View>
+											</Pressable>
+										</Modal>
+									</>
+								) : (
+									<View style={sharedStyles.input}>
+										<Picker selectedValue={formData.userType} onValueChange={(value) => updateFormData('userType', value as 'resident' | 'admin')} className="text-gray-300 h-14 w-full text-sm" style={{ color: 'gray' }}>
+											<Picker.Item label="Resident" value="resident" />
+											<Picker.Item label="Security Personnel" value="security" />
+										</Picker>
+									</View>
+								)}
 							</View>
 
 							<TouchableOpacity disabled={loading} onPress={handleContinue} className={`px-24 bg-primary justify-center items-center py-5 font-UbuntuSans !rounded-xl ${loading ? 'opacity-70' : ''}`} activeOpacity={0.8}>
@@ -351,21 +384,39 @@ const RegisterUser = () => {
 								>
 									Means of Identification
 								</Text>
-								<View style={sharedStyles.input}>
-									<Picker
-										selectedValue={formData.meansOfIdentification}
-										onValueChange={(value) => updateFormData('meansOfIdentification', value as MeansOfIdType)}
-										style={{
-											color: '#000',
-											height: Platform.OS === 'ios' ? 120 : 50,
-											marginTop: Platform.OS === 'ios' ? -20 : -15,
-										}}
-									>
-										{MEANS_OF_IDENTIFICATION.map((item) => (
-											<Picker.Item key={item.value} label={item.label} value={item.value} />
-										))}
-									</Picker>
-								</View>
+								{Platform.OS === 'ios' ? (
+									<>
+										<Pressable style={sharedStyles.input} onPress={() => setIsMeansOfIdPickerVisible(true)}>
+											<Text style={{ color: formData.meansOfIdentification ? '#000' : '#9CA3AF' }}>{MEANS_OF_IDENTIFICATION.find((item) => item.value === formData.meansOfIdentification)?.label || 'Select means of identification'}</Text>
+										</Pressable>
+										<Modal transparent={true} visible={isMeansOfIdPickerVisible} animationType="slide" onRequestClose={() => setIsMeansOfIdPickerVisible(false)}>
+											<Pressable style={styles.modalOverlay} onPress={() => setIsMeansOfIdPickerVisible(false)}>
+												<View className="bg-gray-800">
+													<Picker
+														selectedValue={formData.meansOfIdentification}
+														onValueChange={(itemValue) => {
+															updateFormData('meansOfIdentification', itemValue as MeansOfIdType);
+															setIsMeansOfIdPickerVisible(false);
+														}}
+														className="text-gray-300 h-14 w-full"
+													>
+														{MEANS_OF_IDENTIFICATION.map((item) => (
+															<Picker.Item key={item.value} label={item.label} value={item.value} />
+														))}
+													</Picker>
+												</View>
+											</Pressable>
+										</Modal>
+									</>
+								) : (
+									<View style={sharedStyles.input}>
+										<Picker selectedValue={formData.meansOfIdentification} onValueChange={(value) => updateFormData('meansOfIdentification', value as MeansOfIdType)} className="text-gray-300 h-14 w-full text-sm" style={{ color: 'gray' }}>
+											{MEANS_OF_IDENTIFICATION.map((item) => (
+												<Picker.Item key={item.value} label={item.label} value={item.value} />
+											))}
+										</Picker>
+									</View>
+								)}
 							</View>
 
 							<TouchableOpacity disabled={loading} onPress={handleContinue} className={`px-24 bg-primary justify-center items-center py-5 font-UbuntuSans !rounded-xl ${loading ? 'opacity-70' : ''} gap-2 flex-row`} activeOpacity={0.8}>
@@ -379,5 +430,13 @@ const RegisterUser = () => {
 		</SafeAreaView>
 	);
 };
+
+const styles = StyleSheet.create({
+	modalOverlay: {
+		flex: 1,
+		backgroundColor: 'rgba(0, 0, 0, 0.5)',
+		justifyContent: 'flex-end',
+	},
+});
 
 export default RegisterUser;

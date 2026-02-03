@@ -1,12 +1,13 @@
 import Back from '@/src/components/mobile/Back';
 import { SingleDetail } from '@/src/components/mobile/SIngleDetail';
-import { getUserById } from '@/src/lib/api/user';
+import { getUserById, promoteToAdmin, demoteToResident } from '@/src/lib/api/user';
 import { sharedStyles } from '@/src/theme/styles';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Modal, Animated, PanResponder } from 'react-native';
 import { Text, TouchableOpacity, View, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useUserStore } from '@/src/lib/stores/userStore';
 
 // Dummy API function for deactivating user
 const deactivateUser = async (userId: string): Promise<boolean> => {
@@ -23,10 +24,14 @@ export default function SingleUserMobile() {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [showDeactivateModal, setShowDeactivateModal] = useState(false);
+	const [showPromoteModal, setShowPromoteModal] = useState(false);
 	const [deactivating, setDeactivating] = useState(false);
+	const [processing, setProcessing] = useState(false);
 	const [dialogMessage, setDialogMessage] = useState('');
 	const [dialogVisible, setDialogVisible] = useState(false);
 	const [dialogType, setDialogType] = useState<'success' | 'error'>('success');
+	const [promoteActionType, setPromoteActionType] = useState<'promote' | 'demote' | null>(null);
+	const myId = useUserStore.getState().user_id;
 	const panY = new Animated.Value(0);
 	const [userData, setUserData] = useState<any>({
 		first_name: '',
@@ -114,6 +119,74 @@ export default function SingleUserMobile() {
 		}
 	};
 
+	const promptPromote = () => {
+		if (userData.role === 'admin' || userData.role === 'primary_admin') {
+			if (userId === myId) {
+				setDialogType('error');
+				setDialogMessage('You cannot demote yourself from admin.');
+				setDialogVisible(true);
+				return;
+			}
+
+			if (userData.role === 'primary_admin') {
+				setDialogType('error');
+				setDialogMessage('You cannot demote the primary admin.');
+				setDialogVisible(true);
+				return;
+			}
+			setPromoteActionType('demote');
+		} else {
+			if (userId === myId) {
+				setDialogType('error');
+				setDialogMessage('You cannot promote yourself to admin.');
+				setDialogVisible(true);
+				return;
+			}
+			setPromoteActionType('promote');
+		}
+		setShowPromoteModal(true);
+	};
+
+	const handlePromoteOrDemote = async () => {
+		if (!promoteActionType) return;
+
+		setProcessing(true);
+		try {
+			let message = '';
+
+			if (promoteActionType === 'promote') {
+				await promoteToAdmin(userId as string);
+				message = `${userData.first_name} has been successfully promoted to Admin.`;
+			} else if (promoteActionType === 'demote') {
+				await demoteToResident(userId as string);
+				message = `${userData.first_name} has been successfully demoted to Resident.`;
+			}
+
+			setShowPromoteModal(false);
+			setPromoteActionType(null);
+			setDialogType('success');
+			setDialogMessage(message);
+			setDialogVisible(true);
+
+			// Refresh user data after successful action
+			setTimeout(async () => {
+				const resident = await getUserById(userId as string);
+				if (resident) {
+					setUserData(resident);
+				}
+			}, 1500);
+		} catch (err) {
+			console.error('Error processing action:', err);
+			setShowPromoteModal(false);
+			setPromoteActionType(null);
+			setDialogType('error');
+			setDialogMessage(err instanceof Error ? err.message : 'Failed to process action.');
+			setDialogVisible(true);
+		} finally {
+			setProcessing(false);
+		}
+	};
+
 	return (
 		<>
 			<SafeAreaView style={[sharedStyles.container, sharedStyles.modalContainer, { paddingBottom: 50 }]}>
@@ -182,12 +255,12 @@ export default function SingleUserMobile() {
 						</View>
 
 						<View className="mt-auto flex-row gap-5">
-							<TouchableOpacity onPress={() => setShowDeactivateModal(true)} disabled={deactivating} className={`flex-1 bg-teal justify-center items-center py-5 !rounded-xl ${deactivating ? 'opacity-70' : ''}`}>
+							<TouchableOpacity onPress={() => setShowDeactivateModal(true)} disabled={deactivating || processing} className={`flex-1 bg-teal justify-center items-center py-5 !rounded-xl ${deactivating || processing ? 'opacity-70' : ''}`}>
 								{deactivating ? <ActivityIndicator color="#fff" size="small" /> : <Text className="text-white font-ubuntu-semibold text-md">Deactivate</Text>}
 							</TouchableOpacity>
 
-							<TouchableOpacity className={`flex-1 bg-primary justify-center items-center py-5 !rounded-xl`}>
-								<Text className="text-white font-ubuntu-semibold text-md">Make Admin</Text>
+							<TouchableOpacity onPress={promptPromote} disabled={processing || deactivating} className={`flex-1 bg-primary justify-center items-center py-5 !rounded-xl ${processing || deactivating ? 'opacity-70' : ''}`}>
+								<Text className="text-white font-ubuntu-semibold text-md">{userData.role === 'admin' || userData.role === 'primary_admin' ? 'Make Resident' : 'Make Admin'}</Text>
 							</TouchableOpacity>
 						</View>
 
@@ -222,7 +295,43 @@ export default function SingleUserMobile() {
 								</Animated.View>
 							</TouchableOpacity>
 						</Modal>
+						{/* Promote/Demote Confirmation Bottom Drawer */}
+						<Modal visible={showPromoteModal} transparent animationType="none" onDismiss={() => panY.setValue(0)}>
+							<TouchableOpacity
+								activeOpacity={1}
+								onPress={() => {
+									setShowPromoteModal(false);
+									setPromoteActionType(null);
+								}}
+								className="flex-1 bg-black/50 justify-end"
+							>
+								<Animated.View style={{ transform: [{ translateY: panY }] }} className="bg-white rounded-t-3xl p-6 pb-10">
+									<View className="mb-2">
+										<View className="h-1 w-12 bg-grey rounded-full self-center mb-4" />
+									</View>
 
+									<Text className="text-2xl font-ubuntu-medium text-grey mb-3 text-center">Are You sure ?</Text>
+									<Text className="text-black text-base font-inter-regular mb-2 text-center">{promoteActionType === 'promote' ? `Confirm if you want to promote ${userData.first_name} to admin` : `Confirm if you want to demote ${userData.first_name} to resident`}</Text>
+
+									<View className="flex-row gap-3 mt-6">
+										<TouchableOpacity
+											onPress={() => {
+												setShowPromoteModal(false);
+												setPromoteActionType(null);
+											}}
+											disabled={processing}
+											className={`flex-1 border-2 bg-teal border-teal py-4 rounded-lg ${processing ? 'opacity-70' : ''}`}
+										>
+											<Text className="text-white font-ubuntu-semibold text-center text-md">Cancel</Text>
+										</TouchableOpacity>
+
+										<TouchableOpacity onPress={handlePromoteOrDemote} disabled={processing} className={`flex-1 bg-primary py-4 rounded-lg ${processing ? 'opacity-70' : ''}`}>
+											{processing ? <ActivityIndicator color="#fff" size="small" /> : <Text className="text-white font-ubuntu-semibold text-center text-md">{promoteActionType === 'promote' ? 'Promote' : 'Demote'}</Text>}
+										</TouchableOpacity>
+									</View>
+								</Animated.View>
+							</TouchableOpacity>
+						</Modal>
 						{/* Dialog Box for System Messages */}
 						<Modal visible={dialogVisible} transparent animationType="fade">
 							<View className="flex-1 justify-center items-center bg-black/50">

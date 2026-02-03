@@ -178,10 +178,11 @@ export default function AdminUsersPage() {
 			showModal('You cannot promote yourself to admin.', null, null, '', true);
 			return;
 		}
+
 		showModal('Are you sure you want to promote this user to admin?', 'promote', userId, userName);
 	};
 
-	const demoteAdminToUser = (userId: string, firstName: string, lastName: string) => {
+	const demoteAdminToUser = (userId: string, firstName: string, lastName: string, userRole: UserRolesType) => {
 		const userName = `${firstName} ${lastName}`.trim();
 		console.log(userId, myId);
 
@@ -189,6 +190,12 @@ export default function AdminUsersPage() {
 			showModal('You cannot demote yourself from admin.', null, null, '', true);
 			return;
 		}
+
+		if (userRole === 'primary_admin') {
+			showModal('You cannot demote the primary admin.', null, null, '', true);
+			return;
+		}
+
 		showModal('Are you sure you want to demote this admin?', 'demote', userId, userName);
 	};
 
@@ -333,22 +340,22 @@ export default function AdminUsersPage() {
 													</td>
 													<td className="py-4 px-4">
 														<div className="flex">
-															{!['admin', 'primary_admin'].includes(user.role) ? (
-																<button onClick={() => promteUserToAdmin(user.id, user.first_name || '', user.last_name || '')} className="p-2 hover:bg-gray-200 transition border-r-2 border-grey" title="Make Admin">
+															{!['admin', 'primary_admin'].includes(user.role!) ? (
+																<button onClick={() => promteUserToAdmin(user.id!, user.first_name || '', user.last_name || '')} className="p-2 hover:bg-gray-200 transition border-r-2 border-grey" title="Make Admin">
 																	<Image source={icons.userIcon} style={{ width: 20, height: 20 }} resizeMode="contain" />
 																</button>
 															) : (
-																<button onClick={() => demoteAdminToUser(user.id, user.first_name || '', user.last_name || '')} className="p-2 hover:bg-gray-200 transition border-r-2 border-grey" title="Make Resident">
+																<button onClick={() => demoteAdminToUser(user.id!, user.first_name || '', user.last_name || '', user.role!)} className="p-2 hover:bg-gray-200 transition border-r-2 border-grey" title="Make Resident">
 																	<Image source={icons.activeGuestIcon} style={{ width: 20, height: 20, opacity: 0.5 }} resizeMode="contain" />
 																</button>
 															)}
 
 															{user.status ? (
-																<button className="p-2 hover:bg-gray-200 transition" title="Deactivate User" onClick={() => deativateUser(user.id, user.first_name || '', user.last_name || '')}>
+																<button className="p-2 hover:bg-gray-200 transition" title="Deactivate User" onClick={() => deativateUser(user.id!, user.first_name || '', user.last_name || '')}>
 																	<Image source={icons.userEdit} style={{ width: 20, height: 20 }} resizeMode="contain" />
 																</button>
 															) : (
-																<button className="p-2 hover:bg-gray-200 transition" title="Reactivate User" onClick={() => reactivateUser(user.id, user.first_name || '', user.last_name || '')}>
+																<button className="p-2 hover:bg-gray-200 transition" title="Reactivate User" onClick={() => reactivateUser(user.id!, user.first_name || '', user.last_name || '')}>
 																	<Image source={icons.addUser} style={{ width: 20, height: 20 }} resizeMode="contain" />
 																</button>
 															)}

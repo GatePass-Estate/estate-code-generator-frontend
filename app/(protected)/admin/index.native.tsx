@@ -60,7 +60,8 @@ export default function AdminUsersMobilePage() {
 					headerRight: () => <UserIcon type="user" />,
 				}}
 			/>
-			<ScrollView contentContainerStyle={{ paddingTop: 40 }}>
+
+			<ScrollView contentContainerStyle={{ paddingTop: 40 }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}>
 				<View className="flex-row justify-between gap-3 mb-3">
 					<View className="flex-1 border border-orange rounded-2xl p-4 py-7 bg-orange/10 flex-row gap-5 items-center">
 						<Image source={icons.adminHomeIcon} style={{ width: 58, height: 51 }} />
@@ -123,9 +124,8 @@ export default function AdminUsersMobilePage() {
 
 				<FlatList
 					data={limitedUsers}
-					keyExtractor={(item) => item.id}
+					keyExtractor={(item) => item.id!}
 					scrollEnabled={false}
-					refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
 					ListEmptyComponent={
 						<View className="py-8 items-center">
 							<Text className="text-grey text-center text-md font-inter-regular">No users at the moment</Text>

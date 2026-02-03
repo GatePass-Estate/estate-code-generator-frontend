@@ -22,10 +22,6 @@ export default function ProtectedLayout() {
 		return <Redirect href="/auth" />;
 	}
 
-	if (role === 'admin') {
-		return <Redirect href="/admin" />;
-	}
-
 	return (
 		<Stack screenOptions={{ headerShown: false }}>
 			<Stack.Screen name="user" />
