@@ -336,7 +336,7 @@ const RegisterUser = () => {
 									</>
 								) : (
 									<View style={sharedStyles.input}>
-										<Picker selectedValue={formData.userType} onValueChange={(value) => updateFormData('userType', value as 'resident' | 'admin')} className="text-gray-300 h-14 w-full text-sm" style={{ color: 'gray' }}>
+										<Picker selectedValue={formData.userType} onValueChange={(value) => updateFormData('userType', value as 'resident' | 'admin')} className="text-gray-300 h-14 w-full text-sm" style={{ color: 'gray', marginTop: -14 }}>
 											<Picker.Item label="Resident" value="resident" />
 											<Picker.Item label="Security Personnel" value="security" />
 										</Picker>
@@ -410,7 +410,7 @@ const RegisterUser = () => {
 									</>
 								) : (
 									<View style={sharedStyles.input}>
-										<Picker selectedValue={formData.meansOfIdentification} onValueChange={(value) => updateFormData('meansOfIdentification', value as MeansOfIdType)} className="text-gray-300 h-14 w-full text-sm" style={{ color: 'gray' }}>
+										<Picker selectedValue={formData.meansOfIdentification} onValueChange={(value) => updateFormData('meansOfIdentification', value as MeansOfIdType)} className="text-gray-300 h-14 w-full text-sm" style={{ color: 'gray', marginTop: -14 }}>
 											{MEANS_OF_IDENTIFICATION.map((item) => (
 												<Picker.Item key={item.value} label={item.label} value={item.value} />
 											))}

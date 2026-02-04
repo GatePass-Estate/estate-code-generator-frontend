@@ -56,7 +56,7 @@ export default function UserIcon({ type = 'admin' }: { type?: string }) {
 								</Pressable>
 							) : (
 								<Pressable className="py-3 px-4" onPress={() => handleNavigation('/user')}>
-									<Text className="text-sm text-teal font-inter-medium">Homes</Text>
+									<Text className="text-sm text-teal font-inter-medium">Home</Text>
 								</Pressable>
 							)}
 						</View>

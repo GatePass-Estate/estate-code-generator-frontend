@@ -89,7 +89,7 @@ export const promoteToAdmin = async (user_id: string): Promise<UpdateUserRoleRes
 	try {
 		const api = Api();
 
-		const axiosRes = await api.post(`/admins/promote/?user_id=${user_id}`);
+		const axiosRes = await api.post(`/admins/promote?user_id=${user_id}`);
 		const data = axiosRes.data;
 
 		return data;
@@ -102,7 +102,7 @@ export const demoteToResident = async (user_id: string): Promise<UpdateUserRoleR
 	try {
 		const api = Api();
 
-		const axiosRes = await api.post(`/admins/demote/?user_id=${user_id}`);
+		const axiosRes = await api.post(`/admins/demote?user_id=${user_id}`);
 		const data = axiosRes.data;
 
 		return data;

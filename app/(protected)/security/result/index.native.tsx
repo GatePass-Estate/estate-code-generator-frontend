@@ -20,6 +20,14 @@ export default function ValidationResult() {
 
 	const styles = variantStyles[gender!];
 
+	const formattedGender = gender
+		? String(gender)
+				.replace(/_/g, ' ')
+				.split(' ')
+				.map((w) => (w ? w.charAt(0).toUpperCase() + w.slice(1) : ''))
+				.join(' ')
+		: '';
+
 	return (
 		<SafeAreaView style={[sharedStyles.container, sharedStyles.modalContainer]}>
 			<Stack.Screen options={{ headerShown: false }} />
@@ -34,7 +42,7 @@ export default function ValidationResult() {
 				<Text className={`text-sm font-inter-semibold mb-3 mt-5 ${styles.text}`}>GUEST DETAILS</Text>
 				<View className={`bg-orange-50 p-4 rounded-xl border border-orange-200 mb-6 ${styles.container}`}>
 					<SingleDetail label="Name" value={visitor_fullname ? visitor_fullname.charAt(0).toUpperCase() + visitor_fullname.slice(1) : ''} />
-					<SingleDetail label="Gender" value={gender ? String(gender).charAt(0).toUpperCase() + String(gender).slice(1) : ''} />
+					<SingleDetail label="Gender" value={formattedGender} />
 					<SingleDetail label="Relationship" value={relationship_with_resident ? relationship_with_resident.charAt(0).toUpperCase() + relationship_with_resident.slice(1) : ''} />
 				</View>
 

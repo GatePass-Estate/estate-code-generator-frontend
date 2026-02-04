@@ -202,7 +202,7 @@ const SendBroadcast = () => {
 									</>
 								) : (
 									<View style={sharedStyles.input}>
-										<Picker selectedValue={formData.userType} onValueChange={(value) => updateFormData('userType', value)} className="text-gray-300 h-14 w-full text-sm" style={{ color: 'gray' }}>
+										<Picker selectedValue={formData.userType} onValueChange={(value) => updateFormData('userType', value)} className="text-gray-300 h-14 w-full text-sm" style={{ color: 'gray', marginTop: -14 }}>
 											{USER_TYPES.map((item) => (
 												<Picker.Item key={item.value} label={item.label} value={item.value} />
 											))}
@@ -250,7 +250,7 @@ const SendBroadcast = () => {
 									</>
 								) : (
 									<View style={sharedStyles.input}>
-										<Picker selectedValue={formData.priorityLevel} onValueChange={(value) => updateFormData('priorityLevel', value)} className="text-gray-300 h-14 w-full text-sm" style={{ color: 'gray' }}>
+										<Picker selectedValue={formData.priorityLevel} onValueChange={(value) => updateFormData('priorityLevel', value)} className="text-gray-300 h-14 w-full text-sm" style={{ color: 'gray', marginTop: -14 }}>
 											{PRIORITY_LEVELS.map((item) => (
 												<Picker.Item key={item.value} label={item.label} value={item.value} />
 											))}
@@ -298,7 +298,7 @@ const SendBroadcast = () => {
 									</>
 								) : (
 									<View style={sharedStyles.input}>
-										<Picker selectedValue={formData.duration} onValueChange={(value) => updateFormData('duration', value)} className="text-gray-300 h-14 w-full text-sm" style={{ color: 'gray' }}>
+										<Picker selectedValue={formData.duration} onValueChange={(value) => updateFormData('duration', value)} className="text-gray-300 h-14 w-full text-sm" style={{ color: 'gray', marginTop: -14 }}>
 											{DURATIONS.map((item) => (
 												<Picker.Item key={item.value} label={item.label} value={item.value} />
 											))}

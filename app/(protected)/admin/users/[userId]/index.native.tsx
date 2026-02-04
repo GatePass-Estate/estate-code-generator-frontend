@@ -295,6 +295,7 @@ export default function SingleUserMobile() {
 								</Animated.View>
 							</TouchableOpacity>
 						</Modal>
+
 						{/* Promote/Demote Confirmation Bottom Drawer */}
 						<Modal visible={showPromoteModal} transparent animationType="none" onDismiss={() => panY.setValue(0)}>
 							<TouchableOpacity
