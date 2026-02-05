@@ -43,7 +43,7 @@ const ProfileScreen = () => {
 			setExpiry(valid_until);
 			setNoCode(false);
 		} catch (e) {
-			console.error('Failed to generate code:', e);
+			console.log('Failed to generate code:', e);
 		} finally {
 			setLoading(false);
 		}
@@ -105,7 +105,7 @@ const ProfileScreen = () => {
 				<Text
 					className="text-2xl text-primary mb-5 font-ubuntu-bold mt-8"
 					style={{
-						fontSize: 21.33,
+						fontSize: 23,
 					}}
 				>
 					My Profile

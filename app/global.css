@@ -15,8 +15,8 @@
 }
 
 .web-body {
-	@apply ml-0 sm:ml-60 lg:ml-72 xl:ml-80 p-4 sm:p-1 w-full;
-	@apply mr-0 sm:mr-8 lg:mr-10 xl:mr-12;
+	@apply ml-0 sm:ml-60 lg:ml-72 xl:ml-72 p-4 sm:p-1 w-full;
+	@apply mr-0 sm:mr-8 lg:mr-8;
 }
 
 .input-style {

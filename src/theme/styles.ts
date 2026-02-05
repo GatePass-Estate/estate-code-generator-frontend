@@ -50,4 +50,20 @@ export const sharedStyles = StyleSheet.create({
 		shadowOpacity: 0,
 		shadowRadius: 0,
 	},
+
+	label: {
+		fontSize: 12,
+		color: '#113E55',
+		marginTop: 20,
+	},
+
+	input: {
+		backgroundColor: '#F7F9F9',
+		borderRadius: 8,
+		paddingHorizontal: 16,
+		paddingVertical: 12,
+		marginTop: 5,
+		height: 50,
+		paddingLeft: 15,
+	},
 });

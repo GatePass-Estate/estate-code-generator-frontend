@@ -8,7 +8,6 @@ import { Codes } from '@/src/types/codes';
 import { getAllCodes } from '@/src/lib/api/codes';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { sharedStyles } from '@/src/theme/styles';
-import { timeCalc } from '@/src/lib/helpers';
 
 export default function HomeMobile({}) {
 	const bounceValue = useRef(new Animated.Value(0)).current;
@@ -21,7 +20,7 @@ export default function HomeMobile({}) {
 			const result = await getAllCodes(useUserStore.getState().user_id);
 			setCodes(result.items.filter((code) => !code.is_expired));
 		} catch (error) {
-			console.error('Failed to fetch codes:', error);
+			console.log('Failed to fetch codes:', error);
 		} finally {
 			setRefreshing(false);
 		}
@@ -46,7 +45,7 @@ export default function HomeMobile({}) {
 					duration: 500,
 					useNativeDriver: Platform.OS !== 'web',
 				}),
-			])
+			]),
 		);
 		anim.start();
 

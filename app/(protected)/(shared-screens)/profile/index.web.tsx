@@ -8,7 +8,6 @@ import { useUserStore } from '@/src/lib/stores/userStore';
 import { updatepassword } from '@/src/lib/api/user';
 import { generateCode, getMyCode } from '@/src/lib/api/codes';
 import { formatDateWithOrdinal } from '@/src/lib/helpers';
-import { Animated, Easing } from 'react-native';
 
 interface WebPasswordInputProps {
 	label: string;
@@ -41,7 +40,10 @@ export default function MyProfile() {
 	const [savingPassword, setSavingPassword] = useState(false);
 	const [error, setError] = useState('');
 	const [success, setSuccess] = useState('');
-	const [password, setPassword] = useState({ currentPassword: '', newPassword: '' });
+	const [password, setPassword] = useState({
+		currentPassword: '',
+		newPassword: '',
+	});
 	const confirmPasswordRef = useRef<HTMLInputElement | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [code, setCode] = useState<string | null>(null);
@@ -200,10 +202,22 @@ export default function MyProfile() {
 							{/* Personal Details */}
 							<div className="mb-8 p-8 rounded-lg border border-[#CEE5ED] bg-[#f3fcfa] flex flex-col gap-4">
 								{[
-									{ label: 'Name', value: `${useUserStore.getState().first_name} ${useUserStore.getState().last_name}` },
-									{ label: 'Address', value: useUserStore.getState().home_address },
-									{ label: 'Email Address', value: useUserStore.getState().email },
-									{ label: 'Phone Number', value: useUserStore.getState().phone_number },
+									{
+										label: 'Name',
+										value: `${useUserStore.getState().first_name} ${useUserStore.getState().last_name}`,
+									},
+									{
+										label: 'Address',
+										value: useUserStore.getState().home_address,
+									},
+									{
+										label: 'Email Address',
+										value: useUserStore.getState().email,
+									},
+									{
+										label: 'Phone Number',
+										value: useUserStore.getState().phone_number,
+									},
 								].map((item) => (
 									<div key={item.label} className="flex gap-3 items-center">
 										<span className="input-label-web w-36">{item.label} :</span>

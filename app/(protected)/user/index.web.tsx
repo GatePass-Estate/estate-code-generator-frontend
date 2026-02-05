@@ -23,6 +23,7 @@ export default function HomeWeb() {
 	const router = useRouter();
 	const [searchQuery, setSearchQuery] = useState('');
 	const [guests, setGuests] = useState<Guest[]>([]);
+	const [guestsTotalCount, setGuestsTotalCount] = useState(0);
 	const [codes, setCodes] = useState<Codes[]>([]);
 	const [codesPage, setCodesPage] = useState<number>(1);
 	const [guestsPage, setGuestsPage] = useState<number>(1);
@@ -38,16 +39,17 @@ export default function HomeWeb() {
 	const filteredGuests = guests.filter((guest) => guest.guest_name.toLowerCase().includes(searchQuery.toLowerCase()) || guest.relationship?.toLowerCase().includes(searchQuery.toLowerCase()));
 
 	const codesTotalPages = Math.max(1, Math.ceil(codes.length / CODES_PAGE_SIZE));
-	const guestsTotalPages = Math.max(1, Math.ceil(filteredGuests.length / GUESTS_PAGE_SIZE));
+	const guestsTotalPages = guestsTotalCount > 0 ? Math.ceil(guestsTotalCount / GUESTS_PAGE_SIZE) : 1;
 
 	const codesPaginated = codes.slice((codesPage - 1) * CODES_PAGE_SIZE, codesPage * CODES_PAGE_SIZE);
-	const guestsPaginated = filteredGuests.slice((guestsPage - 1) * GUESTS_PAGE_SIZE, guestsPage * GUESTS_PAGE_SIZE);
 
-	const fetchGuests = async () => {
+	const fetchGuests = async (page: number = 1) => {
 		setLoading(true);
 		try {
-			const result = await getMyGuests();
+			const result = await getMyGuests(page, GUESTS_PAGE_SIZE);
 			setGuests(result.items);
+			setGuestsTotalCount(result.total);
+			setGuestsPage(page);
 		} catch (error) {
 			console.error('Failed to fetch guests:', error);
 		} finally {
@@ -72,6 +74,7 @@ export default function HomeWeb() {
 		try {
 			await deleteMyGuest(id);
 			setGuests((prev) => prev.filter((g) => g.id !== id));
+			setGuestsTotalCount((prev) => Math.max(0, prev - 1));
 		} catch (error) {
 			console.error('Delete guest failed:', error);
 		} finally {
@@ -141,11 +144,16 @@ export default function HomeWeb() {
 
 	useEffect(() => {
 		if (guestsPage > guestsTotalPages) setGuestsPage(guestsTotalPages);
-	}, [filteredGuests, guestsTotalPages, guestsPage]);
+	}, [guestsTotalPages, guestsPage]);
 
 	useEffect(() => {
 		setGuestsPage(1);
 	}, [searchQuery]);
+
+	const performFilteredSearch = () => {
+		const filtered = guests.filter((guest) => guest.guest_name.toLowerCase().includes(searchQuery.toLowerCase()) || guest.relationship?.toLowerCase().includes(searchQuery.toLowerCase()));
+		return filtered;
+	};
 
 	return (
 		<div className="flex h-full w-screen overflow-y-scroll bg-body">
@@ -187,7 +195,15 @@ export default function HomeWeb() {
 											timeframe = 'Expired';
 										} else {
 											const startDate = new Date(parsed.getTime() - 60 * 60 * 1000);
-											const formatTime = (d: Date) => d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true }).replace(/\s+/g, '').toLowerCase();
+											const formatTime = (d: Date) =>
+												d
+													.toLocaleTimeString(undefined, {
+														hour: 'numeric',
+														minute: '2-digit',
+														hour12: true,
+													})
+													.replace(/\s+/g, '')
+													.toLowerCase();
 											timeLeftMinutes = Math.floor((diffMs % 3600000) / 60000);
 											timeframe = `${formatTime(startDate)} to ${formatTime(parsed)}`;
 										}
@@ -235,9 +251,15 @@ export default function HomeWeb() {
 							</div>
 
 							<div className="grid grid-cols-1 xl:grid-cols-2 gap-4 mb-6">
-								{guestsPaginated.map((item) => (
+								{filteredGuests.map((item) => (
 									<div key={item.id} className="flex gap-4 items-center p-3 bg-light-grey w-full rounded-lg">
-										<Image source={item.gender === 'male' ? icons.maleIcon : item.gender === 'prefer_not_to_say' ? icons.notSayingGender : icons.femaleIcon} style={{ width: 25, height: item.gender === 'female' ? 37 : 25 }} />
+										<Image
+											source={item.gender === 'male' ? icons.maleIcon : item.gender === 'prefer_not_to_say' ? icons.notSayingGender : icons.femaleIcon}
+											style={{
+												width: 25,
+												height: item.gender === 'female' ? 37 : 25,
+											}}
+										/>
 
 										<div className="flex flex-col">
 											<p className="text-xl capitalize font-UbuntuSans">{item.guest_name}</p>
@@ -275,7 +297,7 @@ export default function HomeWeb() {
 								</div>
 							) : (
 								<div className="flex justify-end mt-4">
-									<Pagination currentPage={guestsPage} totalPages={guestsTotalPages} onPageChange={setGuestsPage} condition={running} />
+									<Pagination currentPage={guestsPage} totalPages={guestsTotalPages} onPageChange={(page) => fetchGuests(page)} condition={running} />
 									<br />
 									<br />
 									<br />

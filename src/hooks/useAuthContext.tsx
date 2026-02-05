@@ -45,7 +45,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 				if (myProfile && myProfile.status) {
 					await signIn(myProfile);
-					if (['primary_admin', 'resident', 'admin'].includes(myProfile.role!)) {
+					if (['primary_admin', 'admin', 'resident'].includes(myProfile.role!)) {
 						router.replace('/user');
 					} else if (myProfile.role === 'security') {
 						router.replace('/security');

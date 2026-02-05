@@ -56,7 +56,7 @@ export default function NavigationContainer({ routes, headerStyle, tabBarStyle, 
 									tabBarIcon: ({ focused }) => (TabIcon ? <TabIcon focused={focused} /> : null),
 								}}
 							/>
-						) : null
+						) : null,
 					)}
 		</Tabs>
 	) : (

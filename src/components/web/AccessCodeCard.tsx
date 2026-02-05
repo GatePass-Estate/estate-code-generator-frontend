@@ -53,7 +53,7 @@ const CodeCard = ({ code, details, variant = 'prefer_not_to_say', timeLeftMinute
 			await removeCode(code as string);
 			setConfirmOpen(false);
 		} catch (err) {
-			console.error('Failed to delete code', err);
+			console.log('Failed to delete code', err);
 		} finally {
 			setDeleting(false);
 		}

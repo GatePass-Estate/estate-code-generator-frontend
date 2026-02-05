@@ -1,12 +1,12 @@
-import { CreateGuestApiResponse, DeleteGuestResponse, Guest, GuestApiResponse } from '@/src/types/guests';
 import Api from '.';
+import { CreateGuestApiResponse, DeleteGuestResponse, Guest, GuestApiResponse } from '@/src/types/guests';
 import { getErrorMessage } from '../helpers';
 import { GenderType, RelationshipType } from '@/src/types/general';
 
-export const getMyGuests = async (): Promise<GuestApiResponse> => {
+export const getMyGuests = async (page: number = 1, limit: number = 6): Promise<GuestApiResponse> => {
 	try {
 		const api = Api();
-		const axiosRes = await api.get(`/users/guest`);
+		const axiosRes = await api.get(`/users/guest?page=${page}&limit=${limit}`);
 		const data = axiosRes.data;
 
 		return data;

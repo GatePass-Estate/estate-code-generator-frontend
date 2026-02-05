@@ -7,7 +7,7 @@ import { useUserStore } from '@/src/lib/stores/userStore';
 import { useAuth } from '@/src/hooks/useAuthContext';
 import { router } from 'expo-router';
 import { User } from '@/src/types/user';
-import { getUserByIdSecurity } from '@/src/lib/api/user';
+import { getUserById } from '@/src/lib/api/user';
 
 function InviteDetailsModal({ result, setModalOpen }: { result: GuestDetails | null; setModalOpen: (open: boolean) => void }) {
 	return (
@@ -122,7 +122,7 @@ function SearchCode({ setResult, setModalOpen }: { setResult: (data: GuestDetail
 
 		try {
 			const result = await validateCode(entered);
-			const resident = await getUserByIdSecurity(result.user_id);
+			const resident = await getUserById(result.user_id);
 
 			setValues(['', '', '', '', '', '']);
 			setResult({

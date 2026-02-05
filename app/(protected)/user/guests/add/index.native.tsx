@@ -188,7 +188,7 @@ const AddGuestMobile = () => {
 								<Pressable style={styles.modalOverlay} onPress={() => setIsRelationshipPickerVisible(false)}>
 									<View className="bg-gray-800">
 										<Picker selectedValue={relationship} onValueChange={(itemValue) => setRelationship(itemValue)} className="text-gray-300 h-14 w-full">
-											<Picker.Item label="Select the relationship with your guest" value="" enabled={false} />
+											<Picker.Item label="Select the relationship with your guest" value="" enabled={false} style={{ color: '#9CA3AF' }} />
 											<Picker.Item label="Spouse" value="partner" />
 											<Picker.Item label="Friend" value="friend" />
 											<Picker.Item label="Family" value="family" />

@@ -1,12 +1,11 @@
-import { View, StyleSheet, Text, Platform } from 'react-native';
+import { View, Text, Platform } from 'react-native';
 import { Image } from 'react-native';
-import images from '@/src/constants/images';
 import icons from '@/src/constants/icons';
 import NavigationContainer from '@/src/components/common/NavigationContainer';
 import { sharedStyles } from '@/src/theme/styles';
 import { menuRouteType } from '@/src/types/general';
 
-const FloatingButton: React.FC<{ focused?: boolean }> = ({ focused = false }) => {
+export const FloatingButton: React.FC<{ focused?: boolean }> = ({ focused = false }) => {
 	return (
 		<View style={[sharedStyles.fab, !focused ? { backgroundColor: '#CEE5ED' } : { backgroundColor: '#113E55' }]}>
 			<Image
@@ -22,7 +21,7 @@ const FloatingButton: React.FC<{ focused?: boolean }> = ({ focused = false }) =>
 	);
 };
 
-const HomeIcon: React.FC<{ focused?: boolean }> = ({ focused = false }) => (
+export const HomeIcon: React.FC<{ focused?: boolean }> = ({ focused = false }) => (
 	<View className="items-center w-80 mt-6 gap-1">
 		<Image
 			source={focused ? (Platform.OS == 'ios' ? icons.iosHomeActive : icons.activeBtnImg) : Platform.OS == 'ios' ? icons.iosHomeInActive : icons.menuIcon}
@@ -37,7 +36,7 @@ const HomeIcon: React.FC<{ focused?: boolean }> = ({ focused = false }) => (
 	</View>
 );
 
-const GuestIcon: React.FC<{ focused?: boolean }> = ({ focused = false }) => (
+export const GuestIcon: React.FC<{ focused?: boolean }> = ({ focused = false }) => (
 	<View style={{ alignItems: 'center', width: 300, marginTop: 25, gap: 4 }}>
 		<Image
 			source={focused ? (Platform.OS == 'ios' ? icons.iosGuestActive : icons.activeGuestIcon) : Platform.OS == 'ios' ? icons.iosGuestInActive : icons.inactiveGuestIcon}
@@ -65,8 +64,10 @@ export const menuRoutes: menuRouteType[] = [
 	{ name: 'profile/index', link: '/profile', title: 'My Profile', TabIcon: GuestIcon, for: 'web', activeIcon: icons.activeProfileIcon, inactiveIcon: icons.inactiveProfileIcon },
 
 	{ name: 'admin/index', link: '/admin', title: 'Admin Access', for: 'web', activeIcon: icons.activeAdminIcon, inactiveIcon: icons.inactiveAdminIcon, role: 'admin' },
+
+	{ name: 'admin/index', link: '/admin', title: 'Admin Access', for: 'web', activeIcon: icons.activeAdminIcon, inactiveIcon: icons.inactiveAdminIcon, role: 'primary_admin' },
 ];
 
-export default function RootLayout() {
+export default function UserRootLayout() {
 	return <NavigationContainer routes={menuRoutes} tabBarStyle={sharedStyles.tabBar} />;
 }

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, Modal, TouchableOpacity, StyleSheet, FlatList, SafeAreaView, ModalProps, TouchableWithoutFeedback, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, Modal, TouchableOpacity, StyleSheet, FlatList, ModalProps, TouchableWithoutFeedback, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 type UserRole = 'Resident' | 'Security Personnel';
 
