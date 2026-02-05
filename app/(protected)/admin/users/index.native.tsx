@@ -25,7 +25,7 @@ const AllUsersMobile = () => {
 				const data = await getAllEstateUsers();
 				setUsers(data);
 			} catch (error) {
-				console.error('Error fetching users:', error);
+				console.log('Error fetching users:', error);
 			} finally {
 				setIsLoading(false);
 			}
@@ -40,7 +40,7 @@ const AllUsersMobile = () => {
 			const data = await getAllEstateUsers();
 			setUsers(data);
 		} catch (error) {
-			console.error('Error refreshing users:', error);
+			console.log('Error refreshing users:', error);
 		} finally {
 			setIsRefreshing(false);
 		}

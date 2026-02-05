@@ -22,7 +22,7 @@ export default function AdminUsersMobilePage() {
 			const data = await getAllEstateUsers();
 			setUsers(data);
 		} catch (error) {
-			console.error('Error refreshing users:', error);
+			console.log('Error refreshing users:', error);
 		} finally {
 			setRefreshing(false);
 		}
@@ -34,7 +34,7 @@ export default function AdminUsersMobilePage() {
 				const data = await getAllEstateUsers();
 				setUsers(data);
 			} catch (error) {
-				console.error('Error fetching users:', error);
+				console.log('Error fetching users:', error);
 			}
 		};
 

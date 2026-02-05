@@ -20,7 +20,7 @@ export default function HomeMobile({}) {
 			const result = await getAllCodes(useUserStore.getState().user_id);
 			setCodes(result.items.filter((code) => !code.is_expired));
 		} catch (error) {
-			console.error('Failed to fetch codes:', error);
+			console.log('Failed to fetch codes:', error);
 		} finally {
 			setRefreshing(false);
 		}

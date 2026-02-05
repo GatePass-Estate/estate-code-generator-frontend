@@ -86,7 +86,7 @@ export default function SingleUserMobile() {
 					setUserData(resident);
 				}
 			} catch (error) {
-				console.error('Error fetching user data:', error);
+				console.log('Error fetching user data:', error);
 				setError(error instanceof Error ? error.message : 'Failed to load user data');
 			} finally {
 				setLoading(false);
@@ -110,7 +110,7 @@ export default function SingleUserMobile() {
 				setDialogVisible(true);
 			}
 		} catch (err) {
-			console.error('Error deactivating user:', err);
+			console.log('Error deactivating user:', err);
 			setDialogType('error');
 			setDialogMessage('Failed to deactivate user. Please try again.');
 			setDialogVisible(true);
@@ -176,7 +176,7 @@ export default function SingleUserMobile() {
 				}
 			}, 1500);
 		} catch (err) {
-			console.error('Error processing action:', err);
+			console.log('Error processing action:', err);
 			setShowPromoteModal(false);
 			setPromoteActionType(null);
 			setDialogType('error');

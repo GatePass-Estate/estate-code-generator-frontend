@@ -43,7 +43,7 @@ const ProfileScreen = () => {
 			setExpiry(valid_until);
 			setNoCode(false);
 		} catch (e) {
-			console.error('Failed to generate code:', e);
+			console.log('Failed to generate code:', e);
 		} finally {
 			setLoading(false);
 		}

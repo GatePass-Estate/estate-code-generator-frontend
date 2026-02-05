@@ -47,7 +47,7 @@ export default function EditSingleRequestMobile() {
 					setRequestData(data);
 				}
 			} catch (err) {
-				console.error('Error fetching edit request:', err);
+				console.log('Error fetching edit request:', err);
 				setError(err instanceof Error ? err.message : 'Failed to load edit request');
 			} finally {
 				setLoading(false);
