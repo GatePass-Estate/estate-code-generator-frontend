@@ -218,8 +218,8 @@ export default function MyProfile() {
 										label: 'Phone Number',
 										value: useUserStore.getState().phone_number,
 									},
-								].map((item) => (
-									<div key={item.label} className="flex gap-3 items-center">
+								].map((item, index) => (
+									<div key={item.label + index} className="flex gap-3 items-center">
 										<span className="input-label-web w-36">{item.label} :</span>
 										<span>{item.value}</span>
 									</div>

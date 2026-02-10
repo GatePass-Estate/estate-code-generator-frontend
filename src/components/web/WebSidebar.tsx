@@ -22,13 +22,13 @@ export default function WebSidebar({ routes, onNavigate }: WebSidebarProps) {
 			<Image source={images.logo} style={{ width: 80, height: 80 }} resizeMode="contain" />
 
 			<div className="mt-10 flex flex-col gap-2 w-full">
-				{routes.map(({ name, title, link, activeIcon, inactiveIcon, role }) => {
+				{routes.map(({ name, title, link, activeIcon, inactiveIcon, role }, index) => {
 					const isActive = pathname === link || (link.includes('/admin') && pathname.includes('/admin'));
 
 					if (role && role !== userRole) return null;
 
 					return (
-						<div key={name} onClick={() => onNavigate(link)} className={`flex gap-2 items-center cursor-pointer p-3 rounded-lg transition-all ${isActive ? 'bg-accent text-primary font-medium' : 'hover:bg-accent hover:text-primary hover:font-medium'}`}>
+						<div key={name + index} onClick={() => onNavigate(link)} className={`flex gap-2 items-center cursor-pointer p-3 rounded-lg transition-all ${isActive ? 'bg-accent text-primary font-medium' : 'hover:bg-accent hover:text-primary hover:font-medium'}`}>
 							<Image source={isActive ? activeIcon : inactiveIcon} style={{ width: 18, height: 18 }} resizeMode="contain" />
 							<WebNavLink>{title}</WebNavLink>
 						</div>

@@ -48,11 +48,9 @@ const RegisterUser = () => {
 			e.preventDefault();
 
 			if (currentStep === 2) {
-				// Go back to step 1 instead of exiting
 				setCurrentStep(1);
 				setErrors({});
 			} else {
-				// Exit the screen normally
 				navigation.dispatch(e.data.action);
 			}
 		});
@@ -142,7 +140,8 @@ const RegisterUser = () => {
 					setCurrentStep(1);
 					setErrors({});
 					setTimeout(() => {
-						router.back();
+						// Navigate to users list instead of going back to avoid beforeRemove listener issues
+						router.replace('/admin');
 					}, 2000);
 				} else {
 					setToastMessage('User registered but activation failed. Please try again.');

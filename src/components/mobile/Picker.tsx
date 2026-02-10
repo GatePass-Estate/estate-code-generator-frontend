@@ -63,7 +63,7 @@ export function Picker({ label, selectedValue, onValueChange, items, placeholder
 								const isSelected = item.value === selectedValue;
 								const isLast = index === items.length - 1;
 								return (
-									<TouchableOpacity key={item.value} style={[styles.item, !isLast && styles.itemBorder, isSelected && styles.itemSelected]} onPress={() => handleSelect(item.value)} activeOpacity={0.7}>
+									<TouchableOpacity key={item.value + index} style={[styles.item, !isLast && styles.itemBorder, isSelected && styles.itemSelected]} onPress={() => handleSelect(item.value)} activeOpacity={0.7}>
 										<Text style={[styles.itemText, isSelected && styles.itemTextSelected]}>{item.label}</Text>
 										{isSelected && <Ionicons name="checkmark" size={22} color="#113E55" />}
 									</TouchableOpacity>

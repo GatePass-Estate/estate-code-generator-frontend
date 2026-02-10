@@ -257,3 +257,7 @@ export const getRoleColor = (role: UserRolesType) => {
 			return '#333333';
 	}
 };
+
+export const isDataEqual = (obj1: any, obj2: any): boolean => {
+	return JSON.stringify(obj1) === JSON.stringify(obj2);
+};

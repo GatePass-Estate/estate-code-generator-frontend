@@ -146,10 +146,10 @@ export default function AddGuestWeb() {
 							Select Gender
 						</label>
 						<div className="flex flex-row flex-wrap gap-2 text-sm mt-1">
-							{GENDERS.map((g) => {
+							{GENDERS.map((g, index) => {
 								const active = selectedGender === g.value;
 								return (
-									<div key={g.value} className={`flex flex-row items-center px-4 py-2 rounded-md bg-light-grey ${active && 'bg-[#e6f4ef] border border-[##cfe7db]'} gap-3 cursor-pointer`} onClick={() => setSelectedGender(g.value as GenderType)}>
+									<div key={index} className={`flex flex-row items-center px-4 py-2 rounded-md bg-light-grey ${active && 'bg-[#e6f4ef] border border-[##cfe7db]'} gap-3 cursor-pointer`} onClick={() => setSelectedGender(g.value as GenderType)}>
 										<p className="text-primary capitalize">{g.name}</p>
 										{active && <Image source={icons.checkIcon} style={{ width: 20, height: 20 }} resizeMode="contain" />}
 									</div>
@@ -163,10 +163,10 @@ export default function AddGuestWeb() {
 							Select your relationship with guest
 						</label>
 						<div className="flex flex-row flex-wrap gap-2 text-sm mt-1">
-							{RELATIONSHIPS.map((r) => {
+							{RELATIONSHIPS.map((r, index) => {
 								const active = selectedRelationships === r.value;
 								return (
-									<div key={r.value} className={`flex flex-row items-center px-4 py-2 rounded-md bg-light-grey ${active && 'bg-[#e6f4ef] border border-[##cfe7db]'} gap-3 cursor-pointer`} onClick={() => setSelectedRelationships(r.value as RelationshipType)}>
+									<div key={index} className={`flex flex-row items-center px-4 py-2 rounded-md bg-light-grey ${active && 'bg-[#e6f4ef] border border-[##cfe7db]'} gap-3 cursor-pointer`} onClick={() => setSelectedRelationships(r.value as RelationshipType)}>
 										<p className="text-primary capitalize">{r.name}</p>
 										{active && <Image source={icons.checkIcon} style={{ width: 20, height: 20 }} resizeMode="contain" />}
 									</div>

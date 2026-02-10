@@ -1,6 +1,7 @@
 import { View, Text, ScrollView, TouchableOpacity, Image, TextInput, RefreshControl, Pressable } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Stack, router } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
 import { getAllEstateUsers } from '@/src/lib/api/user';
 import { useEffect, useState, useMemo } from 'react';
 import { AllUsers } from '@/src/types/user';
@@ -12,32 +13,40 @@ import Back from '@/src/components/mobile/Back';
 import { getRoleIcon, getRoleIconHeight, getRoleIconWidth } from '@/src/lib/helpers';
 
 const AllUsersMobile = () => {
-	const [users, setUsers] = useState<AllUsers>({ total: 0, page: 1, limit: 10, items: [] });
+	const [users, setUsers] = useState<AllUsers>({ total: 0, page: 1, limit: 20, items: [] });
 	const [isLoading, setIsLoading] = useState(true);
 	const [isRefreshing, setIsRefreshing] = useState(false);
 	const [searchQuery, setSearchQuery] = useState('');
 	const [selectedRole, setSelectedRole] = useState<UserRolesType>(null);
+	const navigation = useNavigation();
+
+	const fetchUsers = async (showLoading = false) => {
+		if (showLoading) setIsLoading(true);
+		try {
+			const data = await getAllEstateUsers(users.page, users.limit);
+			setUsers(data);
+		} catch (error) {
+			console.log('Error fetching users:', error);
+		} finally {
+			if (showLoading) setIsLoading(false);
+		}
+	};
 
 	useEffect(() => {
-		const getAllEstateUsersData = async () => {
-			try {
-				setIsLoading(true);
-				const data = await getAllEstateUsers();
-				setUsers(data);
-			} catch (error) {
-				console.log('Error fetching users:', error);
-			} finally {
-				setIsLoading(false);
-			}
-		};
-
-		getAllEstateUsersData();
+		fetchUsers(true);
 	}, []);
 
+	useEffect(() => {
+		const unsubscribe = navigation.addListener('focus', () => {
+			fetchUsers(false);
+		});
+		return unsubscribe;
+	}, [navigation]);
+
 	const handleRefresh = async () => {
+		setIsRefreshing(true);
 		try {
-			setIsRefreshing(true);
-			const data = await getAllEstateUsers();
+			const data = await getAllEstateUsers(users.page, users.limit);
 			setUsers(data);
 		} catch (error) {
 			console.log('Error refreshing users:', error);
@@ -93,8 +102,11 @@ const AllUsersMobile = () => {
 						<Image source={icons.securityIcon} style={{ width: 20, height: 20, opacity: selectedRole === 'security' ? 1 : 0.4, tintColor: selectedRole === 'security' ? undefined : '#999' }} />
 					</Pressable>
 
-					<Pressable className={`flex-row items-center px-8 py-2.5 rounded-2xl border ${selectedRole === 'primary_admin' ? 'bg-primary/10 border-primary' : 'bg-white border-gray-300'}`} onPress={() => setSelectedRole(selectedRole === 'primary_admin' ? null : 'primary_admin')}>
-						<Image source={icons.activeAdminIcon} style={{ width: 17, height: 20, opacity: selectedRole === 'primary_admin' ? 1 : 0.4, tintColor: selectedRole === 'primary_admin' ? undefined : '#999' }} />
+					<Pressable
+						className={`flex-row items-center px-8 py-2.5 rounded-2xl border ${['primary_admin', 'admin'].includes(selectedRole!) ? 'bg-primary/10 border-primary' : 'bg-white border-gray-300'}`}
+						onPress={() => setSelectedRole(['primary_admin', 'admin'].includes(selectedRole!) ? null : 'primary_admin')}
+					>
+						<Image source={icons.activeAdminIcon} style={{ width: 17, height: 20, opacity: ['primary_admin', 'admin'].includes(selectedRole!) ? 1 : 0.4, tintColor: ['primary_admin', 'admin'].includes(selectedRole!) ? undefined : '#999' }} />
 					</Pressable>
 				</View>
 				{isLoading ? (

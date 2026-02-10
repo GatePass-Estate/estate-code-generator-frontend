@@ -1,45 +1,66 @@
 import { View, Text, ScrollView, TouchableOpacity, Image, FlatList, RefreshControl } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { useAuth } from '@/src/hooks/useAuthContext';
 import { Stack, useRouter } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
 import { getAllEstateUsers } from '@/src/lib/api/user';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AllUsers } from '@/src/types/user';
 import { sharedStyles } from '@/src/theme/styles';
 import UserIcon from '@/src/components/mobile/UserIcon';
 import icons from '@/src/constants/icons';
-import { getRoleIcon, getRoleIconHeight, getRoleIconWidth } from '@/src/lib/helpers';
+import { getRoleIcon, getRoleIconHeight, getRoleIconWidth, isDataEqual } from '@/src/lib/helpers';
 
 export default function AdminUsersMobilePage() {
-	const { signOut } = useAuth();
-	const [users, setUsers] = useState<AllUsers>({ total: 0, page: 1, limit: 10, items: [] });
+	const [users, setUsers] = useState<AllUsers>({ total: 0, page: 1, limit: 30, items: [] });
 	const [refreshing, setRefreshing] = useState(false);
 	const router = useRouter();
+	const navigation = useNavigation();
+	const usersRef = useRef<AllUsers>(users);
 
-	const handleRefresh = async () => {
-		setRefreshing(true);
+	useEffect(() => {
+		usersRef.current = users;
+	}, [users]);
+
+	const fetchUsers = async (showLoading = false) => {
+		if (showLoading) setRefreshing(true);
 		try {
 			const data = await getAllEstateUsers();
-			setUsers(data);
+			if (!isDataEqual(data, usersRef.current)) {
+				setUsers(data);
+			}
 		} catch (error) {
-			console.log('Error refreshing users:', error);
+			console.log('Error fetching users:', error);
 		} finally {
-			setRefreshing(false);
+			if (showLoading) setRefreshing(false);
 		}
 	};
 
-	useEffect(() => {
-		const getAllEstateUsersData = async () => {
-			try {
-				const data = await getAllEstateUsers();
-				setUsers(data);
-			} catch (error) {
-				console.log('Error fetching users:', error);
-			}
-		};
+	const handleRefresh = async () => {
+		await fetchUsers(true);
+	};
 
-		getAllEstateUsersData();
+	useEffect(() => {
+		fetchUsers();
 	}, []);
+
+	useEffect(() => {
+		const unsubscribe = navigation.addListener('focus', () => {
+			fetchUsers();
+		});
+		return unsubscribe;
+	}, [navigation]);
+
+	useEffect(() => {
+		const unsubscribe = navigation.addListener('focus', () => {
+			const intervalId = setInterval(() => {
+				fetchUsers(false);
+			}, 30000);
+
+			return () => clearInterval(intervalId);
+		});
+
+		return unsubscribe;
+	}, [navigation]);
 
 	const securityPersonnelCount = users.items.filter((user) => user.role === 'security').length;
 
