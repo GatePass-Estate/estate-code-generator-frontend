@@ -17,7 +17,7 @@ const GENDERS = [
 	{ name: "I'd prefer not to say", value: 'prefer_not_to_say' },
 ];
 const RELATIONSHIPS = [
-	{ name: 'spouse', value: 'partner' },
+	{ name: 'partner', value: 'partner' },
 	{ name: 'friends', value: 'friend' },
 	{ name: 'family', value: 'family' },
 	{ name: 'taxi', value: 'taxi' },

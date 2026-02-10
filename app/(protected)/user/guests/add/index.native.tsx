@@ -167,7 +167,7 @@ const AddGuestMobile = () => {
 						onValueChange={(value) => setRelationship(value as RelationshipType)}
 						placeholder="Select the relationship with your guest"
 						items={[
-							{ label: 'Spouse', value: 'partner' },
+							{ label: 'Partner', value: 'partner' },
 							{ label: 'Friend', value: 'friend' },
 							{ label: 'Family', value: 'family' },
 							{ label: 'Taxi', value: 'taxi' },
