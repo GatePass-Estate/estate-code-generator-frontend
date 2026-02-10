@@ -6,7 +6,6 @@ import { GuestDetails } from '@/src/types/guests';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { useAuth } from '@/src/hooks/useAuthContext';
 import { router } from 'expo-router';
-import { User } from '@/src/types/user';
 import { getUserById } from '@/src/lib/api/user';
 
 function InviteDetailsModal({ result, setModalOpen }: { result: GuestDetails | null; setModalOpen: (open: boolean) => void }) {
@@ -77,9 +76,8 @@ function SearchCode({ setResult, setModalOpen }: { setResult: (data: GuestDetail
 	const [errorMessage, setErrorMessage] = useState<string>('');
 
 	const handleChange = (index: number, value: string) => {
-		const cleaned = value.replace(/[^0-9a-zA-Z]/g, '').slice(0, 1);
+		const cleaned = value.replace(/[^0-9a-zA-Z]/g, '').slice(0, 1).toUpperCase();
 		setErrorMessage('');
-		// .toUpperCase();
 		const next = [...values];
 		next[index] = cleaned;
 		setValues(next);
@@ -104,7 +102,7 @@ function SearchCode({ setResult, setModalOpen }: { setResult: (data: GuestDetail
 		const paste = e.clipboardData.getData('text').replace(/\s+/g, '');
 		const chars = paste.slice(0, inputCount).split('');
 		const next = [...values];
-		// chars.forEach((ch, i) => (next[i] = ch.toUpperCase()));
+		chars.forEach((ch, i) => (next[i] = ch.toUpperCase()));
 		setValues(next);
 		const nextIndex = Math.min(chars.length, inputCount - 1);
 		inputsRef.current[nextIndex]?.focus();
