@@ -9,7 +9,7 @@ import { useAuth } from '@/src/hooks/useAuthContext';
 import { useRouter } from 'expo-router';
 import { fetchMe, loginUser } from '@/src/lib/api/auth';
 import { useAuthStore } from '@/src/lib/stores/authStore';
-import { storeAuthState } from '@/src/lib/helpers';
+import { broadcastLogin, storeAuthState } from '@/src/lib/helpers';
 import Images from '@/src/constants/images';
 import { cn } from '@/src/lib/cn';
 import icons from '@/src/constants/icons';
@@ -72,6 +72,9 @@ export default function Login() {
 			const result = await loginUser(emailValue, password);
 			useAuthStore.setState({ access_token: result.access_token, role: result.role });
 			await storeAuthState(result);
+
+			// Broadcast login to other tabs (web only)
+			broadcastLogin(result.access_token, result.role);
 
 			signIn(await fetchMe(result.access_token));
 

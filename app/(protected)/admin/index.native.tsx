@@ -74,7 +74,7 @@ export default function AdminUsersMobilePage() {
 					<View className="flex-1 border border-teal rounded-2xl p-4 py-7 bg-teal/10 flex-row gap-5 items-center">
 						<Image source={icons.securityIcon} style={{ width: 45, height: 55 }} />
 						<View className="flex-col justify-center">
-							<Text className="text-teal font-inter-medium">Security p...</Text>
+							<Text className="text-teal font-inter-medium">Security P...</Text>
 							<Text className="text-teal text-5xl font-ubuntu-bold">{securityPersonnelCount}</Text>
 						</View>
 					</View>
