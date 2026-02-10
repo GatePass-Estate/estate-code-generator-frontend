@@ -4,10 +4,10 @@ import { sharedStyles } from '@/src/theme/styles';
 import { useNavigation } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BroadcastFormData, BroadcastFormErrors, DURATIONS, PRIORITY_LEVELS, USER_TYPES } from '@/src/types/broadcast';
+import { Picker } from '@/src/components/mobile/Picker';
 
 // Dummy API functions
 const sendBroadcastAPI = async (data: BroadcastFormData): Promise<boolean> => {
@@ -35,9 +35,6 @@ const SendBroadcast = () => {
 	const [toastVisible, setToastVisible] = useState(false);
 	const [toastMessage, setToastMessage] = useState('');
 	const [toastType, setToastType] = useState<ToastType>('success');
-	const [isUserTypePickerVisible, setIsUserTypePickerVisible] = useState(false);
-	const [isPriorityPickerVisible, setIsPriorityPickerVisible] = useState(false);
-	const [isDurationPickerVisible, setIsDurationPickerVisible] = useState(false);
 
 	// Handle custom back navigation
 	useEffect(() => {
@@ -49,7 +46,7 @@ const SendBroadcast = () => {
 				setCurrentStep(1);
 				setErrors({});
 			} else {
-				// Exit the screen norm
+				// Exit the screen normally
 				navigation.dispatch(e.data.action);
 			}
 		});
@@ -166,145 +163,19 @@ const SendBroadcast = () => {
 						<>
 							{/* Type of User Dropdown */}
 							<View className="mb-5 mt-6">
-								<Text
-									style={[
-										sharedStyles.label,
-										{
-											color: '#9B9797',
-										},
-									]}
-								>
-									Type of User
-								</Text>
-								{Platform.OS === 'ios' ? (
-									<>
-										<Pressable style={sharedStyles.input} onPress={() => setIsUserTypePickerVisible(true)}>
-											<Text style={{ color: formData.userType ? '#000' : '#9CA3AF' }}>{USER_TYPES.find((item) => item.value === formData.userType)?.label || 'Select user type'}</Text>
-										</Pressable>
-										<Modal transparent={true} visible={isUserTypePickerVisible} animationType="slide" onRequestClose={() => setIsUserTypePickerVisible(false)}>
-											<Pressable style={styles.modalOverlay} onPress={() => setIsUserTypePickerVisible(false)}>
-												<View className="bg-gray-800">
-													<Picker
-														selectedValue={formData.userType}
-														onValueChange={(itemValue) => {
-															updateFormData('userType', itemValue);
-															setIsUserTypePickerVisible(false);
-														}}
-														className="text-gray-300 h-14 w-full"
-													>
-														{USER_TYPES.map((item) => (
-															<Picker.Item key={item.value} label={item.label} value={item.value} />
-														))}
-													</Picker>
-												</View>
-											</Pressable>
-										</Modal>
-									</>
-								) : (
-									<View style={sharedStyles.input}>
-										<Picker selectedValue={formData.userType} onValueChange={(value) => updateFormData('userType', value)} className="text-gray-300 h-14 w-full text-sm" style={{ color: 'gray', marginTop: -14 }}>
-											{USER_TYPES.map((item) => (
-												<Picker.Item key={item.value} label={item.label} value={item.value} />
-											))}
-										</Picker>
-									</View>
-								)}
+								<Picker label="Type of User" selectedValue={formData.userType} onValueChange={(value: string) => updateFormData('userType', value)} placeholder="Select user type" items={USER_TYPES} />
 								{errors.userType && <Text className="text-red-600 text-xs font-ubuntu-regular mt-1">{errors.userType}</Text>}
 							</View>
 
 							{/* Priority Level Dropdown */}
 							<View className="mb-5">
-								<Text
-									style={[
-										sharedStyles.label,
-										{
-											color: '#9B9797',
-										},
-									]}
-								>
-									Set Priority Level
-								</Text>
-								{Platform.OS === 'ios' ? (
-									<>
-										<Pressable style={sharedStyles.input} onPress={() => setIsPriorityPickerVisible(true)}>
-											<Text style={{ color: formData.priorityLevel ? '#000' : '#9CA3AF' }}>{PRIORITY_LEVELS.find((item) => item.value === formData.priorityLevel)?.label || 'Select priority level'}</Text>
-										</Pressable>
-										<Modal transparent={true} visible={isPriorityPickerVisible} animationType="slide" onRequestClose={() => setIsPriorityPickerVisible(false)}>
-											<Pressable style={styles.modalOverlay} onPress={() => setIsPriorityPickerVisible(false)}>
-												<View className="bg-gray-800">
-													<Picker
-														selectedValue={formData.priorityLevel}
-														onValueChange={(itemValue) => {
-															updateFormData('priorityLevel', itemValue);
-															setIsPriorityPickerVisible(false);
-														}}
-														className="text-gray-300 h-14 w-full"
-													>
-														{PRIORITY_LEVELS.map((item) => (
-															<Picker.Item key={item.value} label={item.label} value={item.value} />
-														))}
-													</Picker>
-												</View>
-											</Pressable>
-										</Modal>
-									</>
-								) : (
-									<View style={sharedStyles.input}>
-										<Picker selectedValue={formData.priorityLevel} onValueChange={(value) => updateFormData('priorityLevel', value)} className="text-gray-300 h-14 w-full text-sm" style={{ color: 'gray', marginTop: -14 }}>
-											{PRIORITY_LEVELS.map((item) => (
-												<Picker.Item key={item.value} label={item.label} value={item.value} />
-											))}
-										</Picker>
-									</View>
-								)}
+								<Picker label="Set Priority Level" selectedValue={formData.priorityLevel} onValueChange={(value: string) => updateFormData('priorityLevel', value)} placeholder="Select priority level" items={PRIORITY_LEVELS} />
 								{errors.priorityLevel && <Text className="text-red-600 text-xs font-ubuntu-regular mt-1">{errors.priorityLevel}</Text>}
 							</View>
 
 							{/* Duration Dropdown */}
 							<View className="mb-8">
-								<Text
-									style={[
-										sharedStyles.label,
-										{
-											color: '#9B9797',
-										},
-									]}
-								>
-									Set Duration
-								</Text>
-								{Platform.OS === 'ios' ? (
-									<>
-										<Pressable style={sharedStyles.input} onPress={() => setIsDurationPickerVisible(true)}>
-											<Text style={{ color: formData.duration ? '#000' : '#9CA3AF' }}>{DURATIONS.find((item) => item.value === formData.duration)?.label || 'Select duration'}</Text>
-										</Pressable>
-										<Modal transparent={true} visible={isDurationPickerVisible} animationType="slide" onRequestClose={() => setIsDurationPickerVisible(false)}>
-											<Pressable style={styles.modalOverlay} onPress={() => setIsDurationPickerVisible(false)}>
-												<View className="bg-gray-800">
-													<Picker
-														selectedValue={formData.duration}
-														onValueChange={(itemValue) => {
-															updateFormData('duration', itemValue);
-															setIsDurationPickerVisible(false);
-														}}
-														className="text-gray-300 h-14 w-full"
-													>
-														{DURATIONS.map((item) => (
-															<Picker.Item key={item.value} label={item.label} value={item.value} />
-														))}
-													</Picker>
-												</View>
-											</Pressable>
-										</Modal>
-									</>
-								) : (
-									<View style={sharedStyles.input}>
-										<Picker selectedValue={formData.duration} onValueChange={(value) => updateFormData('duration', value)} className="text-gray-300 h-14 w-full text-sm" style={{ color: 'gray', marginTop: -14 }}>
-											{DURATIONS.map((item) => (
-												<Picker.Item key={item.value} label={item.label} value={item.value} />
-											))}
-										</Picker>
-									</View>
-								)}
+								<Picker label="Set Duration" selectedValue={formData.duration} onValueChange={(value: string) => updateFormData('duration', value)} placeholder="Select duration" items={DURATIONS} />
 								{errors.duration && <Text className="text-red-600 text-xs font-ubuntu-regular mt-1">{errors.duration}</Text>}
 							</View>
 
@@ -366,13 +237,5 @@ const SendBroadcast = () => {
 		</SafeAreaView>
 	);
 };
-
-const styles = StyleSheet.create({
-	modalOverlay: {
-		flex: 1,
-		backgroundColor: 'rgba(0, 0, 0, 0.5)',
-		justifyContent: 'flex-end',
-	},
-});
 
 export default SendBroadcast;
