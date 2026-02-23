@@ -33,6 +33,7 @@ const RegisterUser = () => {
 		userType: 'resident',
 		homeAddress: '',
 		meansOfIdentification: 'drivers_license',
+		idNumber: '',
 	});
 
 	const [errors, setErrors] = useState<FormErrors>({});
@@ -136,6 +137,7 @@ const RegisterUser = () => {
 						userType: 'resident',
 						homeAddress: '',
 						meansOfIdentification: 'drivers_license',
+						idNumber: '',
 					});
 					setCurrentStep(1);
 					setErrors({});
@@ -289,6 +291,9 @@ const RegisterUser = () => {
 										onChangeText={(value) => updateFormData('password', value)}
 										secureTextEntry={!showPassword}
 										style={[sharedStyles.input, { borderColor: errors.password ? '#ef4444' : undefined, paddingRight: 48 }]}
+										// Disable copy and paste
+										contextMenuHidden={true}
+										selectTextOnFocus={false}
 									/>
 									<Pressable onPress={() => setShowPassword(!showPassword)} className="absolute right-3 top-6" disabled={loading}>
 										<Image source={showPassword ? icons.eye : icons.hiddenEye} style={{ width: 20, height: 20 }} resizeMode="contain" />
@@ -349,7 +354,7 @@ const RegisterUser = () => {
 								{errors.homeAddress && <Text className="text-red-600 text-xs font-ubuntu-regular mt-1">{errors.homeAddress}</Text>}
 							</View>
 
-							<View className="mb-8">
+							<View className="mb-2">
 								<Text
 									style={[
 										sharedStyles.label,
@@ -361,6 +366,29 @@ const RegisterUser = () => {
 									Means of Identification
 								</Text>
 								<Picker label="" selectedValue={formData.meansOfIdentification} onValueChange={(value) => updateFormData('meansOfIdentification', value as MeansOfIdType)} placeholder="Select means of identification" items={MEANS_OF_IDENTIFICATION} />
+							</View>
+
+							<View className="mb-8">
+								<Text
+									style={[
+										sharedStyles.label,
+										{
+											color: '#9B9797',
+										},
+									]}
+								>
+									ID Number
+								</Text>
+								<TextInput
+									placeholder="Enter ID Number..."
+									placeholderTextColor="#999"
+									value={formData.idNumber}
+									onChangeText={(value) => updateFormData('idNumber', value)}
+									multiline
+									numberOfLines={3}
+									style={[sharedStyles.input, { borderColor: errors.idNumber ? '#ef4444' : undefined }]}
+								/>
+								{errors.idNumber && <Text className="text-red-600 text-xs font-ubuntu-regular mt-1">{errors.idNumber}</Text>}
 							</View>
 
 							<TouchableOpacity disabled={loading} onPress={handleContinue} className={`px-24 bg-primary justify-center items-center py-5 font-UbuntuSans !rounded-xl ${loading ? 'opacity-70' : ''} gap-2 flex-row`} activeOpacity={0.8}>

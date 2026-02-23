@@ -8,6 +8,8 @@ import { ActivityIndicator, Modal, Animated, PanResponder } from 'react-native';
 import { Text, TouchableOpacity, View, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useUserStore } from '@/src/lib/stores/userStore';
+import { UserRolesType } from '@/src/types/general';
+import { User } from '@/src/types/user';
 
 // Dummy API function for deactivating user
 const deactivateUser = async (userId: string): Promise<boolean> => {
@@ -33,16 +35,18 @@ export default function SingleUserMobile() {
 	const [promoteActionType, setPromoteActionType] = useState<'promote' | 'demote' | null>(null);
 	const myId = useUserStore.getState().user_id;
 	const panY = new Animated.Value(0);
-	const [userData, setUserData] = useState<any>({
+	const [userData, setUserData] = useState<User>({
 		first_name: '',
 		last_name: '',
 		home_address: '',
 		estate_name: '',
 		email: '',
 		phone_number: '',
-		user_id: userId,
+		user_id: userId as string,
 		estate_id: '',
 		role: 'resident',
+		gender: null,
+		status: false,
 	});
 
 	const panResponder = PanResponder.create({
@@ -78,9 +82,11 @@ export default function SingleUserMobile() {
 						estate_name: '',
 						email: '',
 						phone_number: '',
-						user_id: userId,
+						user_id: userId as string,
 						estate_id: '',
 						role: 'resident',
+						gender: null,
+						status: false,
 					});
 				} else {
 					setUserData(resident);
@@ -259,9 +265,11 @@ export default function SingleUserMobile() {
 								{deactivating ? <ActivityIndicator color="#fff" size="small" /> : <Text className="text-white font-ubuntu-semibold text-md">Deactivate</Text>}
 							</TouchableOpacity>
 
-							<TouchableOpacity onPress={promptPromote} disabled={processing || deactivating} className={`flex-1 bg-primary justify-center items-center py-5 !rounded-xl ${processing || deactivating ? 'opacity-70' : ''}`}>
-								<Text className="text-white font-ubuntu-semibold text-md">{userData.role === 'admin' || userData.role === 'primary_admin' ? 'Make Resident' : 'Make Admin'}</Text>
-							</TouchableOpacity>
+							{userData.role !== 'security' && (
+								<TouchableOpacity onPress={promptPromote} disabled={processing || deactivating} className={`flex-1 bg-primary justify-center items-center py-5 !rounded-xl ${processing || deactivating ? 'opacity-70' : ''}`}>
+									<Text className="text-white font-ubuntu-semibold text-md">{userData.role === 'admin' || userData.role === 'primary_admin' ? 'Make Resident' : 'Make Admin'}</Text>
+								</TouchableOpacity>
+							)}
 						</View>
 
 						{/* Deactivate Confirmation Bottom Drawer */}

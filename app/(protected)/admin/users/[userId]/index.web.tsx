@@ -245,7 +245,19 @@ export default function RegisterUserWeb() {
 											<label htmlFor="password" className="input-label-web">
 												Create Password
 											</label>
-											<input name="password" type="password" placeholder="Enter password for user" value={password} onChange={(e: ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)} className="input-style-web" />
+											<input 
+												name="password" 
+												type="password" 
+												placeholder="Enter password for user" 
+												value={password} 
+												onChange={(e: ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)} 
+												className="input-style-web"
+												// Disable copy and paste
+												onCopy={(e) => e.preventDefault()}
+												onPaste={(e) => e.preventDefault()}
+												onCut={(e) => e.preventDefault()}
+												onContextMenu={(e) => e.preventDefault()}
+											/>
 										</div>
 
 										<div className="input-group-web !flex-row !items-center !gap-6">

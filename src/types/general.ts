@@ -21,6 +21,7 @@ export interface FormData {
 	userType: UserRolesType;
 	homeAddress: string;
 	meansOfIdentification: MeansOfIdType;
+	idNumber: string;
 }
 
 export interface FormErrors {
@@ -31,6 +32,7 @@ export interface FormErrors {
 	password?: string;
 	homeAddress?: string;
 	meansOfIdentification?: string;
+	idNumber?: string;
 }
 
 export type MeansOfIdType = 'drivers_license' | 'international_passport' | 'national_id' | 'voters_card';

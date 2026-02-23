@@ -23,7 +23,19 @@ const PasswordInput = memo(({ label, value, onChange, show, setShow, placeholder
 		<>
 			<Text className="text-[12px] text-primary mt-5">{label}</Text>
 			<View className="relative mt-1">
-				<TextInput className="bg-[#F7F9F9] rounded-lg px-5 py-3 h-16 text-base pr-12" placeholder={placeholder} value={value} onChangeText={onChange} secureTextEntry={!show} editable={!disabled} autoCapitalize="none" pointerEvents={disabled ? 'none' : 'auto'} />
+				<TextInput 
+					className="bg-[#F7F9F9] rounded-lg px-5 py-3 h-16 text-base pr-12" 
+					placeholder={placeholder} 
+					value={value} 
+					onChangeText={onChange} 
+					secureTextEntry={!show} 
+					editable={!disabled} 
+					autoCapitalize="none" 
+					pointerEvents={disabled ? 'none' : 'auto'}
+					// Disable copy and paste
+					contextMenuHidden={true}
+					selectTextOnFocus={false}
+				/>
 				<Pressable onPress={() => setShow(!show)} className="absolute right-3 top-5" disabled={disabled}>
 					<Image source={show ? icons.eye : icons.hiddenEye} style={{ width: 20, height: 20 }} resizeMode="contain" />
 				</Pressable>
@@ -68,7 +80,7 @@ export default function EditRequest() {
 		}
 
 		if (currentPassword === newPassword) {
-			Alert.alert('Error', 'New Password cannot be the same as Current Password');
+			Alert.alert('Error', 'The new password cannot be the same as current password');
 			setRunning(false);
 			return;
 		}
@@ -88,7 +100,7 @@ export default function EditRequest() {
 						onPress: () => router.back(),
 					},
 				],
-				{ cancelable: true }
+				{ cancelable: true },
 			);
 			return;
 		} catch (err: any) {

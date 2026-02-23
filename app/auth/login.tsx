@@ -145,7 +145,16 @@ export default function Login() {
 					<View>
 						<Text className={`pb-1 text-grey ${isLargeScreen ? 'text-base' : ''}`}>Password</Text>
 						<View className="relative">
-							<TextInput placeholder="Enter your password..." secureTextEntry={!showPassword} value={password} onChangeText={setPassword} editable={!isLoading} className="bg-[#F7F9F9] border border-[#D1D5DB] rounded-lg px-4 py-5 mt-1 pr-12" />
+							<TextInput 
+								placeholder="Enter your password..." 
+								secureTextEntry={!showPassword} 
+								value={password} 
+								onChangeText={setPassword} 
+								editable={!isLoading} 
+								className="bg-[#F7F9F9] border border-[#D1D5DB] rounded-lg px-4 py-5 mt-1 pr-12"
+								contextMenuHidden={true}
+								selectTextOnFocus={false}
+							/>
 							<Pressable onPress={() => setShowPassword(!showPassword)} className="absolute right-3 top-6" disabled={isLoading}>
 								<Image source={showPassword ? icons.eye : icons.hiddenEye} style={{ width: 20, height: 20 }} resizeMode="contain" />
 							</Pressable>

@@ -52,7 +52,7 @@ export type CreateGuestApiResponse = {
 export type GuestDetails = {
 	visitor_fullname: string;
 	relationship_with_resident: string;
-	gender: string;
+	gender: GenderType;
 	resident_name: string;
 	resident_address: string;
 	resident_email: string;

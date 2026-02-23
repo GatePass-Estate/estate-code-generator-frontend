@@ -247,7 +247,19 @@ export default function RegisterUserWeb() {
 												Create Password
 											</label>
 											<div className="relative w-full">
-												<input name="password" type={showPassword ? 'text' : 'password'} placeholder="Enter password for user" value={password} onChange={(e: ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)} className="input-style-web pr-12 w-full" />
+												<input 
+													name="password" 
+													type={showPassword ? 'text' : 'password'} 
+													placeholder="Enter password for user" 
+													value={password} 
+													onChange={(e: ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)} 
+													className="input-style-web pr-12 w-full"
+													// Disable copy and paste
+													onCopy={(e) => e.preventDefault()}
+													onPaste={(e) => e.preventDefault()}
+													onCut={(e) => e.preventDefault()}
+													onContextMenu={(e) => e.preventDefault()}
+												/>
 												<div onClick={() => setShowPassword(!showPassword)} className="absolute right-6 top-6 cursor-pointer">
 													<Image source={showPassword ? icons.eye : icons.hiddenEye} style={{ width: 20, height: 20 }} resizeMode="contain" />
 												</div>

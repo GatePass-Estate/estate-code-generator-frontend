@@ -356,7 +356,9 @@ export default function AdminUsersPage() {
 													</td>
 													<td className="py-4 px-4">
 														<div className="flex">
-															{!['admin', 'primary_admin'].includes(user.role!) ? (
+															{user.role === 'security' ? (
+																<></>
+															) : !['admin', 'primary_admin'].includes(user.role!) ? (
 																<button onClick={() => promteUserToAdmin(user.id!, user.first_name || '', user.last_name || '')} className="p-2 hover:bg-gray-200 transition border-r-2 border-grey" title="Make Admin">
 																	<Image source={icons.userIcon} style={{ width: 20, height: 20 }} resizeMode="contain" />
 																</button>

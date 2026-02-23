@@ -105,7 +105,21 @@ const CodeCard = ({ code, details, variant = 'prefer_not_to_say', timeLeftMinute
 					<Image source={icons.deleteIcon} resizeMode="contain" style={{ width: 24, height: 24 }} />
 				</div>
 
-				<div className="cursor-pointer" onClick={() => router.push(`/invite?code=${code}&estate_id=${estate_id}`)}>
+				<div
+					className="cursor-pointer"
+					onClick={() =>
+						router.push({
+							pathname: '/invite',
+							params: {
+								code,
+								name: details.name,
+								address: details.address,
+								timeframe: details.timeframe,
+								date: details.date,
+							},
+						})
+					}
+				>
 					<Image source={icons.shareIcon} resizeMode="contain" style={{ width: 24, height: 24 }} />
 				</div>
 
