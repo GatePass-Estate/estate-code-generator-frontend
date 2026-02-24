@@ -62,9 +62,9 @@ export default function AdminUsersMobilePage() {
 		return unsubscribe;
 	}, [navigation]);
 
-	const securityPersonnelCount = users.items.filter((user) => user.role === 'security').length;
+	const securityPersonnelCount = users?.role_summary?.security || users.items.filter((user) => user.role === 'security').length;
 
-	const residentsCount = users.items.filter((user) => user.role === 'resident').length;
+	const residentsCount = users?.role_summary?.resident || users.items.filter((user) => user.role === 'resident').length;
 
 	const limitedUsers = users.items.slice(0, 4);
 

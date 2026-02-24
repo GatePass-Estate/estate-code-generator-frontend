@@ -5,10 +5,9 @@ import { sharedStyles } from '@/src/theme/styles';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Modal, Animated, PanResponder } from 'react-native';
-import { Text, TouchableOpacity, View, Dimensions } from 'react-native';
+import { Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useUserStore } from '@/src/lib/stores/userStore';
-import { UserRolesType } from '@/src/types/general';
 import { User } from '@/src/types/user';
 
 // Dummy API function for deactivating user
@@ -252,7 +251,7 @@ export default function SingleUserMobile() {
 								User Profile
 							</Text>
 
-							<View className=" bg-transparent p-4 rounded-lg border-micro py-4">
+							<View className=" bg-transparent p-4 rounded-lg border-micro py-4 overflow-hidden">
 								<SingleDetail label="Name" value={`${userData.first_name} ${userData.last_name}`} />
 								<SingleDetail label="Address" value={`${userData.home_address}, ${userData.estate_name}.`} />
 								<SingleDetail label="Email Address" value={userData.email} />

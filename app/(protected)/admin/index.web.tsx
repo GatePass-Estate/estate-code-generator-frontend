@@ -14,10 +14,10 @@ import WebNavLink from '@/src/components/web/WebNavLink';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import Modal from '@/src/components/web/Modal';
 
-const USERS_PAGE_SIZE = 30;
+const USERS_PAGE_SIZE = 20;
 
 export default function AdminUsersPage() {
-	const [users, setUsers] = useState<AllUsers>({ total: 0, page: 1, limit: 100, items: [] });
+	const [users, setUsers] = useState<AllUsers>({ total: 0, page: 1, limit: USERS_PAGE_SIZE, items: [] });
 	const [loading, setLoading] = useState(true);
 	const [searchQuery, setSearchQuery] = useState('');
 	const [selectedRole, setSelectedRole] = useState<UserRolesType | null>(null);
@@ -95,8 +95,8 @@ export default function AdminUsersPage() {
 
 	const totalPages = users.total > 0 ? Math.ceil(users.total / USERS_PAGE_SIZE) : 1;
 
-	const residentsCount = users.items.filter((user) => user.role === 'resident').length;
-	const securityCount = users.items.filter((user) => user.role === 'security').length;
+	const residentsCount = users?.role_summary?.resident || users.items.filter((user) => user.role === 'resident').length;
+	const securityCount = users?.role_summary?.security || users.items.filter((user) => user.role === 'security').length;
 
 	useEffect(() => {
 		if (currentPage > totalPages) setCurrentPage(Math.max(1, totalPages));

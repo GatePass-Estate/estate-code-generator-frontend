@@ -29,6 +29,13 @@ export type AllUsers = {
 	page: number;
 	limit: number;
 	items: User[];
+	role_summary?: {
+		admin: number;
+		guest: number;
+		primary_admin: number;
+		resident: number;
+		security: number;
+	};
 };
 
 export type RegisterUserPayload = {
