@@ -355,7 +355,7 @@ export default function AdminUsersPage() {
 														<p className="text-primary text-sm font-inter-regular">{user.home_address}</p>
 													</td>
 													<td className="py-4 px-4">
-														<div className="flex">
+														<div className={`flex ${user.role === 'security' && 'justify-end'}`}>
 															{user.role === 'security' ? (
 																<></>
 															) : !['admin', 'primary_admin'].includes(user.role!) ? (

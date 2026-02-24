@@ -7,7 +7,6 @@ import UserIcon from '@/src/components/mobile/UserIcon';
 import { validateCode } from '@/src/lib/api/codes';
 import { InputRefsStorage } from '@/src/types/general';
 import { getUserById } from '@/src/lib/api/user';
-import { User } from '@/src/types/user';
 
 export default function SecurityVerificationMobile() {
 	const [code, setCode] = useState<string[]>(['', '', '', '', '', '']);

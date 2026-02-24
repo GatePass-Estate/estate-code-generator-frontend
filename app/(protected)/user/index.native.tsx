@@ -28,10 +28,7 @@ export default function HomeMobile({}) {
 		try {
 			const result = await getAllCodes(useUserStore.getState().user_id);
 			const newCodes = result.items.filter((code) => !code.is_expired);
-			console.log(newCodes);
 			if (!isDataEqual(newCodes, codesRef.current)) {
-				console.log('is not equal');
-
 				setCodes(newCodes);
 			}
 		} catch (error) {

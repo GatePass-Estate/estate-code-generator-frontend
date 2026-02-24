@@ -2,7 +2,7 @@ import AccessCodeCard from '@/src/components/web/AccessCodeCard';
 import WebSidebar from '@/src/components/web/WebSidebar';
 import icons from '@/src/constants/icons';
 import { useRouter } from 'expo-router';
-import { Image, Platform } from 'react-native';
+import { Image, Platform, useWindowDimensions } from 'react-native';
 import { menuRoutes } from './_layout';
 import { useEffect, useState, useRef } from 'react';
 import Modal from '@/src/components/web/Modal';
@@ -37,6 +37,7 @@ export default function HomeWeb() {
 	const [generatingGuestId, setGeneratingGuestId] = useState<string | null>(null);
 	const guestsRef = useRef<Guest[]>(guests);
 	const codesRef = useRef<Codes[]>(codes);
+	const { width } = useWindowDimensions();
 
 	// Keep refs in sync with state
 	useEffect(() => {

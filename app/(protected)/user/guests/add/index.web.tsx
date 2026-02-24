@@ -23,7 +23,7 @@ const RELATIONSHIPS = [
 	{ name: 'taxi', value: 'taxi' },
 	{ name: 'delivery', value: 'delivery' },
 	{ name: 'technician', value: 'technician' },
-	// { name: 'other', value: 'other' },
+	{ name: 'other', value: 'other' },
 ];
 
 export default function AddGuestWeb() {
