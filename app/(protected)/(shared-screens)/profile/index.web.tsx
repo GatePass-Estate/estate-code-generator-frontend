@@ -66,19 +66,19 @@ export default function MyProfile() {
 		const confirmValue = confirmPasswordRef.current?.value || '';
 
 		if (password.newPassword !== confirmValue) {
-			setError('New Password and Confirm Password do not match');
+			setError('The new password and the confirm password do not match');
 			setSavingPassword(false);
 			return;
 		}
 
 		if (password.newPassword.length < 8 || password.currentPassword.length < 8) {
-			setError('Password must be at least 8 characters long');
+			setError('The password must be at least 8 characters long');
 			setSavingPassword(false);
 			return;
 		}
 
 		if (password.newPassword === password.currentPassword) {
-			setError('New Password cannot be the same as Current Password');
+			setError('The new password cannot be the same as the current password');
 			setSavingPassword(false);
 			return;
 		}

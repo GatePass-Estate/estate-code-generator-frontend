@@ -23,14 +23,14 @@ const PasswordInput = memo(({ label, value, onChange, show, setShow, placeholder
 		<>
 			<Text className="text-[12px] text-primary mt-5">{label}</Text>
 			<View className="relative mt-1">
-				<TextInput 
-					className="bg-[#F7F9F9] rounded-lg px-5 py-3 h-16 text-base pr-12" 
-					placeholder={placeholder} 
-					value={value} 
-					onChangeText={onChange} 
-					secureTextEntry={!show} 
-					editable={!disabled} 
-					autoCapitalize="none" 
+				<TextInput
+					className="bg-[#F7F9F9] rounded-lg px-5 py-3 h-16 text-base pr-12"
+					placeholder={placeholder}
+					value={value}
+					onChangeText={onChange}
+					secureTextEntry={!show}
+					editable={!disabled}
+					autoCapitalize="none"
 					pointerEvents={disabled ? 'none' : 'auto'}
 					// Disable copy and paste
 					contextMenuHidden={true}
@@ -68,13 +68,13 @@ export default function EditRequest() {
 		}
 
 		if (newPassword !== confirmPassword) {
-			Alert.alert('Error', 'New Password and Confirm Password do not match');
+			Alert.alert('Error', 'The new password and confirm password do not match');
 			setRunning(false);
 			return;
 		}
 
 		if (newPassword.length < 8 || currentPassword.length < 8) {
-			Alert.alert('Error', 'Password must be at least 8 characters long');
+			Alert.alert('Error', 'The password must be at least 8 characters long');
 			setRunning(false);
 			return;
 		}
