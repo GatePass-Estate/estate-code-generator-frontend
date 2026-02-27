@@ -25,19 +25,51 @@ export default function SecurityVerificationMobile() {
 	};
 
 	const handleChange = (text: string, index: number) => {
+		// always convert to uppercase
+		text = text.toUpperCase();
 		setErrorMessage('');
-		const digit = text.slice(-1);
 		const newCode = [...code];
+
+		// if the user pasted or typed multiple characters, spread them
+		if (text.length > 1) {
+			console.log(text);
+
+			for (let i = 0; i < text.length && index + i < newCode.length; i++) {
+				newCode[index + i] = text[i];
+			}
+			setCode(newCode);
+			const lastFilled = Math.min(5, index + text.length - 1);
+			inputs.current[lastFilled]?.focus();
+			return;
+		}
+
+		const digit = text.slice(-1);
+
+		// backspace on empty should clear previous
+		if (!digit && newCode[index] === '' && index > 0) {
+			newCode[index - 1] = '';
+			setCode(newCode);
+			inputs.current[index - 1]?.focus();
+			return;
+		}
+
 		newCode[index] = digit;
 		setCode(newCode);
 
-		setTimeout(() => {
-			if (digit && index < 5) {
-				inputs.current[index + 1]?.focus();
-			} else if (!digit && index > 0) {
-				inputs.current[index - 1]?.focus();
-			}
-		}, 50);
+		if (digit && index < 5) {
+			inputs.current[index + 1]?.focus();
+		} else if (!digit && index > 0) {
+			inputs.current[index - 1]?.focus();
+		}
+	};
+
+	const handleKeyPress = (e: { nativeEvent: { key: string } }, index: number) => {
+		if (e.nativeEvent.key === 'Backspace' && code[index] === '' && index > 0) {
+			const newCode = [...code];
+			newCode[index - 1] = '';
+			setCode(newCode);
+			inputs.current[index - 1]?.focus();
+		}
 	};
 
 	const handleValidation = async () => {
@@ -123,9 +155,10 @@ export default function SecurityVerificationMobile() {
 								fontWeight: '600',
 								color: '#113E55',
 							}}
-							maxLength={1}
 							value={digit}
 							onChangeText={(t) => handleChange(t, idx)}
+							onKeyPress={(e) => handleKeyPress(e, idx)}
+							autoCapitalize="characters"
 							onLayout={(e) => {
 								setInputRef(e.target as unknown as TextInput, idx);
 							}}
