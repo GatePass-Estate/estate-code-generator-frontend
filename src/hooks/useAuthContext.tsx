@@ -12,12 +12,14 @@ SplashScreen.preventAutoHideAsync();
 
 const AuthContext = createContext<AuthContextType>({
 	isReady: false,
+	resetKey: 0,
 	signIn: async () => {},
 	signOut: async () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
 	const [isReady, setIsReady] = useState(false);
+	const [resetKey, setResetKey] = useState(0);
 	const router = useRouter();
 	const isProcessingRef = useRef(false);
 
@@ -69,6 +71,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		useAuthStore.getState().clearAuth();
 		await clearAuthState();
 		broadcastLogout();
+		// Force full component reset by incrementing key
+		setResetKey((prev) => prev + 1);
 		router.replace('/auth/login');
 	}, [router]);
 
@@ -125,7 +129,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		};
 	}, [handleCrossTabLogin, handleCrossTabLogout, router]);
 
-	return <AuthContext.Provider value={{ isReady, signIn, signOut }}>{children}</AuthContext.Provider>;
+	return <AuthContext.Provider value={{ isReady, resetKey, signIn, signOut }}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

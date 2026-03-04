@@ -4,12 +4,32 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { Stack } from 'expo-router';
 import { useInitialAndroidBarSync } from '@/src/hooks/useColorScheme';
-import { AuthProvider } from '@/src/hooks/useAuthContext';
+import { AuthProvider, useAuth } from '@/src/hooks/useAuthContext';
 import 'react-native-reanimated';
 import { Inter, UbuntuSans } from '@/src/constants/fonts';
 import './global.css';
 
 SplashScreen.preventAutoHideAsync();
+
+function RootLayoutContent() {
+	const { resetKey } = useAuth();
+
+	return (
+		<>
+			<StatusBar key={`root-status-bar-light`} style={'dark'} />
+			<Stack
+				key={resetKey}
+				initialRouteName="auth/login"
+				screenOptions={{
+					headerShown: false,
+				}}
+			>
+				<Stack.Screen name="auth/login" options={{ animation: 'none' }} />
+				<Stack.Screen name="(protected)" />
+			</Stack>
+		</>
+	);
+}
 
 export default function RootLayout() {
 	if (Platform.OS === 'android') {
@@ -43,19 +63,8 @@ export default function RootLayout() {
 	}
 
 	return (
-		<>
-			<StatusBar key={`root-status-bar-light`} style={'dark'} />
-			<AuthProvider>
-				<Stack
-					initialRouteName="auth/login"
-					screenOptions={{
-						headerShown: false,
-					}}
-				>
-					<Stack.Screen name="auth/login" options={{ animation: 'none' }} />
-					<Stack.Screen name="(protected)" />
-				</Stack>
-			</AuthProvider>
-		</>
+		<AuthProvider>
+			<RootLayoutContent />
+		</AuthProvider>
 	);
 }

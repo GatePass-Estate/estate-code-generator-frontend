@@ -15,6 +15,7 @@ export default function UserIcon({ type = 'admin' }: { type?: string }) {
 	const { signOut } = useAuth();
 
 	const initials = `${first_name?.charAt(0) ?? ''}${last_name?.charAt(0) ?? ''}`;
+
 	const isAdmin = ['admin', 'primary_admin'].includes(role!);
 
 	const handleNavigation = (path: string) => {
@@ -33,9 +34,8 @@ export default function UserIcon({ type = 'admin' }: { type?: string }) {
 			<View ref={buttonRef} className="mr-5">
 				<Pressable onPress={handleIconPress} className="flex-row items-center gap-2">
 					<View className="w-9 h-9 rounded-full border border-teal justify-center items-center">
-						<Text className="uppercase text-teal font-light font-ubuntu text-2xl">{initials}</Text>
+						<Text className="uppercase text-teal font-light font-ubuntu text-xl">{initials}</Text>
 					</View>
-					{/* {isAdmin && <Image source={icons.downChevron} style={styles.dropdownIcon} />} */}
 				</Pressable>
 			</View>
 
