@@ -1,15 +1,12 @@
-import { Platform, useWindowDimensions } from 'react-native';
-import ProfileScreen from './native';
-import MyProfile from './web';
+import { Platform } from 'react-native';
+import ProfileMobile from './index.native';
+import ProfileWeb from './index.web';
 
 export default function Profile() {
 	const Component = Platform.select({
-		web: () => <MyProfile />,
-		default: () => <ProfileScreen />,
+		web: () => <ProfileWeb />,
+		default: () => <ProfileMobile />,
 	});
 
-	const { width } = useWindowDimensions();
-	const isLargeScreen = width > 768;
-
-	return isLargeScreen ? <Component /> : <ProfileScreen />;
+	return <Component />;
 }

@@ -1,15 +1,8 @@
-import { Platform, useWindowDimensions } from 'react-native';
-import SendBroadcast from './native';
-import BroadcastWeb from './web';
+import { Platform } from 'react-native';
+import broadcastMobile from './index.native';
+import broadcastWeb from './index.web';
 
-export default function Broadcast() {
-	const Component = Platform.select({
-		web: () => <BroadcastWeb />,
-		default: () => <SendBroadcast />,
-	});
-
-	const { width } = useWindowDimensions();
-	const isLargeScreen = width > 768;
-
-	return isLargeScreen ? <Component /> : <SendBroadcast />;
-}
+export default Platform.select({
+	web: broadcastWeb,
+	default: broadcastMobile,
+});

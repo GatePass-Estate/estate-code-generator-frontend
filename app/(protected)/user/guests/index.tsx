@@ -1,10 +1,8 @@
 import { Platform } from 'react-native';
-import MyGuest from './native';
+import GuestsMobile from './index.native';
+import GuestsWeb from './index.web';
 
-export default function Guests() {
-	const Component = Platform.select({
-		default: () => <MyGuest />,
-	});
-
-	return <Component />;
-}
+export default Platform.select({
+	web: GuestsWeb,
+	default: GuestsMobile,
+});

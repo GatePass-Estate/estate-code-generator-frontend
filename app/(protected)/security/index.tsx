@@ -1,15 +1,12 @@
-import { Platform, useWindowDimensions } from 'react-native';
-import SecurityVerificationMobile from './native';
-import SecurityVerificationWeb from './web';
+import { Platform } from 'react-native';
+import SecurityVerificationMobile from './index.native';
+import SecurityVerificationWeb from './index.web';
 
-export default function Security() {
+export default function Home() {
 	const Component = Platform.select({
 		web: () => <SecurityVerificationWeb />,
 		default: () => <SecurityVerificationMobile />,
 	});
 
-	const { width } = useWindowDimensions();
-	const isLargeScreen = width > 768;
-
-	return isLargeScreen ? <Component /> : <SecurityVerificationMobile />;
+	return <Component />;
 }

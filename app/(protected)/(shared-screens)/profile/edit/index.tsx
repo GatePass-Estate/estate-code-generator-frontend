@@ -1,15 +1,8 @@
-import { Platform, useWindowDimensions } from 'react-native';
-import EditRequest from './native';
-import EditProfile from './web';
+import { Platform } from 'react-native';
+import EditProfileMobile from './index.native';
+import EditProfileWeb from './index.web';
 
-export default function Edit() {
-	const Component = Platform.select({
-		web: () => <EditProfile />,
-		default: () => <EditRequest />,
-	});
-
-	const { width } = useWindowDimensions();
-	const isLargeScreen = width > 768;
-
-	return isLargeScreen ? <Component /> : <EditRequest />;
-}
+export default Platform.select({
+	web: EditProfileWeb,
+	default: EditProfileMobile,
+});
