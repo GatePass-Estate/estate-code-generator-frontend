@@ -104,6 +104,10 @@ import userEdit from '../assets/icons/web-user-edit.png';
 import userIcon from '../assets/icons/web-user-icon.png';
 // @ts-ignore
 import addUser from '../assets/icons/web-user-edit-add.png';
+// @ts-ignore
+import homeDropdown from '../assets/icons/home-dropdown.png';
+// @ts-ignore
+import logoutDropdown from '../assets/icons/logout-dropdown.png';
 
 const icons = {
 	menuIcon,
@@ -159,6 +163,8 @@ const icons = {
 	userEdit,
 	userIcon,
 	addUser,
+	homeDropdown,
+	logoutDropdown,
 };
 
 export default icons;
