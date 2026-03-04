@@ -30,7 +30,7 @@ export async function getMyCode(id: string): Promise<Codes> {
 export async function validateCode(code: string): Promise<Codes> {
 	try {
 		const api = Api('code');
-		const axiosRes = await api.get(`/codeservice/${code}/?receiver=visitor`);
+		const axiosRes = await api.get(`/codeservice/${code}`);
 		const data = axiosRes.data;
 
 		return data;

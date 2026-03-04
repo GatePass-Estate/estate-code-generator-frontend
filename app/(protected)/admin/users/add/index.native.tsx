@@ -2,8 +2,7 @@ import Back from '@/src/components/mobile/Back';
 import { sharedStyles } from '@/src/theme/styles';
 import { Stack, useRouter } from 'expo-router';
 import { useState, useEffect } from 'react';
-import { ActivityIndicator, Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
+import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FormData, FormErrors, MeansOfIdType } from '@/src/types/general';
 import { activateUser, registerUser } from '@/src/lib/api/user';
@@ -12,6 +11,7 @@ import { Toast, ToastType } from '@/src/components/mobile/Toast';
 import { RegisterUserPayload } from '@/src/types/user';
 import { useNavigation } from '@react-navigation/native';
 import icons from '@/src/constants/icons';
+import { Picker } from '@/src/components/mobile/Picker';
 
 const MEANS_OF_IDENTIFICATION: { label: string; value: MeansOfIdType }[] = [
 	{ label: 'Drivers License', value: 'drivers_license' },
@@ -33,6 +33,7 @@ const RegisterUser = () => {
 		userType: 'resident',
 		homeAddress: '',
 		meansOfIdentification: 'drivers_license',
+		idNumber: '',
 	});
 
 	const [errors, setErrors] = useState<FormErrors>({});
@@ -40,8 +41,6 @@ const RegisterUser = () => {
 	const [toastVisible, setToastVisible] = useState(false);
 	const [toastMessage, setToastMessage] = useState('');
 	const [toastType, setToastType] = useState<ToastType>('success');
-	const [isUserTypePickerVisible, setIsUserTypePickerVisible] = useState(false);
-	const [isMeansOfIdPickerVisible, setIsMeansOfIdPickerVisible] = useState(false);
 	const [showPassword, setShowPassword] = useState(false);
 
 	// Handle custom back navigation
@@ -50,11 +49,9 @@ const RegisterUser = () => {
 			e.preventDefault();
 
 			if (currentStep === 2) {
-				// Go back to step 1 instead of exiting
 				setCurrentStep(1);
 				setErrors({});
 			} else {
-				// Exit the screen normally
 				navigation.dispatch(e.data.action);
 			}
 		});
@@ -140,11 +137,13 @@ const RegisterUser = () => {
 						userType: 'resident',
 						homeAddress: '',
 						meansOfIdentification: 'drivers_license',
+						idNumber: '',
 					});
 					setCurrentStep(1);
 					setErrors({});
 					setTimeout(() => {
-						router.back();
+						// Navigate to users list instead of going back to avoid beforeRemove listener issues
+						router.replace('/admin');
 					}, 2000);
 				} else {
 					setToastMessage('User registered but activation failed. Please try again.');
@@ -292,6 +291,9 @@ const RegisterUser = () => {
 										onChangeText={(value) => updateFormData('password', value)}
 										secureTextEntry={!showPassword}
 										style={[sharedStyles.input, { borderColor: errors.password ? '#ef4444' : undefined, paddingRight: 48 }]}
+										// Disable copy and paste
+										contextMenuHidden={true}
+										selectTextOnFocus={false}
 									/>
 									<Pressable onPress={() => setShowPassword(!showPassword)} className="absolute right-3 top-6" disabled={loading}>
 										<Image source={showPassword ? icons.eye : icons.hiddenEye} style={{ width: 20, height: 20 }} resizeMode="contain" />
@@ -311,37 +313,16 @@ const RegisterUser = () => {
 								>
 									Save User As
 								</Text>
-								{Platform.OS === 'ios' ? (
-									<>
-										<Pressable style={sharedStyles.input} onPress={() => setIsUserTypePickerVisible(true)}>
-											<Text style={{ color: formData.userType ? '#000' : '#9CA3AF' }}>{formData.userType === 'resident' ? 'Resident' : formData.userType === 'security' ? 'Security Personnel' : 'Select user type'}</Text>
-										</Pressable>
-										<Modal transparent={true} visible={isUserTypePickerVisible} animationType="slide" onRequestClose={() => setIsUserTypePickerVisible(false)}>
-											<Pressable style={styles.modalOverlay} onPress={() => setIsUserTypePickerVisible(false)}>
-												<View className="bg-gray-800">
-													<Picker
-														selectedValue={formData.userType}
-														onValueChange={(itemValue) => {
-															updateFormData('userType', itemValue as 'resident' | 'admin');
-															setIsUserTypePickerVisible(false);
-														}}
-														className="text-gray-300 h-14 w-full"
-													>
-														<Picker.Item label="Resident" value="resident" />
-														<Picker.Item label="Security Personnel" value="security" />
-													</Picker>
-												</View>
-											</Pressable>
-										</Modal>
-									</>
-								) : (
-									<View style={sharedStyles.input}>
-										<Picker selectedValue={formData.userType} onValueChange={(value) => updateFormData('userType', value as 'resident' | 'admin')} className="text-gray-300 h-14 w-full text-sm" style={{ color: 'gray', marginTop: -14 }}>
-											<Picker.Item label="Resident" value="resident" />
-											<Picker.Item label="Security Personnel" value="security" />
-										</Picker>
-									</View>
-								)}
+								<Picker
+									label=""
+									selectedValue={formData.userType}
+									onValueChange={(value) => updateFormData('userType', value as 'resident' | 'admin')}
+									placeholder="Select user type"
+									items={[
+										{ label: 'Resident', value: 'resident' },
+										{ label: 'Security Personnel', value: 'security' },
+									]}
+								/>
 							</View>
 
 							<TouchableOpacity disabled={loading} onPress={handleContinue} className={`px-24 bg-primary justify-center items-center py-5 font-UbuntuSans !rounded-xl ${loading ? 'opacity-70' : ''}`} activeOpacity={0.8}>
@@ -373,7 +354,7 @@ const RegisterUser = () => {
 								{errors.homeAddress && <Text className="text-red-600 text-xs font-ubuntu-regular mt-1">{errors.homeAddress}</Text>}
 							</View>
 
-							<View className="mb-8">
+							<View className="mb-2">
 								<Text
 									style={[
 										sharedStyles.label,
@@ -384,39 +365,30 @@ const RegisterUser = () => {
 								>
 									Means of Identification
 								</Text>
-								{Platform.OS === 'ios' ? (
-									<>
-										<Pressable style={sharedStyles.input} onPress={() => setIsMeansOfIdPickerVisible(true)}>
-											<Text style={{ color: formData.meansOfIdentification ? '#000' : '#9CA3AF' }}>{MEANS_OF_IDENTIFICATION.find((item) => item.value === formData.meansOfIdentification)?.label || 'Select means of identification'}</Text>
-										</Pressable>
-										<Modal transparent={true} visible={isMeansOfIdPickerVisible} animationType="slide" onRequestClose={() => setIsMeansOfIdPickerVisible(false)}>
-											<Pressable style={styles.modalOverlay} onPress={() => setIsMeansOfIdPickerVisible(false)}>
-												<View className="bg-gray-800">
-													<Picker
-														selectedValue={formData.meansOfIdentification}
-														onValueChange={(itemValue) => {
-															updateFormData('meansOfIdentification', itemValue as MeansOfIdType);
-															setIsMeansOfIdPickerVisible(false);
-														}}
-														className="text-gray-300 h-14 w-full"
-													>
-														{MEANS_OF_IDENTIFICATION.map((item) => (
-															<Picker.Item key={item.value} label={item.label} value={item.value} />
-														))}
-													</Picker>
-												</View>
-											</Pressable>
-										</Modal>
-									</>
-								) : (
-									<View style={sharedStyles.input}>
-										<Picker selectedValue={formData.meansOfIdentification} onValueChange={(value) => updateFormData('meansOfIdentification', value as MeansOfIdType)} className="text-gray-300 h-14 w-full text-sm" style={{ color: 'gray', marginTop: -14 }}>
-											{MEANS_OF_IDENTIFICATION.map((item) => (
-												<Picker.Item key={item.value} label={item.label} value={item.value} />
-											))}
-										</Picker>
-									</View>
-								)}
+								<Picker label="" selectedValue={formData.meansOfIdentification} onValueChange={(value) => updateFormData('meansOfIdentification', value as MeansOfIdType)} placeholder="Select means of identification" items={MEANS_OF_IDENTIFICATION} />
+							</View>
+
+							<View className="mb-8">
+								<Text
+									style={[
+										sharedStyles.label,
+										{
+											color: '#9B9797',
+										},
+									]}
+								>
+									ID Number
+								</Text>
+								<TextInput
+									placeholder="Enter ID Number..."
+									placeholderTextColor="#999"
+									value={formData.idNumber}
+									onChangeText={(value) => updateFormData('idNumber', value)}
+									multiline
+									numberOfLines={3}
+									style={[sharedStyles.input, { borderColor: errors.idNumber ? '#ef4444' : undefined }]}
+								/>
+								{errors.idNumber && <Text className="text-red-600 text-xs font-ubuntu-regular mt-1">{errors.idNumber}</Text>}
 							</View>
 
 							<TouchableOpacity disabled={loading} onPress={handleContinue} className={`px-24 bg-primary justify-center items-center py-5 font-UbuntuSans !rounded-xl ${loading ? 'opacity-70' : ''} gap-2 flex-row`} activeOpacity={0.8}>
@@ -430,13 +402,5 @@ const RegisterUser = () => {
 		</SafeAreaView>
 	);
 };
-
-const styles = StyleSheet.create({
-	modalOverlay: {
-		flex: 1,
-		backgroundColor: 'rgba(0, 0, 0, 0.5)',
-		justifyContent: 'flex-end',
-	},
-});
 
 export default RegisterUser;

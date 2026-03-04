@@ -1,15 +1,17 @@
 import images from '@/src/constants/images';
 import { validateCode } from '@/src/lib/api/codes';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Image, ImageBackground, Platform } from 'react-native';
 import { GuestDetails } from '@/src/types/guests';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { useAuth } from '@/src/hooks/useAuthContext';
 import { router } from 'expo-router';
-import { User } from '@/src/types/user';
-import { getUserById } from '@/src/lib/api/user';
+import { getUserById, updatepassword } from '@/src/lib/api/user';
+import UpdatePassword from '@/src/components/web/UpdatePassword';
 
 function InviteDetailsModal({ result, setModalOpen }: { result: GuestDetails | null; setModalOpen: (open: boolean) => void }) {
+	console.log(result);
+
 	return (
 		<div className="fixed inset-0 z-[9999] flex items-center justify-center p-6" role="dialog" aria-modal="true" aria-label="Invite details">
 			<div className="absolute inset-0 bg-primary opacity-80" onClick={() => setModalOpen(false)} />
@@ -28,21 +30,25 @@ function InviteDetailsModal({ result, setModalOpen }: { result: GuestDetails | n
 						</div>
 					</div>
 
-					<h3 className="text-[14px] font-Inter font-normal mt-[18px] mb-3">Guest Details</h3>
-					<div className="bg-accent text-primary rounded-lg p-5 mb-6">
-						<div className="flex justify-between items-start py-2 px-1">
-							<div className="w-40 text-[14px]">Name :</div>
-							<div className="text-right text-[14px] capitalize">{result?.visitor_fullname}</div>
-						</div>
-						<div className="flex justify-between items-start py-2 px-1">
-							<div className="w-40 text-[14px]">Gender :</div>
-							<div className="text-right text-[14px] capitalize">{result?.gender}</div>
-						</div>
-						<div className="flex justify-between items-start py-2 px-1">
-							<div className="w-40 text-[14px]">Relationship :</div>
-							<div className="text-right text-[14px] capitalize">{result?.relationship_with_resident}</div>
-						</div>
-					</div>
+					{result?.isResident == false && (
+						<>
+							<h3 className="text-[14px] font-Inter font-normal mt-[18px] mb-3">Guest Details</h3>
+							<div className="bg-accent text-primary rounded-lg p-5 mb-6">
+								<div className="flex justify-between items-start py-2 px-1">
+									<div className="w-40 text-[14px]">Name :</div>
+									<div className="text-right text-[14px] capitalize">{result?.visitor_fullname}</div>
+								</div>
+								<div className="flex justify-between items-start py-2 px-1">
+									<div className="w-40 text-[14px]">Gender :</div>
+									<div className="text-right text-[14px] capitalize">{result?.gender == 'prefer_not_to_say' ? 'Prefer Not To Say' : result?.gender}</div>
+								</div>
+								<div className="flex justify-between items-start py-2 px-1">
+									<div className="w-40 text-[14px]">Relationship :</div>
+									<div className="text-right text-[14px] capitalize">{result?.relationship_with_resident}</div>
+								</div>
+							</div>
+						</>
+					)}
 
 					<h3 className="text-[14px] font-Inter font-normal mt-[18px] mb-3">Resident Details</h3>
 					<div className="border-[0.5px] border-accent rounded-lg p-5 mb-3 bg-transparent">
@@ -77,9 +83,11 @@ function SearchCode({ setResult, setModalOpen }: { setResult: (data: GuestDetail
 	const [errorMessage, setErrorMessage] = useState<string>('');
 
 	const handleChange = (index: number, value: string) => {
-		const cleaned = value.replace(/[^0-9a-zA-Z]/g, '').slice(0, 1);
+		const cleaned = value
+			.replace(/[^0-9a-zA-Z]/g, '')
+			.slice(0, 1)
+			.toUpperCase();
 		setErrorMessage('');
-		// .toUpperCase();
 		const next = [...values];
 		next[index] = cleaned;
 		setValues(next);
@@ -104,7 +112,7 @@ function SearchCode({ setResult, setModalOpen }: { setResult: (data: GuestDetail
 		const paste = e.clipboardData.getData('text').replace(/\s+/g, '');
 		const chars = paste.slice(0, inputCount).split('');
 		const next = [...values];
-		// chars.forEach((ch, i) => (next[i] = ch.toUpperCase()));
+		chars.forEach((ch, i) => (next[i] = ch.toUpperCase()));
 		setValues(next);
 		const nextIndex = Math.min(chars.length, inputCount - 1);
 		inputsRef.current[nextIndex]?.focus();
@@ -134,7 +142,9 @@ function SearchCode({ setResult, setModalOpen }: { setResult: (data: GuestDetail
 				resident_email: resident?.email,
 				resident_phone_number: resident?.phone_number,
 				code: result.hashed_code,
+				isResident: result.receiver === 'resident',
 			} as GuestDetails);
+
 			setModalOpen(true);
 		} catch (err: any) {
 			setErrorMessage(err.message ?? 'Invalid Code');
@@ -182,14 +192,69 @@ function SearchCode({ setResult, setModalOpen }: { setResult: (data: GuestDetail
 }
 
 function Profile() {
+	const [savingPassword, setSavingPassword] = useState(false);
+	const [showUpdatePassword, setShowUpdatePassword] = useState(false);
+	const [error, setError] = useState('');
+	const [success, setSuccess] = useState('');
+	const [showConfirm, setShowConfirm] = useState(false);
+	const [showCurrent, setShowCurrent] = useState(false);
+	const [showNew, setShowNew] = useState(false);
+	const confirmPasswordRef = useRef<HTMLInputElement | null>(null);
+	const [password, setPassword] = useState({
+		currentPassword: '',
+		newPassword: '',
+	});
 	const { first_name, last_name, email, phone_number } = useUserStore.getState();
 	const { signOut } = useAuth();
+
+	const user_id = useUserStore.getState().user_id;
 
 	const handleLogout = () => signOut();
 
 	const handleEdit = () => {
 		router.push('/security/edit');
 	};
+
+	const setNewPassword = useCallback(async () => {
+		setSavingPassword(true);
+		setError('');
+		setSuccess('');
+
+		const confirmValue = confirmPasswordRef.current?.value || '';
+
+		if (password.newPassword !== confirmValue) {
+			setError('New Password and Confirm Password do not match');
+			setSavingPassword(false);
+			return;
+		}
+
+		if (password.newPassword.length < 8 || password.currentPassword.length < 8) {
+			setError('Password must be at least 8 characters long');
+			setSavingPassword(false);
+			return;
+		}
+
+		if (password.newPassword === password.currentPassword) {
+			setError('New Password cannot be the same as Current Password');
+			setSavingPassword(false);
+			return;
+		}
+
+		try {
+			await updatepassword({
+				user_id,
+				current_password: password.currentPassword,
+				new_password: password.newPassword,
+			});
+			setSuccess('Password updated successfully');
+			setTimeout(() => setShowUpdatePassword(false), 1500);
+		} catch (err: any) {
+			const message = err?.message || 'Failed to update password.';
+			setError(message);
+		} finally {
+			setSavingPassword(false);
+		}
+	}, [password, user_id]);
 
 	useEffect(() => {
 		if (Platform.OS === 'web') document.title = 'My Profile - GatePass';
@@ -229,11 +294,35 @@ function Profile() {
 						Log Out
 					</button>
 
+					<button onClick={() => setShowUpdatePassword(true)} aria-label="Edit request" className="bg-dark-teal text-white rounded-lg py-3 px-7 text-sm hover:opacity-90 transition flex-grow">
+						Change Password
+					</button>
+
 					<button onClick={handleEdit} aria-label="Edit request" className="bg-primary text-white rounded-lg py-3 px-7 text-sm hover:opacity-90 transition flex-grow">
 						Edit Request
 					</button>
 				</div>
 			</div>
+
+			{showUpdatePassword && (
+				<UpdatePassword
+					setShowUpdatePassword={setShowUpdatePassword}
+					error={error}
+					success={success}
+					savingPassword={savingPassword}
+					setPassword={setPassword}
+					password={password}
+					showCurrent={showCurrent}
+					showNew={showNew}
+					showConfirm={showConfirm}
+					confirmPasswordRef={confirmPasswordRef}
+					setError={setError}
+					setShowCurrent={setShowCurrent}
+					setShowNew={setShowNew}
+					setShowConfirm={setShowConfirm}
+					setNewPassword={setNewPassword}
+				/>
+			)}
 		</main>
 	);
 }

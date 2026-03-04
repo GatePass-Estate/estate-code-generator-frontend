@@ -1,23 +1,23 @@
 import WebSidebar from '@/src/components/web/WebSidebar';
 import { router, usePathname } from 'expo-router';
 import { menuRoutes } from '../user/_layout';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { getAllEstateUsers, promoteToAdmin, demoteToResident } from '@/src/lib/api/user';
 import { AllUsers } from '@/src/types/user';
 import { UserRolesType } from '@/src/types/general';
 import icons from '@/src/constants/icons';
 import { Pagination } from '@/src/components/web/Pagination';
 import { Image, Platform } from 'react-native';
-import { getRoleIcon, getRoleIconHeight, getRoleIconWidth } from '@/src/lib/helpers';
+import { getRoleIcon, getRoleIconHeight, getRoleIconWidth, isDataEqual } from '@/src/lib/helpers';
 import { adminRoutes } from './_layout';
 import WebNavLink from '@/src/components/web/WebNavLink';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import Modal from '@/src/components/web/Modal';
 
-const USERS_PAGE_SIZE = 10;
+const USERS_PAGE_SIZE = 20;
 
 export default function AdminUsersPage() {
-	const [users, setUsers] = useState<AllUsers>({ total: 0, page: 1, limit: 100, items: [] });
+	const [users, setUsers] = useState<AllUsers>({ total: 0, page: 1, limit: USERS_PAGE_SIZE, items: [] });
 	const [loading, setLoading] = useState(true);
 	const [searchQuery, setSearchQuery] = useState('');
 	const [selectedRole, setSelectedRole] = useState<UserRolesType | null>(null);
@@ -41,27 +41,43 @@ export default function AdminUsersPage() {
 	});
 	const [processing, setProcessing] = useState(false);
 	const myId = useUserStore.getState().user_id;
+	const usersRef = useRef<AllUsers>(users);
+
+	// Keep ref in sync with state
+	useEffect(() => {
+		usersRef.current = users;
+	}, [users]);
 
 	useEffect(() => {
 		if (Platform.OS === 'web') document.title = 'Admin Access - GatePass';
 	}, []);
 
-	const fetchUsers = async (page: number = 1) => {
+	const fetchUsers = async (page: number = 1, showLoading = true) => {
+		if (showLoading) setLoading(true);
 		try {
-			setLoading(true);
 			const data = await getAllEstateUsers(page, USERS_PAGE_SIZE);
-			setUsers(data);
-			setCurrentPage(page);
+			if (!isDataEqual(data, usersRef.current)) {
+				setUsers(data);
+				setCurrentPage(page);
+			}
 		} catch (error) {
 			console.error('Error fetching users:', error);
 		} finally {
-			setLoading(false);
+			if (showLoading) setLoading(false);
 		}
 	};
 
 	useEffect(() => {
 		fetchUsers();
 	}, []);
+
+	useEffect(() => {
+		const intervalId = setInterval(() => {
+			fetchUsers(currentPage, false);
+		}, 30000);
+
+		return () => clearInterval(intervalId);
+	}, [currentPage]);
 
 	const filteredUsers = useMemo(() => {
 		return users.items.filter((user) => {
@@ -79,8 +95,8 @@ export default function AdminUsersPage() {
 
 	const totalPages = users.total > 0 ? Math.ceil(users.total / USERS_PAGE_SIZE) : 1;
 
-	const residentsCount = users.items.filter((user) => user.role === 'resident').length;
-	const securityCount = users.items.filter((user) => user.role === 'security').length;
+	const residentsCount = users?.role_summary?.resident || users.items.filter((user) => user.role === 'resident').length;
+	const securityCount = users?.role_summary?.security || users.items.filter((user) => user.role === 'security').length;
 
 	useEffect(() => {
 		if (currentPage > totalPages) setCurrentPage(Math.max(1, totalPages));
@@ -229,11 +245,11 @@ export default function AdminUsersPage() {
 
 					<div className="grid grid-cols-4 gap-8 md:grid-cols-12 mb-10">
 						<div className="flex flex-col gap-5 w-full col-span-2">
-							{adminRoutes.map(({ name, title, link, icon }) => {
+							{adminRoutes.map(({ name, title, link, icon }, index) => {
 								const isActive = pathname === link;
 
 								return (
-									<div key={name} onClick={() => onNavigate(link)} className={`flex gap-3 items-center cursor-pointer p-3 rounded-lg transition-all ${isActive ? 'bg-accent text-primary font-medium' : 'hover:bg-accent hover:text-primary hover:font-medium'}`}>
+									<div key={index} onClick={() => onNavigate(link)} className={`flex gap-3 items-center cursor-pointer p-3 rounded-lg transition-all ${isActive ? 'bg-accent text-primary font-medium' : 'hover:bg-accent hover:text-primary hover:font-medium'}`}>
 										<Image source={icon} style={{ width: 24, height: 24 }} resizeMode="contain" />
 										<WebNavLink color="primary">{title}</WebNavLink>
 									</div>
@@ -339,8 +355,10 @@ export default function AdminUsersPage() {
 														<p className="text-primary text-sm font-inter-regular">{user.home_address}</p>
 													</td>
 													<td className="py-4 px-4">
-														<div className="flex">
-															{!['admin', 'primary_admin'].includes(user.role!) ? (
+														<div className={`flex ${user.role === 'security' && 'justify-end'}`}>
+															{user.role === 'security' ? (
+																<></>
+															) : !['admin', 'primary_admin'].includes(user.role!) ? (
 																<button onClick={() => promteUserToAdmin(user.id!, user.first_name || '', user.last_name || '')} className="p-2 hover:bg-gray-200 transition border-r-2 border-grey" title="Make Admin">
 																	<Image source={icons.userIcon} style={{ width: 20, height: 20 }} resizeMode="contain" />
 																</button>

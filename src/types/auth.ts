@@ -3,6 +3,7 @@ import { UserRolesType } from './general';
 
 export type AuthContextType = {
 	isReady: boolean;
+	resetKey: number;
 	signIn: (userData: any) => Promise<void>;
 	signOut: () => Promise<void>;
 	setIsReady?: Dispatch<SetStateAction<boolean>>;

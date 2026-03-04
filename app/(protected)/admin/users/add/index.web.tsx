@@ -35,7 +35,8 @@ export default function RegisterUserWeb() {
 	const [lastName, setLastName] = useState('');
 	const [email, setEmail] = useState('');
 	const [phone, setPhone] = useState('');
-	const [password, setPassword] = useState('');
+	const [password, setPassword] = useState('NewPowerfulPassword');
+	const [showPassword, setShowPassword] = useState(false);
 	const [selectedRole, setSelectedRole] = useState<'resident' | 'security'>('resident');
 
 	// Step 2 fields
@@ -139,7 +140,7 @@ export default function RegisterUserWeb() {
 						setLastName('');
 						setEmail('');
 						setPhone('');
-						setPassword('');
+						setPassword('NewPowerfulPassword');
 						setSelectedRole('resident');
 						setHomeAddress('');
 						setIdType('');
@@ -188,11 +189,11 @@ export default function RegisterUserWeb() {
 
 					<div className="grid grid-cols-4 gap-9 md:grid-cols-12 mb-10">
 						<div className="flex flex-col gap-5 w-full col-span-2">
-							{adminRoutes.map(({ name, title, link, icon }) => {
+							{adminRoutes.map(({ name, title, link, icon }, index) => {
 								const isActive = pathname === link;
 
 								return (
-									<div key={name} onClick={() => onNavigate(link)} className={`flex gap-3 items-center cursor-pointer p-3 rounded-lg transition-all ${isActive ? 'bg-accent text-primary font-medium' : 'hover:bg-accent hover:text-primary hover:font-medium'}`}>
+									<div key={name + index} onClick={() => onNavigate(link)} className={`flex gap-3 items-center cursor-pointer p-3 rounded-lg transition-all ${isActive ? 'bg-accent text-primary font-medium' : 'hover:bg-accent hover:text-primary hover:font-medium'}`}>
 										<Image source={icon} style={{ width: 24, height: 24 }} resizeMode="contain" />
 										<WebNavLink color="primary">{title}</WebNavLink>
 									</div>
@@ -245,7 +246,24 @@ export default function RegisterUserWeb() {
 											<label htmlFor="password" className="input-label-web">
 												Create Password
 											</label>
-											<input name="password" type="password" placeholder="Enter password for user" value={password} onChange={(e: ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)} className="input-style-web" />
+											<div className="relative w-full">
+												<input 
+													name="password" 
+													type={showPassword ? 'text' : 'password'} 
+													placeholder="Enter password for user" 
+													value={password} 
+													onChange={(e: ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)} 
+													className="input-style-web pr-12 w-full"
+													// Disable copy and paste
+													onCopy={(e) => e.preventDefault()}
+													onPaste={(e) => e.preventDefault()}
+													onCut={(e) => e.preventDefault()}
+													onContextMenu={(e) => e.preventDefault()}
+												/>
+												<div onClick={() => setShowPassword(!showPassword)} className="absolute right-6 top-6 cursor-pointer">
+													<Image source={showPassword ? icons.eye : icons.hiddenEye} style={{ width: 20, height: 20 }} resizeMode="contain" />
+												</div>
+											</div>
 										</div>
 
 										<div className="input-group-web !flex-row !items-center !gap-6">
@@ -253,10 +271,10 @@ export default function RegisterUserWeb() {
 												Save As
 											</label>
 											<div className="flex flex-row flex-wrap gap-2 text-sm mt-1">
-												{ROLES.map((r) => {
+												{ROLES.map((r, index) => {
 													const active = selectedRole === r.value;
 													return (
-														<div key={r.value} className={`flex flex-row items-center px-4 py-2 rounded-md bg-light-grey ${active && 'bg-[#e6f4ef] border border-[#cfe7db]'} gap-3 cursor-pointer`} onClick={() => setSelectedRole(r.value as 'resident' | 'security')}>
+														<div key={r.value + index} className={`flex flex-row items-center px-4 py-2 rounded-md bg-light-grey ${active && 'bg-[#e6f4ef] border border-[#cfe7db]'} gap-3 cursor-pointer`} onClick={() => setSelectedRole(r.value as 'resident' | 'security')}>
 															<p className="text-primary">{r.name}</p>
 															{active && <Image source={icons.checkIcon} style={{ width: 20, height: 20 }} resizeMode="contain" />}
 														</div>
@@ -283,8 +301,8 @@ export default function RegisterUserWeb() {
 													<option value="" selected disabled>
 														Type of ID
 													</option>
-													{ID_TYPES.map((type) => (
-														<option key={type.value} value={type.value}>
+													{ID_TYPES.map((type, index) => (
+														<option key={type.value + index} value={type.value}>
 															{type.name}
 														</option>
 													))}

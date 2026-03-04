@@ -139,11 +139,11 @@ export default function BroadcastWeb() {
 
 					<div className="grid grid-cols-4 gap-9 md:grid-cols-12 mb-10">
 						<div className="flex flex-col gap-5 w-full col-span-2">
-							{adminRoutes.map(({ name, title, link, icon }) => {
+							{adminRoutes.map(({ name, title, link, icon }, index) => {
 								const isActive = pathname === link;
 
 								return (
-									<div key={name} onClick={() => onNavigate(link)} className={`flex gap-3 items-center cursor-pointer p-3 rounded-lg transition-all ${isActive ? 'bg-accent text-primary font-medium' : 'hover:bg-accent hover:text-primary hover:font-medium'}`}>
+									<div key={name + index} onClick={() => onNavigate(link)} className={`flex gap-3 items-center cursor-pointer p-3 rounded-lg transition-all ${isActive ? 'bg-accent text-primary font-medium' : 'hover:bg-accent hover:text-primary hover:font-medium'}`}>
 										<Image source={icon} style={{ width: 24, height: 24 }} resizeMode="contain" />
 										<WebNavLink color="primary">{title}</WebNavLink>
 									</div>
@@ -162,10 +162,10 @@ export default function BroadcastWeb() {
 							{step === 1 && (
 								<>
 									<div className="grid grid-cols-4 gap-4 mb-8">
-										{RECIPIENT_TYPES.map((type) => {
+										{RECIPIENT_TYPES.map((type, index) => {
 											const isActive = recipientType === type.value;
 											return (
-												<div key={type.value} onClick={() => setRecipientType(type.value as RecipientType)} className={`border rounded-xl p-6 cursor-pointer transition-all ${isActive ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-primary'}`}>
+												<div key={type.value + index} onClick={() => setRecipientType(type.value as RecipientType)} className={`border rounded-xl p-6 cursor-pointer transition-all ${isActive ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-primary'}`}>
 													<div className="flex items-center gap-3 mb-3">
 														<p className="text-primary font-semibold capitalize">{type.name}</p>
 														{isActive && <Image source={icons.checkIcon} style={{ width: 20, height: 20 }} resizeMode="contain" />}
@@ -225,10 +225,10 @@ export default function BroadcastWeb() {
 												Set Priority Level:
 											</label>
 											<div className="flex flex-row flex-wrap gap-2 text-sm mt-1">
-												{PRIORITY_LEVELS.map((p) => {
+												{PRIORITY_LEVELS.map((p, index) => {
 													const active = priority === p.value;
 													return (
-														<div key={p.value} className={`flex flex-row items-center px-4 py-2 rounded-md bg-light-grey ${active && 'bg-[#e6f4ef] border border-[#cfe7db]'} gap-3 cursor-pointer`} onClick={() => setPriority(p.value as PriorityType)}>
+														<div key={p.value + index} className={`flex flex-row items-center px-4 py-2 rounded-md bg-light-grey ${active && 'bg-[#e6f4ef] border border-[#cfe7db]'} gap-3 cursor-pointer`} onClick={() => setPriority(p.value as PriorityType)}>
 															<p className="text-primary capitalize">{p.name}</p>
 															{active && <Image source={icons.checkIcon} style={{ width: 20, height: 20 }} resizeMode="contain" />}
 														</div>
@@ -242,10 +242,10 @@ export default function BroadcastWeb() {
 												Set Duration of Broadcast:
 											</label>
 											<div className="flex flex-row flex-wrap gap-2 text-sm mt-1">
-												{DURATIONS.map((d) => {
+												{DURATIONS.map((d, index) => {
 													const active = duration === d.value;
 													return (
-														<div key={d.value} className={`flex flex-row items-center px-4 py-2 rounded-md bg-light-grey ${active && 'bg-[#e6f4ef] border border-[#cfe7db]'} gap-3 cursor-pointer`} onClick={() => setDuration(d.value as DurationType)}>
+														<div key={d.value + index} className={`flex flex-row items-center px-4 py-2 rounded-md bg-light-grey ${active && 'bg-[#e6f4ef] border border-[#cfe7db]'} gap-3 cursor-pointer`} onClick={() => setDuration(d.value as DurationType)}>
 															<p className="text-primary capitalize">{d.name}</p>
 															{active && <Image source={icons.checkIcon} style={{ width: 20, height: 20 }} resizeMode="contain" />}
 														</div>

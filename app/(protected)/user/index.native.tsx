@@ -1,4 +1,5 @@
 import { Stack, router } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
 import CountdownRing from '@/src/components/common/CountdownRing';
 import { View, Text, FlatList, Pressable, Animated, Platform } from 'react-native';
 import UserIcon from '@/src/components/mobile/UserIcon';
@@ -8,29 +9,62 @@ import { Codes } from '@/src/types/codes';
 import { getAllCodes } from '@/src/lib/api/codes';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { sharedStyles } from '@/src/theme/styles';
+import { isDataEqual } from '@/src/lib/helpers';
 
 export default function HomeMobile({}) {
 	const bounceValue = useRef(new Animated.Value(0)).current;
 	const [refreshing, setRefreshing] = useState(true);
 	const [codes, setCodes] = useState<Codes[]>([]);
+	const navigation = useNavigation();
+	const codesRef = useRef<Codes[]>(codes);
 
-	const fetchCodes = async () => {
-		setRefreshing(true);
+	// Keep ref in sync with state
+	useEffect(() => {
+		codesRef.current = codes;
+	}, [codes]);
+
+	const fetchCodes = async (showLoading = true) => {
+		if (showLoading) setRefreshing(true);
 		try {
 			const result = await getAllCodes(useUserStore.getState().user_id);
-			setCodes(result.items.filter((code) => !code.is_expired));
+			const newCodes = result.items.filter((code) => !code.is_expired);
+			if (!isDataEqual(newCodes, codesRef.current)) {
+				setCodes(newCodes);
+			}
 		} catch (error) {
 			console.log('Failed to fetch codes:', error);
 		} finally {
-			setRefreshing(false);
+			if (showLoading) setRefreshing(false);
 		}
 	};
 
 	const filteredCodes = codes;
 
+	// Fetch data when component mounts
 	useEffect(() => {
-		fetchCodes();
+		fetchCodes(true);
 	}, []);
+
+	// Fetch data when screen comes into focus
+	useEffect(() => {
+		const unsubscribe = navigation.addListener('focus', () => {
+			fetchCodes(false);
+		});
+		return unsubscribe;
+	}, [navigation]);
+
+	// Polling: Fetch data every 30 seconds when the screen is focused
+	useEffect(() => {
+		const unsubscribe = navigation.addListener('focus', () => {
+			const intervalId = setInterval(() => {
+				fetchCodes(false);
+			}, 30000); // 30 seconds
+
+			return () => clearInterval(intervalId);
+		});
+
+		return unsubscribe;
+	}, [navigation]);
 
 	useEffect(() => {
 		const anim = Animated.loop(

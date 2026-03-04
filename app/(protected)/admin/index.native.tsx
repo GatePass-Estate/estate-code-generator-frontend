@@ -1,49 +1,70 @@
 import { View, Text, ScrollView, TouchableOpacity, Image, FlatList, RefreshControl } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { useAuth } from '@/src/hooks/useAuthContext';
 import { Stack, useRouter } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
 import { getAllEstateUsers } from '@/src/lib/api/user';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AllUsers } from '@/src/types/user';
 import { sharedStyles } from '@/src/theme/styles';
 import UserIcon from '@/src/components/mobile/UserIcon';
 import icons from '@/src/constants/icons';
-import { getRoleIcon, getRoleIconHeight, getRoleIconWidth } from '@/src/lib/helpers';
+import { getRoleIcon, getRoleIconHeight, getRoleIconWidth, isDataEqual } from '@/src/lib/helpers';
 
 export default function AdminUsersMobilePage() {
-	const { signOut } = useAuth();
-	const [users, setUsers] = useState<AllUsers>({ total: 0, page: 1, limit: 10, items: [] });
+	const [users, setUsers] = useState<AllUsers>({ total: 0, page: 1, limit: 30, items: [] });
 	const [refreshing, setRefreshing] = useState(false);
 	const router = useRouter();
+	const navigation = useNavigation();
+	const usersRef = useRef<AllUsers>(users);
 
-	const handleRefresh = async () => {
-		setRefreshing(true);
+	useEffect(() => {
+		usersRef.current = users;
+	}, [users]);
+
+	const fetchUsers = async (showLoading = false) => {
+		if (showLoading) setRefreshing(true);
 		try {
 			const data = await getAllEstateUsers();
-			setUsers(data);
+			if (!isDataEqual(data, usersRef.current)) {
+				setUsers(data);
+			}
 		} catch (error) {
-			console.log('Error refreshing users:', error);
+			console.log('Error fetching users:', error);
 		} finally {
-			setRefreshing(false);
+			if (showLoading) setRefreshing(false);
 		}
 	};
 
-	useEffect(() => {
-		const getAllEstateUsersData = async () => {
-			try {
-				const data = await getAllEstateUsers();
-				setUsers(data);
-			} catch (error) {
-				console.log('Error fetching users:', error);
-			}
-		};
+	const handleRefresh = async () => {
+		await fetchUsers(true);
+	};
 
-		getAllEstateUsersData();
+	useEffect(() => {
+		fetchUsers();
 	}, []);
 
-	const securityPersonnelCount = users.items.filter((user) => user.role === 'security').length;
+	useEffect(() => {
+		const unsubscribe = navigation.addListener('focus', () => {
+			fetchUsers();
+		});
+		return unsubscribe;
+	}, [navigation]);
 
-	const residentsCount = users.items.filter((user) => user.role === 'resident').length;
+	useEffect(() => {
+		const unsubscribe = navigation.addListener('focus', () => {
+			const intervalId = setInterval(() => {
+				fetchUsers(false);
+			}, 30000);
+
+			return () => clearInterval(intervalId);
+		});
+
+		return unsubscribe;
+	}, [navigation]);
+
+	const securityPersonnelCount = users?.role_summary?.security || users.items.filter((user) => user.role === 'security').length;
+
+	const residentsCount = users?.role_summary?.resident || users.items.filter((user) => user.role === 'resident').length;
 
 	const limitedUsers = users.items.slice(0, 4);
 
@@ -74,7 +95,7 @@ export default function AdminUsersMobilePage() {
 					<View className="flex-1 border border-teal rounded-2xl p-4 py-7 bg-teal/10 flex-row gap-5 items-center">
 						<Image source={icons.securityIcon} style={{ width: 45, height: 55 }} />
 						<View className="flex-col justify-center">
-							<Text className="text-teal font-inter-medium">Security p...</Text>
+							<Text className="text-teal font-inter-medium">Security P...</Text>
 							<Text className="text-teal text-5xl font-ubuntu-bold">{securityPersonnelCount}</Text>
 						</View>
 					</View>

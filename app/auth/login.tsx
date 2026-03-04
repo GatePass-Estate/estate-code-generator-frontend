@@ -9,7 +9,7 @@ import { useAuth } from '@/src/hooks/useAuthContext';
 import { useRouter } from 'expo-router';
 import { fetchMe, loginUser } from '@/src/lib/api/auth';
 import { useAuthStore } from '@/src/lib/stores/authStore';
-import { storeAuthState } from '@/src/lib/helpers';
+import { broadcastLogin, storeAuthState } from '@/src/lib/helpers';
 import Images from '@/src/constants/images';
 import { cn } from '@/src/lib/cn';
 import icons from '@/src/constants/icons';
@@ -72,6 +72,9 @@ export default function Login() {
 			const result = await loginUser(emailValue, password);
 			useAuthStore.setState({ access_token: result.access_token, role: result.role });
 			await storeAuthState(result);
+
+			// Broadcast login to other tabs (web only)
+			broadcastLogin(result.access_token, result.role);
 
 			signIn(await fetchMe(result.access_token));
 
@@ -142,7 +145,16 @@ export default function Login() {
 					<View>
 						<Text className={`pb-1 text-grey ${isLargeScreen ? 'text-base' : ''}`}>Password</Text>
 						<View className="relative">
-							<TextInput placeholder="Enter your password..." secureTextEntry={!showPassword} value={password} onChangeText={setPassword} editable={!isLoading} className="bg-[#F7F9F9] border border-[#D1D5DB] rounded-lg px-4 py-5 mt-1 pr-12" />
+							<TextInput 
+								placeholder="Enter your password..." 
+								secureTextEntry={!showPassword} 
+								value={password} 
+								onChangeText={setPassword} 
+								editable={!isLoading} 
+								className="bg-[#F7F9F9] border border-[#D1D5DB] rounded-lg px-4 py-5 mt-1 pr-12"
+								contextMenuHidden={true}
+								selectTextOnFocus={false}
+							/>
 							<Pressable onPress={() => setShowPassword(!showPassword)} className="absolute right-3 top-6" disabled={isLoading}>
 								<Image source={showPassword ? icons.eye : icons.hiddenEye} style={{ width: 20, height: 20 }} resizeMode="contain" />
 							</Pressable>

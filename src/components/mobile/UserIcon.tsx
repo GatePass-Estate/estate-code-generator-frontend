@@ -1,7 +1,9 @@
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { useRouter } from 'expo-router';
-import { View, Text, Pressable, Modal } from 'react-native';
+import { View, Text, Pressable, Modal, Image } from 'react-native';
 import { useState, useRef } from 'react';
+import { useAuth } from '@/src/hooks/useAuthContext';
+import icons from '@/src/constants/icons';
 
 export default function UserIcon({ type = 'admin' }: { type?: string }) {
 	const first_name = useUserStore((state) => state.first_name);
@@ -10,8 +12,10 @@ export default function UserIcon({ type = 'admin' }: { type?: string }) {
 	const router = useRouter();
 	const [showDropdown, setShowDropdown] = useState(false);
 	const buttonRef = useRef<View>(null);
+	const { signOut } = useAuth();
 
 	const initials = `${first_name?.charAt(0) ?? ''}${last_name?.charAt(0) ?? ''}`;
+
 	const isAdmin = ['admin', 'primary_admin'].includes(role!);
 
 	const handleNavigation = (path: string) => {
@@ -23,46 +27,46 @@ export default function UserIcon({ type = 'admin' }: { type?: string }) {
 		}
 	};
 
-	const handleIconPress = () => {
-		if (isAdmin) {
-			setShowDropdown(true);
-		} else {
-			handleNavigation('/profile');
-		}
-	};
+	const handleIconPress = () => setShowDropdown(true);
 
 	return (
 		<>
 			<View ref={buttonRef} className="mr-5">
 				<Pressable onPress={handleIconPress} className="flex-row items-center gap-2">
 					<View className="w-9 h-9 rounded-full border border-teal justify-center items-center">
-						<Text className="uppercase text-teal font-light font-ubuntu text-2xl">{initials}</Text>
+						<Text className="uppercase text-teal font-light font-ubuntu text-xl">{initials}</Text>
 					</View>
-					{/* {isAdmin && <Image source={icons.downChevron} style={styles.dropdownIcon} />} */}
 				</Pressable>
 			</View>
 
-			{isAdmin && (
-				<Modal visible={showDropdown} transparent={true} animationType="fade" onRequestClose={() => setShowDropdown(false)}>
-					<Pressable className="flex-1 bg-black/50 justify-start pt-15 pr-5" onPress={() => setShowDropdown(false)}>
-						<View className="self-end bg-white rounded-lg border border-teal shadow-md top-14" style={{ minWidth: 120 }}>
-							<Pressable className="py-3 px-4 border-b border-gray-200" onPress={() => handleNavigation('/profile')}>
-								<Text className="text-sm text-teal font-inter-medium">Profile</Text>
-							</Pressable>
+			<Modal visible={showDropdown} transparent={true} animationType="fade" onRequestClose={() => setShowDropdown(false)}>
+				<Pressable className="flex-1 bg-primary/20 justify-start pt-15 pr-5" onPress={() => setShowDropdown(false)}>
+					<View className="self-end bg-white rounded-3xl border border-accent shadow-md top-16 p-2 py-3 w-60" style={{ minWidth: 120 }}>
+						<Pressable className="py-3 px-4 flex gap-2 flex-row" onPress={() => handleNavigation('/profile')}>
+							<Image source={icons.activeProfileIcon} style={{ width: 18, height: 18 }} />
+							<Text className="text-primary font-inter-medium">Profile</Text>
+						</Pressable>
 
-							{type === 'admin' ? (
-								<Pressable className="py-3 px-4" onPress={() => handleNavigation('/admin')}>
-									<Text className="text-sm text-teal font-inter-medium">Admin</Text>
+						{isAdmin &&
+							(type === 'admin' ? (
+								<Pressable className="py-3 px-4 flex gap-2 flex-row bg-accent rounded-2xl" onPress={() => handleNavigation('/admin')}>
+									<Image source={icons.activeAdminIcon} style={{ width: 14, height: 18 }} />
+									<Text className="text-primary font-inter-medium">Admin</Text>
 								</Pressable>
 							) : (
-								<Pressable className="py-3 px-4" onPress={() => handleNavigation('/user')}>
-									<Text className="text-sm text-teal font-inter-medium">Home</Text>
+								<Pressable className="py-3 px-4 flex gap-2 flex-row bg-accent rounded-2xl" onPress={() => handleNavigation('/user')}>
+									<Image source={icons.homeDropdown} style={{ width: 18, height: 18 }} />
+									<Text className="text-primary font-inter-medium">Home</Text>
 								</Pressable>
-							)}
-						</View>
-					</Pressable>
-				</Modal>
-			)}
+							))}
+
+						<Pressable className="py-3 px-4 flex gap-2 flex-row border-t border-gray-200 pt-4 mt-1" onPress={signOut}>
+							<Image source={icons.logoutDropdown} style={{ width: 18, height: 18 }} />
+							<Text className="text-primary font-inter-medium">Logout</Text>
+						</Pressable>
+					</View>
+				</Pressable>
+			</Modal>
 		</>
 	);
 }

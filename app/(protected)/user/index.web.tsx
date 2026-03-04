@@ -2,9 +2,9 @@ import AccessCodeCard from '@/src/components/web/AccessCodeCard';
 import WebSidebar from '@/src/components/web/WebSidebar';
 import icons from '@/src/constants/icons';
 import { useRouter } from 'expo-router';
-import { Image, Platform } from 'react-native';
+import { Image, Platform, useWindowDimensions } from 'react-native';
 import { menuRoutes } from './_layout';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Modal from '@/src/components/web/Modal';
 import { Guest } from '@/src/types/guests';
 import { deleteMyGuest, getMyGuests } from '@/src/lib/api/guests';
@@ -14,7 +14,7 @@ import { Codes } from '@/src/types/codes';
 import { GenderType, RelationshipType } from '@/src/types/general';
 import { Pagination } from '@/src/components/web/Pagination';
 import images from '@/src/constants/images';
-import { timeCalc } from '@/src/lib/helpers';
+import { isDataEqual, timeCalc } from '@/src/lib/helpers';
 
 const CODES_PAGE_SIZE = 3;
 const GUESTS_PAGE_SIZE = 6;
@@ -35,6 +35,18 @@ export default function HomeWeb() {
 	const [running, setRunning] = useState<boolean>(false);
 	const [error, setError] = useState('');
 	const [generatingGuestId, setGeneratingGuestId] = useState<string | null>(null);
+	const guestsRef = useRef<Guest[]>(guests);
+	const codesRef = useRef<Codes[]>(codes);
+	const { width } = useWindowDimensions();
+
+	// Keep refs in sync with state
+	useEffect(() => {
+		guestsRef.current = guests;
+	}, [guests]);
+
+	useEffect(() => {
+		codesRef.current = codes;
+	}, [codes]);
 
 	const filteredGuests = guests.filter((guest) => guest.guest_name.toLowerCase().includes(searchQuery.toLowerCase()) || guest.relationship?.toLowerCase().includes(searchQuery.toLowerCase()));
 
@@ -43,29 +55,36 @@ export default function HomeWeb() {
 
 	const codesPaginated = codes.slice((codesPage - 1) * CODES_PAGE_SIZE, codesPage * CODES_PAGE_SIZE);
 
-	const fetchGuests = async (page: number = 1) => {
-		setLoading(true);
+	const fetchGuests = async (page: number = 1, showLoading = true) => {
+		if (showLoading) setLoading(true);
 		try {
 			const result = await getMyGuests(page, GUESTS_PAGE_SIZE);
-			setGuests(result.items);
-			setGuestsTotalCount(result.total);
-			setGuestsPage(page);
+			// Only update state if data has changed
+			if (!isDataEqual(result.items, guestsRef.current)) {
+				setGuests(result.items);
+				setGuestsTotalCount(result.total);
+				setGuestsPage(page);
+			}
 		} catch (error) {
 			console.error('Failed to fetch guests:', error);
 		} finally {
-			setLoading(false);
+			if (showLoading) setLoading(false);
 		}
 	};
 
-	const fetchCodes = async () => {
-		setLoading(true);
+	const fetchCodes = async (showLoading = true) => {
+		if (showLoading) setLoading(true);
 		try {
 			const result = await getAllCodes(useUserStore.getState().user_id);
-			setCodes(result.items.filter((code) => !code.is_expired));
+			const newCodes = result.items.filter((code) => !code.is_expired);
+			// Only update state if data has changed
+			if (!isDataEqual(newCodes, codesRef.current)) {
+				setCodes(newCodes);
+			}
 		} catch (error) {
 			console.error('Failed to fetch codes:', error);
 		} finally {
-			setLoading(false);
+			if (showLoading) setLoading(false);
 		}
 	};
 
@@ -137,6 +156,16 @@ export default function HomeWeb() {
 		fetchCodes();
 		if (Platform.OS === 'web') document.title = 'Home - GatePass';
 	}, []);
+
+	// Polling: Fetch data every 30 seconds (without loading indicator)
+	useEffect(() => {
+		const intervalId = setInterval(() => {
+			fetchGuests(guestsPage, false);
+			fetchCodes(false);
+		}, 30000); // 30 seconds
+
+		return () => clearInterval(intervalId);
+	}, [guestsPage]);
 
 	useEffect(() => {
 		if (codesPage > codesTotalPages) setCodesPage(codesTotalPages);
@@ -211,7 +240,7 @@ export default function HomeWeb() {
 
 									return (
 										<AccessCodeCard
-											key={code.hashed_code}
+											key={code.hashed_code + i}
 											code={code.hashed_code}
 											estate_id={code.estate_id}
 											details={{

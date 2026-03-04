@@ -8,31 +8,7 @@ import { useUserStore } from '@/src/lib/stores/userStore';
 import { updatepassword } from '@/src/lib/api/user';
 import { generateCode, getMyCode } from '@/src/lib/api/codes';
 import { formatDateWithOrdinal } from '@/src/lib/helpers';
-
-interface WebPasswordInputProps {
-	label: string;
-	placeholder: string;
-	value: string;
-	onChange: (value: string) => void;
-	show: boolean;
-	onToggle: () => void;
-	disabled?: boolean;
-	inputRef?: React.Ref<HTMLInputElement | null>;
-}
-
-const WebPasswordInput = ({ label, placeholder, value, onChange, show, onToggle, disabled, inputRef }: WebPasswordInputProps) => {
-	return (
-		<div className="flex flex-col gap-2">
-			<label className="input-label-web">{label}</label>
-			<div className="relative">
-				<input type={show ? 'text' : 'password'} placeholder={placeholder} className="input-style-web w-full pr-12" value={value} onChange={(e) => onChange(e.target.value)} disabled={disabled} ref={inputRef as React.Ref<HTMLInputElement | null>} />
-				<Pressable onPress={onToggle} className="absolute right-5 top-1/2 -translate-y-1/2" disabled={disabled}>
-					<Image source={show ? icons.eye : icons.hiddenEye} style={{ width: 20, height: 20 }} resizeMode="contain" />
-				</Pressable>
-			</div>
-		</div>
-	);
-};
+import UpdatePassword from '@/src/components/web/UpdatePassword';
 
 export default function MyProfile() {
 	const router = useRouter();
@@ -90,19 +66,19 @@ export default function MyProfile() {
 		const confirmValue = confirmPasswordRef.current?.value || '';
 
 		if (password.newPassword !== confirmValue) {
-			setError('New Password and Confirm Password do not match');
+			setError('The new password and the confirm password do not match');
 			setSavingPassword(false);
 			return;
 		}
 
 		if (password.newPassword.length < 8 || password.currentPassword.length < 8) {
-			setError('Password must be at least 8 characters long');
+			setError('The password must be at least 8 characters long');
 			setSavingPassword(false);
 			return;
 		}
 
 		if (password.newPassword === password.currentPassword) {
-			setError('New Password cannot be the same as Current Password');
+			setError('The new password cannot be the same as the current password');
 			setSavingPassword(false);
 			return;
 		}
@@ -218,8 +194,8 @@ export default function MyProfile() {
 										label: 'Phone Number',
 										value: useUserStore.getState().phone_number,
 									},
-								].map((item) => (
-									<div key={item.label} className="flex gap-3 items-center">
+								].map((item, index) => (
+									<div key={item.label + index} className="flex gap-3 items-center">
 										<span className="input-label-web w-36">{item.label} :</span>
 										<span>{item.value}</span>
 									</div>
@@ -235,67 +211,23 @@ export default function MyProfile() {
 			</div>
 
 			{showUpdatePassword && (
-				<div className="fixed inset-0 z-50 flex items-center justify-center">
-					<div className="absolute inset-0 bg-primary opacity-80" onClick={() => setShowUpdatePassword(false)} />
-					<div className="bg-white rounded-lg p-8 py-16 pt-32 z-10 min-w-[450px] relative">
-						<div className="cursor-pointer absolute right-6 -mt-16" onClick={() => setShowUpdatePassword(false)}>
-							<Image source={icons.cancel} style={{ width: 40, height: 40 }} resizeMode="contain" />
-						</div>
-
-						{error && <div className="text-danger font-medium my-4 p-3 bg-danger/20 rounded">{error}</div>}
-
-						{success && <div className="text-green-500 font-medium my-4 p-3 bg-green-500/20 rounded">{success}</div>}
-
-						<h4 className="text-4xl font-UbuntuSans font-normal mb-2 text-black text-center">New Password</h4>
-
-						<div className="flex flex-col gap-8 my-10">
-							<WebPasswordInput
-								label="Current Password"
-								placeholder="Enter current password"
-								value={password.currentPassword}
-								onChange={(v) => {
-									setError('');
-									setPassword((p) => ({ ...p, currentPassword: v }));
-								}}
-								show={showCurrent}
-								onToggle={() => setShowCurrent(!showCurrent)}
-								disabled={savingPassword}
-							/>
-
-							<WebPasswordInput
-								label="Create New Password"
-								placeholder="Enter new password"
-								value={password.newPassword}
-								onChange={(v) => {
-									setError('');
-									setPassword((p) => ({ ...p, newPassword: v }));
-								}}
-								show={showNew}
-								onToggle={() => setShowNew(!showNew)}
-								disabled={savingPassword}
-							/>
-
-							<WebPasswordInput
-								label="Confirm new password"
-								placeholder="Confirm new password"
-								value={confirmPasswordRef.current?.value || ''}
-								onChange={(v) => {
-									if (confirmPasswordRef.current) confirmPasswordRef.current.value = v;
-								}}
-								show={showConfirm}
-								onToggle={() => setShowConfirm(!showConfirm)}
-								disabled={savingPassword}
-								inputRef={confirmPasswordRef}
-							/>
-						</div>
-
-						<div className="flex justify-center gap-3">
-							<button className={`full-btn !px-16 ${savingPassword && 'opacity-65'}`} onClick={setNewPassword} disabled={savingPassword}>
-								{savingPassword ? 'Saving...' : 'Save Password'}
-							</button>
-						</div>
-					</div>
-				</div>
+				<UpdatePassword
+					setShowUpdatePassword={setShowUpdatePassword}
+					error={error}
+					success={success}
+					savingPassword={savingPassword}
+					setPassword={setPassword}
+					password={password}
+					showCurrent={showCurrent}
+					showNew={showNew}
+					showConfirm={showConfirm}
+					confirmPasswordRef={confirmPasswordRef}
+					setError={setError}
+					setShowCurrent={setShowCurrent}
+					setShowNew={setShowNew}
+					setShowConfirm={setShowConfirm}
+					setNewPassword={setNewPassword}
+				/>
 			)}
 		</div>
 	);

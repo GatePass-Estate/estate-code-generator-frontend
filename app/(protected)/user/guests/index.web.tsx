@@ -17,8 +17,8 @@ const MyGuest = ({ searchQuery, guests, loading, deleting, fetchGuests, deleteGu
 				<div>Loading...</div>
 			) : (
 				<div className="grid gap-4">
-					{filteredGuests.map((guest) => (
-						<div key={guest.id} className="border p-4 rounded flex justify-between items-center">
+					{filteredGuests.map((guest, index) => (
+						<div key={guest.id + index} className="border p-4 rounded flex justify-between items-center">
 							<div>
 								<h3 className="font-bold">{guest.guest_name}</h3>
 								<p className="text-gray-600">{guest.relationship}</p>

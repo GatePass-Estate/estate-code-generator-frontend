@@ -7,12 +7,15 @@ import { SingleDetail } from '@/src/components/mobile/SIngleDetail';
 import Back from '@/src/components/mobile/Back';
 import { sharedStyles } from '@/src/theme/styles';
 import icons from '@/src/constants/icons';
+import { deleteCode } from '@/src/lib/api/codes';
+import { useState } from 'react';
 
 export default function InvitePage() {
 	let { name, code, date, timeframe, address } = useLocalSearchParams();
+	const [cancelText, setCancelText] = useState('Cancel Invite');
 	const navigation = useNavigation();
 
-	code = Array.isArray(code) ? code.join(' ') : code ?? '';
+	code = Array.isArray(code) ? code.join(' ') : (code ?? '');
 
 	const copyToClipboard = async () => {
 		await Clipboard.setStringAsync(code);
@@ -25,6 +28,17 @@ export default function InvitePage() {
 			});
 		} catch (error) {
 			Alert.alert('Failed to share');
+		}
+	};
+
+	const performRemoveCode = async (code: string) => {
+		try {
+			setCancelText('Removing...');
+			await deleteCode(code);
+		} catch (error) {
+			console.error('Remove code failed:', error);
+		} finally {
+			navigation.goBack();
 		}
 	};
 
@@ -64,8 +78,8 @@ export default function InvitePage() {
 					<Text className="text-white text-[16px] font-semibold"> {'Share Invite'} </Text>
 				</TouchableOpacity>
 
-				<TouchableOpacity onPress={() => navigation.goBack()}>
-					<Text className="text-primary text-[17px] font-ubuntu-medium">Cancel Invite </Text>
+				<TouchableOpacity onPress={() => performRemoveCode(code)}>
+					<Text className="text-primary text-[17px] font-ubuntu-medium">{cancelText}</Text>
 				</TouchableOpacity>
 			</View>
 		</SafeAreaView>

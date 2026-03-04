@@ -233,11 +233,11 @@ export default function EditRequestsWeb() {
 
 					<div className="grid grid-cols-4 gap-9 md:grid-cols-12 mb-10">
 						<div className="flex flex-col gap-5 w-full col-span-2">
-							{adminRoutes.map(({ name, title, link, icon }) => {
+							{adminRoutes.map(({ name, title, link, icon }, index) => {
 								const isActive = pathname === link;
 
 								return (
-									<div key={name} onClick={() => onNavigate(link)} className={`flex gap-3 items-center cursor-pointer p-3 rounded-lg transition-all ${isActive ? 'bg-accent text-primary font-medium' : 'hover:bg-accent hover:text-primary hover:font-medium'}`}>
+									<div key={name + index} onClick={() => onNavigate(link)} className={`flex gap-3 items-center cursor-pointer p-3 rounded-lg transition-all ${isActive ? 'bg-accent text-primary font-medium' : 'hover:bg-accent hover:text-primary hover:font-medium'}`}>
 										<Image source={icon} style={{ width: 24, height: 24 }} resizeMode="contain" />
 										<WebNavLink color="primary">{title}</WebNavLink>
 									</div>
@@ -273,7 +273,7 @@ export default function EditRequestsWeb() {
 											</thead>
 											<tbody>
 												{editRequests.map((request, index) => (
-													<tr key={request.id} className={`border-b border-gray-100 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-gray-50 transition`}>
+													<tr key={request.id + index} className={`border-b border-gray-100 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-gray-50 transition`}>
 														<td className="py-4 px-4">
 															<input type="checkbox" checked={request.selected} onChange={() => toggleSelection(request.id)} className="w-5 h-5 cursor-pointer" />
 														</td>

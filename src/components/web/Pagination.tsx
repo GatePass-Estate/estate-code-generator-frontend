@@ -9,9 +9,9 @@ export const Pagination = ({ currentPage, totalPages, onPageChange, condition }:
 				</svg>
 			</button>
 
-			{Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+			{Array.from({ length: totalPages }, (_, i) => i + 1).map((page, index) => (
 				<button
-					key={page}
+					key={page + index}
 					onClick={() => onPageChange(page)}
 					disabled={condition}
 					className={`flex items-center justify-center w-10 h-10 rounded-lg border ${page === currentPage ? 'border-primary bg-primary text-white' : 'border-gray-300 bg-white hover:bg-gray-50'} disabled:opacity-50 disabled:cursor-not-allowed`}

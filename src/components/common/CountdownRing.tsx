@@ -44,7 +44,7 @@ export default function CountdownRing({ size = 90, strokeWidth = 7, expiresAt, o
 	useEffect(() => {
 		update();
 
-		const interval = setInterval(update, 1000); // update every second
+		const interval = setInterval(update, 1000);
 
 		const sub = AppState.addEventListener('change', (state) => {
 			if (state === 'active') update();
@@ -54,9 +54,9 @@ export default function CountdownRing({ size = 90, strokeWidth = 7, expiresAt, o
 			clearInterval(interval);
 			sub.remove();
 		};
-	}, []); //
+	}, [expiresAt]);
 
-	const mins = Math.ceil(remainingSeconds / 60);
+	const mins = Math.ceil(remainingSeconds / 60) - 1;
 
 	/** fire once when countdown reaches zero */
 	const firedRef = useRef(false);
