@@ -8,6 +8,8 @@ import logo from '../assets/gatepass_ng_Gp.png';
 import logoutIcon from '../assets/images/logout.png';
 // @ts-ignore
 import securityBg from '../assets/images/security-bg.png';
+// @ts-ignore
+import brokenCard from '../assets/images/broken-card.png';
 
 const images = {
 	loginImage,
@@ -15,6 +17,7 @@ const images = {
 	logo,
 	logoutIcon,
 	securityBg,
+	brokenCard,
 };
 
 export default images;

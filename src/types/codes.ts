@@ -1,5 +1,7 @@
 import { GenderType } from './general';
 
+export type ReceiverType = 'visitor' | 'resident';
+
 export type Codes = {
 	user_id: string;
 	estate_id: string | null;
@@ -10,6 +12,7 @@ export type Codes = {
 	estate_name: string | null;
 	valid_until: string;
 	is_expired: boolean;
+	receiver: ReceiverType;
 };
 
 export type CodesApiResponse = {

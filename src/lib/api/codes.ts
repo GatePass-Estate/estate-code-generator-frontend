@@ -6,7 +6,7 @@ import { GenderType, RelationshipType } from '@/src/types/general';
 export async function getAllCodes(id: string): Promise<CodesApiResponse> {
 	try {
 		const api = Api('code');
-		const axiosRes = await api.get(`/codeservice/all/${id}?receiver=visitor`);
+		const axiosRes = await api.get(`/codeservice/all/${id}`);
 		const data = axiosRes.data;
 
 		return data;
@@ -18,7 +18,7 @@ export async function getAllCodes(id: string): Promise<CodesApiResponse> {
 export async function getMyCode(id: string): Promise<Codes> {
 	try {
 		const api = Api('code');
-		const axiosRes = await api.get(`/codeservice/all/${id}?receiver=resident`);
+		const axiosRes = await api.get(`/codeservice/all/${id}`);
 		const data = axiosRes.data;
 
 		return data;
@@ -30,7 +30,7 @@ export async function getMyCode(id: string): Promise<Codes> {
 export async function validateCode(code: string): Promise<Codes> {
 	try {
 		const api = Api('code');
-		const axiosRes = await api.get(`/codeservice/${code}?receiver=visitor`);
+		const axiosRes = await api.get(`/codeservice/${code}`);
 		const data = axiosRes.data;
 
 		return data;

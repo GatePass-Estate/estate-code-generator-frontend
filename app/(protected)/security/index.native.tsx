@@ -87,8 +87,6 @@ export default function SecurityVerificationMobile() {
 			const result = await validateCode(entered);
 			const resident = await getUserById(result.user_id);
 
-			setCode(['', '', '', '', '', '']);
-
 			router.push({
 				pathname: '/security/result',
 				params: {
@@ -100,11 +98,20 @@ export default function SecurityVerificationMobile() {
 					resident_email: resident?.email,
 					resident_phone_number: resident?.phone_number,
 					code: result.hashed_code,
+					receiver: result.receiver,
 				},
 			});
 		} catch (err: any) {
-			setErrorMessage(err.message ?? 'Invalid Code');
+			router.push({
+				pathname: '/security/result',
+				params: {
+					isError: 'true',
+					error: err.message ?? 'Invalid Code',
+					code: entered,
+				},
+			});
 		} finally {
+			setCode(['', '', '', '', '', '']);
 			setIsSubmitting(false);
 		}
 	};
