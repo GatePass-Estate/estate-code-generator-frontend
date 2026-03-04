@@ -1,8 +1,6 @@
 import { Platform } from 'react-native';
-import SingleUserMobile from './index.native';
-import SingleUserWeb from './index.web';
+import SingleUserMobile from './native';
 
 export default Platform.select({
-	web: SingleUserWeb,
 	default: SingleUserMobile,
 });
