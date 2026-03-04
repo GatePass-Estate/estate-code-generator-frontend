@@ -1,8 +1,15 @@
-import { Platform } from 'react-native';
-import AddUsersMobile from './index.native';
-import AddUsersWeb from './index.web';
+import { Platform, useWindowDimensions } from 'react-native';
+import RegisterUser from './native';
+import RegisterUserWeb from './web';
 
-export default Platform.select({
-	web: AddUsersWeb,
-	default: AddUsersMobile,
-});
+export default function Add() {
+	const Component = Platform.select({
+		web: () => <RegisterUserWeb />,
+		default: () => <RegisterUser />,
+	});
+
+	const { width } = useWindowDimensions();
+	const isLargeScreen = width > 768;
+
+	return isLargeScreen ? <Component /> : <RegisterUser />;
+}

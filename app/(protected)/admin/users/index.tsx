@@ -1,8 +1,15 @@
-import { Platform } from 'react-native';
-import AllUsersMobile from './index.native';
-import AllUsersWeb from './index.web';
+import { Platform, useWindowDimensions } from 'react-native';
+import AllUsersMobile from './native';
+import AllUsersWeb from './web';
 
-export default Platform.select({
-	web: AllUsersWeb,
-	default: AllUsersMobile,
-});
+export default function Users() {
+	const Component = Platform.select({
+		web: () => <AllUsersWeb />,
+		default: () => <AllUsersMobile />,
+	});
+
+	const { width } = useWindowDimensions();
+	const isLargeScreen = width > 768;
+
+	return isLargeScreen ? <Component /> : <AllUsersMobile />;
+}

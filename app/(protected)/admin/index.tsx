@@ -1,8 +1,15 @@
-import { Platform } from 'react-native';
-import adminMobile from './index.native';
-import adminWeb from './index.web';
+import { Platform, useWindowDimensions } from 'react-native';
+import AdminUsersMobilePage from './native';
+import AdminUsersPage from './web';
 
-export default Platform.select({
-	web: adminWeb,
-	default: adminMobile,
-});
+export default function Admin() {
+	const Component = Platform.select({
+		web: () => <AdminUsersPage />,
+		default: () => <AdminUsersMobilePage />,
+	});
+
+	const { width } = useWindowDimensions();
+	const isLargeScreen = width > 768;
+
+	return isLargeScreen ? <Component /> : <AdminUsersMobilePage />;
+}
