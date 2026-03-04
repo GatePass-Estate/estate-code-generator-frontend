@@ -10,6 +10,8 @@ import { getUserById, updatepassword } from '@/src/lib/api/user';
 import UpdatePassword from '@/src/components/web/UpdatePassword';
 
 function InviteDetailsModal({ result, setModalOpen }: { result: GuestDetails | null; setModalOpen: (open: boolean) => void }) {
+	console.log(result);
+
 	return (
 		<div className="fixed inset-0 z-[9999] flex items-center justify-center p-6" role="dialog" aria-modal="true" aria-label="Invite details">
 			<div className="absolute inset-0 bg-primary opacity-80" onClick={() => setModalOpen(false)} />
@@ -28,21 +30,25 @@ function InviteDetailsModal({ result, setModalOpen }: { result: GuestDetails | n
 						</div>
 					</div>
 
-					<h3 className="text-[14px] font-Inter font-normal mt-[18px] mb-3">Guest Details</h3>
-					<div className="bg-accent text-primary rounded-lg p-5 mb-6">
-						<div className="flex justify-between items-start py-2 px-1">
-							<div className="w-40 text-[14px]">Name :</div>
-							<div className="text-right text-[14px] capitalize">{result?.visitor_fullname}</div>
-						</div>
-						<div className="flex justify-between items-start py-2 px-1">
-							<div className="w-40 text-[14px]">Gender :</div>
-							<div className="text-right text-[14px] capitalize">{result?.gender == 'prefer_not_to_say' ? 'Prefer Not To Say' : result?.gender}</div>
-						</div>
-						<div className="flex justify-between items-start py-2 px-1">
-							<div className="w-40 text-[14px]">Relationship :</div>
-							<div className="text-right text-[14px] capitalize">{result?.relationship_with_resident}</div>
-						</div>
-					</div>
+					{result?.isResident == false && (
+						<>
+							<h3 className="text-[14px] font-Inter font-normal mt-[18px] mb-3">Guest Details</h3>
+							<div className="bg-accent text-primary rounded-lg p-5 mb-6">
+								<div className="flex justify-between items-start py-2 px-1">
+									<div className="w-40 text-[14px]">Name :</div>
+									<div className="text-right text-[14px] capitalize">{result?.visitor_fullname}</div>
+								</div>
+								<div className="flex justify-between items-start py-2 px-1">
+									<div className="w-40 text-[14px]">Gender :</div>
+									<div className="text-right text-[14px] capitalize">{result?.gender == 'prefer_not_to_say' ? 'Prefer Not To Say' : result?.gender}</div>
+								</div>
+								<div className="flex justify-between items-start py-2 px-1">
+									<div className="w-40 text-[14px]">Relationship :</div>
+									<div className="text-right text-[14px] capitalize">{result?.relationship_with_resident}</div>
+								</div>
+							</div>
+						</>
+					)}
 
 					<h3 className="text-[14px] font-Inter font-normal mt-[18px] mb-3">Resident Details</h3>
 					<div className="border-[0.5px] border-accent rounded-lg p-5 mb-3 bg-transparent">
@@ -136,7 +142,9 @@ function SearchCode({ setResult, setModalOpen }: { setResult: (data: GuestDetail
 				resident_email: resident?.email,
 				resident_phone_number: resident?.phone_number,
 				code: result.hashed_code,
+				isResident: result.receiver === 'resident',
 			} as GuestDetails);
+
 			setModalOpen(true);
 		} catch (err: any) {
 			setErrorMessage(err.message ?? 'Invalid Code');

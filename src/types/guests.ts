@@ -58,4 +58,5 @@ export type GuestDetails = {
 	resident_email: string;
 	resident_phone_number: string;
 	code: string;
+	isResident: boolean;
 };
