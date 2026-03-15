@@ -1,6 +1,6 @@
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { useRouter } from 'expo-router';
-import { View, Text, Pressable, Modal, Image } from 'react-native';
+import { View, Text, Pressable, Modal, Image, Platform } from 'react-native';
 import { useState, useRef } from 'react';
 import { useAuth } from '@/src/hooks/useAuthContext';
 import icons from '@/src/constants/icons';
@@ -13,6 +13,8 @@ export default function UserIcon({ type = 'admin' }: { type?: string }) {
 	const [showDropdown, setShowDropdown] = useState(false);
 	const buttonRef = useRef<View>(null);
 	const { signOut } = useAuth();
+
+	const isMobile = Platform.OS !== 'web';
 
 	const initials = `${first_name?.charAt(0) ?? ''}${last_name?.charAt(0) ?? ''}`;
 
@@ -31,9 +33,9 @@ export default function UserIcon({ type = 'admin' }: { type?: string }) {
 
 	return (
 		<>
-			<View ref={buttonRef} className="mr-5">
+			<View ref={buttonRef} className={`${isMobile && 'mr-5'}`}>
 				<Pressable onPress={handleIconPress} className="flex-row items-center gap-2">
-					<View className="w-9 h-9 rounded-full border border-teal justify-center items-center">
+					<View className={`${Platform.OS === 'web' ? 'w-12 h-12' : 'w-9 h-9'} rounded-full border border-teal justify-center items-center`}>
 						<Text className="uppercase text-teal font-light font-ubuntu text-xl">{initials}</Text>
 					</View>
 				</Pressable>

@@ -7,16 +7,17 @@ import { AllUsers } from '@/src/types/user';
 import { UserRolesType } from '@/src/types/general';
 import icons from '@/src/constants/icons';
 import { Pagination } from '@/src/components/web/Pagination';
-import { Image, Platform } from 'react-native';
-import { getRoleIcon, getRoleIconHeight, getRoleIconWidth, isDataEqual } from '@/src/lib/helpers';
+import { Image, Platform, useWindowDimensions } from 'react-native';
+import { getRoleIcon, getRoleIconHeight, getRoleIconWidth, getWidthBreakpoint, isDataEqual } from '@/src/lib/helpers';
 import { adminRoutes } from './_layout';
 import WebNavLink from '@/src/components/web/WebNavLink';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import Modal from '@/src/components/web/Modal';
+import AdminUsersMobilePage from './index.native';
 
 const USERS_PAGE_SIZE = 20;
 
-export default function AdminUsersPage() {
+function AdminUsersPageWeb() {
 	const [users, setUsers] = useState<AllUsers>({ total: 0, page: 1, limit: USERS_PAGE_SIZE, items: [] });
 	const [loading, setLoading] = useState(true);
 	const [searchQuery, setSearchQuery] = useState('');
@@ -415,4 +416,11 @@ export default function AdminUsersPage() {
 			)}
 		</div>
 	);
+}
+
+export default function AdminUsersPage() {
+	const { width } = useWindowDimensions();
+
+	const isLargeScreen = width > getWidthBreakpoint();
+	return isLargeScreen ? <AdminUsersPageWeb /> : <AdminUsersMobilePage />;
 }

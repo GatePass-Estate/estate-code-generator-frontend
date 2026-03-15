@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Animated, FlatList, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Animated, FlatList, Alert, Platform, useWindowDimensions } from 'react-native';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { Image } from 'react-native';
 import UserIcon from '@/src/components/mobile/UserIcon';
@@ -11,15 +11,24 @@ import { useUserStore } from '@/src/lib/stores/userStore';
 import { generateCode } from '@/src/lib/api/codes';
 import { sharedStyles } from '@/src/theme/styles';
 import icons from '@/src/constants/icons';
+import { menuRoutes } from '../_layout';
+import WebSidebar from '@/src/components/web/WebSidebar';
+import { getWidthBreakpoint } from '@/src/lib/helpers';
+import Modal from '@/src/components/web/Modal';
 
 const limit = 2;
 
-const MyGuest = () => {
+const MyGuestMobile = () => {
 	const [searchQuery, setSearchQuery] = useState('');
 	const [guests, setGuests] = useState<Guest[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [deleting, setDeleting] = useState(false);
 	const [running, setRunning] = useState<boolean>(false);
+	const { width } = useWindowDimensions();
+	const [confirmModalVisible, setConfirmModalVisible] = useState(false);
+	const [pendingGuestId, setPendingGuestId] = useState<string | null>(null);
+
+	const isLargeScreen = width > getWidthBreakpoint();
 
 	let { refresh } = useLocalSearchParams();
 
@@ -42,6 +51,7 @@ const MyGuest = () => {
 			await deleteMyGuest(id);
 			setGuests((prev) => prev.filter((g) => g.id !== id));
 		} catch (error) {
+			console.log(error);
 		} finally {
 			setDeleting(false);
 		}
@@ -57,6 +67,12 @@ const MyGuest = () => {
 			refresh = 'false';
 		}
 	}, [refresh]);
+
+	useEffect(() => {
+		if (Platform.OS === 'web') {
+			document.title = 'Guests - GatePass';
+		}
+	}, []);
 
 	async function handleGenerateCode({ name, relationship_with_resident, gender }: { name: string; gender: GenderType; relationship_with_resident: RelationshipType }) {
 		setRunning(true);
@@ -112,6 +128,18 @@ const MyGuest = () => {
 		}
 	}
 
+	const performDeleteGuest = async (id: string) => {
+		setDeleting(true);
+		try {
+			await deleteMyGuest(id);
+			setGuests((prev) => prev.filter((g) => g.id !== id));
+		} catch (error) {
+			console.error('Delete guest failed:', error);
+		} finally {
+			setDeleting(false);
+		}
+	};
+
 	const bounceValue = useRef(new Animated.Value(0)).current;
 
 	useEffect(() => {
@@ -127,7 +155,7 @@ const MyGuest = () => {
 					duration: 500,
 					useNativeDriver: Platform.OS !== 'web',
 				}),
-			])
+			]),
 		);
 		anim.start();
 
@@ -138,17 +166,29 @@ const MyGuest = () => {
 
 	return (
 		<View style={sharedStyles.container}>
-			<Stack.Screen
-				options={{
-					headerShown: true,
-					title: 'My Guests',
-					headerShadowVisible: false,
-					headerTitleAlign: 'left',
-					headerStyle: sharedStyles.header,
-					headerTitleStyle: sharedStyles.title,
-					headerRight: () => <UserIcon />,
-				}}
-			/>
+			{Platform.OS !== 'web' ? (
+				<Stack.Screen
+					options={{
+						headerShown: true,
+						title: 'My Guests',
+						headerShadowVisible: false,
+						headerTitleAlign: 'left',
+						headerStyle: sharedStyles.header,
+						headerTitleStyle: sharedStyles.title,
+						headerRight: () => <UserIcon />,
+					}}
+				/>
+			) : (
+				<>
+					<WebSidebar routes={menuRoutes} onNavigate={(route) => router.push(route as any)} />
+					<View className={`flex flex-col justify-center gap-7 ${isLargeScreen ? 'mt-20' : 'mt-11'}`} />
+					<View className="flex flex-row justify-between mb-5">
+						<Text className={`${isLargeScreen ? 'text-4xl' : 'text-3xl font-ubuntu-medium'}`}>My Guests</Text>
+
+						{!isLargeScreen && <UserIcon />}
+					</View>
+				</>
+			)}
 
 			<View className="flex-row bg-light-grey rounded-xl items-center px-2 mb-5 mt-4">
 				<Image source={icons.searchIcon} style={{ width: 18, height: 18 }} />
@@ -225,19 +265,24 @@ const MyGuest = () => {
 							<View className="gap-5 flex-row">
 								<TouchableOpacity
 									onPress={() => {
-										Alert.alert(
-											'Delete guest',
-											`Are you sure you want to delete ${item.guest_name}?`,
-											[
-												{ text: 'Cancel', style: 'cancel' },
-												{
-													text: 'Delete',
-													style: 'destructive',
-													onPress: () => deleteGuest(item.id),
-												},
-											],
-											{ cancelable: true }
-										);
+										if (Platform.OS !== 'web') {
+											Alert.alert(
+												'Delete guest',
+												`Are you sure you want to delete ${item.guest_name}?`,
+												[
+													{ text: 'Cancel', style: 'cancel' },
+													{
+														text: 'Delete',
+														style: 'destructive',
+														onPress: () => deleteGuest(item.id),
+													},
+												],
+												{ cancelable: true },
+											);
+										} else {
+											setPendingGuestId(item.id);
+											setConfirmModalVisible(true);
+										}
 									}}
 								>
 									<Image source={icons.deleteMobileIcon} style={{ width: 22, height: 22, resizeMode: 'contain', tintColor: '#a6a4a4' }} />
@@ -259,11 +304,33 @@ const MyGuest = () => {
 					);
 				}}
 			/>
+
+			{confirmModalVisible && (
+				<Modal
+					closeModal={() => {
+						setConfirmModalVisible(false);
+						setPendingGuestId(null);
+					}}
+					heading={'Confirm delete'}
+					message={`Are you sure you want to delete this guest? This action cannot be undone.`}
+					btnDisabled={deleting}
+					actionRunnig={deleting}
+					cancelText={'Cancel'}
+					action={async () => {
+						if (!pendingGuestId) return;
+						await performDeleteGuest(pendingGuestId);
+						setConfirmModalVisible(false);
+						setPendingGuestId(null);
+					}}
+					runningText={'Deleting...'}
+					actionText={'Delete'}
+				/>
+			)}
 		</View>
 	);
 };
 
-export default MyGuest;
+export default MyGuestMobile;
 
 const styles = StyleSheet.create({
 	container: {

@@ -1,5 +1,5 @@
 import { ChangeEvent, useEffect, useState } from 'react';
-import { Image, Platform } from 'react-native';
+import { Image, Platform, useWindowDimensions } from 'react-native';
 import WebSidebar from '@/src/components/web/WebSidebar';
 import { menuRoutes } from '../../_layout';
 import { useRouter } from 'expo-router';
@@ -9,7 +9,8 @@ import { generateCode } from '@/src/lib/api/codes';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { createGuest } from '@/src/lib/api/guests';
 import { GenderType, RelationshipType } from '@/src/types/general';
-import { timeCalc } from '@/src/lib/helpers';
+import { getWidthBreakpoint, timeCalc } from '@/src/lib/helpers';
+import UserIcon from '@/src/components/mobile/UserIcon';
 
 const GENDERS = [
 	{ name: 'female', value: 'female' },
@@ -36,6 +37,9 @@ export default function AddGuestWeb() {
 	const [saveToList, setSaveToList] = useState<boolean>(false);
 	const [running, setRunning] = useState<boolean>(false);
 	const [error, setError] = useState('');
+	const { width } = useWindowDimensions();
+
+	const isLargeScreen = width > getWidthBreakpoint();
 
 	const inputChecks = (): boolean => {
 		if (!name.trim()) {
@@ -123,13 +127,17 @@ export default function AddGuestWeb() {
 
 	return (
 		<div className="flex h-full w-screen overflow-y-scroll bg-body">
-			<WebSidebar routes={menuRoutes.filter((el) => el.for == 'web' || el.for == 'both').map((data) => data)} onNavigate={(route) => router.push(route as any)} />
+			<WebSidebar routes={menuRoutes} onNavigate={(route) => router.push(route as any)} />
 
 			<div className="web-body pb-20">
-				<div className="flex flex-col justify-center gap-7 mt-20" />
+				<div className={`flex flex-col justify-center gap-7 ${isLargeScreen ? 'mt-20' : 'mt-5'}`} />
 
 				<div className="">
-					<h1 className="text-4xl font-UbuntuSans">Add Guest</h1>
+					<div className="flex justify-between">
+						<h1 className={`${isLargeScreen ? 'text-4xl' : 'text-3xl font-ubuntu-medium'}`}>Add Guest</h1>
+
+						{!isLargeScreen && <UserIcon />}
+					</div>
 					<p className="text-base text-tertiary mt-1">Fill in your guest details, it will take only a couple of minutes</p>
 				</div>
 

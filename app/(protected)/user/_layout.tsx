@@ -5,7 +5,7 @@ import NavigationContainer from '@/src/components/common/NavigationContainer';
 import { sharedStyles } from '@/src/theme/styles';
 import { menuRouteType } from '@/src/types/general';
 
-export const FloatingButton: React.FC<{ focused?: boolean }> = ({ focused = false }) => {
+export const FloatingButton: React.FC<{ focused?: boolean; isMobile?: boolean }> = ({ focused = false, isMobile = true }) => {
 	return (
 		<View style={[sharedStyles.fab, !focused ? { backgroundColor: '#CEE5ED' } : { backgroundColor: '#113E55' }]}>
 			<Image
@@ -21,34 +21,38 @@ export const FloatingButton: React.FC<{ focused?: boolean }> = ({ focused = fals
 	);
 };
 
-export const HomeIcon: React.FC<{ focused?: boolean }> = ({ focused = false }) => (
-	<View className="items-center w-80 mt-6 gap-1">
-		<Image
-			source={focused ? (Platform.OS == 'ios' ? icons.iosHomeActive : icons.activeBtnImg) : Platform.OS == 'ios' ? icons.iosHomeInActive : icons.menuIcon}
-			style={{
-				marginLeft: -3,
-				width: 20,
-				height: 20,
-				resizeMode: 'contain',
-			}}
-		/>
-		<Text style={{ fontSize: 12, fontWeight: focused ? 700 : 500, color: '#113E55' }}>Home</Text>
-	</View>
-);
+export const HomeIcon: React.FC<{ focused?: boolean; isMobile?: boolean }> = ({ focused = false, isMobile = true }) => {
+	return (
+		<View className={`items-center mt-6 gap-1 ${isMobile ? 'w-80' : 'w-full'}`}>
+			<Image
+				source={focused ? (Platform.OS == 'ios' ? icons.iosHomeActive : icons.activeBtnImg) : Platform.OS == 'ios' ? icons.iosHomeInActive : icons.menuIcon}
+				style={{
+					marginLeft: -3,
+					width: 20,
+					height: 20,
+					resizeMode: 'contain',
+				}}
+			/>
+			<Text style={{ fontSize: 12, fontWeight: focused ? 700 : 500, color: '#113E55' }}>Home</Text>
+		</View>
+	);
+};
 
-export const GuestIcon: React.FC<{ focused?: boolean }> = ({ focused = false }) => (
-	<View style={{ alignItems: 'center', width: 300, marginTop: 25, gap: 4 }}>
-		<Image
-			source={focused ? (Platform.OS == 'ios' ? icons.iosGuestActive : icons.activeGuestIcon) : Platform.OS == 'ios' ? icons.iosGuestInActive : icons.inactiveGuestIcon}
-			style={{
-				width: 20,
-				height: 20,
-				resizeMode: 'contain',
-			}}
-		/>
-		<Text style={{ fontSize: 12, fontWeight: focused ? 700 : 500, color: '#113E55' }}>My Guests</Text>
-	</View>
-);
+export const GuestIcon: React.FC<{ focused?: boolean; isMobile?: boolean }> = ({ focused = false, isMobile = true }) => {
+	return (
+		<View className={`items-center mt-6 gap-1 ${isMobile ? 'w-80' : 'w-full'}`}>
+			<Image
+				source={focused ? (Platform.OS == 'ios' ? icons.iosGuestActive : icons.activeGuestIcon) : Platform.OS == 'ios' ? icons.iosGuestInActive : icons.inactiveGuestIcon}
+				style={{
+					width: 20,
+					height: 20,
+					resizeMode: 'contain',
+				}}
+			/>
+			<Text style={{ fontSize: 12, fontWeight: focused ? 700 : 500, color: '#113E55' }}>My Guests </Text>
+		</View>
+	);
+};
 
 export const menuRoutes: menuRouteType[] = [
 	{ name: 'index', link: '/user', title: 'Home', TabIcon: HomeIcon, for: 'native', activeIcon: icons.activeHomeIcon, inactiveIcon: icons.inactiveHomeIcon },

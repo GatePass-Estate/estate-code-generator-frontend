@@ -9,7 +9,7 @@ import { useAuth } from '@/src/hooks/useAuthContext';
 import { useRouter } from 'expo-router';
 import { fetchMe, loginUser } from '@/src/lib/api/auth';
 import { useAuthStore } from '@/src/lib/stores/authStore';
-import { broadcastLogin, storeAuthState } from '@/src/lib/helpers';
+import { broadcastLogin, getWidthBreakpoint, storeAuthState } from '@/src/lib/helpers';
 import Images from '@/src/constants/images';
 import { cn } from '@/src/lib/cn';
 import icons from '@/src/constants/icons';
@@ -30,7 +30,7 @@ export default function Login() {
 	const [errorMessage, setErrorMessage] = useState('');
 	const [isLoading, setIsLoading] = useState(false);
 
-	const isLargeScreen = width > 768;
+	const isLargeScreen = width > getWidthBreakpoint();
 
 	useEffect(() => {
 		const prepare = async () => {
@@ -145,12 +145,12 @@ export default function Login() {
 					<View>
 						<Text className={`pb-1 text-grey ${isLargeScreen ? 'text-base' : ''}`}>Password</Text>
 						<View className="relative">
-							<TextInput 
-								placeholder="Enter your password..." 
-								secureTextEntry={!showPassword} 
-								value={password} 
-								onChangeText={setPassword} 
-								editable={!isLoading} 
+							<TextInput
+								placeholder="Enter your password..."
+								secureTextEntry={!showPassword}
+								value={password}
+								onChangeText={setPassword}
+								editable={!isLoading}
 								className="bg-[#F7F9F9] border border-[#D1D5DB] rounded-lg px-4 py-5 mt-1 pr-12"
 								contextMenuHidden={true}
 								selectTextOnFocus={false}

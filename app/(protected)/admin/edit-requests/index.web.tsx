@@ -1,16 +1,17 @@
 import WebSidebar from '@/src/components/web/WebSidebar';
 import { router, usePathname } from 'expo-router';
-import { Image, Platform, ActivityIndicator } from 'react-native';
+import { Image, Platform, ActivityIndicator, useWindowDimensions } from 'react-native';
 import WebNavLink from '@/src/components/web/WebNavLink';
 import { menuRoutes } from '@/app/(protected)/user/_layout';
 import { adminRoutes } from '../_layout';
 import { useEffect, useState } from 'react';
 import icons from '@/src/constants/icons';
 import Modal from '@/src/components/web/Modal';
-import { getRequests, getRequestById, approveRequests, declineRequests } from '@/src/lib/api/requests';
+import { getRequests, approveRequests, declineRequests } from '@/src/lib/api/requests';
 import { getUserById } from '@/src/lib/api/user';
-import { useUserStore } from '@/src/lib/stores/userStore';
 import { RequestItem, RequestType } from '@/src/types/requests';
+import EditRequestMobile from './index.native';
+import { getWidthBreakpoint } from '@/src/lib/helpers';
 
 interface EditRequest extends RequestItem {
 	selected: boolean;
@@ -31,7 +32,7 @@ const getFieldLabelFromType = (type: RequestType): string => {
 	return labels[type] || 'Unknown Field';
 };
 
-export default function EditRequestsWeb() {
+function EditRequestsWeb() {
 	const pathname = usePathname();
 	const [editRequests, setEditRequests] = useState<EditRequest[]>([]);
 	const [selectedRequest, setSelectedRequest] = useState<EditRequest | null>(null);
@@ -377,4 +378,11 @@ export default function EditRequestsWeb() {
 			</div>
 		</div>
 	);
+}
+
+export default function EditRequestsPage() {
+	const { width } = useWindowDimensions();
+
+	const isLargeScreen = width > getWidthBreakpoint();
+	return isLargeScreen ? <EditRequestsWeb /> : <EditRequestMobile />;
 }

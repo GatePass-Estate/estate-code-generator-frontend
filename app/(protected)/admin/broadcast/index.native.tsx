@@ -19,7 +19,7 @@ const sendBroadcastAPI = async (data: BroadcastFormData): Promise<boolean> => {
 	});
 };
 
-const SendBroadcast = () => {
+const BroadcastMobile = () => {
 	const navigation = useNavigation();
 	const [currentStep, setCurrentStep] = useState(1);
 	const [formData, setFormData] = useState<BroadcastFormData>({
@@ -238,4 +238,4 @@ const SendBroadcast = () => {
 	);
 };
 
-export default SendBroadcast;
+export default BroadcastMobile;
