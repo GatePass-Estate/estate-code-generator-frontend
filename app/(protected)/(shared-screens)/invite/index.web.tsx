@@ -125,7 +125,7 @@ export default function ShareInvitePage() {
 							</div>
 
 							<div className="flex items-center mt-2">
-								<h3 className={`font-bold text-primary uppercase ${isLargeScreen ? 'text-5xl tracking-[24px]' : 'text-3xl tracking-[10px]'}`}>{codeParam}</h3>
+								<h3 className={`font-bold text-primary uppercase ${isLargeScreen ? 'text-5xl tracking-[24px]' : 'text-2xl tracking-[10px]'}`}>{codeParam}</h3>
 								<button onClick={handleCopy} className="">
 									<Image source={icons.copyIcon} style={{ width: isLargeScreen ? 40 : 32, height: isLargeScreen ? 40 : 32 }} resizeMode="contain" />
 								</button>

@@ -201,7 +201,7 @@ export default function HomeWeb() {
 					<>
 						<div className={`flex flex-col justify-center gap-7 ${isLargeScreen ? 'mt-20' : 'mt-5'}`}>
 							<div className="flex justify-between">
-								<h1 className={`${isLargeScreen ? 'text-4xl' : 'text-3xl font-ubuntu-medium'}`}>Active Codes</h1>
+								<h1 className={`${isLargeScreen ? 'text-4xl' : 'text-2xl font-ubuntu-medium'}`}>Active Codes</h1>
 
 								{!isLargeScreen && <UserIcon />}
 							</div>

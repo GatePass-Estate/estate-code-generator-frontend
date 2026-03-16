@@ -167,7 +167,7 @@ export const EditProfileForm = ({ centralize = false }: { centralize?: boolean }
 			{!isLargeScreen && <Back type="short-arrow" />}
 
 			<div className={`${!isLargeScreen && 'mt-5'}`}>
-				<h1 className={`${isLargeScreen ? 'text-4xl' : 'text-3xl font-ubuntu-medium'} ${centralize && 'text-center'}`}>Edit Profile</h1>
+				<h1 className={`${isLargeScreen ? 'text-4xl' : 'text-2xl font-ubuntu-medium'} ${centralize && 'text-center'}`}>Edit Profile</h1>
 				<p className={`text-base text-tertiary mt-1 ${centralize && 'text-center'}`}>Send a request to edit your personal details</p>
 			</div>
 			<form className="py-7 flex flex-col gap-6 min-w-[400px]  md:min-w-[500px] lg:min-w-[600px]" onSubmit={handleSubmission}>

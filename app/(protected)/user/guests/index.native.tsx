@@ -183,7 +183,7 @@ const MyGuestMobile = () => {
 					<WebSidebar routes={menuRoutes} onNavigate={(route) => router.push(route as any)} />
 					<View className={`flex flex-col justify-center gap-7 ${isLargeScreen ? 'mt-20' : 'mt-11'}`} />
 					<View className="flex flex-row justify-between mb-5">
-						<Text className={`${isLargeScreen ? 'text-4xl' : 'text-3xl font-ubuntu-medium'}`}>My Guests</Text>
+						<Text className={`${isLargeScreen ? 'text-4xl' : 'text-2xl font-ubuntu-medium'}`}>My Guests</Text>
 
 						{!isLargeScreen && <UserIcon />}
 					</View>
@@ -215,7 +215,7 @@ const MyGuestMobile = () => {
 				refreshing={loading}
 				onRefresh={fetchGuests}
 				style={{
-					marginBottom: 100,
+					marginBottom: Platform.OS !== 'web' ? 100 : 60,
 				}}
 				ListEmptyComponent={() =>
 					running ? (

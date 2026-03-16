@@ -134,7 +134,7 @@ export default function MyProfile() {
 
 							<div className="mt-10">
 								<div className="flex justify-between">
-									<h1 className={`${isLargeScreen ? 'text-4xl' : 'text-3xl font-ubuntu-medium'}`}>My Profile</h1>
+									<h1 className={`${isLargeScreen ? 'text-4xl' : 'text-2xl font-ubuntu-medium'}`}>My Profile</h1>
 								</div>
 								<p className="text-base text-tertiary mt-1">My personal details</p>
 							</div>

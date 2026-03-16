@@ -134,7 +134,7 @@ export default function AddGuestWeb() {
 
 				<div className="">
 					<div className="flex justify-between">
-						<h1 className={`${isLargeScreen ? 'text-4xl' : 'text-3xl font-ubuntu-medium'}`}>Add Guest</h1>
+						<h1 className={`${isLargeScreen ? 'text-4xl' : 'text-2xl font-ubuntu-medium'}`}>Add Guest</h1>
 
 						{!isLargeScreen && <UserIcon />}
 					</div>
@@ -210,7 +210,7 @@ export default function AddGuestWeb() {
 					</label>
 				</div>
 
-				<div className="mt-7 flex flex-row justify-end gap-3">
+				<div className={`mt-7 flex flex-row justify-end gap-3 ${!isLargeScreen && '!mb-32'}`}>
 					<button className={`bg-dark-teal rounded-md px-10 py-3 ${running && 'cursor-not-allowed opacity-75'}`} disabled={running} onClick={handleSaveGuest}>
 						<p className="text-white text-sm font-semibold">Save Guest</p>
 					</button>
