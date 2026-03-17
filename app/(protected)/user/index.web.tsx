@@ -14,7 +14,9 @@ import { Codes } from '@/src/types/codes';
 import { GenderType, RelationshipType } from '@/src/types/general';
 import { Pagination } from '@/src/components/web/Pagination';
 import images from '@/src/constants/images';
-import { isDataEqual, timeCalc } from '@/src/lib/helpers';
+import { getWidthBreakpoint, isDataEqual, timeCalc } from '@/src/lib/helpers';
+import UserIcon from '@/src/components/mobile/UserIcon';
+import CodeItem from '@/src/components/mobile/CodeItem';
 
 const CODES_PAGE_SIZE = 3;
 const GUESTS_PAGE_SIZE = 6;
@@ -38,6 +40,8 @@ export default function HomeWeb() {
 	const guestsRef = useRef<Guest[]>(guests);
 	const codesRef = useRef<Codes[]>(codes);
 	const { width } = useWindowDimensions();
+
+	const isLargeScreen = width > getWidthBreakpoint();
 
 	// Keep refs in sync with state
 	useEffect(() => {
@@ -186,7 +190,7 @@ export default function HomeWeb() {
 
 	return (
 		<div className="flex h-full w-screen overflow-y-scroll bg-body">
-			<WebSidebar routes={menuRoutes.filter((el) => el.for === 'web' || el.for === 'both').map((data) => data)} onNavigate={(route) => router.push(route as any)} />
+			<WebSidebar routes={menuRoutes} onNavigate={(route) => router.push(route as any)} />
 
 			<div className="web-body">
 				{loading ? (
@@ -195,8 +199,12 @@ export default function HomeWeb() {
 					</div>
 				) : (
 					<>
-						<div className="flex flex-col justify-center gap-7 mt-20">
-							<h1 className="text-4xl">Active Codes</h1>
+						<div className={`flex flex-col justify-center gap-7 ${isLargeScreen ? 'mt-20' : 'mt-5'}`}>
+							<div className="flex justify-between">
+								<h1 className={`${isLargeScreen ? 'text-4xl' : 'text-2xl font-ubuntu-medium'}`}>Active Codes</h1>
+
+								{!isLargeScreen && <UserIcon />}
+							</div>
 
 							<div className="flex flex-wrap gap-3 mb-6">
 								{codesPaginated.map((code, i) => {
@@ -238,7 +246,7 @@ export default function HomeWeb() {
 										}
 									}
 
-									return (
+									return isLargeScreen ? (
 										<AccessCodeCard
 											key={code.hashed_code + i}
 											code={code.hashed_code}
@@ -256,6 +264,8 @@ export default function HomeWeb() {
 												setCodes((prev) => prev.filter((c) => c.hashed_code !== code.hashed_code));
 											}}
 										/>
+									) : (
+										<CodeItem key={code.hashed_code + i} item={code} timeframe={timeframe} formattedDate={formattedDate} parsed={parsed} />
 									);
 								})}
 							</div>
@@ -272,67 +282,69 @@ export default function HomeWeb() {
 							)}
 						</div>
 
-						<div className="flex flex-col justify-center gap-4 mt-6">
-							<div className="flex items-center justify-between">
-								<h2 className="text-2xl font-semibold text-blackq">My Guest List</h2>
+						{isLargeScreen && (
+							<div className="flex flex-col justify-center gap-4 mt-6">
+								<div className="flex items-center justify-between">
+									<h2 className="text-2xl font-semibold text-blackq">My Guest List</h2>
 
-								<input type="text" placeholder="Search guests..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary" />
-							</div>
+									<input type="text" placeholder="Search guests..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary" />
+								</div>
 
-							<div className="grid grid-cols-1 xl:grid-cols-2 gap-4 mb-6">
-								{filteredGuests.map((item) => (
-									<div key={item.id} className="flex gap-4 items-center p-3 bg-light-grey w-full rounded-lg">
-										<Image
-											source={item.gender === 'male' ? icons.maleIcon : item.gender === 'prefer_not_to_say' ? icons.notSayingGender : icons.femaleIcon}
-											style={{
-												width: 25,
-												height: item.gender === 'female' ? 37 : 25,
-											}}
-										/>
+								<div className="grid grid-cols-1 xl:grid-cols-2 gap-4 mb-6">
+									{filteredGuests.map((item) => (
+										<div key={item.id} className="flex gap-4 items-center p-3 bg-light-grey w-full rounded-lg">
+											<Image
+												source={item.gender === 'male' ? icons.maleIcon : item.gender === 'prefer_not_to_say' ? icons.notSayingGender : icons.femaleIcon}
+												style={{
+													width: 25,
+													height: item.gender === 'female' ? 37 : 25,
+												}}
+											/>
 
-										<div className="flex flex-col">
-											<p className="text-xl capitalize font-UbuntuSans">{item.guest_name}</p>
-											<span className="text-xs capitalize font-Inter text-primary">{item.relationship}</span>
+											<div className="flex flex-col">
+												<p className="text-xl capitalize font-UbuntuSans">{item.guest_name}</p>
+												<span className="text-xs capitalize font-Inter text-primary">{item.relationship}</span>
+											</div>
+
+											<div className="flex gap-3 ml-auto">
+												<button type="button" className={`capitalize px-6 py-2 bg-teal font-semibold rounded-lg text-white text-base ${!!generatingGuestId && 'opacity-65'}`} onClick={() => requestDeleteGuest(item.id)} disabled={running}>
+													delete
+												</button>
+												<button
+													type="button"
+													className={`capitalize px-8 py-3 bg-primary font-semibold rounded-lg text-white text-base ${!!generatingGuestId && 'opacity-65'}`}
+													onClick={() =>
+														handleGenerateCode({
+															name: item.guest_name,
+															relationship_with_resident: item.relationship,
+															gender: item.gender,
+															guestId: item.id,
+														})
+													}
+													disabled={!!generatingGuestId}
+												>
+													{generatingGuestId === item.id ? 'Generating code...' : 'generate code'}
+												</button>
+											</div>
 										</div>
+									))}
+								</div>
 
-										<div className="flex gap-3 ml-auto">
-											<button type="button" className={`capitalize px-6 py-2 bg-teal font-semibold rounded-lg text-white text-base ${!!generatingGuestId && 'opacity-65'}`} onClick={() => requestDeleteGuest(item.id)} disabled={running}>
-												delete
-											</button>
-											<button
-												type="button"
-												className={`capitalize px-8 py-3 bg-primary font-semibold rounded-lg text-white text-base ${!!generatingGuestId && 'opacity-65'}`}
-												onClick={() =>
-													handleGenerateCode({
-														name: item.guest_name,
-														relationship_with_resident: item.relationship,
-														gender: item.gender,
-														guestId: item.id,
-													})
-												}
-												disabled={!!generatingGuestId}
-											>
-												{generatingGuestId === item.id ? 'Generating code...' : 'generate code'}
-											</button>
-										</div>
+								{filteredGuests.length === 0 ? (
+									<div className="mb-28 flex flex-col justify-center items-center gap-2">
+										<Image source={images.ghostImg} style={{ width: 100, height: 100 }} />
+										<p className="text-lg text-center text-gray-400">{searchQuery ? 'No guests match your search.' : 'No guests were found'}</p>
 									</div>
-								))}
+								) : (
+									<div className="flex justify-end mt-4">
+										<Pagination currentPage={guestsPage} totalPages={guestsTotalPages} onPageChange={(page) => fetchGuests(page)} condition={running} />
+										<br />
+										<br />
+										<br />
+									</div>
+								)}
 							</div>
-
-							{filteredGuests.length === 0 ? (
-								<div className="mb-28 flex flex-col justify-center items-center gap-2">
-									<Image source={images.ghostImg} style={{ width: 100, height: 100 }} />
-									<p className="text-lg text-center text-gray-400">{searchQuery ? 'No guests match your search.' : 'No guests were found'}</p>
-								</div>
-							) : (
-								<div className="flex justify-end mt-4">
-									<Pagination currentPage={guestsPage} totalPages={guestsTotalPages} onPageChange={(page) => fetchGuests(page)} condition={running} />
-									<br />
-									<br />
-									<br />
-								</div>
-							)}
-						</div>
+						)}
 
 						{confirmModalVisible && pendingType === 'guest' && (
 							<Modal

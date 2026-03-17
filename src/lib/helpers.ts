@@ -261,3 +261,8 @@ export const getRoleColor = (role: UserRolesType) => {
 export const isDataEqual = (obj1: any, obj2: any): boolean => {
 	return JSON.stringify(obj1) === JSON.stringify(obj2);
 };
+
+export const getWidthBreakpoint = (): number => {
+	const breakpoint = process.env.EXPO_PUBLIC_WIDTH_BREAKPOINT;
+	return breakpoint ? parseInt(breakpoint, 10) : 768;
+};

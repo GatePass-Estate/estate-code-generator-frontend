@@ -1,18 +1,26 @@
 import QRCode from 'react-native-qrcode-svg';
 import WebSidebar from '@/src/components/web/WebSidebar';
 import { menuRoutes } from '../../user/_layout';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { Image, Platform } from 'react-native';
+import { useRouter, useLocalSearchParams, useNavigation } from 'expo-router';
+import { Image, Platform, useWindowDimensions } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import Modal from '@/src/components/web/Modal';
 import { useEffect, useState } from 'react';
 import icons from '@/src/constants/icons';
+import { getWidthBreakpoint } from '@/src/lib/helpers';
+import Back from '@/src/components/mobile/Back';
+import { deleteCode } from '@/src/lib/api/codes';
 
 export default function ShareInvitePage() {
 	const router = useRouter();
 	const [showCopyModal, setShowCopyModal] = useState(false);
 	const [showShareOptions, setShowShareOptions] = useState(false);
+	const [cancelText, setCancelText] = useState('Cancel Invite');
 	let { name: visitor_fullname, code: codeParam, date, timeframe, address } = useLocalSearchParams();
+	const { width } = useWindowDimensions();
+
+	const isLargeScreen = width > getWidthBreakpoint();
+	const navigation = useNavigation();
 
 	const handleCopy = async () => {
 		try {
@@ -49,6 +57,17 @@ export default function ShareInvitePage() {
 			}
 		}
 		return false;
+	};
+
+	const performRemoveCode = async (code: string) => {
+		try {
+			setCancelText('Removing...');
+			await deleteCode(code);
+		} catch (error) {
+			console.error('Remove code failed:', error);
+		} finally {
+			router.replace('/user');
+		}
 	};
 
 	const openWindow = (url: string) => window.open(url, '_blank', 'noopener,noreferrer');
@@ -89,22 +108,26 @@ export default function ShareInvitePage() {
 			<WebSidebar routes={menuRoutes.filter((el) => el.for == 'web' || el.for == 'both').map((data) => data)} onNavigate={(route) => router.push(route as any)} />
 
 			<div className="web-body">
-				<div className="flex flex-col justify-center gap-7 mt-20">
-					<div>
-						<h1 className="text-4xl">Share Invite</h1>
-						<p className="text-base text-tertiary mt-1">Share the information to your guest</p>
-					</div>
+				<div className={`flex flex-col justify-center ${isLargeScreen ? 'mt-20' : 'mt-5'}`}>
+					{isLargeScreen ? (
+						<div>
+							<h1 className="text-4xl">Share Invite</h1>
+							<p className="text-base text-tertiary mt-1">Share the information to your guest</p>
+						</div>
+					) : (
+						<Back type="short-arrow" />
+					)}
 
-					<div className="flex gap-12 mt-14">
+					<div className={`flex ${!isLargeScreen ? 'flex-col mt-8' : 'mt-14'} gap-12 mt-14`}>
 						<div className="flex flex-col items-center">
 							<div className="bg-[#F15A29] p-6 mb-5 rounded-md shadow-[4px_4px_36px_0px_#D6CFCB]">
-								<QRCode value={codeParam as string} size={350} backgroundColor="#F15A29" color="#fff" />
+								<QRCode value={codeParam as string} size={isLargeScreen ? 350 : 200} backgroundColor="#F15A29" color="#fff" />
 							</div>
 
 							<div className="flex items-center mt-2">
-								<h3 className="text-5xl tracking-[24px] font-bold text-primary uppercase">{codeParam}</h3>
+								<h3 className={`font-bold text-primary uppercase ${isLargeScreen ? 'text-5xl tracking-[24px]' : 'text-2xl tracking-[10px]'}`}>{codeParam}</h3>
 								<button onClick={handleCopy} className="">
-									<Image source={icons.copyIcon} style={{ width: 40, height: 40 }} resizeMode="contain" />
+									<Image source={icons.copyIcon} style={{ width: isLargeScreen ? 40 : 32, height: isLargeScreen ? 40 : 32 }} resizeMode="contain" />
 								</button>
 							</div>
 						</div>
@@ -185,9 +208,15 @@ export default function ShareInvitePage() {
 								</div>
 							)}
 
-							<button className="full-btn" onClick={handleShare}>
+							<button className={`full-btn ${!isLargeScreen ? '!p-4 mt-5' : ''}`} onClick={handleShare}>
 								Share invite
 							</button>
+
+							{!isLargeScreen && (
+								<button className="text-primary text-[17px] font-ubuntu-medium" onClick={() => performRemoveCode(codeParam as string)}>
+									{cancelText}
+								</button>
+							)}
 						</div>
 					</div>
 				</div>

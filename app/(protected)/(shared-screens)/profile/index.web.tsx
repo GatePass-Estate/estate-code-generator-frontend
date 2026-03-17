@@ -1,14 +1,15 @@
-import { menuRoutes } from '../../user/_layout';
 import { useRouter } from 'expo-router';
-import WebSidebar from '@/src/components/web/WebSidebar';
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import { ActivityIndicator, Image, Platform, Pressable } from 'react-native';
+import { ActivityIndicator, Image, Platform, useWindowDimensions } from 'react-native';
 import icons from '@/src/constants/icons';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { updatepassword } from '@/src/lib/api/user';
 import { generateCode, getMyCode } from '@/src/lib/api/codes';
-import { formatDateWithOrdinal } from '@/src/lib/helpers';
+import { formatDateWithOrdinal, getWidthBreakpoint } from '@/src/lib/helpers';
 import UpdatePassword from '@/src/components/web/UpdatePassword';
+import Back from '@/src/components/mobile/Back';
+import WebSidebar from '@/src/components/web/WebSidebar';
+import { menuRoutes } from '../../user/_layout';
 
 export default function MyProfile() {
 	const router = useRouter();
@@ -31,6 +32,9 @@ export default function MyProfile() {
 
 	const user_id = useUserStore.getState().user_id;
 	const estate_id = useUserStore.getState().estate_id;
+	const { width } = useWindowDimensions();
+
+	const isLargeScreen = width > getWidthBreakpoint();
 
 	const fetchMyCode = useCallback(async () => {
 		setLoading(true);
@@ -117,8 +121,7 @@ export default function MyProfile() {
 
 	return (
 		<div className="flex h-full w-screen overflow-y-scroll bg-body">
-			<WebSidebar routes={menuRoutes.filter((el) => el.for === 'web' || el.for === 'both').map((data) => data)} onNavigate={(route) => router.push(route as any)} />
-
+			{isLargeScreen && <WebSidebar routes={menuRoutes} onNavigate={(route) => router.push(route as any)} />}
 			<div className="web-body">
 				{loading ? (
 					<div className="flex justify-center items-center h-full">
@@ -126,15 +129,19 @@ export default function MyProfile() {
 					</div>
 				) : (
 					<>
-						<div className="flex flex-col justify-center mt-20">
-							<div>
-								<h1 className="text-4xl">My Profile</h1>
+						<div className={`flex flex-col justify-center ${isLargeScreen ? 'mt-20' : 'mt-5'}`}>
+							{!isLargeScreen && <Back type="short-arrow" />}
+
+							<div className="mt-10">
+								<div className="flex justify-between">
+									<h1 className={`${isLargeScreen ? 'text-4xl' : 'text-2xl font-ubuntu-medium'}`}>My Profile</h1>
+								</div>
 								<p className="text-base text-tertiary mt-1">My personal details</p>
 							</div>
 
 							{/* Code & Password Row */}
 							<div className="py-7 w-full mt-5">
-								<div className="flex gap-4 mb-1">
+								<div className={`flex gap-4 mb-1 ${isLargeScreen ? 'flex-row' : 'flex-col'}`}>
 									{/* Access Code */}
 									<div className="flex capitalize items-center border rounded-lg px-5 bg-white text-base text-primary p-4 w-full justify-between border-grey">
 										<div className="flex gap-10">
@@ -206,10 +213,15 @@ export default function MyProfile() {
 								Edit Request
 							</button>
 						</div>
+
+						{!isLargeScreen && (
+							<div className=" absolute bottom-0 right-0 left-0 flex justify-center items-center">
+								<p className="text-tertiary font-bold text-[16px] p-5 font-UbuntuSans">Log Out</p>
+							</div>
+						)}
 					</>
 				)}
 			</div>
-
 			{showUpdatePassword && (
 				<UpdatePassword
 					setShowUpdatePassword={setShowUpdatePassword}
