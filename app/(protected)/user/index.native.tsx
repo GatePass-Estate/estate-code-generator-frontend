@@ -10,6 +10,7 @@ import { getAllCodes } from '@/src/lib/api/codes';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { sharedStyles } from '@/src/theme/styles';
 import { isDataEqual } from '@/src/lib/helpers';
+import CodeItem from '@/src/components/mobile/CodeItem';
 
 export default function HomeMobile({}) {
 	const bounceValue = useRef(new Animated.Value(0)).current;
@@ -155,36 +156,7 @@ export default function HomeMobile({}) {
 							}
 						}
 
-						return (
-							<Pressable
-								className={`flex flex-row justify-between items-center border-[0.5px] border-accent rounded-lg p-4 mb-4 bg-[#F9FDFF]`}
-								onPress={() =>
-									router.push({
-										pathname: '/invite',
-										params: {
-											name: item.visitor_fullname,
-											code: item.hashed_code,
-											timeframe,
-											address: `${useUserStore.getState().home_address}, ${useUserStore.getState().estate_name}.`,
-											date: formattedDate,
-										},
-									})
-								}
-							>
-								<View style={{ flex: 1 }}>
-									<Text className={`text-sm font-medium text-grey mb-1`}>{item.visitor_fullname}</Text>
-
-									<Text className={`text-[27px] font-UbuntuSans uppercase text-orange tracking-[5px] font-bold`}>{item.hashed_code.slice(0, 3) + ' ' + item.hashed_code.slice(3)}</Text>
-								</View>
-								<CountdownRing
-									size={50}
-									expiresAt={parsed.getTime()}
-									onExpire={() => {
-										setCodes((prev) => prev.filter((c) => c.hashed_code !== item.hashed_code));
-									}}
-								/>
-							</Pressable>
-						);
+						return <CodeItem item={item} timeframe={timeframe} formattedDate={formattedDate} parsed={parsed} />;
 					}}
 				/>
 			</View>

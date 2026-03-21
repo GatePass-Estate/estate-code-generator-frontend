@@ -1,6 +1,8 @@
 import { useRouter } from 'expo-router';
-import { View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet, useWindowDimensions } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
+import AllUsersMobile from './index.native';
+import { getWidthBreakpoint } from '@/src/lib/helpers';
 
 const users = Array(7).fill({ name: 'Sandra Happiness', flat: 'Flat 56' });
 
@@ -132,4 +134,9 @@ const styles = StyleSheet.create({
 	},
 });
 
-export default AllUsersWeb;
+export default function AdminAllUsersPage() {
+	const { width } = useWindowDimensions();
+
+	const isLargeScreen = width > getWidthBreakpoint();
+	return isLargeScreen ? <AllUsersWeb /> : <AllUsersMobile />;
+}

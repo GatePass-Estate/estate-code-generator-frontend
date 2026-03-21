@@ -6,7 +6,7 @@ export type RelationshipType = 'partner' | 'friend' | 'family' | 'taxi' | 'deliv
 
 export type UserRolesType = 'root' | 'primary_admin' | 'admin' | 'resident' | 'security' | 'guest' | null;
 
-export type menuRouteType = { name: string; title: string; link: string; activeIcon?: any; inactiveIcon?: any; role?: UserRolesType; for?: 'web' | 'native' | 'both'; TabIcon?: React.FC<{ focused?: boolean }> };
+export type menuRouteType = { name: string; title: string; link: string; activeIcon?: any; inactiveIcon?: any; role?: UserRolesType; for?: 'web' | 'native' | 'both'; TabIcon?: React.FC<{ focused?: boolean; isMobile?: boolean }> };
 
 export type adminMenuRouteType = { name: string; title: string; link: string; icon?: any };
 

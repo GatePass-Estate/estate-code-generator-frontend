@@ -1,12 +1,14 @@
 import WebSidebar from '@/src/components/web/WebSidebar';
 import { router, usePathname } from 'expo-router';
-import { Image, Platform } from 'react-native';
+import { Image, Platform, useWindowDimensions } from 'react-native';
 import WebNavLink from '@/src/components/web/WebNavLink';
 import { menuRoutes } from '@/app/(protected)/user/_layout';
 import { adminRoutes } from '../_layout';
 import { useEffect, useState } from 'react';
 import icons from '@/src/constants/icons';
 import Modal from '@/src/components/web/Modal';
+import BroadcastMobile from './index.native';
+import { getWidthBreakpoint } from '@/src/lib/helpers';
 
 type RecipientType = 'resident' | 'security' | 'admin' | 'all';
 type PriorityType = 'low' | 'medium' | 'high';
@@ -33,7 +35,7 @@ const DURATIONS = [
 	{ name: '30days', value: '30_days' },
 ];
 
-export default function BroadcastWeb() {
+function BroadcastWeb() {
 	const pathname = usePathname();
 	const [step, setStep] = useState(1);
 	const [error, setError] = useState('');
@@ -274,4 +276,11 @@ export default function BroadcastWeb() {
 			</div>
 		</div>
 	);
+}
+
+export default function BroadcastPage() {
+	const { width } = useWindowDimensions();
+
+	const isLargeScreen = width > getWidthBreakpoint();
+	return isLargeScreen ? <BroadcastWeb /> : <BroadcastMobile />;
 }

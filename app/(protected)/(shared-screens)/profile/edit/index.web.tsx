@@ -3,9 +3,11 @@ import WebSidebar from '@/src/components/web/WebSidebar';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Platform } from 'react-native';
+import { Platform, useWindowDimensions } from 'react-native';
 import { createRequest, checkPendingRequests, updatePendingRequest } from '@/src/lib/api/requests';
 import { RequestType, PendingRequestsResponse } from '@/src/types/requests';
+import { getWidthBreakpoint } from '@/src/lib/helpers';
+import Back from '@/src/components/mobile/Back';
 
 interface ChangedField {
 	type: RequestType;
@@ -28,6 +30,9 @@ export const EditProfileForm = ({ centralize = false }: { centralize?: boolean }
 	});
 
 	const user = useUserStore.getState();
+	const { width } = useWindowDimensions();
+
+	const isLargeScreen = width > getWidthBreakpoint();
 
 	useEffect(() => {
 		setFormData({
@@ -158,9 +163,11 @@ export const EditProfileForm = ({ centralize = false }: { centralize?: boolean }
 	};
 
 	return (
-		<div className="flex flex-col justify-center mt-20">
-			<div>
-				<h1 className={`text-4xl ${centralize && 'text-center'}`}>Edit Profile</h1>
+		<div className={`flex flex-col justify-center ${isLargeScreen ? 'mt-20' : 'mt-5'}`}>
+			{!isLargeScreen && <Back type="short-arrow" />}
+
+			<div className={`${!isLargeScreen && 'mt-5'}`}>
+				<h1 className={`${isLargeScreen ? 'text-4xl' : 'text-2xl font-ubuntu-medium'} ${centralize && 'text-center'}`}>Edit Profile</h1>
 				<p className={`text-base text-tertiary mt-1 ${centralize && 'text-center'}`}>Send a request to edit your personal details</p>
 			</div>
 			<form className="py-7 flex flex-col gap-6 min-w-[400px]  md:min-w-[500px] lg:min-w-[600px]" onSubmit={handleSubmission}>

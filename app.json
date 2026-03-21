@@ -1,9 +1,10 @@
 {
   "expo": {
-    "name": "GatePass",
-    "slug": "my-expo-app",
+    "name": "GatePassApp",
+    "slug": "gatepass-app",
+    "owner": "pbide",
     "version": "1.0.0",
-    "scheme": "my-expo-app",
+    "scheme": "gatepass-app",
     "orientation": "portrait",
     "icon": "./src/assets/gatepass_ng_Gp.png",
     "userInterfaceStyle": "automatic",
@@ -63,6 +64,12 @@
         }
       ]
     ],
-    "assetBundlePatterns": ["**/*"]
+    "assetBundlePatterns": ["**/*"],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "adf3bcd1-8b19-4345-a7f5-deaf6a900f87"
+      }
+    }
   }
 }

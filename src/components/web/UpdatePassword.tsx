@@ -1,7 +1,8 @@
 import icons from '@/src/constants/icons';
 import React, { useState } from 'react';
-import { Image } from 'react-native';
+import { Image, useWindowDimensions } from 'react-native';
 import WebPasswordInput from './WebPasswordInput';
+import { getWidthBreakpoint } from '@/src/lib/helpers';
 
 interface UpdatePasswordProps {
 	setShowUpdatePassword: (show: boolean) => void;
@@ -23,19 +24,22 @@ interface UpdatePasswordProps {
 
 const UpdatePassword = ({ setShowUpdatePassword, error, success, savingPassword, setPassword, password, showCurrent, showNew, showConfirm, confirmPasswordRef, setError, setShowCurrent, setShowNew, setShowConfirm, setNewPassword }: UpdatePasswordProps) => {
 	const [confirmValue, setConfirmValue] = useState<string>(confirmPasswordRef?.current?.value || '');
+
+	const { width } = useWindowDimensions();
+	const isLargeScreen = width > getWidthBreakpoint();
 	return (
 		<div className="fixed inset-0 z-50 flex items-center justify-center">
 			<div className="absolute inset-0 bg-primary opacity-80" onClick={() => setShowUpdatePassword(false)} />
-			<div className="bg-white rounded-lg p-8 py-16 pt-32 z-10 min-w-[450px] relative">
+			<div className={`bg-white rounded-lg p-8 py-16 ${isLargeScreen ? 'pt-32 min-w-[450px]' : 'pt-20 min-w-[550px]'} z-10  relative`}>
 				<div className="cursor-pointer absolute right-6 -mt-16" onClick={() => setShowUpdatePassword(false)}>
-					<Image source={icons.cancel} style={{ width: 40, height: 40 }} resizeMode="contain" />
+					<Image source={icons.cancel} style={{ width: isLargeScreen ? 40 : 32, height: isLargeScreen ? 40 : 32 }} resizeMode="contain" />
 				</div>
 
 				{error && <div className="text-danger font-medium my-4 p-3 bg-danger/20 rounded">{error}</div>}
 
 				{success && <div className="text-green-500 font-medium my-4 p-3 bg-green-500/20 rounded">{success}</div>}
 
-				<h4 className="text-4xl font-UbuntuSans font-normal mb-2 text-black text-center">New Password</h4>
+				<h4 className={`${isLargeScreen ? 'text-4xl' : 'text-2xl'} font-UbuntuSans font-normal mb-2 text-black text-center`}>New Password</h4>
 
 				<div className="flex flex-col gap-8 my-10">
 					<WebPasswordInput

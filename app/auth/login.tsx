@@ -18,7 +18,7 @@ import { useAuth } from "@/src/hooks/useAuthContext";
 import { Link, useRouter } from "expo-router";
 import { fetchMe, loginUser } from "@/src/lib/api/auth";
 import { useAuthStore } from "@/src/lib/stores/authStore";
-import { broadcastLogin, storeAuthState } from "@/src/lib/helpers";
+import { broadcastLogin, getWidthBreakpoint, storeAuthState } from "@/src/lib/helpers";
 import Images from "@/src/constants/images";
 import { cn } from "@/src/lib/cn";
 import icons from "@/src/constants/icons";
@@ -39,7 +39,7 @@ export default function Login() {
   const [errorMessage, setErrorMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const isLargeScreen = width > 768;
+  const isLargeScreen = width > getWidthBreakpoint();
 
   useEffect(() => {
     const prepare = async () => {

@@ -1,7 +1,7 @@
 import WebSidebar from '@/src/components/web/WebSidebar';
 import { router, usePathname } from 'expo-router';
 import { useEffect, useState, ChangeEvent } from 'react';
-import { Image, Platform, ActivityIndicator } from 'react-native';
+import { Image, Platform, ActivityIndicator, useWindowDimensions } from 'react-native';
 import WebNavLink from '@/src/components/web/WebNavLink';
 import { menuRoutes } from '@/app/(protected)/user/_layout';
 import { adminRoutes } from '../../_layout';
@@ -10,6 +10,8 @@ import Modal from '@/src/components/web/Modal';
 import { registerUser, activateUser } from '@/src/lib/api/user';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { RegisterUserPayload } from '@/src/types/user';
+import { getWidthBreakpoint } from '@/src/lib/helpers';
+import RegisterUser from './index.native';
 
 const ROLES = [
 	{ name: 'Resident', value: 'resident' },
@@ -23,7 +25,7 @@ const ID_TYPES = [
 	{ name: 'Voter Card', value: 'voter_card' },
 ];
 
-export default function RegisterUserWeb() {
+function RegisterUserWeb() {
 	const [step, setStep] = useState(1);
 	const [error, setError] = useState('');
 	const [messageType, setMessageType] = useState<'success' | 'error'>('error');
@@ -247,12 +249,12 @@ export default function RegisterUserWeb() {
 												Create Password
 											</label>
 											<div className="relative w-full">
-												<input 
-													name="password" 
-													type={showPassword ? 'text' : 'password'} 
-													placeholder="Enter password for user" 
-													value={password} 
-													onChange={(e: ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)} 
+												<input
+													name="password"
+													type={showPassword ? 'text' : 'password'}
+													placeholder="Enter password for user"
+													value={password}
+													onChange={(e: ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
 													className="input-style-web pr-12 w-full"
 													// Disable copy and paste
 													onCopy={(e) => e.preventDefault()}
@@ -341,4 +343,11 @@ export default function RegisterUserWeb() {
 			</div>
 		</div>
 	);
+}
+
+export default function AdminAddUserPage() {
+	const { width } = useWindowDimensions();
+
+	const isLargeScreen = width > getWidthBreakpoint();
+	return isLargeScreen ? <RegisterUserWeb /> : <RegisterUser />;
 }
