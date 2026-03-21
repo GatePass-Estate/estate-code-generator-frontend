@@ -2,7 +2,8 @@ import WebSidebar from '@/src/components/web/WebSidebar';
 import { router, usePathname } from 'expo-router';
 import { menuRoutes } from '../user/_layout';
 import { useEffect, useState, useMemo, useRef } from 'react';
-import { getAllEstateUsers, promoteToAdmin, demoteToResident } from '@/src/lib/api/user';
+import { Feather } from '@expo/vector-icons';
+import { getAllEstateUsers, promoteToAdmin, demoteToResident, resendEmailVerification, deleteUser } from '@/src/lib/api/user';
 import { AllUsers } from '@/src/types/user';
 import { UserRolesType } from '@/src/types/general';
 import icons from '@/src/constants/icons';
@@ -27,7 +28,7 @@ function AdminUsersPageWeb() {
 		isOpen: boolean;
 		message: string;
 		heading: string;
-		actionType: 'promote' | 'demote' | 'deactivate' | 'reactivate' | null;
+		actionType: 'promote' | 'demote' | 'deactivate' | 'reactivate' | 'resendVerification' | 'deleteUser' | null;
 		userId: string | null;
 		userName: string;
 		isError: boolean;
@@ -121,7 +122,7 @@ function AdminUsersPageWeb() {
 		});
 	};
 
-	const showModal = (message: string, actionType: 'promote' | 'demote' | 'deactivate' | 'reactivate' | null = null, userId: string | null = null, userName: string = '', isError: boolean = false) => {
+	const showModal = (message: string, actionType: 'promote' | 'demote' | 'deactivate' | 'reactivate' | 'resendVerification' | 'deleteUser' | null = null, userId: string | null = null, userName: string = '', isError: boolean = false) => {
 		let heading = 'Confirmation';
 		if (isError) {
 			heading = 'Error';
@@ -133,6 +134,10 @@ function AdminUsersPageWeb() {
 			heading = 'Deactivate User';
 		} else if (actionType === 'reactivate') {
 			heading = 'Reactivate User';
+		} else if (actionType === 'resendVerification') {
+			heading = 'Resend Verification Email';
+		} else if (actionType === 'deleteUser') {
+			heading = 'Delete User';
 		}
 
 		setModalState({
@@ -165,6 +170,12 @@ function AdminUsersPageWeb() {
 			} else if (modalState.actionType === 'reactivate') {
 				successMessage = 'User has been successfully reactivated.';
 				console.log('Reactivate action for user:', modalState.userId);
+			} else if (modalState.actionType === 'resendVerification') {
+				await resendEmailVerification(modalState.userId);
+				successMessage = `Verification email has been resent to ${modalState.userName}.`;
+			} else if (modalState.actionType === 'deleteUser') {
+				await deleteUser(modalState.userId);
+				successMessage = `${modalState.userName} has been successfully deleted.`;
 			}
 
 			setModalState({
@@ -232,6 +243,20 @@ function AdminUsersPageWeb() {
 			return;
 		}
 		showModal('Are you sure you want to reactivate this user?', 'reactivate', userId, userName);
+	};
+
+	const resendEmail = (userId: string, firstName: string, lastName: string) => {
+		const userName = `${firstName} ${lastName}`.trim();
+		showModal('Are you sure you want to resend the verification email to this user?', 'resendVerification', userId, userName);
+	};
+
+	const deleteAccount = (userId: string, firstName: string, lastName: string) => {
+		const userName = `${firstName} ${lastName}`.trim();
+		if (userId === myId) {
+			showModal('You cannot delete your own account.', null, null, '', true);
+			return;
+		}
+		showModal('Are you sure you want to permanently delete this user?', 'deleteUser', userId, userName);
 	};
 
 	return (
@@ -357,26 +382,33 @@ function AdminUsersPageWeb() {
 													</td>
 													<td className="py-4 px-4">
 														<div className={`flex ${user.role === 'security' && 'justify-end'}`}>
-															{user.role === 'security' ? (
-																<></>
-															) : !['admin', 'primary_admin'].includes(user.role!) ? (
-																<button onClick={() => promteUserToAdmin(user.id!, user.first_name || '', user.last_name || '')} className="p-2 hover:bg-gray-200 transition border-r-2 border-grey" title="Make Admin">
-																	<Image source={icons.userIcon} style={{ width: 20, height: 20 }} resizeMode="contain" />
-																</button>
-															) : (
-																<button onClick={() => demoteAdminToUser(user.id!, user.first_name || '', user.last_name || '', user.role!)} className="p-2 hover:bg-gray-200 transition border-r-2 border-grey" title="Make Resident">
-																	<Image source={icons.activeGuestIcon} style={{ width: 20, height: 20, opacity: 0.5 }} resizeMode="contain" />
-																</button>
-															)}
-
 															{user.status ? (
-																<button className="p-2 hover:bg-gray-200 transition" title="Deactivate User" onClick={() => deativateUser(user.id!, user.first_name || '', user.last_name || '')}>
-																	<Image source={icons.userEdit} style={{ width: 20, height: 20 }} resizeMode="contain" />
-																</button>
+																<>
+																	{user.role === 'security' ? (
+																		<></>
+																	) : !['admin', 'primary_admin'].includes(user.role!) ? (
+																		<button onClick={() => promteUserToAdmin(user.id!, user.first_name || '', user.last_name || '')} className="p-2 hover:bg-gray-200 transition border-r-2 border-grey" title="Make Admin">
+																			<Image source={icons.userIcon} style={{ width: 20, height: 20, tintColor: '#113E55' }} resizeMode="contain" />
+																		</button>
+																	) : (
+																		<button onClick={() => demoteAdminToUser(user.id!, user.first_name || '', user.last_name || '', user.role!)} className="p-2 hover:bg-gray-200 transition border-r-2 border-grey" title="Make Resident">
+																			<Image source={icons.activeGuestIcon} style={{ width: 20, height: 20, tintColor: '#113E55' }} resizeMode="contain" />
+																		</button>
+																	)}
+
+																	<button className="p-2 hover:bg-gray-200 transition" title="Deactivate User" onClick={() => deativateUser(user.id!, user.first_name || '', user.last_name || '')}>
+																		<Image source={icons.userEdit} style={{ width: 20, height: 20, tintColor: '#113E55' }} resizeMode="contain" />
+																	</button>
+																</>
 															) : (
-																<button className="p-2 hover:bg-gray-200 transition" title="Reactivate User" onClick={() => reactivateUser(user.id!, user.first_name || '', user.last_name || '')}>
-																	<Image source={icons.addUser} style={{ width: 20, height: 20 }} resizeMode="contain" />
-																</button>
+																<>
+																	<button className="p-2 hover:bg-gray-200 transition border-r-2 border-grey" title="Resend Email" onClick={() => resendEmail(user.id!, user.first_name || '', user.last_name || '')}>
+																		<Feather name="mail" size={20} color="#113E55" />
+																	</button>
+																	<button className="p-2 hover:bg-gray-200 transition" title="Delete User" onClick={() => deleteAccount(user.id!, user.first_name || '', user.last_name || '')}>
+																		<Feather name="trash-2" size={20} color="#113E55" />
+																	</button>
+																</>
 															)}
 														</div>
 													</td>
@@ -408,7 +440,8 @@ function AdminUsersPageWeb() {
 					message={modalState.message}
 					cancelText={modalState.isError ? 'Close' : 'Cancel'}
 					action={modalState.isError ? undefined : handleConfirmAction}
-					actionText={modalState.actionType === 'promote' ? 'Promote' : modalState.actionType === 'demote' ? 'Demote' : modalState.actionType === 'deactivate' ? 'Deactivate' : modalState.actionType === 'reactivate' ? 'Reactivate' : undefined}
+					actionText={modalState.actionType === 'promote' ? 'Promote' : modalState.actionType === 'demote' ? 'Demote' : modalState.actionType === 'deactivate' ? 'Deactivate' : modalState.actionType === 'reactivate' ? 'Reactivate' : modalState.actionType === 'resendVerification' ? 'Resend' : modalState.actionType === 'deleteUser' ? 'Delete' : undefined}
+					actionBtnClassName={['promote', 'reactivate', 'resendVerification'].includes(modalState.actionType || '') ? 'bg-primary hover:bg-primary/90' : 'bg-red-600 hover:bg-red-700'}
 					actionRunnig={processing}
 					runningText="Processing..."
 					btnDisabled={processing}
