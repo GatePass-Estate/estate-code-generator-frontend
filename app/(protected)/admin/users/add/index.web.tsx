@@ -37,7 +37,6 @@ function RegisterUserWeb() {
 	const [lastName, setLastName] = useState('');
 	const [email, setEmail] = useState('');
 	const [phone, setPhone] = useState('');
-	const [password, setPassword] = useState('NewPowerfulPassword');
 	const [showPassword, setShowPassword] = useState(false);
 	const [selectedRole, setSelectedRole] = useState<'resident' | 'security'>('resident');
 
@@ -78,14 +77,7 @@ function RegisterUserWeb() {
 			setError('Please enter phone number.');
 			return false;
 		}
-		if (!password.trim()) {
-			setError('Please enter a password.');
-			return false;
-		}
-		if (password.length < 6) {
-			setError('Password must be at least 6 characters.');
-			return false;
-		}
+		
 		return true;
 	};
 
@@ -129,12 +121,9 @@ function RegisterUserWeb() {
 				const registeredUser = await registerUser(payload);
 
 				if (registeredUser && registeredUser.id) {
-					const activatedUser = await activateUser({
-						user_id: registeredUser.id,
-						new_password: password,
-					});
+				
 
-					if (activatedUser) {
+					if (registeredUser) {
 						setMessageType('success');
 						setError('User registered and activated successfully!');
 						// Reset form
@@ -142,7 +131,6 @@ function RegisterUserWeb() {
 						setLastName('');
 						setEmail('');
 						setPhone('');
-						setPassword('NewPowerfulPassword');
 						setSelectedRole('resident');
 						setHomeAddress('');
 						setIdType('');
@@ -244,29 +232,7 @@ function RegisterUserWeb() {
 											</div>
 										</div>
 
-										<div className="input-group-web">
-											<label htmlFor="password" className="input-label-web">
-												Create Password
-											</label>
-											<div className="relative w-full">
-												<input
-													name="password"
-													type={showPassword ? 'text' : 'password'}
-													placeholder="Enter password for user"
-													value={password}
-													onChange={(e: ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
-													className="input-style-web pr-12 w-full"
-													// Disable copy and paste
-													onCopy={(e) => e.preventDefault()}
-													onPaste={(e) => e.preventDefault()}
-													onCut={(e) => e.preventDefault()}
-													onContextMenu={(e) => e.preventDefault()}
-												/>
-												<div onClick={() => setShowPassword(!showPassword)} className="absolute right-6 top-6 cursor-pointer">
-													<Image source={showPassword ? icons.eye : icons.hiddenEye} style={{ width: 20, height: 20 }} resizeMode="contain" />
-												</div>
-											</div>
-										</div>
+										
 
 										<div className="input-group-web !flex-row !items-center !gap-6">
 											<label htmlFor="role" className="input-label-web">

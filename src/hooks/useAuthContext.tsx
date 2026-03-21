@@ -107,6 +107,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await performSignOut();
   };
 
+  const hasLoadedAuth = useRef(false);
+
   useEffect(() => {
     let cleanupSync: (() => void) | undefined;
 
@@ -120,7 +122,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     const loadAuthState = async () => {
+      if (hasLoadedAuth.current) return;
+      hasLoadedAuth.current = true;
+
       const initialURL = await Linking.getInitialURL();
+      const currentPath = pathname;
       const localData = await getAuthState();
 
       if (localData?.access_token) {
@@ -145,11 +151,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             router.replace("/security");
           }
         } else {
-          if (!isPublicRoute(pathname, initialURL))
+          if (!isPublicRoute(currentPath, initialURL))
             router.replace("/auth/login");
         }
       } catch (error) {
-        if (!isPublicRoute(pathname, initialURL)) router.replace("/auth/login");
+        if (!isPublicRoute(currentPath, initialURL))
+          router.replace("/auth/login");
         console.log("Error loading auth state", error);
       } finally {
         setIsReady(true);
