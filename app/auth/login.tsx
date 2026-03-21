@@ -1,3 +1,4 @@
+// Primidac here - Logic and button for the Google Sign in was commented out instead of removed entirely just incase we need to fall back to the feature in the future.
 import * as WebBrowser from 'expo-web-browser';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState, useCallback, useMemo } from 'react';
@@ -15,7 +16,7 @@ import { cn } from '@/src/lib/cn';
 import icons from '@/src/constants/icons';
 import LoadingTransition from '@/src/components/common/LoadingTransition';
 
-WebBrowser.maybeCompleteAuthSession();
+// WebBrowser.maybeCompleteAuthSession();
 SplashScreen.preventAutoHideAsync();
 
 export default function Login() {
@@ -70,10 +71,18 @@ export default function Login() {
 
 		try {
 			const result = await loginUser(emailValue, password);
+
+			if (result.requires_tos_acceptance) {
+				router.push({
+					pathname: '/auth/tos',
+					params: { token: result.access_token, role: result.role || '' },
+				});
+				return;
+			}
+
 			useAuthStore.setState({ access_token: result.access_token, role: result.role });
 			await storeAuthState(result);
 
-			// Broadcast login to other tabs (web only)
 			broadcastLogin(result.access_token, result.role);
 
 			signIn(await fetchMe(result.access_token));
@@ -159,16 +168,20 @@ export default function Login() {
 								<Image source={showPassword ? icons.eye : icons.hiddenEye} style={{ width: 20, height: 20 }} resizeMode="contain" />
 							</Pressable>
 						</View>
+						{/* Primidac here - Forgot Password link added as a placeholder. Logic to handle password reset is not yet implemented. */}
+						<Pressable className="mt-2 self-start">
+							<Text className="text-primary font-ubuntu-medium text-base underline" style={{ letterSpacing: -0.24, lineHeight: 16 }}>Forgot Password?</Text>
+						</Pressable>
 					</View>
 
 					<View className="mt-4 gap-5">
 						<Button className={`self-center rounded-lg flex-row items-center justify-center w-11/12 h-14 ${isLoading ? 'opacity-70' : ''}`} size={Platform.select({ ios: 'lg', default: 'lg' })} onPress={handleSignInPress} disabled={isLoading}>
-							{isLoading ? <ActivityIndicator color="#fff" /> : <Text className="text-white font-UbuntuSans font-semibold text-center">Sign In</Text>}
+							{isLoading ? <ActivityIndicator color="#fff" /> : <Text className="text-white font-UbuntuSans font-semibold text-center">Continue</Text>}
 						</Button>
 
-						<Button className={`self-center rounded-lg flex-row items-center justify-center w-11/12 h-14 bg-dark-teal ${isLoading ? 'opacity-70' : ''}`} size={Platform.select({ ios: 'lg', default: 'lg' })} disabled={isLoading}>
+						{/* <Button className={`self-center rounded-lg flex-row items-center justify-center w-11/12 h-14 bg-dark-teal ${isLoading ? 'opacity-70' : ''}`} size={Platform.select({ ios: 'lg', default: 'lg' })} disabled={isLoading}>
 							<Text className="text-white font-UbuntuSans font-semibold text-center">Continue With Google</Text>
-						</Button>
+						</Button> */}
 					</View>
 				</View>
 			</View>

@@ -25,6 +25,7 @@ function RootLayoutContent() {
 				}}
 			>
 				<Stack.Screen name="auth/login" options={{ animation: 'none' }} />
+				<Stack.Screen name="auth/tos" options={{ animation: 'none' }} />
 				<Stack.Screen name="(protected)" />
 			</Stack>
 		</>
