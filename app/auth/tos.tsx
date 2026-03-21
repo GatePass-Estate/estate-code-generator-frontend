@@ -267,6 +267,22 @@ export default function TermsOfService() {
 		sectionRefs.current[sectionId] = y;
 	};
 
+	const handleScroll = (event: any) => {
+		const scrollPosition = event.nativeEvent.contentOffset.y;
+		let currentSection = TOS_SECTIONS[0].id;
+
+		for (const section of TOS_SECTIONS) {
+			const yOffset = sectionRefs.current[section.id];
+			if (yOffset !== undefined && scrollPosition >= yOffset - 100) {
+				currentSection = section.id;
+			}
+		}
+
+		if (currentSection !== activeSection) {
+			setActiveSection(currentSection);
+		}
+	};
+
 	if (isLargeScreen) {
 		return (
 			<SafeAreaView className="h-full bg-white">
@@ -316,6 +332,8 @@ export default function TermsOfService() {
 						ref={scrollViewRef}
 						className="flex-1"
 						contentContainerStyle={{ padding: 48, paddingBottom: 80 }}
+						onScroll={handleScroll}
+						scrollEventThrottle={16}
 						showsVerticalScrollIndicator={false}
 					>
 						<Text className="font-UbuntuSans text-4xl text-primary">

@@ -195,22 +195,26 @@ export default function Login() {
 						</View>
 					</View>
 				</View>
-			</SafeAreaView>
-
-			{showTosRejected && isLargeScreen && (
-				<div className="fixed inset-0 z-50 flex items-center justify-center">
-					<div className="absolute inset-0 bg-black/50" onClick={() => setShowTosRejected(false)} />
-					<div className="bg-white rounded-2xl p-8 z-10 flex flex-row items-start gap-6" style={{ width: 540 }}>
-						<Image source={require('@/src/assets/condition.svg')} style={{ width: 120, height: 120 }} resizeMode="contain" />
-						<div className="flex-1">
-							<h3 className="font-ubuntu-bold text-xl text-black">Accept Terms of Service</h3>
-							<p className="font-inter-regular text-sm text-[#4B5563] mt-3 leading-6">
-								Take a moment to review our Terms and Conditions. By tapping Accept, you agree to these terms and can continue enjoying GatePass. If you'd like, you can read through them now or come back to them anytime in settings.
-							</p>
+			</SafeAreaView>			{showTosRejected && isLargeScreen && (
+				<div className="fixed top-10 left-1/2 -translate-x-1/2 z-50 transition-all">
+					<div className="bg-white rounded-2xl p-5 shadow-2xl border border-red-100 flex flex-col gap-4" style={{ width: 500 }}>
+						<div className="flex flex-row items-start gap-4">
+							<Image source={require('@/src/assets/condition.svg')} style={{ width: 56, height: 56 }} resizeMode="contain" />
+							<div className="flex-1 mt-0.5">
+								<h3 className="font-ubuntu-bold text-xl text-black">Terms of Service</h3>
+								<p className="font-inter-regular text-sm text-[#4B5563] mt-2 leading-5">
+									Access to GatePass requires your acceptance of our Terms and Conditions. Please review and accept them to continue.
+								</p>
+							</div>
 						</div>
-						<button className="p-1 hover:bg-gray-100 rounded transition" onClick={() => setShowTosRejected(false)}>
-							<AntDesign name="close" size={20} color="#9CA3AF" />
-						</button>
+						<div className="flex flex-row items-center justify-end gap-3 mt-1">
+							<button className="px-5 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition text-[#4B5563] font-ubuntu-medium text-sm" onClick={() => setShowTosRejected(false)}>
+								Close
+							</button>
+							<button className="px-5 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg transition font-ubuntu-medium text-sm shadow-sm" onClick={() => { setShowTosRejected(false); router.push('/auth/tos'); }}>
+								Review Terms
+							</button>
+						</div>
 					</div>
 				</div>
 			)}
