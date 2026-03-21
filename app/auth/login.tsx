@@ -197,24 +197,18 @@ export default function Login() {
 				</View>
 			</SafeAreaView>			{showTosRejected && isLargeScreen && (
 				<div className="fixed top-10 left-1/2 -translate-x-1/2 z-50 transition-all">
-					<div className="bg-white rounded-2xl p-5 shadow-2xl border border-red-100 flex flex-col gap-4" style={{ width: 500 }}>
-						<div className="flex flex-row items-start gap-4">
-							<Image source={require('@/src/assets/condition.svg')} style={{ width: 56, height: 56 }} resizeMode="contain" />
-							<div className="flex-1 mt-0.5">
-								<h3 className="font-ubuntu-bold text-xl text-black">Terms of Service</h3>
-								<p className="font-inter-regular text-sm text-[#4B5563] mt-2 leading-5">
-									Access to GatePass requires your acceptance of our Terms and Conditions. Please review and accept them to continue.
-								</p>
-							</div>
+					<div className="bg-white rounded-2xl p-5 shadow-2xl border border-red-100 flex flex-row items-start gap-4" style={{ width: 500 }}>
+						<Image source={require('@/src/assets/condition.svg')} style={{ width: 48, height: 48 }} resizeMode="contain" />
+						<div className="flex-1 mt-0.5">
+							<h3 className="font-ubuntu-bold text-lg text-black">Terms of Service</h3>
+							<p className="font-inter-regular text-sm text-[#4B5563] mt-2 leading-5">
+								Access to GatePass requires your acceptance of our Terms and Conditions.<br /><br />
+								Please review and accept them to continue.
+							</p>
 						</div>
-						<div className="flex flex-row items-center justify-end gap-3 mt-1">
-							<button className="px-5 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition text-[#4B5563] font-ubuntu-medium text-sm" onClick={() => setShowTosRejected(false)}>
-								Close
-							</button>
-							<button className="px-5 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg transition font-ubuntu-medium text-sm shadow-sm" onClick={() => { setShowTosRejected(false); router.push('/auth/tos'); }}>
-								Review Terms
-							</button>
-						</div>
+						<button className="p-1.5 hover:bg-gray-100 rounded-lg transition" onClick={() => setShowTosRejected(false)}>
+							<AntDesign name="close" size={18} color="#9CA3AF" />
+						</button>
 					</div>
 				</div>
 			)}
