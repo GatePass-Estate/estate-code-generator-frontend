@@ -7,7 +7,7 @@ import { FontAwesome, AntDesign } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/src/components/nativewindui/Button';
 import { useAuth } from '@/src/hooks/useAuthContext';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { fetchMe, loginUser } from '@/src/lib/api/auth';
 import { useAuthStore } from '@/src/lib/stores/authStore';
 import { broadcastLogin, getWidthBreakpoint, storeAuthState } from '@/src/lib/helpers';
@@ -23,6 +23,7 @@ export default function Login() {
 	const { signIn } = useAuth();
 	const router = useRouter();
 	const { width } = useWindowDimensions();
+	const searchParams = useLocalSearchParams<{ tos_rejected?: string }>();
 
 	const [appIsReady, setAppIsReady] = useState(false);
 	const [email, setEmail] = useState('');
@@ -30,6 +31,7 @@ export default function Login() {
 	const [showPassword, setShowPassword] = useState(false);
 	const [errorMessage, setErrorMessage] = useState('');
 	const [isLoading, setIsLoading] = useState(false);
+	const [showTosRejected, setShowTosRejected] = useState(searchParams.tos_rejected === 'true');
 
 	const isLargeScreen = width > getWidthBreakpoint();
 
@@ -124,67 +126,94 @@ export default function Login() {
 	if (!appIsReady) return <LoadingTransition />;
 
 	return (
-		<SafeAreaView className={`h-full ${isLargeScreen ? 'grid grid-cols-12' : 'flex-1 bg-white'}`}>
-			{isLargeScreen && (
-				<View className="col-span-6 relative h-screen overflow-hidden">
-					<Image source={Images.loginImage} resizeMode="cover" className="absolute inset-0 w-full h-full" />
-				</View>
-			)}
+		<>
+			<SafeAreaView className={`h-full ${isLargeScreen ? 'grid grid-cols-12' : 'flex-1 bg-white'}`}>
+				{isLargeScreen && (
+					<View className="col-span-6 relative h-screen overflow-hidden">
+						<Image source={Images.loginImage} resizeMode="cover" className="absolute inset-0 w-full h-full" />
+					</View>
+				)}
 
-			<View
-				className={cn(`p-6 w-full self-center ${isLargeScreen ? 'col-span-6' : ''} `)}
-				style={{
-					flex: 1,
-					justifyContent: 'center',
-				}}
-			>
-				<View className="items-center mb-10 text-center max-w-xl">
-					<Text className={`text-primary font-UbuntuSans ${isLargeScreen ? 'text-7xl' : 'text-5xl'}`}>Welcome !</Text>
-					<Text className={`mt-1 text-black font-Inter ${isLargeScreen ? 'text-base' : 'text-xs font-medium'}`}>Sign in to send invites to your guests</Text>
-				</View>
-
-				<View className="gap-4 max-w-xl">
-					{ErrorBanner}
-
-					<View>
-						<Text className={`pb-1 text-grey ${isLargeScreen ? 'text-base' : ''}`}>Email Address</Text>
-						<TextInput placeholder="Enter your email address..." keyboardType="email-address" value={email} onChangeText={setEmail} autoCapitalize="none" editable={!isLoading} className="bg-[#F7F9F9] border border-[#D1D5DB] rounded-lg px-4 py-5 mt-1" />
+				<View
+					className={cn(`p-6 w-full self-center ${isLargeScreen ? 'col-span-6' : ''} `)}
+					style={{
+						flex: 1,
+						justifyContent: 'center',
+					}}
+				>
+					<View className="items-center mb-10 text-center max-w-xl">
+						<Text className={`text-primary font-UbuntuSans ${isLargeScreen ? 'text-7xl' : 'text-5xl'}`}>Welcome !</Text>
+						<Text className={`mt-1 text-black font-Inter ${isLargeScreen ? 'text-base' : 'text-xs font-medium'}`}>Sign in to send invites to your guests</Text>
 					</View>
 
-					<View>
-						<Text className={`pb-1 text-grey ${isLargeScreen ? 'text-base' : ''}`}>Password</Text>
-						<View className="relative">
-							<TextInput
-								placeholder="Enter your password..."
-								secureTextEntry={!showPassword}
-								value={password}
-								onChangeText={setPassword}
-								editable={!isLoading}
-								className="bg-[#F7F9F9] border border-[#D1D5DB] rounded-lg px-4 py-5 mt-1 pr-12"
-								contextMenuHidden={true}
-								selectTextOnFocus={false}
-							/>
-							<Pressable onPress={() => setShowPassword(!showPassword)} className="absolute right-3 top-6" disabled={isLoading}>
-								<Image source={showPassword ? icons.eye : icons.hiddenEye} style={{ width: 20, height: 20 }} resizeMode="contain" />
+					<View className="gap-4 max-w-xl">
+						{showTosRejected && !isLargeScreen && (
+							<View style={{ borderRadius: 16, borderWidth: 0.5, borderColor: '#FFCDD2', backgroundColor: '#FFF0F0', paddingVertical: 14, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', alignSelf: 'center', gap: 10 }}>
+								<FontAwesome name="warning" size={18} color="#E53935" />
+								<Text style={{ color: '#E53935', fontSize: 14, fontFamily: 'Ubuntu-BoldItalic', textAlign: 'center', fontWeight: 'bold', fontStyle: 'italic' }}>Please Accept Terms and Conditions{'\n'}to use GatePass</Text>
+							</View>
+						)}
+
+						{ErrorBanner}
+
+						<View>
+							<Text className={`pb-1 text-grey ${isLargeScreen ? 'text-base' : ''}`}>Email Address</Text>
+							<TextInput placeholder="Enter your email address..." keyboardType="email-address" value={email} onChangeText={setEmail} autoCapitalize="none" editable={!isLoading} className="bg-[#F7F9F9] border border-[#D1D5DB] rounded-lg px-4 py-5 mt-1" />
+						</View>
+
+						<View>
+							<Text className={`pb-1 text-grey ${isLargeScreen ? 'text-base' : ''}`}>Password</Text>
+							<View className="relative">
+								<TextInput
+									placeholder="Enter your password..."
+									secureTextEntry={!showPassword}
+									value={password}
+									onChangeText={setPassword}
+									editable={!isLoading}
+									className="bg-[#F7F9F9] border border-[#D1D5DB] rounded-lg px-4 py-5 mt-1 pr-12"
+									contextMenuHidden={true}
+									selectTextOnFocus={false}
+								/>
+								<Pressable onPress={() => setShowPassword(!showPassword)} className="absolute right-3 top-6" disabled={isLoading}>
+									<Image source={showPassword ? icons.eye : icons.hiddenEye} style={{ width: 20, height: 20 }} resizeMode="contain" />
+								</Pressable>
+							</View>
+
+							<Pressable className="mt-5 self-start" onPress={() => router.push('/auth/forgot-password')}>
+								<Text className="text-primary font-ubuntu-medium text-base underline" style={{ letterSpacing: -0.24, lineHeight: 16 }}>Forgot Password?</Text>
 							</Pressable>
 						</View>
-						{/* Primidac here - Forgot Password link added as a placeholder. Logic to handle password reset is not yet implemented. */}
-						<Pressable className="mt-2 self-start">
-							<Text className="text-primary font-ubuntu-medium text-base underline" style={{ letterSpacing: -0.24, lineHeight: 16 }}>Forgot Password?</Text>
-						</Pressable>
-					</View>
 
-					<View className="mt-4 gap-5">
-						<Button className={`self-center rounded-lg flex-row items-center justify-center w-11/12 h-14 ${isLoading ? 'opacity-70' : ''}`} size={Platform.select({ ios: 'lg', default: 'lg' })} onPress={handleSignInPress} disabled={isLoading}>
-							{isLoading ? <ActivityIndicator color="#fff" /> : <Text className="text-white font-UbuntuSans font-semibold text-center">Continue</Text>}
-						</Button>
+						<View className="mt-4 gap-5">
+							<Button className={`self-center rounded-lg flex-row items-center justify-center w-11/12 h-14 ${isLoading ? 'opacity-70' : ''}`} size={Platform.select({ ios: 'lg', default: 'lg' })} onPress={handleSignInPress} disabled={isLoading}>
+								{isLoading ? <ActivityIndicator color="#fff" /> : <Text className="text-white font-UbuntuSans font-semibold text-center">Continue</Text>}
+							</Button>
 
-						{/* <Button className={`self-center rounded-lg flex-row items-center justify-center w-11/12 h-14 bg-dark-teal ${isLoading ? 'opacity-70' : ''}`} size={Platform.select({ ios: 'lg', default: 'lg' })} disabled={isLoading}>
+							{/* <Button className={`self-center rounded-lg flex-row items-center justify-center w-11/12 h-14 bg-dark-teal ${isLoading ? 'opacity-70' : ''}`} size={Platform.select({ ios: 'lg', default: 'lg' })} disabled={isLoading}>
 							<Text className="text-white font-UbuntuSans font-semibold text-center">Continue With Google</Text>
 						</Button> */}
+						</View>
 					</View>
 				</View>
-			</View>
-		</SafeAreaView>
+			</SafeAreaView>
+
+			{showTosRejected && isLargeScreen && (
+				<div className="fixed inset-0 z-50 flex items-center justify-center">
+					<div className="absolute inset-0 bg-black/50" onClick={() => setShowTosRejected(false)} />
+					<div className="bg-white rounded-2xl p-8 z-10 flex flex-row items-start gap-6" style={{ width: 540 }}>
+						<Image source={require('@/src/assets/condition.svg')} style={{ width: 120, height: 120 }} resizeMode="contain" />
+						<div className="flex-1">
+							<h3 className="font-ubuntu-bold text-xl text-black">Accept Terms of Service</h3>
+							<p className="font-inter-regular text-sm text-[#4B5563] mt-3 leading-6">
+								Take a moment to review our Terms and Conditions. By tapping Accept, you agree to these terms and can continue enjoying GatePass. If you'd like, you can read through them now or come back to them anytime in settings.
+							</p>
+						</div>
+						<button className="p-1 hover:bg-gray-100 rounded transition" onClick={() => setShowTosRejected(false)}>
+							<AntDesign name="close" size={20} color="#9CA3AF" />
+						</button>
+					</div>
+				</div>
+			)}
+		</>
 	);
 }

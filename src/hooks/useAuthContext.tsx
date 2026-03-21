@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import { fetchMe } from '@/src/lib/api/auth';
 import { broadcastLogout, clearAuthState, getAuthState, initAuthSync } from '@/src/lib/helpers';
 import { useAuthStore } from '@/src/lib/stores/authStore';
@@ -13,8 +14,8 @@ SplashScreen.preventAutoHideAsync();
 const AuthContext = createContext<AuthContextType>({
 	isReady: false,
 	resetKey: 0,
-	signIn: async () => {},
-	signOut: async () => {},
+	signIn: async () => { },
+	signOut: async () => { },
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -106,7 +107,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 						router.replace('/security');
 					}
 				} else {
-					router.replace('/auth/login');
+
+					if (Platform.OS === 'web') {
+						const currentPath = window.location?.pathname || '';
+						const publicAuthPaths = ['/auth/login', '/auth/forgot-password', '/auth/reset-password', '/auth/tos', '/auth/data-protection-policy'];
+						if (!publicAuthPaths.some(path => currentPath.includes(path))) {
+							router.replace('/auth/login');
+						}
+					} else {
+
+						router.replace('/auth/login');
+					}
 				}
 			} catch (error) {
 				router.replace('/auth/login');

@@ -51,3 +51,33 @@ export async function fetchMe(token: string) {
 		throw new Error(`${getErrorMessage(error) || 'An error occured'} `);
 	}
 }
+
+export async function forgotPassword(email: string): Promise<{ message: string }> {
+	try {
+		const api = Api();
+		const axiosRes = await api.post(`/auth/forgot-password`, { email });
+		return axiosRes.data;
+	} catch (error: any) {
+		throw new Error(`${getErrorMessage(error) || 'Failed to send password reset email'} `);
+	}
+}
+
+export async function verifyPasswordReset(token: string): Promise<{ user_id: string; email: string; must_change_password: boolean }> {
+	try {
+		const api = Api();
+		const axiosRes = await api.get(`/users/verify/password-reset?token=${token}`);
+		return axiosRes.data;
+	} catch (error: any) {
+		throw new Error(`${getErrorMessage(error) || 'Invalid or expired reset link'} `);
+	}
+}
+
+export async function resetPassword(user_id: string, new_password: string): Promise<{ message: string }> {
+	try {
+		const api = Api();
+		const axiosRes = await api.post(`/users/password/reset`, { user_id, new_password });
+		return axiosRes.data;
+	} catch (error: any) {
+		throw new Error(`${getErrorMessage(error) || 'Failed to reset password'} `);
+	}
+}

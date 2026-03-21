@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { Platform, View, Text, ScrollView, Pressable, Image, ActivityIndicator, useWindowDimensions, Linking } from 'react-native';
+import { Platform, View, Text, ScrollView, Pressable, Image, ActivityIndicator, useWindowDimensions, Linking, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AntDesign } from '@expo/vector-icons';
@@ -83,6 +83,19 @@ const TOS_SECTIONS = [
 		title: '7. Privacy and Data Protection',
 		content:
 			'Your use of the Service is also governed by our Privacy Policy and Data Protection Policy, which explain how we collect, use, and protect your personal data.\nWe comply with the Nigeria Data Protection Act (NDPA) 2023 and other applicable laws.',
+		customRender: (router: any) => (
+			<Text className="font-Inter text-sm text-[#4B5563] leading-6 mb-3">
+				Your use of the Service is also governed by our Privacy Policy and{' '}
+				<Text 
+					onPress={() => router.push('/auth/data-protection-policy')} 
+					className="text-primary font-ubuntu-medium underline"
+				>
+					Data Protection Policy
+				</Text>
+				, which explain how we collect, use, and protect your personal data.{'\n'}
+				We comply with the Nigeria Data Protection Act (NDPA) 2023 and other applicable laws.
+			</Text>
+		)
 	},
 	{
 		id: 'payments',
@@ -239,7 +252,7 @@ export default function TermsOfService() {
 
 	const handleReject = useCallback(() => {
 		setIsRejecting(true);
-		router.replace('/auth/login');
+		router.replace({ pathname: '/auth/login', params: { tos_rejected: 'true' } });
 	}, [router]);
 
 	const handleSectionPress = (sectionId: string) => {
@@ -322,9 +335,15 @@ export default function TermsOfService() {
 									<Text className="font-UbuntuSans text-xl text-black font-semibold">
 										{section.title}
 									</Text>
-									<Text className="font-Inter text-sm text-[#4B5563] mt-3 leading-5">
-										{section.content}
-									</Text>
+									
+									{section.customRender ? (
+										section.customRender(router)
+									) : (
+										<Text className="font-Inter text-sm text-[#4B5563] mt-3 leading-5">
+											{section.content}
+										</Text>
+									)}
+
 									{section.bullets && (
 										<View className="mt-2 ml-4">
 											{section.bullets.map((bullet, i) => (
@@ -398,7 +417,7 @@ export default function TermsOfService() {
 	return (
 		<SafeAreaView className="flex-1 bg-white">
 			<View className="flex-row justify-between items-center px-5 pt-4">
-				<Pressable onPress={handleReject} className="flex-row items-center">
+				<Pressable onPress={() => { setIsRejecting(true); router.replace({ pathname: '/auth/login', params: { tos_rejected: 'true' } }); }} className="flex-row items-center">
 					<AntDesign name="left" size={16} color="#04121A" />
 					<Text className="font-Inter text-base text-black ml-1">Back</Text>
 				</Pressable>
@@ -431,9 +450,15 @@ export default function TermsOfService() {
 							<Text className="font-UbuntuSans text-lg text-black font-semibold">
 								{section.title}
 							</Text>
-							<Text className="font-Inter text-sm text-[#4B5563] mt-2 leading-5">
-								{section.content}
-							</Text>
+
+							{section.customRender ? (
+								section.customRender(router)
+							) : (
+								<Text className="font-Inter text-sm text-[#4B5563] mt-2 leading-5">
+									{section.content}
+								</Text>
+							)}
+
 							{section.bullets && (
 								<View className="mt-2 ml-4">
 									{section.bullets.map((bullet, i) => (
@@ -469,11 +494,11 @@ export default function TermsOfService() {
 				) : null}
 
 				<View className="mt-8 gap-4 items-center">
-					<Button
-						className="rounded-lg h-14 items-center justify-center w-10/12"
-						size={Platform.select({ ios: 'lg', default: 'lg' })}
+					<TouchableOpacity
 						onPress={handleAccept}
 						disabled={isAccepting}
+						style={{ backgroundColor: '#113E55', borderRadius: 10, height: 56, alignItems: 'center', justifyContent: 'center', width: '83%' }}
+						activeOpacity={0.8}
 					>
 						{isAccepting ? (
 							<ActivityIndicator color="#fff" />
@@ -482,12 +507,12 @@ export default function TermsOfService() {
 								I Accept
 							</Text>
 						)}
-					</Button>
-					<Button
-						className="rounded-lg h-14 items-center justify-center w-10/12 bg-teal"
-						size={Platform.select({ ios: 'lg', default: 'lg' })}
+					</TouchableOpacity>
+					<TouchableOpacity
 						onPress={handleReject}
 						disabled={isRejecting}
+						style={{ backgroundColor: '#1B998B', borderRadius: 10, height: 56, alignItems: 'center', justifyContent: 'center', width: '83%' }}
+						activeOpacity={0.8}
 					>
 						{isRejecting ? (
 							<ActivityIndicator color="#fff" />
@@ -496,7 +521,7 @@ export default function TermsOfService() {
 								I Reject
 							</Text>
 						)}
-					</Button>
+					</TouchableOpacity>
 				</View>
 			</ScrollView>
 		</SafeAreaView>
