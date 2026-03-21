@@ -13,3 +13,9 @@ export type LoginResponse = {
 	access_token: string;
 	role: UserRolesType;
 };
+
+export type VerifyEmailActivationResponse = {
+	user_id: string;
+	email: string;
+	must_change_password: boolean;
+};

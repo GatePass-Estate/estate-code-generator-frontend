@@ -1,53 +1,68 @@
 {
-	"expo": {
-		"name": "GatePass",
-		"slug": "my-expo-app",
-		"version": "1.0.0",
-		"scheme": "my-expo-app",
-		"orientation": "portrait",
-		"icon": "./src/assets/gatepass_ng_Gp.png",
-		"userInterfaceStyle": "automatic",
-		"newArchEnabled": true,
-		"splash": {
-			"image": "./src/assets/gatepass_ng_Gp.png",
-			"resizeMode": "contain",
-			"backgroundColor": "#000000",
-			"color": "#000000"
-		},
-		"android": {
-			"package": "com.specialone.gms",
-			"adaptiveIcon": {
-				"foregroundImage": "./src/assets/gatepass_ng_Gp.png",
-				"backgroundColor": "#000000"
-			}
-		},
-		"ios": {
-			"supportsTablet": true,
-			"bundleIdentifier": "com.specialone.gms"
-		},
-		"web": {
-			"bundler": "metro",
-			"output": "static",
-			"image": "./src/assets/gatepass_ng_Gp.png",
-			"favicon": "./src/assets/gatepass_ng_Gp.png"
-		},
-		"plugins": [
-			"expo-router",
-			"expo-font",
-			"expo-web-browser",
-			[
-				"expo-splash-screen",
-				{
-					"backgroundColor": "#000000",
-					"image": "./src/assets/gatepass_ng_Gp.png",
-					"dark": {
-						"image": "./src/assets/gatepass_ng_Gp.png",
-						"backgroundColor": "#000000"
-					},
-					"imageWidth": 200
-				}
-			]
-		],
-		"assetBundlePatterns": ["**/*"]
-	}
+  "expo": {
+    "name": "GatePass",
+    "slug": "my-expo-app",
+    "version": "1.0.0",
+    "scheme": "my-expo-app",
+    "orientation": "portrait",
+    "icon": "./src/assets/gatepass_ng_Gp.png",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./src/assets/gatepass_ng_Gp.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#000000",
+      "color": "#000000"
+    },
+    "android": {
+      "package": "com.specialone.gms",
+      "adaptiveIcon": {
+        "foregroundImage": "./src/assets/gatepass_ng_Gp.png",
+        "backgroundColor": "#000000"
+      },
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "app.gatepassng.com",
+              "pathPrefix": "/activate"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.specialone.gms",
+      "associatedDomains": ["applinks:app.gatepassng.com"]
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "image": "./src/assets/gatepass_ng_Gp.png",
+      "favicon": "./src/assets/gatepass_ng_Gp.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-web-browser",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#000000",
+          "image": "./src/assets/gatepass_ng_Gp.png",
+          "dark": {
+            "image": "./src/assets/gatepass_ng_Gp.png",
+            "backgroundColor": "#000000"
+          },
+          "imageWidth": 200
+        }
+      ]
+    ],
+    "assetBundlePatterns": ["**/*"]
+  }
 }
