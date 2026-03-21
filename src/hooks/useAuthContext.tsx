@@ -5,7 +5,7 @@ import { useAuthStore } from '@/src/lib/stores/authStore';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { AuthContextType } from '@/src/types/auth';
 import { User } from '@/src/types/user';
-import { SplashScreen, useRouter } from 'expo-router';
+import { SplashScreen, useRouter, usePathname } from 'expo-router';
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { UserRolesType } from '../types/general';
 
@@ -18,10 +18,11 @@ const AuthContext = createContext<AuthContextType>({
 	signOut: async () => { },
 });
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 	const [isReady, setIsReady] = useState(false);
 	const [resetKey, setResetKey] = useState(0);
 	const router = useRouter();
+	const pathname = usePathname();
 	const isProcessingRef = useRef(false);
 
 	const handleCrossTabLogin = useCallback(
@@ -96,33 +97,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 				useAuthStore.setState({ access_token: localData.access_token, role: localData.role });
 			}
 
+			let isAuthenticated = false;
+
 			try {
-				const myProfile = (await fetchMe(localData?.access_token || '')) as User;
+				if (localData?.access_token) {
+					const myProfile = (await fetchMe(localData.access_token)) as User;
 
-				if (myProfile && myProfile.status) {
-					await signIn(myProfile);
-					if (['primary_admin', 'admin', 'resident'].includes(myProfile.role!)) {
-						router.replace('/user');
-					} else if (myProfile.role === 'security') {
-						router.replace('/security');
-					}
-				} else {
-
-					if (Platform.OS === 'web') {
-						const currentPath = window.location?.pathname || '';
-						const publicAuthPaths = ['/auth/login', '/auth/forgot-password', '/auth/reset-password', '/auth/tos', '/auth/data-protection-policy'];
-						if (!publicAuthPaths.some(path => currentPath.includes(path))) {
-							router.replace('/auth/login');
+					if (myProfile && myProfile.status) {
+						await signIn(myProfile);
+						isAuthenticated = true;
+						
+						if (['primary_admin', 'admin', 'resident'].includes(myProfile.role!)) {
+							router.replace('/user');
+						} else if (myProfile.role === 'security') {
+							router.replace('/security');
 						}
-					} else {
-
-						router.replace('/auth/login');
 					}
 				}
 			} catch (error) {
-				router.replace('/auth/login');
 				console.log('Error loading auth state', error);
 			} finally {
+				if (!isAuthenticated) {
+					const currentPath = Platform.OS === 'web' ? window.location?.pathname || '' : pathname || '';
+					const publicAuthPaths = ['/auth/login', '/auth/forgot-password', '/auth/reset-password', '/auth/tos', '/auth/data-protection-policy'];
+					
+					const isPublicPath = publicAuthPaths.some(path => currentPath.includes(path));
+
+					if (!isPublicPath) {
+						router.replace('/auth/login');
+					}
+				}
+
 				setIsReady(true);
 				await SplashScreen.hideAsync();
 			}
