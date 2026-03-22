@@ -16,7 +16,7 @@ function RootLayoutContent() {
 
 	return (
 		<>
-			<StatusBar key={`root-status-bar-light`} style={'dark'} />
+			<StatusBar key="root-status-bar-light" style="dark" />
 			<Stack
 				key={resetKey}
 				initialRouteName="auth/login"

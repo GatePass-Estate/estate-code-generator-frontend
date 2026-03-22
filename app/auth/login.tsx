@@ -195,22 +195,24 @@ export default function Login() {
 						</View>
 					</View>
 				</View>
-			</SafeAreaView>			{showTosRejected && isLargeScreen && (
-				<div className="fixed top-10 left-1/2 -translate-x-1/2 z-50 transition-all">
-					<div className="bg-white rounded-2xl p-5 shadow-2xl border border-red-100 flex flex-row items-start gap-4" style={{ width: 500 }}>
+			</SafeAreaView>
+
+			{showTosRejected && isLargeScreen && (
+				<View className="absolute top-10 left-0 right-0 items-center z-50">
+					<View className="bg-white rounded-2xl p-5 border border-red-100 flex-row items-start gap-4 shadow-sm" style={{ width: 500, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 4.65, elevation: 8 }}>
 						<Image source={require('@/src/assets/condition.svg')} style={{ width: 48, height: 48 }} resizeMode="contain" />
-						<div className="flex-1 mt-0.5">
-							<h3 className="font-ubuntu-bold text-lg text-black">Terms of Service</h3>
-							<p className="font-inter-regular text-sm text-[#4B5563] mt-2 leading-5">
-								Access to GatePass requires your acceptance of our Terms and Conditions.<br /><br />
+						<View className="flex-1 mt-0.5">
+							<Text className="font-ubuntu-bold text-lg text-black">Terms of Service</Text>
+							<Text className="font-inter-regular text-sm text-[#4B5563] mt-2 leading-5">
+								Access to GatePass requires your acceptance of our Terms and Conditions.{'\n'}{'\n'}
 								Please review and accept them to continue.
-							</p>
-						</div>
-						<button className="p-1.5 hover:bg-gray-100 rounded-lg transition" onClick={() => setShowTosRejected(false)}>
+							</Text>
+						</View>
+						<Pressable className="p-1.5 rounded-lg active:bg-gray-100 bg-[#F9FAFB]" onPress={() => setShowTosRejected(false)}>
 							<AntDesign name="close" size={18} color="#9CA3AF" />
-						</button>
-					</div>
-				</div>
+						</Pressable>
+					</View>
+				</View>
 			)}
 		</>
 	);
