@@ -381,11 +381,13 @@ function AdminUsersPageWeb() {
 														<p className="text-primary text-sm font-inter-regular">{user.home_address}</p>
 													</td>
 													<td className="py-4 px-4">
-														<div className="flex">
+														<div className="flex items-center">
 															{user.status ? (
 																<>
 																	{user.role === 'security' ? (
-																		<></>
+																		<button className="p-2 border-r-2 border-transparent opacity-0 pointer-events-none" disabled>
+																			<div style={{ width: 20, height: 20 }} />
+																		</button>
 																	) : !['admin', 'primary_admin'].includes(user.role!) ? (
 																		<button onClick={() => promteUserToAdmin(user.id!, user.first_name || '', user.last_name || '')} className="p-2 hover:bg-gray-200 transition border-r-2 border-grey" title="Make Admin">
 																			<Image source={icons.userIcon} style={{ width: 20, height: 20, tintColor: '#113E55' }} resizeMode="contain" />
