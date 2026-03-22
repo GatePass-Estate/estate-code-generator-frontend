@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { Inter, UbuntuSans } from "@/src/constants/fonts";
 
 const BLUR_ELLIPSE_STYLES = StyleSheet.create({
   success: {
@@ -116,7 +117,7 @@ const WebSuccessView = ({ router }: { router: any }) => (
         style={{
           position: "absolute",
           left: "41.67%",
-          marginLeft: 91,
+          marginLeft: 106,
           top: 388,
         }}
       >
@@ -127,19 +128,20 @@ const WebSuccessView = ({ router }: { router: any }) => (
             fontSize: 28.43,
             lineHeight: 34,
             width: 444,
-            marginLeft: -15,
+      
           }}
         >
           You Are All Set !
         </Text>
         <Text
           style={{
-            fontFamily: "Inter-regular",
+            fontFamily: Inter.regular,
             color: "#172024",
             fontSize: 16,
             lineHeight: 18,
             width: 496,
             marginTop: 30,
+        
           }}
         >
           Your account is now verified and your password set.{"\n"}
@@ -188,9 +190,8 @@ const WebErrorView = () => (
       <View
         style={{
           position: "absolute",
-          left: "8.33%",
-          marginLeft: 74,
-          top: 260,
+          left: "10.33%",
+          top: 170,
           width: 400,
           height: 396,
           transform: [{ rotate: "-15.47deg" }],
@@ -217,6 +218,7 @@ const WebErrorView = () => (
           top: 291,
           width: 256,
           height: 256,
+
         }}
       >
         <Image
@@ -230,9 +232,9 @@ const WebErrorView = () => (
       <View
         style={{
           position: "absolute",
-          left: "41.67%",
+          left: "40.67%",
           marginLeft: 35,
-          top: 385,
+          top: 310,
         }}
       >
         <Text
@@ -242,14 +244,13 @@ const WebErrorView = () => (
             fontSize: 28.43,
             lineHeight: 34,
             width: 444,
-            marginLeft: -12,
-          }}
+                      }}
         >
           Opps!
         </Text>
         <Text
           style={{
-            fontFamily: "Inter-regular",
+            fontFamily: Inter.regular,
             color: "#172024",
             fontSize: 16,
             lineHeight: 18,
@@ -309,7 +310,7 @@ const EmailActivationStatusPage = () => {
                       maxWidth: 287,
                       lineHeight: 18,
                       color: "#172024",
-                      fontFamily: "Inter-regular",
+                      fontFamily: Inter.regular,
                     }}
                   >
                     This access link is no longer valid. Kindly notify the
@@ -353,7 +354,7 @@ const EmailActivationStatusPage = () => {
                       maxWidth: 287,
                       lineHeight: 18,
                       color: "#172024",
-                      fontFamily: "Inter-regular",
+                      fontFamily: Inter.regular,
                       marginBottom: 38,
                     }}
                   >

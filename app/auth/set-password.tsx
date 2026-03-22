@@ -1,5 +1,6 @@
 import CustomSafeAreaView from "@/src/components/CustomSafeAreaView";
 import { activateUser } from "@/src/lib/api/user";
+import { Inter } from "@/src/constants/fonts";
 import React, { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, TextInput, TouchableOpacity, Platform } from "react-native";
 import { Text, View } from "react-native";
@@ -45,7 +46,7 @@ const WebSetPasswordView = ({
         {errorMessage ? (
           <Text
             style={{
-              fontFamily: "Inter-regular",
+              fontFamily: Inter.regular,
               color: "#DC2626",
               fontSize: 14,
               marginBottom: 20,
@@ -59,7 +60,7 @@ const WebSetPasswordView = ({
         <View style={{ width: 496, marginBottom: 32, maxWidth: "100%" }}>
           <Text
             style={{
-              fontFamily: "Inter-regular",
+              fontFamily: "Inter.regular",
               fontSize: 16,
               color: "#9b9797",
               marginBottom: 20,
@@ -80,7 +81,7 @@ const WebSetPasswordView = ({
               borderRadius: 20,
               paddingHorizontal: 32,
               paddingVertical: 24,
-              fontFamily: "Inter-regular",
+              fontFamily: Inter.regular,
               fontSize: 16,
               color: "#172024",
               width: "100%",
@@ -89,10 +90,10 @@ const WebSetPasswordView = ({
           />
         </View>
 
-        <View style={{ width: 496, marginBottom: 64, maxWidth: "100%" }}>
+        <View style={{ width: 496, marginBottom: 113, maxWidth: "100%" }}>
           <Text
             style={{
-              fontFamily: "Inter-regular",
+              fontFamily: Inter.regular,
               fontSize: 16,
               color: "#9b9797",
               marginBottom: 20,
@@ -113,7 +114,7 @@ const WebSetPasswordView = ({
               borderRadius: 20,
               paddingHorizontal: 32,
               paddingVertical: 24,
-              fontFamily: "Inter-regular",
+              fontFamily: Inter.regular,
               fontSize: 16,
               color: "#172024",
               width: "100%",
@@ -252,7 +253,7 @@ const SetPasswordPage = () => {
             {errorMessage ? (
               <Text
                 style={{
-                  fontFamily: "Inter-regular",
+                  fontFamily: Inter.regular,
                   color: "#DC2626",
                   fontSize: 12,
                 }}
@@ -261,11 +262,11 @@ const SetPasswordPage = () => {
               </Text>
             ) : null}
 
-            <View className="flex  gap-10">
+            <View className="flex  gap-10 px-0.5">
               <View className="flex flex-col gap-[0.5rem]">
                 <Text
                   style={{
-                    fontFamily: "Inter-regular",
+                    fontFamily: Inter.regular,
                     color: "#113E55",
                     fontSize: 9,
                     letterSpacing: -0.24,
@@ -288,7 +289,7 @@ const SetPasswordPage = () => {
               <View className="flex flex-col gap-[0.5rem]">
                 <Text
                   style={{
-                    fontFamily: "Inter-regular",
+                    fontFamily: Inter.regular,
                     color: "#113E55",
                     fontSize: 9,
                     letterSpacing: -0.24,

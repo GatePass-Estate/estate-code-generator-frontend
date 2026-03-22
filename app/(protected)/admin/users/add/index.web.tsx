@@ -7,7 +7,7 @@ import { menuRoutes } from '@/app/(protected)/user/_layout';
 import { adminRoutes } from '../../_layout';
 import icons from '@/src/constants/icons';
 import Modal from '@/src/components/web/Modal';
-import { registerUser, activateUser } from '@/src/lib/api/user';
+import { registerUser } from '@/src/lib/api/user';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { RegisterUserPayload } from '@/src/types/user';
 import { getWidthBreakpoint } from '@/src/lib/helpers';
@@ -121,29 +121,22 @@ function RegisterUserWeb() {
 				const registeredUser = await registerUser(payload);
 
 				if (registeredUser && registeredUser.id) {
-				
+					setMessageType('success');
+					setError('User registered successfully!');
+					// Reset form
+					setFirstName('');
+					setLastName('');
+					setEmail('');
+					setPhone('');
+					setSelectedRole('resident');
+					setHomeAddress('');
+					setIdType('');
+					setIdNumber('');
+					setStep(1);
 
-					if (registeredUser) {
-						setMessageType('success');
-						setError('User registered and activated successfully!');
-						// Reset form
-						setFirstName('');
-						setLastName('');
-						setEmail('');
-						setPhone('');
-						setSelectedRole('resident');
-						setHomeAddress('');
-						setIdType('');
-						setIdNumber('');
-						setStep(1);
-
-						setTimeout(() => {
-							router.push('/admin');
-						}, 2000);
-					} else {
-						setMessageType('error');
-						setError('User registered but activation failed. Please try again.');
-					}
+					setTimeout(() => {
+						router.push('/admin');
+					}, 2000);
 				} else {
 					setMessageType('error');
 					setError('Failed to register user. Please try again.');
