@@ -16,7 +16,7 @@ function RootLayoutContent() {
 
 	return (
 		<>
-			<StatusBar key={`root-status-bar-light`} style={'dark'} />
+			<StatusBar key="root-status-bar-light" style="dark" />
 			<Stack
 				key={resetKey}
 				initialRouteName="auth/login"
@@ -25,6 +25,10 @@ function RootLayoutContent() {
 				}}
 			>
 				<Stack.Screen name="auth/login" options={{ animation: 'none' }} />
+				<Stack.Screen name="auth/tos" options={{ animation: 'none' }} />
+				<Stack.Screen name="auth/forgot-password" options={{ animation: 'none' }} />
+				<Stack.Screen name="auth/reset-password" options={{ animation: 'none' }} />
+				<Stack.Screen name="auth/data-protection-policy" options={{ animation: 'none' }} />
 				<Stack.Screen name="(protected)" />
 			</Stack>
 		</>

@@ -357,26 +357,42 @@ function AdminUsersPageWeb() {
 													</td>
 													<td className="py-4 px-4">
 														<div className={`flex ${user.role === 'security' && 'justify-end'}`}>
-															{user.role === 'security' ? (
-																<></>
-															) : !['admin', 'primary_admin'].includes(user.role!) ? (
-																<button onClick={() => promteUserToAdmin(user.id!, user.first_name || '', user.last_name || '')} className="p-2 hover:bg-gray-200 transition border-r-2 border-grey" title="Make Admin">
-																	<Image source={icons.userIcon} style={{ width: 20, height: 20 }} resizeMode="contain" />
-																</button>
-															) : (
-																<button onClick={() => demoteAdminToUser(user.id!, user.first_name || '', user.last_name || '', user.role!)} className="p-2 hover:bg-gray-200 transition border-r-2 border-grey" title="Make Resident">
-																	<Image source={icons.activeGuestIcon} style={{ width: 20, height: 20, opacity: 0.5 }} resizeMode="contain" />
-																</button>
-															)}
-
 															{user.status ? (
-																<button className="p-2 hover:bg-gray-200 transition" title="Deactivate User" onClick={() => deativateUser(user.id!, user.first_name || '', user.last_name || '')}>
-																	<Image source={icons.userEdit} style={{ width: 20, height: 20 }} resizeMode="contain" />
-																</button>
+																<>
+																	{user.role === 'security' ? (
+																		<></>
+																	) : !['admin', 'primary_admin'].includes(user.role!) ? (
+																		<button onClick={() => promteUserToAdmin(user.id!, user.first_name || '', user.last_name || '')} className="p-2 hover:bg-gray-200 transition border-r-2 border-grey" title="Make Admin">
+																			<Image source={icons.userIcon} style={{ width: 20, height: 20 }} resizeMode="contain" />
+																		</button>
+																	) : (
+																		<button onClick={() => demoteAdminToUser(user.id!, user.first_name || '', user.last_name || '', user.role!)} className="p-2 hover:bg-gray-200 transition border-r-2 border-grey" title="Make Resident">
+																			<Image source={icons.activeGuestIcon} style={{ width: 20, height: 20, opacity: 0.5 }} resizeMode="contain" />
+																		</button>
+																	)}
+																	<button className="p-2 hover:bg-gray-200 transition" title="Deactivate User" onClick={() => deativateUser(user.id!, user.first_name || '', user.last_name || '')}>
+																		<Image source={icons.userEdit} style={{ width: 20, height: 20 }} resizeMode="contain" />
+																	</button>
+																</>
 															) : (
-																<button className="p-2 hover:bg-gray-200 transition" title="Reactivate User" onClick={() => reactivateUser(user.id!, user.first_name || '', user.last_name || '')}>
-																	<Image source={icons.addUser} style={{ width: 20, height: 20 }} resizeMode="contain" />
-																</button>
+																<>
+																	<button className="p-2 hover:bg-gray-200 transition" title={`Send email to ${user.email}`} onClick={() => window.open(`mailto:${user.email}`, '_blank')}>
+																		<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#113E55" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+																			<rect x="2" y="4" width="20" height="16" rx="2" />
+																			<path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+																		</svg>
+																	</button>
+																	<div className="w-px h-6 bg-grey/40 self-center" />
+																	<button className="p-2 hover:bg-gray-200 transition" title="Delete User" onClick={() => reactivateUser(user.id!, user.first_name || '', user.last_name || '')}>
+																		<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#113E55" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+																			<path d="M3 6h18" />
+																			<path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+																			<path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+																			<line x1="10" y1="11" x2="10" y2="17" />
+																			<line x1="14" y1="11" x2="14" y2="17" />
+																		</svg>
+																	</button>
+																</>
 															)}
 														</div>
 													</td>

@@ -20,7 +20,21 @@
 			"adaptiveIcon": {
 				"foregroundImage": "./src/assets/gatepass_ng_Gp.png",
 				"backgroundColor": "#000000"
-			}
+			},
+			"intentFilters": [
+				{
+					"action": "VIEW",
+					"autoVerify": true,
+					"data": [
+						{
+							"scheme": "gatepass-app",
+							"host": "*",
+							"pathPrefix": "/auth/reset-password"
+						}
+					],
+					"category": ["BROWSABLE", "DEFAULT"]
+				}
+			]
 		},
 		"ios": {
 			"supportsTablet": true,
