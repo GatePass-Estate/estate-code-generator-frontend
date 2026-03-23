@@ -29,7 +29,6 @@ const RegisterUser = () => {
 		lastName: '',
 		email: '',
 		phoneNumber: '',
-		password: 'NewPowerfulPassword',
 		userType: 'resident',
 		homeAddress: '',
 		meansOfIdentification: 'drivers_license',
@@ -67,8 +66,6 @@ const RegisterUser = () => {
 		else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) newErrors.email = 'Invalid email format';
 
 		if (!formData.phoneNumber.trim()) newErrors.phoneNumber = 'Phone number is required';
-		if (!formData.password.trim()) newErrors.password = 'Password is required';
-		else if (formData.password.length < 6) newErrors.password = 'Password must be at least 6 characters';
 
 		setErrors(newErrors);
 		return Object.keys(newErrors).length === 0;
@@ -118,13 +115,9 @@ const RegisterUser = () => {
 			const regiteredUser = await registerUser(payload);
 
 			if (regiteredUser && regiteredUser.id) {
-				const activatedUser = await activateUser({
-					user_id: regiteredUser.id,
-					new_password: formData.password,
-				});
-
-				if (activatedUser) {
-					setToastMessage('User registered and activated successfully!');
+		
+				if (regiteredUser) {
+					setToastMessage('User registered successfully!');
 					setToastType('success');
 					setToastVisible(true);
 					// Reset form
@@ -133,7 +126,6 @@ const RegisterUser = () => {
 						lastName: '',
 						email: '',
 						phoneNumber: '',
-						password: '',
 						userType: 'resident',
 						homeAddress: '',
 						meansOfIdentification: 'drivers_license',
@@ -272,35 +264,7 @@ const RegisterUser = () => {
 								{errors.phoneNumber && <Text className="text-red-600 text-xs font-ubuntu-regular mt-1">{errors.phoneNumber}</Text>}
 							</View>
 
-							<View className="mb-2">
-								<Text
-									style={[
-										sharedStyles.label,
-										{
-											color: '#9B9797',
-										},
-									]}
-								>
-									Create password
-								</Text>
-								<View className="relative">
-									<TextInput
-										placeholder="Enter password for user"
-										placeholderTextColor="#999"
-										value={formData.password}
-										onChangeText={(value) => updateFormData('password', value)}
-										secureTextEntry={!showPassword}
-										style={[sharedStyles.input, { borderColor: errors.password ? '#ef4444' : undefined, paddingRight: 48 }]}
-										// Disable copy and paste
-										contextMenuHidden={true}
-										selectTextOnFocus={false}
-									/>
-									<Pressable onPress={() => setShowPassword(!showPassword)} className="absolute right-3 top-6" disabled={loading}>
-										<Image source={showPassword ? icons.eye : icons.hiddenEye} style={{ width: 20, height: 20 }} resizeMode="contain" />
-									</Pressable>
-								</View>
-								{errors.password && <Text className="text-red-600 text-xs font-ubuntu-regular mt-1">{errors.password}</Text>}
-							</View>
+							
 
 							<View className="mb-8">
 								<Text
