@@ -17,6 +17,7 @@ export interface FormData {
 	lastName: string;
 	email: string;
 	phoneNumber: string;
+	password: string;
 	userType: UserRolesType;
 	homeAddress: string;
 	meansOfIdentification: MeansOfIdType;
