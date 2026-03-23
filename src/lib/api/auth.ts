@@ -1,13 +1,24 @@
 import Api from '.';
 import axios from 'axios';
-import { LoginResponse } from '@/src/types/auth';
+import { LoginResponse, VerifyEmailActivationResponse } from '@/src/types/auth';
 import { getErrorMessage } from '../helpers';
+import { useQuery } from '@tanstack/react-query';
+
+const queryKeys = {
+  verifyEmailActivationToken: (token: string) => ['verify-email-activation-token', token],
+};
 
 export async function loginUser(email: string, password: string): Promise<LoginResponse> {
 	try {
 		const api = Api();
 		const axiosRes = await api.post(`/auth/login`, { email, password });
-		return axiosRes.data;
+		const data = axiosRes.data;
+
+		if (data?.requires_tos_acceptance && data?.access_token) {
+			return data;
+		}
+
+		return data;
 	} catch (error: any) {
 		if (axios.isAxiosError(error) && error.response?.data?.requires_tos_acceptance && error.response?.data?.access_token) {
 			return error.response.data;
@@ -50,6 +61,26 @@ export async function fetchMe(token: string) {
 	} catch (error: any) {
 		throw new Error(`${getErrorMessage(error) || 'An error occured'} `);
 	}
+}
+
+async function verifyEmailActivationToken(token: string): Promise<VerifyEmailActivationResponse> {
+	try {
+		const api = Api('user');
+		const response = await api.get<VerifyEmailActivationResponse>(`/users/verify/email`, {
+			params: { token },
+		});
+		return response.data;
+	} catch (error: any) {
+		throw new Error(`${getErrorMessage(error) || 'An error occurred'}`);
+	}
+}
+
+export function useVerifyEmailActivationToken(token: string) {
+  return useQuery({
+    queryKey: queryKeys.verifyEmailActivationToken(token),
+    queryFn: () => verifyEmailActivationToken(token),
+    enabled: !!token, // only run if token exists
+  });
 }
 
 export async function forgotPassword(email: string): Promise<{ message: string }> {

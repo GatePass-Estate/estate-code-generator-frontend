@@ -1,153 +1,194 @@
 import { Platform } from 'react-native';
-import { fetchMe } from '@/src/lib/api/auth';
-import { broadcastLogout, clearAuthState, getAuthState, initAuthSync } from '@/src/lib/helpers';
-import { useAuthStore } from '@/src/lib/stores/authStore';
-import { useUserStore } from '@/src/lib/stores/userStore';
-import { AuthContextType } from '@/src/types/auth';
-import { User } from '@/src/types/user';
-import { SplashScreen, useRouter, usePathname } from 'expo-router';
-import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { UserRolesType } from '../types/general';
+import { fetchMe } from "@/src/lib/api/auth";
+import {
+  broadcastLogout,
+  clearAuthState,
+  getAuthState,
+  initAuthSync,
+} from "@/src/lib/helpers";
+import { useAuthStore } from "@/src/lib/stores/authStore";
+import { useUserStore } from "@/src/lib/stores/userStore";
+import { AuthContextType } from "@/src/types/auth";
+import { User } from "@/src/types/user";
+import { SplashScreen, usePathname, useRouter } from "expo-router";
+import * as Linking from "expo-linking";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import { UserRolesType } from "../types/general";
 
 SplashScreen.preventAutoHideAsync();
 
 const AuthContext = createContext<AuthContextType>({
-	isReady: false,
-	resetKey: 0,
-	signIn: async () => { },
-	signOut: async () => { },
+  isReady: false,
+  resetKey: 0,
+  signIn: async () => {},
+  signOut: async () => {},
 });
 
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-	const [isReady, setIsReady] = useState(false);
-	const [resetKey, setResetKey] = useState(0);
-	const router = useRouter();
-	const pathname = usePathname();
-	const isProcessingRef = useRef(false);
+const PUBLIC_AUTH_ROUTES = [
+  "/activate",
+  "/auth/set-password",
+  "/auth/email-activation-status",
+  "/auth/login",
+  "/auth/forgot-password",
+  "/auth/reset-password",
+  "/auth/tos",
+  "/auth/data-protection-policy",
+];
 
-	const handleCrossTabLogin = useCallback(
-		async (token: string, role: UserRolesType) => {
-			if (isProcessingRef.current) return;
-			isProcessingRef.current = true;
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [isReady, setIsReady] = useState(false);
+  const [resetKey, setResetKey] = useState(0);
+  const router = useRouter();
+  const pathname = usePathname();
+  const isProcessingRef = useRef(false);
 
-			try {
-				useAuthStore.setState({ access_token: token, role });
+  const handleCrossTabLogin = useCallback(
+    async (token: string, role: UserRolesType) => {
+      if (isProcessingRef.current) return;
+      isProcessingRef.current = true;
 
-				const myProfile = (await fetchMe(token)) as User;
+      try {
+        useAuthStore.setState({ access_token: token, role });
 
-				if (myProfile && myProfile.status) {
-					useUserStore.setState({ ...myProfile });
+        const myProfile = (await fetchMe(token)) as User;
 
-					if (['primary_admin', 'admin', 'resident'].includes(myProfile.role!)) {
-						router.replace('/user');
-					} else if (myProfile.role === 'security') {
-						router.replace('/security');
-					}
-				}
-			} catch (error) {
-				console.log('Error syncing auth from another tab', error);
-				await performSignOut();
-			} finally {
-				isProcessingRef.current = false;
-			}
-		},
-		[router],
-	);
+        if (myProfile && myProfile.status) {
+          useUserStore.setState({ ...myProfile });
 
-	const handleCrossTabLogout = useCallback(async () => {
-		if (isProcessingRef.current) return;
-		isProcessingRef.current = true;
+          if (
+            ["primary_admin", "admin", "resident"].includes(myProfile.role!)
+          ) {
+            router.replace("/user");
+          } else if (myProfile.role === "security") {
+            router.replace("/security");
+          }
+        }
+      } catch (error) {
+        console.log("Error syncing auth from another tab", error);
+        await performSignOut();
+      } finally {
+        isProcessingRef.current = false;
+      }
+    },
+    [router],
+  );
 
-		try {
-			useUserStore.getState().clearUser();
-			useAuthStore.getState().clearAuth();
-			router.replace('/auth/login');
-		} finally {
-			isProcessingRef.current = false;
-		}
-	}, [router]);
+  const handleCrossTabLogout = useCallback(async () => {
+    if (isProcessingRef.current) return;
+    isProcessingRef.current = true;
 
-	const performSignOut = useCallback(async () => {
-		setIsReady(false);
-		useUserStore.getState().clearUser();
-		useAuthStore.getState().clearAuth();
-		await clearAuthState();
-		broadcastLogout();
-		// Force full component reset by incrementing key
-		setResetKey((prev) => prev + 1);
-		router.replace('/auth/login');
-	}, [router]);
+    try {
+      useUserStore.getState().clearUser();
+      useAuthStore.getState().clearAuth();
+      router.replace("/auth/login");
+    } finally {
+      isProcessingRef.current = false;
+    }
+  }, [router]);
 
-	const signIn = async (userData: User) => {
-		useUserStore.setState({ ...userData });
-		setIsReady(true);
-	};
+  const performSignOut = useCallback(async () => {
+    setIsReady(false);
+    useUserStore.getState().clearUser();
+    useAuthStore.getState().clearAuth();
+    await clearAuthState();
+    broadcastLogout();
+    // Force full component reset by incrementing key
+    setResetKey((prev) => prev + 1);
+    router.replace("/auth/login");
+  }, [router]);
 
-	const signOut = async () => {
-		await performSignOut();
-	};
+  const signIn = async (userData: User) => {
+    useUserStore.setState({ ...userData });
+    setIsReady(true);
+  };
 
-	useEffect(() => {
-		let cleanupSync: (() => void) | undefined;
+  const signOut = async () => {
+    await performSignOut();
+  };
 
-		const loadAuthState = async () => {
-			const localData = await getAuthState();
+  const hasLoadedAuth = useRef(false);
 
-			if (localData?.access_token) {
-				useAuthStore.setState({ access_token: localData.access_token, role: localData.role });
-			}
+  useEffect(() => {
+    let cleanupSync: (() => void) | undefined;
 
-			let isAuthenticated = false;
+    const isPublicRoute = (currentPath: string, initialURL: string | null) => {
+      return PUBLIC_AUTH_ROUTES.some(
+        (r) =>
+          currentPath === r ||
+          currentPath.startsWith(r) ||
+          (initialURL && initialURL.includes(r)),
+      );
+    };
 
-			try {
-				if (localData?.access_token) {
-					const myProfile = (await fetchMe(localData.access_token)) as User;
+    const loadAuthState = async () => {
+      if (hasLoadedAuth.current) return;
+      hasLoadedAuth.current = true;
 
-					if (myProfile && myProfile.status) {
-						await signIn(myProfile);
-						isAuthenticated = true;
-						
-						if (['primary_admin', 'admin', 'resident'].includes(myProfile.role!)) {
-							router.replace('/user');
-						} else if (myProfile.role === 'security') {
-							router.replace('/security');
-						}
-					}
-				}
-			} catch (error) {
-				console.log('Error loading auth state', error);
-			} finally {
-				if (!isAuthenticated) {
-					const currentPath = Platform.OS === 'web' ? window.location?.pathname || '' : pathname || '';
-					const publicAuthPaths = ['/auth/login', '/auth/forgot-password', '/auth/reset-password', '/auth/tos', '/auth/data-protection-policy'];
-					
-					const isPublicPath = publicAuthPaths.some(path => currentPath.includes(path));
+      const initialURL = await Linking.getInitialURL();
+      const currentPath = Platform.OS === 'web' ? (typeof window !== 'undefined' ? window.location?.pathname || '' : pathname || '') : pathname;
+      const localData = await getAuthState();
 
-					if (!isPublicPath) {
-						router.replace('/auth/login');
-					}
-				}
+      if (localData?.access_token) {
+        useAuthStore.setState({
+          access_token: localData.access_token,
+          role: localData.role,
+        });
+      }
 
-				setIsReady(true);
-				await SplashScreen.hideAsync();
-			}
-		};
+      try {
+        const myProfile = (await fetchMe(
+          localData?.access_token || "",
+        )) as User;
 
-		loadAuthState();
+        if (myProfile && myProfile.status) {
+          await signIn(myProfile);
+          if (
+            ["primary_admin", "admin", "resident"].includes(myProfile.role!)
+          ) {
+            router.replace("/user");
+          } else if (myProfile.role === "security") {
+            router.replace("/security");
+          }
+        } else {
+          if (!isPublicRoute(currentPath, initialURL))
+            router.replace("/auth/login");
+        }
+      } catch (error) {
+        if (!isPublicRoute(currentPath, initialURL))
+          router.replace("/auth/login");
+        console.log("Error loading auth state", error);
+      } finally {
+        setIsReady(true);
+        await SplashScreen.hideAsync();
+      }
+    };
 
-		cleanupSync = initAuthSync({
-			onLogin: handleCrossTabLogin,
-			onLogout: handleCrossTabLogout,
-		});
+    loadAuthState();
 
-		return () => {
-			cleanupSync?.();
-		};
-	}, [handleCrossTabLogin, handleCrossTabLogout, router]);
+    cleanupSync = initAuthSync({
+      onLogin: handleCrossTabLogin,
+      onLogout: handleCrossTabLogout,
+    });
 
-	return <AuthContext.Provider value={{ isReady, resetKey, signIn, signOut }}>{children}</AuthContext.Provider>;
+    return () => {
+      cleanupSync?.();
+    };
+  }, [handleCrossTabLogin, handleCrossTabLogout, router, pathname]);
+
+  return (
+    <AuthContext.Provider value={{ isReady, resetKey, signIn, signOut }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {
-	return useContext(AuthContext);
+  return useContext(AuthContext);
 }
