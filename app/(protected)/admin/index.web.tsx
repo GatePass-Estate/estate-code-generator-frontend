@@ -381,27 +381,36 @@ function AdminUsersPageWeb() {
 														<p className="text-primary text-sm font-inter-regular">{user.home_address}</p>
 													</td>
 													<td className="py-4 px-4">
-														<div className={`flex ${user.role === 'security' && 'justify-end'}`}>
-															{user.role === 'security' ? (
-																<></>
-															) : !['admin', 'primary_admin'].includes(user.role!) ? (
-																<button onClick={() => promteUserToAdmin(user.id!, user.first_name || '', user.last_name || '')} className="p-2 hover:bg-gray-200 transition border-r-2 border-grey" title="Make Admin">
-																	<Image source={icons.userIcon} style={{ width: 20, height: 20 }} resizeMode="contain" />
-																</button>
-															) : (
-																<button onClick={() => demoteAdminToUser(user.id!, user.first_name || '', user.last_name || '', user.role!)} className="p-2 hover:bg-gray-200 transition border-r-2 border-grey" title="Make Resident">
-																	<Image source={icons.activeGuestIcon} style={{ width: 20, height: 20, opacity: 0.5 }} resizeMode="contain" />
-																</button>
-															)}
-
+														<div className="flex items-center">
 															{user.status ? (
-																<button className="p-2 hover:bg-gray-200 transition" title="Deactivate User" onClick={() => deativateUser(user.id!, user.first_name || '', user.last_name || '')}>
-																	<Image source={icons.userEdit} style={{ width: 20, height: 20 }} resizeMode="contain" />
-																</button>
+																<>
+																	{user.role === 'security' ? (
+																		<button className="p-2 border-r-2 border-transparent opacity-0 pointer-events-none" disabled>
+																			<div style={{ width: 20, height: 20 }} />
+																		</button>
+																	) : !['admin', 'primary_admin'].includes(user.role!) ? (
+																		<button onClick={() => promteUserToAdmin(user.id!, user.first_name || '', user.last_name || '')} className="p-2 hover:bg-gray-200 transition border-r-2 border-grey" title="Make Admin">
+																			<Image source={icons.userIcon} style={{ width: 20, height: 20, tintColor: '#113E55' }} resizeMode="contain" />
+																		</button>
+																	) : (
+																		<button onClick={() => demoteAdminToUser(user.id!, user.first_name || '', user.last_name || '', user.role!)} className="p-2 hover:bg-gray-200 transition border-r-2 border-grey" title="Make Resident">
+																			<Image source={icons.activeGuestIcon} style={{ width: 20, height: 20, tintColor: '#113E55' }} resizeMode="contain" />
+																		</button>
+																	)}
+
+																	<button className="p-2 hover:bg-gray-200 transition" title="Deactivate User" onClick={() => deativateUser(user.id!, user.first_name || '', user.last_name || '')}>
+																		<Image source={icons.userEdit} style={{ width: 20, height: 20, tintColor: '#113E55' }} resizeMode="contain" />
+																	</button>
+																</>
 															) : (
-																<button className="p-2 hover:bg-gray-200 transition" title="Reactivate User" onClick={() => reactivateUser(user.id!, user.first_name || '', user.last_name || '')}>
-																	<Image source={icons.addUser} style={{ width: 20, height: 20 }} resizeMode="contain" />
-																</button>
+																<>
+																	<button className="p-2 hover:bg-gray-200 transition border-r-2 border-grey" title="Resend Email" onClick={() => resendEmail(user.id!, user.first_name || '', user.last_name || '')}>
+																		<Feather name="mail" size={20} color="#113E55" />
+																	</button>
+																	<button className="p-2 hover:bg-gray-200 transition" title="Delete User" onClick={() => deleteAccount(user.id!, user.first_name || '', user.last_name || '')}>
+																		<Feather name="trash-2" size={20} color="#113E55" />
+																	</button>
+																</>
 															)}
 														</div>
 													</td>
