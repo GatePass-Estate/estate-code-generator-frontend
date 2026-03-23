@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import { fetchMe } from "@/src/lib/api/auth";
 import {
   broadcastLogout,
@@ -34,6 +35,11 @@ const PUBLIC_AUTH_ROUTES = [
   "/activate",
   "/auth/set-password",
   "/auth/email-activation-status",
+  "/auth/login",
+  "/auth/forgot-password",
+  "/auth/reset-password",
+  "/auth/tos",
+  "/auth/data-protection-policy",
 ];
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -126,7 +132,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       hasLoadedAuth.current = true;
 
       const initialURL = await Linking.getInitialURL();
-      const currentPath = pathname;
+      const currentPath = Platform.OS === 'web' ? (typeof window !== 'undefined' ? window.location?.pathname || '' : pathname || '') : pathname;
       const localData = await getAuthState();
 
       if (localData?.access_token) {

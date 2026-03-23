@@ -12,6 +12,7 @@ export type AuthContextType = {
 export type LoginResponse = {
 	access_token: string;
 	role: UserRolesType;
+	requires_tos_acceptance?: boolean;
 };
 
 export type VerifyEmailActivationResponse = {
