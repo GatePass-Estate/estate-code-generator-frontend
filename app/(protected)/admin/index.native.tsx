@@ -153,7 +153,7 @@ export default function AdminUsersMobilePage() {
 						</View>
 					}
 					renderItem={({ item, index }) => (
-						<TouchableOpacity className={`flex-row items-center py-3.5 ${index === limitedUsers.length - 1 ? '' : 'border-b'} border-gray-200 pl-2`} onPress={() => router.push(`/(protected)/admin/users/${item.id}`)}>
+						<TouchableOpacity className={`flex-row items-center py-3.5 ${index === limitedUsers.length - 1 ? '' : 'border-b'} border-gray-200 pl-2`} onPress={() => router.push({ pathname: '/(protected)/admin/users/[userId]', params: { userId: item.id!, userParam: JSON.stringify(item) } })}>
 							<Image source={getRoleIcon(item.role)} style={{ width: getRoleIconWidth(item.role), height: getRoleIconHeight(item.role) }} />
 							<View className="flex-1 ml-2.5">
 								<Text className="text-primary text-lg font-inter-regular">{`${item.first_name} ${item.last_name}`}</Text>

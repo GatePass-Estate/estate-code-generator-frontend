@@ -117,7 +117,7 @@ const AllUsersMobile = () => {
 					<ScrollView refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />} contentContainerStyle={{ paddingBottom: 20 }}>
 						<View className="px-5">
 							{filteredUsers.map((user, index) => (
-								<TouchableOpacity key={index} className={`flex-row items-center py-4 ${index !== filteredUsers.length - 1 ? 'border-b border-gray-200' : ''}`} onPress={() => router.push(`/(protected)/admin/users/${user.id}`)}>
+								<TouchableOpacity key={index} className={`flex-row items-center py-4 ${index !== filteredUsers.length - 1 ? 'border-b border-gray-200' : ''}`} onPress={() => router.push({ pathname: '/(protected)/admin/users/[userId]', params: { userId: user.id!, userParam: JSON.stringify(user) } })}>
 									<Image source={getRoleIcon(user.role)} style={{ width: getRoleIconWidth(user.role), height: getRoleIconHeight(user.role) }} />
 									<View className="flex-1 ml-4">
 										<Text className="text-primary text-lg font-inter-medium">{`${user.first_name} ${user.last_name}`}</Text>

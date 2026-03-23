@@ -1,8 +1,8 @@
 import Back from '@/src/components/mobile/Back';
 import { SingleDetail } from '@/src/components/mobile/SIngleDetail';
-import { getUserById, promoteToAdmin, demoteToResident } from '@/src/lib/api/user';
+import { getUserByIdAdmin, promoteToAdmin, demoteToResident, resendEmailVerification, deleteUser } from '@/src/lib/api/user';
 import { sharedStyles } from '@/src/theme/styles';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Modal, Animated, PanResponder } from 'react-native';
 import { Text, TouchableOpacity, View } from 'react-native';
@@ -21,11 +21,14 @@ const deactivateUser = async (userId: string): Promise<boolean> => {
 };
 
 export default function SingleUserMobile() {
-	const { userId } = useLocalSearchParams();
+	const router = useRouter();
+	const { userId, userParam } = useLocalSearchParams();
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [showDeactivateModal, setShowDeactivateModal] = useState(false);
 	const [showPromoteModal, setShowPromoteModal] = useState(false);
+	const [showResendModal, setShowResendModal] = useState(false);
+	const [showDeleteModal, setShowDeleteModal] = useState(false);
 	const [deactivating, setDeactivating] = useState(false);
 	const [processing, setProcessing] = useState(false);
 	const [dialogMessage, setDialogMessage] = useState('');
@@ -70,7 +73,18 @@ export default function SingleUserMobile() {
 			try {
 				setLoading(true);
 				setError(null);
-				const resident = await getUserById(userId as string);
+				let resident: any = null;
+				if (userParam) {
+					try {
+						resident = JSON.parse(userParam as string);
+					} catch (e) {
+						console.log('Error parsing user param:', e);
+					}
+				}
+				
+				if (!resident) {
+					resident = await getUserByIdAdmin(userId as string);
+				}
 
 				if (!resident) {
 					setError('User not found');
@@ -121,6 +135,48 @@ export default function SingleUserMobile() {
 			setDialogVisible(true);
 		} finally {
 			setDeactivating(false);
+		}
+	};
+
+	const handleResendEmail = async () => {
+		setProcessing(true);
+		try {
+			await resendEmailVerification(userId as string);
+			setShowResendModal(false);
+			setDialogType('success');
+			setDialogMessage(`Verification email has been resent to ${userData.first_name}.`);
+			setDialogVisible(true);
+		} catch (err) {
+			console.log('Error resending email:', err);
+			setShowResendModal(false);
+			setDialogType('error');
+			setDialogMessage(err instanceof Error ? err.message : 'Failed to resend email.');
+			setDialogVisible(true);
+		} finally {
+			setProcessing(false);
+		}
+	};
+
+	const handleDeleteUser = async () => {
+		setProcessing(true);
+		try {
+			await deleteUser(userId as string);
+			setShowDeleteModal(false);
+			setDialogType('success');
+			setDialogMessage(`${userData.first_name} has been successfully deleted.`);
+			setDialogVisible(true);
+			
+			setTimeout(() => {
+				router.back();
+			}, 1500);
+		} catch (err) {
+			console.log('Error deleting user:', err);
+			setShowDeleteModal(false);
+			setDialogType('error');
+			setDialogMessage(err instanceof Error ? err.message : 'Failed to delete user.');
+			setDialogVisible(true);
+		} finally {
+			setProcessing(false);
 		}
 	};
 
@@ -175,7 +231,7 @@ export default function SingleUserMobile() {
 
 			// Refresh user data after successful action
 			setTimeout(async () => {
-				const resident = await getUserById(userId as string);
+				const resident = await getUserByIdAdmin(userId as string);
 				if (resident) {
 					setUserData(resident);
 				}
@@ -220,7 +276,15 @@ export default function SingleUserMobile() {
 										try {
 											setLoading(true);
 											setError(null);
-											const resident = await getUserById(userId as string);
+											let resident: any = null;
+											if (userParam) {
+												try {
+													resident = JSON.parse(userParam as string);
+												} catch (e) {}
+											}
+											if (!resident) {
+												resident = await getUserByIdAdmin(userId as string);
+											}
 											if (resident) {
 												setUserData(resident);
 											} else {
@@ -260,14 +324,28 @@ export default function SingleUserMobile() {
 						</View>
 
 						<View className="mt-auto flex-row gap-5">
-							<TouchableOpacity onPress={() => setShowDeactivateModal(true)} disabled={deactivating || processing} className={`flex-1 bg-teal justify-center items-center py-5 !rounded-xl ${deactivating || processing ? 'opacity-70' : ''}`}>
-								{deactivating ? <ActivityIndicator color="#fff" size="small" /> : <Text className="text-white font-ubuntu-semibold text-md">Deactivate</Text>}
-							</TouchableOpacity>
+							{userData.status ? (
+								<>
+									<TouchableOpacity onPress={() => setShowDeactivateModal(true)} disabled={deactivating || processing} className={`flex-1 bg-teal justify-center items-center py-5 !rounded-xl ${deactivating || processing ? 'opacity-70' : ''}`}>
+										{deactivating ? <ActivityIndicator color="#fff" size="small" /> : <Text className="text-white font-ubuntu-semibold text-md">Deactivate</Text>}
+									</TouchableOpacity>
 
-							{userData.role !== 'security' && (
-								<TouchableOpacity onPress={promptPromote} disabled={processing || deactivating} className={`flex-1 bg-primary justify-center items-center py-5 !rounded-xl ${processing || deactivating ? 'opacity-70' : ''}`}>
-									<Text className="text-white font-ubuntu-semibold text-md">{userData.role === 'admin' || userData.role === 'primary_admin' ? 'Make Resident' : 'Make Admin'}</Text>
-								</TouchableOpacity>
+									{userData.role !== 'security' && (
+										<TouchableOpacity onPress={promptPromote} disabled={processing || deactivating} className={`flex-1 bg-primary justify-center items-center py-5 !rounded-xl ${processing || deactivating ? 'opacity-70' : ''}`}>
+											<Text className="text-white font-ubuntu-semibold text-md">{userData.role === 'admin' || userData.role === 'primary_admin' ? 'Make Resident' : 'Make Admin'}</Text>
+										</TouchableOpacity>
+									)}
+								</>
+							) : (
+								<>
+									<TouchableOpacity onPress={() => setShowResendModal(true)} disabled={processing} className={`flex-1 bg-teal justify-center items-center py-5 !rounded-xl border border-teal ${processing ? 'opacity-70' : ''}`}>
+										{processing ? <ActivityIndicator color="#fff" size="small" /> : <Text className="text-white font-ubuntu-semibold text-md">Resend Email</Text>}
+									</TouchableOpacity>
+
+									<TouchableOpacity onPress={() => setShowDeleteModal(true)} disabled={processing} className={`flex-1 bg-red-600 justify-center items-center py-5 !rounded-xl ${processing ? 'opacity-70' : ''}`}>
+										{processing ? <ActivityIndicator color="#fff" size="small" /> : <Text className="text-white font-ubuntu-semibold text-md">Delete User</Text>}
+									</TouchableOpacity>
+								</>
 							)}
 						</View>
 
@@ -340,6 +418,76 @@ export default function SingleUserMobile() {
 								</Animated.View>
 							</TouchableOpacity>
 						</Modal>
+						{/* Resend Confirmation Bottom Drawer */}
+						<Modal visible={showResendModal} transparent animationType="none" onDismiss={() => panY.setValue(0)}>
+							<TouchableOpacity
+								activeOpacity={1}
+								onPress={() => {
+									setShowResendModal(false);
+									panY.setValue(0);
+								}}
+								className="flex-1 bg-black/50 justify-end"
+							>
+								<Animated.View style={{ transform: [{ translateY: panY }] }} className="bg-white rounded-t-3xl p-6 pb-10">
+									<View className="mb-2">
+										<View className="h-1 w-12 bg-grey rounded-full self-center mb-4" />
+									</View>
+
+									<Text className="text-2xl font-ubuntu-medium text-grey mb-3 text-center">Are You sure ?</Text>
+									<Text className="text-black text-base font-inter-regular mb-6 text-center">Confirm if you want to resend the verification email to {userData.first_name}</Text>
+
+									<View className="flex-row gap-3 mt-6">
+										<TouchableOpacity
+											onPress={() => setShowResendModal(false)}
+											disabled={processing}
+											className={`flex-1 border-2 bg-teal border-teal py-4 rounded-lg ${processing ? 'opacity-70' : ''}`}
+										>
+											<Text className="text-white font-ubuntu-semibold text-center text-md">Cancel</Text>
+										</TouchableOpacity>
+
+										<TouchableOpacity onPress={handleResendEmail} disabled={processing} className={`flex-1 bg-primary py-4 rounded-lg ${processing ? 'opacity-70' : ''}`}>
+											{processing ? <ActivityIndicator color="#fff" size="small" /> : <Text className="text-white font-ubuntu-semibold text-center text-md">Resend</Text>}
+										</TouchableOpacity>
+									</View>
+								</Animated.View>
+							</TouchableOpacity>
+						</Modal>
+
+						{/* Delete Confirmation Bottom Drawer */}
+						<Modal visible={showDeleteModal} transparent animationType="none" onDismiss={() => panY.setValue(0)}>
+							<TouchableOpacity
+								activeOpacity={1}
+								onPress={() => {
+									setShowDeleteModal(false);
+									panY.setValue(0);
+								}}
+								className="flex-1 bg-black/50 justify-end"
+							>
+								<Animated.View style={{ transform: [{ translateY: panY }] }} className="bg-white rounded-t-3xl p-6 pb-10">
+									<View className="mb-2">
+										<View className="h-1 w-12 bg-grey rounded-full self-center mb-4" />
+									</View>
+
+									<Text className="text-2xl font-ubuntu-medium text-grey mb-3 text-center">Are You sure ?</Text>
+									<Text className="text-black text-base font-inter-regular mb-6 text-center">Confirm if you want to permanently delete this user</Text>
+
+									<View className="flex-row gap-3 mt-6">
+										<TouchableOpacity
+											onPress={() => setShowDeleteModal(false)}
+											disabled={processing}
+											className={`flex-1 border-2 bg-teal border-teal py-4 rounded-lg ${processing ? 'opacity-70' : ''}`}
+										>
+											<Text className="text-white font-ubuntu-semibold text-center text-md">Cancel</Text>
+										</TouchableOpacity>
+
+										<TouchableOpacity onPress={handleDeleteUser} disabled={processing} className={`flex-1 bg-red-600 py-4 rounded-lg ${processing ? 'opacity-70' : ''}`}>
+											{processing ? <ActivityIndicator color="#fff" size="small" /> : <Text className="text-white font-ubuntu-semibold text-center text-md">Delete</Text>}
+										</TouchableOpacity>
+									</View>
+								</Animated.View>
+							</TouchableOpacity>
+						</Modal>
+
 						{/* Dialog Box for System Messages */}
 						<Modal visible={dialogVisible} transparent animationType="fade">
 							<View className="flex-1 justify-center items-center bg-black/50">

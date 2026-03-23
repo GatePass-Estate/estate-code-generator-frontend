@@ -50,7 +50,7 @@ export const getAllEstateUsers = async (page: number = 1, limit: number = 5): Pr
 	try {
 		const api = Api();
 
-		const axiosRes = await api.get(`/users/all?status=all&page=${page}&limit=${limit}`);
+		const axiosRes = await api.get(`/users/?page=${page}&limit=${limit}`);
 		const data = axiosRes.data;
 
 		return data;
@@ -97,7 +97,6 @@ export const promoteToAdmin = async (user_id: string): Promise<UpdateUserRoleRes
 		throw new Error(`${getErrorMessage(error) || 'An error occured'} `);
 	}
 };
-
 export const demoteToResident = async (user_id: string): Promise<UpdateUserRoleResponse> => {
 	try {
 		const api = Api();
@@ -106,6 +105,26 @@ export const demoteToResident = async (user_id: string): Promise<UpdateUserRoleR
 		const data = axiosRes.data;
 
 		return data;
+	} catch (error: any) {
+		throw new Error(`${getErrorMessage(error) || 'An error occured'} `);
+	}
+};
+
+export const resendEmailVerification = async (user_id: string): Promise<any> => {
+	try {
+		const api = Api();
+		const axiosRes = await api.post(`/users/${user_id}/resend-verification`);
+		return axiosRes.data;
+	} catch (error: any) {
+		throw new Error(`${getErrorMessage(error) || 'An error occured'} `);
+	}
+};
+
+export const deleteUser = async (user_id: string): Promise<any> => {
+	try {
+		const api = Api();
+		const axiosRes = await api.delete(`/users/${user_id}`);
+		return axiosRes.data;
 	} catch (error: any) {
 		throw new Error(`${getErrorMessage(error) || 'An error occured'} `);
 	}
