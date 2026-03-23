@@ -7,7 +7,7 @@ import { menuRoutes } from '@/app/(protected)/user/_layout';
 import { adminRoutes } from '../../_layout';
 import icons from '@/src/constants/icons';
 import Modal from '@/src/components/web/Modal';
-import { registerUser, activateUser } from '@/src/lib/api/user';
+import { registerUser } from '@/src/lib/api/user';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { RegisterUserPayload } from '@/src/types/user';
 import { getWidthBreakpoint } from '@/src/lib/helpers';
@@ -37,7 +37,6 @@ function RegisterUserWeb() {
 	const [lastName, setLastName] = useState('');
 	const [email, setEmail] = useState('');
 	const [phone, setPhone] = useState('');
-	const [password, setPassword] = useState('NewPowerfulPassword');
 	const [showPassword, setShowPassword] = useState(false);
 	const [selectedRole, setSelectedRole] = useState<'resident' | 'security'>('resident');
 
@@ -78,14 +77,7 @@ function RegisterUserWeb() {
 			setError('Please enter phone number.');
 			return false;
 		}
-		if (!password.trim()) {
-			setError('Please enter a password.');
-			return false;
-		}
-		if (password.length < 6) {
-			setError('Password must be at least 6 characters.');
-			return false;
-		}
+		
 		return true;
 	};
 
@@ -129,33 +121,22 @@ function RegisterUserWeb() {
 				const registeredUser = await registerUser(payload);
 
 				if (registeredUser && registeredUser.id) {
-					const activatedUser = await activateUser({
-						user_id: registeredUser.id,
-						new_password: password,
-					});
+					setMessageType('success');
+					setError('User registered successfully!');
+					// Reset form
+					setFirstName('');
+					setLastName('');
+					setEmail('');
+					setPhone('');
+					setSelectedRole('resident');
+					setHomeAddress('');
+					setIdType('');
+					setIdNumber('');
+					setStep(1);
 
-					if (activatedUser) {
-						setMessageType('success');
-						setError('User registered and activated successfully!');
-						// Reset form
-						setFirstName('');
-						setLastName('');
-						setEmail('');
-						setPhone('');
-						setPassword('NewPowerfulPassword');
-						setSelectedRole('resident');
-						setHomeAddress('');
-						setIdType('');
-						setIdNumber('');
-						setStep(1);
-
-						setTimeout(() => {
-							router.push('/admin');
-						}, 2000);
-					} else {
-						setMessageType('error');
-						setError('User registered but activation failed. Please try again.');
-					}
+					setTimeout(() => {
+						router.push('/admin');
+					}, 2000);
 				} else {
 					setMessageType('error');
 					setError('Failed to register user. Please try again.');
@@ -244,29 +225,7 @@ function RegisterUserWeb() {
 											</div>
 										</div>
 
-										<div className="input-group-web">
-											<label htmlFor="password" className="input-label-web">
-												Create Password
-											</label>
-											<div className="relative w-full">
-												<input
-													name="password"
-													type={showPassword ? 'text' : 'password'}
-													placeholder="Enter password for user"
-													value={password}
-													onChange={(e: ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
-													className="input-style-web pr-12 w-full"
-													// Disable copy and paste
-													onCopy={(e) => e.preventDefault()}
-													onPaste={(e) => e.preventDefault()}
-													onCut={(e) => e.preventDefault()}
-													onContextMenu={(e) => e.preventDefault()}
-												/>
-												<div onClick={() => setShowPassword(!showPassword)} className="absolute right-6 top-6 cursor-pointer">
-													<Image source={showPassword ? icons.eye : icons.hiddenEye} style={{ width: 20, height: 20 }} resizeMode="contain" />
-												</div>
-											</div>
-										</div>
+										
 
 										<div className="input-group-web !flex-row !items-center !gap-6">
 											<label htmlFor="role" className="input-label-web">

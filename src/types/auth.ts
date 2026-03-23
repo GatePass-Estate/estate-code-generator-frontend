@@ -14,3 +14,9 @@ export type LoginResponse = {
 	role: UserRolesType;
 	requires_tos_acceptance?: boolean;
 };
+
+export type VerifyEmailActivationResponse = {
+	user_id: string;
+	email: string;
+	must_change_password: boolean;
+};
