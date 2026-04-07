@@ -55,7 +55,7 @@
     },
     "web": {
       "bundler": "metro",
-      "output": "static",
+      "output": "single",
       "image": "./src/assets/gatepass_ng_Gp.png",
       "favicon": "./src/assets/gatepass_ng_Gp.png"
     },
