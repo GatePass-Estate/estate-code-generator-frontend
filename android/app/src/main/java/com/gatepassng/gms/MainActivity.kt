@@ -1,4 +1,4 @@
-package com.specialone.gms
+package com.gatepassng.gms
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build
