@@ -1,4 +1,4 @@
-package com.specialone.gms
+package com.gatepassng.gms
 
 import android.app.Application
 import android.content.res.Configuration

@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "GatePassApp",
-    "slug": "gatepass-app",
-    "owner": "pbide",
+    "name": "GatePass",
+    "slug": "gatepass",
+    "owner": "gatepassng",
     "version": "1.0.0",
-    "scheme": "gatepass-app",
+    "scheme": "gatepass",
     "orientation": "portrait",
     "icon": "./src/assets/gatepass_ng_Gp.png",
     "userInterfaceStyle": "automatic",
@@ -16,7 +16,7 @@
       "color": "#000000"
     },
     "android": {
-      "package": "com.specialone.gms",
+      "package": "com.gatepassng.gms",
       "adaptiveIcon": {
         "foregroundImage": "./src/assets/gatepass_ng_Gp.png",
         "backgroundColor": "#000000"
@@ -32,26 +32,34 @@
               "pathPrefix": "/activate"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         },
         {
           "action": "VIEW",
           "autoVerify": true,
           "data": [
             {
-              "scheme": "gatepass-app",
+              "scheme": "gatepass",
               "host": "*",
               "pathPrefix": "/auth/reset-password"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.specialone.gms",
-      "associatedDomains": ["applinks:app.gatepassng.com"]
+      "bundleIdentifier": "com.gatepassng.gms",
+      "associatedDomains": [
+        "applinks:app.gatepassng.com"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -76,11 +84,13 @@
         }
       ]
     ],
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "adf3bcd1-8b19-4345-a7f5-deaf6a900f87"
+        "projectId": "af7a228b-45e8-4505-bbef-4e9288d902e9"
       }
     }
   }
