@@ -128,14 +128,6 @@ const ProfileScreen = () => {
 					</View>
 				</View>
 
-				<View className="flex-row items-center justify-between border-[0.5px] border-grey rounded-lg px-5 py-6">
-					<Text className="text-[17px] text-primary">My Password: </Text>
-					<Pressable className="flex-row items-center gap-10" onPress={() => router.push('/profile/edit/password')}>
-						<Text className="tracking-widest text-[18px] text-primary">**********</Text>
-
-						<Image source={icons.edit} style={{ width: 20, height: 20 }} resizeMode="contain" />
-					</Pressable>
-				</View>
 
 				<TouchableOpacity className="self-center mt-auto" onPress={signOut}>
 					<Text className="text-tertiary font-bold text-[16px] p-5 font-UbuntuSans">Log Out</Text>

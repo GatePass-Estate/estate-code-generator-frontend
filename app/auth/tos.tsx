@@ -209,7 +209,8 @@ export default function TermsOfService() {
 	const router = useRouter();
 	const { signIn } = useAuth();
 	const { width } = useWindowDimensions();
-	const params = useLocalSearchParams<{ token: string; role: string }>();
+	const params = useLocalSearchParams<{ token: string; role: string; readonly?: string }>();
+	const isReadOnly = String(params.readonly) === 'true';
 	const [isAccepting, setIsAccepting] = useState(false);
 	const [isRejecting, setIsRejecting] = useState(false);
 	const [errorMessage, setErrorMessage] = useState('');
@@ -218,6 +219,15 @@ export default function TermsOfService() {
 	const sectionRefs = useRef<Record<string, number>>({});
 
 	const isLargeScreen = width > getWidthBreakpoint();
+
+	const handleBackFromTerms = useCallback(() => {
+		if (isReadOnly) {
+			router.back();
+			return;
+		}
+		setIsRejecting(true);
+		router.replace({ pathname: '/auth/login', params: { tos_rejected: 'true' } });
+	}, [isReadOnly, router]);
 
 	useEffect(() => {
 		if (Platform.OS === 'web') document.title = 'Terms of Service - GatePass';
@@ -321,10 +331,10 @@ export default function TermsOfService() {
 							</View>
 						</View>
 						<Pressable
-							onPress={handleReject}
+							onPress={handleBackFromTerms}
 							className="border border-[#D1D5DB] rounded-lg py-3 px-6 items-center mt-8"
 						>
-							<Text className="font-UbuntuSans text-sm text-black">Back to login</Text>
+							<Text className="font-UbuntuSans text-sm text-black">{isReadOnly ? 'Back' : 'Back to login'}</Text>
 						</Pressable>
 					</View>
 
@@ -398,10 +408,11 @@ export default function TermsOfService() {
 
 						<View className="mt-10 gap-4 max-w-2xl self-center w-full">
 							<Button
-								className="rounded-lg h-14 items-center justify-center"
+								className={`rounded-lg h-14 items-center justify-center ${isReadOnly ? 'opacity-50' : ''}`}
+								style={isReadOnly ? { backgroundColor: '#A0AEC0' } : undefined}
 								size={Platform.select({ ios: 'lg', default: 'lg' })}
 								onPress={handleAccept}
-								disabled={isAccepting}
+								disabled={isAccepting || isReadOnly}
 							>
 								{isAccepting ? (
 									<ActivityIndicator color="#fff" />
@@ -412,10 +423,11 @@ export default function TermsOfService() {
 								)}
 							</Button>
 							<Button
-								className="rounded-lg h-14 items-center justify-center bg-teal"
+								className={`rounded-lg h-14 items-center justify-center ${isReadOnly ? 'opacity-50' : 'bg-teal'}`}
+								style={isReadOnly ? { backgroundColor: '#A0AEC0' } : undefined}
 								size={Platform.select({ ios: 'lg', default: 'lg' })}
 								onPress={handleReject}
-								disabled={isRejecting}
+								disabled={isRejecting || isReadOnly}
 							>
 								{isRejecting ? (
 									<ActivityIndicator color="#fff" />
@@ -435,7 +447,7 @@ export default function TermsOfService() {
 	return (
 		<SafeAreaView className="flex-1 bg-white">
 			<View className="flex-row justify-between items-center px-5 pt-4">
-				<Pressable onPress={() => { setIsRejecting(true); router.replace({ pathname: '/auth/login', params: { tos_rejected: 'true' } }); }} className="flex-row items-center">
+				<Pressable onPress={handleBackFromTerms} className="flex-row items-center">
 					<AntDesign name="left" size={16} color="#04121A" />
 					<Text className="font-Inter text-base text-black ml-1">Back</Text>
 				</Pressable>
@@ -514,8 +526,8 @@ export default function TermsOfService() {
 				<View className="mt-8 gap-4 items-center">
 					<TouchableOpacity
 						onPress={handleAccept}
-						disabled={isAccepting}
-						style={{ backgroundColor: '#113E55', borderRadius: 10, height: 56, alignItems: 'center', justifyContent: 'center', width: '83%' }}
+						disabled={isAccepting || isReadOnly}
+						style={{ backgroundColor: isReadOnly ? '#A0AEC0' : '#113E55', borderRadius: 10, height: 56, alignItems: 'center', justifyContent: 'center', width: '83%', opacity: isReadOnly ? 0.6 : 1 }}
 						activeOpacity={0.8}
 					>
 						{isAccepting ? (
@@ -528,8 +540,8 @@ export default function TermsOfService() {
 					</TouchableOpacity>
 					<TouchableOpacity
 						onPress={handleReject}
-						disabled={isRejecting}
-						style={{ backgroundColor: '#1B998B', borderRadius: 10, height: 56, alignItems: 'center', justifyContent: 'center', width: '83%' }}
+						disabled={isRejecting || isReadOnly}
+						style={{ backgroundColor: isReadOnly ? '#A0AEC0' : '#1B998B', borderRadius: 10, height: 56, alignItems: 'center', justifyContent: 'center', width: '83%', opacity: isReadOnly ? 0.6 : 1 }}
 						activeOpacity={0.8}
 					>
 						{isRejecting ? (

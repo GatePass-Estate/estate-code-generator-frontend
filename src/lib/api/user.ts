@@ -129,3 +129,13 @@ export const deleteUser = async (user_id: string): Promise<any> => {
 		throw new Error(`${getErrorMessage(error) || 'An error occured'} `);
 	}
 };
+
+export const deleteAccount = async (): Promise<any> => {
+	try {
+		const api = Api();
+		const axiosRes = await api.delete(`/users/me/account`);
+		return axiosRes.data;
+	} catch (error: any) {
+		throw new Error(`${getErrorMessage(error) || 'An error occured'} `);
+	}
+};

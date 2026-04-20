@@ -32,7 +32,10 @@ export default function WebSidebar({ routes, onNavigate }: WebSidebarProps) {
 						{routes
 							.filter((el) => el.for === 'web' || el.for === 'both')
 							.map(({ name, title, link, activeIcon, inactiveIcon, role }, index) => {
-								const isActive = pathname === link || (link.includes('/admin') && pathname.includes('/admin'));
+								const isActive =
+									pathname === link ||
+									(link.includes('/admin') && pathname.includes('/admin')) ||
+									(link === '/settings' && pathname.startsWith('/profile'));
 
 								if (role && role !== userRole) return null;
 

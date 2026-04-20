@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, ScrollView, Platform, useWindowDimensions, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { AntDesign, Feather } from '@expo/vector-icons';
 import { getWidthBreakpoint } from '@/src/lib/helpers';
 import { Button } from '@/src/components/nativewindui/Button';
@@ -273,6 +273,8 @@ const POLICY_SECTIONS: PolicySection[] = [
 
 export default function DataProtectionPolicy() {
 	const router = useRouter();
+	const { source } = useLocalSearchParams<{ source?: string }>();
+	const fromSettings = String(source) === 'settings';
 	const { width } = useWindowDimensions();
 	const isLargeScreen = width > getWidthBreakpoint();
 
@@ -348,7 +350,7 @@ export default function DataProtectionPolicy() {
 						onPress={() => router.back()}
 						className="border border-[#D1D5DB] rounded-lg py-3 px-6 items-center"
 					>
-						<Text className="font-UbuntuSans text-sm text-black">Back to Terms</Text>
+						<Text className="font-UbuntuSans text-sm text-black">{fromSettings ? 'Back' : 'Back to Terms'}</Text>
 					</Pressable>
 				</View>
 
@@ -436,7 +438,7 @@ export default function DataProtectionPolicy() {
 							className="bg-primary rounded-lg py-3 px-8"
 						>
 							<Text className="text-white font-UbuntuSans font-semibold text-base">
-								Return to Terms of Service
+								{fromSettings ? 'Back' : 'Return to Terms of Service'}
 							</Text>
 						</Pressable>
 					</View>
@@ -536,7 +538,7 @@ export default function DataProtectionPolicy() {
 						className="bg-primary rounded-lg py-4 w-full items-center justify-center flex-row"
 					>
 						<Text className="text-white font-UbuntuSans font-semibold text-base">
-							Return to Terms
+							{fromSettings ? 'Back' : 'Return to Terms'}
 						</Text>
 					</Pressable>
 				</View>

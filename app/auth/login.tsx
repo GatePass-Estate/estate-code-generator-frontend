@@ -287,6 +287,13 @@ export default function Login() {
                 )}
               </Button>
 
+              <View className="mt-1 flex-row justify-center flex-wrap items-center">
+                <Text className="text-grey font-Inter text-sm">By continuing, you agree to our </Text>
+                <Pressable onPress={() => router.push({ pathname: '/auth/tos', params: { readonly: 'true' } })}>
+                  <Text className="text-primary font-ubuntu-medium text-sm underline">Terms of Service</Text>
+                </Pressable>
+              </View>
+
               {/* <Button
                 className={`self-center rounded-lg flex-row items-center justify-center w-11/12 h-14 bg-dark-teal ${isLoading ? "opacity-70" : ""}`}
                 size={Platform.select({ ios: "lg", default: "lg" })}
