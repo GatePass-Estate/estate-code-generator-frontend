@@ -105,7 +105,7 @@ export default function SettingsWeb() {
           />
           <SettingsRowWeb
             label="Account Security"
-            onPress={() => router.push("/profile/edit/password")}
+            onPress={() => router.push("/account-security")}
           />
 
           <SectionTitleWeb>About</SectionTitleWeb>
