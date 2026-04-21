@@ -9,6 +9,7 @@ import { useAuth } from "@/src/hooks/useAuthContext";
 import { useUserStore } from "@/src/lib/stores/userStore";
 import { deleteAccount } from "@/src/lib/api/user";
 import Icon from "react-native-vector-icons/Ionicons";
+import Modal from "@/src/components/web/Modal";
 
 function SettingsRowWeb({
   label,
@@ -50,20 +51,14 @@ export default function SettingsWeb() {
   const { width } = useWindowDimensions();
   const isLargeScreen = width > getWidthBreakpoint();
   const [deleting, setDeleting] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   useEffect(() => {
     if (Platform.OS === "web") document.title = "Settings - GatePass";
   }, []);
 
-  const confirmDelete = () => {
-    if (
-      typeof window !== "undefined" &&
-      !window.confirm(
-        "This will permanently remove your account and sign you out. Continue?",
-      )
-    ) {
-      return;
-    }
+  const handleDeleteAccount = () => {
     void (async () => {
       if (!user_id) return;
       setDeleting(true);
@@ -71,9 +66,10 @@ export default function SettingsWeb() {
         await deleteAccount();
         await signOut();
       } catch (e: any) {
-        window.alert(e?.message ?? "Could not delete account.");
+        setDeleteError(e?.message ?? "Could not delete account.");
       } finally {
         setDeleting(false);
+        setShowDeleteModal(false);
       }
     })();
   };
@@ -139,7 +135,7 @@ export default function SettingsWeb() {
           </Pressable>
 
           <Pressable
-            onPress={confirmDelete}
+            onPress={() => setShowDeleteModal(true)}
             disabled={deleting}
             className="mt-8 items-center py-2 cursor-pointer"
           >
@@ -149,6 +145,31 @@ export default function SettingsWeb() {
           </Pressable>
         </div>
       </div>
+
+      {showDeleteModal && (
+        <Modal
+          heading="Delete Account"
+          message="This will permanently remove your account and sign you out. This action cannot be undone."
+          cancelText="Cancel"
+          actionText="Delete"
+          runningText="Deleting..."
+          actionRunnig={deleting}
+          btnDisabled={deleting}
+          closeModal={() => {
+            if (!deleting) setShowDeleteModal(false);
+          }}
+          action={handleDeleteAccount}
+        />
+      )}
+
+      {deleteError ? (
+        <Modal
+          heading="Delete failed"
+          message={deleteError}
+          cancelText="Close"
+          closeModal={() => setDeleteError("")}
+        />
+      ) : null}
     </div>
   );
 }

@@ -79,7 +79,7 @@ export default function AccountSecurityWeb() {
 		<div className="flex h-full w-screen overflow-y-scroll bg-body">
 			{isLargeScreen && <WebSidebar routes={menuRoutes} onNavigate={(route) => router.push(route as any)} />}
 			<div className="web-body">
-				<div className={`flex flex-col ${isLargeScreen ? 'mt-20 max-w-lg mx-auto px-4 w-full' : 'mt-5 px-5'}`}>
+				<div className={`flex flex-col ${isLargeScreen ? 'mt-20 px-4 w-full' : 'mt-5 px-5'}`}>
 					<Back type="short-arrow" />
 
 					<div className="mt-10">

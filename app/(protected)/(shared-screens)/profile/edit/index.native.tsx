@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Back from '@/src/components/mobile/Back';
 import { Toast, ToastType } from '@/src/components/mobile/Toast';
 import { sharedStyles } from '@/src/theme/styles';
 import { useUserStore } from '@/src/lib/stores/userStore';
@@ -172,8 +171,6 @@ export default function EditRequest() {
 
 	return (
 		<SafeAreaView style={[sharedStyles.container, sharedStyles.modalContainer]}>
-			<Back type="short-arrow" />
-
 			<Toast message={toastMessage} type={toastType} visible={toastVisible} onHide={() => setToastVisible(false)} />
 
 			<ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
