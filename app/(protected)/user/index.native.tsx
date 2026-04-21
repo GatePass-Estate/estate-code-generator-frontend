@@ -1,7 +1,8 @@
 import { Stack, router } from 'expo-router';
 import { useNavigation } from '@react-navigation/native';
 import CountdownRing from '@/src/components/common/CountdownRing';
-import { View, Text, FlatList, Pressable, Animated, Platform } from 'react-native';
+import { View, Text, FlatList, Animated, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import UserIcon from '@/src/components/mobile/UserIcon';
 import { useEffect, useRef, useState } from 'react';
 import images from '@/src/constants/images';
@@ -90,7 +91,7 @@ export default function HomeMobile({}) {
 	}, [bounceValue]);
 
 	return (
-		<View style={sharedStyles.container}>
+		<SafeAreaView style={sharedStyles.container} edges={['bottom', 'left', 'right']}>
 			<Stack.Screen
 				options={{
 					title: 'Active Codes',
@@ -160,6 +161,6 @@ export default function HomeMobile({}) {
 					}}
 				/>
 			</View>
-		</View>
+		</SafeAreaView>
 	);
 }
