@@ -73,7 +73,7 @@ export default function MyProfile() {
 					</div>
 				) : (
 					<>
-						<div className={`flex flex-col ${isLargeScreen ? 'mt-20 px-4 w-full' : 'mt-5 px-5'}`}>
+						<div className={`flex flex-col ${isLargeScreen ? 'mt-20 px-4 w-full' : 'mt-5 md:px-5'}`}>
 							<Back type="short-arrow" />
 
 							<div className="mt-10">
