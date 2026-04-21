@@ -113,7 +113,7 @@ export default function AccountSecurityWeb() {
                 }}
                 className="cursor-pointer flex items-center rounded-lg px-5 bg-[#F7F9F9] h-14 w-full justify-between"
               >
-                <span className="text-[15px] font-inter-regular text-[#172024]">
+                <span className="text-[15px] font-inter-medium text-[#172024]">
                   Change Password
                 </span>
                 <div className="">
