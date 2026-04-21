@@ -86,16 +86,15 @@ export default function AccountSecurityWeb() {
 						<div className="flex justify-between">
 							<h1 className={`${isLargeScreen ? 'text-4xl' : 'text-2xl font-ubuntu-medium'}`}>Account Security</h1>
 						</div>
+						<p className="text-xs font-inter-medium text-[#172024] mt-4 leading-[14px]">
+							Manage your security settings and update your password for quick secure access.
+						</p>
 					</div>
 
 					<div className="py-7 w-full mt-5">
 						<div className="flex flex-col gap-4 mb-1">
-							{/* Password */}
-							<div className="flex capitalize items-center border rounded-lg px-5 bg-white text-base text-primary p-4 w-full justify-between border-grey">
-								<div className="flex gap-10">
-									<span>My Password:</span>
-									<span className="tracking-[2px]">************</span>
-								</div>
+							<div className="flex items-center rounded-lg px-5 bg-[#F7F9F9] h-14 w-full justify-between">
+								<span className="text-[15px] font-inter-regular text-[#172024]">Change Password</span>
 								<div
 									onClick={() => {
 										setError('');
@@ -104,7 +103,7 @@ export default function AccountSecurityWeb() {
 									}}
 									className="cursor-pointer"
 								>
-									<Image source={icons.edit} style={{ width: 20, height: 20 }} resizeMode="contain" />
+									<Image source={icons.rightIcon} style={{ width: 14, height: 14 }} resizeMode="contain" />
 								</div>
 							</div>
 						</div>

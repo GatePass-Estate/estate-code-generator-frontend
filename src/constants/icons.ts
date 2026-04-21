@@ -110,6 +110,8 @@ import homeDropdown from '../assets/icons/home-dropdown.png';
 import logoutDropdown from '../assets/icons/logout-dropdown.png';
 // @ts-ignore
 import slideUp from '../assets/icons/slide-up.png';
+// @ts-ignore
+import rightIcon from '../assets/icons/right-icon.png';
 
 const icons = {
 	menuIcon,
@@ -168,6 +170,7 @@ const icons = {
 	homeDropdown,
 	logoutDropdown,
 	slideUp,
+	rightIcon,
 };
 
 export default icons;

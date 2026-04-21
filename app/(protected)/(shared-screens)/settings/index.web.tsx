@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { Platform, Pressable, Text, useWindowDimensions, View } from "react-native";
+import { Image, Platform, Pressable, Text, useWindowDimensions, View } from "react-native";
 import WebSidebar from "@/src/components/web/WebSidebar";
 import { menuRoutes } from "../../user/_layout";
 import Back from "@/src/components/mobile/Back";
@@ -8,7 +8,7 @@ import { getWidthBreakpoint } from "@/src/lib/helpers";
 import { useAuth } from "@/src/hooks/useAuthContext";
 import { useUserStore } from "@/src/lib/stores/userStore";
 import { deleteAccount } from "@/src/lib/api/user";
-import Icon from "react-native-vector-icons/Ionicons";
+import icons from "@/src/constants/icons";
 import Modal from "@/src/components/web/Modal";
 
 function SettingsRowWeb({
@@ -23,14 +23,11 @@ function SettingsRowWeb({
   return (
     <Pressable
       onPress={onPress}
-      className="flex-row items-center justify-between border border-grey rounded-xl px-4 py-4 bg-white mb-3 cursor-pointer"
+      className="flex-row justify-between items-center gap-10 h-14 bg-[#F7F9F9] rounded-[8px] px-5 mb-3"
     >
       <Text className="text-base font-inter-medium text-primary">{label}</Text>
       {showChevron ? (
-        <View className="w-8 h-8 rounded-full bg-primary items-center justify-center">
-          <Icon name="chevron-forward" size={18} color="#fff" />
-          
-        </View>
+        <Image source={icons.rightIcon} style={{ width: 14, height: 14 }} resizeMode="contain" />
       ) : null}
     </Pressable>
   );
@@ -84,7 +81,7 @@ export default function SettingsWeb() {
       )}
       <div className="web-body">
         <div
-          className={`flex flex-col ${isLargeScreen ? "mt-20 max-w-lg mx-auto px-4" : "mt-5 px-5"}`}
+          className={`flex flex-col ${isLargeScreen ? "mt-20 px-4 w-full" : "mt-5 px-5"}`}
         >
           {!isLargeScreen && <Back type="short-arrow" />}
 
