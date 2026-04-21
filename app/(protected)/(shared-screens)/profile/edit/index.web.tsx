@@ -7,7 +7,6 @@ import { Platform, useWindowDimensions } from 'react-native';
 import { createRequest, checkPendingRequests, updatePendingRequest } from '@/src/lib/api/requests';
 import { RequestType, PendingRequestsResponse } from '@/src/types/requests';
 import { getWidthBreakpoint } from '@/src/lib/helpers';
-import Back from '@/src/components/mobile/Back';
 
 interface ChangedField {
 	type: RequestType;
@@ -163,9 +162,7 @@ export const EditProfileForm = ({ centralize = false }: { centralize?: boolean }
 	};
 
 	return (
-		<div className={`flex flex-col justify-center ${isLargeScreen ? 'mt-20' : 'mt-5'}`}>
-			{!isLargeScreen && <Back type="short-arrow" />}
-
+		<div className={`flex flex-col ${isLargeScreen ? 'mt-20 px-4 w-full' : 'mt-5 px-5'}`}>
 			<div className={`${!isLargeScreen && 'mt-5'}`}>
 				<h1 className={`${isLargeScreen ? 'text-4xl' : 'text-2xl font-ubuntu-medium'} ${centralize && 'text-center'}`}>Edit Profile</h1>
 				<p className={`text-base text-tertiary mt-1 ${centralize && 'text-center'}`}>Send a request to edit your personal details</p>

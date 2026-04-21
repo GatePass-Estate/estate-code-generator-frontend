@@ -1,34 +1,19 @@
 import { useRouter } from 'expo-router';
-import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { ActivityIndicator, Image, Platform, useWindowDimensions } from 'react-native';
 import icons from '@/src/constants/icons';
 import { useUserStore } from '@/src/lib/stores/userStore';
-import { updatepassword } from '@/src/lib/api/user';
 import { generateCode, getMyCode } from '@/src/lib/api/codes';
 import { formatDateWithOrdinal, getWidthBreakpoint } from '@/src/lib/helpers';
-import UpdatePassword from '@/src/components/web/UpdatePassword';
 import Back from '@/src/components/mobile/Back';
 import WebSidebar from '@/src/components/web/WebSidebar';
 import { menuRoutes } from '../../user/_layout';
 
 export default function MyProfile() {
 	const router = useRouter();
-	const [showUpdatePassword, setShowUpdatePassword] = useState(false);
-	const [savingPassword, setSavingPassword] = useState(false);
-	const [error, setError] = useState('');
-	const [success, setSuccess] = useState('');
-	const [password, setPassword] = useState({
-		currentPassword: '',
-		newPassword: '',
-	});
-	const confirmPasswordRef = useRef<HTMLInputElement | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [code, setCode] = useState<string | null>(null);
 	const [expiry, setExpiry] = useState<string | null>(null);
-
-	const [showCurrent, setShowCurrent] = useState(false);
-	const [showNew, setShowNew] = useState(false);
-	const [showConfirm, setShowConfirm] = useState(false);
 
 	const user_id = useUserStore.getState().user_id;
 	const estate_id = useUserStore.getState().estate_id;
@@ -56,52 +41,11 @@ export default function MyProfile() {
 			setCode(result.hashed_code);
 			setExpiry(result.valid_until);
 		} catch (error) {
-			setError('Failed to generate code. Please try again.');
+			console.error('Failed to generate code. Please try again.', error);
 		} finally {
 			setLoading(false);
 		}
 	}, [user_id, estate_id]);
-
-	const setNewPassword = useCallback(async () => {
-		setSavingPassword(true);
-		setError('');
-		setSuccess('');
-
-		const confirmValue = confirmPasswordRef.current?.value || '';
-
-		if (password.newPassword !== confirmValue) {
-			setError('The new password and the confirm password do not match');
-			setSavingPassword(false);
-			return;
-		}
-
-		if (password.newPassword.length < 8 || password.currentPassword.length < 8) {
-			setError('The password must be at least 8 characters long');
-			setSavingPassword(false);
-			return;
-		}
-
-		if (password.newPassword === password.currentPassword) {
-			setError('The new password cannot be the same as the current password');
-			setSavingPassword(false);
-			return;
-		}
-
-		try {
-			await updatepassword({
-				user_id,
-				current_password: password.currentPassword,
-				new_password: password.newPassword,
-			});
-			setSuccess('Password updated successfully');
-			setTimeout(() => setShowUpdatePassword(false), 1500);
-		} catch (err: any) {
-			const message = err?.message || 'Failed to update password.';
-			setError(message);
-		} finally {
-			setSavingPassword(false);
-		}
-	}, [password, user_id]);
 
 	useEffect(() => {
 		fetchMyCode();
@@ -129,8 +73,8 @@ export default function MyProfile() {
 					</div>
 				) : (
 					<>
-						<div className={`flex flex-col justify-center ${isLargeScreen ? 'mt-20' : 'mt-5'}`}>
-							{!isLargeScreen && <Back type="short-arrow" />}
+						<div className={`flex flex-col ${isLargeScreen ? 'mt-20 px-4 w-full' : 'mt-5 px-5'}`}>
+							<Back type="short-arrow" />
 
 							<div className="mt-10">
 								<div className="flex justify-between">
@@ -149,24 +93,6 @@ export default function MyProfile() {
 											<span className="tracking-[2px] uppercase">{code ? `${code.slice(0, 3)} ${code.slice(3)}` : '-------------'}</span>
 										</div>
 										<div onClick={handleGenerateCode}>{loading ? <ActivityIndicator size="large" color="#113E55" /> : <Image source={icons.refresh} style={{ width: 20, height: 20 }} resizeMode="contain" className="cursor-pointer" />}</div>
-									</div>
-
-									{/* Password */}
-									<div className="flex capitalize items-center border rounded-lg px-5 bg-white text-base text-primary p-4 w-full justify-between border-grey">
-										<div className="flex gap-10">
-											<span>My Password:</span>
-											<span className="tracking-[2px]">************</span>
-										</div>
-										<div
-											onClick={() => {
-												setError('');
-												setSuccess('');
-												setShowUpdatePassword(true);
-											}}
-											className="cursor-pointer"
-										>
-											<Image source={icons.edit} style={{ width: 20, height: 20 }} resizeMode="contain" />
-										</div>
 									</div>
 								</div>
 
@@ -222,25 +148,6 @@ export default function MyProfile() {
 					</>
 				)}
 			</div>
-			{showUpdatePassword && (
-				<UpdatePassword
-					setShowUpdatePassword={setShowUpdatePassword}
-					error={error}
-					success={success}
-					savingPassword={savingPassword}
-					setPassword={setPassword}
-					password={password}
-					showCurrent={showCurrent}
-					showNew={showNew}
-					showConfirm={showConfirm}
-					confirmPasswordRef={confirmPasswordRef}
-					setError={setError}
-					setShowCurrent={setShowCurrent}
-					setShowNew={setShowNew}
-					setShowConfirm={setShowConfirm}
-					setNewPassword={setNewPassword}
-				/>
-			)}
 		</div>
 	);
 }
