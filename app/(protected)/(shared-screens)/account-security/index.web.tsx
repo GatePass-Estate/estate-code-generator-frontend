@@ -85,7 +85,7 @@ export default function AccountSecurityWeb() {
       )}
       <div className="web-body">
         <div
-          className={`flex flex-col ${isLargeScreen ? "mt-20 px-4 w-full" : "mt-5 px-5"}`}
+          className={`flex flex-col ${isLargeScreen ? "mt-20 px-4 w-full" : "mt-5 md:px-5"}`}
         >
           <Back type="short-arrow" />
 

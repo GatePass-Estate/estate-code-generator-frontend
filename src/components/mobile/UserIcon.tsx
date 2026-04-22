@@ -1,7 +1,9 @@
 import { useUserStore } from "@/src/lib/stores/userStore";
 import { useRouter } from "expo-router";
 import { View, Text, Pressable, Modal, Image, Platform } from "react-native";
-import { useState, useRef } from "react";
+import { useState, useRef, useContext } from "react";
+import { HeaderHeightContext } from "@react-navigation/elements";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/src/hooks/useAuthContext";
 import icons from "@/src/constants/icons";
 
@@ -13,8 +15,19 @@ export default function UserIcon({ type = "admin" }: { type?: string }) {
   const [showDropdown, setShowDropdown] = useState(false);
   const buttonRef = useRef<View>(null);
   const { signOut } = useAuth();
+  const insets = useSafeAreaInsets();
+  const headerHeight = useContext(HeaderHeightContext);
 
   const isMobile = Platform.OS !== "web";
+
+  /**
+   * Fullscreen Modal is drawn from y=0. Fixed dp (e.g. 46/12) does not scale across notches / header configs.
+   * Use React Navigation’s measured header height when present; else safe-area top + one moderate bar fallback.
+   */
+  const dropdownTopPadding =
+    typeof headerHeight === "number" && headerHeight > 0
+      ? headerHeight
+      : insets.top + (Platform.OS === "web" ? 12 : 44);
 
   const initials = `${first_name?.charAt(0) ?? ""}${last_name?.charAt(0) ?? ""}`;
 
@@ -55,11 +68,12 @@ export default function UserIcon({ type = "admin" }: { type?: string }) {
         onRequestClose={() => setShowDropdown(false)}
       >
         <Pressable
-          className="flex-1 bg-primary/20 justify-start pt-15 pr-5"
+          className="flex-1 bg-primary/20 justify-start pr-5 "
+          style={{ paddingTop: dropdownTopPadding }}
           onPress={() => setShowDropdown(false)}
         >
           <View
-            className="self-end bg-white rounded-3xl border border-accent shadow-md top-16 p-2 py-3 w-60"
+            className="self-end bg-white rounded-3xl border border-accent shadow-md p-2 py-3 w-60"
             style={{ minWidth: 120 }}
           >
             {isAdmin && (
