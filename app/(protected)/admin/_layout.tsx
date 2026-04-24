@@ -8,7 +8,7 @@ export const adminRoutes: adminMenuRouteType[] = [
 
 	{ name: 'guests/add/index', link: '/admin/users/add', title: 'Register User', icon: icons.addUserIcon },
 
-	{ name: 'guests/add/index', link: '/admin/broadcast', title: 'Send a broadcast', icon: icons.broadcastIcon },
+	{ name: 'guests/add/index', link: '/admin/broadcast', title: 'Send a broadcast', icon: icons.broadcastIcon, disabled: true },
 
 	{ name: 'guests/add/index', link: '/admin/edit-requests', title: 'Edit Requests', icon: icons.editRequestIcon },
 ];

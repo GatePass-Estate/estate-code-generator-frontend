@@ -8,7 +8,7 @@ export type UserRolesType = 'root' | 'primary_admin' | 'admin' | 'resident' | 's
 
 export type menuRouteType = { name: string; title: string; link: string; activeIcon?: any; inactiveIcon?: any; role?: UserRolesType; for?: 'web' | 'native' | 'both'; TabIcon?: React.FC<{ focused?: boolean; isMobile?: boolean }> };
 
-export type adminMenuRouteType = { name: string; title: string; link: string; icon?: any };
+export type adminMenuRouteType = { name: string; title: string; link: string; icon?: any; disabled?: boolean };
 
 export type InputRefsStorage = { [key: number]: TextInput | null };
 
