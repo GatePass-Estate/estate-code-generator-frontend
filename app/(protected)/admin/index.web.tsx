@@ -271,11 +271,21 @@ function AdminUsersPageWeb() {
 
 					<div className="grid grid-cols-4 gap-8 md:grid-cols-12 mb-10">
 						<div className="flex flex-col gap-5 w-full col-span-2">
-							{adminRoutes.map(({ name, title, link, icon }, index) => {
+							{adminRoutes.map(({ name, title, link, icon, disabled }, index) => {
 								const isActive = pathname === link;
 
 								return (
-									<div key={index} onClick={() => onNavigate(link)} className={`flex gap-3 items-center cursor-pointer p-3 rounded-lg transition-all ${isActive ? 'bg-accent text-primary font-medium' : 'hover:bg-accent hover:text-primary hover:font-medium'}`}>
+									<div
+										key={index}
+										onClick={() => !disabled && onNavigate(link)}
+										className={`flex gap-3 items-center p-3 rounded-lg transition-all ${
+											disabled
+												? 'opacity-40 cursor-not-allowed'
+												: isActive
+													? 'bg-accent text-primary font-medium cursor-pointer'
+													: 'hover:bg-accent hover:text-primary hover:font-medium cursor-pointer'
+										}`}
+									>
 										<Image source={icon} style={{ width: 24, height: 24 }} resizeMode="contain" />
 										<WebNavLink color="primary">{title}</WebNavLink>
 									</div>
