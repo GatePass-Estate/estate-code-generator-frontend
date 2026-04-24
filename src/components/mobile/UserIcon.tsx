@@ -32,6 +32,12 @@ export default function UserIcon({ type = "admin" }: { type?: string }) {
   const initials = `${first_name?.charAt(0) ?? ""}${last_name?.charAt(0) ?? ""}`;
 
   const isAdmin = ["admin", "primary_admin"].includes(role!);
+  const adminSwitchPath = type === "admin" ? "/admin" : "/user";
+  const adminSwitchLabel = type === "admin" ? "Admin" : "Home";
+  const adminSwitchIcon =
+    type === "admin" ? icons.activeAdminIcon : icons.homeDropdown;
+  const adminSwitchIconStyle =
+    type === "admin" ? { width: 14, height: 18 } : { width: 18, height: 18 };
 
   const handleNavigation = (path: string) => {
     setShowDropdown(false);
@@ -79,15 +85,15 @@ export default function UserIcon({ type = "admin" }: { type?: string }) {
             {isAdmin && (
               <Pressable
                 className="py-3 px-4 flex gap-2 flex-row bg-accent rounded-2xl"
-                onPress={() =>
-                  handleNavigation(type === "admin" ? "/admin" : "/user")
-                }
+                onPress={() => handleNavigation(adminSwitchPath)}
               >
                 <Image
-                  source={icons.homeDropdown}
-                  style={{ width: 18, height: 18 }}
+                  source={adminSwitchIcon}
+                  style={adminSwitchIconStyle}
                 />
-                <Text className="text-primary font-inter-medium">Home</Text>
+                <Text className="text-primary font-inter-medium">
+                  {adminSwitchLabel}
+                </Text>
               </Pressable>
             )}
 
