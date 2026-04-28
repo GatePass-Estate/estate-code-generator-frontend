@@ -27,7 +27,7 @@ export default function UserIcon({ type = "admin" }: { type?: string }) {
   const dropdownTopPadding =
     typeof headerHeight === "number" && headerHeight > 0
       ? headerHeight
-      : insets.top + (Platform.OS === "web" ? 12 : 44);
+      : insets.top + (Platform.OS === "web" ? 12 : 20);
 
   const initials = `${first_name?.charAt(0) ?? ""}${last_name?.charAt(0) ?? ""}`;
 
