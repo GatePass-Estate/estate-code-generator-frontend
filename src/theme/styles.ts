@@ -1,5 +1,7 @@
 import { StyleSheet } from 'react-native';
 
+export const APP_NATIVE_HEADER_HEIGHT = 88;
+
 export const sharedStyles = StyleSheet.create({
 	container: {
 		flex: 1,
@@ -16,6 +18,7 @@ export const sharedStyles = StyleSheet.create({
 
 	header: {
 		backgroundColor: '#FBFEFF',
+		height: APP_NATIVE_HEADER_HEIGHT,
 	},
 
 	modalContainer: {
