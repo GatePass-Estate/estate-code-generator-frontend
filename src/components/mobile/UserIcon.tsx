@@ -8,12 +8,15 @@ import { useAuth } from "@/src/hooks/useAuthContext";
 import icons from "@/src/constants/icons";
 import { APP_NATIVE_HEADER_HEIGHT } from "@/src/theme/styles";
 
+const DROPDOWN_GAP_BELOW_AVATAR = 4;
+
 export default function UserIcon({ type = "admin" }: { type?: string }) {
   const first_name = useUserStore((state) => state.first_name);
   const last_name = useUserStore((state) => state.last_name);
   const role = useUserStore((state) => state.role);
   const router = useRouter();
   const [showDropdown, setShowDropdown] = useState(false);
+  const [dropdownTop, setDropdownTop] = useState<number | null>(null);
   const buttonRef = useRef<View>(null);
   const { signOut } = useAuth();
   const insets = useSafeAreaInsets();
@@ -21,14 +24,14 @@ export default function UserIcon({ type = "admin" }: { type?: string }) {
 
   const isMobile = Platform.OS !== "web";
 
-  /**
-   * Fullscreen Modal is drawn from y=0; pin dropdown just below the navigation header.
-   * `headerHeight` comes from React Navigation. Fallback = safe-area + app header height.
-   */
-  const dropdownTopPadding =
+  /** Fallback when avatar measurement isn't ready: align with header bottom. */
+  const fallbackTop =
     typeof headerHeight === "number" && headerHeight > 0
       ? headerHeight
       : insets.top + (Platform.OS === "web" ? 12 : APP_NATIVE_HEADER_HEIGHT);
+
+  const dropdownTopPadding =
+    dropdownTop !== null ? dropdownTop : fallbackTop;
 
   const initials = `${first_name?.charAt(0) ?? ""}${last_name?.charAt(0) ?? ""}`;
 
@@ -49,16 +52,27 @@ export default function UserIcon({ type = "admin" }: { type?: string }) {
     }
   };
 
-  const handleIconPress = () => setShowDropdown(true);
+  const handleIconPress = () => {
+    /** Measure the avatar circle so the menu opens just below it on every device. */
+    if (buttonRef.current && buttonRef.current.measureInWindow) {
+      buttonRef.current.measureInWindow((_x, y, _w, h) => {
+        setDropdownTop(y + h + DROPDOWN_GAP_BELOW_AVATAR);
+        setShowDropdown(true);
+      });
+    } else {
+      setShowDropdown(true);
+    }
+  };
 
   return (
     <>
-      <View ref={buttonRef} className={`${isMobile && "mr-5"}`}>
+      <View className={`${isMobile && "mr-5"}`}>
         <Pressable
           onPress={handleIconPress}
           className="flex-row items-center gap-2"
         >
           <View
+            ref={buttonRef}
             className={`${Platform.OS === "web" ? "w-12 h-12" : "w-9 h-9"} rounded-full border border-teal justify-center items-center`}
           >
             <Text className="uppercase text-teal font-light font-ubuntu text-xl">
