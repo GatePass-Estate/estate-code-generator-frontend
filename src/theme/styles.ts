@@ -1,4 +1,8 @@
-import { StyleSheet } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
+
+/** Fallback used only when React Navigation’s `HeaderHeightContext` isn’t available
+ *  (e.g. component rendered outside a stack header). System defaults: iOS ~88pt incl. notch, Android ~80dp incl. status bar. */
+export const APP_NATIVE_HEADER_HEIGHT = Platform.OS === 'ios' ? 88 : 56;
 
 export const sharedStyles = StyleSheet.create({
 	container: {
