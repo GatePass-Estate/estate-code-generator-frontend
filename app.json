@@ -58,8 +58,12 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.gatepassng.gms",
       "associatedDomains": [
+        "applinks:app.gatepassng.com",
         "applinks:app.gatepassng.com"
-      ]
+      ],
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "web": {
       "bundler": "metro",
