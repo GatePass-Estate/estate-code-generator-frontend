@@ -6,6 +6,7 @@ import { HeaderHeightContext } from "@react-navigation/elements";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/src/hooks/useAuthContext";
 import icons from "@/src/constants/icons";
+import { APP_NATIVE_HEADER_HEIGHT } from "@/src/theme/styles";
 
 export default function UserIcon({ type = "admin" }: { type?: string }) {
   const first_name = useUserStore((state) => state.first_name);
@@ -21,17 +22,23 @@ export default function UserIcon({ type = "admin" }: { type?: string }) {
   const isMobile = Platform.OS !== "web";
 
   /**
-   * Fullscreen Modal is drawn from y=0. Fixed dp (e.g. 46/12) does not scale across notches / header configs.
-   * Use React Navigation’s measured header height when present; else safe-area top + one moderate bar fallback.
+   * Fullscreen Modal is drawn from y=0; pin dropdown just below the navigation header.
+   * `headerHeight` comes from React Navigation. Fallback = safe-area + app header height.
    */
   const dropdownTopPadding =
     typeof headerHeight === "number" && headerHeight > 0
       ? headerHeight
-      : insets.top + (Platform.OS === "web" ? 12 : 44);
+      : insets.top + (Platform.OS === "web" ? 12 : APP_NATIVE_HEADER_HEIGHT);
 
   const initials = `${first_name?.charAt(0) ?? ""}${last_name?.charAt(0) ?? ""}`;
 
   const isAdmin = ["admin", "primary_admin"].includes(role!);
+  const adminSwitchPath = type === "admin" ? "/admin" : "/user";
+  const adminSwitchLabel = type === "admin" ? "Admin" : "Home";
+  const adminSwitchIcon =
+    type === "admin" ? icons.activeAdminIcon : icons.homeDropdown;
+  const adminSwitchIconStyle =
+    type === "admin" ? { width: 14, height: 18 } : { width: 18, height: 18 };
 
   const handleNavigation = (path: string) => {
     setShowDropdown(false);
@@ -79,15 +86,15 @@ export default function UserIcon({ type = "admin" }: { type?: string }) {
             {isAdmin && (
               <Pressable
                 className="py-3 px-4 flex gap-2 flex-row bg-accent rounded-2xl"
-                onPress={() =>
-                  handleNavigation(type === "admin" ? "/admin" : "/user")
-                }
+                onPress={() => handleNavigation(adminSwitchPath)}
               >
                 <Image
-                  source={icons.homeDropdown}
-                  style={{ width: 18, height: 18 }}
+                  source={adminSwitchIcon}
+                  style={adminSwitchIconStyle}
                 />
-                <Text className="text-primary font-inter-medium">Home</Text>
+                <Text className="text-primary font-inter-medium">
+                  {adminSwitchLabel}
+                </Text>
               </Pressable>
             )}
 
