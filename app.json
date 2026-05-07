@@ -18,8 +18,8 @@
     "android": {
       "package": "com.gatepassng.gms",
       "adaptiveIcon": {
-        "foregroundImage": "./src/assets/gatepass_ng_Gp.png",
-        "backgroundColor": "#000000"
+        "foregroundImage": "./src/assets/android-adaptive-foreground.png",
+        "backgroundColor": "#FFFFFF"
       },
       "intentFilters": [
         {
