@@ -112,6 +112,24 @@ import logoutDropdown from '../assets/icons/logout-dropdown.png';
 import slideUp from '../assets/icons/slide-up.png';
 // @ts-ignore
 import rightIcon from '../assets/icons/right-icon.png';
+// @ts-ignore
+import powerIcon from '../assets/icons/power-image.png';
+// @ts-ignore
+import aiIcon from '../assets/icons/ai-image.png';
+// @ts-ignore
+import dbIcon from '../assets/icons/db-icon.png';
+// @ts-ignore
+import shieldIcon from '../assets/icons/user-shield.png';
+// @ts-ignore
+import rightLink from '../assets/icons/right-link.png';
+// @ts-ignore
+import linkedIn from '../assets/icons/LinkedIn.png';
+// @ts-ignore
+import xIcon from '../assets/icons/X.png';
+// @ts-ignore
+import emailIcon from '../assets/icons/Email.png';
+// @ts-ignore
+import instagram from '../assets/icons/Instagram.png';
 
 const icons = {
 	menuIcon,
@@ -171,6 +189,15 @@ const icons = {
 	logoutDropdown,
 	slideUp,
 	rightIcon,
+	powerIcon,
+	aiIcon,
+	dbIcon,
+	shieldIcon,
+	rightLink,
+	linkedIn,
+	xIcon,
+	emailIcon,
+	instagram,
 };
 
 export default icons;

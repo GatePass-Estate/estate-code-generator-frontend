@@ -84,3 +84,15 @@ button {
 .search-code-input-web {
 	@apply w-full h-full text-center bg-transparent outline-none caret-primary text-primary text-3xl;
 }
+
+.hero-section-image {
+	width: 100%;
+	height: 86svh;
+	overflow: hidden;
+	background-position: center;
+	background-size: cover;
+}
+
+.hero-txt {
+	@apply text-4xl md:text-5xl lg:text-6xl font-inter-semibold text-white leading-tight mb-6;
+}

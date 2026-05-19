@@ -1,5 +1,8 @@
-import LoadingTransition from '@/src/components/common/LoadingTransition';
+import { Platform } from 'react-native';
+import LandingPageMobile from './index.native';
+import LandingPageWeb from './index.web';
 
-export default function Index() {
-	return <LoadingTransition />;
-}
+export default Platform.select({
+	web: LandingPageWeb,
+	default: LandingPageMobile,
+});
