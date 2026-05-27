@@ -3,12 +3,13 @@ import { Image, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import icons from '@/src/constants/icons';
 
-const Back = ({ type = 'long-arrow' }: { type?: 'long-arrow' | 'short-arrow' }) => {
+const Back = ({ type = 'long-arrow', onPress }: { type?: 'long-arrow' | 'short-arrow'; onPress?: () => void }) => {
 	const navigation = useNavigation();
+	const handlePress = onPress ?? (() => navigation.goBack());
 
 	if (type === 'long-arrow')
 		return (
-			<TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+			<TouchableOpacity style={styles.backButton} onPress={handlePress}>
 				<Icon name="arrow-back" size={20} color="#113E55" />
 				<Text style={styles.backText}>Back</Text>
 			</TouchableOpacity>
@@ -16,7 +17,7 @@ const Back = ({ type = 'long-arrow' }: { type?: 'long-arrow' | 'short-arrow' }) 
 
 	if (type === 'short-arrow')
 		return (
-			<TouchableOpacity style={[styles.backButton, { gap: 8 }]} onPress={() => navigation.goBack()}>
+			<TouchableOpacity style={[styles.backButton, { gap: 8 }]} onPress={handlePress}>
 				<Image source={icons.backIcon} style={styles.backIcon} />
 				<Text style={styles.backText}>Back</Text>
 			</TouchableOpacity>
