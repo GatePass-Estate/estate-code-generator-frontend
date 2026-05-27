@@ -2,8 +2,8 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { Platform, View, Text, ScrollView, Pressable, Image, ActivityIndicator, useWindowDimensions, Linking, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { AntDesign } from '@expo/vector-icons';
 import { Button } from '@/src/components/nativewindui/Button';
+import Back from '@/src/components/mobile/Back';
 import { useAuth } from '@/src/hooks/useAuthContext';
 import { acceptTos, fetchMe } from '@/src/lib/api/auth';
 import { useAuthStore } from '@/src/lib/stores/authStore';
@@ -458,10 +458,7 @@ export default function TermsOfService() {
 	return (
 		<SafeAreaView className="flex-1 bg-white">
 			<View className="flex-row justify-between items-center px-5 pt-4">
-				<Pressable onPress={handleBackFromTerms} className="flex-row items-center">
-					<AntDesign name="left" size={16} color="#04121A" />
-					<Text className="font-Inter text-base text-black ml-1">Back</Text>
-				</Pressable>
+				<Back type="short-arrow" onPress={handleBackFromTerms} />
 				<Image
 					source={Images.logo}
 					style={{ width: 36, height: 36 }}
