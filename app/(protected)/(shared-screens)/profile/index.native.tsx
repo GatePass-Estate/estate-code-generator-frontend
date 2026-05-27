@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, Pressable, Image, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, Pressable, Image, ActivityIndicator, Platform } from 'react-native';
 import { useAuth } from '@/src/hooks/useAuthContext';
 import { router, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -120,14 +120,13 @@ const ProfileScreen = () => {
 						<Image source={icons.edit} style={{ width: 20, height: 20 }} resizeMode="contain" />
 					</TouchableOpacity>
 
-					<View className="mt-3 bg-transparent p-4 rounded-lg border-micro">
+					<View className={`mt-3 bg-transparent p-4 rounded-lg ${Platform.OS === 'android' ? 'border-micro' : 'border-hairline'}`}>
 						<SingleDetail label="Name" value={`${first_name} ${last_name}`} />
 						<SingleDetail label="Address" value={`${home_address}, ${estate_name}.`} />
 						<SingleDetail label="Email Address" value={email} />
 						<SingleDetail label="Phone Number" value={phone_number} />
 					</View>
 				</View>
-
 
 				<TouchableOpacity className="self-center mt-auto" onPress={signOut}>
 					<Text className="text-tertiary font-bold text-[16px] p-5 font-UbuntuSans">Log Out</Text>
