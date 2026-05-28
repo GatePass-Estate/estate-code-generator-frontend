@@ -1,22 +1,31 @@
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { ActivityIndicator, Image, Platform, useWindowDimensions } from 'react-native';
 import icons from '@/src/constants/icons';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { generateCode, getMyCode } from '@/src/lib/api/codes';
+import { useMyProfile } from '@/src/lib/api/auth';
 import { formatDateWithOrdinal, getWidthBreakpoint } from '@/src/lib/helpers';
 import Back from '@/src/components/mobile/Back';
 import WebSidebar from '@/src/components/web/WebSidebar';
 import { menuRoutes } from '../../user/_layout';
+import { User } from '@/src/types/user';
 
 export default function MyProfile() {
 	const router = useRouter();
 	const [loading, setLoading] = useState(true);
 	const [code, setCode] = useState<string | null>(null);
 	const [expiry, setExpiry] = useState<string | null>(null);
+	const { data: profile, isRefetching, refetch } = useMyProfile();
+	const setUser = useUserStore((state) => state.setUser);
 
-	const user_id = useUserStore.getState().user_id;
-	const estate_id = useUserStore.getState().estate_id;
+	const user_id = useUserStore((state) => state.user_id);
+	const estate_id = useUserStore((state) => state.estate_id);
+	const firstName = useUserStore((state) => state.first_name);
+	const lastName = useUserStore((state) => state.last_name);
+	const homeAddress = useUserStore((state) => state.home_address);
+	const email = useUserStore((state) => state.email);
+	const phoneNumber = useUserStore((state) => state.phone_number);
 	const { width } = useWindowDimensions();
 
 	const isLargeScreen = width > getWidthBreakpoint();
@@ -52,6 +61,18 @@ export default function MyProfile() {
 		if (Platform.OS === 'web') document.title = 'My Profile - GatePass';
 	}, [fetchMyCode]);
 
+	useEffect(() => {
+		if (profile?.status) {
+			setUser(profile as User);
+		}
+	}, [profile, setUser]);
+
+	useFocusEffect(
+		useCallback(() => {
+			void refetch();
+		}, [refetch]),
+	);
+
 	const { expiring, formattedDate } = useMemo(() => {
 		if (!expiry) return { expiring: false, formattedDate: null };
 		const expDate = new Date(expiry);
@@ -77,8 +98,15 @@ export default function MyProfile() {
 							<Back type="short-arrow" />
 
 							<div className="mt-10">
-								<div className="flex justify-between">
+								<div className="flex justify-between items-center gap-4">
 									<h1 className={`${isLargeScreen ? 'text-4xl' : 'text-2xl font-ubuntu-medium'}`}>My Profile</h1>
+									<button
+										onClick={() => refetch()}
+										className="border border-grey rounded-md px-3 py-2 text-sm text-primary"
+										disabled={isRefetching}
+									>
+										{isRefetching ? 'Refreshing...' : 'Refresh details'}
+									</button>
 								</div>
 								<p className="text-base text-tertiary mt-1">My personal details</p>
 							</div>
@@ -113,19 +141,19 @@ export default function MyProfile() {
 								{[
 									{
 										label: 'Name',
-										value: `${useUserStore.getState().first_name} ${useUserStore.getState().last_name}`,
+										value: `${firstName ?? ''} ${lastName ?? ''}`.trim(),
 									},
 									{
 										label: 'Address',
-										value: useUserStore.getState().home_address,
+										value: homeAddress,
 									},
 									{
 										label: 'Email Address',
-										value: useUserStore.getState().email,
+										value: email,
 									},
 									{
 										label: 'Phone Number',
-										value: useUserStore.getState().phone_number,
+										value: phoneNumber,
 									},
 								].map((item, index) => (
 									<div key={item.label + index} className="flex gap-3 items-center">

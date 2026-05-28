@@ -1,4 +1,4 @@
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
 
 import {
   Image,
@@ -9,6 +9,7 @@ import {
   View,
 } from "react-native";
 import { Inter, UbuntuSans } from "@/src/constants/fonts";
+import { useIsMobile } from "@/src/hooks/use-mobile";
 
 const BLUR_ELLIPSE_STYLES = StyleSheet.create({
   success: {
@@ -60,221 +61,252 @@ const BlurEllipse = ({ status }: { status?: string }) => (
   </View>
 );
 
-const WebSuccessView = ({ router }: { router: any }) => (
-  <View className="flex-1 w-full bg-[#FBFEFF] items-center justify-center overflow-hidden">
-    <View
-      style={{
-        width: "100%",
-        maxWidth: 1440,
-        height: 900,
-        position: "relative",
-      }}
-    >
-      {/* Ellipse */}
+const WebSuccessView = ({ router }: { router: any }) => {
+  const isMobile = useIsMobile();
+
+  return (
+    <View className="flex-1 w-full bg-[#FBFEFF] items-center justify-center overflow-hidden">
       <View
         style={{
-          position: "absolute",
-          left: "16.67%",
-          marginLeft: 8,
-          top: 260,
-          width: 400,
-          height: 396,
-          transform: [{ rotate: "-15.47deg" }],
+          width: "100%",
+          maxWidth: 1440,
+          minHeight: isMobile ? "100%" : undefined,
+          height: isMobile ? undefined : 900,
+          position: "relative",
+          justifyContent: isMobile ? "flex-start" : undefined,
+          alignItems: isMobile ? "center" : undefined,
+          paddingHorizontal: isMobile ? 24 : 0,
+          paddingTop: isMobile ? 200 : 0,
         }}
       >
+        {!isMobile && (
+          <View
+            style={{
+              position: "absolute",
+              left: "16.67%",
+              marginLeft: 8,
+              top: 260,
+              width: 400,
+              height: 396,
+              transform: [{ rotate: "-15.47deg" }],
+            }}
+          >
+            <View
+              style={[
+                StyleSheet.absoluteFill,
+                {
+                  borderRadius: 228.66,
+                  backgroundColor: "rgba(25, 84, 113, 0.20)",
+                  filter: "blur(50px)",
+                } as any,
+              ]}
+            />
+          </View>
+        )}
+
         <View
-          style={[
-            StyleSheet.absoluteFill,
-            {
-              borderRadius: 228.66,
-              backgroundColor: "rgba(25, 84, 113, 0.20)",
-              filter: "blur(50px)",
-            } as any,
-          ]}
-        />
-      </View>
-
-      {/* Rocket Image */}
-      <View
-        style={{
-          position: "absolute",
-          left: "25%",
-          marginLeft: 10,
-          top: 338,
-          width: 318,
-          height: 318,
-        }}
-      >
-        <Image
-          source={require("@/src/assets/images/success-rocket.png")}
-          style={{ width: "100%", height: "100%" }}
-          resizeMode="contain"
-        />
-      </View>
-
-      {/* Content */}
-      <View
-        style={{
-          position: "absolute",
-          left: "41.67%",
-          marginLeft: 106,
-          top: 388,
-        }}
-      >
-        <Text
           style={{
-            fontFamily: "UbuntuSans-Medium",
-            color: "#113E55",
-            fontSize: 28.43,
-            lineHeight: 34,
-            width: 444,
-      
+            position: isMobile ? "relative" : "absolute",
+            left: isMobile ? undefined : "25%",
+            marginLeft: isMobile ? 0 : 10,
+            top: isMobile ? undefined : 338,
+            width: isMobile ? 230 : 318,
+            height: isMobile ? 230 : 318,
           }}
         >
-          You Are All Set !
-        </Text>
-        <Text
+          <Image
+            source={require("@/src/assets/images/success-rocket.png")}
+            style={{ width: "100%", height: "100%" }}
+            resizeMode="contain"
+          />
+        </View>
+
+        <View
           style={{
-            fontFamily: Inter.regular,
-            color: "#172024",
-            fontSize: 16,
-            lineHeight: 18,
-            width: 496,
-            marginTop: 30,
-        
-          }}
-        >
-          Your account is now verified and your password set.{"\n"}
-          You can now continue and start using GatePass.{"\n"}
-          Welcome aboard!
-        </Text>
-        <TouchableOpacity
-          onPress={() => router.push("/auth/login")}
-          style={{
-            marginTop: 74,
-            width: 451,
-            height: 54,
-            backgroundColor: "#113E55",
-            borderRadius: 8,
-            justifyContent: "center",
-            alignItems: "center",
+            position: isMobile ? "relative" : "absolute",
+            left: isMobile ? undefined : "41.67%",
+            marginLeft: isMobile ? 0 : 106,
+            top: isMobile ? undefined : 388,
+            marginTop: isMobile ? 20 : 0,
+            width: isMobile ? "100%" : undefined,
+            alignItems: isMobile ? "center" : undefined,
           }}
         >
           <Text
             style={{
-              fontFamily: "UbuntuSans-SemiBold",
-              color: "#fbfeff",
-              fontSize: 16,
-              lineHeight: 16,
+              fontFamily: "UbuntuSans-Medium",
+              color: "#113E55",
+              fontSize: isMobile ? 34 : 28.43,
+              lineHeight: isMobile ? 38 : 34,
+              width: isMobile ? undefined : 444,
+              textAlign: "left",
             }}
           >
-            Go to Login Page
+            You Are All Set !
           </Text>
-        </TouchableOpacity>
+          <Text
+            style={{
+              fontFamily: Inter.regular,
+              color: "#172024",
+              fontSize: 16,
+              lineHeight: isMobile ? 24 : 18,
+              width: isMobile ? undefined : 496,
+              marginTop: 30,
+           
+              textAlign: "left",
+            }}
+          >
+            Your account is now verified and your password set.{"\n"}
+            You can now continue and start using GatePass.{"\n"}
+            Welcome aboard!
+          </Text>
+          <TouchableOpacity
+            onPress={() => router.push("/auth/login")}
+            style={{
+              marginTop: isMobile ? 40 : 74,
+              width: isMobile ? "100%" : 451,
+              maxWidth: isMobile ? 320 : undefined,
+              height: 54,
+              backgroundColor: "#113E55",
+              borderRadius: 8,
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            <Text
+              style={{
+                fontFamily: "UbuntuSans-SemiBold",
+                color: "#fbfeff",
+                fontSize: 16,
+                lineHeight: 16,
+              }}
+            >
+              Go to Login Page
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
-  </View>
-);
+  );
+};
 
-const WebErrorView = () => (
-  <View className="flex-1 w-full bg-[#FBFEFF] items-center justify-center overflow-hidden">
-    <View
-      style={{
-        width: "100%",
-        maxWidth: 1440,
-        height: 900,
-        position: "relative",
-      }}
-    >
-      {/* Ellipse */}
+const WebErrorView = ({ router }: { router: any }) => {
+  const isMobile = useIsMobile();
+
+  return (
+    <View className="flex-1 w-full bg-[#FBFEFF] items-center justify-center overflow-hidden">
       <View
         style={{
-          position: "absolute",
-          left: "10.33%",
-          top: 170,
-          width: 400,
-          height: 396,
-          transform: [{ rotate: "-15.47deg" }],
+          width: "100%",
+          maxWidth: 1440,
+          minHeight: isMobile ? "100%" : undefined,
+          height: isMobile ? undefined : 900,
+          position: "relative",
+          justifyContent: isMobile ? "flex-start" : undefined,
+          alignItems: isMobile ? "center" : undefined,
+          paddingHorizontal: isMobile ? 24 : 0,
+          paddingTop: isMobile ? 200 : 0,
         }}
       >
+        
+
+        {!isMobile && (
+          <View
+            style={{
+              position: "absolute",
+              left: "10.33%",
+              top: 170,
+              width: 400,
+              height: 396,
+              transform: [{ rotate: "-15.47deg" }],
+            }}
+          >
+            <View
+              style={[
+                StyleSheet.absoluteFill,
+                {
+                  borderRadius: 228.66,
+                  backgroundColor: "rgba(25, 84, 113, 0.20)",
+                  filter: "blur(50px)",
+                } as any,
+              ]}
+            />
+          </View>
+        )}
+
         <View
-          style={[
-            StyleSheet.absoluteFill,
-            {
-              borderRadius: 228.66,
-              backgroundColor: "rgba(25, 84, 113, 0.20)",
-              filter: "blur(50px)",
-            } as any,
-          ]}
-        />
-      </View>
-
-      {/* Credit Card Image */}
-      <View
-        style={{
-          position: "absolute",
-          left: "16.67%",
-          marginLeft: 57,
-          top: 291,
-          width: 256,
-          height: 256,
-
-        }}
-      >
-        <Image
-          source={require("@/src/assets/images/credit-card.png")}
-          style={{ width: "100%", height: "100%" }}
-          resizeMode="contain"
-        />
-      </View>
-
-      {/* Content */}
-      <View
-        style={{
-          position: "absolute",
-          left: "40.67%",
-          marginLeft: 35,
-          top: 310,
-        }}
-      >
-        <Text
           style={{
-            fontFamily: "UbuntuSans-Medium",
-            color: "#113E55",
-            fontSize: 28.43,
-            lineHeight: 34,
-            width: 444,
-                      }}
-        >
-          Opps!
-        </Text>
-        <Text
-          style={{
-            fontFamily: Inter.regular,
-            color: "#172024",
-            fontSize: 16,
-            lineHeight: 18,
-            width: 496,
-            marginTop: 24,
+            position: isMobile ? "relative" : "absolute",
+            left: isMobile ? undefined : "16.67%",
+            marginLeft: isMobile ? 0 : 57,
+            top: isMobile ? undefined : 291,
+            width: isMobile ? 242 : 256,
+            height: isMobile ? 242 : 256,
           }}
         >
-          This verification link is invalid or may have expired. For your
-          security, verification links can only be used once and are active for
-          a limited time.{"\n\n"}
-          Kindly notify Admin.
-        </Text>
+          <Image
+            source={require("@/src/assets/images/credit-card.png")}
+            style={{ width: "100%", height: "100%" }}
+            resizeMode="contain"
+          />
+        </View>
+
+        <View
+          style={{
+            position: isMobile ? "relative" : "absolute",
+            left: isMobile ? undefined : "40.67%",
+            marginLeft: isMobile ? 0 : 35,
+            top: isMobile ? undefined : 310,
+            marginTop: isMobile ? 0 : 0,
+            alignItems: isMobile ? "center" : undefined,
+          }}
+        >
+          <Text
+            style={{
+              fontFamily: "UbuntuSans-Medium",
+              color: "#113E55",
+              fontSize: isMobile ? 24 : 28.43,
+              lineHeight: isMobile ? 38 : 34,
+              width: isMobile ? undefined : 444,
+              textAlign: "left",
+            }}
+          >
+            Opps!
+          </Text>
+          <Text
+            style={{
+              fontFamily: Inter.regular,
+              color: "#172024",
+              fontSize: 16,
+              lineHeight: isMobile ? 24 : 18,
+              width: isMobile ? undefined : 496,
+              marginTop: 24,
+              textAlign: "left",
+        
+            }}
+          >
+            This verification link is invalid or may have expired. For your
+            security, verification links can only be used once and are active for
+            a limited time.{"\n\n"}
+            Kindly notify Admin.
+          </Text>
+        </View>
       </View>
     </View>
-  </View>
-);
+  );
+};
 
 const EmailActivationStatusPage = () => {
-  const { status } = useLocalSearchParams<{ status?: string }>();
+  const { status, token } = useLocalSearchParams<{ status?: string; token?: string }>();
   const router = useRouter();
   const isError = status === "error";
 
+  if (!token) {
+    return <Redirect href="/auth/login" />;
+  }
+
   if (Platform.OS === "web") {
-    return isError ? <WebErrorView /> : <WebSuccessView router={router} />;
+    return isError ? <WebErrorView router={router} /> : <WebSuccessView router={router} />;
   }
 
   return (

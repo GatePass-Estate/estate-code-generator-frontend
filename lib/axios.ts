@@ -1,6 +1,5 @@
 import { useAuthStore } from "@/src/lib/stores/authStore";
 import axios from "axios";
-import { Platform } from "react-native";
 
 const Api = (service: "user" | "code" = "user") => {
   const access_token = useAuthStore.getState().access_token;
@@ -9,10 +8,6 @@ const Api = (service: "user" | "code" = "user") => {
     service === "user"
       ? process.env.EXPO_PUBLIC_USER_SERVICE_API_URL
       : process.env.EXPO_PUBLIC_CODE_SERVICE_API_URL;
-
-  if (Platform.OS === "web" && url?.includes("10.0.2.2")) {
-    url = url.replace("10.0.2.2", "localhost");
-  }
 
   return axios.create({
     baseURL: `${url}/api/v1`,

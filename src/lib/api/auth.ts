@@ -3,9 +3,11 @@ import axios from 'axios';
 import { LoginResponse, VerifyEmailActivationResponse } from '@/src/types/auth';
 import { getErrorMessage } from '../helpers';
 import { useQuery } from '@tanstack/react-query';
+import { useAuthStore } from '../stores/authStore';
 
 const queryKeys = {
   verifyEmailActivationToken: (token: string) => ['verify-email-activation-token', token],
+  myProfile: ['my-profile'] as const,
 };
 
 export async function loginUser(email: string, password: string): Promise<LoginResponse> {
@@ -80,6 +82,18 @@ export function useVerifyEmailActivationToken(token: string) {
     queryKey: queryKeys.verifyEmailActivationToken(token),
     queryFn: () => verifyEmailActivationToken(token),
     enabled: !!token, // only run if token exists
+  });
+}
+
+export function useMyProfile() {
+  const token = useAuthStore((state) => state.access_token);
+
+  return useQuery({
+    queryKey: queryKeys.myProfile,
+    queryFn: () => fetchMe(token || ''),
+    enabled: !!token,
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 }
 

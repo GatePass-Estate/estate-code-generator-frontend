@@ -9,6 +9,7 @@ import icons from '@/src/constants/icons';
 import Modal from '@/src/components/web/Modal';
 import { getRequests, approveRequests, declineRequests } from '@/src/lib/api/requests';
 import { getUserById } from '@/src/lib/api/user';
+import { queryClient } from '@/lib/queryClient';
 import { RequestItem, RequestType } from '@/src/types/requests';
 import EditRequestMobile from './index.native';
 import { getWidthBreakpoint } from '@/src/lib/helpers';
@@ -115,6 +116,7 @@ function EditRequestsWeb() {
 		setProcessingAction('approve-selected');
 		try {
 			await Promise.all(selectedRequests.map((r) => approveRequests(r.id)));
+			await queryClient.invalidateQueries({ queryKey: ['my-profile'] });
 
 			setMessageType('success');
 			setError(`${selectedRequests.length} request(s) approved successfully!`);
@@ -147,6 +149,7 @@ function EditRequestsWeb() {
 		setProcessingAction('decline-selected');
 		try {
 			await Promise.all(selectedRequests.map((r) => declineRequests(r.id)));
+			await queryClient.invalidateQueries({ queryKey: ['my-profile'] });
 
 			setMessageType('success');
 			setError(`${selectedRequests.length} request(s) declined successfully!`);
@@ -174,6 +177,7 @@ function EditRequestsWeb() {
 		setProcessingAction('approve-modal');
 		try {
 			await approveRequests(selectedRequest.id);
+			await queryClient.invalidateQueries({ queryKey: ['my-profile'] });
 
 			setMessageType('success');
 			setError('Edit request approved successfully!');
@@ -201,6 +205,7 @@ function EditRequestsWeb() {
 		setProcessingAction('decline-modal');
 		try {
 			await declineRequests(selectedRequest.id);
+			await queryClient.invalidateQueries({ queryKey: ['my-profile'] });
 
 			setMessageType('success');
 			setError('Edit request declined successfully!');

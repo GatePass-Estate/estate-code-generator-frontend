@@ -2,9 +2,15 @@ import CustomSafeAreaView from "@/src/components/CustomSafeAreaView";
 import { activateUser } from "@/src/lib/api/user";
 import { Inter } from "@/src/constants/fonts";
 import React, { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, TextInput, TouchableOpacity, Platform } from "react-native";
+import {
+  ActivityIndicator,
+  TextInput,
+  TouchableOpacity,
+  Platform,
+} from "react-native";
 import { Text, View } from "react-native";
 import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
+import { useIsMobile } from "@/src/hooks/use-mobile";
 
 const MIN_PASSWORD_LENGTH = 8;
 
@@ -18,15 +24,24 @@ const WebSetPasswordView = ({
   errorMessage,
   handleSubmit,
 }: any) => {
+  const isMobile = useIsMobile();
+
   return (
-    <View className="flex-1 w-full bg-white items-center justify-center">
+    <View
+      className="flex-1 w-full bg-white items-center justify-center"
+      style={{
+        paddingHorizontal: isMobile ? 12 : 16,
+        justifyContent: isMobile ? "flex-start" : "center",
+        paddingTop: isMobile ? 200 : 16,
+      }}
+    >
       <View
         style={{
           backgroundColor: "#fbfeff",
           width: "100%",
           maxWidth: 600,
-          paddingHorizontal: 32,
-          paddingVertical: 40,
+          paddingHorizontal: isMobile ? 16 : 32,
+          paddingVertical: isMobile ? 24 : 40,
           borderRadius: 8,
           alignItems: "center",
         }}
@@ -34,10 +49,10 @@ const WebSetPasswordView = ({
         <Text
           style={{
             fontFamily: "UbuntuSans-Regular",
-            fontSize: 37.9,
+            fontSize: isMobile ? 30 : 37.9,
             color: "#172024",
-            lineHeight: 52,
-            marginBottom: 40,
+            lineHeight: isMobile ? 38 : 52,
+            marginBottom: isMobile ? 24 : 40,
           }}
         >
           Set Password
@@ -57,14 +72,20 @@ const WebSetPasswordView = ({
           </Text>
         ) : null}
 
-        <View style={{ width: 496, marginBottom: 32, maxWidth: "100%" }}>
+        <View
+          style={{
+            width: "100%",
+            maxWidth: 496,
+            marginBottom: isMobile ? 20 : 32,
+          }}
+        >
           <Text
             style={{
               fontFamily: "Inter.regular",
-              fontSize: 16,
+              fontSize: isMobile ? 14 : 16,
               color: "#9b9797",
-              marginBottom: 20,
-              lineHeight: 18,
+              marginBottom: isMobile ? 12 : 20,
+              lineHeight: isMobile ? 16 : 18,
             }}
           >
             Create New Password
@@ -76,28 +97,36 @@ const WebSetPasswordView = ({
             onChangeText={setPassword}
             editable={!isSubmitting}
             placeholderTextColor="#9b9797"
-            style={{
-              backgroundColor: "#f7f9f9",
-              borderRadius: 20,
-              paddingHorizontal: 32,
-              paddingVertical: 24,
-              fontFamily: Inter.regular,
-              fontSize: 16,
-              color: "#172024",
-              width: "100%",
-              outlineStyle: "none",
-            } as any}
+            style={
+              {
+                backgroundColor: "#f7f9f9",
+                borderRadius: 20,
+                paddingHorizontal: isMobile ? 18 : 32,
+                paddingVertical: isMobile ? 14 : 24,
+                fontFamily: Inter.regular,
+                fontSize: isMobile ? 14 : 16,
+                color: "#172024",
+                width: "100%",
+                outlineStyle: "none",
+              } as any
+            }
           />
         </View>
 
-        <View style={{ width: 496, marginBottom: 113, maxWidth: "100%" }}>
+        <View
+          style={{
+            width: "100%",
+            maxWidth: 496,
+            marginBottom: isMobile ? 28 : 113,
+          }}
+        >
           <Text
             style={{
               fontFamily: Inter.regular,
-              fontSize: 16,
+              fontSize: isMobile ? 14 : 16,
               color: "#9b9797",
-              marginBottom: 20,
-              lineHeight: 18,
+              marginBottom: isMobile ? 12 : 20,
+              lineHeight: isMobile ? 16 : 18,
             }}
           >
             Confirm New Password
@@ -109,17 +138,19 @@ const WebSetPasswordView = ({
             onChangeText={setConfirmPassword}
             editable={!isSubmitting}
             placeholderTextColor="#9b9797"
-            style={{
-              backgroundColor: "#f7f9f9",
-              borderRadius: 20,
-              paddingHorizontal: 32,
-              paddingVertical: 24,
-              fontFamily: Inter.regular,
-              fontSize: 16,
-              color: "#172024",
-              width: "100%",
-              outlineStyle: "none",
-            } as any}
+            style={
+              {
+                backgroundColor: "#f7f9f9",
+                borderRadius: 20,
+                paddingHorizontal: isMobile ? 18 : 32,
+                paddingVertical: isMobile ? 14 : 24,
+                fontFamily: Inter.regular,
+                fontSize: isMobile ? 14 : 16,
+                color: "#172024",
+                width: "100%",
+                outlineStyle: "none",
+              } as any
+            }
           />
         </View>
 
@@ -130,9 +161,9 @@ const WebSetPasswordView = ({
             backgroundColor: "#113e55",
             borderRadius: 8,
             paddingHorizontal: 32,
-            paddingVertical: 20,
-            width: 496,
-            maxWidth: "100%",
+            paddingVertical: isMobile ? 16 : 20,
+            width: "100%",
+            maxWidth: 496,
             justifyContent: "center",
             alignItems: "center",
             opacity: isSubmitting ? 0.6 : 1,
@@ -144,9 +175,9 @@ const WebSetPasswordView = ({
             <Text
               style={{
                 fontFamily: "UbuntuSans-SemiBold",
-                fontSize: 16,
+                fontSize: isMobile ? 14 : 16,
                 color: "#fbfeff",
-                lineHeight: 16,
+                lineHeight: isMobile ? 14 : 16,
               }}
             >
               Submit
@@ -159,9 +190,10 @@ const WebSetPasswordView = ({
 };
 
 const SetPasswordPage = () => {
-  const { user_id, email } = useLocalSearchParams<{
+  const { user_id, email, token } = useLocalSearchParams<{
     user_id?: string;
     email?: string;
+    token?: string;
   }>();
   const router = useRouter();
 
@@ -207,7 +239,12 @@ const SetPasswordPage = () => {
         user_id,
         new_password: password,
       });
-      router.replace("/auth/email-activation-status");
+      router.replace({
+        pathname: "/auth/email-activation-status",
+        params: {
+          token,
+        },
+      });
     } catch (error: any) {
       setErrorMessage(
         error.message || "Failed to set password. Please try again.",
@@ -215,10 +252,20 @@ const SetPasswordPage = () => {
     } finally {
       setIsSubmitting(false);
     }
-  }, [password, confirmPassword, user_id, router]);
+  }, [password, confirmPassword, user_id, router, token]);
 
-  if (!user_id) {
-    return <Redirect href="/auth/email-activation-status?status=error" />;
+  if (!user_id || !token) {
+    if (token) {
+      return (
+        <Redirect
+          href={{
+            pathname: "/auth/email-activation-status",
+            params: { status: "error", token },
+          }}
+        />
+      );
+    }
+    return <Redirect href="/auth/login" />;
   }
 
   if (Platform.OS === "web") {
@@ -280,7 +327,7 @@ const SetPasswordPage = () => {
                   value={password}
                   onChangeText={setPassword}
                   editable={!isSubmitting}
-                  className="bg-[#F7F9F9]  placeholder:text-[#9B9797] font-medium font-inter leading-[14px] text-xs  text-[#9B9797] rounded-lg p-4"
+                  className="bg-[#F7F9F9] placeholder:text-[#9B9797] font-medium font-inter leading-[14px] text-xs rounded-lg p-4"
                   contextMenuHidden={true}
                   selectTextOnFocus={false}
                 />
@@ -303,7 +350,7 @@ const SetPasswordPage = () => {
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
                   editable={!isSubmitting}
-                  className="bg-[#F7F9F9]  placeholder:text-[#9B9797] font-medium font-inter leading-[14px] text-xs  text-[#9B9797] rounded-lg px-4 py-4"
+                  className="bg-[#F7F9F9] placeholder:text-[#9B9797] font-medium font-inter leading-[14px] text-xs rounded-lg px-4 py-4"
                   contextMenuHidden={true}
                   selectTextOnFocus={false}
                 />

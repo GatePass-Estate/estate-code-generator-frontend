@@ -3,6 +3,7 @@ import { Toast, ToastType } from '@/src/components/mobile/Toast';
 import { approveRequests, declineRequests, getRequests, getRequestById } from '@/src/lib/api/requests';
 import { getUserById } from '@/src/lib/api/user';
 import { useUserStore } from '@/src/lib/stores/userStore';
+import { queryClient } from '@/lib/queryClient';
 import { sharedStyles } from '@/src/theme/styles';
 import { EditRequestView } from '@/src/types/requests';
 import { router, Stack } from 'expo-router';
@@ -125,6 +126,7 @@ const EditRequestMobile = () => {
 					return approveRequests(req.id);
 				}),
 			);
+			await queryClient.invalidateQueries({ queryKey: ['my-profile'] });
 
 			setToastMessage(`${selectedRequests.length} request(s) approved successfully!`);
 			setToastType('success');
@@ -158,6 +160,7 @@ const EditRequestMobile = () => {
 			const requestDetails = await Promise.all(selectedRequests.map((r) => getRequestById(r.id)));
 
 			await Promise.all(requestDetails.map((req) => declineRequests(req.id)));
+			await queryClient.invalidateQueries({ queryKey: ['my-profile'] });
 
 			setToastMessage(`${selectedRequests.length} request(s) declined successfully!`);
 			setToastType('success');

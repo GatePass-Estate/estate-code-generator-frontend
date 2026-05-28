@@ -1,13 +1,6 @@
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import {
-  Image,
-  Platform,
-  Pressable,
-  Text,
-  useWindowDimensions,
-  View,
-} from "react-native";
+import { Image, Platform, Pressable, Text, useWindowDimensions, View } from "react-native";
 import WebSidebar from "@/src/components/web/WebSidebar";
 import { menuRoutes } from "../../user/_layout";
 import Back from "@/src/components/mobile/Back";
@@ -34,11 +27,7 @@ function SettingsRowWeb({
     >
       <Text className="text-base font-inter-medium text-primary">{label}</Text>
       {showChevron ? (
-        <Image
-          source={icons.rightIcon}
-          style={{ width: 14, height: 14 }}
-          resizeMode="contain"
-        />
+        <Image source={icons.rightIcon} style={{ width: 14, height: 14 }} resizeMode="contain" />
       ) : null}
     </Pressable>
   );

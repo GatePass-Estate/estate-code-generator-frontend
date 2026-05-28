@@ -20,7 +20,13 @@ export default function ActivateScreen() {
 
     if (isVerifyError) {
       hasRedirected.current = true;
-      router.replace("/auth/email-activation-status?status=error");
+      router.replace({
+        pathname: "/auth/email-activation-status",
+        params: {
+          status: "error",
+          token,
+        },
+      });
       return;
     }
 
@@ -31,13 +37,14 @@ export default function ActivateScreen() {
         params: {
           user_id: verifyData.user_id,
           email: verifyData.email,
+          token,
         },
       });
     }
-  }, [verifyData, isVerifyError, router]);
+  }, [verifyData, isVerifyError, router, token]);
 
   if (!token) {
-    return <Redirect href="/auth/email-activation-status?status=error" />;
+    return <Redirect href="/auth/login" />;
   }
 
   return <LoadingTransition />;
