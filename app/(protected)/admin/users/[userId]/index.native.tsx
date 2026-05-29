@@ -81,7 +81,7 @@ export default function SingleUserMobile() {
 						console.log('Error parsing user param:', e);
 					}
 				}
-				
+
 				if (!resident) {
 					resident = await getUserByIdAdmin(userId as string);
 				}
@@ -165,7 +165,7 @@ export default function SingleUserMobile() {
 			setDialogType('success');
 			setDialogMessage(`${userData.first_name} has been successfully deleted.`);
 			setDialogVisible(true);
-			
+
 			setTimeout(() => {
 				router.back();
 			}, 1500);
@@ -317,7 +317,7 @@ export default function SingleUserMobile() {
 
 							<View className=" bg-transparent p-4 rounded-lg border-micro py-4 overflow-hidden">
 								<SingleDetail label="Name" value={`${userData.first_name} ${userData.last_name}`} />
-								<SingleDetail label="Address" value={`${userData.home_address}, ${userData.estate_name}.`} />
+								<SingleDetail label="Address" value={`${userData.estate_name ? userData.estate_name + ', ' : ''}${userData.home_address && userData.home_address + '.'}`} />
 								<SingleDetail label="Email Address" value={userData.email} />
 								<SingleDetail label="Phone Number" value={userData.phone_number} />
 							</View>
@@ -437,11 +437,7 @@ export default function SingleUserMobile() {
 									<Text className="text-black text-base font-inter-regular mb-6 text-center">Confirm if you want to resend the verification email to {userData.first_name}</Text>
 
 									<View className="flex-row gap-3 mt-6">
-										<TouchableOpacity
-											onPress={() => setShowResendModal(false)}
-											disabled={processing}
-											className={`flex-1 border-2 bg-teal border-teal py-4 rounded-lg ${processing ? 'opacity-70' : ''}`}
-										>
+										<TouchableOpacity onPress={() => setShowResendModal(false)} disabled={processing} className={`flex-1 border-2 bg-teal border-teal py-4 rounded-lg ${processing ? 'opacity-70' : ''}`}>
 											<Text className="text-white font-ubuntu-semibold text-center text-md">Cancel</Text>
 										</TouchableOpacity>
 
@@ -472,11 +468,7 @@ export default function SingleUserMobile() {
 									<Text className="text-black text-base font-inter-regular mb-6 text-center">Confirm if you want to permanently delete this user</Text>
 
 									<View className="flex-row gap-3 mt-6">
-										<TouchableOpacity
-											onPress={() => setShowDeleteModal(false)}
-											disabled={processing}
-											className={`flex-1 border-2 bg-teal border-teal py-4 rounded-lg ${processing ? 'opacity-70' : ''}`}
-										>
+										<TouchableOpacity onPress={() => setShowDeleteModal(false)} disabled={processing} className={`flex-1 border-2 bg-teal border-teal py-4 rounded-lg ${processing ? 'opacity-70' : ''}`}>
 											<Text className="text-white font-ubuntu-semibold text-center text-md">Cancel</Text>
 										</TouchableOpacity>
 
