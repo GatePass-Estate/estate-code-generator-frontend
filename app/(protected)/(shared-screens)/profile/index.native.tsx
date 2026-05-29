@@ -1,6 +1,6 @@
 import { View, Text, TouchableOpacity, Pressable, Image, ActivityIndicator } from 'react-native';
 import { useAuth } from '@/src/hooks/useAuthContext';
-import { router, Stack, useFocusEffect } from 'expo-router';
+import { router, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import icons from '@/src/constants/icons';
@@ -15,17 +15,10 @@ import { User } from '@/src/types/user';
 
 const ProfileScreen = () => {
 	const { signOut } = useAuth();
-	const { data: profile, isRefetching, refetch } = useMyProfile();
+	const { data: profile } = useMyProfile();
 	const setUser = useUserStore((state) => state.setUser);
-	const first_name = useUserStore((state) => state.first_name);
-	const last_name = useUserStore((state) => state.last_name);
-	const home_address = useUserStore((state) => state.home_address);
-	const estate_name = useUserStore((state) => state.estate_name);
-	const email = useUserStore((state) => state.email);
-	const phone_number = useUserStore((state) => state.phone_number);
-	const user_id = useUserStore((state) => state.user_id);
-	const estate_id = useUserStore((state) => state.estate_id);
-	const role = useUserStore((state) => state.role);
+
+	const { first_name, last_name, home_address, estate_name, email, phone_number, user_id, estate_id, role } = useUserStore();
 
 	const [code, setCode] = useState<string | null>(null);
 	const [expiry, setExpiry] = useState<string | null>(null);
@@ -62,19 +55,13 @@ const ProfileScreen = () => {
 
 	useEffect(() => {
 		if (role != 'security') fetchMyCode();
-	}, [fetchMyCode]);
+	}, [fetchMyCode, role]);
 
 	useEffect(() => {
 		if (profile?.status) {
 			setUser(profile as User);
 		}
 	}, [profile, setUser]);
-
-	useFocusEffect(
-		useCallback(() => {
-			void refetch();
-		}, [refetch]),
-	);
 
 	const { expiring, formattedDate } = useMemo(() => {
 		if (!expiry) return { expiring: false, formattedDate: null };
@@ -138,15 +125,10 @@ const ProfileScreen = () => {
 				<ExpiryWarning />
 
 				<View className="my-5 mt-10">
-					<View className="flex-row items-center justify-between">
-						<TouchableOpacity className="flex-row items-center justify-between flex-1" onPress={() => router.push('/profile/edit')}>
-							<Text className="text-base font-medium text-primary">PERSONAL DETAILS</Text>
-							<Image source={icons.edit} style={{ width: 20, height: 20 }} resizeMode="contain" />
-						</TouchableOpacity>
-						<TouchableOpacity onPress={() => refetch()} disabled={isRefetching} className="ml-3">
-							<Text className="text-sm text-primary font-inter-medium">{isRefetching ? 'Refreshing...' : 'Refresh'}</Text>
-						</TouchableOpacity>
-					</View>
+					<TouchableOpacity className="flex-row items-center justify-between" onPress={() => router.push('/profile/edit')}>
+						<Text className="text-base font-medium text-primary">PERSONAL DETAILS</Text>
+						<Image source={icons.edit} style={{ width: 20, height: 20 }} resizeMode="contain" />
+					</TouchableOpacity>
 
 					<View className="mt-3 bg-transparent p-4 rounded-lg border-micro">
 						<SingleDetail label="Name" value={`${first_name} ${last_name}`} />
@@ -155,7 +137,6 @@ const ProfileScreen = () => {
 						<SingleDetail label="Phone Number" value={phone_number} />
 					</View>
 				</View>
-
 
 				<TouchableOpacity className="self-center mt-auto" onPress={signOut}>
 					<Text className="text-tertiary font-bold text-[16px] p-5 font-UbuntuSans">Log Out</Text>

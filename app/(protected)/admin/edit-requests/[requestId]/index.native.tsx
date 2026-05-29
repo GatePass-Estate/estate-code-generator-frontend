@@ -2,7 +2,6 @@ import Back from '@/src/components/mobile/Back';
 import { SingleDetail } from '@/src/components/mobile/SIngleDetail';
 import { Toast, ToastType } from '@/src/components/mobile/Toast';
 import { getRequestById, approveRequests, declineRequests } from '@/src/lib/api/requests';
-import { queryClient } from '@/lib/queryClient';
 import { sharedStyles } from '@/src/theme/styles';
 import { RequestItem, RequestType } from '@/src/types/requests';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
@@ -73,7 +72,6 @@ export default function EditSingleRequestMobile() {
 			console.log(requestId);
 
 			const response = await approveRequests(requestId as string);
-			await queryClient.invalidateQueries({ queryKey: ['my-profile'] });
 
 			if (response && response.id) {
 				setToastMessage('Edit request approved successfully!');
@@ -105,7 +103,6 @@ export default function EditSingleRequestMobile() {
 
 		try {
 			const response = await declineRequests(requestId as string);
-			await queryClient.invalidateQueries({ queryKey: ['my-profile'] });
 
 			if (response && response.id) {
 				setToastMessage('Edit request declined successfully!');

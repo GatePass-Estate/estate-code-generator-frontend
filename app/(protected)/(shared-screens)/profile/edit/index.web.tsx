@@ -7,6 +7,8 @@ import { Platform, useWindowDimensions } from 'react-native';
 import { createRequest, checkPendingRequests, updatePendingRequest } from '@/src/lib/api/requests';
 import { RequestType, PendingRequestsResponse } from '@/src/types/requests';
 import { getWidthBreakpoint } from '@/src/lib/helpers';
+import { queryClient } from '@/lib/queryClient';
+import { MY_PROFILE_QUERY_KEY } from '@/src/lib/api/auth';
 
 interface ChangedField {
 	type: RequestType;
@@ -139,6 +141,7 @@ export const EditProfileForm = ({ centralize = false }: { centralize?: boolean }
 			if (allRequests.length > 0) {
 				try {
 					await Promise.all([...createRequests.map((req) => createRequest(req.type as any, req.old, req.new)), ...updateRequests.map((req) => updatePendingRequest(req.requestId, req.field.new))]);
+					await queryClient.invalidateQueries({ queryKey: MY_PROFILE_QUERY_KEY });
 
 					const successMsg = allRequests.length === 1 ? '1 request submitted successfully. Awaiting admin approval.' : `${allRequests.length} requests submitted successfully. Awaiting admin approval.`;
 					setSuccess(successMsg);

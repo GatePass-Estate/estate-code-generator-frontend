@@ -1,12 +1,16 @@
 import Api from '.';
 import { EditRequestResponse, GetRequestsResponse, PendingRequestsResponse, RequestItem, RequestType, SearchRequestPayload } from '@/src/types/requests';
 import { getErrorMessage } from '../helpers';
+import { queryClient } from '@/lib/queryClient';
+import { MY_PROFILE_QUERY_KEY } from './auth';
 
 export const approveRequests = async (id: string): Promise<EditRequestResponse> => {
 	try {
 		const api = Api();
 		const axiosRes = await api.patch(`/requests/edit/${id}/status`, { status: 'approved' });
 		const data = axiosRes.data;
+
+		await queryClient.invalidateQueries({ queryKey: MY_PROFILE_QUERY_KEY });
 
 		return data;
 	} catch (error: any) {

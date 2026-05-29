@@ -8,6 +8,8 @@ import { useUserStore } from '@/src/lib/stores/userStore';
 import { createRequest, checkPendingRequests, updatePendingRequest } from '@/src/lib/api/requests';
 import { RequestType, PendingRequestsResponse } from '@/src/types/requests';
 import { useRouter } from 'expo-router';
+import { queryClient } from '@/lib/queryClient';
+import { MY_PROFILE_QUERY_KEY } from '@/src/lib/api/auth';
 
 interface ChangedField {
 	type: RequestType;
@@ -140,6 +142,7 @@ export default function EditRequest() {
 			if (allRequests.length > 0) {
 				try {
 					await Promise.all([...createRequests.map((req) => createRequest(req.type as any, req.old, req.new)), ...updateRequests.map((req) => updatePendingRequest(req.requestId, req.field.new))]);
+					await queryClient.invalidateQueries({ queryKey: MY_PROFILE_QUERY_KEY });
 
 					const successMsg = allRequests.length === 1 ? '1 request submitted successfully. Awaiting admin approval.' : `${allRequests.length} requests submitted successfully. Awaiting admin approval.`;
 					setToastMessage(successMsg);
