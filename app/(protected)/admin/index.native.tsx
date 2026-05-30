@@ -1,9 +1,9 @@
-import { View, Text, ScrollView, TouchableOpacity, Image, FlatList, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, FlatList, RefreshControl, BackHandler } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { getAllEstateUsers } from '@/src/lib/api/user';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AllUsers } from '@/src/types/user';
 import { sharedStyles } from '@/src/theme/styles';
 import UserIcon from '@/src/components/mobile/UserIcon';
@@ -16,6 +16,10 @@ export default function AdminUsersMobilePage() {
 	const router = useRouter();
 	const navigation = useNavigation();
 	const usersRef = useRef<AllUsers>(users);
+
+	const handleBackToHome = useCallback(() => {
+		router.replace('/user');
+	}, [router]);
 
 	useEffect(() => {
 		usersRef.current = users;
@@ -42,6 +46,17 @@ export default function AdminUsersMobilePage() {
 	useEffect(() => {
 		fetchUsers();
 	}, []);
+
+	useFocusEffect(
+		useCallback(() => {
+			const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+				handleBackToHome();
+				return true;
+			});
+
+			return () => subscription.remove();
+		}, [handleBackToHome]),
+	);
 
 	useEffect(() => {
 		const unsubscribe = navigation.addListener('focus', () => {
@@ -78,6 +93,12 @@ export default function AdminUsersMobilePage() {
 					headerTitleAlign: 'left',
 					headerStyle: sharedStyles.header,
 					headerTitleStyle: sharedStyles.title,
+					headerLeft: () => (
+						<TouchableOpacity className="flex-row items-center mr-3" onPress={handleBackToHome}>
+							<Image source={icons.backIcon} style={{ width: 9, height: 12, resizeMode: 'contain' }} />
+							<Text className="text-primary text-[17px] ml-3 font-roboto">Back</Text>
+						</TouchableOpacity>
+					),
 					headerRight: () => <UserIcon type="user" />,
 				}}
 			/>
