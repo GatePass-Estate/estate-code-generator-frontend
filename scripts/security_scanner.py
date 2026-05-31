@@ -4,7 +4,8 @@ Security scanner: JS-config supply-chain attack + CI/CD tampering detector.
 
 Covers the Lazarus 'Contagious Interview' / BeaverTail campaign and broader
 JS supply-chain attacks. Scans config files, GitHub Actions workflows,
-lockfiles, running processes, and persistence mechanisms.
+lockfiles, package.json lifecycle hooks, all JS/TS source files, running
+processes, and persistence mechanisms.
 
 Reference:
   https://github.com/orgs/community/discussions/188732#discussioncomment-16368443
@@ -75,13 +76,34 @@ IOC_PATTERNS: list[tuple[re.Pattern[str], str]] = [
      "fs read of private key"),
 ]
 
-WHITESPACE_RUN = re.compile(r"[ \t]{200,}")
-LONG_B64       = re.compile(r"['\"][A-Za-z0-9+/=_-]{500,}['\"]")
-EVAL_PATTERN   = re.compile(r"\beval\s*\(")
+WHITESPACE_RUN      = re.compile(r"[ \t]{200,}")
+LONG_B64            = re.compile(r"['\"][A-Za-z0-9+/=_-]{500,}['\"]")
+EVAL_PATTERN        = re.compile(r"\beval\s*\(")
+NEW_FUNCTION_PAT    = re.compile(r"\bnew\s+Function\s*\(")
 
-# Eval is only suspicious when paired with a large file or another IOC —
-# standalone eval() in a Babel/Jest config is normal.
+# eval() and new Function() are only suspicious when paired with a large file
+# or another IOC — standalone use in a Babel/Jest config is normal.
 EVAL_SIZE_THRESHOLD = 20_480  # 20 KB
+
+# ---------------------------------------------------------------------------
+# package.json lifecycle hook patterns
+# ---------------------------------------------------------------------------
+
+LIFECYCLE_HOOKS = {"preinstall", "postinstall", "preuninstall", "postuninstall", "prepare"}
+
+# Hook values containing these patterns are flagged as IOCs, not just warnings.
+SUSPICIOUS_SCRIPT_PAT = re.compile(
+    r"(curl|wget|node\s+-e|node\s+-p|base64\b|atob\s*\(|eval\s*\(|"
+    r"powershell\b|iwr\b|invoke-webrequest)",
+    re.IGNORECASE,
+)
+
+# ---------------------------------------------------------------------------
+# Source file scanning (long encoded blob check across all JS/TS)
+# ---------------------------------------------------------------------------
+
+SOURCE_EXTENSIONS = {".js", ".mjs", ".cjs", ".ts", ".tsx", ".jsx"}
+SOURCE_SIZE_LIMIT  = 200_000  # skip auto-generated files > 200 KB
 
 # ---------------------------------------------------------------------------
 # Workflow file IOC patterns (.github/workflows/*.yml)
@@ -103,7 +125,7 @@ WORKFLOW_IOC_PATTERNS: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"atob\s*\(", re.IGNORECASE),
      "atob() decode in workflow"),
     # Untrusted action pinning (SHA pins are safe; version tags are acceptable;
-    # arbitrary branch refs or no ref at all are risky)
+    # arbitrary branch refs are risky)
     (re.compile(r"uses:\s+\S+@(?!(v\d|[0-9a-f]{40}))", re.IGNORECASE),
      "action pinned to mutable ref (not a version tag or SHA)"),
 ]
@@ -123,12 +145,12 @@ LOCKFILE_SUSPICIOUS = re.compile(
 # ---------------------------------------------------------------------------
 
 PROCESS_CMDLINE_IOCS: list[tuple[re.Pattern[str], str]] = [
-    (re.compile(r"trongrid",        re.IGNORECASE), "TRON RPC in cmdline"),
-    (re.compile(r"bsc-dataseed",    re.IGNORECASE), "BSC RPC in cmdline"),
-    (re.compile(r"data-seed-prebsc",re.IGNORECASE), "BSC testnet in cmdline"),
-    (re.compile(r"_\$_1e42"),                       "obfuscation marker in cmdline"),
-    (re.compile(r"\bTronWeb\b"),                    "TronWeb in cmdline"),
-    (re.compile(r"\bSolana\b.*Keypair"),            "Solana keypair in cmdline"),
+    (re.compile(r"trongrid",         re.IGNORECASE), "TRON RPC in cmdline"),
+    (re.compile(r"bsc-dataseed",     re.IGNORECASE), "BSC RPC in cmdline"),
+    (re.compile(r"data-seed-prebsc", re.IGNORECASE), "BSC testnet in cmdline"),
+    (re.compile(r"_\$_1e42"),                        "obfuscation marker in cmdline"),
+    (re.compile(r"\bTronWeb\b"),                     "TronWeb in cmdline"),
+    (re.compile(r"\bSolana\b.*Keypair"),             "Solana keypair in cmdline"),
 ]
 
 C2_HOSTS = [
@@ -156,7 +178,7 @@ LOCKFILE_NAMES = {"package-lock.json", "yarn.lock", "pnpm-lock.yaml"}
 SKIP_DIRS = {
     "node_modules", ".git", ".next", ".nuxt", ".turbo", ".svelte-kit",
     "dist", "build", "out", ".cache", ".venv", "venv", "__pycache__",
-    ".pnpm-store", ".yarn", ".vercel", ".vscode-server",
+    ".pnpm-store", ".yarn", ".vercel", ".vscode-server", "__snapshots__",
 }
 
 
@@ -195,16 +217,12 @@ class ProcessFinding:
 
 def get_git_changed_files(base_ref: str | None = None) -> list[Path] | None:
     """
-    Return paths of files changed relative to base_ref (or HEAD~1 by default).
-    Returns None if git is unavailable or we're not in a repo.
+    Return paths changed relative to base_ref (HEAD~1 by default).
+    Returns None if git is unavailable or not in a repo.
     """
     if base_ref is None:
-        # In a GitHub Actions PR context the base branch is in GITHUB_BASE_REF.
         gh_base = os.environ.get("GITHUB_BASE_REF")
-        if gh_base:
-            base_ref = f"origin/{gh_base}"
-        else:
-            base_ref = "HEAD~1"
+        base_ref = f"origin/{gh_base}" if gh_base else "HEAD~1"
     try:
         result = subprocess.run(
             ["git", "diff", "--name-only", "--diff-filter=ACM", base_ref, "HEAD"],
@@ -217,11 +235,30 @@ def get_git_changed_files(base_ref: str | None = None) -> list[Path] | None:
         return None
 
 
-def iter_config_targets(root: Path) -> Iterator[Path]:
+def _walk(root: Path) -> Iterator[tuple[str, list[str], list[str]]]:
+    """os.walk with SKIP_DIRS pruning."""
     for dirpath, dirnames, filenames in os.walk(root, followlinks=False):
         dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS and not d.startswith(".")]
+        yield dirpath, dirnames, filenames
+
+
+def iter_config_targets(root: Path) -> Iterator[Path]:
+    for dirpath, _, filenames in _walk(root):
         for fn in filenames:
             if CONFIG_FILE_PATTERN.match(fn) or fn in LOCKFILE_NAMES:
+                yield Path(dirpath) / fn
+
+
+def iter_package_json_targets(root: Path) -> Iterator[Path]:
+    for dirpath, _, filenames in _walk(root):
+        if "package.json" in filenames:
+            yield Path(dirpath) / "package.json"
+
+
+def iter_source_targets(root: Path) -> Iterator[Path]:
+    for dirpath, _, filenames in _walk(root):
+        for fn in filenames:
+            if Path(fn).suffix in SOURCE_EXTENSIONS:
                 yield Path(dirpath) / fn
 
 
@@ -236,9 +273,9 @@ def iter_workflow_targets(root: Path) -> Iterator[Path]:
 def collect_targets(
     roots: list[Path],
     changed_only: bool,
-) -> tuple[list[Path], list[Path]]:
+) -> tuple[list[Path], list[Path], list[Path], list[Path]]:
     """
-    Return (config_targets, workflow_targets).
+    Return (config_targets, workflow_targets, source_targets, pkg_json_targets).
     When changed_only=True, restrict to files changed in git.
     """
     changed: set[str] | None = None
@@ -247,32 +284,34 @@ def collect_targets(
         if changed_files is not None:
             changed = {str(p.resolve()) for p in changed_files}
 
-    config_paths: list[Path] = []
+    config_paths:   list[Path] = []
     workflow_paths: list[Path] = []
+    source_paths:   list[Path] = []
+    pkg_paths:      list[Path] = []
     seen: set[Path] = set()
+
+    def _add(paths: list[Path], p: Path) -> None:
+        rp = p.resolve()
+        if rp in seen:
+            return
+        seen.add(rp)
+        if changed is not None and str(rp) not in changed:
+            return
+        paths.append(rp)
 
     for root in roots:
         if not root.exists():
             continue
         for p in iter_config_targets(root):
-            rp = p.resolve()
-            if rp in seen:
-                continue
-            seen.add(rp)
-            if changed is not None and str(rp) not in changed:
-                continue
-            config_paths.append(rp)
-
+            _add(config_paths, p)
         for p in iter_workflow_targets(root):
-            rp = p.resolve()
-            if rp in seen:
-                continue
-            seen.add(rp)
-            if changed is not None and str(rp) not in changed:
-                continue
-            workflow_paths.append(rp)
+            _add(workflow_paths, p)
+        for p in iter_source_targets(root):
+            _add(source_paths, p)
+        for p in iter_package_json_targets(root):
+            _add(pkg_paths, p)
 
-    return config_paths, workflow_paths
+    return config_paths, workflow_paths, source_paths, pkg_paths
 
 
 # ===========================================================================
@@ -307,7 +346,56 @@ def scan_config_file(path: Path) -> FileFinding | None:
     if has_eval and (size > EVAL_SIZE_THRESHOLD or indicators):
         indicators.append(f"eval() in {'large ' if size > EVAL_SIZE_THRESHOLD else ''}config ({size}B)")
 
+    has_new_fn = bool(NEW_FUNCTION_PAT.search(text))
+    if has_new_fn and (size > EVAL_SIZE_THRESHOLD or indicators):
+        indicators.append(f"new Function() in {'large ' if size > EVAL_SIZE_THRESHOLD else ''}config ({size}B)")
+
     return FileFinding(path=path, size=size, kind="config", indicators=indicators) if indicators else None
+
+
+def scan_package_json(path: Path) -> FileFinding | None:
+    try:
+        data = json.loads(path.read_text(encoding="utf-8", errors="replace"))
+        size = path.stat().st_size
+    except (OSError, json.JSONDecodeError):
+        return None
+
+    scripts = data.get("scripts", {})
+    if not isinstance(scripts, dict):
+        return None
+
+    indicators: list[str] = []
+    for hook in LIFECYCLE_HOOKS:
+        value = scripts.get(hook)
+        if value is None:
+            continue
+        if SUSPICIOUS_SCRIPT_PAT.search(str(value)):
+            indicators.append(f"IOC: suspicious lifecycle script '{hook}': {str(value)[:120]}")
+        else:
+            indicators.append(f"lifecycle hook '{hook}' present — verify: {str(value)[:120]}")
+
+    return FileFinding(path=path, size=size, kind="package-json", indicators=indicators) if indicators else None
+
+
+def scan_source_file(path: Path) -> FileFinding | None:
+    try:
+        size = path.stat().st_size
+    except OSError:
+        return None
+
+    if size > SOURCE_SIZE_LIMIT:
+        return None
+
+    try:
+        text = path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return None
+
+    indicators: list[str] = []
+    if LONG_B64.search(text):
+        indicators.append("long encoded blob (>=500 chars) in source file")
+
+    return FileFinding(path=path, size=size, kind="source", indicators=indicators) if indicators else None
 
 
 def scan_workflow_file(path: Path) -> FileFinding | None:
@@ -339,10 +427,10 @@ def clean_file(path: Path) -> tuple[bool, str]:
         return False, f"read failed: {e}"
 
     end_markers = [
-        re.compile(r"export\s+default\s+[A-Za-z_$][\w$]*\s*;",      re.MULTILINE),
-        re.compile(r"module\.exports\s*=\s*[A-Za-z_$][\w$]*\s*;",   re.MULTILINE),
-        re.compile(r"export\s+default\s+\{[\s\S]*?\}\s*;?",          re.MULTILINE),
-        re.compile(r"module\.exports\s*=\s*\{[\s\S]*?\}\s*;?",       re.MULTILINE),
+        re.compile(r"export\s+default\s+[A-Za-z_$][\w$]*\s*;",    re.MULTILINE),
+        re.compile(r"module\.exports\s*=\s*[A-Za-z_$][\w$]*\s*;", re.MULTILINE),
+        re.compile(r"export\s+default\s+\{[\s\S]*?\}\s*;?",        re.MULTILINE),
+        re.compile(r"module\.exports\s*=\s*\{[\s\S]*?\}\s*;?",     re.MULTILINE),
     ]
     cut = -1
     for pat in end_markers:
@@ -657,6 +745,35 @@ def all_persistence_checks(home: Path) -> list[str]:
 
 
 # ===========================================================================
+# Hygiene checks
+# ===========================================================================
+
+# Patterns in .gitignore that cover .env files.
+_GITIGNORE_ENV_PAT = re.compile(r"^(\.env[\*\s]?|\.env$|\*\.env|\*\.env\.\*)", re.MULTILINE)
+
+
+def check_gitignore_env(root: Path) -> list[str]:
+    """Warn if .env is not covered by .gitignore in this root."""
+    gi = root / ".gitignore"
+    if not gi.exists():
+        return [f"{root}/.gitignore missing — .env files may be unprotected"]
+    try:
+        text = gi.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return []
+    if not _GITIGNORE_ENV_PAT.search(text):
+        return [f"{gi}: .env is not covered — add '.env' to prevent secret exposure"]
+    return []
+
+
+def all_hygiene_checks(roots: list[Path]) -> list[str]:
+    out: list[str] = []
+    for root in roots:
+        out.extend(check_gitignore_env(root))
+    return out
+
+
+# ===========================================================================
 # Hardening
 # ===========================================================================
 
@@ -746,7 +863,9 @@ def run_once(args: argparse.Namespace, home: Path) -> dict[str, Any]:
     if args.scan_home:
         roots.append(home)
 
-    config_targets, workflow_targets = collect_targets(roots, changed_only=args.changed_only)
+    config_targets, workflow_targets, source_targets, pkg_targets = collect_targets(
+        roots, changed_only=args.changed_only
+    )
 
     file_findings: list[FileFinding] = []
     for path in config_targets:
@@ -755,6 +874,14 @@ def run_once(args: argparse.Namespace, home: Path) -> dict[str, Any]:
             file_findings.append(f)
     for path in workflow_targets:
         f = scan_workflow_file(path)
+        if f:
+            file_findings.append(f)
+    for path in source_targets:
+        f = scan_source_file(path)
+        if f:
+            file_findings.append(f)
+    for path in pkg_targets:
+        f = scan_package_json(path)
         if f:
             file_findings.append(f)
 
@@ -779,23 +906,26 @@ def run_once(args: argparse.Namespace, home: Path) -> dict[str, Any]:
                 pf.kill_message = msg
 
     persistence = all_persistence_checks(home)
+    hygiene     = all_hygiene_checks(roots)
 
     harden_results: list[str] = []
     if args.harden:
         harden(harden_results)
 
     return {
-        "timestamp":      time.time(),
-        "changed_only":   args.changed_only,
-        "scanned_config": len(config_targets),
+        "timestamp":        time.time(),
+        "changed_only":     args.changed_only,
+        "scanned_config":   len(config_targets),
         "scanned_workflow": len(workflow_targets),
-        "scanned_roots":  [str(r) for r in roots],
+        "scanned_source":   len(source_targets),
+        "scanned_packages": len(pkg_targets),
+        "scanned_roots":    [str(r) for r in roots],
         "file_findings": [
             {
                 "path": str(f.path), "size": f.size, "kind": f.kind,
-                "indicators": f.indicators,
-                "backup":       str(f.backup_path) if f.backup_path else None,
-                "cleaned":      f.cleaned,
+                "indicators":    f.indicators,
+                "backup":        str(f.backup_path) if f.backup_path else None,
+                "cleaned":       f.cleaned,
                 "clean_message": f.clean_message,
             }
             for f in file_findings
@@ -810,6 +940,7 @@ def run_once(args: argparse.Namespace, home: Path) -> dict[str, Any]:
             for p in proc_findings
         ],
         "persistence":    persistence,
+        "hygiene":        hygiene,
         "harden_results": harden_results,
     }
 
@@ -824,13 +955,16 @@ def render(report: dict[str, Any], args: argparse.Namespace) -> int:
     else:
         mode = " [changed-only]" if report.get("changed_only") else ""
         print(
-            f"scanned {report['scanned_config']} config file(s), "
-            f"{report['scanned_workflow']} workflow file(s){mode}"
+            f"scanned {report['scanned_config']} config, "
+            f"{report['scanned_workflow']} workflow, "
+            f"{report['scanned_source']} source, "
+            f"{report['scanned_packages']} package.json file(s){mode}"
         )
 
         ff  = report["file_findings"]
         pf  = report["process_findings"]
         pst = report["persistence"]
+        hyg = report["hygiene"]
         hr  = report["harden_results"]
 
         if not ff:
@@ -870,6 +1004,13 @@ def render(report: dict[str, Any], args: argparse.Namespace) -> int:
         else:
             print("  persistence:  clean")
 
+        if hyg:
+            print(f"\n  HYGIENE ({len(hyg)}):")
+            for line in hyg:
+                print(f"    {line}")
+        else:
+            print("  hygiene:      clean")
+
         if hr:
             print("\n  HARDENING:")
             for line in hr:
@@ -887,6 +1028,7 @@ def render(report: dict[str, Any], args: argparse.Namespace) -> int:
         report["file_findings"]
         or report["process_findings"]
         or report["persistence"]
+        or report["hygiene"]
     )
     return 1 if bad else 0
 
@@ -901,26 +1043,26 @@ def main() -> int:
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     ap.add_argument("paths", nargs="*", help="Directories to scan (default: cwd)")
-    ap.add_argument("--scan-home",     action="store_true", help="Also scan $HOME")
-    ap.add_argument("--ci",            action="store_true",
+    ap.add_argument("--scan-home",    action="store_true", help="Also scan $HOME")
+    ap.add_argument("--ci",           action="store_true",
                     help="CI mode: skip process check, JSON output, exit 1 on any finding")
-    ap.add_argument("--changed-only",  action="store_true",
+    ap.add_argument("--changed-only", action="store_true",
                     help="Scan only files changed since the previous commit (git-aware)")
-    ap.add_argument("--fix",           action="store_true",
+    ap.add_argument("--fix",          action="store_true",
                     help="Quarantine and clean infected config files")
-    ap.add_argument("--kill",          action="store_true",
+    ap.add_argument("--kill",         action="store_true",
                     help="Kill suspicious processes (with confirmation)")
-    ap.add_argument("--harden",        action="store_true",
+    ap.add_argument("--harden",       action="store_true",
                     help="Apply proactive defenses (npm ignore-scripts, hosts block hint, …)")
-    ap.add_argument("--all",           action="store_true",
+    ap.add_argument("--all",          action="store_true",
                     help="Equivalent to --scan-home --fix --kill --harden")
-    ap.add_argument("--yes", "-y",     action="store_true",
+    ap.add_argument("--yes", "-y",    action="store_true",
                     help="Skip confirmation prompts")
-    ap.add_argument("--watch",         action="store_true",
+    ap.add_argument("--watch",        action="store_true",
                     help="Continuous scan loop (Ctrl-C to stop)")
-    ap.add_argument("--interval",      type=int, default=60,
+    ap.add_argument("--interval",     type=int, default=60,
                     help="Watch interval in seconds (default 60)")
-    ap.add_argument("--json",          action="store_true", help="Machine-readable output")
+    ap.add_argument("--json",         action="store_true", help="Machine-readable output")
     ap.add_argument("--no-process-check", action="store_true",
                     help="Skip running-process inspection")
     ap.add_argument("--log", type=Path,
