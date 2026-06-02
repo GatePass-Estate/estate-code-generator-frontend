@@ -91,7 +91,7 @@ function AdminUsersPageWeb() {
 
 			let matchesRole = false;
 			if (selectedRole === 'admins') {
-				matchesRole = user.status && ['admin', 'primary_admin'].includes(user.role);
+				matchesRole = Boolean(user.status && user.role && ['admin', 'primary_admin'].includes(user.role as string));
 			} else if (selectedRole === 'unverified') {
 				matchesRole = !user.status;
 			} else {
