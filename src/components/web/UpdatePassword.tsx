@@ -1,5 +1,5 @@
 import icons from "@/src/constants/icons";
-import React, { useState } from "react";
+import { useState } from "react";
 import { Image } from "react-native";
 import WebPasswordInput from "./WebPasswordInput";
 
