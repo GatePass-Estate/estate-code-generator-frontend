@@ -1,169 +1,170 @@
 import CustomSafeAreaView from "@/src/components/CustomSafeAreaView";
 import { activateUser } from "@/src/lib/api/user";
 import { Inter } from "@/src/constants/fonts";
-import React, { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, TextInput, TouchableOpacity, Platform } from "react-native";
+import  { useCallback, useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  TextInput,
+  TouchableOpacity,
+  Platform,
+  useWindowDimensions,
+  Pressable,
+  Image,
+} from "react-native";
 import { Text, View } from "react-native";
 import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
+import { getWidthBreakpoint, grantActivationStatusAccess } from "@/src/lib/helpers";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { cn } from "@/src/lib/cn";
+import icons from "@/src/constants/icons";
 
 const MIN_PASSWORD_LENGTH = 8;
 
-const WebSetPasswordView = ({
+interface SetPasswordFormProps {
+  password: string;
+  setPassword: (value: string) => void;
+  confirmPassword: string;
+  setConfirmPassword: (value: string) => void;
+  showPassword: boolean;
+  setShowPassword: (value: boolean) => void;
+  isSubmitting: boolean;
+  errorMessage: string;
+  handleSubmit: () => void;
+  isLargeScreen: boolean;
+}
+
+const SetPasswordForm = ({
   password,
   setPassword,
   confirmPassword,
   setConfirmPassword,
   showPassword,
+  setShowPassword,
   isSubmitting,
   errorMessage,
   handleSubmit,
-}: any) => {
-  return (
-    <View className="flex-1 w-full bg-white items-center justify-center">
-      <View
-        style={{
-          backgroundColor: "#fbfeff",
-          width: "100%",
-          maxWidth: 600,
-          paddingHorizontal: 32,
-          paddingVertical: 40,
-          borderRadius: 8,
-          alignItems: "center",
-        }}
+  isLargeScreen,
+}: SetPasswordFormProps) => (
+  <View className={cn("w-full max-w-xl", isLargeScreen ? "gap-8" : "gap-6")}>
+    <View className="items-center text-center">
+      <Text
+        className={cn(
+          "text-primary font-UbuntuSans",
+          isLargeScreen ? "text-5xl" : "text-3xl",
+        )}
       >
-        <Text
-          style={{
-            fontFamily: "UbuntuSans-Regular",
-            fontSize: 37.9,
-            color: "#172024",
-            lineHeight: 52,
-            marginBottom: 40,
-          }}
-        >
-          Set Password
-        </Text>
+        Set Password
+      </Text>
+      <Text
+        className={cn(
+          "mt-2 text-grey font-Inter text-center",
+          isLargeScreen ? "text-base" : "text-sm",
+        )}
+      >
+        Create a password to activate your account.
+      </Text>
+    </View>
 
-        {errorMessage ? (
-          <Text
-            style={{
-              fontFamily: Inter.regular,
-              color: "#DC2626",
-              fontSize: 14,
-              marginBottom: 20,
-              textAlign: "center",
-            }}
-          >
-            {errorMessage}
-          </Text>
-        ) : null}
+    {errorMessage ? (
+      <View className="bg-red-50 p-4 rounded-lg">
+        <Text className="text-danger text-sm text-center">{errorMessage}</Text>
+      </View>
+    ) : null}
 
-        <View style={{ width: 496, marginBottom: 32, maxWidth: "100%" }}>
-          <Text
-            style={{
-              fontFamily: "Inter.regular",
-              fontSize: 16,
-              color: "#9b9797",
-              marginBottom: 20,
-              lineHeight: 18,
-            }}
-          >
-            Create New Password
-          </Text>
-          <TextInput
-            placeholder="Enter new password"
-            secureTextEntry={!showPassword}
-            value={password}
-            onChangeText={setPassword}
-            editable={!isSubmitting}
-            placeholderTextColor="#9b9797"
-            style={{
-              backgroundColor: "#f7f9f9",
-              borderRadius: 20,
-              paddingHorizontal: 32,
-              paddingVertical: 24,
-              fontFamily: Inter.regular,
-              fontSize: 16,
-              color: "#172024",
-              width: "100%",
-              outlineStyle: "none",
-            } as any}
-          />
-        </View>
-
-        <View style={{ width: 496, marginBottom: 113, maxWidth: "100%" }}>
-          <Text
-            style={{
-              fontFamily: Inter.regular,
-              fontSize: 16,
-              color: "#9b9797",
-              marginBottom: 20,
-              lineHeight: 18,
-            }}
-          >
-            Confirm New Password
-          </Text>
-          <TextInput
-            placeholder="Confirm new password"
-            secureTextEntry={!showPassword}
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            editable={!isSubmitting}
-            placeholderTextColor="#9b9797"
-            style={{
-              backgroundColor: "#f7f9f9",
-              borderRadius: 20,
-              paddingHorizontal: 32,
-              paddingVertical: 24,
-              fontFamily: Inter.regular,
-              fontSize: 16,
-              color: "#172024",
-              width: "100%",
-              outlineStyle: "none",
-            } as any}
-          />
-        </View>
-
-        <TouchableOpacity
-          onPress={handleSubmit}
+    <View>
+      <Text className={cn("pb-1 text-grey", isLargeScreen ? "text-base" : "text-sm")}>
+        New password
+      </Text>
+      <View className="relative">
+        <TextInput
+          placeholder="Enter your new password..."
+          secureTextEntry={!showPassword}
+          value={password}
+          onChangeText={setPassword}
+          editable={!isSubmitting}
+          className="bg-[#F7F9F9] border border-[#D1D5DB] rounded-lg px-4 py-5 mt-1 pr-12"
+          contextMenuHidden
+          selectTextOnFocus={false}
+        />
+        <Pressable
+          onPress={() => setShowPassword(!showPassword)}
+          className="absolute right-3 top-6"
           disabled={isSubmitting}
-          style={{
-            backgroundColor: "#113e55",
-            borderRadius: 8,
-            paddingHorizontal: 32,
-            paddingVertical: 20,
-            width: 496,
-            maxWidth: "100%",
-            justifyContent: "center",
-            alignItems: "center",
-            opacity: isSubmitting ? 0.6 : 1,
-          }}
         >
-          {isSubmitting ? (
-            <ActivityIndicator color="#fbfeff" />
-          ) : (
-            <Text
-              style={{
-                fontFamily: "UbuntuSans-SemiBold",
-                fontSize: 16,
-                color: "#fbfeff",
-                lineHeight: 16,
-              }}
-            >
-              Submit
-            </Text>
-          )}
-        </TouchableOpacity>
+          <Image
+            source={showPassword ? icons.eye : icons.hiddenEye}
+            style={{ width: 20, height: 20 }}
+            resizeMode="contain"
+          />
+        </Pressable>
       </View>
     </View>
-  );
-};
+
+    <View>
+      <Text className={cn("pb-1 text-grey", isLargeScreen ? "text-base" : "text-sm")}>
+        Confirm password
+      </Text>
+      <View className="relative">
+        <TextInput
+          placeholder="Confirm your password..."
+          secureTextEntry={!showPassword}
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+          editable={!isSubmitting}
+          className="bg-[#F7F9F9] border border-[#D1D5DB] rounded-lg px-4 py-5 mt-1 pr-12"
+          contextMenuHidden
+          selectTextOnFocus={false}
+        />
+        <Pressable
+          onPress={() => setShowPassword(!showPassword)}
+          className="absolute right-3 top-6"
+          disabled={isSubmitting}
+        >
+          <Image
+            source={showPassword ? icons.eye : icons.hiddenEye}
+            style={{ width: 20, height: 20 }}
+            resizeMode="contain"
+          />
+        </Pressable>
+      </View>
+    </View>
+
+    <TouchableOpacity
+      onPress={handleSubmit}
+      disabled={isSubmitting}
+      className={cn(
+        "h-14 bg-primary rounded-lg justify-center items-center w-full",
+        isSubmitting && "opacity-70",
+      )}
+    >
+      {isSubmitting ? (
+        <ActivityIndicator color="#fff" />
+      ) : (
+        <Text className="text-white font-UbuntuSans font-semibold text-base">Submit</Text>
+      )}
+    </TouchableOpacity>
+  </View>
+);
+
+const WebSetPasswordView = (props: SetPasswordFormProps) => (
+  <View className="flex-1 w-full bg-white items-center justify-center px-5 py-10">
+    <View
+      className="w-full max-w-[600px] rounded-lg items-center px-8 py-10"
+      style={{ backgroundColor: "#fbfeff" }}
+    >
+      <SetPasswordForm {...props} />
+    </View>
+  </View>
+);
 
 const SetPasswordPage = () => {
-  const { user_id, email } = useLocalSearchParams<{
+  const { user_id } = useLocalSearchParams<{
     user_id?: string;
     email?: string;
   }>();
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const isLargeScreen = width > getWidthBreakpoint();
 
   const [password, setPassword] = useState<string>("");
   const [confirmPassword, setConfirmPassword] = useState<string>("");
@@ -207,6 +208,7 @@ const SetPasswordPage = () => {
         user_id,
         new_password: password,
       });
+      grantActivationStatusAccess();
       router.replace("/auth/email-activation-status");
     } catch (error: any) {
       setErrorMessage(
@@ -218,124 +220,43 @@ const SetPasswordPage = () => {
   }, [password, confirmPassword, user_id, router]);
 
   if (!user_id) {
+    grantActivationStatusAccess();
     return <Redirect href="/auth/email-activation-status?status=error" />;
+  }
+
+  const formProps: SetPasswordFormProps = {
+    password,
+    setPassword,
+    confirmPassword,
+    setConfirmPassword,
+    showPassword,
+    setShowPassword,
+    isSubmitting,
+    errorMessage,
+    handleSubmit,
+    isLargeScreen,
+  };
+
+  if (Platform.OS === "web" && isLargeScreen) {
+    return <WebSetPasswordView {...formProps} />;
   }
 
   if (Platform.OS === "web") {
     return (
-      <WebSetPasswordView
-        password={password}
-        setPassword={setPassword}
-        confirmPassword={confirmPassword}
-        setConfirmPassword={setConfirmPassword}
-        showPassword={showPassword}
-        isSubmitting={isSubmitting}
-        errorMessage={errorMessage}
-        handleSubmit={handleSubmit}
-      />
+      <SafeAreaView className="flex-1 bg-white">
+        <View className="flex-1 px-6 pb-10 justify-center max-w-xl w-full self-center mx-auto">
+          <SetPasswordForm {...formProps} />
+        </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <>
-      <CustomSafeAreaView>
-        <View className="px-5 flex-1 w-full   flex flex-col gap-[98px] justify-center">
-          <View className="flex flex-col gap-[34px]">
-            <Text
-              style={{
-                fontFamily: "UbuntuSans-Medium",
-                color: "#113E55",
-                fontSize: 28.43,
-              }}
-            >
-              Set Password
-            </Text>
-            {errorMessage ? (
-              <Text
-                style={{
-                  fontFamily: Inter.regular,
-                  color: "#DC2626",
-                  fontSize: 12,
-                }}
-              >
-                {errorMessage}
-              </Text>
-            ) : null}
-
-            <View className="flex  gap-10 px-0.5">
-              <View className="flex flex-col gap-[0.5rem]">
-                <Text
-                  style={{
-                    fontFamily: Inter.regular,
-                    color: "#113E55",
-                    fontSize: 9,
-                    letterSpacing: -0.24,
-                  }}
-                >
-                  New password
-                </Text>
-                <TextInput
-                  placeholder="Enter your new password..."
-                  secureTextEntry={!showPassword}
-                  value={password}
-                  onChangeText={setPassword}
-                  editable={!isSubmitting}
-                  className="bg-[#F7F9F9]  placeholder:text-[#9B9797] font-medium font-inter leading-[14px] text-xs  text-[#9B9797] rounded-lg p-4"
-                  contextMenuHidden={true}
-                  selectTextOnFocus={false}
-                />
-              </View>
-
-              <View className="flex flex-col gap-[0.5rem]">
-                <Text
-                  style={{
-                    fontFamily: Inter.regular,
-                    color: "#113E55",
-                    fontSize: 9,
-                    letterSpacing: -0.24,
-                  }}
-                >
-                  Confirm password
-                </Text>
-                <TextInput
-                  placeholder="Confirm your password..."
-                  secureTextEntry={!showPassword}
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
-                  editable={!isSubmitting}
-                  className="bg-[#F7F9F9]  placeholder:text-[#9B9797] font-medium font-inter leading-[14px] text-xs  text-[#9B9797] rounded-lg px-4 py-4"
-                  contextMenuHidden={true}
-                  selectTextOnFocus={false}
-                />
-              </View>
-            </View>
-          </View>
-
-          <View className="w-full px-[29px] ">
-            <TouchableOpacity
-              onPress={handleSubmit}
-              disabled={isSubmitting}
-              className={`py-4 bg-[#113E55] rounded-lg justify-center items-center ${isSubmitting ? "opacity-60" : ""}`}
-            >
-              {isSubmitting ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text
-                  style={{
-                    fontFamily: "UbuntuSans-SemiBold",
-                    color: "#fff",
-                    fontSize: 16,
-                    letterSpacing: -0.24,
-                  }}
-                >
-                  Submit
-                </Text>
-              )}
-            </TouchableOpacity>
-          </View>
-        </View>
-      </CustomSafeAreaView>
-    </>
+    <CustomSafeAreaView>
+      <View className="px-5 flex-1 w-full flex flex-col justify-center">
+        <SetPasswordForm {...formProps} />
+      </View>
+    </CustomSafeAreaView>
   );
 };
 

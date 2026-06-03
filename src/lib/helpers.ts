@@ -302,3 +302,29 @@ export const getWidthBreakpoint = (): number => {
 	const breakpoint = process.env.EXPO_PUBLIC_WIDTH_BREAKPOINT;
 	return breakpoint ? parseInt(breakpoint, 10) : 768;
 };
+
+let canViewActivationStatus = false;
+
+const ACTIVATION_STATUS_STORAGE_KEY = "activation-status-access";
+
+export function grantActivationStatusAccess() {
+	canViewActivationStatus = true;
+	if (Platform.OS === "web" && typeof sessionStorage !== "undefined") {
+		sessionStorage.setItem(ACTIVATION_STATUS_STORAGE_KEY, "1");
+	}
+}
+
+export function consumeActivationStatusAccess(): boolean {
+	if (Platform.OS === "web" && typeof sessionStorage !== "undefined") {
+		const allowed = sessionStorage.getItem(ACTIVATION_STATUS_STORAGE_KEY) === "1";
+		sessionStorage.removeItem(ACTIVATION_STATUS_STORAGE_KEY);
+		if (allowed) return true;
+	}
+
+	if (canViewActivationStatus) {
+		canViewActivationStatus = false;
+		return true;
+	}
+
+	return false;
+}

@@ -109,7 +109,11 @@ export default function AccountSecurityWeb() {
                 onClick={() => {
                   setError("");
                   setSuccess("");
-                  setShowUpdatePassword(true);
+                  if (isLargeScreen) {
+                    setShowUpdatePassword(true);
+                    return;
+                  }
+                  router.push("/profile/edit/password");
                 }}
                 className="cursor-pointer flex items-center rounded-lg px-5 bg-[#F7F9F9] h-14 w-full justify-between"
               >
