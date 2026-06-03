@@ -7,8 +7,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AllUsers } from '@/src/types/user';
 import { sharedStyles } from '@/src/theme/styles';
 import UserIcon from '@/src/components/mobile/UserIcon';
+import Back from '@/src/components/mobile/Back';
 import icons from '@/src/constants/icons';
 import { getRoleIcon, getRoleIconHeight, getRoleIconWidth, isDataEqual } from '@/src/lib/helpers';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useUserStore } from '@/src/lib/stores/userStore';
 
 export default function AdminUsersMobilePage() {
 	const [users, setUsers] = useState<AllUsers>({ total: 0, page: 1, limit: 30, items: [] });
@@ -16,6 +19,7 @@ export default function AdminUsersMobilePage() {
 	const router = useRouter();
 	const navigation = useNavigation();
 	const usersRef = useRef<AllUsers>(users);
+	const firstName = useUserStore((state) => state.first_name);
 
 	const handleBackToHome = useCallback(() => {
 		router.replace('/user');
@@ -82,28 +86,26 @@ export default function AdminUsersMobilePage() {
 	const residentsCount = users?.role_summary?.resident || users.items.filter((user) => user.role === 'resident').length;
 
 	const limitedUsers = users.items.slice(0, 4);
+	const greetingName = firstName || 'Admin';
 
 	return (
-		<View style={sharedStyles.container}>
+		<SafeAreaView style={sharedStyles.container}>
 			<Stack.Screen
 				options={{
-					title: 'Admin',
-					headerShown: true,
-					headerShadowVisible: false,
-					headerTitleAlign: 'left',
-					headerStyle: sharedStyles.header,
-					headerTitleStyle: sharedStyles.title,
-					headerLeft: () => (
-						<TouchableOpacity className="flex-row items-center mr-3" onPress={handleBackToHome}>
-							<Image source={icons.backIcon} style={{ width: 9, height: 12, resizeMode: 'contain' }} />
-							<Text className="text-primary text-[17px] ml-3 font-roboto">Back</Text>
-						</TouchableOpacity>
-					),
-					headerRight: () => <UserIcon type="user" />,
+					headerShown: false,
 				}}
 			/>
 
-			<ScrollView contentContainerStyle={{ paddingTop: 40 }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}>
+			<View className="flex-row items-center justify-between pt-2">
+				<Back type="short-arrow" onPress={handleBackToHome} />
+				<UserIcon type="user" />
+			</View>
+
+			<ScrollView contentContainerStyle={{ paddingTop: 32, paddingBottom: 24 }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}>
+				<Text className="text-2xl text-primary mb-8 font-ubuntu-bold" style={{ fontSize: 23 }}>
+					Hi {greetingName}!
+				</Text>
+
 				<View className="flex-row justify-between gap-3 mb-3">
 					<View className="flex-1 border border-orange rounded-2xl p-4 py-7 bg-orange/10 flex-row gap-5 items-center">
 						<Image source={icons.adminHomeIcon} style={{ width: 58, height: 51 }} />
@@ -185,6 +187,6 @@ export default function AdminUsersMobilePage() {
 					)}
 				/>
 			</ScrollView>
-		</View>
+		</SafeAreaView>
 	);
 }
