@@ -8,6 +8,7 @@ import { useUserStore } from '@/src/lib/stores/userStore';
 import { createRequest, checkPendingRequests, updatePendingRequest } from '@/src/lib/api/requests';
 import { RequestType, PendingRequestsResponse } from '@/src/types/requests';
 import { useRouter } from 'expo-router';
+import { refreshCurrentUser } from '@/src/hooks/useRefreshUser';
 
 interface ChangedField {
 	type: RequestType;
@@ -140,6 +141,8 @@ export default function EditRequest() {
 			if (allRequests.length > 0) {
 				try {
 					await Promise.all([...createRequests.map((req) => createRequest(req.type as any, req.old, req.new)), ...updateRequests.map((req) => updatePendingRequest(req.requestId, req.field.new))]);
+
+					await refreshCurrentUser();
 
 					const successMsg = allRequests.length === 1 ? '1 request submitted successfully. Awaiting admin approval.' : `${allRequests.length} requests submitted successfully. Awaiting admin approval.`;
 					setToastMessage(successMsg);
