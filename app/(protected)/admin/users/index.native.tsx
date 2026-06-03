@@ -26,8 +26,19 @@ const AllUsersMobile = () => {
 	const fetchUsers = async (showLoading = false) => {
 		if (showLoading) setIsLoading(true);
 		try {
-			const data = await getAllEstateUsers(1, 100);
-			setAllFetchedUsers(data.items);
+			let allItems: User[] = [];
+			let currentPage = 1;
+			let totalUsers = 0;
+			let fetchedData;
+
+			do {
+				fetchedData = await getAllEstateUsers(currentPage, 100);
+				allItems = [...allItems, ...fetchedData.items];
+				totalUsers = fetchedData.total;
+				currentPage++;
+			} while (allItems.length < totalUsers && fetchedData.items.length > 0);
+
+			setAllFetchedUsers(allItems);
 		} catch (error) {
 			console.log('Error fetching users:', error);
 		} finally {
@@ -49,8 +60,19 @@ const AllUsersMobile = () => {
 	const handleRefresh = async () => {
 		setIsRefreshing(true);
 		try {
-			const data = await getAllEstateUsers(1, 100);
-			setAllFetchedUsers(data.items);
+			let allItems: User[] = [];
+			let currentPage = 1;
+			let totalUsers = 0;
+			let fetchedData;
+
+			do {
+				fetchedData = await getAllEstateUsers(currentPage, 100);
+				allItems = [...allItems, ...fetchedData.items];
+				totalUsers = fetchedData.total;
+				currentPage++;
+			} while (allItems.length < totalUsers && fetchedData.items.length > 0);
+
+			setAllFetchedUsers(allItems);
 		} catch (error) {
 			console.log('Error refreshing users:', error);
 		} finally {

@@ -24,9 +24,22 @@ export default function AdminUsersMobilePage() {
 	const fetchUsers = async (showLoading = false) => {
 		if (showLoading) setRefreshing(true);
 		try {
-			const data = await getAllEstateUsers(1, 100);
-			if (!isDataEqual(data, usersRef.current)) {
-				setUsers(data);
+			let allItems: any[] = [];
+			let currentPage = 1;
+			let totalUsers = 0;
+			let fetchedData;
+
+			do {
+				fetchedData = await getAllEstateUsers(currentPage, 100);
+				allItems = [...allItems, ...fetchedData.items];
+				totalUsers = fetchedData.total;
+				currentPage++;
+			} while (allItems.length < totalUsers && fetchedData.items.length > 0);
+
+			const finalData = { ...fetchedData, items: allItems, total: totalUsers };
+
+			if (!isDataEqual(finalData, usersRef.current)) {
+				setUsers(finalData);
 			}
 		} catch (error) {
 			console.log('Error fetching users:', error);
