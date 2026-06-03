@@ -1,81 +1,84 @@
-import { useRouter } from 'expo-router';
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { Image, Platform, useWindowDimensions } from 'react-native';
-import icons from '@/src/constants/icons';
-import { useUserStore } from '@/src/lib/stores/userStore';
-import { updatepassword } from '@/src/lib/api/user';
-import { getWidthBreakpoint } from '@/src/lib/helpers';
-import UpdatePassword from '@/src/components/web/UpdatePassword';
-import Back from '@/src/components/mobile/Back';
-import WebSidebar from '@/src/components/web/WebSidebar';
-import { menuRoutes } from '../../user/_layout';
+import { useRouter } from "expo-router";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { Image, Platform, useWindowDimensions } from "react-native";
+import icons from "@/src/constants/icons";
+import { useUserStore } from "@/src/lib/stores/userStore";
+import { updatepassword } from "@/src/lib/api/user";
+import { getWidthBreakpoint } from "@/src/lib/helpers";
+import UpdatePassword from "@/src/components/web/UpdatePassword";
+import Back from "@/src/components/mobile/Back";
+import WebSidebar from "@/src/components/web/WebSidebar";
+import { menuRoutes } from "../../user/_layout";
 
 export default function AccountSecurityWeb() {
-	const router = useRouter();
-	const [showUpdatePassword, setShowUpdatePassword] = useState(false);
-	const [savingPassword, setSavingPassword] = useState(false);
-	const [error, setError] = useState('');
-	const [success, setSuccess] = useState('');
-	const [password, setPassword] = useState({
-		currentPassword: '',
-		newPassword: '',
-	});
-	const confirmPasswordRef = useRef<HTMLInputElement | null>(null);
-	const [showCurrent, setShowCurrent] = useState(false);
-	const [showNew, setShowNew] = useState(false);
-	const [showConfirm, setShowConfirm] = useState(false);
+  const router = useRouter();
+  const [showUpdatePassword, setShowUpdatePassword] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [password, setPassword] = useState({
+    currentPassword: "",
+    newPassword: "",
+  });
+  const confirmPasswordRef = useRef<HTMLInputElement | null>(null);
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
-	const user_id = useUserStore((state) => state.user_id);
-	const { width } = useWindowDimensions();
+  const user_id = useUserStore((state) => state.user_id);
+  const { width } = useWindowDimensions();
 
-	const isLargeScreen = width > getWidthBreakpoint();
+  const isLargeScreen = width > getWidthBreakpoint();
 
-	const setNewPassword = useCallback(async () => {
-		setSavingPassword(true);
-		setError('');
-		setSuccess('');
+  const setNewPassword = useCallback(async () => {
+    setSavingPassword(true);
+    setError("");
+    setSuccess("");
 
-		const confirmValue = confirmPasswordRef.current?.value || '';
+    const confirmValue = confirmPasswordRef.current?.value || "";
 
-		if (password.newPassword !== confirmValue) {
-			setError('The new password and the confirm password do not match');
-			setSavingPassword(false);
-			return;
-		}
+    if (password.newPassword !== confirmValue) {
+      setError("The new password and the confirm password do not match");
+      setSavingPassword(false);
+      return;
+    }
 
-		if (password.newPassword.length < 8 || password.currentPassword.length < 8) {
-			setError('The password must be at least 8 characters long');
-			setSavingPassword(false);
-			return;
-		}
+    if (
+      password.newPassword.length < 8 ||
+      password.currentPassword.length < 8
+    ) {
+      setError("The password must be at least 8 characters long");
+      setSavingPassword(false);
+      return;
+    }
 
-		if (password.newPassword === password.currentPassword) {
-			setError('The new password cannot be the same as the current password');
-			setSavingPassword(false);
-			return;
-		}
+    if (password.newPassword === password.currentPassword) {
+      setError("The new password cannot be the same as the current password");
+      setSavingPassword(false);
+      return;
+    }
 
-		try {
-			await updatepassword({
-				user_id,
-				current_password: password.currentPassword,
-				new_password: password.newPassword,
-			});
-			setSuccess('Password updated successfully');
-			setTimeout(() => setShowUpdatePassword(false), 1500);
-		} catch (err: any) {
-			const message = err?.message || 'Failed to update password.';
-			setError(message);
-		} finally {
-			setSavingPassword(false);
-		}
-	}, [password, user_id]);
+    try {
+      await updatepassword({
+        user_id,
+        current_password: password.currentPassword,
+        new_password: password.newPassword,
+      });
+      setSuccess("Password updated successfully");
+      setTimeout(() => setShowUpdatePassword(false), 1500);
+    } catch (err: any) {
+      const message = err?.message || "Failed to update password.";
+      setError(message);
+    } finally {
+      setSavingPassword(false);
+    }
+  }, [password, user_id]);
 
-	useEffect(() => {
-		if (Platform.OS === 'web') document.title = 'Account Security - GatePass';
-	}, []);
+  useEffect(() => {
+    if (Platform.OS === "web") document.title = "Account Security - GatePass";
+  }, []);
 
-	return (
+  return (
     <div className="flex h-full w-screen overflow-y-scroll bg-body">
       {isLargeScreen && (
         <WebSidebar
