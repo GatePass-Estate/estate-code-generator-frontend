@@ -31,4 +31,3 @@ const Api = (service: "user" | "code" = "user") => {
 };
 
 export default Api;
-
