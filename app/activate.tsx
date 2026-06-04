@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { useLocalSearchParams, useRouter, Redirect } from "expo-router";
 import { useVerifyEmailActivationToken } from "@/src/lib/api/auth";
 import LoadingTransition from "@/src/components/common/LoadingTransition";
+import { grantActivationStatusAccess } from "@/src/lib/helpers";
 
 export default function ActivateScreen() {
   const { token } = useLocalSearchParams<{ token?: string }>();
@@ -20,6 +21,7 @@ export default function ActivateScreen() {
 
     if (isVerifyError) {
       hasRedirected.current = true;
+      grantActivationStatusAccess();
       router.replace("/auth/email-activation-status?status=error");
       return;
     }
@@ -37,6 +39,7 @@ export default function ActivateScreen() {
   }, [verifyData, isVerifyError, router]);
 
   if (!token) {
+    grantActivationStatusAccess();
     return <Redirect href="/auth/email-activation-status?status=error" />;
   }
 
