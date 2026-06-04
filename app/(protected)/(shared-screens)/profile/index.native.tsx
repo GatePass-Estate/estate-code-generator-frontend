@@ -11,10 +11,13 @@ import { useEffect, useState, useMemo, useCallback } from 'react';
 import { generateCode, getMyCode } from '@/src/lib/api/codes';
 import { formatDateWithOrdinal } from '@/src/lib/helpers';
 
+
 const ProfileScreen = () => {
 	const { signOut } = useAuth();
 
-	const { first_name, last_name, home_address, estate_name, email, phone_number, user_id, estate_id, role } = useUserStore.getState();
+	
+
+	const { first_name, last_name, home_address, estate_name, email, phone_number, user_id, estate_id, role } = useUserStore();
 
 	const [code, setCode] = useState<string | null>(null);
 	const [expiry, setExpiry] = useState<string | null>(null);
