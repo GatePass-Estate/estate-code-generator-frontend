@@ -19,7 +19,7 @@ const POLICY_SECTIONS: PolicySection[] = [
 		id: 'purpose',
 		title: '1. Purpose of This Policy',
 		content:
-			'This Data Protection Policy establishes the framework through which GATEPASS NG collects, processes, stores, shares, and protects personal data in compliance with the Nigeria Data Protection Act (NDPA) 2023 and all directives issued by the Nigeria Data Protection Commission (NDPC).\nThe policy ensures that all personal data handled by the company is managed responsibly, securely, and transparently.',
+			'This Privacy Policy establishes the framework through which GATEPASS NG collects, processes, stores, shares, and protects personal data in compliance with the Nigeria Data Protection Act (NDPA) 2023 and all directives issued by the Nigeria Data Protection Commission (NDPC).\nThe policy ensures that all personal data handled by the company is managed responsibly, securely, and transparently.',
 	},
 	{
 		id: 'scope',
@@ -222,7 +222,7 @@ export default function DataProtectionPolicy() {
 
 	useEffect(() => {
 		if (Platform.OS === 'web') {
-			document.title = 'Data Protection Policy - GatePass';
+			document.title = 'Privacy Policy - GatePass';
 		}
 	}, []);
 
@@ -259,7 +259,7 @@ export default function DataProtectionPolicy() {
 			<SafeAreaView className="flex-1 bg-white flex-row">
 				<View className="w-[320px] bg-white border-r border-[#E5E7EB] p-8 h-full">
 					<View className="flex-1 mb-6">
-						<Text className="font-UbuntuSans font-semibold text-lg text-black mb-6">Data Protection Policy</Text>
+						<Text className="font-UbuntuSans font-semibold text-lg text-black mb-6">Privacy Policy</Text>
 						<View>
 							{POLICY_SECTIONS.map((section) => (
 								<Pressable key={section.id} onPress={() => handleSectionPress(section.id)} className={`py-2 px-3 rounded-lg flex-row items-center mb-1 transition-colors`}>
@@ -277,7 +277,7 @@ export default function DataProtectionPolicy() {
 				</View>
 
 				<ScrollView ref={scrollViewRef} className="flex-1" contentContainerStyle={{ padding: 48, paddingBottom: 80 }} onScroll={handleScroll} scrollEventThrottle={16} showsVerticalScrollIndicator={false}>
-					<Text className="font-UbuntuSans text-4xl text-primary">Data Protection Policy</Text>
+					<Text className="font-UbuntuSans text-4xl text-primary">Privacy Policy</Text>
 					<Text className="font-Inter text-base text-orange mt-2">GATEPASS NG</Text>
 
 					<View className="bg-[#F8F8F8] rounded-2xl p-8 mt-8">
@@ -337,7 +337,7 @@ export default function DataProtectionPolicy() {
 			</View>
 
 			<ScrollView ref={scrollViewRef} className="flex-1" contentContainerStyle={{ padding: 20, paddingBottom: 60 }} showsVerticalScrollIndicator={false}>
-				<Text className="font-UbuntuSans text-3xl text-primary">Data Protection Policy</Text>
+				<Text className="font-UbuntuSans text-3xl text-primary">Privacy Policy</Text>
 				<Text className="font-Inter text-sm text-orange mt-2 mb-6">GATEPASS NG</Text>
 
 				<View className="bg-[#F8F8F8] rounded-xl p-6">
