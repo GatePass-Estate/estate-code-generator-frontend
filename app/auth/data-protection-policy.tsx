@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -9,9 +9,8 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { AntDesign, Feather } from "@expo/vector-icons";
 import { getWidthBreakpoint } from "@/src/lib/helpers";
-import { Button } from "@/src/components/nativewindui/Button";
+import Back from "@/src/components/mobile/Back";
 
 type PolicySection = {
   id: string;
@@ -499,13 +498,8 @@ export default function DataProtectionPolicy() {
 
   return (
     <SafeAreaView className="flex-1 bg-white">
-      <View className="flex-row items-center px-4 py-4 border-b border-gray-100 bg-white">
-        <Pressable onPress={() => router.back()} className="mr-4 p-2">
-          <AntDesign name="arrow-left" size={24} color="#113E55" />
-        </Pressable>
-        <Text className="font-UbuntuSans text-xl text-primary font-semibold">
-          Data Protection Policy
-        </Text>
+      <View className="px-5 pt-4">
+        <Back type="short-arrow" />
       </View>
 
       <ScrollView
