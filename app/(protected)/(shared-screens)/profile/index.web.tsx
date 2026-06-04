@@ -9,14 +9,16 @@ import Back from '@/src/components/mobile/Back';
 import WebSidebar from '@/src/components/web/WebSidebar';
 import { menuRoutes } from '../../user/_layout';
 
+
 export default function MyProfile() {
 	const router = useRouter();
 	const [loading, setLoading] = useState(true);
 	const [code, setCode] = useState<string | null>(null);
 	const [expiry, setExpiry] = useState<string | null>(null);
 
-	const user_id = useUserStore.getState().user_id;
-	const estate_id = useUserStore.getState().estate_id;
+
+
+	const { user_id, estate_id, first_name, last_name, home_address, email, phone_number } = useUserStore();
 	const { width } = useWindowDimensions();
 
 	const isLargeScreen = width > getWidthBreakpoint();
@@ -113,19 +115,19 @@ export default function MyProfile() {
 								{[
 									{
 										label: 'Name',
-										value: `${useUserStore.getState().first_name} ${useUserStore.getState().last_name}`,
+										value: `${first_name} ${last_name}`,
 									},
 									{
 										label: 'Address',
-										value: useUserStore.getState().home_address,
+										value: home_address,
 									},
 									{
 										label: 'Email Address',
-										value: useUserStore.getState().email,
+										value: email,
 									},
 									{
 										label: 'Phone Number',
-										value: useUserStore.getState().phone_number,
+										value: phone_number,
 									},
 								].map((item, index) => (
 									<div key={item.label + index} className="flex gap-3 items-center">
