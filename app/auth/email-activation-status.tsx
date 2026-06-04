@@ -1,4 +1,5 @@
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useRef } from "react";
+import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
 
 import {
   Image,
@@ -7,8 +8,11 @@ import {
   Text,
   TouchableOpacity,
   View,
+  useWindowDimensions,
 } from "react-native";
 import { Inter, UbuntuSans } from "@/src/constants/fonts";
+import { consumeActivationStatusAccess, getWidthBreakpoint } from "@/src/lib/helpers";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const BLUR_ELLIPSE_STYLES = StyleSheet.create({
   success: {
@@ -29,16 +33,33 @@ const BLUR_ELLIPSE_STYLES = StyleSheet.create({
     zIndex: 0,
     transform: [{ rotate: "-15.472deg" }],
   },
+  underImage: {
+    position: "absolute" as const,
+    width: 320,
+    height: 300,
+    top: -27,
+    left: -37,
+    zIndex: 0,
+    transform: [{ rotate: "-15.472deg" }],
+  },
   web: {
     filter: "blur(50px)",
   } as any,
 });
 
-const getEllipseContainerStyle = (status?: string) =>
-  status === "error" ? BLUR_ELLIPSE_STYLES.error : BLUR_ELLIPSE_STYLES.success;
+const getEllipseContainerStyle = (status?: string, variant: "fullscreen" | "underImage" = "fullscreen") => {
+  if (variant === "underImage") return BLUR_ELLIPSE_STYLES.underImage;
+  return status === "error" ? BLUR_ELLIPSE_STYLES.error : BLUR_ELLIPSE_STYLES.success;
+};
 
-const BlurEllipse = ({ status }: { status?: string }) => (
-  <View style={getEllipseContainerStyle(status)} pointerEvents="none">
+const BlurEllipse = ({
+  status,
+  variant = "fullscreen",
+}: {
+  status?: string;
+  variant?: "fullscreen" | "underImage";
+}) => (
+  <View style={getEllipseContainerStyle(status, variant)} pointerEvents="none">
     {Platform.OS === "web" ? (
       <View
         style={[
@@ -271,28 +292,43 @@ const WebErrorView = () => (
 const EmailActivationStatusPage = () => {
   const { status } = useLocalSearchParams<{ status?: string }>();
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const isLargeScreen = width > getWidthBreakpoint();
   const isError = status === "error";
 
-  if (Platform.OS === "web") {
+  const hasAccessRef = useRef<boolean | null>(null);
+  if (hasAccessRef.current === null) {
+    hasAccessRef.current = consumeActivationStatusAccess();
+  }
+
+  if (!hasAccessRef.current) {
+    return <Redirect href="/auth/login" />;
+  }
+
+  if (Platform.OS === "web" && isLargeScreen) {
     return isError ? <WebErrorView /> : <WebSuccessView router={router} />;
   }
 
   return (
-    <View className="w-full h-full flex-1">
-      <View className="w-full h-full flex-1">
+    <SafeAreaView className="flex-1 bg-[#FBFEFF]">
+      <View className="w-full flex-1">
         {isError ? (
-          <View className="w-full h-full flex flex-1 relative overflow-hidden bg-[#FBFEFF]">
-            <View className="flex-1 w-full justify-center flex flex-col z-10">
-              <View className="flex flex-col justify-center min-w-full items-center">
-                <View style={{ width: 242, height: 242 }}>
+          <View className="w-full flex-1 relative overflow-hidden bg-[#FBFEFF]">
+            <View className="flex-1 w-full justify-center flex flex-col z-10 px-5">
+              <View className="flex flex-col justify-center w-full items-center">
+                <View
+                  className="relative items-center justify-center"
+                  style={{ width: 242, height: 242 }}
+                >
+                  <BlurEllipse status={status} variant="underImage" />
                   <Image
                     source={require("@/src/assets/images/credit-card.png")}
-                    style={{ width: 242, height: 242 }}
+                    style={{ width: 242, height: 242, zIndex: 1 }}
                     resizeMode="contain"
                   />
                 </View>
 
-                <View className="w-full flex flex-col gap-[1.5rem] items-center">
+                <View className="w-full flex flex-col gap-[1.5rem] items-center mt-6">
                   <Text
                     style={{
                       fontFamily: "UbuntuSans-Medium",
@@ -307,29 +343,34 @@ const EmailActivationStatusPage = () => {
                     style={{
                       fontSize: 16,
                       textAlign: "center",
-                      maxWidth: 287,
-                      lineHeight: 18,
+                      maxWidth: 320,
+                      lineHeight: 22,
                       color: "#172024",
                       fontFamily: Inter.regular,
+                      paddingHorizontal: 16,
                     }}
                   >
-                    This access link is no longer valid. Kindly notify the
-                    admin.
+                    This verification link is invalid or may have expired. For
+                    your security, verification links can only be used once and
+                    are active for a limited time.{"\n\n"}
+                    Kindly notify Admin.
                   </Text>
                 </View>
               </View>
             </View>
-            <BlurEllipse status={status} />
           </View>
         ) : (
-          <View className="w-full h-full flex flex-1 relative overflow-hidden bg-[#FBFEFF]">
-            <BlurEllipse status={status} />
-            <View className="flex-1 w-full justify-center flex flex-col z-10">
-              <View className="flex flex-col justify-center min-w-full items-center">
-                <View style={{ width: 246, height: 246, marginTop: -40 }}>
+          <View className="w-full flex-1 relative overflow-hidden bg-[#FBFEFF]">
+            <View className="flex-1 w-full justify-center flex flex-col z-10 px-5">
+              <View className="flex flex-col justify-center w-full items-center">
+                <View
+                  className="relative items-center justify-center"
+                  style={{ width: 246, height: 246 }}
+                >
+                  <BlurEllipse status={status} variant="underImage" />
                   <Image
                     source={require("@/src/assets/images/success-rocket.png")}
-                    className="h-full w-full"
+                    style={{ width: 246, height: 246, zIndex: 1 }}
                     resizeMode="cover"
                   />
                 </View>
@@ -351,19 +392,22 @@ const EmailActivationStatusPage = () => {
                     style={{
                       fontSize: 16,
                       textAlign: "center",
-                      maxWidth: 287,
-                      lineHeight: 18,
+                      maxWidth: 320,
+                      lineHeight: 22,
                       color: "#172024",
                       fontFamily: Inter.regular,
                       marginBottom: 38,
+                      paddingHorizontal: 16,
                     }}
                   >
-                    Your account is now verified and{"\n"}your password set.
+                    Your account is now verified and your password set.
+                    You can now continue and start using GatePass.
+                    Welcome aboard!
                   </Text>
 
                   <TouchableOpacity
                     onPress={() => router.push("/auth/login")}
-                    className="h-[48px] w-[278px] bg-[#113E55] rounded-lg justify-center items-center"
+                    className="h-[48px] w-full max-w-[278px] bg-[#113E55] rounded-lg justify-center items-center"
                   >
                     <Text
                       style={{
@@ -382,7 +426,7 @@ const EmailActivationStatusPage = () => {
           </View>
         )}
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
