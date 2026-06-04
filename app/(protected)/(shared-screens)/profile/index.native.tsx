@@ -125,12 +125,11 @@ const ProfileScreen = () => {
 
 					<View className="mt-3 bg-transparent p-4 rounded-lg border-micro">
 						<SingleDetail label="Name" value={`${first_name} ${last_name}`} />
-						<SingleDetail label="Address" value={`${home_address}, ${estate_name}.`} />
+						<SingleDetail label="Address" value={`${estate_name ? estate_name + ', ' : ''}${home_address && home_address + '.'}`} />
 						<SingleDetail label="Email Address" value={email} />
 						<SingleDetail label="Phone Number" value={phone_number} />
 					</View>
 				</View>
-
 
 				<TouchableOpacity className="self-center mt-auto" onPress={signOut}>
 					<Text className="text-tertiary font-bold text-[16px] p-5 font-UbuntuSans">Log Out</Text>
