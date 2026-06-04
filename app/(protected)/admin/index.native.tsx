@@ -32,9 +32,22 @@ export default function AdminUsersMobilePage() {
 	const fetchUsers = async (showLoading = false) => {
 		if (showLoading) setRefreshing(true);
 		try {
-			const data = await getAllEstateUsers();
-			if (!isDataEqual(data, usersRef.current)) {
-				setUsers(data);
+			let allItems: any[] = [];
+			let currentPage = 1;
+			let totalUsers = 0;
+			let fetchedData;
+
+			do {
+				fetchedData = await getAllEstateUsers(currentPage, 100);
+				allItems = [...allItems, ...fetchedData.items];
+				totalUsers = fetchedData.total;
+				currentPage++;
+			} while (allItems.length < totalUsers && fetchedData.items.length > 0);
+
+			const finalData = { ...fetchedData, items: allItems, total: totalUsers };
+
+			if (!isDataEqual(finalData, usersRef.current)) {
+				setUsers(finalData);
 			}
 		} catch (error) {
 			console.log('Error fetching users:', error);
@@ -81,11 +94,12 @@ export default function AdminUsersMobilePage() {
 		return unsubscribe;
 	}, [navigation]);
 
-	const securityPersonnelCount = users?.role_summary?.security || users.items.filter((user) => user.role === 'security').length;
+	const verifiedUsers = users.items.filter((user) => user.status);
+	const securityPersonnelCount = verifiedUsers.filter((user) => user.role === 'security').length;
+	const residentsCount = (users as any)?.role_summary?.resident || verifiedUsers.filter((user) => user.role === 'resident').length;
+	const totalVerifiedCount = verifiedUsers.length;
 
-	const residentsCount = users?.role_summary?.resident || users.items.filter((user) => user.role === 'resident').length;
-
-	const limitedUsers = users.items.slice(0, 4);
+	const limitedUsers = verifiedUsers.slice(0, 4);
 	const greetingName = firstName || 'Admin';
 
 	return (
@@ -127,7 +141,7 @@ export default function AdminUsersMobilePage() {
 				<View className="flex-row gap-3 mb-10">
 					<View className="flex-1 border border-primary rounded-2xl p-4 py-7 items-center">
 						<Text className="text-grey/50 uppercase font-inter-medium tracking-wide">Total</Text>
-						<Text className="text-primary text-5xl font-ubuntu-bold">{users.total}</Text>
+						<Text className="text-primary text-5xl font-ubuntu-bold">{totalVerifiedCount}</Text>
 					</View>
 
 					<View className="flex-1 justify-center items-center p-4 rounded-2xl">

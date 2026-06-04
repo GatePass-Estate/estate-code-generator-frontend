@@ -22,7 +22,7 @@ function AdminUsersPageWeb() {
 	const [users, setUsers] = useState<AllUsers>({ total: 0, page: 1, limit: USERS_PAGE_SIZE, items: [] });
 	const [loading, setLoading] = useState(true);
 	const [searchQuery, setSearchQuery] = useState('');
-	const [selectedRole, setSelectedRole] = useState<UserRolesType | null>(null);
+	const [selectedRole, setSelectedRole] = useState<UserRolesType | 'admins' | 'unverified' | null>(null);
 	const [currentPage, setCurrentPage] = useState(1);
 	const [modalState, setModalState] = useState<{
 		isOpen: boolean;
@@ -89,7 +89,14 @@ function AdminUsersPageWeb() {
 				user.phone_number?.toLowerCase().includes(searchQuery.toLowerCase()) ||
 				user.home_address?.toLowerCase().includes(searchQuery.toLowerCase());
 
-			const matchesRole = !selectedRole || user.role === selectedRole;
+			let matchesRole = false;
+			if (selectedRole === 'admins') {
+				matchesRole = Boolean(user.status && user.role && ['admin', 'primary_admin'].includes(user.role as string));
+			} else if (selectedRole === 'unverified') {
+				matchesRole = !user.status;
+			} else {
+				matchesRole = !selectedRole ? user.status : (user.status && user.role === selectedRole);
+			}
 
 			return matchesSearch && matchesRole;
 		});
@@ -97,8 +104,8 @@ function AdminUsersPageWeb() {
 
 	const totalPages = users.total > 0 ? Math.ceil(users.total / USERS_PAGE_SIZE) : 1;
 
-	const residentsCount = users?.role_summary?.resident || users.items.filter((user) => user.role === 'resident').length;
-	const securityCount = users?.role_summary?.security || users.items.filter((user) => user.role === 'security').length;
+	const residentsCount = users?.role_summary?.resident ?? users.items.filter((user) => user.role === 'resident').length;
+	const securityCount = users?.role_summary?.security ?? users.items.filter((user) => user.role === 'security').length;
 
 	useEffect(() => {
 		if (currentPage > totalPages) setCurrentPage(Math.max(1, totalPages));
@@ -343,15 +350,22 @@ function AdminUsersPageWeb() {
 											/>
 										</div>
 										<button className="bg-primary text-white px-3 py-3 rounded-lg font-medium hover:opacity-90 transition rounded-l-none">Go</button>
-										<button
-											onClick={() => {
-												setSelectedRole(selectedRole ? null : 'resident');
-											}}
-											className="flex items-center gap-2 px-6 py-3 rounded-lg hover:bg-primary/5 transition"
-										>
-											<Image source={icons.filter} style={{ width: 20, height: 20 }} resizeMode="contain" />
-											Filter
-										</button>
+										<div className="relative">
+											<select
+												value={selectedRole || ''}
+												onChange={(e) => setSelectedRole((e.target.value as any) || null)}
+												className="appearance-none flex items-center gap-2 px-6 py-3 pr-10 rounded-lg hover:bg-primary/5 transition bg-light-grey focus:outline-none text-primary cursor-pointer font-inter-regular"
+											>
+												<option value="">All Verified</option>
+												<option value="resident">Residents</option>
+												<option value="security">Security</option>
+												<option value="admins">Admins</option>
+												<option value="unverified">Unverified</option>
+											</select>
+											<div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4">
+												<Image source={icons.filter} style={{ width: 16, height: 16 }} resizeMode="contain" />
+											</div>
+										</div>
 									</div>
 								</div>
 							</div>
