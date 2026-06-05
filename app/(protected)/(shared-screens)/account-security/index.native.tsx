@@ -1,9 +1,9 @@
-import { View, Text, Pressable, Image } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { Stack, router } from "expo-router";
-import Back from "@/src/components/mobile/Back";
-import { sharedStyles } from "@/src/theme/styles";
-import icons from "@/src/constants/icons";
+import { View, Text, Pressable, Image } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Stack, router } from 'expo-router';
+import Back from '@/src/components/mobile/Back';
+import { sharedStyles } from '@/src/theme/styles';
+import icons from '@/src/constants/icons';
 
 export default function AccountSecurityScreen() {
   return (
@@ -19,20 +19,15 @@ export default function AccountSecurityScreen() {
           Account Security
         </Text>
         <Text className="text-xs font-inter-medium text-[#172024] mb-[30px] leading-[14px]">
-          Manage your security settings and update your password for quick
-          secure access.
+          Manage your security settings and update your password for quick secure access.
         </Text>
 
         <Pressable
           className="flex-row justify-between items-center gap-10 h-14 bg-[#F7F9F9] rounded-[8px] px-5"
-          onPress={() => router.push("/profile/edit/password")}
+          onPress={() => router.push('/profile/edit/password')}
         >
           <Text className="text-[15px] font-inter-regular  text-[#172024]">Change Password</Text>
-          <Image
-            source={icons.rightIcon}
-            style={{ width: 14, height: 14 }}
-            resizeMode="contain"
-          />
+          <Image source={icons.rightIcon} style={{ width: 14, height: 14 }} resizeMode="contain" />
         </Pressable>
       </View>
     </SafeAreaView>

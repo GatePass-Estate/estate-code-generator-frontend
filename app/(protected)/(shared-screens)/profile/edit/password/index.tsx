@@ -1,3 +1,3 @@
-import ChangePasswordNative from "./index.native";
+import ChangePasswordNative from './index.native';
 
 export default ChangePasswordNative;

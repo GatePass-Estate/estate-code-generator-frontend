@@ -2,12 +2,12 @@ name: Security Scan
 
 on:
   push:
-    branches: ["**"]
+    branches: ['**']
   pull_request:
     branches: [main, master]
 
 permissions:
-  contents: read   # minimum needed; no write access required
+  contents: read # minimum needed; no write access required
 
 jobs:
   scan:
@@ -25,7 +25,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: '3.12'
 
       # -----------------------------------------------------------------------
       # Full repo scan on every push/PR.

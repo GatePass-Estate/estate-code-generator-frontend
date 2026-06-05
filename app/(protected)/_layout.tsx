@@ -4,25 +4,25 @@ import { useAuth } from '@/src/hooks/useAuthContext';
 import { useUserStore } from '@/src/lib/stores/userStore';
 
 export const unstable_home_settings = {
-	initialRouteName: '(protected)',
+  initialRouteName: '(protected)',
 };
 
 export default function ProtectedLayout() {
-	const { isReady } = useAuth();
+  const { isReady } = useAuth();
 
-	const status = useUserStore((state) => state.status);
+  const status = useUserStore((state) => state.status);
 
-	if (!isReady) {
-		return null;
-	}
+  if (!isReady) {
+    return null;
+  }
 
-	if (!status) {
-		return <Redirect href="/auth" />;
-	}
+  if (!status) {
+    return <Redirect href="/auth" />;
+  }
 
-	return (
-		<Stack screenOptions={{ headerShown: false }}>
-			<Stack.Screen name="user" />
-		</Stack>
-	);
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="user" />
+    </Stack>
+  );
 }

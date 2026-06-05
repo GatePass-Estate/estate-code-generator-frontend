@@ -3,6 +3,6 @@ import AllUsersMobile from './index.native';
 import AllUsersWeb from './index.web';
 
 export default Platform.select({
-	web: AllUsersWeb,
-	default: AllUsersMobile,
+  web: AllUsersWeb,
+  default: AllUsersMobile,
 });

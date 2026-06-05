@@ -1,18 +1,18 @@
-import { Stack, router } from "expo-router";
-import { useNavigation } from "@react-navigation/native";
-import CountdownRing from "@/src/components/common/CountdownRing";
-import { View, Text, FlatList, Animated, Platform } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import UserIcon from "@/src/components/mobile/UserIcon";
-import { useEffect, useRef, useState } from "react";
-import images from "@/src/constants/images";
-import { Codes } from "@/src/types/codes";
-import { getAllCodes } from "@/src/lib/api/codes";
-import { useUserStore } from "@/src/lib/stores/userStore";
-import { sharedStyles } from "@/src/theme/styles";
-import { useAndroidBottomInset } from "@/src/hooks/useAndroidBottomInset";
-import { isDataEqual } from "@/src/lib/helpers";
-import CodeItem from "@/src/components/mobile/CodeItem";
+import { Stack, router } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
+import CountdownRing from '@/src/components/common/CountdownRing';
+import { View, Text, FlatList, Animated, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import UserIcon from '@/src/components/mobile/UserIcon';
+import { useEffect, useRef, useState } from 'react';
+import images from '@/src/constants/images';
+import { Codes } from '@/src/types/codes';
+import { getAllCodes } from '@/src/lib/api/codes';
+import { useUserStore } from '@/src/lib/stores/userStore';
+import { sharedStyles } from '@/src/theme/styles';
+import { useAndroidBottomInset } from '@/src/hooks/useAndroidBottomInset';
+import { isDataEqual } from '@/src/lib/helpers';
+import CodeItem from '@/src/components/mobile/CodeItem';
 
 export default function HomeMobile({}) {
   const { tabContentPadding } = useAndroidBottomInset();
@@ -36,7 +36,7 @@ export default function HomeMobile({}) {
         setCodes(newCodes);
       }
     } catch (error) {
-      console.log("Failed to fetch codes:", error);
+      console.log('Failed to fetch codes:', error);
     } finally {
       if (showLoading) setRefreshing(false);
     }
@@ -51,7 +51,7 @@ export default function HomeMobile({}) {
 
   // Fetch data when screen comes into focus
   useEffect(() => {
-    const unsubscribe = navigation.addListener("focus", () => {
+    const unsubscribe = navigation.addListener('focus', () => {
       fetchCodes(false);
     });
     return unsubscribe;
@@ -59,7 +59,7 @@ export default function HomeMobile({}) {
 
   // Polling: Fetch data every 30 seconds when the screen is focused
   useEffect(() => {
-    const unsubscribe = navigation.addListener("focus", () => {
+    const unsubscribe = navigation.addListener('focus', () => {
       const intervalId = setInterval(() => {
         fetchCodes(false);
       }, 30000); // 30 seconds
@@ -76,14 +76,14 @@ export default function HomeMobile({}) {
         Animated.timing(bounceValue, {
           toValue: -10,
           duration: 500,
-          useNativeDriver: Platform.OS !== "web",
+          useNativeDriver: Platform.OS !== 'web',
         }),
         Animated.timing(bounceValue, {
           toValue: 0,
           duration: 500,
-          useNativeDriver: Platform.OS !== "web",
+          useNativeDriver: Platform.OS !== 'web',
         }),
-      ]),
+      ])
     );
     anim.start();
 
@@ -93,13 +93,13 @@ export default function HomeMobile({}) {
   }, [bounceValue]);
 
   return (
-    <SafeAreaView style={sharedStyles.container} edges={["left", "right"]}>
+    <SafeAreaView style={sharedStyles.container} edges={['left', 'right']}>
       <Stack.Screen
         options={{
-          title: "Active Codes",
+          title: 'Active Codes',
           headerShown: true,
           headerShadowVisible: false,
-          headerTitleAlign: "left",
+          headerTitleAlign: 'left',
           headerStyle: sharedStyles.header,
           headerTitleStyle: sharedStyles.title,
           headerRight: () => <UserIcon />,
@@ -123,7 +123,7 @@ export default function HomeMobile({}) {
                 source={images.ghostImg}
                 className={`w-80 h-80 res`}
                 style={{
-                  resizeMode: "contain",
+                  resizeMode: 'contain',
                   transform: [{ translateY: bounceValue }],
                 }}
               />
@@ -132,34 +132,34 @@ export default function HomeMobile({}) {
             </View>
           )}
           renderItem={({ item }) => {
-            const iso = String(item.valid_until ?? "")
-              .replace(" ", "T")
-              .replace(/([+-]\d{2})(\d{2})$/, "$1:$2");
+            const iso = String(item.valid_until ?? '')
+              .replace(' ', 'T')
+              .replace(/([+-]\d{2})(\d{2})$/, '$1:$2');
             const parsed = new Date(iso);
 
-            let formattedDate = "Invalid date";
-            let timeframe = "Unknown";
+            let formattedDate = 'Invalid date';
+            let timeframe = 'Unknown';
             let timeLeftMinutes = 0;
 
             if (!isNaN(parsed.getTime())) {
-              const day = String(parsed.getDate()).padStart(2, "0");
-              const month = String(parsed.getMonth() + 1).padStart(2, "0");
+              const day = String(parsed.getDate()).padStart(2, '0');
+              const month = String(parsed.getMonth() + 1).padStart(2, '0');
               const year = parsed.getFullYear();
               formattedDate = `${day}/${month}/${year}`;
 
               const diffMs = parsed.getTime() - Date.now();
               if (diffMs <= 0) {
-                timeframe = "Expired";
+                timeframe = 'Expired';
               } else {
                 const startDate = new Date(parsed.getTime() - 60 * 60 * 1000);
                 const formatTime = (d: Date) =>
                   d
                     .toLocaleTimeString(undefined, {
-                      hour: "numeric",
-                      minute: "2-digit",
+                      hour: 'numeric',
+                      minute: '2-digit',
                       hour12: true,
                     })
-                    .replace(/\s+/g, "")
+                    .replace(/\s+/g, '')
                     .toLowerCase();
                 timeLeftMinutes = Math.floor((diffMs % 3600000) / 60000);
                 timeframe = `${formatTime(startDate)} to ${formatTime(parsed)}`;

@@ -1,6 +1,6 @@
-import { useCallback } from "react";
-import { Image, Pressable } from "react-native";
-import icons from "@/src/constants/icons";
+import { useCallback } from 'react';
+import { Image, Pressable } from 'react-native';
+import icons from '@/src/constants/icons';
 
 interface WebPasswordInputProps {
   label: string;
@@ -42,12 +42,10 @@ const WebPasswordInput = ({
 
   return (
     <div className="flex flex-col gap-2 w-full min-w-0">
-      <label className="input-label-web text-left text-sm sm:text-base">
-        {label}
-      </label>
+      <label className="input-label-web text-left text-sm sm:text-base">{label}</label>
       <div className="relative w-full min-w-0">
         <input
-          type={show ? "text" : "password"}
+          type={show ? 'text' : 'password'}
           placeholder={placeholder}
           className="input-style-web w-full min-w-0 box-border pr-12 text-base"
           value={value}

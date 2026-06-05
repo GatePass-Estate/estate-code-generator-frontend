@@ -1,7 +1,7 @@
-import Back from "@/src/components/mobile/Back";
-import { sharedStyles } from "@/src/theme/styles";
-import { Stack, useRouter } from "expo-router";
-import { useState, useEffect } from "react";
+import Back from '@/src/components/mobile/Back';
+import { sharedStyles } from '@/src/theme/styles';
+import { Stack, useRouter } from 'expo-router';
+import { useState, useEffect } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -13,22 +13,22 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { FormData, FormErrors, MeansOfIdType } from "@/src/types/general";
-import { activateUser, registerUser } from "@/src/lib/api/user";
-import { useUserStore } from "@/src/lib/stores/userStore";
-import { Toast, ToastType } from "@/src/components/mobile/Toast";
-import { RegisterUserPayload } from "@/src/types/user";
-import { useNavigation } from "@react-navigation/native";
-import icons from "@/src/constants/icons";
-import { Picker } from "@/src/components/mobile/Picker";
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { FormData, FormErrors, MeansOfIdType } from '@/src/types/general';
+import { activateUser, registerUser } from '@/src/lib/api/user';
+import { useUserStore } from '@/src/lib/stores/userStore';
+import { Toast, ToastType } from '@/src/components/mobile/Toast';
+import { RegisterUserPayload } from '@/src/types/user';
+import { useNavigation } from '@react-navigation/native';
+import icons from '@/src/constants/icons';
+import { Picker } from '@/src/components/mobile/Picker';
 
 const MEANS_OF_IDENTIFICATION: { label: string; value: MeansOfIdType }[] = [
-  { label: "Drivers License", value: "drivers_license" },
-  { label: "International Passport", value: "international_passport" },
-  { label: "National Identification Number", value: "national_id" },
-  { label: "Voters Card", value: "voters_card" },
+  { label: 'Drivers License', value: 'drivers_license' },
+  { label: 'International Passport', value: 'international_passport' },
+  { label: 'National Identification Number', value: 'national_id' },
+  { label: 'Voters Card', value: 'voters_card' },
 ];
 
 const RegisterUser = () => {
@@ -36,26 +36,26 @@ const RegisterUser = () => {
   const navigation = useNavigation();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<FormData>({
-    firstName: "",
-    lastName: "",
-    email: "",
-    phoneNumber: "",
-    userType: "resident",
-    homeAddress: "",
-    meansOfIdentification: "drivers_license",
-    idNumber: "",
+    firstName: '',
+    lastName: '',
+    email: '',
+    phoneNumber: '',
+    userType: 'resident',
+    homeAddress: '',
+    meansOfIdentification: 'drivers_license',
+    idNumber: '',
   });
 
   const [errors, setErrors] = useState<FormErrors>({});
   const [loading, setLoading] = useState(false);
   const [toastVisible, setToastVisible] = useState(false);
-  const [toastMessage, setToastMessage] = useState("");
-  const [toastType, setToastType] = useState<ToastType>("success");
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState<ToastType>('success');
   const [showPassword, setShowPassword] = useState(false);
 
   // Handle custom back navigation
   useEffect(() => {
-    const unsubscribe = navigation.addListener("beforeRemove", (e) => {
+    const unsubscribe = navigation.addListener('beforeRemove', (e) => {
       e.preventDefault();
 
       if (currentStep === 2) {
@@ -72,13 +72,12 @@ const RegisterUser = () => {
   const validateStep1 = (): boolean => {
     const newErrors: FormErrors = {};
 
-    if (!formData.firstName.trim()) newErrors.firstName = "Name is required";
-    if (!formData.email.trim()) newErrors.email = "Email is required";
+    if (!formData.firstName.trim()) newErrors.firstName = 'Name is required';
+    if (!formData.email.trim()) newErrors.email = 'Email is required';
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email))
-      newErrors.email = "Invalid email format";
+      newErrors.email = 'Invalid email format';
 
-    if (!formData.phoneNumber.trim())
-      newErrors.phoneNumber = "Phone number is required";
+    if (!formData.phoneNumber.trim()) newErrors.phoneNumber = 'Phone number is required';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -87,8 +86,7 @@ const RegisterUser = () => {
   const validateStep2 = (): boolean => {
     const newErrors: FormErrors = {};
 
-    if (!formData.homeAddress.trim())
-      newErrors.homeAddress = "House address is required";
+    if (!formData.homeAddress.trim()) newErrors.homeAddress = 'House address is required';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -119,8 +117,8 @@ const RegisterUser = () => {
         email: formData.email,
         phone_number: formData.phoneNumber,
         role: formData.userType,
-        gender: "prefer_not_to_say",
-        estate_id: estate_id || "",
+        gender: 'prefer_not_to_say',
+        estate_id: estate_id || '',
         home_address: formData.homeAddress,
         household_id: null,
       };
@@ -130,45 +128,41 @@ const RegisterUser = () => {
 
       if (regiteredUser && regiteredUser.id) {
         if (regiteredUser) {
-          setToastMessage("User registered successfully!");
-          setToastType("success");
+          setToastMessage('User registered successfully!');
+          setToastType('success');
           setToastVisible(true);
           // Reset form
           setFormData({
-            firstName: "",
-            lastName: "",
-            email: "",
-            phoneNumber: "",
-            userType: "resident",
-            homeAddress: "",
-            meansOfIdentification: "drivers_license",
-            idNumber: "",
+            firstName: '',
+            lastName: '',
+            email: '',
+            phoneNumber: '',
+            userType: 'resident',
+            homeAddress: '',
+            meansOfIdentification: 'drivers_license',
+            idNumber: '',
           });
           setCurrentStep(1);
           setErrors({});
           setTimeout(() => {
             // Navigate to users list instead of going back to avoid beforeRemove listener issues
-            router.replace("/admin");
+            router.replace('/admin');
           }, 2000);
         } else {
-          setToastMessage(
-            "User registered but activation failed. Please try again.",
-          );
-          setToastType("error");
+          setToastMessage('User registered but activation failed. Please try again.');
+          setToastType('error');
           setToastVisible(true);
         }
       } else {
-        setToastMessage("Failed to register user. Please try again.");
-        setToastType("error");
+        setToastMessage('Failed to register user. Please try again.');
+        setToastType('error');
         setToastVisible(true);
       }
     } catch (error) {
       const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "An error occurred while registering user";
+        error instanceof Error ? error.message : 'An error occurred while registering user';
       setToastMessage(errorMessage);
-      setToastType("error");
+      setToastType('error');
       setToastVisible(true);
     } finally {
       setLoading(false);
@@ -184,11 +178,7 @@ const RegisterUser = () => {
 
   return (
     <SafeAreaView
-      style={[
-        sharedStyles.container,
-        sharedStyles.modalContainer,
-        { paddingBottom: 50, flex: 1 },
-      ]}
+      style={[sharedStyles.container, sharedStyles.modalContainer, { paddingBottom: 50, flex: 1 }]}
     >
       <Stack.Screen
         options={{
@@ -216,7 +206,7 @@ const RegisterUser = () => {
       />
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
       >
         <ScrollView
@@ -230,7 +220,7 @@ const RegisterUser = () => {
                   style={[
                     sharedStyles.label,
                     {
-                      color: "#9B9797",
+                      color: '#9B9797',
                     },
                   ]}
                 >
@@ -240,10 +230,10 @@ const RegisterUser = () => {
                   placeholder="Enter first name..."
                   placeholderTextColor="#999"
                   value={formData.firstName}
-                  onChangeText={(value) => updateFormData("firstName", value)}
+                  onChangeText={(value) => updateFormData('firstName', value)}
                   style={[
                     sharedStyles.input,
-                    { borderColor: errors.firstName ? "#ef4444" : undefined },
+                    { borderColor: errors.firstName ? '#ef4444' : undefined },
                   ]}
                 />
                 {errors.firstName && (
@@ -258,7 +248,7 @@ const RegisterUser = () => {
                   style={[
                     sharedStyles.label,
                     {
-                      color: "#9B9797",
+                      color: '#9B9797',
                     },
                   ]}
                 >
@@ -268,10 +258,10 @@ const RegisterUser = () => {
                   placeholder="Enter last name..."
                   placeholderTextColor="#999"
                   value={formData.lastName}
-                  onChangeText={(value) => updateFormData("lastName", value)}
+                  onChangeText={(value) => updateFormData('lastName', value)}
                   style={[
                     sharedStyles.input,
-                    { borderColor: errors.firstName ? "#ef4444" : undefined },
+                    { borderColor: errors.firstName ? '#ef4444' : undefined },
                   ]}
                 />
               </View>
@@ -281,7 +271,7 @@ const RegisterUser = () => {
                   style={[
                     sharedStyles.label,
                     {
-                      color: "#9B9797",
+                      color: '#9B9797',
                     },
                   ]}
                 >
@@ -291,12 +281,12 @@ const RegisterUser = () => {
                   placeholder="Enter user email address"
                   placeholderTextColor="#999"
                   value={formData.email}
-                  onChangeText={(value) => updateFormData("email", value)}
+                  onChangeText={(value) => updateFormData('email', value)}
                   keyboardType="email-address"
                   autoCapitalize="none"
                   style={[
                     sharedStyles.input,
-                    { borderColor: errors.email ? "#ef4444" : undefined },
+                    { borderColor: errors.email ? '#ef4444' : undefined },
                   ]}
                 />
                 {errors.email && (
@@ -311,7 +301,7 @@ const RegisterUser = () => {
                   style={[
                     sharedStyles.label,
                     {
-                      color: "#9B9797",
+                      color: '#9B9797',
                     },
                   ]}
                 >
@@ -321,11 +311,11 @@ const RegisterUser = () => {
                   placeholder="Enter user phone number"
                   placeholderTextColor="#999"
                   value={formData.phoneNumber}
-                  onChangeText={(value) => updateFormData("phoneNumber", value)}
+                  onChangeText={(value) => updateFormData('phoneNumber', value)}
                   keyboardType="phone-pad"
                   style={[
                     sharedStyles.input,
-                    { borderColor: errors.phoneNumber ? "#ef4444" : undefined },
+                    { borderColor: errors.phoneNumber ? '#ef4444' : undefined },
                   ]}
                 />
                 {errors.phoneNumber && (
@@ -340,7 +330,7 @@ const RegisterUser = () => {
                   style={[
                     sharedStyles.label,
                     {
-                      color: "#9B9797",
+                      color: '#9B9797',
                     },
                   ]}
                 >
@@ -350,12 +340,12 @@ const RegisterUser = () => {
                   label=""
                   selectedValue={formData.userType}
                   onValueChange={(value) =>
-                    updateFormData("userType", value as "resident" | "admin")
+                    updateFormData('userType', value as 'resident' | 'admin')
                   }
                   placeholder="Select user type"
                   items={[
-                    { label: "Resident", value: "resident" },
-                    { label: "Security Personnel", value: "security" },
+                    { label: 'Resident', value: 'resident' },
+                    { label: 'Security Personnel', value: 'security' },
                   ]}
                 />
               </View>
@@ -363,12 +353,10 @@ const RegisterUser = () => {
               <TouchableOpacity
                 disabled={loading}
                 onPress={handleContinue}
-                className={`px-24 bg-primary justify-center items-center py-5 font-UbuntuSans !rounded-xl ${loading ? "opacity-70" : ""}`}
+                className={`px-24 bg-primary justify-center items-center py-5 font-UbuntuSans !rounded-xl ${loading ? 'opacity-70' : ''}`}
                 activeOpacity={0.8}
               >
-                <Text className="text-white font-semibold font-UbuntuSans text-md">
-                  Continue
-                </Text>
+                <Text className="text-white font-semibold font-UbuntuSans text-md">Continue</Text>
               </TouchableOpacity>
             </>
           ) : (
@@ -378,7 +366,7 @@ const RegisterUser = () => {
                   style={[
                     sharedStyles.label,
                     {
-                      color: "#9B9797",
+                      color: '#9B9797',
                     },
                   ]}
                 >
@@ -388,12 +376,12 @@ const RegisterUser = () => {
                   placeholder="Enter house address..."
                   placeholderTextColor="#999"
                   value={formData.homeAddress}
-                  onChangeText={(value) => updateFormData("homeAddress", value)}
+                  onChangeText={(value) => updateFormData('homeAddress', value)}
                   multiline
                   numberOfLines={3}
                   style={[
                     sharedStyles.input,
-                    { borderColor: errors.homeAddress ? "#ef4444" : undefined },
+                    { borderColor: errors.homeAddress ? '#ef4444' : undefined },
                   ]}
                 />
                 {errors.homeAddress && (
@@ -408,7 +396,7 @@ const RegisterUser = () => {
                   style={[
                     sharedStyles.label,
                     {
-                      color: "#9B9797",
+                      color: '#9B9797',
                     },
                   ]}
                 >
@@ -418,10 +406,7 @@ const RegisterUser = () => {
                   label=""
                   selectedValue={formData.meansOfIdentification}
                   onValueChange={(value) =>
-                    updateFormData(
-                      "meansOfIdentification",
-                      value as MeansOfIdType,
-                    )
+                    updateFormData('meansOfIdentification', value as MeansOfIdType)
                   }
                   placeholder="Select means of identification"
                   items={MEANS_OF_IDENTIFICATION}
@@ -433,7 +418,7 @@ const RegisterUser = () => {
                   style={[
                     sharedStyles.label,
                     {
-                      color: "#9B9797",
+                      color: '#9B9797',
                     },
                   ]}
                 >
@@ -443,12 +428,12 @@ const RegisterUser = () => {
                   placeholder="Enter ID Number..."
                   placeholderTextColor="#999"
                   value={formData.idNumber}
-                  onChangeText={(value) => updateFormData("idNumber", value)}
+                  onChangeText={(value) => updateFormData('idNumber', value)}
                   multiline
                   numberOfLines={3}
                   style={[
                     sharedStyles.input,
-                    { borderColor: errors.idNumber ? "#ef4444" : undefined },
+                    { borderColor: errors.idNumber ? '#ef4444' : undefined },
                   ]}
                 />
                 {errors.idNumber && (
@@ -461,12 +446,12 @@ const RegisterUser = () => {
               <TouchableOpacity
                 disabled={loading}
                 onPress={handleContinue}
-                className={`px-24 bg-primary justify-center items-center py-5 font-UbuntuSans !rounded-xl ${loading ? "opacity-70" : ""} gap-2 flex-row`}
+                className={`px-24 bg-primary justify-center items-center py-5 font-UbuntuSans !rounded-xl ${loading ? 'opacity-70' : ''} gap-2 flex-row`}
                 activeOpacity={0.8}
               >
                 {loading && <ActivityIndicator color="#fff" size="small" />}
                 <Text className="text-white font-ubuntu-semibold text-md">
-                  {loading ? "Saving User..." : "Save User"}
+                  {loading ? 'Saving User...' : 'Save User'}
                 </Text>
               </TouchableOpacity>
             </>

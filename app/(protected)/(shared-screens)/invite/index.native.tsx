@@ -11,77 +11,79 @@ import { deleteCode } from '@/src/lib/api/codes';
 import { useState } from 'react';
 
 export default function InvitePage() {
-	let { name, code, date, timeframe, address } = useLocalSearchParams();
-	const [cancelText, setCancelText] = useState('Cancel Invite');
-	const navigation = useNavigation();
+  let { name, code, date, timeframe, address } = useLocalSearchParams();
+  const [cancelText, setCancelText] = useState('Cancel Invite');
+  const navigation = useNavigation();
 
-	code = Array.isArray(code) ? code.join(' ') : (code ?? '');
+  code = Array.isArray(code) ? code.join(' ') : (code ?? '');
 
-	const copyToClipboard = async () => {
-		await Clipboard.setStringAsync(code);
-	};
+  const copyToClipboard = async () => {
+    await Clipboard.setStringAsync(code);
+  };
 
-	const handleShare = async () => {
-		try {
-			await Share.share({
-				message: `You're invited!\n\nName: ${name}\nAddress: ${address}\nDate: ${date}\nTime: ${timeframe}\nCode: ${code}`,
-			});
-		} catch (error) {
-			Alert.alert('Failed to share');
-		}
-	};
+  const handleShare = async () => {
+    try {
+      await Share.share({
+        message: `You're invited!\n\nName: ${name}\nAddress: ${address}\nDate: ${date}\nTime: ${timeframe}\nCode: ${code}`,
+      });
+    } catch (error) {
+      Alert.alert('Failed to share');
+    }
+  };
 
-	const performRemoveCode = async (code: string) => {
-		try {
-			setCancelText('Removing...');
-			await deleteCode(code);
-		} catch (error) {
-			console.error('Remove code failed:', error);
-		} finally {
-			navigation.goBack();
-		}
-	};
+  const performRemoveCode = async (code: string) => {
+    try {
+      setCancelText('Removing...');
+      await deleteCode(code);
+    } catch (error) {
+      console.error('Remove code failed:', error);
+    } finally {
+      navigation.goBack();
+    }
+  };
 
-	return (
-		<SafeAreaView style={[sharedStyles.container, sharedStyles.modalContainer]}>
-			<Stack.Screen
-				options={{
-					headerShown: false,
-					headerShadowVisible: false,
-				}}
-			/>
+  return (
+    <SafeAreaView style={[sharedStyles.container, sharedStyles.modalContainer]}>
+      <Stack.Screen
+        options={{
+          headerShown: false,
+          headerShadowVisible: false,
+        }}
+      />
 
-			<Back type="short-arrow" />
+      <Back type="short-arrow" />
 
-			<View className="mb-5 items-center mt-10">
-				<View className="bg-tertiary p-5 rounded-2xl my-5">
-					<QRCode value={code} size={150} backgroundColor="white" color="#F46036" />
-				</View>
+      <View className="mb-5 items-center mt-10">
+        <View className="bg-tertiary p-5 rounded-2xl my-5">
+          <QRCode value={code} size={150} backgroundColor="white" color="#F46036" />
+        </View>
 
-				<View className="flex-row items-center mb-5">
-					<Text className="text-[26px] uppercase font-ubuntu-extrabold text-primary tracking-[6px] mr-2">{code.replace(/\s+/g, '')}</Text>
+        <View className="flex-row items-center mb-5">
+          <Text className="text-[26px] uppercase font-ubuntu-extrabold text-primary tracking-[6px] mr-2">
+            {code.replace(/\s+/g, '')}
+          </Text>
 
-					<Pressable onPress={copyToClipboard}>
-						<Image source={icons.copyIcon} className="w-6 h-6" />
-					</Pressable>
-				</View>
+          <Pressable onPress={copyToClipboard}>
+            <Image source={icons.copyIcon} className="w-6 h-6" />
+          </Pressable>
+        </View>
 
-				<View className="mt-3 bg-white p-4 rounded-lg w-full border-[0.2px] mb-8">
-					<SingleDetail label="Name" value={name as string} />
-					<SingleDetail label="Address" value={address as string} />
-					<SingleDetail label="Date" value={date as string} />
-					<SingleDetail label="Time" value={timeframe as string} />
-					<SingleDetail label="Access Code" value={code.toUpperCase() as string} />
-				</View>
+        <View className="mt-3 bg-white p-4 rounded-lg w-full border-[0.2px] mb-8">
+          <SingleDetail label="Name" value={name as string} />
+          <SingleDetail label="Address" value={address as string} />
+          <SingleDetail label="Date" value={date as string} />
+          <SingleDetail label="Time" value={timeframe as string} />
+          <SingleDetail label="Access Code" value={code.toUpperCase() as string} />
+        </View>
 
-				<TouchableOpacity className="bg-primary py-4 px-16 rounded-lg mb-5" onPress={handleShare}>
-					<Text className="text-white text-[16px] font-semibold"> {'Share Invite'} </Text>
-				</TouchableOpacity>
+        <TouchableOpacity className="bg-primary py-4 px-16 rounded-lg mb-5" onPress={handleShare}>
+          <Text className="text-white text-[16px] font-semibold"> {'Share Invite'} </Text>
+        </TouchableOpacity>
 
-				<TouchableOpacity onPress={() => performRemoveCode(code)}>
-					<Text className="text-primary text-[17px] font-ubuntu-medium">{cancelText}</Text>
-				</TouchableOpacity>
-			</View>
-		</SafeAreaView>
-	);
+        <TouchableOpacity onPress={() => performRemoveCode(code)}>
+          <Text className="text-primary text-[17px] font-ubuntu-medium">{cancelText}</Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
+  );
 }
