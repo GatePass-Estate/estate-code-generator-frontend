@@ -15,7 +15,12 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { FormData, FormErrors, GenderType, MeansOfIdType } from "@/src/types/general";
+import {
+  FormData,
+  FormErrors,
+  GenderType,
+  MeansOfIdType,
+} from "@/src/types/general";
 import { activateUser, registerUser } from "@/src/lib/api/user";
 import { useUserStore } from "@/src/lib/stores/userStore";
 import { Toast, ToastType } from "@/src/components/mobile/Toast";
