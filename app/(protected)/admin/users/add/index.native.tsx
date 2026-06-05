@@ -15,7 +15,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { FormData, FormErrors, MeansOfIdType } from "@/src/types/general";
+import { FormData, FormErrors, GenderType, MeansOfIdType } from "@/src/types/general";
 import { activateUser, registerUser } from "@/src/lib/api/user";
 import { useUserStore } from "@/src/lib/stores/userStore";
 import { Toast, ToastType } from "@/src/components/mobile/Toast";
@@ -31,6 +31,12 @@ const MEANS_OF_IDENTIFICATION: { label: string; value: MeansOfIdType }[] = [
   { label: "Voters Card", value: "voters_card" },
 ];
 
+const GENDER_OPTIONS: { label: string; value: Exclude<GenderType, null> }[] = [
+  { label: "Female", value: "female" },
+  { label: "Male", value: "male" },
+  { label: "I'd prefer not to say", value: "prefer_not_to_say" },
+];
+
 const RegisterUser = () => {
   const router = useRouter();
   const navigation = useNavigation();
@@ -40,6 +46,7 @@ const RegisterUser = () => {
     lastName: "",
     email: "",
     phoneNumber: "",
+    gender: null,
     userType: "resident",
     homeAddress: "",
     meansOfIdentification: "drivers_license",
@@ -80,6 +87,8 @@ const RegisterUser = () => {
     if (!formData.phoneNumber.trim())
       newErrors.phoneNumber = "Phone number is required";
 
+    if (!formData.gender) newErrors.gender = "Gender is required";
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -119,7 +128,7 @@ const RegisterUser = () => {
         email: formData.email,
         phone_number: formData.phoneNumber,
         role: formData.userType,
-        gender: "prefer_not_to_say",
+        gender: formData.gender,
         estate_id: estate_id || "",
         home_address: formData.homeAddress,
         household_id: null,
@@ -139,6 +148,7 @@ const RegisterUser = () => {
             lastName: "",
             email: "",
             phoneNumber: "",
+            gender: null,
             userType: "resident",
             homeAddress: "",
             meansOfIdentification: "drivers_license",
@@ -175,7 +185,7 @@ const RegisterUser = () => {
     }
   };
 
-  const updateFormData = (key: keyof FormData, value: string) => {
+  const updateFormData = <K extends keyof FormData>(key: K, value: FormData[K]) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
     if (errors[key as keyof FormErrors]) {
       setErrors((prev) => ({ ...prev, [key]: undefined }));
@@ -331,6 +341,33 @@ const RegisterUser = () => {
                 {errors.phoneNumber && (
                   <Text className="text-red-600 text-xs font-ubuntu-regular mt-1">
                     {errors.phoneNumber}
+                  </Text>
+                )}
+              </View>
+
+              <View className="mb-8">
+                <Text
+                  style={[
+                    sharedStyles.label,
+                    {
+                      color: "#9B9797",
+                    },
+                  ]}
+                >
+                  Gender
+                </Text>
+                <Picker
+                  label=""
+                  selectedValue={formData.gender}
+                  onValueChange={(value) =>
+                    updateFormData("gender", value as GenderType)
+                  }
+                  placeholder="Select user gender"
+                  items={GENDER_OPTIONS}
+                />
+                {errors.gender && (
+                  <Text className="text-red-600 text-xs font-ubuntu-regular mt-1">
+                    {errors.gender}
                   </Text>
                 )}
               </View>
