@@ -1,17 +1,14 @@
-import icons from "@/src/constants/icons";
-import { useState } from "react";
-import { Image } from "react-native";
-import WebPasswordInput from "./WebPasswordInput";
+import icons from '@/src/constants/icons';
+import { useState } from 'react';
+import { Image } from 'react-native';
+import WebPasswordInput from './WebPasswordInput';
 
 interface UpdatePasswordProps {
   setShowUpdatePassword: (show: boolean) => void;
   error: string;
   success: string;
   savingPassword: boolean;
-  setPassword: (password: {
-    currentPassword: string;
-    newPassword: string;
-  }) => void;
+  setPassword: (password: { currentPassword: string; newPassword: string }) => void;
   password: { currentPassword: string; newPassword: string };
   showCurrent: boolean;
   showNew: boolean;
@@ -42,7 +39,7 @@ const UpdatePassword = ({
   setNewPassword,
 }: UpdatePasswordProps) => {
   const [confirmValue, setConfirmValue] = useState<string>(
-    confirmPasswordRef?.current?.value || "",
+    confirmPasswordRef?.current?.value || ''
   );
 
   return (
@@ -56,17 +53,11 @@ const UpdatePassword = ({
           className="cursor-pointer absolute right-6 top-6"
           onClick={() => setShowUpdatePassword(false)}
         >
-          <Image
-            source={icons.cancel}
-            style={{ width: 40, height: 40 }}
-            resizeMode="contain"
-          />
+          <Image source={icons.cancel} style={{ width: 40, height: 40 }} resizeMode="contain" />
         </div>
 
         {error && (
-          <div className="text-danger font-medium my-4 p-3 bg-danger/20 rounded">
-            {error}
-          </div>
+          <div className="text-danger font-medium my-4 p-3 bg-danger/20 rounded">{error}</div>
         )}
 
         {success && (
@@ -85,7 +76,7 @@ const UpdatePassword = ({
             placeholder="Enter current password"
             value={password.currentPassword}
             onChange={(value) => {
-              setError("");
+              setError('');
               setPassword({ ...password, currentPassword: value });
             }}
             show={showCurrent}
@@ -98,7 +89,7 @@ const UpdatePassword = ({
             placeholder="Enter new password"
             value={password.newPassword}
             onChange={(value) => {
-              setError("");
+              setError('');
               setPassword({ ...password, newPassword: value });
             }}
             show={showNew}
@@ -120,11 +111,11 @@ const UpdatePassword = ({
 
         <div className="flex justify-center w-full">
           <button
-            className={`full-btn !px-16 w-full max-w-full ${savingPassword && "opacity-65"}`}
+            className={`full-btn !px-16 w-full max-w-full ${savingPassword && 'opacity-65'}`}
             onClick={setNewPassword}
             disabled={savingPassword}
           >
-            {savingPassword ? "Saving..." : "Save Password"}
+            {savingPassword ? 'Saving...' : 'Save Password'}
           </button>
         </div>
       </div>

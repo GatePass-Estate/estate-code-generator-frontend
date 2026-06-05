@@ -9,30 +9,30 @@ import {
   Alert,
   Platform,
   useWindowDimensions,
-} from "react-native";
-import { router, Stack, useLocalSearchParams } from "expo-router";
-import { Image } from "react-native";
-import UserIcon from "@/src/components/mobile/UserIcon";
-import { useEffect, useRef, useState } from "react";
-import images from "@/src/constants/images";
-import { deleteMyGuest, getMyGuests } from "@/src/lib/api/guests";
-import { Guest } from "@/src/types/guests";
-import { GenderType, RelationshipType } from "@/src/types/general";
-import { useUserStore } from "@/src/lib/stores/userStore";
-import { generateCode } from "@/src/lib/api/codes";
-import { sharedStyles } from "@/src/theme/styles";
-import { useAndroidBottomInset } from "@/src/hooks/useAndroidBottomInset";
-import icons from "@/src/constants/icons";
-import { menuRoutes } from "../_layout";
-import WebSidebar from "@/src/components/web/WebSidebar";
-import { getWidthBreakpoint } from "@/src/lib/helpers";
-import Modal from "@/src/components/web/Modal";
+  Image,
+} from 'react-native';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
+import UserIcon from '@/src/components/mobile/UserIcon';
+import { useEffect, useRef, useState } from 'react';
+import images from '@/src/constants/images';
+import { deleteMyGuest, getMyGuests } from '@/src/lib/api/guests';
+import { Guest } from '@/src/types/guests';
+import { GenderType, RelationshipType } from '@/src/types/general';
+import { useUserStore } from '@/src/lib/stores/userStore';
+import { generateCode } from '@/src/lib/api/codes';
+import { sharedStyles } from '@/src/theme/styles';
+import { useAndroidBottomInset } from '@/src/hooks/useAndroidBottomInset';
+import icons from '@/src/constants/icons';
+import { menuRoutes } from '../_layout';
+import WebSidebar from '@/src/components/web/WebSidebar';
+import { getWidthBreakpoint } from '@/src/lib/helpers';
+import Modal from '@/src/components/web/Modal';
 
 const limit = 2;
 
 const MyGuestMobile = () => {
   const { tabContentPadding } = useAndroidBottomInset();
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
   const [guests, setGuests] = useState<Guest[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
@@ -48,7 +48,7 @@ const MyGuestMobile = () => {
   const filteredGuests = guests.filter(
     (guest) =>
       guest.guest_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      guest.relationship?.includes(searchQuery.toLowerCase()),
+      guest.relationship?.includes(searchQuery.toLowerCase())
   );
 
   const fetchGuests = async () => {
@@ -79,15 +79,15 @@ const MyGuestMobile = () => {
   }, []);
 
   useEffect(() => {
-    if (refresh == "true") {
+    if (refresh == 'true') {
       fetchGuests();
-      refresh = "false";
+      refresh = 'false';
     }
   }, [refresh]);
 
   useEffect(() => {
-    if (Platform.OS === "web") {
-      document.title = "Guests - GatePass";
+    if (Platform.OS === 'web') {
+      document.title = 'Guests - GatePass';
     }
   }, []);
 
@@ -104,40 +104,40 @@ const MyGuestMobile = () => {
     try {
       const result = await generateCode({
         user_id: useUserStore.getState().user_id,
-        estate_id: useUserStore.getState().estate_id ?? "",
+        estate_id: useUserStore.getState().estate_id ?? '',
         visitor_fullname: name,
         relationship_with_resident,
         gender,
       });
 
-      const iso = String(result.valid_until ?? "")
-        .replace(" ", "T")
-        .replace(/([+-]\d{2})(\d{2})$/, "$1:$2");
+      const iso = String(result.valid_until ?? '')
+        .replace(' ', 'T')
+        .replace(/([+-]\d{2})(\d{2})$/, '$1:$2');
       const parsed = new Date(iso);
 
-      let formattedDate = "Invalid date";
-      let timeframe = "Unknown";
+      let formattedDate = 'Invalid date';
+      let timeframe = 'Unknown';
       let timeLeftMinutes = 0;
 
       if (!isNaN(parsed.getTime())) {
-        const day = String(parsed.getDate()).padStart(2, "0");
-        const month = String(parsed.getMonth() + 1).padStart(2, "0");
+        const day = String(parsed.getDate()).padStart(2, '0');
+        const month = String(parsed.getMonth() + 1).padStart(2, '0');
         const year = parsed.getFullYear();
         formattedDate = `${day}/${month}/${year}`;
 
         const diffMs = parsed.getTime() - Date.now();
         if (diffMs <= 0) {
-          timeframe = "Expired";
+          timeframe = 'Expired';
         } else {
           const startDate = new Date(parsed.getTime() - 60 * 60 * 1000);
           const formatTime = (d: Date) =>
             d
               .toLocaleTimeString(undefined, {
-                hour: "numeric",
-                minute: "2-digit",
+                hour: 'numeric',
+                minute: '2-digit',
                 hour12: true,
               })
-              .replace(/\s+/g, "")
+              .replace(/\s+/g, '')
               .toLowerCase();
           timeLeftMinutes = Math.floor((diffMs % 3600000) / 60000);
           timeframe = `${formatTime(startDate)} to ${formatTime(parsed)}`;
@@ -145,7 +145,7 @@ const MyGuestMobile = () => {
       }
 
       router.push({
-        pathname: "/invite",
+        pathname: '/invite',
         params: {
           name,
           code: result.hashed_code,
@@ -155,7 +155,7 @@ const MyGuestMobile = () => {
         },
       });
     } catch (error) {
-      Alert.alert("Error", "Failed to generate code. Please try again.");
+      Alert.alert('Error', 'Failed to generate code. Please try again.');
     } finally {
       setRunning(false);
     }
@@ -167,7 +167,7 @@ const MyGuestMobile = () => {
       await deleteMyGuest(id);
       setGuests((prev) => prev.filter((g) => g.id !== id));
     } catch (error) {
-      console.error("Delete guest failed:", error);
+      console.error('Delete guest failed:', error);
     } finally {
       setDeleting(false);
     }
@@ -181,14 +181,14 @@ const MyGuestMobile = () => {
         Animated.timing(bounceValue, {
           toValue: -10,
           duration: 500,
-          useNativeDriver: Platform.OS !== "web",
+          useNativeDriver: Platform.OS !== 'web',
         }),
         Animated.timing(bounceValue, {
           toValue: 0,
           duration: 500,
-          useNativeDriver: Platform.OS !== "web",
+          useNativeDriver: Platform.OS !== 'web',
         }),
-      ]),
+      ])
     );
     anim.start();
 
@@ -199,13 +199,13 @@ const MyGuestMobile = () => {
 
   return (
     <View style={sharedStyles.container}>
-      {Platform.OS !== "web" ? (
+      {Platform.OS !== 'web' ? (
         <Stack.Screen
           options={{
             headerShown: true,
-            title: "My Guests",
+            title: 'My Guests',
             headerShadowVisible: false,
-            headerTitleAlign: "left",
+            headerTitleAlign: 'left',
             headerStyle: sharedStyles.header,
             headerTitleStyle: sharedStyles.title,
             headerRight: () => <UserIcon />,
@@ -213,17 +213,12 @@ const MyGuestMobile = () => {
         />
       ) : (
         <>
-          <WebSidebar
-            routes={menuRoutes}
-            onNavigate={(route) => router.push(route as any)}
-          />
+          <WebSidebar routes={menuRoutes} onNavigate={(route) => router.push(route as any)} />
           <View
-            className={`flex flex-col justify-center gap-7 ${isLargeScreen ? "mt-20" : "mt-11"}`}
+            className={`flex flex-col justify-center gap-7 ${isLargeScreen ? 'mt-20' : 'mt-11'}`}
           />
           <View className="flex flex-row justify-between mb-5">
-            <Text
-              className={`${isLargeScreen ? "text-4xl" : "text-2xl font-ubuntu-medium"}`}
-            >
+            <Text className={`${isLargeScreen ? 'text-4xl' : 'text-2xl font-ubuntu-medium'}`}>
               My Guests
             </Text>
 
@@ -269,8 +264,8 @@ const MyGuestMobile = () => {
             <View
               style={{
                 flex: 1,
-                justifyContent: "center",
-                alignItems: "center",
+                justifyContent: 'center',
+                alignItems: 'center',
                 paddingTop: 40,
               }}
             >
@@ -279,12 +274,12 @@ const MyGuestMobile = () => {
                 style={{
                   width: 300,
                   height: 300,
-                  resizeMode: "contain",
+                  resizeMode: 'contain',
                   transform: [{ translateY: bounceValue }],
                 }}
               />
               <Text
-                style={{ textAlign: "center", fontSize: 23, opacity: 0.2 }}
+                style={{ textAlign: 'center', fontSize: 23, opacity: 0.2 }}
               >{`Click the ‘+’ to add \nyour guest`}</Text>
             </View>
           )
@@ -296,36 +291,27 @@ const MyGuestMobile = () => {
                 styles.card,
                 {
                   backgroundColor:
-                    item.gender == "female"
-                      ? "#f45f36e"
-                      : item.gender == "male"
-                        ? "#167a6ec"
-                        : "#F7F9F9",
+                    item.gender == 'female'
+                      ? '#f45f36e'
+                      : item.gender == 'male'
+                        ? '#167a6ec'
+                        : '#F7F9F9',
                   borderColor:
-                    item.gender == "female"
-                      ? "#F46036"
-                      : item.gender == "male"
-                        ? "#167a6f"
-                        : "#9B9797",
+                    item.gender == 'female'
+                      ? '#F46036'
+                      : item.gender == 'male'
+                        ? '#167a6f'
+                        : '#9B9797',
                 },
               ]}
             >
               <View style={styles.guestInfo}>
-                {item.gender === "male" ? (
-                  <Image
-                    source={icons.maleIcon}
-                    style={{ width: 24, height: 24 }}
-                  />
-                ) : item.gender === "female" ? (
-                  <Image
-                    source={icons.femaleIcon}
-                    style={{ width: 20, height: 28.5 }}
-                  />
+                {item.gender === 'male' ? (
+                  <Image source={icons.maleIcon} style={{ width: 24, height: 24 }} />
+                ) : item.gender === 'female' ? (
+                  <Image source={icons.femaleIcon} style={{ width: 20, height: 28.5 }} />
                 ) : (
-                  <Image
-                    source={icons.notSayingGender}
-                    style={{ width: 24, height: 24 }}
-                  />
+                  <Image source={icons.notSayingGender} style={{ width: 24, height: 24 }} />
                 )}
 
                 <View style={{ marginLeft: 10 }}>
@@ -342,19 +328,19 @@ const MyGuestMobile = () => {
               <View className="gap-5 flex-row">
                 <TouchableOpacity
                   onPress={() => {
-                    if (Platform.OS !== "web") {
+                    if (Platform.OS !== 'web') {
                       Alert.alert(
-                        "Delete guest",
+                        'Delete guest',
                         `Are you sure you want to delete ${item.guest_name}?`,
                         [
-                          { text: "Cancel", style: "cancel" },
+                          { text: 'Cancel', style: 'cancel' },
                           {
-                            text: "Delete",
-                            style: "destructive",
+                            text: 'Delete',
+                            style: 'destructive',
                             onPress: () => deleteGuest(item.id),
                           },
                         ],
-                        { cancelable: true },
+                        { cancelable: true }
                       );
                     } else {
                       setPendingGuestId(item.id);
@@ -367,8 +353,8 @@ const MyGuestMobile = () => {
                     style={{
                       width: 22,
                       height: 22,
-                      resizeMode: "contain",
-                      tintColor: "#a6a4a4",
+                      resizeMode: 'contain',
+                      tintColor: '#a6a4a4',
                     }}
                   />
                 </TouchableOpacity>
@@ -377,8 +363,7 @@ const MyGuestMobile = () => {
                   onPress={() =>
                     handleGenerateCode({
                       name: item.guest_name,
-                      relationship_with_resident:
-                        item.relationship as RelationshipType,
+                      relationship_with_resident: item.relationship as RelationshipType,
                       gender: item.gender as GenderType,
                     })
                   }
@@ -388,8 +373,8 @@ const MyGuestMobile = () => {
                     style={{
                       width: 22,
                       height: 22,
-                      resizeMode: "contain",
-                      tintColor: "#a6a4a4",
+                      resizeMode: 'contain',
+                      tintColor: '#a6a4a4',
                     }}
                   />
                 </TouchableOpacity>
@@ -405,19 +390,19 @@ const MyGuestMobile = () => {
             setConfirmModalVisible(false);
             setPendingGuestId(null);
           }}
-          heading={"Confirm delete"}
+          heading={'Confirm delete'}
           message={`Are you sure you want to delete this guest? This action cannot be undone.`}
           btnDisabled={deleting}
           actionRunnig={deleting}
-          cancelText={"Cancel"}
+          cancelText={'Cancel'}
           action={async () => {
             if (!pendingGuestId) return;
             await performDeleteGuest(pendingGuestId);
             setConfirmModalVisible(false);
             setPendingGuestId(null);
           }}
-          runningText={"Deleting..."}
-          actionText={"Delete"}
+          runningText={'Deleting...'}
+          actionText={'Delete'}
         />
       )}
     </View>
@@ -429,7 +414,7 @@ export default MyGuestMobile;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FBFEFF",
+    backgroundColor: '#FBFEFF',
     paddingHorizontal: 20,
     paddingTop: 35,
     elevation: 0,
@@ -439,16 +424,16 @@ const styles = StyleSheet.create({
 
   title: {
     fontSize: 22,
-    fontWeight: "bold",
+    fontWeight: 'bold',
     marginBottom: 15,
-    color: "#113E55",
+    color: '#113E55',
   },
 
   searchBar: {
-    flexDirection: "row",
-    backgroundColor: "#F7F9F9",
+    flexDirection: 'row',
+    backgroundColor: '#F7F9F9',
     borderRadius: 8,
-    alignItems: "center",
+    alignItems: 'center',
     paddingHorizontal: 8,
     marginBottom: 20,
   },
@@ -459,15 +444,15 @@ const styles = StyleSheet.create({
     borderRadius: 17,
     borderWidth: 1,
     marginRight: 30,
-    borderColor: "#167a6f",
-    justifyContent: "center",
-    alignItems: "center",
+    borderColor: '#167a6f',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 
   profileInitials: {
-    color: "#167a6f",
-    fontWeight: "300",
-    fontFamily: "UbuntuSans",
+    color: '#167a6f',
+    fontWeight: '300',
+    fontFamily: 'UbuntuSans',
     fontSize: 23,
   },
 
@@ -481,46 +466,46 @@ const styles = StyleSheet.create({
   savedLabel: {
     fontSize: 14,
     marginBottom: 10,
-    color: "#222",
+    color: '#222',
   },
 
   card: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     padding: 12,
     borderRadius: 10,
-    backgroundColor: "#F6F6F6",
+    backgroundColor: '#F6F6F6',
     marginBottom: 10,
-    alignItems: "center",
+    alignItems: 'center',
     borderWidth: 1,
     height: 60,
-    borderColor: "#e5e5e5",
+    borderColor: '#e5e5e5',
   },
 
   guestInfo: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
   },
 
   fab: {
-    position: "absolute",
+    position: 'absolute',
     bottom: 20,
-    left: "50%",
+    left: '50%',
     transform: [{ translateX: -30 }],
-    backgroundColor: "#113E55",
+    backgroundColor: '#113E55',
     width: 60,
     height: 60,
     borderRadius: 30,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
     elevation: 5,
   },
 
   divider: {
     height: 0.5,
-    backgroundColor: "#113E55",
+    backgroundColor: '#113E55',
     marginTop: 8,
     marginBottom: 20,
-    width: "100%",
+    width: '100%',
   },
 });

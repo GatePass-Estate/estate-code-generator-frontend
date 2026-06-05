@@ -12,12 +12,12 @@ import securityBg from '../assets/images/security-bg.png';
 import brokenCard from '../assets/images/broken-card.png';
 
 const images = {
-	loginImage,
-	ghostImg,
-	logo,
-	logoutIcon,
-	securityBg,
-	brokenCard,
+  loginImage,
+  ghostImg,
+  logo,
+  logoutIcon,
+  securityBg,
+  brokenCard,
 };
 
 export default images;

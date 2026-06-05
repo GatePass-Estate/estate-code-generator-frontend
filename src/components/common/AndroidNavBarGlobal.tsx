@@ -1,14 +1,7 @@
-import {
-  Platform,
-  useColorScheme as useDeviceColorScheme,
-  View,
-} from "react-native";
+import { Platform, useColorScheme as useDeviceColorScheme, View } from 'react-native';
 
-import { useAndroidBottomInset } from "@/src/hooks/useAndroidBottomInset";
-import {
-  getAndroidNavBarBackground,
-  useInitialAndroidBarSync,
-} from "@/src/hooks/useAndroidNavBar";
+import { useAndroidBottomInset } from '@/src/hooks/useAndroidBottomInset';
+import { getAndroidNavBarBackground, useInitialAndroidBarSync } from '@/src/hooks/useAndroidNavBar';
 
 /** Global Android 3-button nav: black/white strip + icon style on every screen. */
 export default function AndroidNavBarGlobal() {
@@ -17,7 +10,7 @@ export default function AndroidNavBarGlobal() {
 
   useInitialAndroidBarSync();
 
-  if (Platform.OS !== "android" || systemBottom <= 0) {
+  if (Platform.OS !== 'android' || systemBottom <= 0) {
     return null;
   }
 
@@ -25,7 +18,7 @@ export default function AndroidNavBarGlobal() {
     <View
       pointerEvents="none"
       style={{
-        position: "absolute",
+        position: 'absolute',
         bottom: 0,
         left: 0,
         right: 0,

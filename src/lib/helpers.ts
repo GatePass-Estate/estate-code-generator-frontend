@@ -1,14 +1,14 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { AuthState } from "./stores/authStore";
-import axios from "axios";
-import { Codes } from "../types/codes";
-import { AuthBroadcastMessage, UserRolesType } from "../types/general";
-import icons from "../constants/icons";
-import { Platform } from "react-native";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { AuthState } from './stores/authStore';
+import axios from 'axios';
+import { Codes } from '../types/codes';
+import { AuthBroadcastMessage, UserRolesType } from '../types/general';
+import icons from '../constants/icons';
+import { Platform } from 'react-native';
 
 const authStorageKey = process.env.EXPO_PUBLIC_AUTH_STORAGE_KEY!;
 
-const BROADCAST_CHANNEL_NAME = "gatepass-auth-sync";
+const BROADCAST_CHANNEL_NAME = 'gatepass-auth-sync';
 
 let broadcastChannel: BroadcastChannel | null = null;
 let storageEventListener: ((event: StorageEvent) => void) | null = null;
@@ -17,19 +17,17 @@ export const initAuthSync = (callbacks: {
   onLogin: (token: string, role: UserRolesType) => void;
   onLogout: () => void;
 }): (() => void) => {
-  if (Platform.OS !== "web" || typeof window === "undefined") {
+  if (Platform.OS !== 'web' || typeof window === 'undefined') {
     return () => {};
   }
 
-  if (typeof BroadcastChannel !== "undefined") {
+  if (typeof BroadcastChannel !== 'undefined') {
     broadcastChannel = new BroadcastChannel(BROADCAST_CHANNEL_NAME);
-    broadcastChannel.onmessage = (
-      event: MessageEvent<AuthBroadcastMessage>,
-    ) => {
+    broadcastChannel.onmessage = (event: MessageEvent<AuthBroadcastMessage>) => {
       const message = event.data;
-      if (message.type === "LOGIN") {
+      if (message.type === 'LOGIN') {
         callbacks.onLogin(message.payload.token, message.payload.role);
-      } else if (message.type === "LOGOUT") {
+      } else if (message.type === 'LOGOUT') {
         callbacks.onLogout();
       }
     };
@@ -45,7 +43,7 @@ export const initAuthSync = (callbacks: {
       // because AsyncStorage may update before the event fires. We rely on BroadcastChannel
       // for login sync, and storage event as a fallback for logout only.
     };
-    window.addEventListener("storage", storageEventListener);
+    window.addEventListener('storage', storageEventListener);
   }
 
   // Return cleanup function
@@ -55,7 +53,7 @@ export const initAuthSync = (callbacks: {
       broadcastChannel = null;
     }
     if (storageEventListener) {
-      window.removeEventListener("storage", storageEventListener);
+      window.removeEventListener('storage', storageEventListener);
       storageEventListener = null;
     }
   };
@@ -65,10 +63,10 @@ export const initAuthSync = (callbacks: {
  * Broadcast login event to all other tabs
  */
 export const broadcastLogin = (token: string, role: UserRolesType): void => {
-  if (Platform.OS !== "web" || typeof window === "undefined") return;
+  if (Platform.OS !== 'web' || typeof window === 'undefined') return;
 
   const message: AuthBroadcastMessage = {
-    type: "LOGIN",
+    type: 'LOGIN',
     payload: { token, role, timestamp: Date.now() },
   };
 
@@ -82,10 +80,10 @@ export const broadcastLogin = (token: string, role: UserRolesType): void => {
  * Broadcast logout event to all other tabs
  */
 export const broadcastLogout = (): void => {
-  if (Platform.OS !== "web" || typeof window === "undefined") return;
+  if (Platform.OS !== 'web' || typeof window === 'undefined') return;
 
   const message: AuthBroadcastMessage = {
-    type: "LOGOUT",
+    type: 'LOGOUT',
     payload: { timestamp: Date.now() },
   };
 
@@ -101,7 +99,7 @@ export const storeAuthState = async (userData: AuthState): Promise<boolean> => {
     await AsyncStorage.setItem(authStorageKey, jsonValue);
     return true;
   } catch (error) {
-    console.log("Error saving auth state", error);
+    console.log('Error saving auth state', error);
     return false;
   }
 };
@@ -110,7 +108,7 @@ export const clearAuthState = async (): Promise<void> => {
   try {
     await AsyncStorage.removeItem(authStorageKey);
   } catch (error) {
-    console.log("Error clearing auth state", error);
+    console.log('Error clearing auth state', error);
   }
 };
 
@@ -119,7 +117,7 @@ export const getAuthState = async (): Promise<AuthState | null> => {
     const jsonValue = await AsyncStorage.getItem(authStorageKey);
     return jsonValue != null ? JSON.parse(jsonValue) : null;
   } catch (error) {
-    console.log("Error retrieving auth state", error);
+    console.log('Error retrieving auth state', error);
     return null;
   }
 };
@@ -135,65 +133,65 @@ export const getErrorMessage = (error: any): string => {
       }
     }
 
-    if (typeof data.detail === "string") {
+    if (typeof data.detail === 'string') {
       return data.detail;
     }
   }
 
   if (error.message) {
-    if (error.message === "Network Error")
-      return "Network error - please check your internet connection.";
+    if (error.message === 'Network Error')
+      return 'Network error - please check your internet connection.';
 
-    if (error.message === "Request failed with status code 401")
-      return "Unauthorized - please check your credentials.";
+    if (error.message === 'Request failed with status code 401')
+      return 'Unauthorized - please check your credentials.';
 
-    if (error.message === "Request failed with status code 403")
-      return "Forbidden - you do not have permission to access this resource.";
+    if (error.message === 'Request failed with status code 403')
+      return 'Forbidden - you do not have permission to access this resource.';
 
-    if (error.message === "Request failed with status code 404")
-      return "Not Found - the requested resource could not be found.";
+    if (error.message === 'Request failed with status code 404')
+      return 'Not Found - the requested resource could not be found.';
 
-    if (error.message === "Request failed with status code 500")
-      return "Server error - please try again later.";
+    if (error.message === 'Request failed with status code 500')
+      return 'Server error - please try again later.';
 
     if (
-      error.message.includes("timeout") ||
-      error.message.includes("timed out") ||
-      error.message.includes("exceeded")
+      error.message.includes('timeout') ||
+      error.message.includes('timed out') ||
+      error.message.includes('exceeded')
     )
-      return "Request timed out - please check your network connection and try again.";
+      return 'Request timed out - please check your network connection and try again.';
   }
 
-  return error.message ?? "An unknown error occurred";
+  return error.message ?? 'An unknown error occurred';
 };
 
 export const ordinalSuffix = (day: number): string => {
-  if (day > 3 && day < 21) return "th";
+  if (day > 3 && day < 21) return 'th';
   switch (day % 10) {
     case 1:
-      return "st";
+      return 'st';
     case 2:
-      return "nd";
+      return 'nd';
     case 3:
-      return "rd";
+      return 'rd';
     default:
-      return "th";
+      return 'th';
   }
 };
 
 const monthNames = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
 ];
 
 export const formatDateWithOrdinal = (date: Date): string => {
@@ -204,40 +202,40 @@ export const formatDateWithOrdinal = (date: Date): string => {
 };
 
 export const timeCalc = (
-  valid_until: string | Date | undefined,
+  valid_until: string | Date | undefined
 ): {
   formattedDate: string;
   timeframe: string;
   timeLeftMinutes: number;
 } => {
-  const iso = String(valid_until ?? "")
-    .replace(" ", "T")
-    .replace(/([+-]\d{2})(\d{2})$/, "$1:$2");
+  const iso = String(valid_until ?? '')
+    .replace(' ', 'T')
+    .replace(/([+-]\d{2})(\d{2})$/, '$1:$2');
   const parsed = new Date(iso);
 
-  let formattedDate = "Invalid date";
-  let timeframe = "Unknown";
+  let formattedDate = 'Invalid date';
+  let timeframe = 'Unknown';
   let timeLeftMinutes = 0;
 
   if (!isNaN(parsed.getTime())) {
-    const day = String(parsed.getDate()).padStart(2, "0");
-    const month = String(parsed.getMonth() + 1).padStart(2, "0");
+    const day = String(parsed.getDate()).padStart(2, '0');
+    const month = String(parsed.getMonth() + 1).padStart(2, '0');
     const year = parsed.getFullYear();
     formattedDate = `${day}/${month}/${year}`;
 
     const diffMs = parsed.getTime() - Date.now();
     if (diffMs <= 0) {
-      timeframe = "Expired";
+      timeframe = 'Expired';
     } else {
       const startDate = new Date(parsed.getTime() - 60 * 60 * 1000);
       const formatTime = (d: Date) =>
         d
           .toLocaleTimeString(undefined, {
-            hour: "numeric",
-            minute: "2-digit",
+            hour: 'numeric',
+            minute: '2-digit',
             hour12: true,
           })
-          .replace(/\s+/g, "")
+          .replace(/\s+/g, '')
           .toLowerCase();
       timeLeftMinutes = Math.floor((diffMs % 3600000) / 60000);
       timeframe = `${formatTime(startDate)} to ${formatTime(parsed)}`;
@@ -249,12 +247,12 @@ export const timeCalc = (
 
 export const getRoleIcon = (role: UserRolesType) => {
   switch (role) {
-    case "resident":
+    case 'resident':
       return icons.adminHomeIcon;
-    case "security":
+    case 'security':
       return icons.securityIcon;
-    case "primary_admin":
-    case "admin":
+    case 'primary_admin':
+    case 'admin':
       return icons.activeAdminIcon;
     default:
       return icons.adminHomeIcon;
@@ -263,8 +261,8 @@ export const getRoleIcon = (role: UserRolesType) => {
 
 export const getRoleIconHeight = (role: UserRolesType): number => {
   switch (role) {
-    case "primary_admin":
-    case "admin":
+    case 'primary_admin':
+    case 'admin':
       return 28;
     default:
       return 28;
@@ -273,8 +271,8 @@ export const getRoleIconHeight = (role: UserRolesType): number => {
 
 export const getRoleIconWidth = (role: UserRolesType) => {
   switch (role) {
-    case "primary_admin":
-    case "admin":
+    case 'primary_admin':
+    case 'admin':
       return 23;
     default:
       return 28;
@@ -283,14 +281,14 @@ export const getRoleIconWidth = (role: UserRolesType) => {
 
 export const getRoleColor = (role: UserRolesType) => {
   switch (role) {
-    case "resident":
-      return "#FF9A56";
-    case "security":
-      return "#1B998B";
-    case "primary_admin":
-      return "#333333";
+    case 'resident':
+      return '#FF9A56';
+    case 'security':
+      return '#1B998B';
+    case 'primary_admin':
+      return '#333333';
     default:
-      return "#333333";
+      return '#333333';
   }
 };
 
@@ -299,32 +297,32 @@ export const isDataEqual = (obj1: any, obj2: any): boolean => {
 };
 
 export const getWidthBreakpoint = (): number => {
-	const breakpoint = process.env.EXPO_PUBLIC_WIDTH_BREAKPOINT;
-	return breakpoint ? parseInt(breakpoint, 10) : 768;
+  const breakpoint = process.env.EXPO_PUBLIC_WIDTH_BREAKPOINT;
+  return breakpoint ? parseInt(breakpoint, 10) : 768;
 };
 
 let canViewActivationStatus = false;
 
-const ACTIVATION_STATUS_STORAGE_KEY = "activation-status-access";
+const ACTIVATION_STATUS_STORAGE_KEY = 'activation-status-access';
 
 export function grantActivationStatusAccess() {
-	canViewActivationStatus = true;
-	if (Platform.OS === "web" && typeof sessionStorage !== "undefined") {
-		sessionStorage.setItem(ACTIVATION_STATUS_STORAGE_KEY, "1");
-	}
+  canViewActivationStatus = true;
+  if (Platform.OS === 'web' && typeof sessionStorage !== 'undefined') {
+    sessionStorage.setItem(ACTIVATION_STATUS_STORAGE_KEY, '1');
+  }
 }
 
 export function consumeActivationStatusAccess(): boolean {
-	if (Platform.OS === "web" && typeof sessionStorage !== "undefined") {
-		const allowed = sessionStorage.getItem(ACTIVATION_STATUS_STORAGE_KEY) === "1";
-		sessionStorage.removeItem(ACTIVATION_STATUS_STORAGE_KEY);
-		if (allowed) return true;
-	}
+  if (Platform.OS === 'web' && typeof sessionStorage !== 'undefined') {
+    const allowed = sessionStorage.getItem(ACTIVATION_STATUS_STORAGE_KEY) === '1';
+    sessionStorage.removeItem(ACTIVATION_STATUS_STORAGE_KEY);
+    if (allowed) return true;
+  }
 
-	if (canViewActivationStatus) {
-		canViewActivationStatus = false;
-		return true;
-	}
+  if (canViewActivationStatus) {
+    canViewActivationStatus = false;
+    return true;
+  }
 
-	return false;
+  return false;
 }

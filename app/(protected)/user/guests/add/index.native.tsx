@@ -1,31 +1,24 @@
-import { useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  Alert,
-  ScrollView,
-} from "react-native";
-import CheckBox from "expo-checkbox";
-import { Stack, useRouter } from "expo-router";
-import UserIcon from "@/src/components/mobile/UserIcon";
-import { generateCode } from "@/src/lib/api/codes";
-import { useUserStore } from "@/src/lib/stores/userStore";
-import { createGuest } from "@/src/lib/api/guests";
-import { GenderType, RelationshipType } from "@/src/types/general";
-import { sharedStyles } from "@/src/theme/styles";
-import { useAndroidBottomInset } from "@/src/hooks/useAndroidBottomInset";
-import { timeCalc } from "@/src/lib/helpers";
-import { Picker } from "@/src/components/mobile/Picker";
+import { useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import CheckBox from 'expo-checkbox';
+import { Stack, useRouter } from 'expo-router';
+import UserIcon from '@/src/components/mobile/UserIcon';
+import { generateCode } from '@/src/lib/api/codes';
+import { useUserStore } from '@/src/lib/stores/userStore';
+import { createGuest } from '@/src/lib/api/guests';
+import { GenderType, RelationshipType } from '@/src/types/general';
+import { sharedStyles } from '@/src/theme/styles';
+import { useAndroidBottomInset } from '@/src/hooks/useAndroidBottomInset';
+import { timeCalc } from '@/src/lib/helpers';
+import { Picker } from '@/src/components/mobile/Picker';
 
 const AddGuestMobile = () => {
   const { tabContentPadding } = useAndroidBottomInset();
-  const [guestName, setGuestName] = useState("");
+  const [guestName, setGuestName] = useState('');
   const [gender, setGender] = useState<GenderType>(null);
   const [relationship, setRelationship] = useState<RelationshipType>(null);
   const [isChecked, setIsChecked] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
   const [running, setRunning] = useState<boolean>(false);
 
   const router = useRouter();
@@ -35,25 +28,25 @@ const AddGuestMobile = () => {
   };
 
   const clearInput = () => {
-    setGuestName("");
+    setGuestName('');
     setGender(null);
     setRelationship(null);
     setIsChecked(false);
   };
 
   const inputChecks = (): boolean => {
-    if (guestName == "") {
-      Alert.alert("Error", "Please enter the guest's name.");
+    if (guestName == '') {
+      Alert.alert('Error', "Please enter the guest's name.");
       return false;
     }
 
     if (gender == null) {
-      Alert.alert("Error", "Please select a gender.");
+      Alert.alert('Error', 'Please select a gender.');
       return false;
     }
 
     if (relationship == null) {
-      Alert.alert("Error", "Please select or enter a relationship.");
+      Alert.alert('Error', 'Please select or enter a relationship.');
       return false;
     }
 
@@ -66,7 +59,7 @@ const AddGuestMobile = () => {
       try {
         const result = await generateCode({
           user_id: useUserStore.getState().user_id,
-          estate_id: useUserStore.getState().estate_id ?? "",
+          estate_id: useUserStore.getState().estate_id ?? '',
           visitor_fullname: guestName,
           relationship_with_resident: relationship,
           gender: gender,
@@ -97,7 +90,7 @@ const AddGuestMobile = () => {
           },
         });
       } catch (error) {
-        setError("Failed to generate code. Please try again.");
+        setError('Failed to generate code. Please try again.');
       } finally {
         setRunning(false);
       }
@@ -118,13 +111,13 @@ const AddGuestMobile = () => {
         clearInput();
 
         router.push({
-          pathname: "/user/guests",
+          pathname: '/user/guests',
           params: {
-            refresh: "true",
+            refresh: 'true',
           },
         });
       } catch (error) {
-        setError("Failed to generate code. Please try again.");
+        setError('Failed to generate code. Please try again.');
       } finally {
         setRunning(false);
       }
@@ -139,18 +132,16 @@ const AddGuestMobile = () => {
       <Stack.Screen
         options={{
           headerShown: true,
-          title: "Add Guest",
+          title: 'Add Guest',
           headerShadowVisible: false,
-          headerTitleAlign: "left",
+          headerTitleAlign: 'left',
           headerStyle: sharedStyles.header,
           headerTitleStyle: sharedStyles.title,
           headerRight: () => <UserIcon />,
         }}
       />
 
-      <Text className="text-base text-grey mt-8 my-3">
-        Fill in your guest information
-      </Text>
+      <Text className="text-base text-grey mt-8 my-3">Fill in your guest information</Text>
 
       <View style={{ gap: 10 }}>
         <View>
@@ -171,9 +162,9 @@ const AddGuestMobile = () => {
             onValueChange={(value) => setGender(value as GenderType)}
             placeholder="Select the gender of your guest"
             items={[
-              { label: "Female", value: "female" },
-              { label: "Male", value: "male" },
-              { label: "I'd prefer not to say", value: "prefer_not_to_say" },
+              { label: 'Female', value: 'female' },
+              { label: 'Male', value: 'male' },
+              { label: "I'd prefer not to say", value: 'prefer_not_to_say' },
             ]}
           />
         </View>
@@ -183,18 +174,16 @@ const AddGuestMobile = () => {
           <Picker
             label=""
             selectedValue={relationship}
-            onValueChange={(value) =>
-              setRelationship(value as RelationshipType)
-            }
+            onValueChange={(value) => setRelationship(value as RelationshipType)}
             placeholder="Select the relationship with your guest"
             items={[
-              { label: "Partner", value: "partner" },
-              { label: "Friend", value: "friend" },
-              { label: "Family", value: "family" },
-              { label: "Taxi", value: "taxi" },
-              { label: "Delivery", value: "delivery" },
-              { label: "Technician", value: "technician" },
-              { label: "Other", value: "other" },
+              { label: 'Partner', value: 'partner' },
+              { label: 'Friend', value: 'friend' },
+              { label: 'Family', value: 'family' },
+              { label: 'Taxi', value: 'taxi' },
+              { label: 'Delivery', value: 'delivery' },
+              { label: 'Technician', value: 'technician' },
+              { label: 'Other', value: 'other' },
             ]}
           />
         </View>
@@ -211,23 +200,15 @@ const AddGuestMobile = () => {
 
       <View className="mt-14 items-center gap-2">
         <TouchableOpacity
-          className={`px-20 bg-primary justify-center items-center py-4 font-UbuntuSans !rounded-md ${running ? "opacity-70" : ""}`}
+          className={`px-20 bg-primary justify-center items-center py-4 font-UbuntuSans !rounded-md ${running ? 'opacity-70' : ''}`}
           onPress={handleGenerateCode}
           disabled={running}
         >
-          <Text className="text-white font-ubuntu-semibold text-md">
-            Generate Code
-          </Text>
+          <Text className="text-white font-ubuntu-semibold text-md">Generate Code</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          onPress={handleSaveGuest}
-          disabled={running}
-          className="py-4 px-20"
-        >
-          <Text className="text-primary text-[16px] font-ubuntu-medium">
-            Save Guest{" "}
-          </Text>
+        <TouchableOpacity onPress={handleSaveGuest} disabled={running} className="py-4 px-20">
+          <Text className="text-primary text-[16px] font-ubuntu-medium">Save Guest </Text>
         </TouchableOpacity>
       </View>
     </ScrollView>

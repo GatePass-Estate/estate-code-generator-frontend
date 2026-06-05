@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,10 +7,10 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
-import { useAndroidBottomInset } from "@/src/hooks/useAndroidBottomInset";
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { useAndroidBottomInset } from '@/src/hooks/useAndroidBottomInset';
 
 export interface PickerItem {
   label: string;
@@ -35,7 +35,7 @@ export function Picker({
   selectedValue,
   onValueChange,
   items,
-  placeholder = "Select an option",
+  placeholder = 'Select an option',
   enabled = true,
 }: PickerProps) {
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -64,7 +64,7 @@ export function Picker({
       >
         <Text
           style={{
-            color: hasValue ? "#113E55" : "#9CA3AF",
+            color: hasValue ? '#113E55' : '#9CA3AF',
             flex: 1,
             flexShrink: 1,
           }}
@@ -80,10 +80,7 @@ export function Picker({
         animationType="slide"
         onRequestClose={() => setIsModalVisible(false)}
       >
-        <Pressable
-          style={styles.modalOverlay}
-          onPress={() => setIsModalVisible(false)}
-        >
+        <Pressable style={styles.modalOverlay} onPress={() => setIsModalVisible(false)}>
           <View style={[styles.pickerContainer, { paddingBottom: modalBottomInset }]}>
             <View style={styles.header}>
               <Text style={styles.headerTitle}>{placeholder}</Text>
@@ -91,10 +88,7 @@ export function Picker({
                 <Text style={styles.doneButton}>Done</Text>
               </TouchableOpacity>
             </View>
-            <ScrollView
-              style={styles.scrollView}
-              contentContainerStyle={{ paddingBottom: 8 }}
-            >
+            <ScrollView style={styles.scrollView} contentContainerStyle={{ paddingBottom: 8 }}>
               {items.map((item, index) => {
                 const isSelected = item.value === selectedValue;
                 const isLast = index === items.length - 1;
@@ -109,17 +103,10 @@ export function Picker({
                     onPress={() => handleSelect(item.value)}
                     activeOpacity={0.7}
                   >
-                    <Text
-                      style={[
-                        styles.itemText,
-                        isSelected && styles.itemTextSelected,
-                      ]}
-                    >
+                    <Text style={[styles.itemText, isSelected && styles.itemTextSelected]}>
                       {item.label}
                     </Text>
-                    {isSelected && (
-                      <Ionicons name="checkmark" size={22} color="#113E55" />
-                    )}
+                    {isSelected && <Ionicons name="checkmark" size={22} color="#113E55" />}
                   </TouchableOpacity>
                 );
               })}
@@ -134,60 +121,60 @@ export function Picker({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "flex-end",
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
   },
   pickerContainer: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
-    maxHeight: "70%",
+    maxHeight: '70%',
   },
   header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#D1D5DB",
+    borderBottomColor: '#D1D5DB',
   },
   headerTitle: {
-    color: "#113E55",
+    color: '#113E55',
     fontSize: 14,
-    fontWeight: "500",
+    fontWeight: '500',
   },
   doneButton: {
-    color: "#113E55",
+    color: '#113E55',
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: '600',
   },
   scrollView: {
     maxHeight: 350,
   },
   item: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 14,
   },
   itemBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
+    borderBottomColor: '#E5E7EB',
   },
   itemSelected: {
-    backgroundColor: "#CEE5ED",
+    backgroundColor: '#CEE5ED',
   },
   itemText: {
-    color: "#113E55",
+    color: '#113E55',
     fontSize: 16,
     flex: 1,
     flexShrink: 1,
     paddingRight: 8,
   },
   itemTextSelected: {
-    color: "#113E55",
-    fontWeight: "600",
+    color: '#113E55',
+    fontWeight: '600',
   },
 });

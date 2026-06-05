@@ -3,6 +3,6 @@ import AccountSecurityMobile from './index.native';
 import AccountSecurityWeb from './index.web';
 
 export default Platform.select({
-	web: AccountSecurityWeb,
-	default: AccountSecurityMobile,
+  web: AccountSecurityWeb,
+  default: AccountSecurityMobile,
 });

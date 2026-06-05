@@ -3,10 +3,10 @@ import ProfileMobile from './index.native';
 import ProfileWeb from './index.web';
 
 export default function Profile() {
-	const Component = Platform.select({
-		web: () => <ProfileWeb />,
-		default: () => <ProfileMobile />,
-	});
+  const Component = Platform.select({
+    web: () => <ProfileWeb />,
+    default: () => <ProfileMobile />,
+  });
 
-	return <Component />;
+  return <Component />;
 }
