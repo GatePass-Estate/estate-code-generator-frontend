@@ -4,7 +4,44 @@ import * as React from "react";
 import { Appearance, AppState, ColorSchemeName, Platform } from "react-native";
 
 import { COLORS } from "@/src/theme/colors";
-import { APP_TAB_BAR_COLOR } from "@/src/theme/styles";
+
+/** Android 3-button nav bar: our rule — not the system default. */
+const ANDROID_NAV_BAR = {
+  light: {
+    background: "#FFFFFF",
+    buttons: "dark" as const,
+    style: "light" as const,
+  },
+  dark: {
+    background: "#000000",
+    buttons: "light" as const,
+    style: "dark" as const,
+  },
+} as const;
+
+function resolveDeviceColorScheme(
+  scheme: ColorSchemeName | undefined,
+): "light" | "dark" {
+  return scheme === "dark" ? "dark" : "light";
+}
+
+function applyAndroidNavBar(colorScheme: "light" | "dark") {
+  const theme = ANDROID_NAV_BAR[colorScheme];
+  NavigationBar.setButtonStyleAsync(theme.buttons).catch(() => {});
+  NavigationBar.setStyle(theme.style);
+}
+
+export function getAndroidNavBarBackground(
+  scheme: ColorSchemeName | undefined,
+): string {
+  return ANDROID_NAV_BAR[resolveDeviceColorScheme(scheme)].background;
+}
+
+export function getAndroidStatusBarStyle(
+  scheme: ColorSchemeName | undefined,
+): "light" | "dark" {
+  return resolveDeviceColorScheme(scheme) === "dark" ? "light" : "dark";
+}
 
 function useColorScheme() {
   const { colorScheme, setColorScheme: setNativeWindColorScheme } =
@@ -13,11 +50,7 @@ function useColorScheme() {
   async function setColorScheme(nextScheme: "light" | "dark") {
     setNativeWindColorScheme(nextScheme);
     if (Platform.OS !== "android") return;
-    try {
-      applyBrandSystemBars();
-    } catch (error) {
-      console.log('useColorScheme.tsx", "setColorScheme', error);
-    }
+    applyAndroidNavBar(nextScheme);
   }
 
   function toggleColorScheme() {
@@ -33,22 +66,6 @@ function useColorScheme() {
   };
 }
 
-function resolveDeviceColorScheme(
-  scheme: ColorSchemeName | undefined,
-): "light" | "dark" {
-  return scheme === "dark" ? "dark" : "light";
-}
-
-function applyBrandSystemBars() {
-  /** Edge-to-edge: skip setBackgroundColorAsync — use bottom strip View instead. */
-  NavigationBar.setButtonStyleAsync("dark").catch(() => {});
-  NavigationBar.setStyle("light");
-}
-
-export function getAndroidNavBarBackground(): string {
-  return APP_TAB_BAR_COLOR;
-}
-
 function useInitialAndroidBarSync() {
   const { setColorScheme: setNativeWindColorScheme } =
     useNativewindColorScheme();
@@ -57,16 +74,15 @@ function useInitialAndroidBarSync() {
     if (Platform.OS !== "android") return;
 
     const applyDeviceTheme = (scheme: ColorSchemeName) => {
-      setNativeWindColorScheme(resolveDeviceColorScheme(scheme));
-      applyBrandSystemBars();
+      const resolved = resolveDeviceColorScheme(scheme);
+      setNativeWindColorScheme(resolved);
+      applyAndroidNavBar(resolved);
     };
 
     applyDeviceTheme(Appearance.getColorScheme());
 
     const appearanceSubscription = Appearance.addChangeListener(
-      ({ colorScheme }) => {
-        applyDeviceTheme(colorScheme);
-      },
+      ({ colorScheme }) => applyDeviceTheme(colorScheme),
     );
 
     const appStateSubscription = AppState.addEventListener(

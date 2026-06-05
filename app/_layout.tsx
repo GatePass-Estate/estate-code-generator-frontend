@@ -1,11 +1,14 @@
-import { Platform } from "react-native";
+import { Platform, useColorScheme as useDeviceColorScheme } from "react-native";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { Stack } from "expo-router";
-import { useInitialAndroidBarSync } from "@/src/hooks/useColorScheme";
+import {
+  getAndroidNavBarBackground,
+  getAndroidStatusBarStyle,
+  useInitialAndroidBarSync,
+} from "@/src/hooks/useColorScheme";
 import { AuthProvider, useAuth } from "@/src/hooks/useAuthContext";
-import { APP_TAB_BAR_COLOR } from "@/src/theme/styles";
 import "react-native-reanimated";
 import { Inter, UbuntuSans } from "@/src/constants/fonts";
 import "./global.css";
@@ -17,10 +20,14 @@ SplashScreen.preventAutoHideAsync();
 
 function RootLayoutContent() {
   const { resetKey } = useAuth();
+  const deviceColorScheme = useDeviceColorScheme();
 
   return (
     <>
-      <StatusBar style="dark" backgroundColor={APP_TAB_BAR_COLOR} />
+      <StatusBar
+        style={getAndroidStatusBarStyle(deviceColorScheme)}
+        backgroundColor={getAndroidNavBarBackground(deviceColorScheme)}
+      />
       <Stack
         key={resetKey}
         initialRouteName="auth/login"

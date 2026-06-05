@@ -1,4 +1,4 @@
-import { Platform, Pressable, View } from "react-native";
+import { Platform, Pressable, useColorScheme as useDeviceColorScheme, View } from "react-native";
 import { getAndroidNavBarBackground } from "@/src/hooks/useColorScheme";
 import { Tabs, Stack } from "expo-router";
 import { StyleSheet } from "react-native";
@@ -19,6 +19,7 @@ export default function NavigationContainer({
   enableForMobile = true,
 }: NavigationContainerProps) {
   const { systemBottom, tabBarHeight } = useAndroidBottomInset();
+  const deviceColorScheme = useDeviceColorScheme();
 
   if (Platform.OS === "web") {
     return (
@@ -36,61 +37,61 @@ export default function NavigationContainer({
 
   return enableForMobile ? (
     <View style={{ flex: 1 }}>
-    <Tabs
-      screenOptions={{
-        tabBarStyle: [
-          { ...tabBarStyle },
-          Platform.OS === "android" && {
-            bottom: systemBottom,
-            height: tabBarHeight,
-          },
-        ],
-        tabBarShowLabel: false,
-        tabBarActiveTintColor: "#113E55",
-        tabBarInactiveTintColor: "#113E55",
-        tabBarLabelStyle: { display: "none", fontFamily: "UbuntuSans" },
-        tabBarButton: (props: any) => (
-          <Pressable {...props} android_ripple={null} />
-        ),
-      }}
-    >
-      {routes &&
-        routes
-          .filter((el) => el.for == "native" || el.for == "both")
-          .map(({ name, title, TabIcon }) =>
-            TabIcon ? (
-              <Tabs.Screen
-                key={name}
-                name={name}
-                options={{
-                  title,
-                  headerTitleStyle: {
-                    color: "#113E55",
-                    fontFamily: "UbuntuSans",
-                    fontWeight: "semibold",
-                  },
-
-                  headerShown: false,
-                  tabBarIcon: ({ focused }) =>
-                    TabIcon ? <TabIcon focused={focused} /> : null,
-                }}
-              />
-            ) : null,
-          )}
-    </Tabs>
-    {Platform.OS === "android" && systemBottom > 0 && (
-      <View
-        pointerEvents="none"
-        style={{
-          position: "absolute",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: systemBottom,
-          backgroundColor: getAndroidNavBarBackground(),
+      <Tabs
+        screenOptions={{
+          tabBarStyle: [
+            { ...tabBarStyle },
+            Platform.OS === "android" && {
+              bottom: systemBottom,
+              height: tabBarHeight,
+            },
+          ],
+          tabBarShowLabel: false,
+          tabBarActiveTintColor: "#113E55",
+          tabBarInactiveTintColor: "#113E55",
+          tabBarLabelStyle: { display: "none", fontFamily: "UbuntuSans" },
+          tabBarButton: (props: any) => (
+            <Pressable {...props} android_ripple={null} />
+          ),
         }}
-      />
-    )}
+      >
+        {routes &&
+          routes
+            .filter((el) => el.for == "native" || el.for == "both")
+            .map(({ name, title, TabIcon }) =>
+              TabIcon ? (
+                <Tabs.Screen
+                  key={name}
+                  name={name}
+                  options={{
+                    title,
+                    headerTitleStyle: {
+                      color: "#113E55",
+                      fontFamily: "UbuntuSans",
+                      fontWeight: "semibold",
+                    },
+
+                    headerShown: false,
+                    tabBarIcon: ({ focused }) =>
+                      TabIcon ? <TabIcon focused={focused} /> : null,
+                  }}
+                />
+              ) : null,
+            )}
+      </Tabs>
+      {Platform.OS === "android" && systemBottom > 0 && (
+        <View
+          pointerEvents="none"
+          style={{
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: systemBottom,
+            backgroundColor: getAndroidNavBarBackground(deviceColorScheme),
+          }}
+        />
+      )}
     </View>
   ) : (
     <Stack screenOptions={{ headerShown: false }} />
