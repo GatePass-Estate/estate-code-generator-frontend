@@ -1,4 +1,4 @@
-import { Platform } from "react-native";
+import { Platform, useColorScheme as useDeviceColorScheme } from "react-native";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
@@ -16,10 +16,11 @@ SplashScreen.preventAutoHideAsync();
 
 function RootLayoutContent() {
   const { resetKey } = useAuth();
+  const deviceColorScheme = useDeviceColorScheme();
 
   return (
     <>
-      <StatusBar key={`root-status-bar-light`} style={"dark"} />
+      <StatusBar style={deviceColorScheme === "dark" ? "light" : "dark"} />
       <Stack
         key={resetKey}
         initialRouteName="auth/login"

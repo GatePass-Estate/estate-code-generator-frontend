@@ -1,7 +1,7 @@
 import * as NavigationBar from "expo-navigation-bar";
 import { useColorScheme as useNativewindColorScheme } from "nativewind";
 import * as React from "react";
-import { Platform } from "react-native";
+import { Appearance, AppState, ColorSchemeName, Platform } from "react-native";
 
 import { COLORS } from "@/src/theme/colors";
 
@@ -9,11 +9,11 @@ function useColorScheme() {
   const { colorScheme, setColorScheme: setNativeWindColorScheme } =
     useNativewindColorScheme();
 
-  async function setColorScheme(colorScheme: "light" | "dark") {
-    setNativeWindColorScheme(colorScheme);
+  async function setColorScheme(nextScheme: "light" | "dark") {
+    setNativeWindColorScheme(nextScheme);
     if (Platform.OS !== "android") return;
     try {
-      await setNavigationBar(colorScheme);
+      await applySystemNavigationBar();
     } catch (error) {
       console.log('useColorScheme.tsx", "setColorScheme', error);
     }
@@ -32,29 +32,52 @@ function useColorScheme() {
   };
 }
 
-/**
- * Set the Android navigation bar color based on the color scheme.
- */
-function useInitialAndroidBarSync() {
-  const { colorScheme } = useColorScheme();
-  React.useEffect(() => {
-    if (Platform.OS !== "android") return;
-    setNavigationBar(colorScheme).catch((error) => {
-      console.log('useColorScheme.tsx", "useInitialColorScheme', error);
-    });
-  }, []);
+function resolveDeviceColorScheme(
+  scheme: ColorSchemeName | undefined,
+): "light" | "dark" {
+  return scheme === "dark" ? "dark" : "light";
 }
 
-function setNavigationBar(colorScheme: "light" | "dark") {
-  return Promise.all([
-    NavigationBar.setButtonStyleAsync(
-      colorScheme === "dark" ? "light" : "dark",
-    ),
-    NavigationBar.setPositionAsync("absolute"),
-    NavigationBar.setBackgroundColorAsync(
-      colorScheme === "dark" ? "#00000030" : "#ffffff80",
-    ),
-  ]);
+/** Let Android pick nav bar background + icon color from the system theme. */
+function applySystemNavigationBar() {
+  NavigationBar.setStyle("auto");
+}
+
+/** Follow the phone's light/dark setting. */
+function useInitialAndroidBarSync() {
+  const { setColorScheme: setNativeWindColorScheme } =
+    useNativewindColorScheme();
+
+  React.useEffect(() => {
+    if (Platform.OS !== "android") return;
+
+    const applyDeviceTheme = (scheme: ColorSchemeName) => {
+      setNativeWindColorScheme(resolveDeviceColorScheme(scheme));
+      applySystemNavigationBar();
+    };
+
+    applyDeviceTheme(Appearance.getColorScheme());
+
+    const appearanceSubscription = Appearance.addChangeListener(
+      ({ colorScheme }) => {
+        applyDeviceTheme(colorScheme);
+      },
+    );
+
+    const appStateSubscription = AppState.addEventListener(
+      "change",
+      (nextState) => {
+        if (nextState === "active") {
+          applyDeviceTheme(Appearance.getColorScheme());
+        }
+      },
+    );
+
+    return () => {
+      appearanceSubscription.remove();
+      appStateSubscription.remove();
+    };
+  }, [setNativeWindColorScheme]);
 }
 
 export { useColorScheme, useInitialAndroidBarSync };

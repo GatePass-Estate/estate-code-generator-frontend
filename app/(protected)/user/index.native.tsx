@@ -10,10 +10,12 @@ import { Codes } from '@/src/types/codes';
 import { getAllCodes } from '@/src/lib/api/codes';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { sharedStyles } from '@/src/theme/styles';
+import { useAndroidBottomInset } from '@/src/hooks/useAndroidBottomInset';
 import { isDataEqual } from '@/src/lib/helpers';
 import CodeItem from '@/src/components/mobile/CodeItem';
 
 export default function HomeMobile({}) {
+	const { tabContentPadding } = useAndroidBottomInset();
 	const bounceValue = useRef(new Animated.Value(0)).current;
 	const [refreshing, setRefreshing] = useState(true);
 	const [codes, setCodes] = useState<Codes[]>([]);
@@ -91,7 +93,7 @@ export default function HomeMobile({}) {
 	}, [bounceValue]);
 
 	return (
-		<SafeAreaView style={sharedStyles.container} edges={['bottom', 'left', 'right']}>
+		<SafeAreaView style={sharedStyles.container} edges={['left', 'right']}>
 			<Stack.Screen
 				options={{
 					title: 'Active Codes',
@@ -112,10 +114,7 @@ export default function HomeMobile({}) {
 					keyExtractor={(item) => item.hashed_code}
 					refreshing={refreshing}
 					onRefresh={fetchCodes}
-					style={{
-						marginBottom: 70,
-					}}
-					contentContainerStyle={{ paddingBottom: 100 }}
+					contentContainerStyle={{ paddingBottom: tabContentPadding }}
 					ListEmptyComponent={() => (
 						<View className="flex-1 justify-center items-center">
 							<Animated.Image

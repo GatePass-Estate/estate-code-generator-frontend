@@ -1,6 +1,7 @@
 import { Platform, Pressable } from 'react-native';
 import { Tabs, Stack } from 'expo-router';
 import { StyleSheet } from 'react-native';
+import { useAndroidBottomInset } from '@/src/hooks/useAndroidBottomInset';
 import { menuRouteType } from '@/src/types/general';
 
 type NavigationContainerProps = {
@@ -11,6 +12,8 @@ type NavigationContainerProps = {
 };
 
 export default function NavigationContainer({ routes, headerStyle, tabBarStyle, enableForMobile = true }: NavigationContainerProps) {
+	const { systemBottom, tabBarHeight } = useAndroidBottomInset();
+
 	if (Platform.OS === 'web') {
 		return (
 			<>
@@ -28,7 +31,10 @@ export default function NavigationContainer({ routes, headerStyle, tabBarStyle, 
 	return enableForMobile ? (
 		<Tabs
 			screenOptions={{
-				tabBarStyle: [{ ...tabBarStyle }],
+				tabBarStyle: [
+					{ ...tabBarStyle },
+					Platform.OS === 'android' && { bottom: systemBottom, height: tabBarHeight },
+				],
 				tabBarShowLabel: false,
 				tabBarActiveTintColor: '#113E55',
 				tabBarInactiveTintColor: '#113E55',

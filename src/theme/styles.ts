@@ -4,6 +4,8 @@ import { Platform, StyleSheet } from 'react-native';
  *  (e.g. component rendered outside a stack header). System defaults: iOS ~88pt incl. notch, Android ~80dp incl. status bar. */
 export const APP_NATIVE_HEADER_HEIGHT = Platform.OS === 'ios' ? 88 : 56;
 
+export const TAB_BAR_BASE_HEIGHT = 80;
+
 export const sharedStyles = StyleSheet.create({
 	container: {
 		flex: 1,
@@ -29,7 +31,7 @@ export const sharedStyles = StyleSheet.create({
 	tabBar: {
 		position: 'absolute',
 		backgroundColor: '#CEE5ED',
-		height: 80,
+		height: TAB_BAR_BASE_HEIGHT,
 		flex: 1,
 		elevation: 0,
 		shadowColor: 'transparent',

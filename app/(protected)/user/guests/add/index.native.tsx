@@ -8,10 +8,12 @@ import { useUserStore } from '@/src/lib/stores/userStore';
 import { createGuest } from '@/src/lib/api/guests';
 import { GenderType, RelationshipType } from '@/src/types/general';
 import { sharedStyles } from '@/src/theme/styles';
+import { useAndroidBottomInset } from '@/src/hooks/useAndroidBottomInset';
 import { timeCalc } from '@/src/lib/helpers';
 import { Picker } from '@/src/components/mobile/Picker';
 
 const AddGuestMobile = () => {
+	const { tabContentPadding } = useAndroidBottomInset();
 	const [guestName, setGuestName] = useState('');
 	const [gender, setGender] = useState<GenderType>(null);
 	const [relationship, setRelationship] = useState<RelationshipType>(null);
@@ -123,7 +125,10 @@ const AddGuestMobile = () => {
 	}
 
 	return (
-		<ScrollView style={sharedStyles.container}>
+		<ScrollView
+			style={sharedStyles.container}
+			contentContainerStyle={{ paddingBottom: tabContentPadding }}
+		>
 			<Stack.Screen
 				options={{
 					headerShown: true,

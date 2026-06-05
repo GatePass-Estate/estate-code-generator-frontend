@@ -10,6 +10,7 @@ import { GenderType, RelationshipType } from '@/src/types/general';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { generateCode } from '@/src/lib/api/codes';
 import { sharedStyles } from '@/src/theme/styles';
+import { useAndroidBottomInset } from '@/src/hooks/useAndroidBottomInset';
 import icons from '@/src/constants/icons';
 import { menuRoutes } from '../_layout';
 import WebSidebar from '@/src/components/web/WebSidebar';
@@ -19,6 +20,7 @@ import Modal from '@/src/components/web/Modal';
 const limit = 2;
 
 const MyGuestMobile = () => {
+	const { tabContentPadding } = useAndroidBottomInset();
 	const [searchQuery, setSearchQuery] = useState('');
 	const [guests, setGuests] = useState<Guest[]>([]);
 	const [loading, setLoading] = useState(true);
@@ -214,9 +216,7 @@ const MyGuestMobile = () => {
 				keyExtractor={(_, index) => index.toString()}
 				refreshing={loading}
 				onRefresh={fetchGuests}
-				style={{
-					marginBottom: Platform.OS !== 'web' ? 100 : 60,
-				}}
+				contentContainerStyle={{ paddingBottom: tabContentPadding }}
 				ListEmptyComponent={() =>
 					running ? (
 						<></>
