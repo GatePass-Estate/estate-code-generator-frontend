@@ -11,10 +11,13 @@ import { useEffect, useState, useMemo, useCallback } from 'react';
 import { generateCode, getMyCode } from '@/src/lib/api/codes';
 import { formatDateWithOrdinal } from '@/src/lib/helpers';
 
+
 const ProfileScreen = () => {
 	const { signOut } = useAuth();
 
-	const { first_name, last_name, home_address, estate_name, email, phone_number, user_id, estate_id, role } = useUserStore.getState();
+	
+
+	const { first_name, last_name, home_address, estate_name, email, phone_number, user_id, estate_id, role } = useUserStore();
 
 	const [code, setCode] = useState<string | null>(null);
 	const [expiry, setExpiry] = useState<string | null>(null);
@@ -122,12 +125,11 @@ const ProfileScreen = () => {
 
 					<View className="mt-3 bg-transparent p-4 rounded-lg border-micro">
 						<SingleDetail label="Name" value={`${first_name} ${last_name}`} />
-						<SingleDetail label="Address" value={`${home_address}, ${estate_name}.`} />
+						<SingleDetail label="Address" value={`${estate_name ? estate_name + ', ' : ''}${home_address && home_address + '.'}`} />
 						<SingleDetail label="Email Address" value={email} />
 						<SingleDetail label="Phone Number" value={phone_number} />
 					</View>
 				</View>
-
 
 				<TouchableOpacity className="self-center mt-auto" onPress={signOut}>
 					<Text className="text-tertiary font-bold text-[16px] p-5 font-UbuntuSans">Log Out</Text>

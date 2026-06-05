@@ -3,7 +3,7 @@
     "name": "GatePass",
     "slug": "gatepass",
     "owner": "gatepassng",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "scheme": "gatepass",
     "orientation": "portrait",
     "icon": "./src/assets/gatepass_ng_Gp.png",
