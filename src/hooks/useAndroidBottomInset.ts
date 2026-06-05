@@ -6,17 +6,17 @@ import { TAB_BAR_BASE_HEIGHT } from "@/src/theme/styles";
 const ANDROID_NAV_BAR_FALLBACK = 48;
 
 export function useAndroidBottomInset() {
-	const { bottom } = useSafeAreaInsets();
-	const systemBottom =
-		Platform.OS === "android"
-			? bottom > 0
-				? bottom
-				: ANDROID_NAV_BAR_FALLBACK
-			: 0;
+  const { bottom } = useSafeAreaInsets();
+  const systemBottom =
+    Platform.OS === "android"
+      ? bottom > 0
+        ? bottom
+        : ANDROID_NAV_BAR_FALLBACK
+      : 0;
 
-	return {
-		systemBottom,
-		tabBarHeight: TAB_BAR_BASE_HEIGHT,
-		tabContentPadding: TAB_BAR_BASE_HEIGHT + systemBottom,
-	};
+  return {
+    systemBottom,
+    tabBarHeight: TAB_BAR_BASE_HEIGHT,
+    tabContentPadding: TAB_BAR_BASE_HEIGHT + systemBottom,
+  };
 }
