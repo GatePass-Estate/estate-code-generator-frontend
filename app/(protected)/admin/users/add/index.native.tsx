@@ -28,6 +28,7 @@ import { RegisterUserPayload } from "@/src/types/user";
 import { useNavigation } from "@react-navigation/native";
 import icons from "@/src/constants/icons";
 import { Picker } from "@/src/components/mobile/Picker";
+import { useAndroidBottomInset } from "@/src/hooks/useAndroidBottomInset";
 
 const MEANS_OF_IDENTIFICATION: { label: string; value: MeansOfIdType }[] = [
   { label: "Drivers License", value: "drivers_license" },
@@ -45,6 +46,7 @@ const GENDER_OPTIONS: { label: string; value: Exclude<GenderType, null> }[] = [
 const RegisterUser = () => {
   const router = useRouter();
   const navigation = useNavigation();
+  const { systemBottom } = useAndroidBottomInset();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<FormData>({
     firstName: "",
@@ -236,7 +238,7 @@ const RegisterUser = () => {
       >
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 40 }}
+          contentContainerStyle={{ paddingBottom: systemBottom + 40 }}
         >
           {currentStep === 1 ? (
             <>

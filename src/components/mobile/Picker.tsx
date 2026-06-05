@@ -8,7 +8,9 @@ import {
   TouchableOpacity,
   ScrollView,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { useAndroidBottomInset } from "@/src/hooks/useAndroidBottomInset";
 
 export interface PickerItem {
   label: string;
@@ -37,6 +39,9 @@ export function Picker({
   enabled = true,
 }: PickerProps) {
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const { bottom: safeBottom } = useSafeAreaInsets();
+  const { systemBottom } = useAndroidBottomInset();
+  const modalBottomInset = Math.max(safeBottom, systemBottom);
 
   // Find the selected item's label for display
   const selectedItem = items.find((item) => item.value === selectedValue);
@@ -61,8 +66,8 @@ export function Picker({
           style={{
             color: hasValue ? "#113E55" : "#9CA3AF",
             flex: 1,
+            flexShrink: 1,
           }}
-          numberOfLines={1}
         >
           {displayLabel}
         </Text>
@@ -79,14 +84,17 @@ export function Picker({
           style={styles.modalOverlay}
           onPress={() => setIsModalVisible(false)}
         >
-          <View style={styles.pickerContainer}>
+          <View style={[styles.pickerContainer, { paddingBottom: modalBottomInset }]}>
             <View style={styles.header}>
               <Text style={styles.headerTitle}>{placeholder}</Text>
               <TouchableOpacity onPress={() => setIsModalVisible(false)}>
                 <Text style={styles.doneButton}>Done</Text>
               </TouchableOpacity>
             </View>
-            <ScrollView style={styles.scrollView}>
+            <ScrollView
+              style={styles.scrollView}
+              contentContainerStyle={{ paddingBottom: 8 }}
+            >
               {items.map((item, index) => {
                 const isSelected = item.value === selectedValue;
                 const isLast = index === items.length - 1;
@@ -174,6 +182,9 @@ const styles = StyleSheet.create({
   itemText: {
     color: "#113E55",
     fontSize: 16,
+    flex: 1,
+    flexShrink: 1,
+    paddingRight: 8,
   },
   itemTextSelected: {
     color: "#113E55",
