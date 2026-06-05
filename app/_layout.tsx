@@ -1,13 +1,9 @@
-import { Platform, useColorScheme as useDeviceColorScheme } from "react-native";
+import { View } from "react-native";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { Stack } from "expo-router";
-import {
-  getAndroidNavBarBackground,
-  getAndroidStatusBarStyle,
-  useInitialAndroidBarSync,
-} from "@/src/hooks/useColorScheme";
+import AndroidNavBarGlobal from "@/src/components/common/AndroidNavBarGlobal";
 import { AuthProvider, useAuth } from "@/src/hooks/useAuthContext";
 import "react-native-reanimated";
 import { Inter, UbuntuSans } from "@/src/constants/fonts";
@@ -20,14 +16,10 @@ SplashScreen.preventAutoHideAsync();
 
 function RootLayoutContent() {
   const { resetKey } = useAuth();
-  const deviceColorScheme = useDeviceColorScheme();
 
   return (
     <>
-      <StatusBar
-        style={getAndroidStatusBarStyle(deviceColorScheme)}
-        backgroundColor={getAndroidNavBarBackground(deviceColorScheme)}
-      />
+      <StatusBar style="dark" />
       <Stack
         key={resetKey}
         initialRouteName="auth/login"
@@ -54,15 +46,12 @@ function RootLayoutContent() {
         <Stack.Screen name="auth/email-activation-status" />
         <Stack.Screen name="(protected)" />
       </Stack>
+      <AndroidNavBarGlobal />
     </>
   );
 }
 
 export default function RootLayout() {
-  if (Platform.OS === "android") {
-    useInitialAndroidBarSync();
-  }
-
   const [loaded] = useFonts({
     RobotoItalic: require("../src/assets/fonts/Roboto-Italic-VariableFont_wdth,wght.ttf"),
     Roboto: require("../src/assets/fonts/Roboto-VariableFont_wdth,wght.ttf"),
@@ -93,7 +82,9 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <RootLayoutContent />
+          <View style={{ flex: 1 }}>
+            <RootLayoutContent />
+          </View>
         </AuthProvider>
       </QueryClientProvider>
     </SafeAreaProvider>

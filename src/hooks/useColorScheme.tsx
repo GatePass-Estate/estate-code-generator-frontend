@@ -1,4 +1,5 @@
 import * as NavigationBar from "expo-navigation-bar";
+import { usePathname } from "expo-router";
 import { useColorScheme as useNativewindColorScheme } from "nativewind";
 import * as React from "react";
 import { Appearance, AppState, ColorSchemeName, Platform } from "react-native";
@@ -31,16 +32,12 @@ function applyAndroidNavBar(colorScheme: "light" | "dark") {
   NavigationBar.setStyle(theme.style);
 }
 
+export { applyAndroidNavBar };
+
 export function getAndroidNavBarBackground(
   scheme: ColorSchemeName | undefined,
 ): string {
   return ANDROID_NAV_BAR[resolveDeviceColorScheme(scheme)].background;
-}
-
-export function getAndroidStatusBarStyle(
-  scheme: ColorSchemeName | undefined,
-): "light" | "dark" {
-  return resolveDeviceColorScheme(scheme) === "dark" ? "light" : "dark";
 }
 
 function useColorScheme() {
@@ -67,17 +64,26 @@ function useColorScheme() {
 }
 
 function useInitialAndroidBarSync() {
+  const pathname = usePathname();
   const { setColorScheme: setNativeWindColorScheme } =
     useNativewindColorScheme();
 
-  React.useEffect(() => {
-    if (Platform.OS !== "android") return;
-
-    const applyDeviceTheme = (scheme: ColorSchemeName) => {
+  const applyDeviceTheme = React.useCallback(
+    (scheme: ColorSchemeName) => {
       const resolved = resolveDeviceColorScheme(scheme);
       setNativeWindColorScheme(resolved);
       applyAndroidNavBar(resolved);
-    };
+    },
+    [setNativeWindColorScheme],
+  );
+
+  React.useEffect(() => {
+    if (Platform.OS !== "android") return;
+    applyDeviceTheme(Appearance.getColorScheme());
+  }, [pathname, applyDeviceTheme]);
+
+  React.useEffect(() => {
+    if (Platform.OS !== "android") return;
 
     applyDeviceTheme(Appearance.getColorScheme());
 
@@ -98,7 +104,7 @@ function useInitialAndroidBarSync() {
       appearanceSubscription.remove();
       appStateSubscription.remove();
     };
-  }, [setNativeWindColorScheme]);
+  }, [applyDeviceTheme]);
 }
 
 export { useColorScheme, useInitialAndroidBarSync };
