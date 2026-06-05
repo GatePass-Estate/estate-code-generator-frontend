@@ -345,7 +345,7 @@ const RegisterUser = () => {
                 )}
               </View>
 
-              <View className="mb-8">
+              <View className="mb-2">
                 <Text
                   style={[
                     sharedStyles.label,
