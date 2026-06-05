@@ -1,7 +1,7 @@
 import { Platform, useColorScheme as useDeviceColorScheme, View } from 'react-native';
 
 import { useAndroidBottomInset } from '@/src/hooks/useAndroidBottomInset';
-import { getAndroidNavBarBackground, useInitialAndroidBarSync } from '@/src/hooks/useColorScheme';
+import { getAndroidNavBarBackground, useInitialAndroidBarSync } from '@/src/hooks/useAndroidNavBar';
 
 /** Global Android 3-button nav: black/white strip + icon style on every screen. */
 export default function AndroidNavBarGlobal() {

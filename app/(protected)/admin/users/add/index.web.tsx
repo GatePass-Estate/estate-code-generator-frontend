@@ -9,6 +9,7 @@ import icons from '@/src/constants/icons';
 import Modal from '@/src/components/web/Modal';
 import { registerUser } from '@/src/lib/api/user';
 import { useUserStore } from '@/src/lib/stores/userStore';
+import { GenderType } from '@/src/types/general';
 import { RegisterUserPayload } from '@/src/types/user';
 import { getWidthBreakpoint } from '@/src/lib/helpers';
 import RegisterUser from './index.native';
@@ -16,6 +17,12 @@ import RegisterUser from './index.native';
 const ROLES = [
   { name: 'Resident', value: 'resident' },
   { name: 'Security Personnel', value: 'security' },
+];
+
+const GENDERS = [
+  { name: 'Female', value: 'female' },
+  { name: 'Male', value: 'male' },
+  { name: "I'd prefer not to say", value: 'prefer_not_to_say' },
 ];
 
 const ID_TYPES = [
@@ -32,15 +39,14 @@ function RegisterUserWeb() {
   const [running, setRunning] = useState(false);
   const [processingAction, setProcessingAction] = useState<'continue' | 'save' | null>(null);
 
-  // Step 1 fields
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [gender, setGender] = useState<GenderType>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [selectedRole, setSelectedRole] = useState<'resident' | 'security'>('resident');
 
-  // Step 2 fields
   const [homeAddress, setHomeAddress] = useState('');
   const [idType, setIdType] = useState('');
   const [idNumber, setIdNumber] = useState('');
@@ -75,6 +81,10 @@ function RegisterUserWeb() {
     }
     if (!phone.trim()) {
       setError('Please enter phone number.');
+      return false;
+    }
+    if (gender == null) {
+      setError('Please select gender.');
       return false;
     }
 
@@ -112,7 +122,7 @@ function RegisterUserWeb() {
           email,
           phone_number: phone,
           role: selectedRole,
-          gender: 'prefer_not_to_say',
+          gender,
           estate_id: estate_id || '',
           home_address: homeAddress,
           household_id: null,
@@ -123,11 +133,11 @@ function RegisterUserWeb() {
         if (registeredUser && registeredUser.id) {
           setMessageType('success');
           setError('User registered successfully!');
-          // Reset form
           setFirstName('');
           setLastName('');
           setEmail('');
           setPhone('');
+          setGender(null);
           setSelectedRole('resident');
           setHomeAddress('');
           setIdType('');
@@ -263,6 +273,33 @@ function RegisterUserWeb() {
                           onChange={(e: ChangeEvent<HTMLInputElement>) => setPhone(e.target.value)}
                           className="input-style-web"
                         />
+                      </div>
+                    </div>
+
+                    <div className="input-group-web">
+                      <label htmlFor="gender" className="input-label-web">
+                        Gender
+                      </label>
+                      <div className="flex flex-row flex-wrap gap-2 text-sm mt-1">
+                        {GENDERS.map((g, index) => {
+                          const active = gender === g.value;
+                          return (
+                            <div
+                              key={g.value + index}
+                              className={`flex flex-row items-center px-4 py-2 rounded-md bg-light-grey ${active && 'bg-[#e6f4ef] border border-[#cfe7db]'} gap-3 cursor-pointer`}
+                              onClick={() => setGender(g.value as GenderType)}
+                            >
+                              <p className="text-primary">{g.name}</p>
+                              {active && (
+                                <Image
+                                  source={icons.checkIcon}
+                                  style={{ width: 20, height: 20 }}
+                                  resizeMode="contain"
+                                />
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
 

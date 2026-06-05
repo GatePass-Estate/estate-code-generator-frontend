@@ -47,6 +47,7 @@ export interface FormData {
   lastName: string;
   email: string;
   phoneNumber: string;
+  gender: GenderType;
   userType: UserRolesType;
   homeAddress: string;
   meansOfIdentification: MeansOfIdType;
@@ -58,6 +59,7 @@ export interface FormErrors {
   lastName?: string;
   email?: string;
   phoneNumber?: string;
+  gender?: string;
   password?: string;
   homeAddress?: string;
   meansOfIdentification?: string;

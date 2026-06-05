@@ -8,7 +8,9 @@ import {
   TouchableOpacity,
   ScrollView,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useAndroidBottomInset } from '@/src/hooks/useAndroidBottomInset';
 
 export interface PickerItem {
   label: string;
@@ -37,6 +39,9 @@ export function Picker({
   enabled = true,
 }: PickerProps) {
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const { bottom: safeBottom } = useSafeAreaInsets();
+  const { systemBottom } = useAndroidBottomInset();
+  const modalBottomInset = Math.max(safeBottom, systemBottom);
 
   // Find the selected item's label for display
   const selectedItem = items.find((item) => item.value === selectedValue);
@@ -59,10 +64,10 @@ export function Picker({
       >
         <Text
           style={{
-            color: hasValue ? '#000' : '#9CA3AF',
+            color: hasValue ? '#113E55' : '#9CA3AF',
             flex: 1,
+            flexShrink: 1,
           }}
-          numberOfLines={1}
         >
           {displayLabel}
         </Text>
@@ -76,14 +81,14 @@ export function Picker({
         onRequestClose={() => setIsModalVisible(false)}
       >
         <Pressable style={styles.modalOverlay} onPress={() => setIsModalVisible(false)}>
-          <View style={styles.pickerContainer}>
+          <View style={[styles.pickerContainer, { paddingBottom: modalBottomInset }]}>
             <View style={styles.header}>
               <Text style={styles.headerTitle}>{placeholder}</Text>
               <TouchableOpacity onPress={() => setIsModalVisible(false)}>
                 <Text style={styles.doneButton}>Done</Text>
               </TouchableOpacity>
             </View>
-            <ScrollView style={styles.scrollView}>
+            <ScrollView style={styles.scrollView} contentContainerStyle={{ paddingBottom: 8 }}>
               {items.map((item, index) => {
                 const isSelected = item.value === selectedValue;
                 const isLast = index === items.length - 1;
@@ -120,7 +125,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   pickerContainer: {
-    backgroundColor: '#1f2937', // gray-800
+    backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     maxHeight: '70%',
@@ -132,10 +137,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#374151', // gray-700
+    borderBottomColor: '#D1D5DB',
   },
   headerTitle: {
-    color: '#9CA3AF',
+    color: '#113E55',
     fontSize: 14,
     fontWeight: '500',
   },
@@ -156,14 +161,17 @@ const styles = StyleSheet.create({
   },
   itemBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: '#374151', // gray-700
+    borderBottomColor: '#E5E7EB',
   },
   itemSelected: {
-    backgroundColor: 'rgba(17, 62, 85, 0.1)',
+    backgroundColor: '#CEE5ED',
   },
   itemText: {
-    color: '#fff',
+    color: '#113E55',
     fontSize: 16,
+    flex: 1,
+    flexShrink: 1,
+    paddingRight: 8,
   },
   itemTextSelected: {
     color: '#113E55',
