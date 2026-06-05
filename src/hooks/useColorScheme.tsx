@@ -4,6 +4,7 @@ import * as React from "react";
 import { Appearance, AppState, ColorSchemeName, Platform } from "react-native";
 
 import { COLORS } from "@/src/theme/colors";
+import { APP_TAB_BAR_COLOR } from "@/src/theme/styles";
 
 function useColorScheme() {
   const { colorScheme, setColorScheme: setNativeWindColorScheme } =
@@ -13,7 +14,7 @@ function useColorScheme() {
     setNativeWindColorScheme(nextScheme);
     if (Platform.OS !== "android") return;
     try {
-      await applySystemNavigationBar();
+      applyBrandSystemBars();
     } catch (error) {
       console.log('useColorScheme.tsx", "setColorScheme', error);
     }
@@ -38,12 +39,16 @@ function resolveDeviceColorScheme(
   return scheme === "dark" ? "dark" : "light";
 }
 
-/** Let Android pick nav bar background + icon color from the system theme. */
-function applySystemNavigationBar() {
-  NavigationBar.setStyle("auto");
+function applyBrandSystemBars() {
+  /** Edge-to-edge: skip setBackgroundColorAsync — use bottom strip View instead. */
+  NavigationBar.setButtonStyleAsync("dark").catch(() => {});
+  NavigationBar.setStyle("light");
 }
 
-/** Follow the phone's light/dark setting. */
+export function getAndroidNavBarBackground(): string {
+  return APP_TAB_BAR_COLOR;
+}
+
 function useInitialAndroidBarSync() {
   const { setColorScheme: setNativeWindColorScheme } =
     useNativewindColorScheme();
@@ -53,7 +58,7 @@ function useInitialAndroidBarSync() {
 
     const applyDeviceTheme = (scheme: ColorSchemeName) => {
       setNativeWindColorScheme(resolveDeviceColorScheme(scheme));
-      applySystemNavigationBar();
+      applyBrandSystemBars();
     };
 
     applyDeviceTheme(Appearance.getColorScheme());

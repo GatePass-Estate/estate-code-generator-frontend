@@ -1,4 +1,5 @@
-import { Platform, Pressable } from "react-native";
+import { Platform, Pressable, View } from "react-native";
+import { getAndroidNavBarBackground } from "@/src/hooks/useColorScheme";
 import { Tabs, Stack } from "expo-router";
 import { StyleSheet } from "react-native";
 import { useAndroidBottomInset } from "@/src/hooks/useAndroidBottomInset";
@@ -34,6 +35,7 @@ export default function NavigationContainer({
   }
 
   return enableForMobile ? (
+    <View style={{ flex: 1 }}>
     <Tabs
       screenOptions={{
         tabBarStyle: [
@@ -76,6 +78,20 @@ export default function NavigationContainer({
             ) : null,
           )}
     </Tabs>
+    {Platform.OS === "android" && systemBottom > 0 && (
+      <View
+        pointerEvents="none"
+        style={{
+          position: "absolute",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: systemBottom,
+          backgroundColor: getAndroidNavBarBackground(),
+        }}
+      />
+    )}
+    </View>
   ) : (
     <Stack screenOptions={{ headerShown: false }} />
   );

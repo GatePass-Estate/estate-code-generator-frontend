@@ -6,6 +6,9 @@ export const APP_NATIVE_HEADER_HEIGHT = Platform.OS === "ios" ? 88 : 56;
 
 export const TAB_BAR_BASE_HEIGHT = 80;
 
+/** Same light teal as the bottom tab bar (`sharedStyles.tabBar`). */
+export const APP_TAB_BAR_COLOR = "#CEE5ED";
+
 export const sharedStyles = StyleSheet.create({
   container: {
     flex: 1,
@@ -30,7 +33,7 @@ export const sharedStyles = StyleSheet.create({
 
   tabBar: {
     position: "absolute",
-    backgroundColor: "#CEE5ED",
+    backgroundColor: APP_TAB_BAR_COLOR,
     height: TAB_BAR_BASE_HEIGHT,
     flex: 1,
     elevation: 0,
