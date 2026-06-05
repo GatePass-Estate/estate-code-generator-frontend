@@ -1,5 +1,5 @@
 const useFetch = () => {
-	return <></>;
+  return <></>;
 };
 
 export default useFetch;

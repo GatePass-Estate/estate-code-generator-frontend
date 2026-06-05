@@ -6,17 +6,21 @@ import { useUserStore } from '@/src/lib/stores/userStore';
 import { User } from '@/src/types/user';
 
 export async function refreshCurrentUser() {
-	const accessToken = useAuthStore.getState().access_token;
-	if (!accessToken) return;
+  const accessToken = useAuthStore.getState().access_token;
+  if (!accessToken) return;
 
-	try {
-		const currentUser = (await fetchMe(accessToken)) as User;
-		if (currentUser) useUserStore.getState().setUser(currentUser);
-	} catch (error) {
-		console.log('Failed to refresh user profile', error);
-	}
+  try {
+    const currentUser = (await fetchMe(accessToken)) as User;
+    if (currentUser) useUserStore.getState().setUser(currentUser);
+  } catch (error) {
+    console.log('Failed to refresh user profile', error);
+  }
 }
 
 export function useRefreshUser() {
-	useFocusEffect(useCallback(() => { refreshCurrentUser(); }, []));
+  useFocusEffect(
+    useCallback(() => {
+      refreshCurrentUser();
+    }, [])
+  );
 }

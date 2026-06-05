@@ -1,5 +1,5 @@
-import { useRef } from "react";
-import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
+import { useRef } from 'react';
+import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 
 import {
   Image,
@@ -9,71 +9,74 @@ import {
   TouchableOpacity,
   View,
   useWindowDimensions,
-} from "react-native";
-import { Inter, UbuntuSans } from "@/src/constants/fonts";
-import { consumeActivationStatusAccess, getWidthBreakpoint } from "@/src/lib/helpers";
-import { SafeAreaView } from "react-native-safe-area-context";
+} from 'react-native';
+import { Inter, UbuntuSans } from '@/src/constants/fonts';
+import { consumeActivationStatusAccess, getWidthBreakpoint } from '@/src/lib/helpers';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const BLUR_ELLIPSE_STYLES = StyleSheet.create({
   success: {
-    position: "absolute" as const,
+    position: 'absolute' as const,
     width: 457.325,
     height: 424.527,
     top: -80,
     left: -180,
     zIndex: 0,
-    transform: [{ rotate: "-15.472deg" }],
+    transform: [{ rotate: '-15.472deg' }],
   },
   error: {
-    position: "absolute" as const,
+    position: 'absolute' as const,
     width: 457.325,
     height: 424.527,
     bottom: -160,
     left: -80,
     zIndex: 0,
-    transform: [{ rotate: "-15.472deg" }],
+    transform: [{ rotate: '-15.472deg' }],
   },
   underImage: {
-    position: "absolute" as const,
+    position: 'absolute' as const,
     width: 320,
     height: 300,
     top: -27,
     left: -37,
     zIndex: 0,
-    transform: [{ rotate: "-15.472deg" }],
+    transform: [{ rotate: '-15.472deg' }],
   },
   web: {
-    filter: "blur(50px)",
+    filter: 'blur(50px)',
   } as any,
 });
 
-const getEllipseContainerStyle = (status?: string, variant: "fullscreen" | "underImage" = "fullscreen") => {
-  if (variant === "underImage") return BLUR_ELLIPSE_STYLES.underImage;
-  return status === "error" ? BLUR_ELLIPSE_STYLES.error : BLUR_ELLIPSE_STYLES.success;
+const getEllipseContainerStyle = (
+  status?: string,
+  variant: 'fullscreen' | 'underImage' = 'fullscreen'
+) => {
+  if (variant === 'underImage') return BLUR_ELLIPSE_STYLES.underImage;
+  return status === 'error' ? BLUR_ELLIPSE_STYLES.error : BLUR_ELLIPSE_STYLES.success;
 };
 
 const BlurEllipse = ({
   status,
-  variant = "fullscreen",
+  variant = 'fullscreen',
 }: {
   status?: string;
-  variant?: "fullscreen" | "underImage";
+  variant?: 'fullscreen' | 'underImage';
 }) => (
   <View style={getEllipseContainerStyle(status, variant)} pointerEvents="none">
-    {Platform.OS === "web" ? (
+    {Platform.OS === 'web' ? (
       <View
         style={[
           StyleSheet.absoluteFill,
           {
             borderRadius: 228.66,
-            backgroundColor: "rgba(25, 84, 113, 0.20)",
+            backgroundColor: 'rgba(25, 84, 113, 0.20)',
             ...BLUR_ELLIPSE_STYLES.web,
           },
         ]}
       />
     ) : (
       <Image
-        source={require("@/src/assets/images/blur-ellipse.png")}
+        source={require('@/src/assets/images/blur-ellipse.png')}
         style={StyleSheet.absoluteFill}
         resizeMode="cover"
       />
@@ -85,22 +88,22 @@ const WebSuccessView = ({ router }: { router: any }) => (
   <View className="flex-1 w-full bg-[#FBFEFF] items-center justify-center overflow-hidden">
     <View
       style={{
-        width: "100%",
+        width: '100%',
         maxWidth: 1440,
         height: 900,
-        position: "relative",
+        position: 'relative',
       }}
     >
       {/* Ellipse */}
       <View
         style={{
-          position: "absolute",
-          left: "16.67%",
+          position: 'absolute',
+          left: '16.67%',
           marginLeft: 8,
           top: 260,
           width: 400,
           height: 396,
-          transform: [{ rotate: "-15.47deg" }],
+          transform: [{ rotate: '-15.47deg' }],
         }}
       >
         <View
@@ -108,8 +111,8 @@ const WebSuccessView = ({ router }: { router: any }) => (
             StyleSheet.absoluteFill,
             {
               borderRadius: 228.66,
-              backgroundColor: "rgba(25, 84, 113, 0.20)",
-              filter: "blur(50px)",
+              backgroundColor: 'rgba(25, 84, 113, 0.20)',
+              filter: 'blur(50px)',
             } as any,
           ]}
         />
@@ -118,8 +121,8 @@ const WebSuccessView = ({ router }: { router: any }) => (
       {/* Rocket Image */}
       <View
         style={{
-          position: "absolute",
-          left: "25%",
+          position: 'absolute',
+          left: '25%',
           marginLeft: 10,
           top: 338,
           width: 318,
@@ -127,8 +130,8 @@ const WebSuccessView = ({ router }: { router: any }) => (
         }}
       >
         <Image
-          source={require("@/src/assets/images/success-rocket.png")}
-          style={{ width: "100%", height: "100%" }}
+          source={require('@/src/assets/images/success-rocket.png')}
+          style={{ width: '100%', height: '100%' }}
           resizeMode="contain"
         />
       </View>
@@ -136,20 +139,19 @@ const WebSuccessView = ({ router }: { router: any }) => (
       {/* Content */}
       <View
         style={{
-          position: "absolute",
-          left: "41.67%",
+          position: 'absolute',
+          left: '41.67%',
           marginLeft: 106,
           top: 388,
         }}
       >
         <Text
           style={{
-            fontFamily: "UbuntuSans-Medium",
-            color: "#113E55",
+            fontFamily: 'UbuntuSans-Medium',
+            color: '#113E55',
             fontSize: 28.43,
             lineHeight: 34,
             width: 444,
-      
           }}
         >
           You Are All Set !
@@ -157,34 +159,33 @@ const WebSuccessView = ({ router }: { router: any }) => (
         <Text
           style={{
             fontFamily: Inter.regular,
-            color: "#172024",
+            color: '#172024',
             fontSize: 16,
             lineHeight: 18,
             width: 496,
             marginTop: 30,
-        
           }}
         >
-          Your account is now verified and your password set.{"\n"}
-          You can now continue and start using GatePass.{"\n"}
+          Your account is now verified and your password set.{'\n'}
+          You can now continue and start using GatePass.{'\n'}
           Welcome aboard!
         </Text>
         <TouchableOpacity
-          onPress={() => router.push("/auth/login")}
+          onPress={() => router.push('/auth/login')}
           style={{
             marginTop: 74,
             width: 451,
             height: 54,
-            backgroundColor: "#113E55",
+            backgroundColor: '#113E55',
             borderRadius: 8,
-            justifyContent: "center",
-            alignItems: "center",
+            justifyContent: 'center',
+            alignItems: 'center',
           }}
         >
           <Text
             style={{
-              fontFamily: "UbuntuSans-SemiBold",
-              color: "#fbfeff",
+              fontFamily: 'UbuntuSans-SemiBold',
+              color: '#fbfeff',
               fontSize: 16,
               lineHeight: 16,
             }}
@@ -201,21 +202,21 @@ const WebErrorView = () => (
   <View className="flex-1 w-full bg-[#FBFEFF] items-center justify-center overflow-hidden">
     <View
       style={{
-        width: "100%",
+        width: '100%',
         maxWidth: 1440,
         height: 900,
-        position: "relative",
+        position: 'relative',
       }}
     >
       {/* Ellipse */}
       <View
         style={{
-          position: "absolute",
-          left: "10.33%",
+          position: 'absolute',
+          left: '10.33%',
           top: 170,
           width: 400,
           height: 396,
-          transform: [{ rotate: "-15.47deg" }],
+          transform: [{ rotate: '-15.47deg' }],
         }}
       >
         <View
@@ -223,8 +224,8 @@ const WebErrorView = () => (
             StyleSheet.absoluteFill,
             {
               borderRadius: 228.66,
-              backgroundColor: "rgba(25, 84, 113, 0.20)",
-              filter: "blur(50px)",
+              backgroundColor: 'rgba(25, 84, 113, 0.20)',
+              filter: 'blur(50px)',
             } as any,
           ]}
         />
@@ -233,18 +234,17 @@ const WebErrorView = () => (
       {/* Credit Card Image */}
       <View
         style={{
-          position: "absolute",
-          left: "16.67%",
+          position: 'absolute',
+          left: '16.67%',
           marginLeft: 57,
           top: 291,
           width: 256,
           height: 256,
-
         }}
       >
         <Image
-          source={require("@/src/assets/images/credit-card.png")}
-          style={{ width: "100%", height: "100%" }}
+          source={require('@/src/assets/images/credit-card.png')}
+          style={{ width: '100%', height: '100%' }}
           resizeMode="contain"
         />
       </View>
@@ -252,36 +252,35 @@ const WebErrorView = () => (
       {/* Content */}
       <View
         style={{
-          position: "absolute",
-          left: "40.67%",
+          position: 'absolute',
+          left: '40.67%',
           marginLeft: 35,
           top: 310,
         }}
       >
         <Text
           style={{
-            fontFamily: "UbuntuSans-Medium",
-            color: "#113E55",
+            fontFamily: 'UbuntuSans-Medium',
+            color: '#113E55',
             fontSize: 28.43,
             lineHeight: 34,
             width: 444,
-                      }}
+          }}
         >
           Opps!
         </Text>
         <Text
           style={{
             fontFamily: Inter.regular,
-            color: "#172024",
+            color: '#172024',
             fontSize: 16,
             lineHeight: 18,
             width: 496,
             marginTop: 24,
           }}
         >
-          This verification link is invalid or may have expired. For your
-          security, verification links can only be used once and are active for
-          a limited time.{"\n\n"}
+          This verification link is invalid or may have expired. For your security, verification
+          links can only be used once and are active for a limited time.{'\n\n'}
           Kindly notify Admin.
         </Text>
       </View>
@@ -294,7 +293,7 @@ const EmailActivationStatusPage = () => {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const isLargeScreen = width > getWidthBreakpoint();
-  const isError = status === "error";
+  const isError = status === 'error';
 
   const hasAccessRef = useRef<boolean | null>(null);
   if (hasAccessRef.current === null) {
@@ -305,7 +304,7 @@ const EmailActivationStatusPage = () => {
     return <Redirect href="/auth/login" />;
   }
 
-  if (Platform.OS === "web" && isLargeScreen) {
+  if (Platform.OS === 'web' && isLargeScreen) {
     return isError ? <WebErrorView /> : <WebSuccessView router={router} />;
   }
 
@@ -322,7 +321,7 @@ const EmailActivationStatusPage = () => {
                 >
                   <BlurEllipse status={status} variant="underImage" />
                   <Image
-                    source={require("@/src/assets/images/credit-card.png")}
+                    source={require('@/src/assets/images/credit-card.png')}
                     style={{ width: 242, height: 242, zIndex: 1 }}
                     resizeMode="contain"
                   />
@@ -331,8 +330,8 @@ const EmailActivationStatusPage = () => {
                 <View className="w-full flex flex-col gap-[1.5rem] items-center mt-6">
                   <Text
                     style={{
-                      fontFamily: "UbuntuSans-Medium",
-                      color: "#113E55",
+                      fontFamily: 'UbuntuSans-Medium',
+                      color: '#113E55',
                       fontSize: 28.43,
                       lineHeight: 34,
                     }}
@@ -342,17 +341,17 @@ const EmailActivationStatusPage = () => {
                   <Text
                     style={{
                       fontSize: 16,
-                      textAlign: "center",
+                      textAlign: 'center',
                       maxWidth: 320,
                       lineHeight: 22,
-                      color: "#172024",
+                      color: '#172024',
                       fontFamily: Inter.regular,
                       paddingHorizontal: 16,
                     }}
                   >
-                    This verification link is invalid or may have expired. For
-                    your security, verification links can only be used once and
-                    are active for a limited time.{"\n\n"}
+                    This verification link is invalid or may have expired. For your security,
+                    verification links can only be used once and are active for a limited time.
+                    {'\n\n'}
                     Kindly notify Admin.
                   </Text>
                 </View>
@@ -369,7 +368,7 @@ const EmailActivationStatusPage = () => {
                 >
                   <BlurEllipse status={status} variant="underImage" />
                   <Image
-                    source={require("@/src/assets/images/success-rocket.png")}
+                    source={require('@/src/assets/images/success-rocket.png')}
                     style={{ width: 246, height: 246, zIndex: 1 }}
                     resizeMode="cover"
                   />
@@ -378,8 +377,8 @@ const EmailActivationStatusPage = () => {
                 <View className="w-full flex flex-col items-center mt-6">
                   <Text
                     style={{
-                      fontFamily: "UbuntuSans-Medium",
-                      color: "#113E55",
+                      fontFamily: 'UbuntuSans-Medium',
+                      color: '#113E55',
                       fontSize: 28.43,
                       lineHeight: 34,
                       marginBottom: 27,
@@ -391,28 +390,27 @@ const EmailActivationStatusPage = () => {
                   <Text
                     style={{
                       fontSize: 16,
-                      textAlign: "center",
+                      textAlign: 'center',
                       maxWidth: 320,
                       lineHeight: 22,
-                      color: "#172024",
+                      color: '#172024',
                       fontFamily: Inter.regular,
                       marginBottom: 38,
                       paddingHorizontal: 16,
                     }}
                   >
-                    Your account is now verified and your password set.
-                    You can now continue and start using GatePass.
-                    Welcome aboard!
+                    Your account is now verified and your password set. You can now continue and
+                    start using GatePass. Welcome aboard!
                   </Text>
 
                   <TouchableOpacity
-                    onPress={() => router.push("/auth/login")}
+                    onPress={() => router.push('/auth/login')}
                     className="h-[48px] w-full max-w-[278px] bg-[#113E55] rounded-lg justify-center items-center"
                   >
                     <Text
                       style={{
-                        fontFamily: "UbuntuSans-SemiBold",
-                        color: "#fbfeff",
+                        fontFamily: 'UbuntuSans-SemiBold',
+                        color: '#fbfeff',
                         fontSize: 16,
                         letterSpacing: -0.24,
                       }}

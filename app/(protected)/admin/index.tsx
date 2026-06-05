@@ -3,6 +3,6 @@ import adminMobile from './index.native';
 import adminWeb from './index.web';
 
 export default Platform.select({
-	web: adminWeb,
-	default: adminMobile,
+  web: adminWeb,
+  default: adminMobile,
 });

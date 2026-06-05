@@ -1,0 +1,19 @@
+# Expo generated
+.expo/
+.expo-shared/
+android/
+ios/
+dist/
+web-build/
+
+# Dependencies
+node_modules/
+
+# Lock files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Env
+.env
+.env.*

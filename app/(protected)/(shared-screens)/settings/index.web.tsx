@@ -1,22 +1,15 @@
-import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
-import {
-  Image,
-  Platform,
-  Pressable,
-  Text,
-  useWindowDimensions,
-  View,
-} from "react-native";
-import WebSidebar from "@/src/components/web/WebSidebar";
-import { menuRoutes } from "../../user/_layout";
-import Back from "@/src/components/mobile/Back";
-import { getWidthBreakpoint } from "@/src/lib/helpers";
-import { useAuth } from "@/src/hooks/useAuthContext";
-import { useUserStore } from "@/src/lib/stores/userStore";
-import { deleteAccount } from "@/src/lib/api/user";
-import icons from "@/src/constants/icons";
-import Modal from "@/src/components/web/Modal";
+import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { Image, Platform, Pressable, Text, useWindowDimensions, View } from 'react-native';
+import WebSidebar from '@/src/components/web/WebSidebar';
+import { menuRoutes } from '../../user/_layout';
+import Back from '@/src/components/mobile/Back';
+import { getWidthBreakpoint } from '@/src/lib/helpers';
+import { useAuth } from '@/src/hooks/useAuthContext';
+import { useUserStore } from '@/src/lib/stores/userStore';
+import { deleteAccount } from '@/src/lib/api/user';
+import icons from '@/src/constants/icons';
+import Modal from '@/src/components/web/Modal';
 
 function SettingsRowWeb({
   label,
@@ -34,11 +27,7 @@ function SettingsRowWeb({
     >
       <Text className="text-base font-inter-medium text-primary">{label}</Text>
       {showChevron ? (
-        <Image
-          source={icons.rightIcon}
-          style={{ width: 14, height: 14 }}
-          resizeMode="contain"
-        />
+        <Image source={icons.rightIcon} style={{ width: 14, height: 14 }} resizeMode="contain" />
       ) : null}
     </Pressable>
   );
@@ -60,10 +49,10 @@ export default function SettingsWeb() {
   const isLargeScreen = width > getWidthBreakpoint();
   const [deleting, setDeleting] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [deleteError, setDeleteError] = useState("");
+  const [deleteError, setDeleteError] = useState('');
 
   useEffect(() => {
-    if (Platform.OS === "web") document.title = "Settings - GatePass";
+    if (Platform.OS === 'web') document.title = 'Settings - GatePass';
   }, []);
 
   const handleDeleteAccount = () => {
@@ -74,7 +63,7 @@ export default function SettingsWeb() {
         await deleteAccount();
         await signOut();
       } catch (e: any) {
-        setDeleteError(e?.message ?? "Could not delete account.");
+        setDeleteError(e?.message ?? 'Could not delete account.');
       } finally {
         setDeleting(false);
         setShowDeleteModal(false);
@@ -85,31 +74,23 @@ export default function SettingsWeb() {
   return (
     <div className="flex h-full w-screen overflow-y-scroll bg-body">
       {isLargeScreen && (
-        <WebSidebar
-          routes={menuRoutes}
-          onNavigate={(route) => router.push(route as any)}
-        />
+        <WebSidebar routes={menuRoutes} onNavigate={(route) => router.push(route as any)} />
       )}
       <div className="web-body">
-        <div
-          className={`flex flex-col ${isLargeScreen ? "mt-20 px-4 w-full" : "mt-5 md:px-5"}`}
-        >
+        <div className={`flex flex-col ${isLargeScreen ? 'mt-20 px-4 w-full' : 'mt-5 md:px-5'}`}>
           {!isLargeScreen && <Back type="short-arrow" />}
 
           <Text
-            className={`text-primary font-ubuntu-bold mt-8 ${isLargeScreen ? "text-4xl" : "text-2xl"}`}
+            className={`text-primary font-ubuntu-bold mt-8 ${isLargeScreen ? 'text-4xl' : 'text-2xl'}`}
           >
             Settings
           </Text>
 
           <SectionTitleWeb>Account</SectionTitleWeb>
-          <SettingsRowWeb
-            label="My Profile"
-            onPress={() => router.push("/profile")}
-          />
+          <SettingsRowWeb label="My Profile" onPress={() => router.push('/profile')} />
           <SettingsRowWeb
             label="Account Security"
-            onPress={() => router.push("/account-security")}
+            onPress={() => router.push('/account-security')}
           />
 
           <SectionTitleWeb>About</SectionTitleWeb>
@@ -117,8 +98,8 @@ export default function SettingsWeb() {
             label="Terms of Use"
             onPress={() =>
               router.push({
-                pathname: "/auth/tos",
-                params: { readonly: "true" },
+                pathname: '/auth/tos',
+                params: { readonly: 'true' },
               })
             }
           />
@@ -126,8 +107,8 @@ export default function SettingsWeb() {
             label="Data Privacy"
             onPress={() =>
               router.push({
-                pathname: "/auth/data-protection-policy",
-                params: { source: "settings" },
+                pathname: '/auth/data-protection-policy',
+                params: { source: 'settings' },
               })
             }
           />
@@ -137,9 +118,7 @@ export default function SettingsWeb() {
             onPress={signOut}
             className="border border-grey rounded-xl px-4 py-4 bg-white mb-3 cursor-pointer"
           >
-            <Text className="text-base font-inter-medium text-primary text-center">
-              Log Out
-            </Text>
+            <Text className="text-base font-inter-medium text-primary text-center">Log Out</Text>
           </Pressable>
 
           <Pressable
@@ -148,7 +127,7 @@ export default function SettingsWeb() {
             className="mt-8 items-center py-2 cursor-pointer"
           >
             <Text className="text-base font-inter-medium text-tertiary">
-              {deleting ? "Deleting…" : "Delete Account"}
+              {deleting ? 'Deleting…' : 'Delete Account'}
             </Text>
           </Pressable>
         </div>
@@ -175,7 +154,7 @@ export default function SettingsWeb() {
           heading="Delete failed"
           message={deleteError}
           cancelText="Close"
-          closeModal={() => setDeleteError("")}
+          closeModal={() => setDeleteError('')}
         />
       ) : null}
     </div>

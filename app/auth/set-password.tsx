@@ -1,7 +1,7 @@
-import CustomSafeAreaView from "@/src/components/CustomSafeAreaView";
-import { activateUser } from "@/src/lib/api/user";
-import { Inter } from "@/src/constants/fonts";
-import  { useCallback, useEffect, useState } from "react";
+import CustomSafeAreaView from '@/src/components/CustomSafeAreaView';
+import { activateUser } from '@/src/lib/api/user';
+import { Inter } from '@/src/constants/fonts';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   TextInput,
@@ -10,13 +10,14 @@ import {
   useWindowDimensions,
   Pressable,
   Image,
-} from "react-native";
-import { Text, View } from "react-native";
-import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
-import { getWidthBreakpoint, grantActivationStatusAccess } from "@/src/lib/helpers";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { cn } from "@/src/lib/cn";
-import icons from "@/src/constants/icons";
+  Text,
+  View,
+} from 'react-native';
+import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
+import { getWidthBreakpoint, grantActivationStatusAccess } from '@/src/lib/helpers';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { cn } from '@/src/lib/cn';
+import icons from '@/src/constants/icons';
 
 const MIN_PASSWORD_LENGTH = 8;
 
@@ -45,20 +46,15 @@ const SetPasswordForm = ({
   handleSubmit,
   isLargeScreen,
 }: SetPasswordFormProps) => (
-  <View className={cn("w-full max-w-xl", isLargeScreen ? "gap-8" : "gap-6")}>
+  <View className={cn('w-full max-w-xl', isLargeScreen ? 'gap-8' : 'gap-6')}>
     <View className="items-center text-center">
-      <Text
-        className={cn(
-          "text-primary font-UbuntuSans",
-          isLargeScreen ? "text-5xl" : "text-3xl",
-        )}
-      >
+      <Text className={cn('text-primary font-UbuntuSans', isLargeScreen ? 'text-5xl' : 'text-3xl')}>
         Set Password
       </Text>
       <Text
         className={cn(
-          "mt-2 text-grey font-Inter text-center",
-          isLargeScreen ? "text-base" : "text-sm",
+          'mt-2 text-grey font-Inter text-center',
+          isLargeScreen ? 'text-base' : 'text-sm'
         )}
       >
         Create a password to activate your account.
@@ -72,7 +68,7 @@ const SetPasswordForm = ({
     ) : null}
 
     <View>
-      <Text className={cn("pb-1 text-grey", isLargeScreen ? "text-base" : "text-sm")}>
+      <Text className={cn('pb-1 text-grey', isLargeScreen ? 'text-base' : 'text-sm')}>
         New password
       </Text>
       <View className="relative">
@@ -101,7 +97,7 @@ const SetPasswordForm = ({
     </View>
 
     <View>
-      <Text className={cn("pb-1 text-grey", isLargeScreen ? "text-base" : "text-sm")}>
+      <Text className={cn('pb-1 text-grey', isLargeScreen ? 'text-base' : 'text-sm')}>
         Confirm password
       </Text>
       <View className="relative">
@@ -133,8 +129,8 @@ const SetPasswordForm = ({
       onPress={handleSubmit}
       disabled={isSubmitting}
       className={cn(
-        "h-14 bg-primary rounded-lg justify-center items-center w-full",
-        isSubmitting && "opacity-70",
+        'h-14 bg-primary rounded-lg justify-center items-center w-full',
+        isSubmitting && 'opacity-70'
       )}
     >
       {isSubmitting ? (
@@ -150,7 +146,7 @@ const WebSetPasswordView = (props: SetPasswordFormProps) => (
   <View className="flex-1 w-full bg-white items-center justify-center px-5 py-10">
     <View
       className="w-full max-w-[600px] rounded-lg items-center px-8 py-10"
-      style={{ backgroundColor: "#fbfeff" }}
+      style={{ backgroundColor: '#fbfeff' }}
     >
       <SetPasswordForm {...props} />
     </View>
@@ -166,38 +162,36 @@ const SetPasswordPage = () => {
   const { width } = useWindowDimensions();
   const isLargeScreen = width > getWidthBreakpoint();
 
-  const [password, setPassword] = useState<string>("");
-  const [confirmPassword, setConfirmPassword] = useState<string>("");
+  const [password, setPassword] = useState<string>('');
+  const [confirmPassword, setConfirmPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
-    if (errorMessage) setErrorMessage("");
+    if (errorMessage) setErrorMessage('');
   }, [password, confirmPassword]);
 
   const handleSubmit = useCallback(async () => {
-    setErrorMessage("");
+    setErrorMessage('');
 
     if (!password || !confirmPassword) {
-      setErrorMessage("Both password fields are required.");
+      setErrorMessage('Both password fields are required.');
       return;
     }
 
     if (password.length < MIN_PASSWORD_LENGTH) {
-      setErrorMessage(
-        `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`,
-      );
+      setErrorMessage(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
       return;
     }
 
     if (password !== confirmPassword) {
-      setErrorMessage("Passwords do not match.");
+      setErrorMessage('Passwords do not match.');
       return;
     }
 
     if (!user_id) {
-      setErrorMessage("Verification failed. Please try the link again.");
+      setErrorMessage('Verification failed. Please try the link again.');
       return;
     }
 
@@ -209,11 +203,9 @@ const SetPasswordPage = () => {
         new_password: password,
       });
       grantActivationStatusAccess();
-      router.replace("/auth/email-activation-status");
+      router.replace('/auth/email-activation-status');
     } catch (error: any) {
-      setErrorMessage(
-        error.message || "Failed to set password. Please try again.",
-      );
+      setErrorMessage(error.message || 'Failed to set password. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -237,11 +229,11 @@ const SetPasswordPage = () => {
     isLargeScreen,
   };
 
-  if (Platform.OS === "web" && isLargeScreen) {
+  if (Platform.OS === 'web' && isLargeScreen) {
     return <WebSetPasswordView {...formProps} />;
   }
 
-  if (Platform.OS === "web") {
+  if (Platform.OS === 'web') {
     return (
       <SafeAreaView className="flex-1 bg-white">
         <View className="flex-1 px-6 pb-10 justify-center max-w-xl w-full self-center mx-auto">
