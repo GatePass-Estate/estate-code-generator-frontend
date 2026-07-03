@@ -67,6 +67,12 @@
       "expo-font",
       "expo-web-browser",
       [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow GatePass to use your camera to scan access codes."
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "backgroundColor": "#000000",
