@@ -108,3 +108,13 @@ export async function checkPendingRequests(
     throw new Error(`${getErrorMessage(error) || 'Could not check pending requests'} `);
   }
 }
+
+export async function deletePendingRequest(id: string): Promise<boolean> {
+  try {
+    const api = Api();
+    const axiosRes = await api.delete(`/requests/edit/${id}`);
+    return axiosRes.data;
+  } catch (error: any) {
+    throw new Error(`${getErrorMessage(error) || 'Could not delete request'} `);
+  }
+}

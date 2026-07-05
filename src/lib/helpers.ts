@@ -201,6 +201,28 @@ export const formatDateWithOrdinal = (date: Date): string => {
   return `${d}${ordinalSuffix(d)} ${m} ${y}`;
 };
 
+export const formatGeneratedOnDate = (date: Date): string => {
+  const d = date.getDate();
+  const m = monthNames[date.getMonth()];
+  return `${d}${ordinalSuffix(d)} of ${m}`;
+};
+
+export const formatAccessLogTimestamp = (date: Date): string => {
+  const d = date.getDate();
+  const m = monthNames[date.getMonth()];
+  const y = date.getFullYear();
+  const hours = date.getHours().toString().padStart(2, '0');
+  const minutes = date.getMinutes().toString().padStart(2, '0');
+  return `${d} ${m} ${y}, ${hours}:${minutes}`;
+};
+
+export const formatAccessCodeWithSpace = (code: string): string => {
+  const cleaned = code.replace(/\s+/g, '').toUpperCase();
+  if (cleaned.length <= 3) return cleaned;
+  const mid = Math.ceil(cleaned.length / 2);
+  return `${cleaned.slice(0, mid)} ${cleaned.slice(mid)}`;
+};
+
 export const timeCalc = (
   valid_until: string | Date | undefined
 ): {

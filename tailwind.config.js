@@ -19,6 +19,7 @@ module.exports = {
         'ubuntu-extrabold': ['UbuntuSans-ExtraBold', 'system-ui'],
         'ubuntu-italic': ['UbuntuSansItalic', 'system-ui'],
         'roboto-italic': ['RobotoItalic', 'system-ui'],
+        'roboto-regular': ['Roboto', 'system-ui'],
         'inter-extralight': ['Inter_18pt-ExtraLight', 'system-ui'],
         'inter-light': ['Inter_18pt-Light', 'system-ui'],
         'inter-regular': ['Inter_18pt-Regular', 'system-ui'],

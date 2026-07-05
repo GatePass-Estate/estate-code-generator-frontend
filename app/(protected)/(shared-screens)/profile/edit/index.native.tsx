@@ -16,6 +16,7 @@ import { createRequest, checkPendingRequests, updatePendingRequest } from '@/src
 import { RequestType, PendingRequestsResponse } from '@/src/types/requests';
 import { useRouter } from 'expo-router';
 import { refreshCurrentUser } from '@/src/hooks/useRefreshUser';
+import { fetchProfilePendingFields } from '@/src/lib/profilePendingFields';
 
 interface ChangedField {
   type: RequestType;
@@ -37,19 +38,59 @@ export default function EditRequest() {
   });
 
   const [loading, setLoading] = useState(false);
+  const [loadingPending, setLoadingPending] = useState(true);
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<ToastType>('success');
 
   useEffect(() => {
-    setFormData({
-      firstName: user.first_name || '',
-      lastName: user.last_name || '',
-      email: user.email || '',
-      address: user.home_address || '',
-      phoneNumber: user.phone_number || '',
-    });
-  }, []);
+    let isMounted = true;
+
+    const loadPendingValues = async () => {
+      if (!user.user_id) {
+        setLoadingPending(false);
+        return;
+      }
+
+      try {
+        const pendingDetails = await fetchProfilePendingFields(user.user_id);
+        if (!isMounted) return;
+
+        setFormData({
+          firstName:
+            pendingDetails.firstName.hasPending && pendingDetails.firstName.newValue
+              ? pendingDetails.firstName.newValue
+              : user.first_name || '',
+          lastName:
+            pendingDetails.lastName.hasPending && pendingDetails.lastName.newValue
+              ? pendingDetails.lastName.newValue
+              : user.last_name || '',
+          email:
+            pendingDetails.email.hasPending && pendingDetails.email.newValue
+              ? pendingDetails.email.newValue
+              : user.email || '',
+          address:
+            pendingDetails.address.hasPending && pendingDetails.address.newValue
+              ? pendingDetails.address.newValue
+              : user.home_address || '',
+          phoneNumber:
+            pendingDetails.phoneNumber.hasPending && pendingDetails.phoneNumber.newValue
+              ? pendingDetails.phoneNumber.newValue
+              : user.phone_number || '',
+        });
+      } catch (error) {
+        console.log('Failed to load pending profile values', error);
+      } finally {
+        if (isMounted) setLoadingPending(false);
+      }
+    };
+
+    loadPendingValues();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user.user_id]);
 
   const handleSendRequest = async () => {
     setLoading(true);
@@ -204,6 +245,12 @@ export default function EditRequest() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 20 }}
       >
+        {loadingPending ? (
+          <View className="mt-12 items-center">
+            <ActivityIndicator color="#1B998B" />
+          </View>
+        ) : (
+          <>
         <Text className="text-grey mt-12 text-base font-inter font-medium mb-3">
           Send a request to change your details
         </Text>
@@ -273,6 +320,8 @@ export default function EditRequest() {
             )}
           </TouchableOpacity>
         </View>
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
