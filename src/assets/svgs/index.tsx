@@ -407,4 +407,3 @@ export function CheckIcon({ color = '#113E55', ...props }: MenuIconProps) {
     </Svg>
   );
 }
-

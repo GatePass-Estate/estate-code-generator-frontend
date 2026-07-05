@@ -20,7 +20,15 @@ import IdentificationSheet from '@/src/components/mobile/IdentificationSheet';
 import PendingRequestSheet, {
   PendingRequestSheetData,
 } from '@/src/components/mobile/PendingRequestSheet';
-import { EyeIcon, HiddenEyeIcon, QrCodeIcon, RefreshIcon, DownloadIcon, ProfileAvatar, CameraIcon } from '@/src/assets/svgs';
+import {
+  EyeIcon,
+  HiddenEyeIcon,
+  QrCodeIcon,
+  RefreshIcon,
+  DownloadIcon,
+  ProfileAvatar,
+  CameraIcon,
+} from '@/src/assets/svgs';
 import { sharedStyles } from '@/src/theme/styles';
 import { generateCode, getMyCode } from '@/src/lib/api/codes';
 import { formatDateWithOrdinal } from '@/src/lib/helpers';
@@ -259,16 +267,21 @@ export default function ProfileScreen() {
             style={{
               width: 87,
               height: 87,
-              borderRadius: 43.5,
+              borderRadius: 100,
+              
+              backgroundColor: '#F4FFFE',
               overflow: 'hidden',
-              backgroundColor: '#E8F0EF',
             }}
           >
             {profilePhotoUri ? (
-              <Image source={{ uri: profilePhotoUri }} style={{ width: 87, height: 87 }} resizeMode="cover" />
+              <Image
+                source={{ uri: profilePhotoUri }}
+                style={StyleSheet.absoluteFillObject}
+                resizeMode="cover"
+              />
             ) : (
-              <View className="flex-1 items-center justify-center bg-[#1B998B]">
-                <ProfileAvatar width={87} height={87} />
+              <View className="flex-1 items-center justify-center bg-[#F4FFFE]">
+            
               </View>
             )}
 
@@ -283,46 +296,60 @@ export default function ProfileScreen() {
                 justifyContent: 'center',
               }}
             >
-              <View style={[StyleSheet.absoluteFillObject, { opacity: 0.5 }]}>
-                <View style={[StyleSheet.absoluteFillObject, { backgroundColor: '#1B998B' }]} />
-                <View
-                  style={[
-                    StyleSheet.absoluteFillObject,
-                    { backgroundColor: 'rgba(0, 0, 0, 0.20)' },
-                  ]}
-                />
-              </View>
+              <View
+                style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(27, 153, 139, 0.5)' }]}
+              />
               <CameraIcon width={20} height={20} />
             </View>
           </View>
         </Pressable>
 
-        <Text className="mt-[13px] text-[24px] font-ubuntu-medium text-[#113E55]">
+        <Text className="pt-[13px] text-[24px] leading-6 font-ubuntu-medium text-[#113E55]">
           Hi {first_name ?? 'there'}
         </Text>
       </View>
 
       {showAccessCode ? (
         <View className="mt-8 flex-row items-stretch justify-between rounded-[16px] bg-white p-4">
-          <View className="flex-1 gap-2 ">
+          <View className="flex-1 gap-4 ">
             <Text className="text-xs font-ubuntu-medium text-[#6C6C6C]">My Access Code</Text>
 
-            <View className="flex-row items-center gap-1 ">
-              <Text className="text-[24px] font-ubuntu-medium text-primary w-[109px]">{codeDisplay}</Text>
-              {code && !noCode ? (
-                <Pressable onPress={() => setCodeVisible((visible) => !visible)} hitSlop={8} className="-mt-2">
-                  <View className="h-4 w-4 items-center justify-center rounded-full bg-[#E0FFFC80]">
-                    {codeVisible ? (
-                      <EyeIcon width={9} height={9} />
-                    ) : (
-                      <HiddenEyeIcon width={9} height={9} />
-                    )}
-                  </View>
-                </Pressable>
+            <View
+              className="flex-row items-center gap-1"
+              style={{ minHeight: isPreview ? 22 : 28 }}
+            >
+              {!isPreview ? (
+                <>
+                  <Text
+                    className="text-[24px] font-ubuntu-medium text-primary w-[109px]"
+                    style={{ lineHeight: 28, includeFontPadding: false }}
+                  >
+                    {codeDisplay}
+                  </Text>
+                  {code && !noCode ? (
+                    <Pressable
+                      onPress={() => setCodeVisible((visible) => !visible)}
+                      hitSlop={8}
+                      className="-mt-2"
+                    >
+                      <View className="h-4 w-4 items-center justify-center rounded-full bg-[#E0FFFC80]">
+                        {codeVisible ? (
+                          <EyeIcon width={9} height={9} />
+                        ) : (
+                          <HiddenEyeIcon width={9} height={9} />
+                        )}
+                      </View>
+                    </Pressable>
+                  ) : null}
+                </>
               ) : null}
             </View>
 
-            {formattedDate ? (
+            {isPreview ? (
+              <Text className="text-[9px] font-inter-regular text-[#6C6C6C]">
+                Code expires on —
+              </Text>
+            ) : formattedDate ? (
               <Text className="text-[9px] font-inter-regular text-[#6C6C6C]">
                 Code expires on {formattedDate}
               </Text>
@@ -493,11 +520,7 @@ export default function ProfileScreen() {
               </View>
             ) : null}
 
-            <View
-              style={{ opacity: 0.35 }}
-              pointerEvents="none"
-              className="mt-6 w-full"
-            >
+            <View style={{ opacity: 0.35 }} pointerEvents="none" className="mt-6 w-full">
               {renderProfileContent(true)}
             </View>
           </View>

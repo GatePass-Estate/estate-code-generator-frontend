@@ -1,12 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import {
-  View,
-  Text,
-  Pressable,
-  ScrollView,
-  ActivityIndicator,
-  Alert,
-} from 'react-native';
+import { View, Text, Pressable, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { Stack, useLocalSearchParams, useNavigation, router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -125,7 +118,11 @@ export default function UsageLogScreen() {
   if (!log) {
     return (
       <SafeAreaView
-        style={[sharedStyles.container, sharedStyles.modalContainer, { backgroundColor: '#F6F7F7' }]}
+        style={[
+          sharedStyles.container,
+          sharedStyles.modalContainer,
+          { backgroundColor: '#F6F7F7' },
+        ]}
       >
         <Stack.Screen options={{ headerShown: false }} />
         <Pressable
@@ -159,10 +156,7 @@ export default function UsageLogScreen() {
           <MaterialIcons name="keyboard-arrow-left" size={24} color="#113E55" />
         </Pressable>
 
-        <ScreenHeader
-          title="Usage log"
-          subtitle="View the number of time access code was used"
-        />
+        <ScreenHeader title="Usage log" subtitle="View the number of time access code was used" />
       </View>
 
       <ScrollView

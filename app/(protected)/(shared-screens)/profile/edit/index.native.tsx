@@ -251,75 +251,75 @@ export default function EditRequest() {
           </View>
         ) : (
           <>
-        <Text className="text-grey mt-12 text-base font-inter font-medium mb-3">
-          Send a request to change your details
-        </Text>
+            <Text className="text-grey mt-12 text-base font-inter font-medium mb-3">
+              Send a request to change your details
+            </Text>
 
-        <Text style={sharedStyles.label}>First Name</Text>
-        <TextInput
-          style={sharedStyles.input}
-          placeholder="Enter your first name"
-          value={formData.firstName}
-          onChangeText={(text) => setFormData({ ...formData, firstName: text })}
-          editable={!loading}
-        />
+            <Text style={sharedStyles.label}>First Name</Text>
+            <TextInput
+              style={sharedStyles.input}
+              placeholder="Enter your first name"
+              value={formData.firstName}
+              onChangeText={(text) => setFormData({ ...formData, firstName: text })}
+              editable={!loading}
+            />
 
-        <Text style={sharedStyles.label}>Last Name</Text>
-        <TextInput
-          style={sharedStyles.input}
-          placeholder="Enter your last name"
-          value={formData.lastName}
-          onChangeText={(text) => setFormData({ ...formData, lastName: text })}
-          editable={!loading}
-        />
+            <Text style={sharedStyles.label}>Last Name</Text>
+            <TextInput
+              style={sharedStyles.input}
+              placeholder="Enter your last name"
+              value={formData.lastName}
+              onChangeText={(text) => setFormData({ ...formData, lastName: text })}
+              editable={!loading}
+            />
 
-        <Text style={sharedStyles.label}>Email Address</Text>
-        <TextInput
-          style={sharedStyles.input}
-          placeholder="Enter your email"
-          keyboardType="email-address"
-          autoCapitalize="none"
-          value={formData.email}
-          onChangeText={(text) => setFormData({ ...formData, email: text })}
-          editable={!loading}
-        />
+            <Text style={sharedStyles.label}>Email Address</Text>
+            <TextInput
+              style={sharedStyles.input}
+              placeholder="Enter your email"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              value={formData.email}
+              onChangeText={(text) => setFormData({ ...formData, email: text })}
+              editable={!loading}
+            />
 
-        <Text style={sharedStyles.label}>Address</Text>
-        <TextInput
-          style={sharedStyles.input}
-          placeholder="Enter your address"
-          value={formData.address}
-          onChangeText={(text) => setFormData({ ...formData, address: text })}
-          editable={!loading}
-        />
+            <Text style={sharedStyles.label}>Address</Text>
+            <TextInput
+              style={sharedStyles.input}
+              placeholder="Enter your address"
+              value={formData.address}
+              onChangeText={(text) => setFormData({ ...formData, address: text })}
+              editable={!loading}
+            />
 
-        <Text style={sharedStyles.label}>Phone Number</Text>
-        <TextInput
-          style={sharedStyles.input}
-          placeholder="Enter your phone number"
-          keyboardType="phone-pad"
-          value={formData.phoneNumber}
-          onChangeText={(text) => setFormData({ ...formData, phoneNumber: text })}
-          editable={!loading}
-        />
+            <Text style={sharedStyles.label}>Phone Number</Text>
+            <TextInput
+              style={sharedStyles.input}
+              placeholder="Enter your phone number"
+              keyboardType="phone-pad"
+              value={formData.phoneNumber}
+              onChangeText={(text) => setFormData({ ...formData, phoneNumber: text })}
+              editable={!loading}
+            />
 
-        <View className="items-center mt-12 flex-row gap-3">
-          {/* <TouchableOpacity className={`flex-1 px-6 bg-teal justify-center items-center py-5 rounded-xl ${loading ? 'opacity-70' : ''}`} onPress={() => router.back()} disabled={loading}>
+            <View className="items-center mt-12 flex-row gap-3">
+              {/* <TouchableOpacity className={`flex-1 px-6 bg-teal justify-center items-center py-5 rounded-xl ${loading ? 'opacity-70' : ''}`} onPress={() => router.back()} disabled={loading}>
 						<Text className="text-white font-semibold text-md">Cancel</Text>
 					</TouchableOpacity> */}
 
-          <TouchableOpacity
-            className={`flex-1 px-6 bg-primary justify-center items-center py-5 rounded-xl ${loading ? 'opacity-70' : ''}`}
-            onPress={handleSendRequest}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" size="small" />
-            ) : (
-              <Text className="text-white font-semibold text-md">Send Request</Text>
-            )}
-          </TouchableOpacity>
-        </View>
+              <TouchableOpacity
+                className={`flex-1 px-6 bg-primary justify-center items-center py-5 rounded-xl ${loading ? 'opacity-70' : ''}`}
+                onPress={handleSendRequest}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text className="text-white font-semibold text-md">Send Request</Text>
+                )}
+              </TouchableOpacity>
+            </View>
           </>
         )}
       </ScrollView>

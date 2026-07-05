@@ -1,14 +1,5 @@
 import { useEffect } from 'react';
-import {
-  Modal,
-  Pressable,
-  View,
-  Text,
-  Image,
-  Alert,
-  Dimensions,
-  StyleSheet,
-} from 'react-native';
+import { Modal, Pressable, View, Text, Image, Alert, Dimensions, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
@@ -123,7 +114,10 @@ export default function IdentificationSheet({
   const handleTakePhoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission needed', 'Allow camera access to take a photo of your identification.');
+      Alert.alert(
+        'Permission needed',
+        'Allow camera access to take a photo of your identification.'
+      );
       return;
     }
 

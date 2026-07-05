@@ -9,8 +9,9 @@ import {
 } from '@/src/lib/profilePendingFields';
 
 export function useProfilePendingFields(userId?: string | null) {
-  const [pendingDetails, setPendingDetails] =
-    useState<ProfilePendingFieldDetails>(EMPTY_PENDING_FIELD_DETAILS);
+  const [pendingDetails, setPendingDetails] = useState<ProfilePendingFieldDetails>(
+    EMPTY_PENDING_FIELD_DETAILS
+  );
   const [pendingFields, setPendingFields] = useState<ProfilePendingFields>({
     firstName: false,
     lastName: false,

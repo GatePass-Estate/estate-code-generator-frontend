@@ -26,7 +26,6 @@ export default function AccessLogScreen() {
       <ScreenHeader title="Access Log" subtitle="View your access code history." />
 
       <ScrollView
-        
         contentContainerStyle={{ paddingBottom: 40, paddingTop: 21 }}
         showsVerticalScrollIndicator={false}
       >

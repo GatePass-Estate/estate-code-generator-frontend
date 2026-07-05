@@ -23,14 +23,10 @@ export default function ResidentAccessCodeQRModal({
       >
         <Pressable onPress={(event) => event.stopPropagation()} className="w-full items-center">
           <View className="w-full max-w-[331px] h-[337px] items-center justify-center rounded-[24px] bg-[#F6F7F7] px-6 py-[51px]">
-            <View style={{ width: 234, height: 234, alignItems: 'center', justifyContent: 'center' }}>
-              <QRCode
-                value={code}
-                size={234}
-                backgroundColor="white"
-                color="#5b5e61"
-                ecl="H"
-              />
+            <View
+              style={{ width: 234, height: 234, alignItems: 'center', justifyContent: 'center' }}
+            >
+              <QRCode value={code} size={234} backgroundColor="white" color="#5b5e61" ecl="H" />
 
               <View
                 style={{

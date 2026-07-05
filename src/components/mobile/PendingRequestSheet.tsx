@@ -69,10 +69,14 @@ function ValueRow({
 }) {
   return (
     <View className="gap-2">
-      <Text className="ml-[13px] text-[10px] font-ubuntu-regular text-[#6C6C6C]">{sectionLabel}</Text>
+      <Text className="ml-[13px] text-[10px] font-ubuntu-regular text-[#6C6C6C]">
+        {sectionLabel}
+      </Text>
       <View className="flex-row items-center justify-between rounded-[16px] bg-white px-4 py-3">
         <Text className="text-xs font-ubuntu-bold text-[#6C6C6C]">{label}</Text>
-        <Text className="ml-3 flex-1 text-right text-xs font-ubuntu-light text-[#6C6C6C]">{value}</Text>
+        <Text className="ml-3 flex-1 text-right text-xs font-ubuntu-light text-[#6C6C6C]">
+          {value}
+        </Text>
       </View>
     </View>
   );
@@ -89,7 +93,9 @@ function FileRow({
 }) {
   return (
     <View className="gap-2">
-      <Text className="ml-[13px] text-[10px] font-ubuntu-regular text-[#6C6C6C]">{sectionLabel}</Text>
+      <Text className="ml-[13px] text-[10px] font-ubuntu-regular text-[#6C6C6C]">
+        {sectionLabel}
+      </Text>
       <View className="flex-row items-center justify-between rounded-[16px] bg-white px-4 py-3">
         <Text
           className="mr-3 flex-1 text-xs italic text-[#6C6C6C]"
@@ -102,7 +108,6 @@ function FileRow({
           onPress={onDownload}
           className="flex-row items-center gap-1 rounded-full bg-[#E5F6FF] px-[24px] py-[15px]"
         >
-          
           <Text className="text-[10px] font-roboto-regular text-[#113E55]">Download</Text>
           <FileDocumentIcon width={8} height={8} />
         </Pressable>
@@ -186,11 +191,9 @@ export default function PendingRequestSheet({
 
   const handleReNotifyAdmin = () => {
     setNotifying(true);
-    Alert.alert(
-      'Re-Notify Admin',
-      'Your admin will be reminded about this request.',
-      [{ text: 'OK', onPress: () => setNotifying(false) }]
-    );
+    Alert.alert('Re-Notify Admin', 'Your admin will be reminded about this request.', [
+      { text: 'OK', onPress: () => setNotifying(false) },
+    ]);
   };
 
   if (!request) return null;
@@ -259,7 +262,9 @@ export default function PendingRequestSheet({
                 {deleting ? (
                   <ActivityIndicator color="#113E55" size="small" />
                 ) : (
-                  <Text className="text-sm font-ubuntu-semibold text-[#113E55]">Delete Request</Text>
+                  <Text className="text-sm font-ubuntu-semibold text-[#113E55]">
+                    Delete Request
+                  </Text>
                 )}
               </Pressable>
 
