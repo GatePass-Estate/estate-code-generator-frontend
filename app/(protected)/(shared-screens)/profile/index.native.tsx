@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -8,8 +8,10 @@ import {
   Alert,
   StyleSheet,
   Image,
+  TouchableOpacity,
 } from 'react-native';
 import { router, Stack, useNavigation } from 'expo-router';
+import * as Clipboard from 'expo-clipboard';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useUserStore } from '@/src/lib/stores/userStore';
@@ -43,6 +45,7 @@ import {
   getProfileOnboardingStep,
   ProfileOnboardingBanner,
 } from '@/src/components/mobile/ProfileOnboardingBanner';
+import { CopiedToast } from '@/src/components/mobile/CopiedToast';
 
 function formatAccessCode(code: string) {
   return code.replace(/\s+/g, '').toUpperCase();
@@ -81,6 +84,8 @@ export default function ProfileScreen() {
     null
   );
   const [showPendingRequestSheet, setShowPendingRequestSheet] = useState(false);
+  const [showCopiedToast, setShowCopiedToast] = useState(false);
+  const copiedToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { pendingDetails, pendingFields, refreshPendingFields } = useProfilePendingFields(user_id);
 
   const showAccessCode = role !== 'security';
@@ -237,6 +242,34 @@ export default function ProfileScreen() {
     return formatAccessCode(code);
   }, [code, codeVisible, noCode]);
 
+  const canCopyCode = Boolean(code && !noCode);
+
+  const handleCopyCode = useCallback(async () => {
+    if (!canCopyCode) {
+      Alert.alert('No access code', 'Generate an access code first, then long-press it to copy.');
+      return;
+    }
+
+    await Clipboard.setStringAsync(formatAccessCode(code!));
+    setShowCopiedToast(true);
+
+    if (copiedToastTimer.current) {
+      clearTimeout(copiedToastTimer.current);
+    }
+
+    copiedToastTimer.current = setTimeout(() => {
+      setShowCopiedToast(false);
+    }, 2000);
+  }, [canCopyCode, code]);
+
+  useEffect(() => {
+    return () => {
+      if (copiedToastTimer.current) {
+        clearTimeout(copiedToastTimer.current);
+      }
+    };
+  }, []);
+
   const hasIdentification = !!(identificationUri || identificationPendingRequest);
   const hasPhoto = !!(profilePhotoUri || photoPendingRequest);
   const onboardingStep = getProfileOnboardingStep(hasIdentification, hasPhoto);
@@ -268,7 +301,7 @@ export default function ProfileScreen() {
               width: 87,
               height: 87,
               borderRadius: 100,
-              
+
               backgroundColor: '#F4FFFE',
               overflow: 'hidden',
             }}
@@ -280,9 +313,7 @@ export default function ProfileScreen() {
                 resizeMode="cover"
               />
             ) : (
-              <View className="flex-1 items-center justify-center bg-[#F4FFFE]">
-            
-              </View>
+              <View className="flex-1 items-center justify-center bg-[#F4FFFE]"></View>
             )}
 
             <View
@@ -297,7 +328,10 @@ export default function ProfileScreen() {
               }}
             >
               <View
-                style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(27, 153, 139, 0.5)' }]}
+                style={[
+                  StyleSheet.absoluteFillObject,
+                  { backgroundColor: 'rgba(27, 153, 139, 0.5)' },
+                ]}
               />
               <CameraIcon width={20} height={20} />
             </View>
@@ -311,21 +345,30 @@ export default function ProfileScreen() {
 
       {showAccessCode ? (
         <View className="mt-8 flex-row items-stretch justify-between rounded-[16px] bg-white p-4">
-          <View className="flex-1 gap-4 ">
+          <View className="flex-1 gap-2 ">
             <Text className="text-xs font-ubuntu-medium text-[#6C6C6C]">My Access Code</Text>
 
             <View
               className="flex-row items-center gap-1"
-              style={{ minHeight: isPreview ? 22 : 28 }}
+              style={{ minHeight: isPreview ? 22 : 44 }}
             >
               {!isPreview ? (
                 <>
-                  <Text
-                    className="text-[24px] font-ubuntu-medium text-primary w-[109px]"
-                    style={{ lineHeight: 28, includeFontPadding: false }}
+                  <TouchableOpacity
+                    onLongPress={handleCopyCode}
+                    delayLongPress={400}
+                    activeOpacity={0.6}
+                    disabled={!canCopyCode}
+                    hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+                    style={{ minHeight: 44, justifyContent: 'center' }}
                   >
-                    {codeDisplay}
-                  </Text>
+                    <Text
+                      className="text-[24px] font-ubuntu-medium text-primary"
+                      style={{ lineHeight: 28, includeFontPadding: false, minWidth: 109 }}
+                    >
+                      {codeDisplay}
+                    </Text>
+                  </TouchableOpacity>
                   {code && !noCode ? (
                     <Pressable
                       onPress={() => setCodeVisible((visible) => !visible)}
@@ -473,6 +516,7 @@ export default function ProfileScreen() {
   return (
     <SafeAreaView
       style={[sharedStyles.container, sharedStyles.modalContainer, { backgroundColor: '#F6F7F7' }]}
+      className="relative flex-1"
     >
       <Stack.Screen options={{ headerShown: false }} />
 
@@ -528,6 +572,8 @@ export default function ProfileScreen() {
           renderProfileContent()
         )}
       </ScrollView>
+
+      <CopiedToast visible={showCopiedToast} />
 
       {code ? (
         <ResidentAccessCodeQRModal
