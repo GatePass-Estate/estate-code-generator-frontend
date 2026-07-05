@@ -12,10 +12,7 @@ export function CopiedToast({ visible }: CopiedToastProps) {
   if (!visible) return null;
 
   return (
-    <View
-      pointerEvents="none"
-      style={[styles.container, { top: insets.top + 8 }]}
-    >
+    <View pointerEvents="none" style={[styles.container, { top: insets.top + 8 }]}>
       <View className="flex-row items-center gap-2.5 rounded-full bg-[#E5F6FF] px-4 py-2.5">
         <CopyIcon width={16} height={16} />
         <Text className="text-xs font-inter-semibold text-[#113E55]">Copied</Text>
