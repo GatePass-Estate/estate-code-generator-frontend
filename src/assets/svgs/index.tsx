@@ -4,13 +4,7 @@ type MenuIconProps = SvgProps & { color?: string };
 
 export function ProfileAvatar(props: SvgProps) {
   return (
-    <Svg
-      width={50}
-      height={50}
-      viewBox="0 0 50 50"
-      fill="none"
-      {...props}
-    >
+    <Svg width={50} height={50} viewBox="0 0 50 50" fill="none" {...props}>
       <Path
         d="M33.3333 20.8333C33.3333 23.0435 32.4553 25.1631 30.8925 26.7259C29.3297 28.2887 27.2101 29.1667 25 29.1667C22.7898 29.1667 20.6702 28.2887 19.1074 26.7259C17.5446 25.1631 16.6666 23.0435 16.6666 20.8333C16.6666 18.6232 17.5446 16.5036 19.1074 14.9408C20.6702 13.378 22.7898 12.5 25 12.5C27.2101 12.5 29.3297 13.378 30.8925 14.9408C32.4553 16.5036 33.3333 18.6232 33.3333 20.8333Z"
         fill="#EFF1F1"
@@ -227,10 +221,7 @@ export function CloseCircleIcon({ color = '#F6F7F7', ...props }: MenuIconProps) 
   );
 }
 
-export function TimelineDashLine({
-  height = 139,
-  ...props
-}: SvgProps & { height?: number }) {
+export function TimelineDashLine({ height = 139, ...props }: SvgProps & { height?: number }) {
   return (
     <Svg width={2} height={height} viewBox={`0 0 2 ${height}`} fill="none" {...props}>
       <Path

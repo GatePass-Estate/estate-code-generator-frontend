@@ -121,10 +121,7 @@ export default function ValidationResult() {
         </View>
       </ScrollView>
 
-      <ProfilePreviewModal
-        visible={showProfileModal}
-        onClose={() => setShowProfileModal(false)}
-      />
+      <ProfilePreviewModal visible={showProfileModal} onClose={() => setShowProfileModal(false)} />
     </SafeAreaView>
   );
 }

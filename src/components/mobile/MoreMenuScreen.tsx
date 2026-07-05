@@ -1,8 +1,7 @@
 import { View, Text, Pressable, ScrollView, Alert, ActivityIndicator } from 'react-native';
-import { router, Stack } from 'expo-router';
+import { router, Stack, useNavigation } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useNavigation } from 'expo-router';
 import { useState, ReactNode } from 'react';
 import { useAuth } from '@/src/hooks/useAuthContext';
 import { useUserStore } from '@/src/lib/stores/userStore';
@@ -28,9 +27,7 @@ type MoreMenuScreenProps = {
 
 function SectionTitle({ children, first = false }: { children: string; first?: boolean }) {
   return (
-    <Text
-      className='mb-2 text-[10px] font-inter-regular uppercase  text-[#113E55]'
-    >
+    <Text className="mb-2 text-[10px] font-inter-regular uppercase  text-[#113E55]">
       {children}
     </Text>
   );
@@ -118,76 +115,72 @@ export default function MoreMenuScreen({
         showsVerticalScrollIndicator={false}
       >
         <View>
-        <SectionTitle first>Account</SectionTitle>
-        <View className="flex-col gap-2">
-          <MoreMenuRow
-            icon={<MyProfileIcon color={iconColor} />}
-            label="My Profile"
-            onPress={() => router.push('/profile')}
-          />
-          <MoreMenuRow
-            icon={<AccountSecurityIcon color={iconColor} />}
-            label="Account Security"
-            onPress={() => router.push('/account-security')}
-          />
-          <MoreMenuRow
-            icon={<IncidentReportIcon color={iconColor} />}
-            label="Incident Report"
-            onPress={() => Alert.alert('Coming soon', 'Incident reporting is not available yet.')}
-          />
-          <MoreMenuRow
-            icon={<LinkedDevicesIcon color={iconColor} />}
-            label="Linked Devices"
-            onPress={() => Alert.alert('Coming soon', 'Linked devices is not available yet.')}
-          />
-        </View>
-        </View>
-
-        <View>
-          
-       
-        <SectionTitle>About</SectionTitle>
-        <View className="flex-col gap-2">
-          <MoreMenuRow
-            icon={<TermsOfServiceIcon color={iconColor} />}
-            label="Terms of Service"
-            onPress={() =>
-              router.push({
-                pathname: '/auth/tos',
-                params: { readonly: 'true' },
-              })
-            }
-          />
-          <MoreMenuRow
-            icon={<PrivacyPolicyIcon color={iconColor} />}
-            label="Privacy Policy"
-            onPress={() =>
-              router.push({
-                pathname: '/auth/data-protection-policy',
-                params: { source: 'settings' },
-              })
-            }
-          />
-        </View>
+          <SectionTitle first>Account</SectionTitle>
+          <View className="flex-col gap-2">
+            <MoreMenuRow
+              icon={<MyProfileIcon color={iconColor} />}
+              label="My Profile"
+              onPress={() => router.push('/profile')}
+            />
+            <MoreMenuRow
+              icon={<AccountSecurityIcon color={iconColor} />}
+              label="Account Security"
+              onPress={() => router.push('/account-security')}
+            />
+            <MoreMenuRow
+              icon={<IncidentReportIcon color={iconColor} />}
+              label="Incident Report"
+              onPress={() => Alert.alert('Coming soon', 'Incident reporting is not available yet.')}
+            />
+            <MoreMenuRow
+              icon={<LinkedDevicesIcon color={iconColor} />}
+              label="Linked Devices"
+              onPress={() => Alert.alert('Coming soon', 'Linked devices is not available yet.')}
+            />
+          </View>
         </View>
 
         <View>
-          
-        
-        <SectionTitle>Sign out</SectionTitle>
-        <View className="flex-col gap-2">
-          <MoreMenuRow
-            icon={<LogOutIcon color={iconColor} />}
-            label="Log Out"
-            onPress={signOut}
-            showNavigateNext={false}
-          />
-          <MoreMenuRow
-            icon={<LogOutIcon color={iconColor} />}
-            label="Log Out of All Devices"
-            onPress={signOut}
-            showNavigateNext={false}
-          />
+          <SectionTitle>About</SectionTitle>
+          <View className="flex-col gap-2">
+            <MoreMenuRow
+              icon={<TermsOfServiceIcon color={iconColor} />}
+              label="Terms of Service"
+              onPress={() =>
+                router.push({
+                  pathname: '/auth/tos',
+                  params: { readonly: 'true' },
+                })
+              }
+            />
+            <MoreMenuRow
+              icon={<PrivacyPolicyIcon color={iconColor} />}
+              label="Privacy Policy"
+              onPress={() =>
+                router.push({
+                  pathname: '/auth/data-protection-policy',
+                  params: { source: 'settings' },
+                })
+              }
+            />
+          </View>
+        </View>
+
+        <View>
+          <SectionTitle>Sign out</SectionTitle>
+          <View className="flex-col gap-2">
+            <MoreMenuRow
+              icon={<LogOutIcon color={iconColor} />}
+              label="Log Out"
+              onPress={signOut}
+              showNavigateNext={false}
+            />
+            <MoreMenuRow
+              icon={<LogOutIcon color={iconColor} />}
+              label="Log Out of All Devices"
+              onPress={signOut}
+              showNavigateNext={false}
+            />
           </View>
         </View>
 

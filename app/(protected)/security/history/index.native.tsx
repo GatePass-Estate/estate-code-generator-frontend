@@ -57,13 +57,7 @@ const groupLogsByMonth = (logs: AccessLogEntry[]) => {
     });
 };
 
-const AccessLogCard = ({
-  entry,
-  onPress,
-}: {
-  entry: AccessLogEntry;
-  onPress: () => void;
-}) => (
+const AccessLogCard = ({ entry, onPress }: { entry: AccessLogEntry; onPress: () => void }) => (
   <Pressable onPress={onPress} className="rounded-[8px] bg-white px-4 py-4 flex-col gap-0.5">
     <View className=" flex-row items-start justify-between  ">
       <Text className=" font-inter-regular text-[9px] text-[#6C6C6C] ">
@@ -72,18 +66,18 @@ const AccessLogCard = ({
       <Text className=" font-inter-regular text-[9px] text-[#6C6C6C]">Access Code</Text>
     </View>
 
-      <View className="items-start justify-center h-6">
+    <View className="items-start justify-center h-6">
       <Text className="text-base font-ubuntu-semibold text-[#0A1F29] ">
         {capitalizeWords(entry.name)}
       </Text>
-      </View>
-  
+    </View>
+
     <View className=" flex-row items-center justify-between ">
-    <Text className="text-xs font-inter-regular capitalize text-[#6C6C6C]">{entry.category}</Text>
-    <Text className="text-xs font-ubuntu-medium  text-[#0A1F29]">
+      <Text className="text-xs font-inter-regular capitalize text-[#6C6C6C]">{entry.category}</Text>
+      <Text className="text-xs font-ubuntu-medium  text-[#0A1F29]">
         {formatAccessCode(entry.hashed_code)}
       </Text>
-      </View>
+    </View>
   </Pressable>
 );
 
@@ -127,10 +121,7 @@ export default function AccessLogScreen() {
         <MaterialIcons name="keyboard-arrow-left" size={24} color="#113E55" />
       </Pressable>
 
-      <ScreenHeader
-        title="Access Log"
-        subtitle="View all access code you have approved"
-      />
+      <ScreenHeader title="Access Log" subtitle="View all access code you have approved" />
 
       <View style={{ flex: 1, paddingTop: 32 }}>
         <View
@@ -147,7 +138,7 @@ export default function AccessLogScreen() {
               width: 148,
               paddingVertical: 13,
               borderRadius: 999,
-              
+
               alignItems: 'center',
               justifyContent: 'center',
               backgroundColor: mode === 'visitor' ? '#CEE5ED' : 'transparent',
@@ -168,8 +159,7 @@ export default function AccessLogScreen() {
               width: 148,
               paddingVertical: 13,
               borderRadius: 999,
-        
-           
+
               alignItems: 'center',
               justifyContent: 'center',
               backgroundColor: mode === 'resident' ? '#CEE5ED' : 'transparent',
@@ -191,26 +181,28 @@ export default function AccessLogScreen() {
           contentContainerStyle={{ flexGrow: 0, paddingBottom: 40, gap: 35 }}
           showsVerticalScrollIndicator={false}
         >
-        {groupedLogs.length === 0 ? (
-          <Text className="px-6 text-center text-sm text-grey">
-            {mode === 'resident'
-              ? 'No resident access logs yet.'
-              : 'No guest access logs found.'}
-          </Text>
-        ) : (
-          groupedLogs.map((group, index) => (
-            <View key={group.label} >
-              <Text className="mb-3 px-4 text-xs font-ubuntu-regular tracking-[1px] text-[#6C6C6C]">
-                {group.label}
-              </Text>
-              <View className="flex-col gap-2">
-                {group.items.map((entry) => (
-                  <AccessLogCard key={entry.id} entry={entry} onPress={() => openTimeline(entry)} />
-                ))}
+          {groupedLogs.length === 0 ? (
+            <Text className="px-6 text-center text-sm text-grey">
+              {mode === 'resident' ? 'No resident access logs yet.' : 'No guest access logs found.'}
+            </Text>
+          ) : (
+            groupedLogs.map((group, index) => (
+              <View key={group.label}>
+                <Text className="mb-3 px-4 text-xs font-ubuntu-regular tracking-[1px] text-[#6C6C6C]">
+                  {group.label}
+                </Text>
+                <View className="flex-col gap-2">
+                  {group.items.map((entry) => (
+                    <AccessLogCard
+                      key={entry.id}
+                      entry={entry}
+                      onPress={() => openTimeline(entry)}
+                    />
+                  ))}
+                </View>
               </View>
-            </View>
-          ))
-        )}
+            ))
+          )}
         </ScrollView>
       </View>
     </SafeAreaView>

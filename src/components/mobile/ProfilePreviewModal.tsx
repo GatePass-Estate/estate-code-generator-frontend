@@ -16,7 +16,6 @@ export default function ProfilePreviewModal({ visible, onClose }: ProfilePreview
       >
         <Pressable
           className="items-center justify-center"
-          
           onPress={(event) => event.stopPropagation()}
         >
           <View className="h-[240px] w-[240px] items-center justify-center rounded-full bg-[#0A1F29]">

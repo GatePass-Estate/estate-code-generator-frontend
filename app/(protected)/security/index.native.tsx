@@ -170,7 +170,9 @@ export default function SecurityVerificationMobile() {
   };
 
   return (
-    <SafeAreaView style={[sharedStyles.container, sharedStyles.modalContainer, { backgroundColor: '#F6F7F7' }]}>
+    <SafeAreaView
+      style={[sharedStyles.container, sharedStyles.modalContainer, { backgroundColor: '#F6F7F7' }]}
+    >
       <Stack.Screen
         options={{
           headerShown: false,
@@ -178,7 +180,7 @@ export default function SecurityVerificationMobile() {
       />
 
       <View className="flex-row items-center justify-between pt-5">
-        <Text className='text-[21px] font-ubuntu-semibold text-[#113E55]'>Incoming Guest</Text>
+        <Text className="text-[21px] font-ubuntu-semibold text-[#113E55]">Incoming Guest</Text>
         <View className="flex-row items-center gap-2">
           <Pressable
             className="w-[38px] h-[38px] rounded-full bg-[#F6FCFF] items-center justify-center"
@@ -237,7 +239,7 @@ export default function SecurityVerificationMobile() {
               width: 119,
               paddingVertical: 13,
               borderRadius: 999,
-              
+
               alignItems: 'center',
               justifyContent: 'center',
               backgroundColor: mode === 'scan' ? '#CEE5ED' : 'transparent',

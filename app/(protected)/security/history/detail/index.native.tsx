@@ -40,13 +40,7 @@ const TIMELINE_DASH_UNIT = 2.8 + 2.8;
 const TIMELINE_LINE_BETWEEN = 56;
 const TIMELINE_LAST_OVERFLOW = TIMELINE_DASH_UNIT * 10;
 
-const TimelineItem = ({
-  event,
-  lineHeight,
-}: {
-  event: TimelineEvent;
-  lineHeight: number;
-}) => (
+const TimelineItem = ({ event, lineHeight }: { event: TimelineEvent; lineHeight: number }) => (
   <View className="flex-row" style={{ overflow: 'visible', gap: 19 }}>
     <View
       style={{
@@ -81,7 +75,9 @@ const TimelineItem = ({
 
     <View className="">
       <Text className="text-base font-ubuntu-semibold text-[#0A1F29]">{event.title}</Text>
-      <Text className="mt-1 text-base font-ubuntu-regular text-[#6C6C6C] tracking-[-0.2px]">{event.timestamp}</Text>
+      <Text className="mt-1 text-base font-ubuntu-regular text-[#6C6C6C] tracking-[-0.2px]">
+        {event.timestamp}
+      </Text>
     </View>
   </View>
 );
@@ -132,11 +128,11 @@ export default function AccessLogDetailScreen() {
         showsVerticalScrollIndicator={false}
         style={{ overflow: 'visible' }}
       >
-      <View className='p-2'>
-      <View className="h-[88px] w-[88px] items-center justify-center rounded-full bg-[#04162D]">
-          <ProfileAvatar width={100} height={100} />
+        <View className="p-2">
+          <View className="h-[88px] w-[88px] items-center justify-center rounded-full bg-[#04162D]">
+            <ProfileAvatar width={100} height={100} />
+          </View>
         </View>
-      </View>
 
         <Text className="mt-3 text-[23px] font-ubuntu-regular text-[#0A1F29]">
           {capitalizeWords(name)}
@@ -153,7 +149,9 @@ export default function AccessLogDetailScreen() {
               <TimelineItem
                 key={event.title}
                 event={event}
-                lineHeight={index === events.length - 1 ? TIMELINE_LAST_OVERFLOW : TIMELINE_LINE_BETWEEN}
+                lineHeight={
+                  index === events.length - 1 ? TIMELINE_LAST_OVERFLOW : TIMELINE_LINE_BETWEEN
+                }
               />
             ))
           )}
