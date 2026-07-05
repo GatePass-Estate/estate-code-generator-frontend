@@ -7,10 +7,17 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/src/hooks/useAuthContext';
 import icons from '@/src/constants/icons';
 import { APP_NATIVE_HEADER_HEIGHT } from '@/src/theme/styles';
+import { MaterialIcons } from '@expo/vector-icons';
 
 const DROPDOWN_GAP_BELOW_AVATAR = 4;
 
-export default function UserIcon({ type = 'admin' }: { type?: string }) {
+export default function UserIcon({
+  type = 'admin',
+  variant = 'initials',
+}: {
+  type?: string;
+  variant?: 'initials' | 'dots';
+}) {
   const first_name = useUserStore((state) => state.first_name);
   const last_name = useUserStore((state) => state.last_name);
   const role = useUserStore((state) => state.role);
@@ -64,14 +71,24 @@ export default function UserIcon({ type = 'admin' }: { type?: string }) {
 
   return (
     <>
-      <View className={`${isMobile && 'mr-5'}`}>
-        <Pressable onPress={handleIconPress} className="flex-row items-center gap-2">
-          <View
-            ref={buttonRef}
-            className={`${Platform.OS === 'web' ? 'w-12 h-12' : 'w-9 h-9'} rounded-full border border-teal justify-center items-center`}
-          >
-            <Text className="uppercase text-teal font-light font-ubuntu text-xl">{initials}</Text>
-          </View>
+      <View className={`${isMobile && variant !== 'dots' ? 'mr-5' : ''}`}>
+        <Pressable
+          ref={buttonRef}
+          onPress={handleIconPress}
+          className="flex-row items-center gap-2"
+          style={{ backgroundColor: 'transparent' }}
+        >
+          {variant === 'dots' ? (
+            <View className="h-[38px] w-[38px] items-center justify-center rounded-full bg-[#F6FCFF]">
+              <MaterialIcons name="more-horiz" size={22} color="#113E55" />
+            </View>
+          ) : (
+            <View
+              className={`${Platform.OS === 'web' ? 'w-12 h-12' : 'w-9 h-9'} rounded-full border border-teal justify-center items-center`}
+            >
+              <Text className="uppercase text-teal font-light font-ubuntu text-xl">{initials}</Text>
+            </View>
+          )}
         </Pressable>
       </View>
 
