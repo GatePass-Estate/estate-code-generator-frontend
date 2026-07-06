@@ -22,7 +22,7 @@ const SectionDivider = ({ title, color }: { title: string; color: 'teal' | 'oran
   const textColor = color === 'teal' ? 'text-teal' : 'text-orange';
 
   return (
-    <View className="flex-row items-center my-2.5">
+    <View className="flex-row items-center my-2.5 px-[22px]">
       <View className={`h-[1px] flex-1 ${lineColor}`} />
       <Text className={`mx-2.5 text-sm font-inter-semibold ${textColor}`}>{title}</Text>
       <View className={`h-[1px] flex-1 ${lineColor}`} />
@@ -91,11 +91,13 @@ export default function ValidationResult() {
             </View>
           </Pressable>
 
-          <View className="w-full items-center rounded-[40px] bg-white pb-2  pt-[30px] flex-col gap-2">
+          <View className="px-[22px] w-full">
+          <View className="w-full items-center rounded-[24px] bg-white pb-2  pt-[30px] flex-col gap-2">
             <Text className="text-[9px] font-inter-semibold text-[#F46036]  mt-1">Access Code</Text>
             <Text className=" text-[50px] font-ubuntu-semibold uppercase  text-primary">
               {code.slice(0, 3)} {code.slice(3)}
             </Text>
+          </View>
           </View>
         </View>
 

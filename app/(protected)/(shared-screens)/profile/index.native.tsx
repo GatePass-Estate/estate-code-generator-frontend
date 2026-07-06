@@ -350,7 +350,7 @@ export default function ProfileScreen() {
 
             <View
               className="flex-row items-center gap-1"
-              style={{ minHeight: isPreview ? 22 : 44 }}
+              style={{ minHeight: isPreview ? 22 : 23 }}
             >
               {!isPreview ? (
                 <>
@@ -360,7 +360,7 @@ export default function ProfileScreen() {
                     activeOpacity={0.6}
                     disabled={!canCopyCode}
                     hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
-                    style={{ minHeight: 44, justifyContent: 'center' }}
+                    style={{ minHeight: 23, justifyContent: 'center' }}
                   >
                     <Text
                       className="text-[24px] font-ubuntu-medium text-primary"
@@ -397,7 +397,7 @@ export default function ProfileScreen() {
                 Code expires on {formattedDate}
               </Text>
             ) : noCode ? (
-              <Text className="text-[11px] font-inter-regular text-grey">
+              <Text className="text-[9px] font-inter-regular text-grey">
                 You do not have a code yet. Tap refresh to generate one.
               </Text>
             ) : null}
