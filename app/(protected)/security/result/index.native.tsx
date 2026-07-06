@@ -22,7 +22,7 @@ const SectionDivider = ({ title, color }: { title: string; color: 'teal' | 'oran
   const textColor = color === 'teal' ? 'text-teal' : 'text-orange';
 
   return (
-    <View className="flex-row items-center my-5">
+    <View className="flex-row items-center my-2.5">
       <View className={`h-[1px] flex-1 ${lineColor}`} />
       <Text className={`mx-2.5 text-sm font-inter-semibold ${textColor}`}>{title}</Text>
       <View className={`h-[1px] flex-1 ${lineColor}`} />
@@ -99,9 +99,9 @@ export default function ValidationResult() {
           </View>
         </View>
 
-        <View className=" mt-6">
+        <View className="">
           {isGuest && (
-            <View className="mb-6 flex-col gap-3">
+            <View className="mb-0 flex-col gap-3 mt-6">
               <SectionDivider title="Guest Details" color="teal" />
               <DetailRow label="Name" value={capitalizeWords(visitor_fullname)} />
               <DetailRow label="Gender" value={formattedGender} />
@@ -109,7 +109,7 @@ export default function ValidationResult() {
             </View>
           )}
 
-          <View>
+          <View className="mt-6">
             <SectionDivider title="Resident Details" color="orange" />
             <View className="flex-col gap-3 ">
               <DetailRow label="Name" value={capitalizeWords(resident_name)} />
