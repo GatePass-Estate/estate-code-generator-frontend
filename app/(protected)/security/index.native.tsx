@@ -226,7 +226,7 @@ export default function SecurityVerificationMobile() {
             onPress={() => switchMode('enter')}
           >
             <Text
-              className={`font-ubuntu-regular text-sm ${
+              className={`font-ubuntu-regular text-xs ${
                 mode === 'enter' ? 'text-[#113E55]' : 'text-[#6C6C6C]'
               }`}
             >
@@ -247,7 +247,7 @@ export default function SecurityVerificationMobile() {
             onPress={() => switchMode('scan')}
           >
             <Text
-              className={`font-ubuntu-regular text-sm ${
+              className={`font-ubuntu-regular text-xs ${
                 mode === 'scan' ? 'text-[#113E55]' : 'text-[#6C6C6C]'
               }`}
             >

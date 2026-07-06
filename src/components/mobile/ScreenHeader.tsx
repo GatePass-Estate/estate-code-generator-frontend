@@ -14,9 +14,11 @@ export default function ScreenHeader({
 }: ScreenHeaderProps) {
   return (
     <View className={containerClassName}>
-      <Text className='text-[21px] leading-6 font-ubuntu-semibold text-[#113E55]'>{title}</Text>
+      <Text className="text-[21px] leading-6 font-ubuntu-semibold text-[#113E55]">{title}</Text>
       {subtitle ? (
-        <Text className="mt-2 text-xs font-ubuntu-regular text-[#0A1F29] leading-[14px]">{subtitle}</Text>
+        <Text className="mt-2 text-xs font-ubuntu-regular text-[#0A1F29] leading-[14px]">
+          {subtitle}
+        </Text>
       ) : null}
     </View>
   );

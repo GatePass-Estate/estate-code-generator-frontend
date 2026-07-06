@@ -106,13 +106,15 @@ export default function ValidationResult() {
         <View className="">
           {isGuest && (
             <View className="mt-6">
-             <SectionDivider title="Guest Details" color="teal" />
-            <View className="mb-0 flex-col gap-3">
-             
-              <DetailRow label="Name" value={capitalizeWords(visitor_fullname)} />
-              <DetailRow label="Gender" value={formattedGender} />
-              <DetailRow label="Relationship" value={capitalizeWords(relationship_with_resident)} />
-            </View>
+              <SectionDivider title="Guest Details" color="teal" />
+              <View className="mb-0 flex-col gap-3">
+                <DetailRow label="Name" value={capitalizeWords(visitor_fullname)} />
+                <DetailRow label="Gender" value={formattedGender} />
+                <DetailRow
+                  label="Relationship"
+                  value={capitalizeWords(relationship_with_resident)}
+                />
+              </View>
             </View>
           )}
 
