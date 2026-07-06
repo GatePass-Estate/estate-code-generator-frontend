@@ -92,22 +92,27 @@ export default function ValidationResult() {
           </Pressable>
 
           <View className="px-[22px] w-full">
-          <View className="w-full items-center rounded-[24px] bg-white pb-2  pt-[30px] flex-col gap-2">
-            <Text className="text-[9px] font-inter-semibold text-[#F46036]  mt-1">Access Code</Text>
-            <Text className=" text-[50px] font-ubuntu-semibold uppercase  text-primary">
-              {code.slice(0, 3)} {code.slice(3)}
-            </Text>
-          </View>
+            <View className="w-full items-center rounded-[24px] bg-white pb-2  pt-[30px] flex-col gap-2">
+              <Text className="text-[9px] font-inter-semibold text-[#F46036]  mt-2">
+                Access Code
+              </Text>
+              <Text className=" text-[50px] font-ubuntu-semibold uppercase  text-primary">
+                {code.slice(0, 3)} {code.slice(3)}
+              </Text>
+            </View>
           </View>
         </View>
 
         <View className="">
           {isGuest && (
-            <View className="mb-0 flex-col gap-3 mt-6">
-              <SectionDivider title="Guest Details" color="teal" />
+            <View className="mt-6">
+             <SectionDivider title="Guest Details" color="teal" />
+            <View className="mb-0 flex-col gap-3">
+             
               <DetailRow label="Name" value={capitalizeWords(visitor_fullname)} />
               <DetailRow label="Gender" value={formattedGender} />
               <DetailRow label="Relationship" value={capitalizeWords(relationship_with_resident)} />
+            </View>
             </View>
           )}
 

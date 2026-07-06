@@ -100,6 +100,8 @@ export default function UsageLogScreen() {
     }));
   }, [log]);
 
+  const isCodeActive = log?.isActive ?? false;
+
   const handleRegenerateCode = useCallback(async () => {
     if (!user_id) return;
     setLoading(true);
@@ -161,7 +163,7 @@ export default function UsageLogScreen() {
 
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingBottom: 120, paddingTop: 21 }}
+        contentContainerStyle={{ paddingBottom: isCodeActive ? 120 : 40, paddingTop: 21 }}
         showsVerticalScrollIndicator={false}
       >
         <View className="w-full pb-10">
@@ -177,19 +179,21 @@ export default function UsageLogScreen() {
         </View>
       </ScrollView>
 
-      <View className="absolute bottom-8 left-5 right-5">
-        <Pressable
-          onPress={handleRegenerateCode}
-          disabled={loading}
-          className="items-center justify-center rounded-full bg-primary py-4"
-        >
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text className="text-base font-ubuntu-medium text-white">Regenerate Code</Text>
-          )}
-        </Pressable>
-      </View>
+      {isCodeActive ? (
+        <View className="absolute bottom-10 left-5 right-5 px-[9px]">
+          <Pressable
+            onPress={handleRegenerateCode}
+            disabled={loading}
+            className="items-center justify-center rounded-full bg-primary p-4"
+          >
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text className="text-sm font-ubuntu-semibold text-white">Regenerate Code</Text>
+            )}
+          </Pressable>
+        </View>
+      ) : null}
     </SafeAreaView>
   );
 }

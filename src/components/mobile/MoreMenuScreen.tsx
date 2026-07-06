@@ -142,7 +142,7 @@ export default function MoreMenuScreen({
 
         <View>
           <SectionTitle>About</SectionTitle>
-          <View className="flex-col gap-2">
+          <View className="flex-col gap-1">
             <MoreMenuRow
               icon={<TermsOfServiceIcon color={iconColor} />}
               label="Terms of Service"
@@ -168,7 +168,7 @@ export default function MoreMenuScreen({
 
         <View>
           <SectionTitle>Sign out</SectionTitle>
-          <View className="flex-col gap-2">
+          <View className="flex-col gap-[7px]">
             <MoreMenuRow
               icon={<LogOutIcon color={iconColor} />}
               label="Log Out"

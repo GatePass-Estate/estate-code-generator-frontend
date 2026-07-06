@@ -18,7 +18,7 @@ export function AccessLogCard({ log, onPress }: AccessLogCardProps) {
     >
       <View className="flex-1 gap-4 flex-col justify-between">
         <View className="">
-          <Text className="text-xs font-ubuntu-medium text-[#6C6C6C]">Access Code</Text>
+          <Text className="text-[9px] font-ubuntu-medium text-[#6C6C6C]">Access Code</Text>
 
           <View className="relative self-start ">
             <Text className="text-[24px] font-ubuntu-medium text-[#0A1F29]">
@@ -36,8 +36,10 @@ export function AccessLogCard({ log, onPress }: AccessLogCardProps) {
         </Text>
       </View>
 
-      <View className="ml-3 flex-col items-end justify-between">
-        <MaterialIcons name="keyboard-arrow-right" size={24} color="#113E55" />
+      <View className=" flex-col items-end justify-between pt-1.5">
+    
+       <MaterialIcons name="keyboard-arrow-right" size={24} color="#113E55" />
+      
         <Text
           className="text-[9px] font-inter-medium text-[#6C6C6C]"
           style={{ transform: [{ skewX: '-12deg' }] }}

@@ -40,7 +40,9 @@ const TIMELINE_DASH_UNIT = 2.8 + 2.8;
 const TIMELINE_LINE_BETWEEN = 56;
 const TIMELINE_LAST_OVERFLOW = TIMELINE_DASH_UNIT * 10;
 
-const TimelineItem = ({ event, lineHeight }: { event: TimelineEvent; lineHeight: number }) => ( <View className="flex-row" style={{ overflow: 'visible', gap: 19 }}> <View
+const TimelineItem = ({ event, lineHeight }: { event: TimelineEvent; lineHeight: number }) => (
+  <View className="flex-row" style={{ overflow: 'visible', gap: 19 }}>
+    <View
       style={{
         width: TIMELINE_DOT_SIZE,
         alignItems: 'center',
@@ -70,7 +72,6 @@ const TimelineItem = ({ event, lineHeight }: { event: TimelineEvent; lineHeight:
       </View>
       <TimelineDashLine height={lineHeight} style={{ marginTop: 2 }} />
     </View>
-
     <View className="">
       <Text className="text-base font-ubuntu-semibold text-[#0A1F29]">{event.title}</Text>
       <Text className="mt-1 text-base font-ubuntu-regular text-[#6C6C6C] tracking-[-0.2px]">

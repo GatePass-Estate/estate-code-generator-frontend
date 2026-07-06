@@ -33,7 +33,7 @@ function IdentificationOptionRow({ label, onPress }: { label: string; onPress: (
   return (
     <Pressable
       onPress={onPress}
-      className="flex-row items-center justify-between rounded-[12px] bg-[#EFF1F1] p-4"
+      className="flex-row items-center justify-between rounded-[16px] bg-[#EFF1F1] p-4"
     >
       <Text className="text-xs font-ubuntu-regular text-[#113E55]">{label}</Text>
       <View className="h-4 w-4 items-center justify-center rounded-full bg-[#CEE5ED]">

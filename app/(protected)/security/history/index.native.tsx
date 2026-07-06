@@ -146,7 +146,7 @@ export default function AccessLogScreen() {
             onPress={() => switchMode('visitor')}
           >
             <Text
-              className={`font-ubuntu-regular text-sm ${
+              className={`font-ubuntu-regular text-xs ${
                 mode === 'visitor' ? 'text-[#113E55]' : 'text-[#6C6C6C]'
               }`}
             >
@@ -167,7 +167,7 @@ export default function AccessLogScreen() {
             onPress={() => switchMode('resident')}
           >
             <Text
-              className={`font-ubuntu-regular text-sm ${
+              className={`font-ubuntu-regular text-xs ${
                 mode === 'resident' ? 'text-[#113E55]' : 'text-[#6C6C6C]'
               }`}
             >
