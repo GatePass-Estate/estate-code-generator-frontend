@@ -1,5 +1,12 @@
-import LoginPage from './login';
+import { useEffect } from 'react';
+import { useRouter } from 'expo-router';
 
 export default function AuthIndex() {
-  return <LoginPage />;
+  const router = useRouter();
+
+  useEffect(() => {
+    router.replace('/auth/institution');
+  }, [router]);
+
+  return null;
 }

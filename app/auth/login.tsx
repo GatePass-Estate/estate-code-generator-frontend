@@ -1,5 +1,3 @@
-// Primidac here - Logic and button for the Google Sign in was commented out instead of removed entirely just incase we need to fall back to the feature in the future.
-import * as WebBrowser from 'expo-web-browser';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import {
@@ -12,20 +10,33 @@ import {
   useWindowDimensions,
   Pressable,
 } from 'react-native';
-import { FontAwesome, AntDesign } from '@expo/vector-icons';
+import { FontAwesome, AntDesign, Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/src/components/nativewindui/Button';
 import { useAuth } from '@/src/hooks/useAuthContext';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { fetchMe, loginUser } from '@/src/lib/api/auth';
 import { useAuthStore } from '@/src/lib/stores/authStore';
-import { broadcastLogin, getWidthBreakpoint, storeAuthState } from '@/src/lib/helpers';
+import {
+  broadcastLogin,
+  getWidthBreakpoint,
+  storeAuthState,
+  getSelectedInstitution,
+  clearSelectedInstitution,
+  type SelectedInstitution,
+} from '@/src/lib/helpers';
 import Images from '@/src/constants/images';
 import { cn } from '@/src/lib/cn';
 import icons from '@/src/constants/icons';
 import LoadingTransition from '@/src/components/common/LoadingTransition';
+import {
+  canUseBiometricLogin,
+  deleteBiometricToken,
+  getBiometricToken,
+  promptBiometrics,
+} from '@/src/lib/biometricAuth';
+import Back from '@/src/components/mobile/Back';
 
-// WebBrowser.maybeCompleteAuthSession();
 SplashScreen.preventAutoHideAsync();
 
 export default function Login() {
@@ -35,26 +46,85 @@ export default function Login() {
   const searchParams = useLocalSearchParams<{ tos_rejected?: string }>();
 
   const [appIsReady, setAppIsReady] = useState(false);
+  const [estate, setEstate] = useState<SelectedInstitution | null>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showTosRejected, setShowTosRejected] = useState(searchParams.tos_rejected === 'true');
+  const [showBiometric, setShowBiometric] = useState(false);
 
   const isLargeScreen = width > getWidthBreakpoint();
 
   useEffect(() => {
     const prepare = async () => {
-      await new Promise((r) => setTimeout(r, 1000));
+      const institution = await getSelectedInstitution();
+      if (!institution) {
+        router.replace('/auth/institution');
+        return;
+      }
+      setEstate(institution);
+      const biometric = await canUseBiometricLogin();
+      setShowBiometric(biometric);
       setAppIsReady(true);
     };
     prepare();
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     if (errorMessage) setErrorMessage('');
+    // Only clear when input values change; intentional exclusion.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [email, password]);
+
+  useEffect(() => {
+    if (Platform.OS === 'web') document.title = 'Login - GatePass';
+  }, []);
+
+  const handleBackPress = useCallback(async () => {
+    await clearSelectedInstitution();
+    router.replace('/auth/institution');
+  }, [router]);
+
+  const finishSignIn = useCallback(
+    async (token: string, options?: { clearExistingBiometric?: boolean }) => {
+      try {
+        const user = await fetchMe(token);
+        useAuthStore.setState({ access_token: token, role: user.role });
+        await storeAuthState({ access_token: token, role: user.role });
+        broadcastLogin(token, user.role);
+        signIn(user);
+
+        // If a different user/estate just signed in, remove any biometric token
+        // that belonged to the previous account so the toggle and login screen
+        // stay accurate for the active account.
+        if (options?.clearExistingBiometric) {
+          try {
+            const { biometricTokenMatchesUser } = await import('@/src/lib/biometricAuth');
+            const matches = await biometricTokenMatchesUser(user.user_id, user.estate_id);
+            if (!matches) {
+              await deleteBiometricToken();
+            }
+          } catch {
+            // ignore cleanup errors
+          }
+        }
+
+        if (user.role === 'resident' || ['primary_admin', 'admin'].includes(user.role!)) {
+          router.replace('/user');
+        } else if (user.role === 'security') {
+          router.replace('/security');
+        } else {
+          setErrorMessage('Incorrect username or password.');
+          setIsLoading(false);
+        }
+      } catch (error: any) {
+        throw error;
+      }
+    },
+    [router, signIn]
+  );
 
   const handleSignInPress = useCallback(async () => {
     setErrorMessage('');
@@ -81,7 +151,7 @@ export default function Login() {
     }
 
     try {
-      const result = await loginUser(emailValue, password);
+      const result = await loginUser(emailValue, password, estate?.estate_id);
 
       if (result.requires_tos_acceptance && result.access_token) {
         router.push({
@@ -92,31 +162,46 @@ export default function Login() {
         return;
       }
 
-      useAuthStore.setState({ access_token: result.access_token, role: result.role });
-      await storeAuthState(result);
-
-      // Broadcast login to other tabs (web only)
-      broadcastLogin(result.access_token, result.role);
-
-      signIn(await fetchMe(result.access_token));
-
-      if (result.role === 'resident' || ['primary_admin', 'admin'].includes(result.role!)) {
-        router.replace('/user');
-      } else if (result.role === 'security') {
-        router.replace('/security');
-      } else {
-        setErrorMessage('Incorrect username or password.');
-      }
+      await finishSignIn(result.access_token, { clearExistingBiometric: true });
     } catch (error: any) {
       setErrorMessage(error.message || 'Login failed');
-    } finally {
       setIsLoading(false);
     }
-  }, [email, password, signIn, router]);
+  }, [email, password, estate, finishSignIn, router]);
 
-  useEffect(() => {
-    if (Platform.OS === 'web') document.title = 'Login - GatePass';
-  }, []);
+  const handleBiometricLogin = useCallback(async () => {
+    setErrorMessage('');
+    setIsLoading(true);
+
+    try {
+      const authenticated = await promptBiometrics('Unlock GatePass');
+      if (!authenticated) {
+        setIsLoading(false);
+        return;
+      }
+
+      // On the login screen we do not yet know which user is signing in, so we
+      // load whichever token the current device owner previously saved and let
+      // the backend profile fetch verify identity.
+      const token = await getBiometricToken();
+      if (!token) {
+        await deleteBiometricToken();
+        setShowBiometric(false);
+        setErrorMessage('Biometric login is not available. Please sign in with your password.');
+        setIsLoading(false);
+        return;
+      }
+
+      await finishSignIn(token);
+    } catch (error: any) {
+      await deleteBiometricToken();
+      setShowBiometric(false);
+      setErrorMessage(
+        error.message || 'Biometric login failed. Please sign in with your password.'
+      );
+      setIsLoading(false);
+    }
+  }, [finishSignIn]);
 
   const ErrorBanner = useMemo(
     () =>
@@ -138,9 +223,11 @@ export default function Login() {
 
   return (
     <>
-      <SafeAreaView className={`h-full ${isLargeScreen ? 'grid grid-cols-12' : 'flex-1 bg-white'}`}>
+      <SafeAreaView
+        className={`min-h-[100dvh] bg-body ${isLargeScreen ? 'grid grid-cols-12' : 'flex-1'}`}
+      >
         {isLargeScreen && (
-          <View className="col-span-6 relative h-screen overflow-hidden">
+          <View className="col-span-6 relative min-h-[100dvh] overflow-hidden">
             <Image
               source={Images.loginImage}
               resizeMode="cover"
@@ -150,154 +237,138 @@ export default function Login() {
         )}
 
         <View
-          className={cn(`p-6 w-full self-center ${isLargeScreen ? 'col-span-6' : ''} `)}
-          style={{
-            flex: 1,
-            justifyContent: 'center',
-          }}
+          className={cn(`w-full px-5 pt-6 ${isLargeScreen ? 'col-span-6' : 'flex-1'}`)}
+          style={{ flex: 1 }}
         >
-          <View className="items-center mb-10 text-center max-w-xl">
-            <Text
-              className={`text-primary font-UbuntuSans ${isLargeScreen ? 'text-7xl' : 'text-5xl'}`}
-            >
-              Welcome !
-            </Text>
-            <Text
-              className={`mt-1 text-black font-Inter ${isLargeScreen ? 'text-base' : 'text-xs font-medium'}`}
-            >
-              Sign in to send invites to your guests
-            </Text>
-          </View>
+          <Back type="short-arrow" onPress={handleBackPress} showText={false} showBorder={true} />
 
-          <View className="gap-4 max-w-xl">
-            {showTosRejected && !isLargeScreen && (
-              <View
+          {showTosRejected && !isLargeScreen && (
+            <View
+              style={{
+                borderRadius: 16,
+                borderWidth: 0.5,
+                borderColor: '#FFCDD2',
+                backgroundColor: '#FFF0F0',
+                paddingVertical: 14,
+                paddingHorizontal: 24,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                alignSelf: 'center',
+                gap: 10,
+                marginBottom: 16,
+              }}
+            >
+              <Text
                 style={{
-                  borderRadius: 16,
-                  borderWidth: 0.5,
-                  borderColor: '#FFCDD2',
-                  backgroundColor: '#FFF0F0',
-                  paddingVertical: 14,
-                  paddingHorizontal: 20,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  alignSelf: 'center',
-                  gap: 10,
+                  color: '#E53935',
+                  fontSize: 14,
+                  fontStyle: 'italic',
                 }}
+                className="font-inter-semibold text-center"
               >
-                <FontAwesome name="warning" size={18} color="#E53935" />
-                <Text
-                  style={{
-                    color: '#E53935',
-                    fontSize: 14,
-                    fontFamily: 'Ubuntu-BoldItalic',
-                    textAlign: 'center',
-                    fontWeight: 'bold',
-                    fontStyle: 'italic',
-                  }}
-                >
-                  Please Accept Terms and Conditions{'\n'}to use GatePass
-                </Text>
-              </View>
-            )}
-
-            {ErrorBanner}
-
-            <View>
-              <Text className={`pb-1 text-grey ${isLargeScreen ? 'text-base' : ''}`}>
-                Email Address
+                {`Please Accept Terms and Conditions \nto use GatePass`}
               </Text>
-              <TextInput
-                placeholder="Enter your email address..."
-                keyboardType="email-address"
-                value={email}
-                onChangeText={setEmail}
-                autoCapitalize="none"
-                editable={!isLoading}
-                className="bg-[#F7F9F9] border border-[#D1D5DB] rounded-lg px-4 py-5 mt-1"
-              />
             </View>
+          )}
 
-            <View>
-              <Text className={`pb-1 text-grey ${isLargeScreen ? 'text-base' : ''}`}>Password</Text>
-              <View className="relative">
-                <TextInput
-                  placeholder="Enter your password..."
-                  secureTextEntry={!showPassword}
-                  value={password}
-                  onChangeText={setPassword}
-                  editable={!isLoading}
-                  className="bg-[#F7F9F9] border border-[#D1D5DB] rounded-lg px-4 py-5 mt-1 pr-12"
-                  contextMenuHidden={true}
-                  selectTextOnFocus={false}
-                />
-                <Pressable
-                  onPress={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-6"
-                  disabled={isLoading}
-                >
-                  <Image
-                    source={showPassword ? icons.eye : icons.hiddenEye}
-                    style={{ width: 20, height: 20 }}
-                    resizeMode="contain"
+          <View
+            className="flex-1"
+            style={{ justifyContent: isLargeScreen ? 'center' : 'flex-start' }}
+          >
+            <View
+              className={`max-w-xl w-full justify-center self-center flex-1 ${showTosRejected && !isLargeScreen ? 'my-20' : 'my-40'}`}
+            >
+              <View className={cn(`mb-10 max-w-xl items-center text-center`)}>
+                <Text className={cn(`text-primary font-ubuntu-semibold text-2xl`)}>Sign In to</Text>
+                <Text className={cn(`text-primary font-ubuntu-medium mt-1 text-4xl`)}>
+                  {estate?.estate_name}
+                </Text>
+              </View>
+
+              {ErrorBanner}
+
+              <View className="gap-4">
+                <View className="relative">
+                  <Text className="text-sm text-[#9B9797] mb-2">Email Address</Text>
+                  <TextInput
+                    placeholder="Enter your email address"
+                    placeholderTextColor="#9B9797"
+                    keyboardType="email-address"
+                    value={email}
+                    onChangeText={setEmail}
+                    autoCapitalize="none"
+                    editable={!isLoading}
+                    className="bg-light-grey rounded-xl px-4 h-14 font-Inter text-base text-black"
                   />
-                </Pressable>
+                </View>
+
+                <View className="relative">
+                  <Text className="text-sm text-[#9B9797] mb-2">Password</Text>
+                  <TextInput
+                    placeholder="Enter your password"
+                    placeholderTextColor="#9B9797"
+                    secureTextEntry={!showPassword}
+                    value={password}
+                    onChangeText={setPassword}
+                    autoCapitalize="none"
+                    editable={!isLoading}
+                    className="bg-light-grey rounded-xl px-4 h-14 pr-12 font-Inter text-base text-black"
+                    contextMenuHidden={true}
+                    selectTextOnFocus={false}
+                  />
+                  <Pressable
+                    onPress={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-11 active:opacity-70"
+                    disabled={isLoading}
+                  >
+                    <Image
+                      source={showPassword ? icons.eye : icons.hiddenEye}
+                      className="w-5 h-5"
+                      resizeMode="contain"
+                    />
+                  </Pressable>
+                </View>
               </View>
 
-              <Pressable
-                className="mt-5 self-start"
-                onPress={() => router.push('/auth/forgot-password')}
-              >
-                <Text
-                  className="text-primary font-ubuntu-medium text-base underline"
-                  style={{ letterSpacing: -0.24, lineHeight: 16 }}
-                >
-                  Forgot Password?
-                </Text>
-              </Pressable>
-            </View>
+              <View className="mt-auto gap-4 mx-8">
+                <View className="flex-row w-full items-center gap-3">
+                  <Button
+                    className="h-14 w-full flex-row items-center justify-center rounded-full"
+                    size={Platform.select({ ios: 'lg', default: 'lg' })}
+                    onPress={handleSignInPress}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <ActivityIndicator color="#fff" />
+                    ) : (
+                      <Text className="text-white font-ubuntu-semibold text-lg">Continue</Text>
+                    )}
+                  </Button>
 
-            <View className="mt-4 gap-5">
-              <Button
-                className={`self-center rounded-lg flex-row items-center justify-center w-11/12 h-14 ${isLoading ? 'opacity-70' : ''}`}
-                size={Platform.select({ ios: 'lg', default: 'lg' })}
-                onPress={handleSignInPress}
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text className="text-white font-UbuntuSans font-semibold text-center">
-                    Continue
-                  </Text>
-                )}
-              </Button>
+                  {showBiometric && (
+                    <Pressable
+                      onPress={handleBiometricLogin}
+                      disabled={isLoading}
+                      className="self-center w-14 h-14 rounded-full bg-primary items-center justify-center active:opacity-80"
+                    >
+                      <Ionicons name="finger-print" size={28} color="#CEE5ED" />
+                    </Pressable>
+                  )}
+                </View>
 
-              <View className="mt-1 flex-row justify-center flex-wrap items-center">
-                <Text className="text-grey font-Inter text-sm">
-                  By continuing, you agree to our{' '}
-                </Text>
                 <Pressable
-                  onPress={() =>
-                    router.push({ pathname: '/auth/tos', params: { readonly: 'true' } })
-                  }
+                  className="self-center active:opacity-70 w-full bg-[#E5F6FF] rounded-full h-14 items-center justify-center"
+                  onPress={() => router.push('/auth/forgot-password')}
                 >
-                  <Text className="text-primary font-ubuntu-medium text-sm underline">
-                    Terms of Service
+                  <Text
+                    className="text-primary font-ubuntu-semibold text-lg"
+                    style={{ letterSpacing: -0.24, lineHeight: 16 }}
+                  >
+                    Forgot Password?
                   </Text>
                 </Pressable>
               </View>
-
-              {/* <Button
-                className={`self-center rounded-lg flex-row items-center justify-center w-11/12 h-14 bg-dark-teal ${isLoading ? "opacity-70" : ""}`}
-                size={Platform.select({ ios: "lg", default: "lg" })}
-                disabled={isLoading}
-              >
-                <Text className="text-white font-UbuntuSans font-semibold text-center">
-                  Continue With Google
-                </Text>
-              </Button> */}
             </View>
           </View>
         </View>

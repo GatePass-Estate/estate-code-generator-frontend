@@ -15,3 +15,21 @@ export type Codes = {
 export type CodesApiResponse = {
   items: Codes[];
 };
+
+export type Estate = {
+  id: string;
+  name: string;
+  location: string;
+  estate_type?: string | null;
+  lga?: string | null;
+  state?: string | null;
+  country?: string | null;
+  postal_code?: string | null;
+};
+
+export type PublicEstateListResponse = {
+  total: number;
+  page: number;
+  limit: number;
+  items: Estate[];
+};

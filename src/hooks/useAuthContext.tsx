@@ -1,6 +1,14 @@
 import { Platform } from 'react-native';
 import { fetchMe } from '@/src/lib/api/auth';
-import { broadcastLogout, clearAuthState, getAuthState, initAuthSync } from '@/src/lib/helpers';
+import {
+  broadcastLogout,
+  clearAccessToken,
+  clearAuthState,
+  getAuthState,
+  getSelectedInstitution,
+  initAuthSync,
+} from '@/src/lib/helpers';
+import { deleteBiometricToken } from '@/src/lib/biometricAuth';
 import { useAuthStore } from '@/src/lib/stores/authStore';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { AuthContextType } from '@/src/types/auth';
@@ -23,6 +31,7 @@ const PUBLIC_AUTH_ROUTES = [
   '/activate',
   '/auth/set-password',
   '/auth/email-activation-status',
+  '/auth/institution',
   '/auth/login',
   '/auth/forgot-password',
   '/auth/reset-password',
@@ -36,6 +45,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const isProcessingRef = useRef(false);
+
+  const handleCrossTabLogout = useCallback(async () => {
+    if (isProcessingRef.current) return;
+    isProcessingRef.current = true;
+
+    try {
+      useUserStore.getState().clearUser();
+      useAuthStore.getState().clearAuth();
+      router.replace('/auth/institution');
+    } finally {
+      isProcessingRef.current = false;
+    }
+  }, [router]);
+
+  const performSignOut = useCallback(async () => {
+    setIsReady(false);
+    useUserStore.getState().clearUser();
+    useAuthStore.getState().clearAuth();
+    await clearAuthState();
+    try {
+      await deleteBiometricToken();
+    } catch (e) {
+      console.log('Error clearing biometric token during sign out', e);
+    }
+    broadcastLogout();
+    // Force full component reset by incrementing key
+    setResetKey((prev) => prev + 1);
+    router.replace('/auth/institution');
+  }, [router]);
+
+  const signIn = async (userData: User) => {
+    useUserStore.setState({ ...userData });
+    setIsReady(true);
+  };
+
+  const signOut = async () => {
+    await performSignOut();
+  };
 
   const handleCrossTabLogin = useCallback(
     async (token: string, role: UserRolesType) => {
@@ -63,41 +110,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isProcessingRef.current = false;
       }
     },
-    [router]
+    [router, performSignOut]
   );
-
-  const handleCrossTabLogout = useCallback(async () => {
-    if (isProcessingRef.current) return;
-    isProcessingRef.current = true;
-
-    try {
-      useUserStore.getState().clearUser();
-      useAuthStore.getState().clearAuth();
-      router.replace('/auth/login');
-    } finally {
-      isProcessingRef.current = false;
-    }
-  }, [router]);
-
-  const performSignOut = useCallback(async () => {
-    setIsReady(false);
-    useUserStore.getState().clearUser();
-    useAuthStore.getState().clearAuth();
-    await clearAuthState();
-    broadcastLogout();
-    // Force full component reset by incrementing key
-    setResetKey((prev) => prev + 1);
-    router.replace('/auth/login');
-  }, [router]);
-
-  const signIn = async (userData: User) => {
-    useUserStore.setState({ ...userData });
-    setIsReady(true);
-  };
-
-  const signOut = async () => {
-    await performSignOut();
-  };
 
   const hasLoadedAuth = useRef(false);
 
@@ -124,33 +138,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           : pathname;
       const localData = await getAuthState();
 
+      // Always require explicit login or biometric unlock on app start.
+      // Do not auto-sign in from a token left in storage.
       if (localData?.access_token) {
-        useAuthStore.setState({
-          access_token: localData.access_token,
-          role: localData.role,
-        });
+        await clearAccessToken();
+        useAuthStore.getState().clearAuth();
+        useUserStore.getState().clearUser();
       }
 
-      try {
-        const myProfile = (await fetchMe(localData?.access_token || '')) as User;
-
-        if (myProfile && myProfile.status) {
-          await signIn(myProfile);
-          if (['primary_admin', 'admin', 'resident'].includes(myProfile.role!)) {
-            router.replace('/user');
-          } else if (myProfile.role === 'security') {
-            router.replace('/security');
-          }
-        } else {
-          if (!isPublicRoute(currentPath, initialURL)) router.replace('/auth/login');
-        }
-      } catch (error) {
-        if (!isPublicRoute(currentPath, initialURL)) router.replace('/auth/login');
-        console.log('Error loading auth state', error);
-      } finally {
-        setIsReady(true);
-        await SplashScreen.hideAsync();
+      if (!isPublicRoute(currentPath, initialURL)) {
+        const institution = await getSelectedInstitution();
+        router.replace(institution ? '/auth/login' : '/auth/institution');
       }
+
+      setIsReady(true);
+      await SplashScreen.hideAsync();
     };
 
     loadAuthState();

@@ -19,6 +19,7 @@ import { useAuth } from '@/src/hooks/useAuthContext';
 import { acceptTos, fetchMe } from '@/src/lib/api/auth';
 import { useAuthStore } from '@/src/lib/stores/authStore';
 import { broadcastLogin, getWidthBreakpoint, storeAuthState } from '@/src/lib/helpers';
+import { biometricTokenMatchesUser, deleteBiometricToken } from '@/src/lib/biometricAuth';
 import Images from '@/src/constants/images';
 import { UserRolesType } from '@/src/types/general';
 
@@ -260,6 +261,18 @@ export default function TermsOfService() {
       broadcastLogin(token, role);
       signIn(await fetchMe(token));
 
+      // Accepting TOS completes a fresh login. Only clear the biometric token
+      // when the newly signed-in user/estate differs from the one stored.
+      try {
+        const user = await fetchMe(token);
+        const matches = await biometricTokenMatchesUser(user.user_id, user.estate_id);
+        if (!matches) {
+          await deleteBiometricToken();
+        }
+      } catch {
+        // ignore cleanup errors
+      }
+
       if (role === 'resident' || ['primary_admin', 'admin'].includes(role!)) {
         router.replace('/user');
       } else if (role === 'security') {
@@ -454,8 +467,8 @@ export default function TermsOfService() {
   return (
     <SafeAreaView className="flex-1 bg-white">
       <View className="flex-row justify-between items-center px-5 pt-4">
-        <Back type="short-arrow" onPress={handleBackFromTerms} />
-        <Image source={Images.logo} style={{ width: 36, height: 36 }} resizeMode="contain" />
+        <Back type="short-arrow" onPress={handleBackFromTerms} showText={false} showBorder={true} />
+        <Image source={Images.logo} style={{ width: 50, height: 50 }} resizeMode="contain" />
       </View>
 
       <ScrollView
@@ -525,7 +538,7 @@ export default function TermsOfService() {
               disabled={isAccepting}
               style={{
                 backgroundColor: '#113E55',
-                borderRadius: 10,
+                borderRadius: 100,
                 height: 56,
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -536,15 +549,15 @@ export default function TermsOfService() {
               {isAccepting ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text className="text-white font-UbuntuSans font-semibold text-base">I Accept</Text>
+                <Text className="text-white font-ubuntu-semibold text-base">I Accept</Text>
               )}
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleReject}
               disabled={isRejecting}
               style={{
-                backgroundColor: '#1B998B',
-                borderRadius: 10,
+                backgroundColor: '#CEE5ED',
+                borderRadius: 100,
                 height: 56,
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -555,7 +568,7 @@ export default function TermsOfService() {
               {isRejecting ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text className="text-white font-UbuntuSans font-semibold text-base">I Reject</Text>
+                <Text className="text-primary font-ubuntu-semibold text-base">I Reject</Text>
               )}
             </TouchableOpacity>
           </View>

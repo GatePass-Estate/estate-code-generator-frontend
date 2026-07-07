@@ -5,9 +5,13 @@ import icons from '@/src/constants/icons';
 
 const Back = ({
   type = 'long-arrow',
+  showText = true,
+  showBorder = false,
   onPress,
 }: {
   type?: 'long-arrow' | 'short-arrow';
+  showText?: boolean;
+  showBorder?: boolean;
   onPress?: () => void;
 }) => {
   const navigation = useNavigation();
@@ -15,17 +19,25 @@ const Back = ({
 
   if (type === 'long-arrow')
     return (
-      <TouchableOpacity style={styles.backButton} onPress={handlePress}>
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={handlePress}
+        className={showBorder ? 'bg-[#EFF1F1] rounded-full p-3 self-start ' : 'p-3 self-start '}
+      >
         <Icon name="arrow-back" size={20} color="#113E55" />
-        <Text style={styles.backText}>Back</Text>
+        {showText && <Text style={styles.backText}>Back</Text>}
       </TouchableOpacity>
     );
 
   if (type === 'short-arrow')
     return (
-      <TouchableOpacity style={[styles.backButton, { gap: 8 }]} onPress={handlePress}>
+      <TouchableOpacity
+        style={[styles.backButton, { gap: 8 }]}
+        onPress={handlePress}
+        className={showBorder ? 'bg-[#EFF1F1] rounded-full p-3 self-start ' : 'p-3 self-start '}
+      >
         <Image source={icons.backIcon} style={styles.backIcon} />
-        <Text style={styles.backText}>Back</Text>
+        {showText && <Text style={styles.backText}>Back</Text>}
       </TouchableOpacity>
     );
 

@@ -1,7 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthState } from './stores/authStore';
-import axios from 'axios';
-import { Codes } from '../types/codes';
+import { isAxiosError } from 'axios';
 import { AuthBroadcastMessage, UserRolesType } from '../types/general';
 import icons from '../constants/icons';
 import { Platform } from 'react-native';
@@ -107,8 +106,18 @@ export const storeAuthState = async (userData: AuthState): Promise<boolean> => {
 export const clearAuthState = async (): Promise<void> => {
   try {
     await AsyncStorage.removeItem(authStorageKey);
+    await clearSelectedInstitution();
+    await clearForgotPasswordCooldown();
   } catch (error) {
     console.log('Error clearing auth state', error);
+  }
+};
+
+export const clearAccessToken = async (): Promise<void> => {
+  try {
+    await AsyncStorage.removeItem(authStorageKey);
+  } catch (error) {
+    console.log('Error clearing access token', error);
   }
 };
 
@@ -122,8 +131,102 @@ export const getAuthState = async (): Promise<AuthState | null> => {
   }
 };
 
+const INSTITUTION_STORAGE_KEY = 'selected-institution';
+
+export type SelectedInstitution = {
+  estate_id: string;
+  estate_name: string;
+};
+
+export const setSelectedInstitution = async (
+  institution: SelectedInstitution
+): Promise<boolean> => {
+  try {
+    await AsyncStorage.setItem(INSTITUTION_STORAGE_KEY, JSON.stringify(institution));
+    return true;
+  } catch (error) {
+    console.log('Error saving selected institution', error);
+    return false;
+  }
+};
+
+export const getSelectedInstitution = async (): Promise<SelectedInstitution | null> => {
+  try {
+    const jsonValue = await AsyncStorage.getItem(INSTITUTION_STORAGE_KEY);
+    return jsonValue != null ? JSON.parse(jsonValue) : null;
+  } catch (error) {
+    console.log('Error retrieving selected institution', error);
+    return null;
+  }
+};
+
+export const clearSelectedInstitution = async (): Promise<void> => {
+  try {
+    await AsyncStorage.removeItem(INSTITUTION_STORAGE_KEY);
+  } catch (error) {
+    console.log('Error clearing selected institution', error);
+  }
+};
+
+const FORGOT_PASSWORD_COOLDOWN_KEY = 'forgot-password-cooldown';
+
+export type ForgotPasswordCooldown = {
+  attempts: number;
+  lastAttemptAt: string;
+};
+
+const COOLDOWN_SECONDS = [0, 30, 60, 120, 300];
+const COOLDOWN_RESET_HOURS = 24;
+
+export const getForgotPasswordCooldown = async (): Promise<ForgotPasswordCooldown | null> => {
+  try {
+    const jsonValue = await AsyncStorage.getItem(FORGOT_PASSWORD_COOLDOWN_KEY);
+    if (!jsonValue) return null;
+    const parsed = JSON.parse(jsonValue) as ForgotPasswordCooldown;
+    const lastAttempt = new Date(parsed.lastAttemptAt).getTime();
+    const resetAfterMs = COOLDOWN_RESET_HOURS * 60 * 60 * 1000;
+    if (Number.isNaN(lastAttempt) || Date.now() - lastAttempt > resetAfterMs) {
+      return { attempts: 0, lastAttemptAt: new Date(0).toISOString() };
+    }
+    return parsed;
+  } catch (error) {
+    console.log('Error retrieving forgot-password cooldown', error);
+    return null;
+  }
+};
+
+export const recordForgotPasswordAttempt = async (): Promise<void> => {
+  try {
+    const current = await getForgotPasswordCooldown();
+    const attempts = (current?.attempts ?? 0) + 1;
+    const payload: ForgotPasswordCooldown = {
+      attempts,
+      lastAttemptAt: new Date().toISOString(),
+    };
+    await AsyncStorage.setItem(FORGOT_PASSWORD_COOLDOWN_KEY, JSON.stringify(payload));
+  } catch (error) {
+    console.log('Error recording forgot-password attempt', error);
+  }
+};
+
+export const getForgotPasswordCooldownSeconds = async (): Promise<number> => {
+  const cooldown = await getForgotPasswordCooldown();
+  const attempts = cooldown?.attempts ?? 0;
+  if (attempts === 0) return 0;
+  const index = Math.min(attempts, COOLDOWN_SECONDS.length - 1);
+  return COOLDOWN_SECONDS[index];
+};
+
+export const clearForgotPasswordCooldown = async (): Promise<void> => {
+  try {
+    await AsyncStorage.removeItem(FORGOT_PASSWORD_COOLDOWN_KEY);
+  } catch (error) {
+    console.log('Error clearing forgot-password cooldown', error);
+  }
+};
+
 export const getErrorMessage = (error: any): string => {
-  if (axios.isAxiosError(error) && error.response?.data) {
+  if (isAxiosError(error) && error.response?.data) {
     const data = error.response.data;
 
     if (Array.isArray(data.detail)) {

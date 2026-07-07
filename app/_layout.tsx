@@ -22,11 +22,12 @@ function RootLayoutContent() {
       <StatusBar style="dark" />
       <Stack
         key={resetKey}
-        initialRouteName="auth/login"
+        initialRouteName="auth/institution"
         screenOptions={{
           headerShown: false,
         }}
       >
+        <Stack.Screen name="auth/institution" options={{ animation: 'none' }} />
         <Stack.Screen name="auth/login" options={{ animation: 'none' }} />
         <Stack.Screen name="auth/tos" options={{ animation: 'none' }} />
         <Stack.Screen name="auth/set-password" />
