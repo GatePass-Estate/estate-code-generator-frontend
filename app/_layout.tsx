@@ -1,18 +1,20 @@
 import { View } from 'react-native';
 import { useFonts } from 'expo-font';
-import * as SplashScreen from 'expo-splash-screen';
+import * as ExpoSplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { Stack } from 'expo-router';
 import AndroidNavBarGlobal from '@/src/components/common/AndroidNavBarGlobal';
 import { AuthProvider, useAuth } from '@/src/hooks/useAuthContext';
+import { SplashScreen } from '@/src/components/common/SplashScreen';
 import 'react-native-reanimated';
 import { Inter, UbuntuSans } from '@/src/constants/fonts';
 import './global.css';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { useCallback, useEffect, useState } from 'react';
 
-SplashScreen.preventAutoHideAsync();
+ExpoSplashScreen.preventAutoHideAsync();
 
 function RootLayoutContent() {
   const { resetKey } = useAuth();
@@ -44,7 +46,7 @@ function RootLayoutContent() {
 }
 
 export default function RootLayout() {
-  const [loaded] = useFonts({
+  const [loaded, fontError] = useFonts({
     RobotoItalic: require('../src/assets/fonts/Roboto-Italic-VariableFont_wdth,wght.ttf'),
     Roboto: require('../src/assets/fonts/Roboto-VariableFont_wdth,wght.ttf'),
     UbuntuSans: require('../src/assets/fonts/UbuntuSans-VariableFont_wdth,wght.ttf'),
@@ -66,19 +68,45 @@ export default function RootLayout() {
     [Inter.mediumItalic]: require('../src/assets/fonts/Inter_18pt-MediumItalic.ttf'),
   });
 
-  if (!loaded) {
-    return null;
-  }
+  const [appReady, setAppReady] = useState(false);
+
+  useEffect(() => {
+    ExpoSplashScreen.hideAsync().catch((error) => {
+      console.log('Error hiding native splash screen', error);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (fontError) {
+      console.log('Error loading fonts', fontError);
+    }
+  }, [fontError]);
+
+  const handleSplashComplete = useCallback(() => {
+    setAppReady(true);
+  }, []);
+
+  const isBootstrapComplete = appReady && (loaded || Boolean(fontError));
 
   return (
     <SafeAreaProvider>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <View style={{ flex: 1 }}>
-            <RootLayoutContent />
-          </View>
-        </AuthProvider>
-      </QueryClientProvider>
+      {!isBootstrapComplete ? (
+        <>
+          <StatusBar style="light" />
+          <SplashScreen
+            ready={loaded || Boolean(fontError)}
+            onAnimationComplete={handleSplashComplete}
+          />
+        </>
+      ) : (
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <View style={{ flex: 1 }}>
+              <RootLayoutContent />
+            </View>
+          </AuthProvider>
+        </QueryClientProvider>
+      )}
     </SafeAreaProvider>
   );
 }

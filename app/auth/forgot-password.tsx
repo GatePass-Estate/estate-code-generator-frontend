@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { forgotPassword } from '@/src/lib/api/auth';
 import {
+  getForgotPasswordCooldown,
   getForgotPasswordCooldownSeconds,
   getSelectedInstitution,
   getWidthBreakpoint,
@@ -61,6 +62,14 @@ export default function ForgotPassword() {
       if (institution?.estate_id) {
         setEstateId(institution.estate_id);
       }
+
+      const cooldown = await getForgotPasswordCooldown();
+      if (cooldown?.email) {
+        setEmail(cooldown.email);
+        setIsSuccess(true);
+        const remaining = await getForgotPasswordCooldownSeconds(cooldown.email);
+        setSecondsRemaining(remaining);
+      }
     };
     loadInitialState();
   }, []);
@@ -69,7 +78,12 @@ export default function ForgotPassword() {
     let interval: ReturnType<typeof setInterval> | null = null;
 
     const tick = async () => {
-      const remaining = await getForgotPasswordCooldownSeconds();
+      if (!email.trim()) {
+        setSecondsRemaining(0);
+        return;
+      }
+
+      const remaining = await getForgotPasswordCooldownSeconds(email);
       setSecondsRemaining(remaining);
     };
 
@@ -79,11 +93,11 @@ export default function ForgotPassword() {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, []);
+  }, [email]);
 
   const submit = useCallback(
     async (emailValue: string) => {
-      await recordForgotPasswordAttempt();
+      await recordForgotPasswordAttempt(emailValue);
       await forgotPassword(emailValue, estateId);
     },
     [estateId]
@@ -172,33 +186,23 @@ export default function ForgotPassword() {
             <View className="bg-light-teal rounded-full p-4 mb-4">
               <FontAwesome name="check-circle" size={40} color="#1B998B" />
             </View>
-            <Text
-              className={`text-primary font-UbuntuSans font-semibold ${isLargeScreen ? 'text-4xl' : 'text-3xl'}`}
-            >
-              Check your email
-            </Text>
-            <Text
-              className={`mt-3 text-grey font-Inter ${isLargeScreen ? 'text-base' : 'text-sm'} text-center px-4`}
-            >
+            <Text className={`text-primary font-ubuntu-semibold text-4xl`}>Check your email</Text>
+            <Text className={`mt-3 text-grey font-inter-regular text-center px-4`}>
               {"We've sent a password reset link to"}
               {'\n'}
               <Text className="font-ubuntu-bold text-primary">{email}</Text>
-            </Text>
-            <Text
-              className={`mt-2 text-grey font-Inter ${isLargeScreen ? 'text-sm' : 'text-xs'} text-center px-6`}
-            >
               {
-                "Please check your inbox and click the link to reset your password. If you don't see the email, check your spam folder."
+                ". Please check your inbox and click the link to reset your password. If you don't see the email, check your spam folder."
               }
             </Text>
 
             <View className="mt-6 items-center gap-2 w-full">
               {isCooldownActive ? (
-                <Text className="text-orange font-UbuntuSans text-sm text-center">
+                <Text className="text-orange font-ubuntu-medium text-center">
                   Code resend in {formatCountdown(secondsRemaining)}
                 </Text>
               ) : null}
-              <Pressable onPress={handleResend} disabled={isCooldownActive || isLoading}>
+              {/* <Pressable onPress={handleResend} disabled={isCooldownActive || isLoading}>
                 <Text
                   className={`font-ubuntu-medium text-base underline ${
                     isCooldownActive || isLoading ? 'text-grey' : 'text-teal'
@@ -206,7 +210,7 @@ export default function ForgotPassword() {
                 >
                   Resend Verification Code
                 </Text>
-              </Pressable>
+              </Pressable> */}
               {isLoading && (
                 <View className="mt-2">
                   <ActivityIndicator color="#113E55" />
@@ -217,19 +221,28 @@ export default function ForgotPassword() {
 
           <View className="gap-4 max-w-xl w-full">
             <Pressable
-              className="self-center rounded-lg flex-row items-center justify-center w-full h-14 bg-primary active:opacity-80"
+              className="self-center flex-row items-center justify-center w-full h-14 bg-primary rounded-full"
               onPress={() => {
                 setIsSuccess(false);
                 setEmail('');
               }}
             >
-              <Text className="text-white font-UbuntuSans font-semibold text-center">
+              <Text
+                className="text-white font-ubuntu-semibold text-center text-lg"
+                style={{ letterSpacing: -0.24, lineHeight: 16 }}
+              >
                 Send Again
               </Text>
             </Pressable>
 
-            <Pressable className="self-center mt-2" onPress={() => router.replace('/auth/login')}>
-              <Text className="text-teal font-ubuntu-medium text-base underline">
+            <Pressable
+              className="self-center active:opacity-70 w-full bg-[#E5F6FF] rounded-full h-14 items-center justify-center"
+              onPress={() => router.replace('/auth/login')}
+            >
+              <Text
+                className="text-primary font-ubuntu-semibold text-lg"
+                style={{ letterSpacing: -0.24, lineHeight: 16 }}
+              >
                 Back to Login
               </Text>
             </Pressable>
@@ -252,7 +265,7 @@ export default function ForgotPassword() {
       )}
 
       <View className={cn(`p-6 w-full ${isLargeScreen ? 'col-span-6' : ''}`)} style={{ flex: 1 }}>
-        <Back type="short-arrow" onPress={() => router.back()} showText={false} />
+        <Back type="short-arrow" onPress={() => router.back()} showText={false} showBorder={true} />
 
         <View style={{ flex: 1, marginTop: 50 }}>
           <View className="mb-10 text-center max-w-xl">

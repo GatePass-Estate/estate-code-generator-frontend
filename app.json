@@ -10,10 +10,7 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
-      "image": "./src/assets/gatepass_ng_Gp.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#000000",
-      "color": "#000000"
+      "backgroundColor": "#113E55"
     },
     "android": {
       "package": "com.gatepassng.gms",
@@ -69,13 +66,10 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#000000",
-          "image": "./src/assets/gatepass_ng_Gp.png",
+          "backgroundColor": "#113E55",
           "dark": {
-            "image": "./src/assets/gatepass_ng_Gp.png",
-            "backgroundColor": "#000000"
-          },
-          "imageWidth": 200
+            "backgroundColor": "#113E55"
+          }
         }
       ],
       "expo-secure-store"

@@ -10,6 +10,10 @@ import logoutIcon from '../assets/images/logout.png';
 import securityBg from '../assets/images/security-bg.png';
 // @ts-ignore
 import brokenCard from '../assets/images/broken-card.png';
+// @ts-ignore
+import whiteLogo from '../assets/images/gatepass-white-logo.png';
+// @ts-ignore
+import whiteLogoText from '../assets/images/gatepass-white-logo-text.png';
 
 const images = {
   loginImage,
@@ -18,6 +22,8 @@ const images = {
   logoutIcon,
   securityBg,
   brokenCard,
+  whiteLogo,
+  whiteLogoText,
 };
 
 export default images;

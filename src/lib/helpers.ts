@@ -172,6 +172,7 @@ const FORGOT_PASSWORD_COOLDOWN_KEY = 'forgot-password-cooldown';
 
 export type ForgotPasswordCooldown = {
   attempts: number;
+  email: string;
   lastAttemptAt: string;
 };
 
@@ -186,7 +187,7 @@ export const getForgotPasswordCooldown = async (): Promise<ForgotPasswordCooldow
     const lastAttempt = new Date(parsed.lastAttemptAt).getTime();
     const resetAfterMs = COOLDOWN_RESET_HOURS * 60 * 60 * 1000;
     if (Number.isNaN(lastAttempt) || Date.now() - lastAttempt > resetAfterMs) {
-      return { attempts: 0, lastAttemptAt: new Date(0).toISOString() };
+      return { attempts: 0, email: '', lastAttemptAt: new Date(0).toISOString() };
     }
     return parsed;
   } catch (error) {
@@ -195,12 +196,13 @@ export const getForgotPasswordCooldown = async (): Promise<ForgotPasswordCooldow
   }
 };
 
-export const recordForgotPasswordAttempt = async (): Promise<void> => {
+export const recordForgotPasswordAttempt = async (email?: string): Promise<void> => {
   try {
     const current = await getForgotPasswordCooldown();
     const attempts = (current?.attempts ?? 0) + 1;
     const payload: ForgotPasswordCooldown = {
       attempts,
+      email: email?.trim().toLowerCase() ?? '',
       lastAttemptAt: new Date().toISOString(),
     };
     await AsyncStorage.setItem(FORGOT_PASSWORD_COOLDOWN_KEY, JSON.stringify(payload));
@@ -209,12 +211,27 @@ export const recordForgotPasswordAttempt = async (): Promise<void> => {
   }
 };
 
-export const getForgotPasswordCooldownSeconds = async (): Promise<number> => {
+export const getForgotPasswordCooldownSeconds = async (email?: string): Promise<number> => {
   const cooldown = await getForgotPasswordCooldown();
-  const attempts = cooldown?.attempts ?? 0;
+  const normalizedEmail = email?.trim().toLowerCase();
+
+  if (!cooldown || !normalizedEmail) return 0;
+  if (cooldown.email && cooldown.email !== normalizedEmail) return 0;
+
+  const attempts = cooldown.attempts ?? 0;
   if (attempts === 0) return 0;
+
   const index = Math.min(attempts, COOLDOWN_SECONDS.length - 1);
-  return COOLDOWN_SECONDS[index];
+  const cooldownSeconds = COOLDOWN_SECONDS[index];
+  if (cooldownSeconds === 0) return 0;
+
+  const lastAttempt = new Date(cooldown.lastAttemptAt).getTime();
+  if (Number.isNaN(lastAttempt)) return 0;
+
+  const elapsedSeconds = Math.floor((Date.now() - lastAttempt) / 1000);
+  const remainingSeconds = cooldownSeconds - elapsedSeconds;
+
+  return remainingSeconds > 0 ? remainingSeconds : 0;
 };
 
 export const clearForgotPasswordCooldown = async (): Promise<void> => {

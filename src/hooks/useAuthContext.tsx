@@ -13,12 +13,10 @@ import { useAuthStore } from '@/src/lib/stores/authStore';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { AuthContextType } from '@/src/types/auth';
 import { User } from '@/src/types/user';
-import { SplashScreen, usePathname, useRouter } from 'expo-router';
+import { usePathname, useRouter } from 'expo-router';
 import * as Linking from 'expo-linking';
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { UserRolesType } from '../types/general';
-
-SplashScreen.preventAutoHideAsync();
 
 const AuthContext = createContext<AuthContextType>({
   isReady: false,
@@ -152,7 +150,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       setIsReady(true);
-      await SplashScreen.hideAsync();
     };
 
     loadAuthState();
