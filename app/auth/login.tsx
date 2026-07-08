@@ -16,6 +16,7 @@ import { Button } from '@/src/components/nativewindui/Button';
 import { useAuth } from '@/src/hooks/useAuthContext';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { fetchMe, loginUser } from '@/src/lib/api/auth';
+import { User } from '@/src/types/user';
 import { useAuthStore } from '@/src/lib/stores/authStore';
 import {
   broadcastLogin,
@@ -34,7 +35,12 @@ import {
   deleteBiometricToken,
   getBiometricToken,
   promptBiometrics,
+  isBiometricAvailable,
+  hasBiometricPromptBeenDismissed,
+  dismissBiometricPrompt,
+  saveBiometricCredentials,
 } from '@/src/lib/biometricAuth';
+import { BiometricPromptModal } from '@/src/components/mobile/BiometricPromptModal';
 import Back from '@/src/components/mobile/Back';
 
 SplashScreen.preventAutoHideAsync();
@@ -54,8 +60,24 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [showTosRejected, setShowTosRejected] = useState(searchParams.tos_rejected === 'true');
   const [showBiometric, setShowBiometric] = useState(false);
+  const [showBiometricPrompt, setShowBiometricPrompt] = useState(false);
+  const [pendingAuth, setPendingAuth] = useState<{ token: string; user: User } | null>(null);
 
   const isLargeScreen = width > getWidthBreakpoint();
+
+  const routeForUser = useCallback(
+    (user: User) => {
+      if (user.role === 'resident' || ['primary_admin', 'admin'].includes(user.role!)) {
+        router.replace('/user');
+      } else if (user.role === 'security') {
+        router.replace('/security');
+      } else {
+        setErrorMessage('Incorrect username or password.');
+        setIsLoading(false);
+      }
+    },
+    [router]
+  );
 
   useEffect(() => {
     const prepare = async () => {
@@ -88,42 +110,38 @@ export default function Login() {
   }, [router]);
 
   const finishSignIn = useCallback(
-    async (token: string, options?: { clearExistingBiometric?: boolean }) => {
-      try {
-        const user = await fetchMe(token);
-        useAuthStore.setState({ access_token: token, role: user.role });
-        await storeAuthState({ access_token: token, role: user.role });
-        broadcastLogin(token, user.role);
-        signIn(user);
+    async (
+      token: string,
+      options?: { clearExistingBiometric?: boolean; skipRouting?: boolean }
+    ): Promise<User> => {
+      const user = await fetchMe(token);
+      useAuthStore.setState({ access_token: token, role: user.role });
+      await storeAuthState({ access_token: token, role: user.role });
+      broadcastLogin(token, user.role);
+      signIn(user);
 
-        // If a different user/estate just signed in, remove any biometric token
-        // that belonged to the previous account so the toggle and login screen
-        // stay accurate for the active account.
-        if (options?.clearExistingBiometric) {
-          try {
-            const { biometricTokenMatchesUser } = await import('@/src/lib/biometricAuth');
-            const matches = await biometricTokenMatchesUser(user.user_id, user.estate_id);
-            if (!matches) {
-              await deleteBiometricToken();
-            }
-          } catch {
-            // ignore cleanup errors
+      // If a different user/estate just signed in, remove any biometric token
+      // that belonged to the previous account so the toggle and login screen
+      // stay accurate for the active account.
+      if (options?.clearExistingBiometric) {
+        try {
+          const { biometricTokenMatchesUser } = await import('@/src/lib/biometricAuth');
+          const matches = await biometricTokenMatchesUser(user.user_id, user.estate_id);
+          if (!matches) {
+            await deleteBiometricToken();
           }
+        } catch {
+          // ignore cleanup errors
         }
-
-        if (user.role === 'resident' || ['primary_admin', 'admin'].includes(user.role!)) {
-          router.replace('/user');
-        } else if (user.role === 'security') {
-          router.replace('/security');
-        } else {
-          setErrorMessage('Incorrect username or password.');
-          setIsLoading(false);
-        }
-      } catch (error: any) {
-        throw error;
       }
+
+      if (!options?.skipRouting) {
+        routeForUser(user);
+      }
+
+      return user;
     },
-    [router, signIn]
+    [routeForUser, signIn]
   );
 
   const handleSignInPress = useCallback(async () => {
@@ -162,12 +180,29 @@ export default function Login() {
         return;
       }
 
-      await finishSignIn(result.access_token, { clearExistingBiometric: true });
+      const user = await finishSignIn(result.access_token, {
+        clearExistingBiometric: true,
+        skipRouting: true,
+      });
+      setIsLoading(false);
+
+      const shouldPrompt =
+        Platform.OS !== 'web' &&
+        (await isBiometricAvailable()) &&
+        !(await canUseBiometricLogin(user.user_id)) &&
+        !(await hasBiometricPromptBeenDismissed(user.user_id));
+
+      if (shouldPrompt) {
+        setPendingAuth({ token: result.access_token, user });
+        setShowBiometricPrompt(true);
+      } else {
+        routeForUser(user);
+      }
     } catch (error: any) {
       setErrorMessage(error.message || 'Login failed');
       setIsLoading(false);
     }
-  }, [email, password, estate, finishSignIn, router]);
+  }, [email, password, estate, finishSignIn, routeForUser, router]);
 
   const handleBiometricLogin = useCallback(async () => {
     setErrorMessage('');
@@ -202,6 +237,39 @@ export default function Login() {
       setIsLoading(false);
     }
   }, [finishSignIn]);
+
+  const handleEnableBiometricPrompt = useCallback(async () => {
+    if (!pendingAuth) return;
+    const { token, user } = pendingAuth;
+
+    try {
+      const success = await promptBiometrics('Enable biometric login');
+      if (success) {
+        await saveBiometricCredentials(token, user.user_id, user.estate_id);
+      }
+    } catch {
+      // ignore biometric enable errors
+    }
+
+    setShowBiometricPrompt(false);
+    setPendingAuth(null);
+    routeForUser(user);
+  }, [pendingAuth, routeForUser]);
+
+  const handleDismissBiometricPrompt = useCallback(async () => {
+    if (!pendingAuth) return;
+    const { user } = pendingAuth;
+
+    try {
+      await dismissBiometricPrompt(user.user_id);
+    } catch {
+      // ignore storage errors
+    }
+
+    setShowBiometricPrompt(false);
+    setPendingAuth(null);
+    routeForUser(user);
+  }, [pendingAuth, routeForUser]);
 
   const ErrorBanner = useMemo(
     () =>
@@ -408,6 +476,12 @@ export default function Login() {
           </View>
         </View>
       )}
+
+      <BiometricPromptModal
+        visible={showBiometricPrompt}
+        onEnable={handleEnableBiometricPrompt}
+        onDismiss={handleDismissBiometricPrompt}
+      />
     </>
   );
 }

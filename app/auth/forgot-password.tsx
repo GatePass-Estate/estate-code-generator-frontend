@@ -5,6 +5,7 @@ import {
   TextInput,
   Image,
   Text,
+  Modal,
   ActivityIndicator,
   useWindowDimensions,
   Pressable,
@@ -165,93 +166,6 @@ export default function ForgotPassword() {
     </View>
   ) : null;
 
-  if (isSuccess) {
-    return (
-      <SafeAreaView className={`h-full ${isLargeScreen ? 'grid grid-cols-12' : 'flex-1 bg-body'}`}>
-        {isLargeScreen && (
-          <View className="col-span-6 relative h-screen overflow-hidden">
-            <Image
-              source={Images.loginImage}
-              resizeMode="cover"
-              className="absolute inset-0 w-full h-full"
-            />
-          </View>
-        )}
-
-        <View
-          className={cn(`p-6 w-full self-center ${isLargeScreen ? 'col-span-6' : ''}`)}
-          style={{ flex: 1, justifyContent: 'center' }}
-        >
-          <View className="items-center mb-10 text-center max-w-xl">
-            <View className="bg-light-teal rounded-full p-4 mb-4">
-              <FontAwesome name="check-circle" size={40} color="#1B998B" />
-            </View>
-            <Text className={`text-primary font-ubuntu-semibold text-4xl`}>Check your email</Text>
-            <Text className={`mt-3 text-grey font-inter-regular text-center px-4`}>
-              {"We've sent a password reset link to"}
-              {'\n'}
-              <Text className="font-ubuntu-bold text-primary">{email}</Text>
-              {
-                ". Please check your inbox and click the link to reset your password. If you don't see the email, check your spam folder."
-              }
-            </Text>
-
-            <View className="mt-6 items-center gap-2 w-full">
-              {isCooldownActive ? (
-                <Text className="text-orange font-ubuntu-medium text-center">
-                  Code resend in {formatCountdown(secondsRemaining)}
-                </Text>
-              ) : null}
-              {/* <Pressable onPress={handleResend} disabled={isCooldownActive || isLoading}>
-                <Text
-                  className={`font-ubuntu-medium text-base underline ${
-                    isCooldownActive || isLoading ? 'text-grey' : 'text-teal'
-                  }`}
-                >
-                  Resend Verification Code
-                </Text>
-              </Pressable> */}
-              {isLoading && (
-                <View className="mt-2">
-                  <ActivityIndicator color="#113E55" />
-                </View>
-              )}
-            </View>
-          </View>
-
-          <View className="gap-4 max-w-xl w-full">
-            <Pressable
-              className="self-center flex-row items-center justify-center w-full h-14 bg-primary rounded-full"
-              onPress={() => {
-                setIsSuccess(false);
-                setEmail('');
-              }}
-            >
-              <Text
-                className="text-white font-ubuntu-semibold text-center text-lg"
-                style={{ letterSpacing: -0.24, lineHeight: 16 }}
-              >
-                Send Again
-              </Text>
-            </Pressable>
-
-            <Pressable
-              className="self-center active:opacity-70 w-full bg-[#E5F6FF] rounded-full h-14 items-center justify-center"
-              onPress={() => router.replace('/auth/login')}
-            >
-              <Text
-                className="text-primary font-ubuntu-semibold text-lg"
-                style={{ letterSpacing: -0.24, lineHeight: 16 }}
-              >
-                Back to Login
-              </Text>
-            </Pressable>
-          </View>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
   return (
     <SafeAreaView className={`h-full ${isLargeScreen ? 'grid grid-cols-12' : 'flex-1 bg-body'}`}>
       {isLargeScreen && (
@@ -330,6 +244,46 @@ export default function ForgotPassword() {
           </View>
         </View>
       </View>
+
+      <Modal
+        transparent={true}
+        visible={isSuccess}
+        animationType="fade"
+        onRequestClose={() => setIsSuccess(false)}
+      >
+        <Pressable
+          className="flex-1 justify-center items-center bg-black/50 p-6"
+          onPress={() => setIsSuccess(false)}
+        >
+          <Pressable onPress={() => {}}>
+            <View className="bg-white rounded-2xl p-6 max-w-md w-11/12 relative">
+              <Pressable className="absolute top-4 right-4 p-2" onPress={() => setIsSuccess(false)}>
+                <AntDesign name="close" size={20} color="#0A1F29" />
+              </Pressable>
+
+              <Text className="text-primary font-ubuntu-semibold text-2xl text-center mt-2 mb-3">
+                Check your email
+              </Text>
+              <Text className="text-grey font-inter-regular text-center mb-6">
+                If an account is associated with the email you provided, you will receive
+                instructions to reset your password.
+              </Text>
+
+              <Pressable
+                className="self-center active:opacity-70 w-full bg-[#E5F6FF] rounded-full h-14 items-center justify-center"
+                onPress={() => router.replace('/auth/login')}
+              >
+                <Text
+                  className="text-primary font-ubuntu-semibold text-lg"
+                  style={{ letterSpacing: -0.24, lineHeight: 16 }}
+                >
+                  Back to Login
+                </Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }

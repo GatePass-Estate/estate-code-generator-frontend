@@ -50,7 +50,8 @@
       "bundleIdentifier": "com.gatepassng.gms",
       "associatedDomains": ["applinks:app.gatepassng.com", "applinks:app.gatepassng.com"],
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSFaceIDUsageDescription": "Use Face ID to securely sign in to GatePass."
       }
     },
     "web": {

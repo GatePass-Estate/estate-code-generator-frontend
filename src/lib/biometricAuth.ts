@@ -1,9 +1,31 @@
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const BIOMETRIC_TOKEN_KEY = 'biometric-auth-token';
 const BIOMETRIC_USER_KEY = 'biometric-auth-user';
 const BIOMETRIC_ESTATE_KEY = `${BIOMETRIC_USER_KEY}-estate`;
+
+function biometricPromptDismissedKey(userId: string) {
+  return `biometric-prompt-dismissed-${userId}`;
+}
+
+/**
+ * Returns `true` if the user has previously dismissed the one-time biometric
+ * enable prompt on this device.
+ */
+export async function hasBiometricPromptBeenDismissed(userId: string): Promise<boolean> {
+  const value = await AsyncStorage.getItem(biometricPromptDismissedKey(userId));
+  return value === 'true';
+}
+
+/**
+ * Records that the user dismissed the one-time biometric enable prompt so it
+ * is not shown again for this user on this device.
+ */
+export async function dismissBiometricPrompt(userId: string): Promise<void> {
+  await AsyncStorage.setItem(biometricPromptDismissedKey(userId), 'true');
+}
 
 export type BiometricCredentials = {
   token: string;

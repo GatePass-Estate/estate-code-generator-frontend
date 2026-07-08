@@ -227,7 +227,7 @@ export default function InstitutionScreen() {
                       isFocused && 'border border-primary'
                     )}
                   >
-                    <FontAwesome name="search" size={18} color="#9B9797" />
+                    <FontAwesome name="search" size={16} color="#113E55" />
                     <TextInput
                       ref={inputRef}
                       value={query}
@@ -238,7 +238,7 @@ export default function InstitutionScreen() {
                       placeholderTextColor="#9B9797"
                       autoCapitalize="none"
                       autoCorrect={false}
-                      className="flex-1 ml-3 font-Inter text-base text-black h-full"
+                      className={`flex-1 ml-3 font-Inter text-base text-black h-full ${query && '-mt-3'}`}
                     />
                   </View>
 
