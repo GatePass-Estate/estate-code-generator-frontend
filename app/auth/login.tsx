@@ -1,4 +1,3 @@
-import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   Platform,
@@ -29,7 +28,6 @@ import {
 import Images from '@/src/constants/images';
 import { cn } from '@/src/lib/cn';
 import icons from '@/src/constants/icons';
-import LoadingTransition from '@/src/components/common/LoadingTransition';
 import {
   canUseBiometricLogin,
   deleteBiometricToken,
@@ -43,15 +41,12 @@ import {
 import { BiometricPromptModal } from '@/src/components/mobile/BiometricPromptModal';
 import Back from '@/src/components/mobile/Back';
 
-SplashScreen.preventAutoHideAsync();
-
 export default function Login() {
   const { signIn } = useAuth();
   const router = useRouter();
   const { width } = useWindowDimensions();
   const searchParams = useLocalSearchParams<{ tos_rejected?: string }>();
 
-  const [appIsReady, setAppIsReady] = useState(false);
   const [estate, setEstate] = useState<SelectedInstitution | null>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -89,7 +84,6 @@ export default function Login() {
       setEstate(institution);
       const biometric = await canUseBiometricLogin();
       setShowBiometric(biometric);
-      setAppIsReady(true);
     };
     prepare();
   }, [router]);
@@ -287,8 +281,6 @@ export default function Login() {
     [errorMessage]
   );
 
-  // if (!appIsReady) return <LoadingTransition />;
-
   return (
     <>
       <SafeAreaView
@@ -426,7 +418,8 @@ export default function Login() {
                 </View>
 
                 <Pressable
-                  className="self-center active:opacity-70 w-full bg-[#E5F6FF] rounded-full h-14 items-center justify-center"
+                  className={`self-center active:opacity-70 w-full bg-[#E5F6FF] rounded-full h-14 items-center justify-center ${isLoading && 'opacity-80'}`}
+                  disabled={isLoading}
                   onPress={() => router.push('/auth/forgot-password')}
                 >
                   <Text

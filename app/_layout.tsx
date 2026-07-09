@@ -5,19 +5,24 @@ import { StatusBar } from 'expo-status-bar';
 import { Stack } from 'expo-router';
 import AndroidNavBarGlobal from '@/src/components/common/AndroidNavBarGlobal';
 import { AuthProvider, useAuth } from '@/src/hooks/useAuthContext';
-import { SplashScreen } from '@/src/components/common/SplashScreen';
 import 'react-native-reanimated';
 import { Inter, UbuntuSans } from '@/src/constants/fonts';
+// @ts-ignore
 import './global.css';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect } from 'react';
+import LoadingTransition from '@/src/components/common/LoadingTransition';
 
 ExpoSplashScreen.preventAutoHideAsync();
 
 function RootLayoutContent() {
-  const { resetKey } = useAuth();
+  const { resetKey, isReady } = useAuth();
+
+  if (!isReady) {
+    return <LoadingTransition />;
+  }
 
   return (
     <>
@@ -68,13 +73,13 @@ export default function RootLayout() {
     [Inter.mediumItalic]: require('../src/assets/fonts/Inter_18pt-MediumItalic.ttf'),
   });
 
-  const [appReady, setAppReady] = useState(false);
-
   useEffect(() => {
-    ExpoSplashScreen.hideAsync().catch((error) => {
-      console.log('Error hiding native splash screen', error);
-    });
-  }, []);
+    if (loaded || fontError) {
+      ExpoSplashScreen.hideAsync().catch((error) => {
+        console.log('Error hiding native splash screen', error);
+      });
+    }
+  }, [loaded, fontError]);
 
   useEffect(() => {
     if (fontError) {
@@ -82,31 +87,19 @@ export default function RootLayout() {
     }
   }, [fontError]);
 
-  const handleSplashComplete = useCallback(() => {
-    setAppReady(true);
-  }, []);
-
-  const isBootstrapComplete = appReady && (loaded || Boolean(fontError));
+  if (!loaded && !fontError) {
+    return null;
+  }
 
   return (
     <SafeAreaProvider>
-      {!isBootstrapComplete ? (
-        <>
-          <StatusBar style="light" />
-          <SplashScreen
-            ready={loaded || Boolean(fontError)}
-            onAnimationComplete={handleSplashComplete}
-          />
-        </>
-      ) : (
-        <QueryClientProvider client={queryClient}>
-          <AuthProvider>
-            <View style={{ flex: 1 }}>
-              <RootLayoutContent />
-            </View>
-          </AuthProvider>
-        </QueryClientProvider>
-      )}
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <View style={{ flex: 1 }}>
+            <RootLayoutContent />
+          </View>
+        </AuthProvider>
+      </QueryClientProvider>
     </SafeAreaProvider>
   );
 }
