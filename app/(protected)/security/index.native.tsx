@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import {
   ActivityIndicator,
   Image,
@@ -12,55 +12,34 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
-import images from '@/src/constants/images';
+import Group862 from '@/src/assets/icons/group-862.svg';
+import Group863 from '@/src/assets/icons/group-863.svg';
+import EnterCodeSubtitle from '@/src/assets/icons/enter-code-subtitle.svg';
+import IncomingGuestTitle from '@/src/assets/icons/incoming-guest-title.svg';
+import InvalidCodeClose from '@/src/assets/icons/invalid-code-close.svg';
+import ScanFrame from '@/src/assets/icons/scan-frame.svg';
+import ScanPositionQrSubtitle from '@/src/assets/icons/scan-position-qr-subtitle.svg';
+import ScanVerifyAccessCodeTitle from '@/src/assets/icons/scan-verify-access-code-title.svg';
+import ValidateCodeButton from '@/src/assets/icons/validate-code-button.svg';
+import VerifyAccessCodeTitle from '@/src/assets/icons/verify-access-code-title.svg';
 import { validateCode } from '@/src/lib/api/codes';
 import { getUserById } from '@/src/lib/api/user';
 import { sharedStyles } from '@/src/theme/styles';
 import { InputRefsStorage } from '@/src/types/general';
 
 const EMPTY_CODE = ['', '', '', '', '', ''];
+const invalidCodeCard = require('@/src/assets/icons/invalid-code-card.png');
 
 type VerificationMode = 'enter' | 'scan';
-
-function ThinClockIcon() {
-  return (
-    <Svg width={38} height={38} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M6.9 7.2A7.3 7.3 0 1 1 5 12"
-        stroke="#113E55"
-        strokeWidth={0.95}
-        strokeLinecap="round"
-      />
-      <Path
-        d="M6.65 3.9v3.55h3.55"
-        stroke="#113E55"
-        strokeWidth={0.95}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <Path
-        d="M12 8.1v4.15l2.85 1.7"
-        stroke="#113E55"
-        strokeWidth={0.95}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
 
 function InvalidCodeOverlay({ onClose }: { onClose: () => void }) {
   return (
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.overlayBackdrop}>
         <View style={styles.invalidCard}>
-          <Image source={images.brokenCard} style={styles.invalidIllustration} />
-
-          <Text style={styles.invalidTitle}>Opps!!</Text>
-          <Text style={styles.invalidBody}>{"This code doesn't exist\nor has expired"}</Text>
+          <Image source={invalidCodeCard} style={styles.invalidCardImage} />
         </View>
 
         <Pressable
@@ -68,7 +47,7 @@ function InvalidCodeOverlay({ onClose }: { onClose: () => void }) {
           onPress={onClose}
           style={({ pressed }) => [styles.invalidCloseButton, pressed && styles.pressed]}
         >
-          <Icon name="close" size={18} color="#FFFFFF" />
+          <InvalidCodeClose width={32} height={32} />
         </Pressable>
       </View>
     </Modal>
@@ -76,7 +55,7 @@ function InvalidCodeOverlay({ onClose }: { onClose: () => void }) {
 }
 
 export default function SecurityVerificationMobile() {
-  const params = useLocalSearchParams();
+  const insets = useSafeAreaInsets();
   const [mode, setMode] = useState<VerificationMode>('enter');
   const [code, setCode] = useState<string[]>(EMPTY_CODE);
   const [errorMessage, setErrorMessage] = useState('');
@@ -85,30 +64,6 @@ export default function SecurityVerificationMobile() {
   const [permission, requestPermission] = useCameraPermissions();
   const inputs = useRef<InputRefsStorage>({});
   const router = useRouter();
-
-  useEffect(() => {
-    if (!__DEV__ || (params.preview_result !== 'guest' && params.preview_result !== 'resident')) {
-      return;
-    }
-
-    const isResidentPreview = params.preview_result === 'resident';
-
-    router.replace({
-      pathname: '/security/result',
-      params: {
-        code: String(params.code || '7653E2'),
-        gender: String(params.gender || 'female'),
-        household: String(params.household || 'Olaburaku'),
-        receiver: isResidentPreview ? 'resident' : 'visitor',
-        relationship_with_resident: String(params.relationship_with_resident || 'Technician'),
-        resident_address: String(params.resident_address || 'Flat 1B, Olayinka street'),
-        resident_email: String(params.resident_email || 'sandraoh@hot.com'),
-        resident_name: String(params.resident_name || 'Sandra Happiness'),
-        resident_phone_number: String(params.resident_phone_number || '0908727289'),
-        visitor_fullname: String(params.visitor_fullname || 'Sandra Happiness'),
-      },
-    });
-  }, [params, router]);
 
   const setInputRef = (el: TextInput | null, index: number) => {
     if (el) inputs.current[index] = el;
@@ -214,8 +169,12 @@ export default function SecurityVerificationMobile() {
   const renderEnterCode = () => (
     <>
       <View style={styles.heroCopy}>
-        <Text style={styles.title}>Verify Access Code</Text>
-        <Text style={styles.subtitle}>Enter the code from guest here</Text>
+        <View style={styles.title}>
+          <VerifyAccessCodeTitle width={189} height={23} />
+        </View>
+        <View style={styles.subtitle}>
+          <EnterCodeSubtitle width={168} height={12} />
+        </View>
       </View>
 
       <View style={styles.codeInputRow}>
@@ -238,14 +197,14 @@ export default function SecurityVerificationMobile() {
 
       <View style={styles.validateButtonSlot}>
         <Pressable
-          style={({ pressed }) => [pressed && styles.pressed]}
+          style={({ pressed }) => [styles.validateButton, pressed && styles.pressed]}
           onPress={() => validateEnteredCode(code.join(''))}
           disabled={isSubmitting}
         >
           {isSubmitting ? (
             <ActivityIndicator color="#FFFFFF" />
           ) : (
-            <Text style={styles.validateButtonText}>Validate Code</Text>
+            <ValidateCodeButton width={171} height={48} style={styles.validateButtonImage} />
           )}
         </Pressable>
       </View>
@@ -256,10 +215,12 @@ export default function SecurityVerificationMobile() {
 
   const renderScanner = () => (
     <View style={styles.scannerContent}>
-      <Text style={[styles.title, styles.scannerTitle]}>Verify Access Code</Text>
-      <Text style={[styles.subtitle, styles.scannerSubtitle]}>
-        Position the QR code within the frame to scan
-      </Text>
+      <View style={styles.scannerTitle}>
+        <ScanVerifyAccessCodeTitle width={189} height={23} />
+      </View>
+      <View style={styles.scannerSubtitle}>
+        <ScanPositionQrSubtitle width={250} height={14} />
+      </View>
 
       <View style={styles.scannerShell}>
         {permission?.granted ? (
@@ -285,10 +246,12 @@ export default function SecurityVerificationMobile() {
           </View>
         )}
 
-        <View pointerEvents="none" style={styles.scanCornerTopLeft} />
-        <View pointerEvents="none" style={styles.scanCornerTopRight} />
-        <View pointerEvents="none" style={styles.scanCornerBottomLeft} />
-        <View pointerEvents="none" style={styles.scanCornerBottomRight} />
+        <ScanFrame
+          pointerEvents="none"
+          width={250.9439697265625}
+          height={225.15234375}
+          style={styles.scanFrame}
+        />
       </View>
 
       {isSubmitting ? (
@@ -304,8 +267,8 @@ export default function SecurityVerificationMobile() {
     <SafeAreaView style={sharedStyles.container}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      <View style={styles.topBar}>
-        <Text style={styles.topBarTitle}>Incoming Guest</Text>
+      <View style={[styles.topBar, { paddingTop: Math.max(0, 81 - insets.top) }]}>
+        <IncomingGuestTitle width={174} height={24} style={styles.topBarTitle} />
         <View style={styles.topBarActions}>
           <Pressable
             accessibilityLabel="Open recent activity"
@@ -313,7 +276,7 @@ export default function SecurityVerificationMobile() {
             onPress={() => {}}
             style={({ pressed }) => [styles.topIconButton, pressed && styles.pressed]}
           >
-            <ThinClockIcon />
+            <Group863 width={38} height={38} style={styles.group863Icon} />
           </Pressable>
           <Pressable
             accessibilityLabel="Open more options"
@@ -321,7 +284,7 @@ export default function SecurityVerificationMobile() {
             onPress={() => {}}
             style={({ pressed }) => [styles.topIconButton, pressed && styles.pressed]}
           >
-            <Icon name="ellipsis-horizontal" size={22} color="#113E55" />
+            <Group862 width={38} height={38} style={styles.topActionIcon} />
           </Pressable>
         </View>
       </View>
@@ -378,18 +341,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'flex-start',
-    marginBottom: 74,
+    marginBottom: 53,
     paddingHorizontal: 2,
-    paddingTop: 41,
   },
   topBarTitle: {
-    color: '#113E55',
-    fontFamily: 'UbuntuSans-SemiBold',
-    fontSize: 21.33,
-    height: 30,
-    lineHeight: 24,
-    marginRight: 63,
-    width: 186,
+    height: 24,
+    marginRight: 75,
+    width: 174,
   },
   topBarActions: {
     alignItems: 'center',
@@ -402,23 +360,32 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: 38,
   },
+  group863Icon: {
+    height: 38,
+    width: 38,
+  },
+  topActionIcon: {
+    height: 38,
+    width: 38,
+  },
   segmentedControl: {
-    alignSelf: 'center',
-    flexDirection: 'row',
     backgroundColor: '#EFF1F1',
-    borderRadius: 26,
-    height: 44,
-    padding: 3,
-    width: 245,
+    borderRadius: 24,
+    flexDirection: 'row',
+    height: 40,
+    marginLeft: 52,
+    width: 229,
   },
   segmentButton: {
     alignItems: 'center',
-    borderRadius: 20,
-    flex: 1,
+    borderRadius: 24,
+    height: 40,
     justifyContent: 'center',
+    width: 110,
   },
   segmentButtonActive: {
     backgroundColor: '#CEE5ED',
+    width: 119,
   },
   segmentText: {
     color: '#6C6C6C',
@@ -448,27 +415,20 @@ const styles = StyleSheet.create({
   },
   heroCopy: {
     alignItems: 'center',
-    marginBottom: 37,
+    marginBottom: 43,
   },
   title: {
-    color: '#113E55',
-    fontFamily: 'UbuntuSans-Regular',
-    fontSize: 23.04,
-    height: 32,
-    lineHeight: 28,
-    textAlign: 'center',
+    alignItems: 'center',
+    height: 28,
+    justifyContent: 'center',
     width: 302,
   },
   subtitle: {
-    color: '#F46036',
-    fontFamily: 'UbuntuSans-Regular',
-    fontSize: 12,
-    flexShrink: 0,
-    height: 18,
-    lineHeight: 16,
+    alignItems: 'center',
+    height: 14,
+    justifyContent: 'center',
     marginTop: 8,
-    textAlign: 'center',
-    width: 230,
+    width: 169,
   },
   codeInputRow: {
     alignSelf: 'center',
@@ -509,15 +469,20 @@ const styles = StyleSheet.create({
   },
   validateButton: {
     alignItems: 'center',
-    backgroundColor: '#113E55',
-    borderRadius: 23,
-    height: 46,
+    borderRadius: 24,
+    height: 48,
     justifyContent: 'center',
-    width: 148,
+    overflow: 'hidden',
+    width: 171,
+  },
+  validateButtonImage: {
+    height: 48,
+    width: 171,
   },
   validateButtonSlot: {
     alignItems: 'center',
-    marginTop: 107,
+    height: 48,
+    marginTop: 106.5,
     width: '100%',
   },
   primaryButtonText: {
@@ -527,23 +492,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   validateButtonText: {
-    alignItems: 'center',
-    backgroundColor: '#113E55',
-    borderRadius: 24,
     color: '#FFFFFF',
     fontFamily: 'Roboto',
     fontSize: 10,
     fontWeight: '500',
-    height: 48,
-    justifyContent: 'center',
     lineHeight: 13,
-    maxWidth: 278,
-    minWidth: 80,
-    overflow: 'hidden',
-    paddingHorizontal: 24,
-    paddingTop: 16,
     textAlign: 'center',
-    width: 171,
   },
   bottomIndicator: {
     bottom: 0,
@@ -561,19 +515,23 @@ const styles = StyleSheet.create({
     marginTop: -90,
   },
   scannerTitle: {
-    width: 320,
+    alignItems: 'center',
+    height: 28,
+    justifyContent: 'center',
+    width: 302,
   },
   scannerSubtitle: {
-    height: 22,
-    lineHeight: 18,
+    alignItems: 'center',
+    height: 14,
+    justifyContent: 'center',
     marginTop: 9,
-    width: 340,
+    width: 250,
   },
   scannerShell: {
     alignItems: 'center',
     height: 225.15,
     justifyContent: 'center',
-    marginTop: 54,
+    marginTop: 62,
     overflow: 'hidden',
     width: 250.94,
   },
@@ -617,6 +575,13 @@ const styles = StyleSheet.create({
     color: '#113E55',
     fontFamily: 'Inter_18pt-SemiBold',
     fontSize: 12,
+  },
+  scanFrame: {
+    height: 225.15,
+    left: 0,
+    position: 'absolute',
+    top: 0,
+    width: 250.94,
   },
   scanCornerTopLeft: {
     borderColor: '#113E55',
@@ -682,23 +647,22 @@ const styles = StyleSheet.create({
   },
   invalidCard: {
     alignItems: 'center',
-    backgroundColor: '#F6F7F7',
     borderRadius: 40,
     height: 351,
-    justifyContent: 'flex-start',
-    paddingHorizontal: 28,
-    paddingTop: 49,
+    justifyContent: 'center',
+    width: 331,
+  },
+  invalidCardImage: {
+    height: 351,
     width: 331,
   },
   invalidCloseButton: {
     alignItems: 'center',
-    borderColor: '#FFFFFF',
     borderRadius: 10000,
-    borderWidth: 1,
-    height: 34,
+    height: 32,
     justifyContent: 'center',
-    marginTop: 72,
-    width: 34,
+    marginTop: 104,
+    width: 32,
   },
   invalidIllustration: {
     height: 96,

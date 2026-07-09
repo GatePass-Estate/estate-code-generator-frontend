@@ -6,7 +6,7 @@ import { AuthBroadcastMessage, UserRolesType } from '../types/general';
 import icons from '../constants/icons';
 import { Platform } from 'react-native';
 
-const authStorageKey = process.env.EXPO_PUBLIC_AUTH_STORAGE_KEY || 'auth-key';
+const authStorageKey = 'auth-key';
 
 const BROADCAST_CHANNEL_NAME = 'gatepass-auth-sync';
 

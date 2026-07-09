@@ -1,72 +1,60 @@
-import { useMemo, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import Icon from 'react-native-vector-icons/Ionicons';
+import ValidationBack from '@/src/assets/icons/validation-back.svg';
+import ValidationCodeFrame from '@/src/assets/icons/validation-code-frame.svg';
+import ValidationGuestDetails from '@/src/assets/icons/validation-guest-details.svg';
+import ProfileExpandedOverlay from '@/src/assets/icons/profile-expanded-overlay.svg';
+import ProfileOverlayClose from '@/src/assets/icons/profile-overlay-close.svg';
+import ValidationProfileInitials from '@/src/assets/icons/validation-profile-initials.svg';
+import ValidationProfileEllipse from '@/src/assets/icons/validation-profile-ellipse.svg';
+import ValidationResidentCodeFrame from '@/src/assets/icons/validation-resident-code-frame.svg';
+import ValidationResidentDetails from '@/src/assets/icons/validation-resident-details.svg';
+import ValidationResidentOnlyDetails from '@/src/assets/icons/validation-resident-only-details.svg';
+import ValidationResidentProfile from '@/src/assets/icons/validation-resident-profile.svg';
 import { sharedStyles } from '@/src/theme/styles';
-import { ReceiverType } from '@/src/types/codes';
-import { GenderType } from '@/src/types/general';
-
-function DetailPill({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={styles.detailPill}>
-      <Text style={styles.detailLabel}>{label}</Text>
-      <Text style={styles.detailValue}>{value || '-'}</Text>
-    </View>
-  );
-}
 
 export default function ValidationResult() {
   const params = useLocalSearchParams();
   const router = useRouter();
   const [pictureOpen, setPictureOpen] = useState(false);
 
-  const code = String(params.code || '');
-  const residentName = String(params.resident_name || '');
-  const residentAddress = String(params.resident_address || '');
-  const residentEmail = String(params.resident_email || '');
-  const residentPhoneNumber = String(params.resident_phone_number || '');
-  const household = String(params.household || 'Olaburaku');
-  const receiver = params.receiver as ReceiverType;
-  const visitorFullname = String(params.visitor_fullname || '');
-  const gender = params.gender as GenderType;
-  const relationshipWithResident = String(params.relationship_with_resident || '');
+  const receiver = String(params.receiver || '');
   const isResidentCode = receiver === 'resident';
 
-  const formattedGender = gender
-    ? String(gender)
-        .replace(/_/g, ' ')
-        .split(' ')
-        .map((word) => (word ? word.charAt(0).toUpperCase() + word.slice(1) : ''))
-        .join(' ')
-    : '';
+  const handleBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
 
-  const initials = useMemo(() => {
-    const parts = residentName.trim().split(/\s+/).filter(Boolean);
-    return parts
-      .slice(0, 2)
-      .map((part) => part.charAt(0))
-      .join('')
-      .toUpperCase();
-  }, [residentName]);
+    router.replace('/security');
+  };
 
   return (
     <SafeAreaView style={[sharedStyles.container, styles.container]}>
       <Stack.Screen options={{ headerShown: false }} />
       <Pressable
         accessibilityLabel="Go back"
-        onPress={() => router.back()}
+        onPress={handleBack}
         style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
       >
-        <Icon name="chevron-back" size={18} color="#113E55" />
+        <ValidationBack width={30} height={30} />
       </Pressable>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={[styles.scrollContent, !isResidentCode && styles.guestScrollContent]}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={[styles.profileEllipse, isResidentCode && styles.residentProfileEllipse]}>
           {isResidentCode ? (
-            <Icon name="person-circle-outline" size={36} color="#5D7F87" />
+            <ValidationResidentProfile width={50} height={50} />
           ) : (
-            <Text style={styles.profileInitials}>{initials || 'SH'}</Text>
+            <>
+              <ValidationProfileEllipse width={50} height={50} style={styles.profileEllipseSvg} />
+              <ValidationProfileInitials width={27} height={18} style={styles.profileInitials} />
+            </>
           )}
           {isResidentCode ? (
             <Pressable
@@ -77,43 +65,26 @@ export default function ValidationResult() {
           ) : null}
         </View>
 
-        <View style={styles.codeCard}>
-          <Text style={styles.codeLabel}>Access Code</Text>
-          <Text style={styles.codeValue}>
-            {code.slice(0, 3)} {code.slice(3)}
-          </Text>
+        <View style={[styles.codeCard, isResidentCode && styles.residentCodeCard]}>
+          {isResidentCode ? (
+            <ValidationResidentCodeFrame width={291} height={114} />
+          ) : (
+            <ValidationCodeFrame width={291} height={114} />
+          )}
         </View>
 
         {!isResidentCode ? (
           <View style={styles.guestDetailsGroup}>
-            <View style={styles.sectionHeading}>
-              <View style={styles.sectionLine} />
-              <Text style={styles.guestDetailsTitle}>Guest Details</Text>
-              <View style={styles.sectionLine} />
-            </View>
-
-            <View style={styles.detailList}>
-              <DetailPill label="Name" value={visitorFullname} />
-              <DetailPill label="Gender" value={formattedGender} />
-              <DetailPill label="Relationship" value={relationshipWithResident} />
-            </View>
+            <ValidationGuestDetails width={335} height={167} />
           </View>
         ) : null}
 
         <View style={[styles.residentDetailsGroup, isResidentCode && styles.residentOnlyGroup]}>
-          <View style={styles.sectionHeading}>
-            <View style={[styles.sectionLine, styles.residentSectionLine]} />
-            <Text style={styles.residentDetailsTitle}>Resident Details</Text>
-            <View style={[styles.sectionLine, styles.residentSectionLine]} />
-          </View>
-
-          <View style={styles.residentDetailList}>
-            <DetailPill label="Name" value={residentName} />
-            <DetailPill label="Address" value={residentAddress} />
-            <DetailPill label="Household" value={household} />
-            <DetailPill label="Phone Number" value={residentPhoneNumber} />
-            <DetailPill label="Email Address" value={residentEmail} />
-          </View>
+          {isResidentCode ? (
+            <ValidationResidentOnlyDetails width={335} height={259} />
+          ) : (
+            <ValidationResidentDetails width={335} height={259} />
+          )}
         </View>
       </ScrollView>
 
@@ -126,14 +97,14 @@ export default function ValidationResult() {
         >
           <View style={styles.pictureOverlayBackdrop}>
             <View style={styles.expandedPictureFrame}>
-              <Icon name="person-circle-outline" size={204} color="#FFFFFF" />
+              <ProfileExpandedOverlay width={287} height={287} />
             </View>
             <Pressable
               accessibilityLabel="Close expanded picture"
               onPress={() => setPictureOpen(false)}
               style={({ pressed }) => [styles.overlayCloseButton, pressed && styles.pressed]}
             >
-              <Icon name="close" size={22} color="#FFFFFF" />
+              <ProfileOverlayClose width={32} height={32} />
             </Pressable>
           </View>
         </Modal>
@@ -162,31 +133,40 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 34,
-    paddingTop: 64,
+    paddingTop: 134,
+  },
+  guestScrollContent: {
+    paddingBottom: 16,
+    paddingTop: 106,
   },
   profileEllipse: {
     alignItems: 'center',
-    alignSelf: 'center',
-    backgroundColor: '#F4FFFE',
+    alignSelf: 'flex-start',
     borderRadius: 25,
     elevation: 3,
     height: 50,
     justifyContent: 'center',
+    marginLeft: 157,
     position: 'relative',
     width: 50,
     zIndex: 3,
   },
+  profileEllipseSvg: {
+    height: 50,
+    left: 0,
+    position: 'absolute',
+    top: 0,
+    width: 50,
+  },
   profileInitials: {
-    color: '#1B998B',
-    fontFamily: 'UbuntuSans-Regular',
-    fontSize: 24,
-    height: 34,
-    lineHeight: 30,
-    textAlign: 'center',
-    width: 42,
+    height: 18,
+    left: 11.5,
+    position: 'absolute',
+    top: 16,
+    width: 27,
   },
   residentProfileEllipse: {
-    backgroundColor: '#FFFFFF',
+    transform: [{ translateY: 3 }],
   },
   profileTapTarget: {
     bottom: 0,
@@ -212,16 +192,12 @@ const styles = StyleSheet.create({
   },
   codeCard: {
     alignItems: 'center',
-    alignSelf: 'center',
-    backgroundColor: '#FFFFFF',
     borderRadius: 24,
-    gap: 10,
     height: 114,
+    marginLeft: 36.5,
     marginBottom: 24,
     marginTop: -20,
-    paddingBottom: 8,
-    paddingHorizontal: 45,
-    paddingTop: 30,
+    alignSelf: 'flex-start',
     width: 291,
     zIndex: 1,
   },
@@ -239,29 +215,22 @@ const styles = StyleSheet.create({
   },
   guestDetailsGroup: {
     alignSelf: 'center',
-    backgroundColor: '#FFFFFF',
-    borderColor: 'rgba(27, 153, 139, 0.08)',
-    borderWidth: 0.5,
     height: 167,
-    paddingBottom: 16,
-    paddingHorizontal: 16,
-    paddingTop: 12,
     width: 335,
   },
   residentDetailsGroup: {
     alignSelf: 'center',
-    backgroundColor: '#FFFFFF',
-    borderColor: 'rgba(244, 96, 54, 0.08)',
-    borderWidth: 0.5,
     height: 259,
     marginTop: 24,
-    paddingBottom: 16,
-    paddingHorizontal: 16,
-    paddingTop: 12,
     width: 335,
   },
   residentOnlyGroup: {
+    marginLeft: 2,
     marginTop: 24,
+  },
+  residentCodeCard: {
+    marginLeft: 36.5,
+    transform: [{ translateY: 3 }],
   },
   sectionHeading: {
     alignItems: 'center',
@@ -341,7 +310,6 @@ const styles = StyleSheet.create({
   },
   expandedPictureFrame: {
     alignItems: 'center',
-    backgroundColor: '#0A1F29',
     borderRadius: 10000,
     height: 287,
     justifyContent: 'center',
@@ -349,11 +317,10 @@ const styles = StyleSheet.create({
   },
   overlayCloseButton: {
     alignItems: 'center',
-    backgroundColor: '#0A1F29',
     borderRadius: 10000,
-    height: 44,
+    height: 32,
     justifyContent: 'center',
-    marginTop: 28,
-    width: 44,
+    marginTop: 47,
+    width: 32,
   },
 });
