@@ -287,7 +287,7 @@ export default function Login() {
     [errorMessage]
   );
 
-  if (!appIsReady) return <LoadingTransition />;
+  // if (!appIsReady) return <LoadingTransition />;
 
   return (
     <>
@@ -418,7 +418,7 @@ export default function Login() {
                     <Pressable
                       onPress={handleBiometricLogin}
                       disabled={isLoading}
-                      className="self-center w-14 h-14 rounded-full bg-primary items-center justify-center active:opacity-80"
+                      className={`self-center w-14 h-14 rounded-full bg-primary items-center justify-center ${isLoading && 'opacity-80'}`}
                     >
                       <Ionicons name="finger-print" size={28} color="#CEE5ED" />
                     </Pressable>

@@ -194,7 +194,7 @@ export default function ForgotPassword() {
             </Text>
           </View>
 
-          <View className="gap-4 max-w-xl w-full flex-1">
+          <View className="gap-4 max-w-xl w-full flex-1 mt-6">
             {ErrorBanner}
 
             <View className="relative">
@@ -226,7 +226,7 @@ export default function ForgotPassword() {
               </Text>
             </Pressable>
 
-            <View className="mt-auto gap-5 mb-11">
+            <View className="mt-auto gap-5 mb-11 mx-10">
               <Pressable
                 className={`self-center rounded-full flex-row items-center justify-center w-full h-14 active:opacity-80 ${
                   isCooldownActive || isLoading ? 'bg-grey' : 'bg-primary'
@@ -252,11 +252,11 @@ export default function ForgotPassword() {
         onRequestClose={() => setIsSuccess(false)}
       >
         <Pressable
-          className="flex-1 justify-center items-center bg-black/50 p-6"
+          className="flex-1 justify-center bg-black/50 p-6"
           onPress={() => setIsSuccess(false)}
         >
           <Pressable onPress={() => {}}>
-            <View className="bg-white rounded-2xl p-6 max-w-md w-11/12 relative">
+            <View className="bg-white rounded-2xl p-6 max-w-md w-full">
               <Pressable className="absolute top-4 right-4 p-2" onPress={() => setIsSuccess(false)}>
                 <AntDesign name="close" size={20} color="#0A1F29" />
               </Pressable>
@@ -270,7 +270,7 @@ export default function ForgotPassword() {
               </Text>
 
               <Pressable
-                className="self-center active:opacity-70 w-full bg-[#E5F6FF] rounded-full h-14 items-center justify-center"
+                className="self-center w-full bg-[#E5F6FF] rounded-full h-14 items-center justify-center"
                 onPress={() => router.replace('/auth/login')}
               >
                 <Text
