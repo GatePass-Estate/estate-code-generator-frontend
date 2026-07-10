@@ -340,7 +340,7 @@ export default function Login() {
               className={`max-w-xl w-full justify-center self-center flex-1 ${showTosRejected && !isLargeScreen ? 'my-20' : 'my-40'}`}
             >
               <View className={cn(`mb-10 max-w-xl items-center text-center`)}>
-                <Text className={cn(`text-primary font-ubuntu-semibold text-2xl`)}>Sign In to</Text>
+                <Text className={cn(`text-primary font-ubuntu-semibold text-2xl`)}>Sign in to</Text>
                 <Text className={cn(`text-primary font-ubuntu-medium mt-1 text-4xl`)}>
                   {estate?.estate_name}
                 </Text>

@@ -1,24 +1,8 @@
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  Pressable,
-  Image,
-  ActivityIndicator,
-  Switch,
-} from 'react-native';
+import { View, Text, TouchableOpacity, Pressable, Image, ActivityIndicator } from 'react-native';
 import { useAuth } from '@/src/hooks/useAuthContext';
 import { router, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useUserStore } from '@/src/lib/stores/userStore';
-import { useAuthStore } from '@/src/lib/stores/authStore';
-import {
-  deleteBiometricToken,
-  canUseBiometricLogin,
-  isBiometricAvailable,
-  promptBiometrics,
-  saveBiometricCredentials,
-} from '@/src/lib/biometricAuth';
 import icons from '@/src/constants/icons';
 import Back from '@/src/components/mobile/Back';
 import { SingleDetail } from '@/src/components/mobile/SIngleDetail';
@@ -46,8 +30,6 @@ const ProfileScreen = () => {
   const [expiry, setExpiry] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [noCode, setNoCode] = useState(false);
-  const [biometricEnabled, setBiometricEnabled] = useState(false);
-  const [biometricAvailable, setBiometricAvailable] = useState(false);
 
   const fetchMyCode = useCallback(async () => {
     setLoading(true);
@@ -79,51 +61,6 @@ const ProfileScreen = () => {
       setLoading(false);
     }
   }, [user_id, estate_id]);
-
-  useEffect(() => {
-    let mounted = true;
-
-    async function initBiometric() {
-      const available = await isBiometricAvailable();
-      if (!mounted) return;
-      setBiometricAvailable(available);
-
-      if (available) {
-        const enabled = await canUseBiometricLogin(user_id);
-        if (!mounted) return;
-        setBiometricEnabled(enabled);
-      }
-    }
-
-    initBiometric();
-    return () => {
-      mounted = false;
-    };
-    // Re-check when the active user changes.
-  }, [user_id]);
-
-  const handleToggleBiometric = useCallback(
-    async (value: boolean) => {
-      if (value) {
-        const success = await promptBiometrics('Enable biometric login');
-        if (success) {
-          const token = useAuthStore.getState().access_token;
-          if (token && user_id) {
-            await saveBiometricCredentials(token, user_id, estate_id);
-            setBiometricEnabled(true);
-          } else {
-            setBiometricEnabled(false);
-          }
-        } else {
-          setBiometricEnabled(false);
-        }
-      } else {
-        await deleteBiometricToken();
-        setBiometricEnabled(false);
-      }
-    },
-    [user_id, estate_id]
-  );
 
   useEffect(() => {
     if (role !== 'security') fetchMyCode();
@@ -227,24 +164,6 @@ const ProfileScreen = () => {
             <SingleDetail label="Phone Number" value={phone_number} />
           </View>
         </View>
-
-        {biometricAvailable && (
-          <View className="my-5">
-            <View className="flex-row items-center justify-between">
-              <Text className="text-base font-medium text-primary">SECURITY</Text>
-            </View>
-
-            <View className="mt-3 bg-transparent p-4 rounded-lg border-micro flex-row items-center justify-between">
-              <Text className="text-base text-primary font-Inter">Biometric Login</Text>
-              <Switch
-                value={biometricEnabled}
-                onValueChange={handleToggleBiometric}
-                trackColor={{ false: '#9B9797', true: '#113E55' }}
-                thumbColor="#FFFFFF"
-              />
-            </View>
-          </View>
-        )}
 
         <TouchableOpacity className="self-center mt-auto" onPress={signOut}>
           <Text className="text-tertiary font-bold text-[16px] p-5 font-UbuntuSans">Log Out</Text>

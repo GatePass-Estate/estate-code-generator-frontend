@@ -23,8 +23,8 @@ const Back = ({
       style={[styles.backButton, { gap: 8 }]}
       onPress={handlePress}
       className={cn(
-        'w-10 h-10 self-start justify-center',
-        showBorder && 'bg-[#EFF1F1] rounded-full'
+        'self-start justify-center',
+        showBorder && 'bg-[#EFF1F1] rounded-full w-10 h-10'
       )}
     >
       {type === 'long-arrow' ? (

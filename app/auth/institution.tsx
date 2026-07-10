@@ -238,7 +238,7 @@ export default function InstitutionScreen() {
                       placeholderTextColor="#9B9797"
                       autoCapitalize="none"
                       autoCorrect={false}
-                      className={`flex-1 ml-3 font-Inter text-base text-black h-full ${query && '-mt-3'}`}
+                      className={`flex-1 ml-3 font-Inter text-base text-black h-full`}
                     />
                   </View>
 
@@ -252,7 +252,7 @@ export default function InstitutionScreen() {
                 </View>
 
                 <Animated.View style={dropdownStyle} className="mt-10 overflow-hidden">
-                  <View className="">
+                  <View className="gap-3">
                     {isLoading ? (
                       <View className="py-6 items-center justify-center">
                         <ActivityIndicator color="#113E55" />
@@ -276,7 +276,7 @@ export default function InstitutionScreen() {
                             )}
                           >
                             <View className="flex-1">
-                              <Text className="font-inter-semibold text-base text-black">
+                              <Text className="font-inter-light text-base text-black">
                                 {estate.name}
                               </Text>
                               {!!estate.location && (
@@ -288,7 +288,7 @@ export default function InstitutionScreen() {
 
                             <View
                               className={cn(
-                                'w-5 h-5 rounded-full border-2 items-center justify-center mr-3',
+                                'w-5 h-5 rounded-full border items-center justify-center mr-3',
                                 isSelected ? 'border-primary' : 'border-primary/80'
                               )}
                             >

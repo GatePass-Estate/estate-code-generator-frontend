@@ -20,7 +20,7 @@ export function BiometricPromptModal({ visible, onEnable, onDismiss }: Biometric
         style={{ backgroundColor: 'rgba(0, 0, 0, 0.55)' }}
       >
         <View
-          className="w-full max-w-sm bg-white rounded-2xl p-6"
+          className="w-full max-w-sm bg-white rounded-2xl px-8 py-16"
           style={{
             shadowColor: '#000',
             shadowOffset: { width: 0, height: 4 },
@@ -29,27 +29,27 @@ export function BiometricPromptModal({ visible, onEnable, onDismiss }: Biometric
             elevation: 8,
           }}
         >
-          <Text className="text-xl text-primary font-ubuntu-bold text-center mb-2">
+          <Text className="text-2xl text-primary font-ubuntu-bold mb-1">
             Enable Biometric Login?
           </Text>
 
-          <Text className="text-base text-[#4B5563] font-Inter text-center leading-6 mb-6">
+          <Text className="text-base text-[#4B5563] font-inter-regular leading-6 mb-6">
             Sign in faster next time using your device biometric authentication.
           </Text>
 
-          <View className="gap-3">
+          <View className="gap-5 flex-row">
             <Pressable
-              onPress={onEnable}
-              className="h-14 rounded-full bg-primary items-center justify-center active:opacity-80"
+              onPress={onDismiss}
+              className="h-14 rounded-full bg-[#CEE5ED] items-center justify-center active:opacity-80 grow"
             >
-              <Text className="text-white font-ubuntu-semibold text-lg">Enable</Text>
+              <Text className="text-primary font-ubuntu-semibold text-lg">Not Now</Text>
             </Pressable>
 
             <Pressable
-              onPress={onDismiss}
-              className="h-14 rounded-full bg-[#CEE5ED] items-center justify-center active:opacity-80"
+              onPress={onEnable}
+              className="h-14 rounded-full bg-primary items-center justify-center active:opacity-80 grow"
             >
-              <Text className="text-primary font-ubuntu-semibold text-lg">Not Now</Text>
+              <Text className="text-white font-ubuntu-semibold text-lg">Enable</Text>
             </Pressable>
           </View>
         </View>
