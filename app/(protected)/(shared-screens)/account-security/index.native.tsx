@@ -1,4 +1,4 @@
-import { View, Text, Pressable, Image, Switch } from 'react-native';
+import { View, Text, Pressable, Image, Switch, Platform, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, router } from 'expo-router';
 import Back from '@/src/components/mobile/Back';
@@ -6,12 +6,14 @@ import { sharedStyles } from '@/src/theme/styles';
 import icons from '@/src/constants/icons';
 import { useCallback, useEffect, useState } from 'react';
 import {
-  canUseBiometricLogin,
+  clearBiometricPreference,
   deleteBiometricToken,
   isBiometricAvailable,
+  isBiometricPreferenceEnabled,
   promptBiometrics,
   saveBiometricCredentials,
 } from '@/src/lib/biometricAuth';
+import { disableBiometricLogin, enableBiometricLogin } from '@/src/lib/api/auth';
 import { useAuthStore } from '@/src/lib/stores/authStore';
 import { useUserStore } from '@/src/lib/stores/userStore';
 
@@ -30,7 +32,7 @@ export default function AccountSecurityScreen() {
       setBiometricAvailable(available);
 
       if (available) {
-        const enabled = await canUseBiometricLogin(user_id);
+        const enabled = await isBiometricPreferenceEnabled(user_id, estate_id);
         if (!mounted) return;
         setBiometricEnabled(enabled);
       }
@@ -40,31 +42,64 @@ export default function AccountSecurityScreen() {
     return () => {
       mounted = false;
     };
-    // Re-check when the active user changes.
-  }, [user_id]);
+    // Re-check when the active user or estate changes.
+  }, [user_id, estate_id]);
 
   const handleToggleBiometric = useCallback(
     async (value: boolean) => {
+      setBiometricEnabled(value);
+
       if (value) {
-        const success = await promptBiometrics('Enable biometric login');
-        if (success) {
-          const token = useAuthStore.getState().access_token;
-          if (token && user_id) {
-            await saveBiometricCredentials(token, user_id, estate_id);
-            setBiometricEnabled(true);
-          } else {
-            setBiometricEnabled(false);
-          }
-        } else {
+        const available = await isBiometricAvailable();
+        if (!available) {
           setBiometricEnabled(false);
+          Alert.alert(
+            'Biometric login not available',
+            'Set up Face ID or Touch ID on this device first.'
+          );
+          return;
+        }
+
+        const success = await promptBiometrics('Enable biometric login');
+        if (!success) {
+          setBiometricEnabled(false);
+          return;
+        }
+
+        const token = useAuthStore.getState().access_token;
+        if (!token || !user_id) {
+          setBiometricEnabled(false);
+          return;
+        }
+
+        try {
+          const biometricResponse = await enableBiometricLogin(token, estate_id);
+          await saveBiometricCredentials(biometricResponse.biometric_token, user_id, estate_id);
+          setBiometricEnabled(true);
+        } catch (error: any) {
+          setBiometricEnabled(false);
+          Alert.alert('Unable to enable biometric login', error?.message || 'Please try again.');
         }
       } else {
+        try {
+          const token = useAuthStore.getState().access_token;
+          if (token) {
+            await disableBiometricLogin(token);
+          }
+        } catch {
+          // Ignore disable errors and still clear locally stored biometrics.
+        }
         await deleteBiometricToken();
+        await clearBiometricPreference(user_id, estate_id);
         setBiometricEnabled(false);
       }
     },
     [user_id, estate_id]
   );
+
+  if (Platform.OS === 'web') {
+    return null;
+  }
 
   return (
     <SafeAreaView style={[sharedStyles.container, sharedStyles.modalContainer]}>
@@ -100,7 +135,9 @@ export default function AccountSecurityScreen() {
               <Text className="text-base text-primary font-Inter">Biometric Login</Text>
               <Switch
                 value={biometricEnabled}
-                onValueChange={handleToggleBiometric}
+                onValueChange={(nextValue) => {
+                  void handleToggleBiometric(nextValue);
+                }}
                 trackColor={{ false: '#9B9797', true: '#113E55' }}
                 thumbColor="#FFFFFF"
               />

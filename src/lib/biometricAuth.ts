@@ -2,9 +2,12 @@ import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const BIOMETRIC_TOKEN_KEY = 'biometric-auth-token';
-const BIOMETRIC_USER_KEY = 'biometric-auth-user';
+const BIOMETRIC_TOKEN_KEY = 'gatepass-biometric-auth-token';
+const BIOMETRIC_USER_KEY = 'gatepass-biometric-auth-user';
 const BIOMETRIC_ESTATE_KEY = `${BIOMETRIC_USER_KEY}-estate`;
+const BIOMETRIC_PREFERENCE_KEY = 'gatepass-biometric-auth-preferences';
+
+type BiometricPreferenceMap = Record<string, boolean>;
 
 function biometricPromptDismissedKey(userId: string) {
   return `biometric-prompt-dismissed-${userId}`;
@@ -85,25 +88,94 @@ export async function deleteBiometricToken(): Promise<void> {
   await SecureStore.deleteItemAsync(BIOMETRIC_ESTATE_KEY);
 }
 
-/**
- * Returns `true` only when biometrics are available AND a token has been
- * saved for biometric login for the provided user.
- */
-export async function canUseBiometricLogin(userId?: string): Promise<boolean> {
-  const [available, token, storedUserId] = await Promise.all([
-    isBiometricAvailable(),
-    getBiometricToken(),
-    getBiometricUserId(),
-  ]);
+function biometricPreferenceKey(identity?: string | null, estateId?: string | null): string {
+  if (!identity) {
+    return `estate:${estateId ?? ''}`;
+  }
+  return `${identity}:${estateId ?? ''}`;
+}
 
-  if (!available || token == null) return false;
+async function getBiometricPreferenceMap(): Promise<BiometricPreferenceMap> {
+  const rawValue = await AsyncStorage.getItem(BIOMETRIC_PREFERENCE_KEY);
+  if (!rawValue) return {};
 
-  // If a specific user is requested, ensure the stored token belongs to them.
-  if (userId != null) {
-    return storedUserId === userId;
+  try {
+    const parsedValue = JSON.parse(rawValue) as BiometricPreferenceMap;
+    return parsedValue && typeof parsedValue === 'object' ? parsedValue : {};
+  } catch {
+    return {};
+  }
+}
+
+export async function isBiometricPreferenceEnabled(
+  identity?: string | null,
+  estateId?: string | null
+): Promise<boolean> {
+  const map = await getBiometricPreferenceMap();
+  const directKey = biometricPreferenceKey(identity, estateId);
+  if (map[directKey]) return true;
+
+  if (identity) {
+    return Boolean(map[biometricPreferenceKey(undefined, estateId)]);
   }
 
-  return storedUserId != null;
+  return false;
+}
+
+export async function setBiometricPreference(
+  identity: string,
+  estateId?: string | null,
+  enabled = true
+): Promise<void> {
+  const map = await getBiometricPreferenceMap();
+  const nextValue = { ...map };
+
+  if (enabled) {
+    nextValue[biometricPreferenceKey(identity, estateId)] = true;
+    nextValue[biometricPreferenceKey(undefined, estateId)] = true;
+  } else {
+    delete nextValue[biometricPreferenceKey(identity, estateId)];
+    delete nextValue[biometricPreferenceKey(undefined, estateId)];
+  }
+
+  await AsyncStorage.setItem(BIOMETRIC_PREFERENCE_KEY, JSON.stringify(nextValue));
+}
+
+export async function clearBiometricPreference(
+  identity?: string | null,
+  estateId?: string | null
+): Promise<void> {
+  if (!identity) return;
+
+  const map = await getBiometricPreferenceMap();
+  const nextValue = { ...map };
+  delete nextValue[biometricPreferenceKey(identity, estateId)];
+  delete nextValue[biometricPreferenceKey(undefined, estateId)];
+  await AsyncStorage.setItem(BIOMETRIC_PREFERENCE_KEY, JSON.stringify(nextValue));
+}
+
+/**
+ * Returns `true` only when biometrics are available, a token has been saved,
+ * and the biometric preference is enabled for the provided identity/estate.
+ */
+export async function canUseBiometricLogin(
+  identity?: string | null,
+  estateId?: string | null
+): Promise<boolean> {
+  const [available, token, storedEstateId, enabled] = await Promise.all([
+    isBiometricAvailable(),
+    getBiometricToken(),
+    SecureStore.getItemAsync(BIOMETRIC_ESTATE_KEY),
+    isBiometricPreferenceEnabled(identity, estateId),
+  ]);
+
+  if (!available || token == null || !enabled) return false;
+
+  if (estateId != null && storedEstateId != null && storedEstateId !== estateId) {
+    return false;
+  }
+
+  return true;
 }
 
 /**
@@ -154,6 +226,7 @@ export async function saveBiometricCredentials(
   if (estateId != null) {
     await SecureStore.setItemAsync(BIOMETRIC_ESTATE_KEY, estateId);
   }
+  await setBiometricPreference(userId, estateId, true);
 }
 
 /**

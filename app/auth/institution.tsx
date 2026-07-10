@@ -145,11 +145,18 @@ export default function InstitutionScreen() {
   }, []);
 
   const handleSelect = useCallback((estate: Estate) => {
+    Keyboard.dismiss();
+    inputRef.current?.blur();
+    setIsFocused(false);
     setSelected(estate);
   }, []);
 
   const handleContinue = useCallback(async () => {
     if (!selected) return;
+
+    Keyboard.dismiss();
+    inputRef.current?.blur();
+    setIsFocused(false);
 
     try {
       await setSelectedInstitution({
@@ -238,7 +245,7 @@ export default function InstitutionScreen() {
                       placeholderTextColor="#9B9797"
                       autoCapitalize="none"
                       autoCorrect={false}
-                      className={`flex-1 ml-3 font-Inter text-base text-black h-full`}
+                      className={`flex-1 ml-3 font-Inter text-base text-black h-full ${query && Platform.OS == 'ios' && '-mt-3'}`}
                     />
                   </View>
 

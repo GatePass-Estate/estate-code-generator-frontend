@@ -9,12 +9,13 @@ import {
   useWindowDimensions,
   Pressable,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FontAwesome, AntDesign, Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/src/components/nativewindui/Button';
 import { useAuth } from '@/src/hooks/useAuthContext';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { fetchMe, loginUser } from '@/src/lib/api/auth';
+import { enableBiometricLogin, fetchMe, loginBiometric, loginUser } from '@/src/lib/api/auth';
 import { User } from '@/src/types/user';
 import { useAuthStore } from '@/src/lib/stores/authStore';
 import {
@@ -82,7 +83,11 @@ export default function Login() {
         return;
       }
       setEstate(institution);
-      const biometric = await canUseBiometricLogin();
+      const savedEmail = await AsyncStorage.getItem('gatepass-last-email');
+      if (savedEmail) {
+        setEmail(savedEmail);
+      }
+      const biometric = await canUseBiometricLogin(undefined, institution?.estate_id);
       setShowBiometric(biometric);
     };
     prepare();
@@ -179,11 +184,12 @@ export default function Login() {
         skipRouting: true,
       });
       setIsLoading(false);
+      await AsyncStorage.setItem('gatepass-last-email', emailValue);
 
       const shouldPrompt =
         Platform.OS !== 'web' &&
         (await isBiometricAvailable()) &&
-        !(await canUseBiometricLogin(user.user_id)) &&
+        !(await canUseBiometricLogin(user.user_id, user.estate_id)) &&
         !(await hasBiometricPromptBeenDismissed(user.user_id));
 
       if (shouldPrompt) {
@@ -209,28 +215,42 @@ export default function Login() {
         return;
       }
 
-      // On the login screen we do not yet know which user is signing in, so we
-      // load whichever token the current device owner previously saved and let
-      // the backend profile fetch verify identity.
       const token = await getBiometricToken();
-      if (!token) {
+      if (!token || !estate?.estate_id) {
         await deleteBiometricToken();
-        setShowBiometric(false);
+        setPassword('');
         setErrorMessage('Biometric login is not available. Please sign in with your password.');
         setIsLoading(false);
         return;
       }
 
-      await finishSignIn(token);
+      const response = await loginBiometric(token, estate.estate_id);
+      if (response.requires_full_reauth) {
+        await deleteBiometricToken();
+        setPassword('');
+        setErrorMessage('Please sign in again to continue.');
+        setIsLoading(false);
+        return;
+      }
+
+      if (response.access_token) {
+        const user = await finishSignIn(response.access_token, { skipRouting: true });
+        if (response.biometric_token) {
+          await saveBiometricCredentials(response.biometric_token, user.user_id, user.estate_id);
+        }
+        routeForUser(user);
+      } else {
+        throw new Error('Biometric login did not return an access token.');
+      }
     } catch (error: any) {
       await deleteBiometricToken();
-      setShowBiometric(false);
+      setPassword('');
       setErrorMessage(
         error.message || 'Biometric login failed. Please sign in with your password.'
       );
       setIsLoading(false);
     }
-  }, [finishSignIn]);
+  }, [estate, finishSignIn, routeForUser]);
 
   const handleEnableBiometricPrompt = useCallback(async () => {
     if (!pendingAuth) return;
@@ -239,10 +259,17 @@ export default function Login() {
     try {
       const success = await promptBiometrics('Enable biometric login');
       if (success) {
-        await saveBiometricCredentials(token, user.user_id, user.estate_id);
+        const biometricResponse = await enableBiometricLogin(token, user.estate_id);
+        await saveBiometricCredentials(
+          biometricResponse.biometric_token,
+          user.user_id,
+          user.estate_id
+        );
+      } else {
+        await dismissBiometricPrompt(user.user_id);
       }
     } catch {
-      // ignore biometric enable errors
+      await dismissBiometricPrompt(user.user_id);
     }
 
     setShowBiometricPrompt(false);
@@ -356,7 +383,12 @@ export default function Login() {
                     placeholderTextColor="#9B9797"
                     keyboardType="email-address"
                     value={email}
-                    onChangeText={setEmail}
+                    onChangeText={(value) => {
+                      setEmail(value);
+                      if (value.trim()) {
+                        AsyncStorage.setItem('gatepass-last-email', value.trim().toLowerCase());
+                      }
+                    }}
                     autoCapitalize="none"
                     editable={!isLoading}
                     className="bg-light-grey rounded-xl px-4 h-14 font-Inter text-base text-black"
@@ -435,6 +467,12 @@ export default function Login() {
         </View>
       </SafeAreaView>
 
+      <BiometricPromptModal
+        visible={showBiometricPrompt}
+        onEnable={handleEnableBiometricPrompt}
+        onDismiss={handleDismissBiometricPrompt}
+      />
+
       {showTosRejected && isLargeScreen && (
         <View className="absolute top-10 left-0 right-0 items-center z-50">
           <View
@@ -469,12 +507,6 @@ export default function Login() {
           </View>
         </View>
       )}
-
-      <BiometricPromptModal
-        visible={showBiometricPrompt}
-        onEnable={handleEnableBiometricPrompt}
-        onDismiss={handleDismissBiometricPrompt}
-      />
     </>
   );
 }

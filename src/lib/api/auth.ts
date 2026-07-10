@@ -75,6 +75,80 @@ export async function fetchMe(token: string) {
   }
 }
 
+export async function enableBiometricLogin(
+  accessToken: string,
+  estate_id?: string | null
+): Promise<{ biometric_token: string }> {
+  try {
+    const baseUrl = process.env.EXPO_PUBLIC_USER_SERVICE_API_URL;
+    const axiosRes = await axios.post(
+      `${baseUrl}/api/v1/auth/biometric/enable`,
+      estate_id ? { estate_id } : {},
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        timeout: 10000,
+      }
+    );
+
+    return axiosRes.data;
+  } catch (error: any) {
+    throw new Error(`${getErrorMessage(error) || 'Unable to enable biometric login'} `);
+  }
+}
+
+export async function loginBiometric(
+  biometricToken: string,
+  estate_id: string,
+  accessToken?: string
+): Promise<{
+  success: boolean;
+  access_token: string | null;
+  role?: string | null;
+  token_type?: string;
+  session_id?: string | null;
+  biometric_token?: string | null;
+  requires_full_reauth?: boolean;
+}> {
+  try {
+    const baseUrl = process.env.EXPO_PUBLIC_USER_SERVICE_API_URL;
+    const axiosRes = await axios.post(
+      `${baseUrl}/api/v1/auth/biometric/login`,
+      { biometric_token: biometricToken, estate_id },
+      {
+        headers: {
+          Authorization: accessToken ? `Bearer ${accessToken}` : undefined,
+          'Content-Type': 'application/json',
+        },
+        timeout: 10000,
+      }
+    );
+
+    return axiosRes.data;
+  } catch (error: any) {
+    throw new Error(`${getErrorMessage(error) || 'Biometric login failed'} `);
+  }
+}
+
+export async function disableBiometricLogin(accessToken: string): Promise<{ message?: string }> {
+  try {
+    const baseUrl = process.env.EXPO_PUBLIC_USER_SERVICE_API_URL;
+    const axiosRes = await axios.delete(`${baseUrl}/api/v1/auth/biometric`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      timeout: 10000,
+    });
+
+    return axiosRes.data;
+  } catch (error: any) {
+    throw new Error(`${getErrorMessage(error) || 'Unable to disable biometric login'} `);
+  }
+}
+
 async function verifyEmailActivationToken(token: string): Promise<VerifyEmailActivationResponse> {
   try {
     const api = Api('user');
