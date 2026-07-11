@@ -106,8 +106,6 @@ export const storeAuthState = async (userData: AuthState): Promise<boolean> => {
 export const clearAuthState = async (): Promise<void> => {
   try {
     await AsyncStorage.removeItem(authStorageKey);
-    await clearSelectedInstitution();
-    await clearForgotPasswordCooldown();
   } catch (error) {
     console.log('Error clearing auth state', error);
   }
@@ -132,6 +130,7 @@ export const getAuthState = async (): Promise<AuthState | null> => {
 };
 
 const INSTITUTION_STORAGE_KEY = 'selected-institution';
+const LAST_LOGIN_INSTITUTION_KEY = 'last-login-institution';
 
 export type SelectedInstitution = {
   estate_id: string;
@@ -150,10 +149,34 @@ export const setSelectedInstitution = async (
   }
 };
 
+export const setLastLoginInstitution = async (
+  institution: SelectedInstitution | null
+): Promise<void> => {
+  try {
+    if (!institution) {
+      await AsyncStorage.removeItem(LAST_LOGIN_INSTITUTION_KEY);
+      return;
+    }
+    await AsyncStorage.setItem(LAST_LOGIN_INSTITUTION_KEY, JSON.stringify(institution));
+  } catch (error) {
+    console.log('Error saving last login institution', error);
+  }
+};
+
+export const getLastLoginInstitution = async (): Promise<SelectedInstitution | null> => {
+  try {
+    const value = await AsyncStorage.getItem(LAST_LOGIN_INSTITUTION_KEY);
+    return value ? (JSON.parse(value) as SelectedInstitution) : null;
+  } catch (error) {
+    console.log('Error retrieving last login institution', error);
+    return null;
+  }
+};
+
 export const getSelectedInstitution = async (): Promise<SelectedInstitution | null> => {
   try {
-    const jsonValue = await AsyncStorage.getItem(INSTITUTION_STORAGE_KEY);
-    return jsonValue != null ? JSON.parse(jsonValue) : null;
+    const value = await AsyncStorage.getItem(INSTITUTION_STORAGE_KEY);
+    return value ? (JSON.parse(value) as SelectedInstitution) : null;
   } catch (error) {
     console.log('Error retrieving selected institution', error);
     return null;
@@ -166,6 +189,12 @@ export const clearSelectedInstitution = async (): Promise<void> => {
   } catch (error) {
     console.log('Error clearing selected institution', error);
   }
+};
+
+export const getPostAuthRedirectRoute = (
+  institution: SelectedInstitution | null
+): '/auth/login' | '/auth/institution' => {
+  return institution ? '/auth/login' : '/auth/institution';
 };
 
 const FORGOT_PASSWORD_COOLDOWN_KEY = 'forgot-password-cooldown';

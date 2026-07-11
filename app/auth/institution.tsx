@@ -55,8 +55,7 @@ export default function InstitutionScreen() {
       try {
         const stored = await getSelectedInstitution();
         if (stored) {
-          router.replace('/auth/login');
-          return;
+          setSelected(null);
         }
       } catch {
         // ignore read errors; continue to selection screen
@@ -163,7 +162,7 @@ export default function InstitutionScreen() {
         estate_id: selected.id,
         estate_name: selected.name,
       });
-      router.push('/auth/login');
+      router.push({ pathname: '/auth/login', params: { fromInstitute: 'true' } });
     } catch {
       Alert.alert('Error', 'Could not save institution selection. Please try again.');
     }

@@ -22,8 +22,9 @@ import {
   broadcastLogin,
   getWidthBreakpoint,
   storeAuthState,
+  getLastLoginInstitution,
   getSelectedInstitution,
-  clearSelectedInstitution,
+  setLastLoginInstitution,
   type SelectedInstitution,
 } from '@/src/lib/helpers';
 import Images from '@/src/constants/images';
@@ -31,13 +32,14 @@ import { cn } from '@/src/lib/cn';
 import icons from '@/src/constants/icons';
 import {
   canUseBiometricLogin,
-  deleteBiometricToken,
   getBiometricToken,
   promptBiometrics,
   isBiometricAvailable,
   hasBiometricPromptBeenDismissed,
   dismissBiometricPrompt,
   saveBiometricCredentials,
+  isBiometricPreferenceEnabled,
+  biometricTokenMatchesUser,
 } from '@/src/lib/biometricAuth';
 import { BiometricPromptModal } from '@/src/components/mobile/BiometricPromptModal';
 import Back from '@/src/components/mobile/Back';
@@ -46,7 +48,7 @@ export default function Login() {
   const { signIn } = useAuth();
   const router = useRouter();
   const { width } = useWindowDimensions();
-  const searchParams = useLocalSearchParams<{ tos_rejected?: string }>();
+  const searchParams = useLocalSearchParams();
 
   const [estate, setEstate] = useState<SelectedInstitution | null>(null);
   const [email, setEmail] = useState('');
@@ -77,17 +79,25 @@ export default function Login() {
 
   useEffect(() => {
     const prepare = async () => {
-      const institution = await getSelectedInstitution();
+      const draftInstitution = await getSelectedInstitution();
+      const lastLoginInstitution = await getLastLoginInstitution();
+
+      const institution = searchParams.fromInstitute
+        ? await getSelectedInstitution()
+        : (lastLoginInstitution ?? draftInstitution);
+
       if (!institution) {
         router.replace('/auth/institution');
         return;
       }
+
       setEstate(institution);
       const savedEmail = await AsyncStorage.getItem('gatepass-last-email');
-      if (savedEmail) {
+      const savedUserId = await AsyncStorage.getItem('gatepass-last-user-id');
+      if (savedEmail && savedEmail.trim()) {
         setEmail(savedEmail);
       }
-      const biometric = await canUseBiometricLogin(undefined, institution?.estate_id);
+      const biometric = await canUseBiometricLogin(savedUserId, institution?.estate_id);
       setShowBiometric(biometric);
     };
     prepare();
@@ -104,35 +114,16 @@ export default function Login() {
   }, []);
 
   const handleBackPress = useCallback(async () => {
-    await clearSelectedInstitution();
     router.replace('/auth/institution');
   }, [router]);
 
   const finishSignIn = useCallback(
-    async (
-      token: string,
-      options?: { clearExistingBiometric?: boolean; skipRouting?: boolean }
-    ): Promise<User> => {
+    async (token: string, options?: { skipRouting?: boolean }): Promise<User> => {
       const user = await fetchMe(token);
       useAuthStore.setState({ access_token: token, role: user.role });
       await storeAuthState({ access_token: token, role: user.role });
       broadcastLogin(token, user.role);
       signIn(user);
-
-      // If a different user/estate just signed in, remove any biometric token
-      // that belonged to the previous account so the toggle and login screen
-      // stay accurate for the active account.
-      if (options?.clearExistingBiometric) {
-        try {
-          const { biometricTokenMatchesUser } = await import('@/src/lib/biometricAuth');
-          const matches = await biometricTokenMatchesUser(user.user_id, user.estate_id);
-          if (!matches) {
-            await deleteBiometricToken();
-          }
-        } catch {
-          // ignore cleanup errors
-        }
-      }
 
       if (!options?.skipRouting) {
         routeForUser(user);
@@ -179,17 +170,41 @@ export default function Login() {
         return;
       }
 
-      const user = await finishSignIn(result.access_token, {
-        clearExistingBiometric: true,
-        skipRouting: true,
-      });
+      const user = await finishSignIn(result.access_token, { skipRouting: true });
       setIsLoading(false);
+      await setLastLoginInstitution(estate ?? null);
       await AsyncStorage.setItem('gatepass-last-email', emailValue);
+      await AsyncStorage.setItem('gatepass-last-user-id', user.user_id);
 
+      const preferenceEnabled = await isBiometricPreferenceEnabled(user.user_id, user.estate_id);
+      const tokenMatchesUser = await biometricTokenMatchesUser(user.user_id, user.estate_id);
+
+      if (preferenceEnabled && !tokenMatchesUser) {
+        try {
+          const biometricResponse = await enableBiometricLogin(result.access_token, user.estate_id);
+          await saveBiometricCredentials(
+            biometricResponse.biometric_token,
+            user.user_id,
+            user.estate_id
+          );
+        } catch {
+          // Keep the password flow working even if the silent refresh fails.
+        }
+      }
+
+      const hasSavedBiometricForCurrentUser = Boolean(
+        (await getBiometricToken()) &&
+        (await biometricTokenMatchesUser(user.user_id, user.estate_id))
+      );
+      const hasPreferenceForCurrentUser = await isBiometricPreferenceEnabled(
+        user.user_id,
+        user.estate_id
+      );
       const shouldPrompt =
         Platform.OS !== 'web' &&
         (await isBiometricAvailable()) &&
-        !(await canUseBiometricLogin(user.user_id, user.estate_id)) &&
+        !hasSavedBiometricForCurrentUser &&
+        !hasPreferenceForCurrentUser &&
         !(await hasBiometricPromptBeenDismissed(user.user_id));
 
       if (shouldPrompt) {
@@ -217,7 +232,6 @@ export default function Login() {
 
       const token = await getBiometricToken();
       if (!token || !estate?.estate_id) {
-        await deleteBiometricToken();
         setPassword('');
         setErrorMessage('Biometric login is not available. Please sign in with your password.');
         setIsLoading(false);
@@ -226,7 +240,6 @@ export default function Login() {
 
       const response = await loginBiometric(token, estate.estate_id);
       if (response.requires_full_reauth) {
-        await deleteBiometricToken();
         setPassword('');
         setErrorMessage('Please sign in again to continue.');
         setIsLoading(false);
@@ -238,12 +251,12 @@ export default function Login() {
         if (response.biometric_token) {
           await saveBiometricCredentials(response.biometric_token, user.user_id, user.estate_id);
         }
+        AsyncStorage.setItem('gatepass-last-email', user.email!);
         routeForUser(user);
       } else {
         throw new Error('Biometric login did not return an access token.');
       }
     } catch (error: any) {
-      await deleteBiometricToken();
       setPassword('');
       setErrorMessage(
         error.message || 'Biometric login failed. Please sign in with your password.'
@@ -383,12 +396,7 @@ export default function Login() {
                     placeholderTextColor="#9B9797"
                     keyboardType="email-address"
                     value={email}
-                    onChangeText={(value) => {
-                      setEmail(value);
-                      if (value.trim()) {
-                        AsyncStorage.setItem('gatepass-last-email', value.trim().toLowerCase());
-                      }
-                    }}
+                    onChangeText={(value) => setEmail(value)}
                     autoCapitalize="none"
                     editable={!isLoading}
                     className="bg-light-grey rounded-xl px-4 h-14 font-Inter text-base text-black"

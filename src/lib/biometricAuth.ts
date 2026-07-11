@@ -113,13 +113,7 @@ export async function isBiometricPreferenceEnabled(
 ): Promise<boolean> {
   const map = await getBiometricPreferenceMap();
   const directKey = biometricPreferenceKey(identity, estateId);
-  if (map[directKey]) return true;
-
-  if (identity) {
-    return Boolean(map[biometricPreferenceKey(undefined, estateId)]);
-  }
-
-  return false;
+  return Boolean(map[directKey]);
 }
 
 export async function setBiometricPreference(
@@ -129,13 +123,15 @@ export async function setBiometricPreference(
 ): Promise<void> {
   const map = await getBiometricPreferenceMap();
   const nextValue = { ...map };
+  const directKey = biometricPreferenceKey(identity, estateId);
+  const legacyEstateKey = biometricPreferenceKey(undefined, estateId);
 
   if (enabled) {
-    nextValue[biometricPreferenceKey(identity, estateId)] = true;
-    nextValue[biometricPreferenceKey(undefined, estateId)] = true;
+    nextValue[directKey] = true;
+    delete nextValue[legacyEstateKey];
   } else {
-    delete nextValue[biometricPreferenceKey(identity, estateId)];
-    delete nextValue[biometricPreferenceKey(undefined, estateId)];
+    delete nextValue[directKey];
+    delete nextValue[legacyEstateKey];
   }
 
   await AsyncStorage.setItem(BIOMETRIC_PREFERENCE_KEY, JSON.stringify(nextValue));
@@ -149,8 +145,11 @@ export async function clearBiometricPreference(
 
   const map = await getBiometricPreferenceMap();
   const nextValue = { ...map };
-  delete nextValue[biometricPreferenceKey(identity, estateId)];
-  delete nextValue[biometricPreferenceKey(undefined, estateId)];
+  const directKey = biometricPreferenceKey(identity, estateId);
+  const legacyEstateKey = biometricPreferenceKey(undefined, estateId);
+
+  delete nextValue[directKey];
+  delete nextValue[legacyEstateKey];
   await AsyncStorage.setItem(BIOMETRIC_PREFERENCE_KEY, JSON.stringify(nextValue));
 }
 
@@ -162,14 +161,19 @@ export async function canUseBiometricLogin(
   identity?: string | null,
   estateId?: string | null
 ): Promise<boolean> {
-  const [available, token, storedEstateId, enabled] = await Promise.all([
+  const [available, token, storedUserId, storedEstateId, enabled] = await Promise.all([
     isBiometricAvailable(),
     getBiometricToken(),
+    getBiometricUserId(),
     SecureStore.getItemAsync(BIOMETRIC_ESTATE_KEY),
     isBiometricPreferenceEnabled(identity, estateId),
   ]);
 
   if (!available || token == null || !enabled) return false;
+
+  if (identity != null && storedUserId != null && storedUserId !== identity) {
+    return false;
+  }
 
   if (estateId != null && storedEstateId != null && storedEstateId !== estateId) {
     return false;
@@ -226,6 +230,7 @@ export async function saveBiometricCredentials(
   if (estateId != null) {
     await SecureStore.setItemAsync(BIOMETRIC_ESTATE_KEY, estateId);
   }
+  await AsyncStorage.setItem('gatepass-last-user-id', userId);
   await setBiometricPreference(userId, estateId, true);
 }
 

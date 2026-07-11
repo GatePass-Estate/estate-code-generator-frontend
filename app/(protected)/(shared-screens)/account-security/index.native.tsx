@@ -12,6 +12,7 @@ import {
   isBiometricPreferenceEnabled,
   promptBiometrics,
   saveBiometricCredentials,
+  setBiometricPreference,
 } from '@/src/lib/biometricAuth';
 import { disableBiometricLogin, enableBiometricLogin } from '@/src/lib/api/auth';
 import { useAuthStore } from '@/src/lib/stores/authStore';
@@ -90,6 +91,7 @@ export default function AccountSecurityScreen() {
           // Ignore disable errors and still clear locally stored biometrics.
         }
         await deleteBiometricToken();
+        await setBiometricPreference(user_id, estate_id, false);
         await clearBiometricPreference(user_id, estate_id);
         setBiometricEnabled(false);
       }

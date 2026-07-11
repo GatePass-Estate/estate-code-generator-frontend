@@ -5,10 +5,10 @@ import {
   clearAccessToken,
   clearAuthState,
   getAuthState,
+  getPostAuthRedirectRoute,
   getSelectedInstitution,
   initAuthSync,
 } from '@/src/lib/helpers';
-import { deleteBiometricToken } from '@/src/lib/biometricAuth';
 import { useAuthStore } from '@/src/lib/stores/authStore';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { AuthContextType } from '@/src/types/auth';
@@ -51,7 +51,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       useUserStore.getState().clearUser();
       useAuthStore.getState().clearAuth();
-      router.replace('/auth/institution');
+      const institution = await getSelectedInstitution();
+      router.replace(getPostAuthRedirectRoute(institution));
     } finally {
       isProcessingRef.current = false;
     }
@@ -62,15 +63,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     useUserStore.getState().clearUser();
     useAuthStore.getState().clearAuth();
     await clearAuthState();
-    try {
-      await deleteBiometricToken();
-    } catch (e) {
-      console.log('Error clearing biometric token during sign out', e);
-    }
     broadcastLogout();
     // Force full component reset by incrementing key
     setResetKey((prev) => prev + 1);
-    router.replace('/auth/institution');
+    const institution = await getSelectedInstitution();
+    router.replace(getPostAuthRedirectRoute(institution));
   }, [router]);
 
   const signIn = async (userData: User) => {
@@ -146,7 +143,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (!isPublicRoute(currentPath, initialURL)) {
         const institution = await getSelectedInstitution();
-        router.replace(institution ? '/auth/login' : '/auth/institution');
+        router.replace(getPostAuthRedirectRoute(institution));
       }
 
       setIsReady(true);
