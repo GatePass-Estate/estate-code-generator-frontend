@@ -2,7 +2,6 @@ import { Platform } from 'react-native';
 import { fetchMe } from '@/src/lib/api/auth';
 import {
   broadcastLogout,
-  clearAccessToken,
   clearAuthState,
   getAuthState,
   getPostAuthRedirectRoute,
@@ -70,6 +69,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.replace(getPostAuthRedirectRoute(institution));
   }, [router]);
 
+  const routeForUser = useCallback(
+    (user: User) => {
+      if (['primary_admin', 'admin', 'resident'].includes(user.role!)) {
+        router.replace('/user');
+      } else if (user.role === 'security') {
+        router.replace('/security');
+      }
+    },
+    [router]
+  );
+
   const signIn = async (userData: User) => {
     useUserStore.setState({ ...userData });
     setIsReady(true);
@@ -91,12 +101,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (myProfile && myProfile.status) {
           useUserStore.setState({ ...myProfile });
-
-          if (['primary_admin', 'admin', 'resident'].includes(myProfile.role!)) {
-            router.replace('/user');
-          } else if (myProfile.role === 'security') {
-            router.replace('/security');
-          }
+          useAuthStore.setState({ access_token: token, role: myProfile.role });
+          setIsReady(true);
+          setTimeout(() => {
+            routeForUser(myProfile);
+          }, 50);
         }
       } catch (error) {
         console.log('Error syncing auth from another tab', error);
@@ -105,7 +114,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isProcessingRef.current = false;
       }
     },
-    [router, performSignOut]
+    [performSignOut, routeForUser]
   );
 
   const hasLoadedAuth = useRef(false);
@@ -124,29 +133,53 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (hasLoadedAuth.current) return;
       hasLoadedAuth.current = true;
 
-      const initialURL = await Linking.getInitialURL();
-      const currentPath =
-        Platform.OS === 'web'
-          ? typeof window !== 'undefined'
-            ? window.location?.pathname || ''
-            : pathname || ''
-          : pathname;
-      const localData = await getAuthState();
+      try {
+        const initialURL = await Linking.getInitialURL();
+        const currentPath =
+          Platform.OS === 'web'
+            ? typeof window !== 'undefined'
+              ? window.location?.pathname || ''
+              : pathname || ''
+            : pathname;
+        const localData = await getAuthState();
 
-      // Always require explicit login or biometric unlock on app start.
-      // Do not auto-sign in from a token left in storage.
-      if (localData?.access_token) {
-        await clearAccessToken();
-        useAuthStore.getState().clearAuth();
-        useUserStore.getState().clearUser();
+        if (localData?.access_token) {
+          useAuthStore.setState({ access_token: localData.access_token, role: localData.role });
+
+          try {
+            const myProfile = (await fetchMe(localData.access_token)) as User;
+
+            if (myProfile?.status) {
+              useUserStore.setState({ ...myProfile });
+              useAuthStore.setState({ access_token: localData.access_token, role: myProfile.role });
+              setIsReady(true);
+              try {
+                setTimeout(() => {
+                  routeForUser(myProfile);
+                }, 50);
+              } catch (navigationError) {
+                console.log('Error routing restored auth session', navigationError);
+              }
+              return;
+            }
+          } catch (error) {
+            console.log('Error restoring auth state on startup', error);
+          }
+        }
+
+        if (!isPublicRoute(currentPath, initialURL)) {
+          const institution = await getSelectedInstitution();
+          try {
+            router.replace(getPostAuthRedirectRoute(institution));
+          } catch (navigationError) {
+            console.log('Error redirecting auth bootstrap', navigationError);
+          }
+        }
+      } catch (error) {
+        console.log('Error bootstrapping auth state', error);
+      } finally {
+        setIsReady(true);
       }
-
-      if (!isPublicRoute(currentPath, initialURL)) {
-        const institution = await getSelectedInstitution();
-        router.replace(getPostAuthRedirectRoute(institution));
-      }
-
-      setIsReady(true);
     };
 
     loadAuthState();
@@ -159,7 +192,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       cleanupSync?.();
     };
-  }, [handleCrossTabLogin, handleCrossTabLogout, router, pathname]);
+  }, [handleCrossTabLogin, handleCrossTabLogout, router, pathname, routeForUser]);
 
   return (
     <AuthContext.Provider value={{ isReady, resetKey, signIn, signOut }}>
