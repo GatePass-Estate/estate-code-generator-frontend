@@ -3,9 +3,12 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Stack, useRouter } from 'expo-router';
 import {
   ActivityIndicator,
+  Alert,
   Image,
   Keyboard,
+  Linking,
   Modal,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -17,12 +20,16 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import Group862 from '@/src/assets/icons/group-862.svg';
 import Group863 from '@/src/assets/icons/group-863.svg';
 import EnterCodeSubtitle from '@/src/assets/icons/enter-code-subtitle.svg';
+import EnterCodeSegmentLabel from '@/src/assets/icons/enter-code-segment-label.svg';
 import IncomingGuestTitle from '@/src/assets/icons/incoming-guest-title.svg';
 import InvalidCodeClose from '@/src/assets/icons/invalid-code-close.svg';
+import Rectangle5 from '@/src/assets/icons/rectangle-5.svg';
 import ScanFrame from '@/src/assets/icons/scan-frame.svg';
+import ScanCodeSegmentLabel from '@/src/assets/icons/scan-code-segment-label.svg';
 import ScanPositionQrSubtitle from '@/src/assets/icons/scan-position-qr-subtitle.svg';
 import ScanVerifyAccessCodeTitle from '@/src/assets/icons/scan-verify-access-code-title.svg';
 import ValidateCodeButton from '@/src/assets/icons/validate-code-button.svg';
+import VerifyCodeInputs from '@/src/assets/icons/verify-code-inputs.svg';
 import VerifyAccessCodeTitle from '@/src/assets/icons/verify-access-code-title.svg';
 import { validateCode } from '@/src/lib/api/codes';
 import { getUserById } from '@/src/lib/api/user';
@@ -31,24 +38,32 @@ import { InputRefsStorage } from '@/src/types/general';
 
 const EMPTY_CODE = ['', '', '', '', '', ''];
 const invalidCodeCard = require('@/src/assets/icons/invalid-code-card.png');
-
 type VerificationMode = 'enter' | 'scan';
 
 function InvalidCodeOverlay({ onClose }: { onClose: () => void }) {
   return (
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.overlayBackdrop}>
-        <View style={styles.invalidCard}>
-          <Image source={invalidCodeCard} style={styles.invalidCardImage} />
-        </View>
-
         <Pressable
           accessibilityLabel="Close invalid code message"
           onPress={onClose}
-          style={({ pressed }) => [styles.invalidCloseButton, pressed && styles.pressed]}
-        >
-          <InvalidCodeClose width={32} height={32} />
-        </Pressable>
+          style={StyleSheet.absoluteFill}
+        />
+        <View style={styles.invalidOverlayContent}>
+          <View style={styles.invalidCard}>
+            <Image source={invalidCodeCard} style={styles.invalidCardImage} />
+          </View>
+
+          <View style={styles.invalidCloseSpacer} />
+
+          <Pressable
+            accessibilityLabel="Close invalid code message"
+            onPress={onClose}
+            style={({ pressed }) => [styles.invalidCloseButton, pressed && styles.pressed]}
+          >
+            <InvalidCodeClose width={32} height={32} />
+          </Pressable>
+        </View>
       </View>
     </Modal>
   );
@@ -166,18 +181,70 @@ export default function SecurityVerificationMobile() {
     }
   };
 
+  const handleCameraPermissionPress = async () => {
+    const openAppSettings = async () => {
+      try {
+        if (Platform.OS === 'ios') {
+          await Linking.openURL('app-settings:');
+          return;
+        }
+
+        await Linking.openSettings();
+      } catch {
+        if (Platform.OS === 'ios') {
+          await Linking.openURL('app-settings:');
+        }
+      }
+    };
+
+    if (permission && !permission.canAskAgain) {
+      Alert.alert(
+        'Camera access is blocked',
+        'Open iPhone Settings, select Expo Go, then turn Camera back on.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Try Open Settings', onPress: () => void openAppSettings() },
+        ]
+      );
+      return;
+    }
+
+    if (permission?.status === 'denied') {
+      await openAppSettings();
+      return;
+    }
+
+    const result = await requestPermission();
+    if (!result.granted && !result.canAskAgain) {
+      Alert.alert(
+        'Camera access is blocked',
+        'Open iPhone Settings, select Expo Go, then turn Camera back on.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Try Open Settings', onPress: () => void openAppSettings() },
+        ]
+      );
+    }
+  };
+
   const renderEnterCode = () => (
     <>
       <View style={styles.heroCopy}>
         <View style={styles.title}>
-          <VerifyAccessCodeTitle width={189} height={23} />
+          <VerifyAccessCodeTitle width={302} height={26} />
         </View>
         <View style={styles.subtitle}>
-          <EnterCodeSubtitle width={168} height={12} />
+          <EnterCodeSubtitle width={205} height={17} />
         </View>
       </View>
 
       <View style={styles.codeInputRow}>
+        <VerifyCodeInputs
+          pointerEvents="none"
+          width={304}
+          height={64.5}
+          style={styles.codeInputRowBackground}
+        />
         {code.map((digit, idx) => (
           <TextInput
             key={idx}
@@ -216,10 +283,10 @@ export default function SecurityVerificationMobile() {
   const renderScanner = () => (
     <View style={styles.scannerContent}>
       <View style={styles.scannerTitle}>
-        <ScanVerifyAccessCodeTitle width={189} height={23} />
+        <ScanVerifyAccessCodeTitle width={302} height={26} />
       </View>
       <View style={styles.scannerSubtitle}>
-        <ScanPositionQrSubtitle width={250} height={14} />
+        <ScanPositionQrSubtitle width={304} height={17} />
       </View>
 
       <View style={styles.scannerShell}>
@@ -235,13 +302,17 @@ export default function SecurityVerificationMobile() {
             <Icon name="camera-outline" size={34} color="#113E55" />
             <Text style={styles.permissionTitle}>Camera access needed</Text>
             <Text style={styles.permissionBody}>
-              Allow GatePass to scan access codes in this space.
+              {permission && !permission.canAskAgain
+                ? 'Camera access is blocked. Enable it in iPhone Settings to scan access codes.'
+                : 'Allow GatePass to scan access codes in this space.'}
             </Text>
             <Pressable
               style={({ pressed }) => [styles.permissionButton, pressed && styles.pressed]}
-              onPress={requestPermission}
+              onPress={handleCameraPermissionPress}
             >
-              <Text style={styles.permissionButtonText}>Allow Camera</Text>
+              <Text style={styles.permissionButtonText}>
+                {permission && !permission.canAskAgain ? 'Open Settings' : 'Allow Camera'}
+              </Text>
             </Pressable>
           </View>
         )}
@@ -268,7 +339,7 @@ export default function SecurityVerificationMobile() {
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={[styles.topBar, { paddingTop: Math.max(0, 81 - insets.top) }]}>
-        <IncomingGuestTitle width={174} height={24} style={styles.topBarTitle} />
+        <IncomingGuestTitle width={209} height={33} style={styles.topBarTitle} />
         <View style={styles.topBarActions}>
           <Pressable
             accessibilityLabel="Open recent activity"
@@ -276,7 +347,7 @@ export default function SecurityVerificationMobile() {
             onPress={() => {}}
             style={({ pressed }) => [styles.topIconButton, pressed && styles.pressed]}
           >
-            <Group863 width={38} height={38} style={styles.group863Icon} />
+            <Group863 width={42} height={42} style={styles.group863Icon} />
           </Pressable>
           <Pressable
             accessibilityLabel="Open more options"
@@ -284,39 +355,29 @@ export default function SecurityVerificationMobile() {
             onPress={() => {}}
             style={({ pressed }) => [styles.topIconButton, pressed && styles.pressed]}
           >
-            <Group862 width={38} height={38} style={styles.topActionIcon} />
+            <Group862 width={42} height={42} style={styles.topActionIcon} />
           </Pressable>
         </View>
       </View>
 
       <View style={styles.segmentedControl}>
+        <Rectangle5
+          pointerEvents="none"
+          width={229}
+          height={40}
+          style={styles.segmentedControlBackground}
+        />
         <Pressable
           style={[styles.segmentButton, mode === 'enter' && styles.segmentButtonActive]}
           onPress={() => setMode('enter')}
         >
-          <Text
-            style={[
-              styles.segmentText,
-              styles.enterCodeSegmentText,
-              mode === 'enter' && styles.segmentTextActive,
-            ]}
-          >
-            Enter Code
-          </Text>
+          <EnterCodeSegmentLabel width={60} height={14} style={styles.enterCodeSegmentText} />
         </Pressable>
         <Pressable
           style={[styles.segmentButton, mode === 'scan' && styles.segmentButtonActive]}
           onPress={() => setMode('scan')}
         >
-          <Text
-            style={[
-              styles.segmentText,
-              styles.scanCodeSegmentText,
-              mode === 'scan' && styles.segmentTextActive,
-            ]}
-          >
-            Scan Code
-          </Text>
+          <ScanCodeSegmentLabel width={58} height={14} style={styles.scanCodeSegmentText} />
         </Pressable>
       </View>
 
@@ -345,9 +406,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2,
   },
   topBarTitle: {
-    height: 24,
-    marginRight: 75,
-    width: 174,
+    height: 33,
+    marginRight: 40,
+    width: 209,
   },
   topBarActions: {
     alignItems: 'center',
@@ -356,24 +417,32 @@ const styles = StyleSheet.create({
   },
   topIconButton: {
     alignItems: 'center',
-    height: 38,
+    height: 42,
     justifyContent: 'center',
-    width: 38,
+    width: 42,
   },
   group863Icon: {
-    height: 38,
-    width: 38,
+    height: 42,
+    transform: [{ translateX: 10 }],
+    width: 42,
   },
   topActionIcon: {
-    height: 38,
-    width: 38,
+    height: 42,
+    width: 42,
   },
   segmentedControl: {
-    backgroundColor: '#EFF1F1',
     borderRadius: 24,
     flexDirection: 'row',
     height: 40,
     marginLeft: 52,
+    overflow: 'hidden',
+    width: 229,
+  },
+  segmentedControlBackground: {
+    height: 40,
+    left: 0,
+    position: 'absolute',
+    top: 0,
     width: 229,
   },
   segmentButton: {
@@ -425,10 +494,10 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     alignItems: 'center',
-    height: 14,
+    height: 17,
     justifyContent: 'center',
     marginTop: 8,
-    width: 169,
+    width: 205,
   },
   codeInputRow: {
     alignSelf: 'center',
@@ -436,15 +505,23 @@ const styles = StyleSheet.create({
     gap: 8,
     height: 64.5,
     justifyContent: 'center',
+    overflow: 'hidden',
     paddingBottom: 2,
     paddingTop: 2,
     width: 304,
   },
+  codeInputRowBackground: {
+    height: 64.5,
+    left: 0,
+    position: 'absolute',
+    top: 0,
+    width: 304,
+  },
   codeInput: {
-    backgroundColor: '#F7F9F9',
-    borderColor: '#9B9797',
+    backgroundColor: 'transparent',
+    borderColor: 'transparent',
     borderRadius: 8,
-    borderWidth: 0.5,
+    borderWidth: 0,
     color: '#113E55',
     fontFamily: 'UbuntuSans-SemiBold',
     fontSize: 20,
@@ -512,26 +589,26 @@ const styles = StyleSheet.create({
   },
   scannerContent: {
     alignItems: 'center',
-    marginTop: -90,
+    marginTop: -94,
   },
   scannerTitle: {
     alignItems: 'center',
-    height: 28,
+    height: 26,
     justifyContent: 'center',
     width: 302,
   },
   scannerSubtitle: {
     alignItems: 'center',
-    height: 14,
+    height: 17,
     justifyContent: 'center',
-    marginTop: 9,
-    width: 250,
+    marginTop: 11,
+    width: 304,
   },
   scannerShell: {
     alignItems: 'center',
     height: 225.15,
     justifyContent: 'center',
-    marginTop: 62,
+    marginTop: 59,
     overflow: 'hidden',
     width: 250.94,
   },
@@ -639,10 +716,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   overlayBackdrop: {
-    alignItems: 'center',
     backgroundColor: 'rgba(17, 62, 85, 0.36)',
     flex: 1,
-    justifyContent: 'flex-start',
+  },
+  invalidOverlayContent: {
+    alignItems: 'center',
     paddingTop: 209,
   },
   invalidCard: {
@@ -656,12 +734,14 @@ const styles = StyleSheet.create({
     height: 351,
     width: 331,
   },
+  invalidCloseSpacer: {
+    height: 120,
+  },
   invalidCloseButton: {
     alignItems: 'center',
     borderRadius: 10000,
     height: 32,
     justifyContent: 'center',
-    marginTop: 104,
     width: 32,
   },
   invalidIllustration: {
