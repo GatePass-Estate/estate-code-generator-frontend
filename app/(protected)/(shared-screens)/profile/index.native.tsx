@@ -42,10 +42,7 @@ import {
 import { formatDateWithOrdinal } from '@/src/lib/helpers';
 import { useProfilePendingFields } from '@/src/hooks/useProfilePendingFields';
 import { ProfileFieldKey } from '@/src/lib/profilePendingFields';
-import {
-  createIdentificationPendingRequest,
-  downloadFile,
-} from '@/src/lib/pendingRequestHelpers';
+import { createIdentificationPendingRequest, downloadFile } from '@/src/lib/pendingRequestHelpers';
 import { getFilenameFromUri } from '@/src/lib/userDocumentHelpers';
 import { setProfileOnboardingCache } from '@/src/lib/profileOnboardingCache';
 import {
@@ -247,10 +244,7 @@ export default function ProfileScreen() {
         let pendingUri: string | null = uri;
         if (result.document_id) {
           try {
-            pendingUri = await getPendingDocumentViewUri(
-              result.document_id,
-              result.content_type
-            );
+            pendingUri = await getPendingDocumentViewUri(result.document_id, result.content_type);
           } catch {
             // Local picker URI is enough until preview loads later.
           }
@@ -370,18 +364,13 @@ export default function ProfileScreen() {
   }, []);
 
   const hasIdentification =
-    !!(
-      identificationUri ||
-      identificationPendingRequest ||
-      onboardingCache?.hasIdentification
-    ) &&
+    !!(identificationUri || identificationPendingRequest || onboardingCache?.hasIdentification) &&
     (!uploadingIdentification || !!onboardingCache?.hasIdentification);
   const hasPhoto =
     !!(profilePhotoUri || onboardingCache?.hasPhoto) &&
     (!uploadingPhoto || !!onboardingCache?.hasPhoto);
   const onboardingStep = getProfileOnboardingStep(hasIdentification, hasPhoto);
-  const isProfileLocked =
-    onboardingStep !== null && !uploadingPhoto && !uploadingIdentification;
+  const isProfileLocked = onboardingStep !== null && !uploadingPhoto && !uploadingIdentification;
 
   const identificationDisplayValue = identificationPendingRequest
     ? identificationPendingRequest.newFileName || 'Uploaded'

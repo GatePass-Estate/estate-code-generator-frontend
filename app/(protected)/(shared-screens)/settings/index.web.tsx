@@ -98,7 +98,10 @@ export default function SettingsWeb() {
               className="mt-6 flex-row items-center justify-between rounded-[8px] bg-primary px-5 py-4"
             >
               <Text className="text-base font-inter-medium text-white">Do More as an Admin</Text>
-              <Image source={icons.rightIcon} style={{ width: 14, height: 14, tintColor: '#fff' }} />
+              <Image
+                source={icons.rightIcon}
+                style={{ width: 14, height: 14, tintColor: '#fff' }}
+              />
             </Pressable>
           ) : null}
 
@@ -132,9 +135,7 @@ export default function SettingsWeb() {
           <SectionTitleWeb>Help</SectionTitleWeb>
           <SettingsRowWeb
             label="Ratings and Feedback"
-            onPress={() =>
-              Alert.alert('Coming soon', 'Ratings and feedback is not available yet.')
-            }
+            onPress={() => Alert.alert('Coming soon', 'Ratings and feedback is not available yet.')}
             showChevron={false}
           />
 

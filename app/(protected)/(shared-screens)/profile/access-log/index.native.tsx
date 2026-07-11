@@ -55,7 +55,11 @@ export default function AccessLogScreen() {
         </View>
       ) : (
         <ScrollView
-          contentContainerStyle={{ paddingBottom: 40, paddingTop: 21, flexGrow: logs.length ? 0 : 1 }}
+          contentContainerStyle={{
+            paddingBottom: 40,
+            paddingTop: 21,
+            flexGrow: logs.length ? 0 : 1,
+          }}
           showsVerticalScrollIndicator={false}
         >
           {error ? (

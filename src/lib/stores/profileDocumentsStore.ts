@@ -157,9 +157,8 @@ export const useProfileDocumentsStore = create<ProfileDocumentsStore>((set, get)
                     existingPending?.currentFileName ?? 'Name of Image title stored as..',
                   currentFileUri: existingPending?.currentFileUri ?? null,
                 }),
-          identificationUri: get().activeIdDocumentId === activeId?.document_id
-            ? get().identificationUri
-            : null,
+          identificationUri:
+            get().activeIdDocumentId === activeId?.document_id ? get().identificationUri : null,
         });
       } else if (activeId) {
         set({ identificationPendingRequest: null });

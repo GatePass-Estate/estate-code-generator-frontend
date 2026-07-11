@@ -140,104 +140,108 @@ export default function MoreMenuScreen({
           </View>
         ) : null}
         <View className="flex-col gap-10">
-        <View>
-          <SectionTitle first>Account</SectionTitle>
-          <View className="flex-col gap-2">
-            <MoreMenuRow
-              icon={<MyProfileIcon color={iconColor} />}
-              label="My Profile"
-              onPress={() => router.push('/profile')}
-            />
-            <MoreMenuRow
-              icon={<AccountSecurityIcon color={iconColor} />}
-              label="Account Security"
-              onPress={() => router.push('/account-security')}
-            />
-            <MoreMenuRow
-              icon={<IncidentReportIcon color={iconColor} />}
-              label="Incident Report"
-              onPress={() => Alert.alert('Coming soon', 'Incident reporting is not available yet.')}
-            />
-            <MoreMenuRow
-              icon={<LinkedDevicesIcon color={iconColor} />}
-              label="Linked Devices"
-              onPress={() => Alert.alert('Coming soon', 'Linked devices is not available yet.')}
-            />
+          <View>
+            <SectionTitle first>Account</SectionTitle>
+            <View className="flex-col gap-2">
+              <MoreMenuRow
+                icon={<MyProfileIcon color={iconColor} />}
+                label="My Profile"
+                onPress={() => router.push('/profile')}
+              />
+              <MoreMenuRow
+                icon={<AccountSecurityIcon color={iconColor} />}
+                label="Account Security"
+                onPress={() => router.push('/account-security')}
+              />
+              <MoreMenuRow
+                icon={<IncidentReportIcon color={iconColor} />}
+                label="Incident Report"
+                onPress={() =>
+                  Alert.alert('Coming soon', 'Incident reporting is not available yet.')
+                }
+              />
+              <MoreMenuRow
+                icon={<LinkedDevicesIcon color={iconColor} />}
+                label="Linked Devices"
+                onPress={() => Alert.alert('Coming soon', 'Linked devices is not available yet.')}
+              />
+            </View>
           </View>
-        </View>
 
-        <View>
-          <SectionTitle>About</SectionTitle>
-          <View className="flex-col gap-2">
-            <MoreMenuRow
-              icon={<TermsOfServiceIcon color={iconColor} />}
-              label="Terms of Service"
-              onPress={() =>
-                router.push({
-                  pathname: '/auth/tos',
-                  params: { readonly: 'true' },
-                })
-              }
-            />
-            <MoreMenuRow
-              icon={<PrivacyPolicyIcon color={iconColor} />}
-              label="Privacy Policy"
-              onPress={() =>
-                router.push({
-                  pathname: '/auth/data-protection-policy',
-                  params: { source: 'settings' },
-                })
-              }
-            />
+          <View>
+            <SectionTitle>About</SectionTitle>
+            <View className="flex-col gap-2">
+              <MoreMenuRow
+                icon={<TermsOfServiceIcon color={iconColor} />}
+                label="Terms of Service"
+                onPress={() =>
+                  router.push({
+                    pathname: '/auth/tos',
+                    params: { readonly: 'true' },
+                  })
+                }
+              />
+              <MoreMenuRow
+                icon={<PrivacyPolicyIcon color={iconColor} />}
+                label="Privacy Policy"
+                onPress={() =>
+                  router.push({
+                    pathname: '/auth/data-protection-policy',
+                    params: { source: 'settings' },
+                  })
+                }
+              />
+            </View>
           </View>
-        </View>
 
-        <View>
-          <SectionTitle>Help</SectionTitle>
-          <View className="flex-col gap-1">
-            <MoreMenuRow
-              icon={<RatingsFeedbackIcon color={iconColor} />}
-              label="Ratings and Feedback"
-              onPress={() =>
-                Alert.alert('Coming soon', 'Ratings and feedback is not available yet.')
-              }
-              showNavigateNext={false}
-            />
+          <View>
+            <SectionTitle>Help</SectionTitle>
+            <View className="flex-col gap-1">
+              <MoreMenuRow
+                icon={<RatingsFeedbackIcon color={iconColor} />}
+                label="Ratings and Feedback"
+                onPress={() =>
+                  Alert.alert('Coming soon', 'Ratings and feedback is not available yet.')
+                }
+                showNavigateNext={false}
+              />
+            </View>
           </View>
-        </View>
 
-        <View>
-          <SectionTitle>Sign out</SectionTitle>
-          <View className="flex-col gap-[7px]">
-            <MoreMenuRow
-              icon={<LogOutIcon color={iconColor} />}
-              label="Log Out"
-              onPress={signOut}
-              showNavigateNext={false}
-            />
-            <MoreMenuRow
-              icon={<LogOutIcon color={iconColor} />}
-              label="Log Out of All Devices"
-              onPress={signOut}
-              showNavigateNext={false}
-            />
+          <View>
+            <SectionTitle>Sign out</SectionTitle>
+            <View className="flex-col gap-[7px]">
+              <MoreMenuRow
+                icon={<LogOutIcon color={iconColor} />}
+                label="Log Out"
+                onPress={signOut}
+                showNavigateNext={false}
+              />
+              <MoreMenuRow
+                icon={<LogOutIcon color={iconColor} />}
+                label="Log Out of All Devices"
+                onPress={signOut}
+                showNavigateNext={false}
+              />
+            </View>
           </View>
-        </View>
 
-        <Pressable
-          onPress={confirmDelete}
-          disabled={deleting}
-          className="flex-row items-center gap-4 rounded-[8px] border border-[#E30404] bg-white px-4 py-[18px]"
-        >
-          {deleting ? (
-            <ActivityIndicator color="#ED0808" />
-          ) : (
-            <>
-              <DeleteAccountIcon />
-              <Text className="text-[13px] font-inter-regular text-[#E30404]">Delete Account</Text>
-            </>
-          )}
-        </Pressable>
+          <Pressable
+            onPress={confirmDelete}
+            disabled={deleting}
+            className="flex-row items-center gap-4 rounded-[8px] border border-[#E30404] bg-white px-4 py-[18px]"
+          >
+            {deleting ? (
+              <ActivityIndicator color="#ED0808" />
+            ) : (
+              <>
+                <DeleteAccountIcon />
+                <Text className="text-[13px] font-inter-regular text-[#E30404]">
+                  Delete Account
+                </Text>
+              </>
+            )}
+          </Pressable>
         </View>
       </ScrollView>
     </SafeAreaView>

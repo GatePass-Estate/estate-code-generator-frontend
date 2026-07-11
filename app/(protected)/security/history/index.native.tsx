@@ -237,7 +237,9 @@ export default function AccessLogScreen() {
               <Text className="px-6 text-center text-sm text-grey">{error}</Text>
             ) : groupedLogs.length === 0 ? (
               <Text className="px-6 text-center text-sm text-grey">
-                {mode === 'resident' ? 'No resident access logs yet.' : 'No guest access logs found.'}
+                {mode === 'resident'
+                  ? 'No resident access logs yet.'
+                  : 'No guest access logs found.'}
               </Text>
             ) : (
               groupedLogs.map((group) => (

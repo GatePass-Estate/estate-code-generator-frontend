@@ -27,14 +27,10 @@ export async function setProfileOnboardingCache(
 ) {
   if (!userId) return;
 
-  const existing =
-    (await getProfileOnboardingCache(userId)) ?? {
-      hasIdentification: false,
-      hasPhoto: false,
-    };
+  const existing = (await getProfileOnboardingCache(userId)) ?? {
+    hasIdentification: false,
+    hasPhoto: false,
+  };
 
-  await AsyncStorage.setItem(
-    cacheKey(userId),
-    JSON.stringify({ ...existing, ...partial })
-  );
+  await AsyncStorage.setItem(cacheKey(userId), JSON.stringify({ ...existing, ...partial }));
 }

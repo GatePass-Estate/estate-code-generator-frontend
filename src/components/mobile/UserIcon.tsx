@@ -11,11 +11,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 
 const DROPDOWN_GAP_BELOW_AVATAR = 4;
 
-export default function UserIcon({
-  variant = 'initials',
-}: {
-  variant?: 'initials' | 'dots';
-}) {
+export default function UserIcon({ variant = 'initials' }: { variant?: 'initials' | 'dots' }) {
   const first_name = useUserStore((state) => state.first_name);
   const last_name = useUserStore((state) => state.last_name);
   const router = useRouter();

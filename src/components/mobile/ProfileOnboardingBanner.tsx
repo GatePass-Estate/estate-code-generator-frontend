@@ -13,9 +13,7 @@ export function ProfileOnboardingBanner({
 }: ProfileOnboardingBannerProps) {
   return (
     <View className="mb-[30px]  pt-12 w-full items-center">
-      <Text className="text-center text-[27px] font-ubuntu-medium text-[#0A1F29] ">
-        {title}
-      </Text>
+      <Text className="text-center text-[27px] font-ubuntu-medium text-[#0A1F29] ">{title}</Text>
       <Text className="mt-2 text-center text-sm font-inter-light  w-[292px] text-[#6C6C6C]">
         {description}
       </Text>

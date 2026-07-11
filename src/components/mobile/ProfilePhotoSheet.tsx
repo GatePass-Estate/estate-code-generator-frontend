@@ -1,5 +1,15 @@
 import { useEffect } from 'react';
-import { Modal, Pressable, View, Text, Image, Alert, Dimensions, StyleSheet, ActivityIndicator } from 'react-native';
+import {
+  Modal,
+  Pressable,
+  View,
+  Text,
+  Image,
+  Alert,
+  Dimensions,
+  StyleSheet,
+  ActivityIndicator,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';

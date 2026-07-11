@@ -1,5 +1,15 @@
 import { useEffect } from 'react';
-import { Modal, Pressable, View, Text, Image, Alert, Dimensions, StyleSheet, ActivityIndicator } from 'react-native';
+import {
+  Modal,
+  Pressable,
+  View,
+  Text,
+  Image,
+  Alert,
+  Dimensions,
+  StyleSheet,
+  ActivityIndicator,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';

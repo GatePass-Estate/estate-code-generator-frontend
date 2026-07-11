@@ -1,5 +1,9 @@
 import Api from '.';
-import { fetchAuthenticatedDocumentUri, getFilenameFromUri, getMimeTypeFromUri } from '../userDocumentHelpers';
+import {
+  fetchAuthenticatedDocumentUri,
+  getFilenameFromUri,
+  getMimeTypeFromUri,
+} from '../userDocumentHelpers';
 import { getErrorMessage } from '../helpers';
 import {
   DocumentType,
@@ -62,19 +66,13 @@ export async function getMyDocumentViewUri(
   });
 }
 
-export async function getPendingDocumentViewUri(
-  documentId: string,
-  contentType?: string | null
-) {
+export async function getPendingDocumentViewUri(documentId: string, contentType?: string | null) {
   return fetchAuthenticatedDocumentUri(`/users/documents/pending/${documentId}/view`, {
     contentType,
   });
 }
 
-export async function downloadMyDocument(
-  documentType: DocumentType,
-  contentType?: string | null
-) {
+export async function downloadMyDocument(documentType: DocumentType, contentType?: string | null) {
   return fetchAuthenticatedDocumentUri(`/users/documents/me/${documentType}/download`, {
     contentType,
   });
