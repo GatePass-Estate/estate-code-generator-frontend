@@ -38,7 +38,7 @@ const ProfileScreen = () => {
       setCode(hashed_code);
       setNoCode(false);
       setExpiry(valid_until);
-    } catch (e) {
+    } catch {
       setNoCode(true);
     } finally {
       setLoading(false);
@@ -63,8 +63,8 @@ const ProfileScreen = () => {
   }, [user_id, estate_id]);
 
   useEffect(() => {
-    if (role != 'security') fetchMyCode();
-  }, [fetchMyCode]);
+    if (role !== 'security') fetchMyCode();
+  }, [fetchMyCode, role]);
 
   const { expiring, formattedDate } = useMemo(() => {
     if (!expiry) return { expiring: false, formattedDate: null };
@@ -142,7 +142,7 @@ const ProfileScreen = () => {
           My Profile
         </Text>
 
-        {role != 'security' && <CodeRow />}
+        {role !== 'security' && <CodeRow />}
         <ExpiryWarning />
 
         <View className="my-5 mt-10">
