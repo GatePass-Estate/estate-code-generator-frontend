@@ -148,6 +148,10 @@ export default function ProfileScreen() {
   }, [user_id, hydrateOnboarding, syncDocuments]);
 
   useEffect(() => {
+    if (showAccessCode) fetchMyCode();
+  }, [fetchMyCode, showAccessCode]);
+
+  useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
       if (showAccessCode) fetchMyCode();
     });

@@ -2,34 +2,39 @@ import { useNavigation } from 'expo-router';
 import { Image, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import icons from '@/src/constants/icons';
+import { cn } from '@/src/lib/cn';
 
 const Back = ({
   type = 'long-arrow',
+  showText = true,
+  showBorder = false,
   onPress,
 }: {
   type?: 'long-arrow' | 'short-arrow';
+  showText?: boolean;
+  showBorder?: boolean;
   onPress?: () => void;
 }) => {
   const navigation = useNavigation();
   const handlePress = onPress ?? (() => navigation.goBack());
 
-  if (type === 'long-arrow')
-    return (
-      <TouchableOpacity style={styles.backButton} onPress={handlePress}>
+  return (
+    <TouchableOpacity
+      style={[styles.backButton, { gap: 8 }]}
+      onPress={handlePress}
+      className={cn(
+        'self-start justify-center',
+        showBorder && 'bg-[#EFF1F1] rounded-full w-10 h-10'
+      )}
+    >
+      {type === 'long-arrow' ? (
         <Icon name="arrow-back" size={20} color="#113E55" />
-        <Text style={styles.backText}>Back</Text>
-      </TouchableOpacity>
-    );
-
-  if (type === 'short-arrow')
-    return (
-      <TouchableOpacity style={[styles.backButton, { gap: 8 }]} onPress={handlePress}>
+      ) : (
         <Image source={icons.backIcon} style={styles.backIcon} />
-        <Text style={styles.backText}>Back</Text>
-      </TouchableOpacity>
-    );
-
-  return null;
+      )}
+      {showText && <Text style={styles.backText}>Back</Text>}
+    </TouchableOpacity>
+  );
 };
 
 const styles = StyleSheet.create({

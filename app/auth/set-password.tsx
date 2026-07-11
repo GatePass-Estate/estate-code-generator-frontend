@@ -47,17 +47,11 @@ const SetPasswordForm = ({
   isLargeScreen,
 }: SetPasswordFormProps) => (
   <View className={cn('w-full max-w-xl', isLargeScreen ? 'gap-8' : 'gap-6')}>
-    <View className="items-center text-center">
-      <Text className={cn('text-primary font-UbuntuSans', isLargeScreen ? 'text-5xl' : 'text-3xl')}>
-        Set Password
-      </Text>
+    <View className="">
       <Text
-        className={cn(
-          'mt-2 text-grey font-Inter text-center',
-          isLargeScreen ? 'text-base' : 'text-sm'
-        )}
+        className={cn('text-primary font-ubuntu-medium', isLargeScreen ? 'text-5xl' : 'text-4xl')}
       >
-        Create a password to activate your account.
+        Set Password
       </Text>
     </View>
 
@@ -68,18 +62,19 @@ const SetPasswordForm = ({
     ) : null}
 
     <View>
-      <Text className={cn('pb-1 text-grey', isLargeScreen ? 'text-base' : 'text-sm')}>
+      <Text className={cn(`pb-1 ${password ? 'text-primary' : 'text-grey'}`, 'text-base')}>
         New password
       </Text>
       <View className="relative">
         <TextInput
-          placeholder="Enter your new password..."
+          placeholder="Enter your new password"
           secureTextEntry={!showPassword}
           value={password}
           onChangeText={setPassword}
           editable={!isSubmitting}
-          className="bg-[#F7F9F9] border border-[#D1D5DB] rounded-lg px-4 py-5 mt-1 pr-12"
+          className="bg-[#F7F9F9] rounded-2xl px-4 py-5 mt-1 pr-12 text-primary"
           contextMenuHidden
+          placeholderTextColor="#9B9797"
           selectTextOnFocus={false}
         />
         <Pressable
@@ -97,18 +92,19 @@ const SetPasswordForm = ({
     </View>
 
     <View>
-      <Text className={cn('pb-1 text-grey', isLargeScreen ? 'text-base' : 'text-sm')}>
+      <Text className={cn(`pb-1 ${confirmPassword ? 'text-primary' : 'text-grey'}`, 'text-base')}>
         Confirm password
       </Text>
       <View className="relative">
         <TextInput
-          placeholder="Confirm your password..."
+          placeholder="Confirm your password"
           secureTextEntry={!showPassword}
           value={confirmPassword}
           onChangeText={setConfirmPassword}
           editable={!isSubmitting}
-          className="bg-[#F7F9F9] border border-[#D1D5DB] rounded-lg px-4 py-5 mt-1 pr-12"
+          className="bg-[#F7F9F9] rounded-2xl px-4 py-5 mt-1 pr-12 text-primary"
           contextMenuHidden
+          placeholderTextColor="#9B9797"
           selectTextOnFocus={false}
         />
         <Pressable
@@ -125,20 +121,22 @@ const SetPasswordForm = ({
       </View>
     </View>
 
-    <TouchableOpacity
-      onPress={handleSubmit}
-      disabled={isSubmitting}
-      className={cn(
-        'h-14 bg-primary rounded-lg justify-center items-center w-full',
-        isSubmitting && 'opacity-70'
-      )}
-    >
-      {isSubmitting ? (
-        <ActivityIndicator color="#fff" />
-      ) : (
-        <Text className="text-white font-UbuntuSans font-semibold text-base">Submit</Text>
-      )}
-    </TouchableOpacity>
+    <View className="mx-10">
+      <TouchableOpacity
+        onPress={handleSubmit}
+        disabled={isSubmitting}
+        className={cn(
+          'h-14 bg-primary rounded-full justify-center items-center w-full',
+          isSubmitting && 'opacity-70'
+        )}
+      >
+        {isSubmitting ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text className="text-white font-ubuntu-semibold text-lg">Submit</Text>
+        )}
+      </TouchableOpacity>
+    </View>
   </View>
 );
 

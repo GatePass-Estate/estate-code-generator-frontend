@@ -140,16 +140,25 @@ const Button = React.forwardRef<React.ElementRef<typeof Pressable>, ButtonProps>
     const androidRipple =
       Platform.OS === 'android' ? ANDROID_RIPPLE[colorScheme]?.[variant] : undefined;
 
+    const shouldExpandInRow =
+      className?.includes('flex-1') ||
+      className?.includes('flex-grow') ||
+      className?.includes('grow') ||
+      className?.includes('w-full');
+
     return (
       <TextClassContext.Provider value={buttonTextVariants({ variant, size })}>
         <Root
-          className={Platform.select({
-            ios: undefined,
-            default: androidRootVariants({
-              size,
-              className: androidRootClassName,
+          className={cn(
+            Platform.select({
+              ios: undefined,
+              default: androidRootVariants({
+                size,
+                className: androidRootClassName,
+              }),
             }),
-          })}
+            shouldExpandInRow && 'flex-1 self-stretch min-w-0'
+          )}
         >
           <Pressable
             className={cn(
