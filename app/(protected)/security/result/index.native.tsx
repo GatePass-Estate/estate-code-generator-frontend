@@ -1,51 +1,15 @@
-import { View, Text, ScrollView, Pressable } from 'react-native';
-import { useState } from 'react';
+import { View, Text, ScrollView, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack, useLocalSearchParams, useNavigation } from 'expo-router';
-import { MaterialIcons } from '@expo/vector-icons';
+import { Stack, useLocalSearchParams } from 'expo-router';
+import Back from '@/src/components/mobile/Back';
 import { sharedStyles } from '@/src/theme/styles';
-import { ProfileAvatar } from '@/src/assets/svgs';
+import { SingleDetail } from '@/src/components/mobile/SIngleDetail';
 import { ReceiverType } from '@/src/types/codes';
+import images from '@/src/constants/images';
 import { GenderType } from '@/src/types/general';
-import ProfilePreviewModal from '@/src/components/mobile/ProfilePreviewModal';
-
-const capitalizeWords = (value: string) =>
-  value
-    ? value
-        .split(' ')
-        .map((word) => (word ? word.charAt(0).toUpperCase() + word.slice(1) : ''))
-        .join(' ')
-    : '';
-
-const SectionDivider = ({ title, color }: { title: string; color: 'teal' | 'orange' }) => {
-  const lineColor = color === 'teal' ? 'bg-teal' : 'bg-orange';
-  const textColor = color === 'teal' ? 'text-teal' : 'text-orange';
-
-  return (
-    <View className="flex-row items-center my-2.5 px-[22px]">
-      <View className={`h-[1px] flex-1 ${lineColor}`} />
-      <Text className={`mx-2.5 text-sm font-inter-semibold ${textColor}`}>{title}</Text>
-      <View className={`h-[1px] flex-1 ${lineColor}`} />
-    </View>
-  );
-};
-
-const DetailRow = ({ label, value }: { label: string; value: string }) => (
-  <View className=" flex-row items-center justify-between rounded-2xl bg-white px-4 py-3">
-    <Text className="text-xs font-ubuntu-bold text-[#6C6C6C]">{label}</Text>
-    <Text
-      className="text-right text-xs font-ubuntu-light text-[#6C6C6C]"
-      numberOfLines={2}
-      ellipsizeMode="tail"
-    >
-      {value}
-    </Text>
-  </View>
-);
+import { variantStyles } from '@/src/components/web/AccessCodeCard';
 
 export default function ValidationResult() {
-  const navigation = useNavigation();
-  const [showProfileModal, setShowProfileModal] = useState(false);
   let params = useLocalSearchParams();
   const code = String(params.code || '');
   const resident_name = String(params.resident_name || '');
@@ -56,6 +20,9 @@ export default function ValidationResult() {
   const visitor_fullname = String(params.visitor_fullname || '');
   const gender = params.gender as GenderType;
   const relationship_with_resident = String(params.relationship_with_resident || '');
+  const isError = Boolean(params.error);
+
+  const styles = variantStyles[gender!];
 
   const formattedGender = gender
     ? String(gender)
@@ -64,73 +31,75 @@ export default function ValidationResult() {
         .map((w) => (w ? w.charAt(0).toUpperCase() + w.slice(1) : ''))
         .join(' ')
     : '';
-
-  const isGuest = receiver === 'visitor';
-
   return (
-    <SafeAreaView
-      style={[sharedStyles.container, sharedStyles.modalContainer, { backgroundColor: '#F6F7F7' }]}
-    >
+    <SafeAreaView style={[sharedStyles.container, sharedStyles.modalContainer]}>
       <Stack.Screen options={{ headerShown: false }} />
-      <Pressable
-        onPress={() => navigation.goBack()}
-        className="h-[30px] w-[30px] items-center justify-center rounded-full bg-[#EFF1F1]"
-      >
-        <MaterialIcons name="keyboard-arrow-left" size={24} color="#113E55" />
-      </Pressable>
+      <Back type="short-arrow" />
 
-      <ScrollView contentContainerClassName="px-1  mt-4 pb-10" showsVerticalScrollIndicator={false}>
-        <View className="relative mt-8 items-center ">
-          <Pressable
-            className="absolute -top-7 z-10"
-            onPress={() => setShowProfileModal(true)}
-            accessibilityLabel="View profile"
-          >
-            <View className="h-[50px] w-[50px] items-center justify-center rounded-full bg-[#537B85]">
-              <ProfileAvatar width={50} height={50} />
-            </View>
-          </Pressable>
+      <ScrollView contentContainerClassName="px-2 pt-16 pb-10" showsVerticalScrollIndicator={false}>
+        {!isError ? (
+          <>
+            <Text className="text-center text-orange-500 font-inter-semibold text-sm text-tertiary">
+              SECURITY CODE
+            </Text>
+            <Text className="text-center text-7xl font-ubuntu-semibold text-teal-900 mt-2 mb-6 text-primary">
+              {code.slice(0, 3)} {code.slice(3)}{' '}
+            </Text>
 
-          <View className="px-[22px] w-full">
-            <View className="w-full items-center rounded-[24px] bg-white pb-2  pt-[30px] flex-col gap-2">
-              <Text className="text-[9px] font-inter-semibold text-[#F46036]  mt-2">
-                Access Code
-              </Text>
-              <Text className=" text-[50px] font-ubuntu-semibold uppercase  text-primary">
-                {code.slice(0, 3)} {code.slice(3)}
-              </Text>
+            {receiver === 'visitor' && (
+              <>
+                <Text className={`text-sm font-inter-semibold mb-3 mt-5 ${styles.text}`}>
+                  GUEST DETAILS
+                </Text>
+                <View
+                  className={`bg-orange-50 p-4 rounded-xl border border-orange-200 mb-6 ${styles.container}`}
+                >
+                  <SingleDetail
+                    label="Name"
+                    value={
+                      visitor_fullname
+                        ? visitor_fullname.charAt(0).toUpperCase() + visitor_fullname.slice(1)
+                        : ''
+                    }
+                  />
+                  <SingleDetail label="Gender" value={formattedGender} />
+                  <SingleDetail
+                    label="Relationship"
+                    value={
+                      relationship_with_resident
+                        ? relationship_with_resident.charAt(0).toUpperCase() +
+                          relationship_with_resident.slice(1)
+                        : ''
+                    }
+                  />
+                </View>
+              </>
+            )}
+
+            <Text className="text-sm font-inter-semibold mb-3 text-teal">RESIDENT DETAILS</Text>
+            <View
+              className={`bg-teal-50 p-4 rounded-xl bg-light-teal border-teal/80 border-[0.5px]`}
+            >
+              <SingleDetail label="Name" value={resident_name} />
+              <SingleDetail label="Address" value={resident_address} />
+              <SingleDetail label="Email Address" value={resident_email} />
+              <SingleDetail label="Phone Number" value={resident_phone_number} />
             </View>
+          </>
+        ) : (
+          <View className="items-center mt-20">
+            <Image source={images.brokenCard} />
+
+            <Text className="text-center text-5xl font-ubuntu-medium text-primary my-6">
+              Opps!!
+            </Text>
+
+            <Text className="text-center font-inter-medium text-xl text-primary">
+              Invalid Access Code. This doesnt exist or has expired.
+            </Text>
           </View>
-        </View>
-
-        <View className="">
-          {isGuest && (
-            <View className="mt-6">
-              <SectionDivider title="Guest Details" color="teal" />
-              <View className="mb-0 flex-col gap-3">
-                <DetailRow label="Name" value={capitalizeWords(visitor_fullname)} />
-                <DetailRow label="Gender" value={formattedGender} />
-                <DetailRow
-                  label="Relationship"
-                  value={capitalizeWords(relationship_with_resident)}
-                />
-              </View>
-            </View>
-          )}
-
-          <View className="mt-6">
-            <SectionDivider title="Resident Details" color="orange" />
-            <View className="flex-col gap-3 ">
-              <DetailRow label="Name" value={capitalizeWords(resident_name)} />
-              <DetailRow label="Address" value={resident_address} />
-              <DetailRow label="Phone Number" value={resident_phone_number} />
-              <DetailRow label="Email Address" value={resident_email} />
-            </View>
-          </View>
-        </View>
+        )}
       </ScrollView>
-
-      <ProfilePreviewModal visible={showProfileModal} onClose={() => setShowProfileModal(false)} />
     </SafeAreaView>
   );
 }

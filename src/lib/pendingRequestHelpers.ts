@@ -25,30 +25,19 @@ export function getFileNameFromUri(uri: string) {
   return decodeURIComponent(parts[parts.length - 1] || 'document');
 }
 
-export function createLocalPhotoPendingRequest(
-  newUri: string,
-  currentFileName = 'Name of Image title stored as..'
-): PendingRequestSheetData {
-  return {
-    kind: 'photo',
-    requestId: `local-photo-${Date.now()}`,
-    currentFileName,
-    newFileName: getFileNameFromUri(newUri),
-    currentFileUri: null,
-    newFileUri: newUri,
-  };
-}
-
-export function createLocalIdentificationPendingRequest(
-  newUri: string,
-  currentFileName = 'Name of Image title stored as..'
-): PendingRequestSheetData {
+export function createIdentificationPendingRequest(params: {
+  requestId: string;
+  newFileName: string;
+  newFileUri?: string | null;
+  currentFileName?: string;
+  currentFileUri?: string | null;
+}): PendingRequestSheetData {
   return {
     kind: 'identification',
-    requestId: `local-identification-${Date.now()}`,
-    currentFileName,
-    newFileName: getFileNameFromUri(newUri),
-    currentFileUri: null,
-    newFileUri: newUri,
+    requestId: params.requestId,
+    currentFileName: params.currentFileName || 'Name of Image title stored as..',
+    newFileName: params.newFileName,
+    currentFileUri: params.currentFileUri ?? null,
+    newFileUri: params.newFileUri ?? null,
   };
 }

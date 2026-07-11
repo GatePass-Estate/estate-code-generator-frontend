@@ -1,10 +1,16 @@
-import { useMemo } from 'react';
-import { View, Text, ScrollView, Pressable } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { View, Text, ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useLocalSearchParams, useNavigation } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { sharedStyles } from '@/src/theme/styles';
 import { ProfileAvatar, TimelineDashLine } from '@/src/assets/svgs';
+import { mapResidentCodeHistoryToEvents } from '@/src/lib/accessLogMappers';
+import {
+  getEstateResidentLogByCode,
+  getEstateVisitorLogByCode,
+} from '@/src/lib/api/accessLogs';
+import { ReceiverType } from '@/src/types/codes';
 
 const capitalizeWords = (value: string) =>
   value
@@ -30,6 +36,7 @@ const formatTimelineDate = (date: Date) => {
 };
 
 type TimelineEvent = {
+  id: string;
   title: string;
   timestamp: string;
 };
@@ -73,10 +80,8 @@ const TimelineItem = ({ event, lineHeight }: { event: TimelineEvent; lineHeight:
       <TimelineDashLine height={lineHeight} style={{ marginTop: 2 }} />
     </View>
     <View className="">
-      <Text className="text-base font-ubuntu-semibold text-[#0A1F29]">{event.title}</Text>
-      <Text className="mt-1 text-base font-ubuntu-regular text-[#6C6C6C] tracking-[-0.2px]">
-        {event.timestamp}
-      </Text>
+      <Text className="text-sm font-inter-medium text-[#0A1F29]">{event.title}</Text>
+      <Text className="mt-1 text-sm font-inter-light text-[#6C6C6C] ">{event.timestamp}</Text>
     </View>
   </View>
 );
@@ -87,27 +92,66 @@ export default function AccessLogDetailScreen() {
 
   const name = String(params.name || '');
   const category = String(params.category || '');
-  const accessTime = String(params.timestamp || '');
-  const codeCreatedAt = String(params.code_created_at || '');
+  const hashedCode = String(params.hashed_code || '');
+  const receiver = String(params.receiver || 'visitor') as ReceiverType;
 
-  const events = useMemo(() => {
-    const items: { title: string; date: Date }[] = [];
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [events, setEvents] = useState<TimelineEvent[]>([]);
 
-    if (codeCreatedAt) {
-      items.push({ title: 'Code Generated', date: parseLogDate(codeCreatedAt) });
+  const fetchHistory = useCallback(async () => {
+    if (!hashedCode) {
+      setError('Access log not found.');
+      setLoading(false);
+      return;
     }
 
-    if (accessTime) {
-      items.push({ title: 'Access Granted', date: parseLogDate(accessTime) });
-    }
+    setLoading(true);
+    setError(null);
 
-    return items
-      .sort((a, b) => a.date.getTime() - b.date.getTime())
-      .map((item) => ({
-        title: item.title,
-        timestamp: formatTimelineDate(item.date),
-      }));
-  }, [accessTime, codeCreatedAt]);
+    try {
+      if (receiver === 'resident') {
+        const history = await getEstateResidentLogByCode(hashedCode, { page: 1, limit: 100 });
+        const mapped = mapResidentCodeHistoryToEvents(history).map((event, index) => ({
+          id: `${event.type}-${index}`,
+          title:
+            event.type === 'generated'
+              ? 'Code Generated'
+              : event.type === 'expired'
+                ? 'Code Expired'
+                : 'Access Granted',
+          timestamp: formatTimelineDate(parseLogDate(event.timestamp)),
+        }));
+        setEvents(mapped);
+        return;
+      }
+
+      const history = await getEstateVisitorLogByCode(hashedCode, { page: 1, limit: 100 });
+      const mapped = history.items
+        .sort(
+          (a, b) =>
+            parseLogDate(a.visit_time).getTime() - parseLogDate(b.visit_time).getTime()
+        )
+        .map((item, index) => ({
+          id: item.id,
+          title: 'Access Granted',
+          timestamp: formatTimelineDate(parseLogDate(item.visit_time)),
+        }));
+
+      setEvents(mapped);
+    } catch (e: any) {
+      setError(e?.message?.trim() || 'Could not load timeline.');
+      setEvents([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [hashedCode, receiver]);
+
+  useEffect(() => {
+    fetchHistory();
+  }, [fetchHistory]);
+
+  const timelineEvents = useMemo(() => events, [events]);
 
   return (
     <SafeAreaView
@@ -122,40 +166,50 @@ export default function AccessLogDetailScreen() {
         <MaterialIcons name="keyboard-arrow-left" size={24} color="#113E55" />
       </Pressable>
 
-      <ScrollView
-        contentContainerClassName="items-center pt-11 pb-16"
-        showsVerticalScrollIndicator={false}
-        style={{ overflow: 'visible' }}
-      >
-        <View className="p-2">
-          <View className="h-[88px] w-[88px] items-center justify-center rounded-full bg-[#04162D]">
-            <ProfileAvatar width={100} height={100} />
+      {loading ? (
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator color="#113E55" />
+        </View>
+      ) : (
+        <ScrollView
+          contentContainerClassName="items-center pt-11 pb-16"
+          showsVerticalScrollIndicator={false}
+          style={{ overflow: 'visible' }}
+        >
+          <View className="p-2">
+            <View className="h-[88px] w-[88px] items-center justify-center rounded-full bg-[#04162D]">
+              <ProfileAvatar width={100} height={100} />
+            </View>
           </View>
-        </View>
 
-        <Text className="mt-3 text-[23px] font-ubuntu-regular text-[#0A1F29]">
-          {capitalizeWords(name)}
-        </Text>
-        <Text className="mt-1 text-xs font-ubuntu-regular capitalize text-[#6C6C6C]">
-          {category}
-        </Text>
+          <Text className="mt-3 text-[21px] font-ubuntu-semibold text-[#0A1F29]">
+            {capitalizeWords(name)}
+          </Text>
+          <Text className="mt-1.5 text-sm font-inter-light capitalize text-[#6C6C6C]">
+            {category}
+          </Text>
 
-        <View className="mt-[50px] w-full px-3 pb-10" style={{ overflow: 'visible' }}>
-          {events.length === 0 ? (
-            <Text className="text-center text-sm text-grey">No timeline events found.</Text>
-          ) : (
-            events.map((event, index) => (
-              <TimelineItem
-                key={event.title}
-                event={event}
-                lineHeight={
-                  index === events.length - 1 ? TIMELINE_LAST_OVERFLOW : TIMELINE_LINE_BETWEEN
-                }
-              />
-            ))
-          )}
-        </View>
-      </ScrollView>
+          <View className="mt-[59px] w-full px-3 pb-10" style={{ overflow: 'visible' }}>
+            {error ? (
+              <Text className="text-center text-sm text-grey">{error}</Text>
+            ) : timelineEvents.length === 0 ? (
+              <Text className="text-center text-sm text-grey">No timeline events found.</Text>
+            ) : (
+              timelineEvents.map((event, index) => (
+                <TimelineItem
+                  key={event.id}
+                  event={event}
+                  lineHeight={
+                    index === timelineEvents.length - 1
+                      ? TIMELINE_LAST_OVERFLOW
+                      : TIMELINE_LINE_BETWEEN
+                  }
+                />
+              ))
+            )}
+          </View>
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 }

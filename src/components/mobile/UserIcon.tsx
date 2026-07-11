@@ -12,15 +12,12 @@ import { MaterialIcons } from '@expo/vector-icons';
 const DROPDOWN_GAP_BELOW_AVATAR = 4;
 
 export default function UserIcon({
-  type = 'admin',
   variant = 'initials',
 }: {
-  type?: string;
   variant?: 'initials' | 'dots';
 }) {
   const first_name = useUserStore((state) => state.first_name);
   const last_name = useUserStore((state) => state.last_name);
-  const role = useUserStore((state) => state.role);
   const router = useRouter();
   const [showDropdown, setShowDropdown] = useState(false);
   const [dropdownTop, setDropdownTop] = useState<number | null>(null);
@@ -40,13 +37,6 @@ export default function UserIcon({
   const dropdownTopPadding = dropdownTop !== null ? dropdownTop : fallbackTop;
 
   const initials = `${first_name?.charAt(0) ?? ''}${last_name?.charAt(0) ?? ''}`;
-
-  const isAdmin = ['admin', 'primary_admin'].includes(role!);
-  const adminSwitchPath = type === 'admin' ? '/admin' : '/user';
-  const adminSwitchLabel = type === 'admin' ? 'Admin' : 'Home';
-  const adminSwitchIcon = type === 'admin' ? icons.activeAdminIcon : icons.homeDropdown;
-  const adminSwitchIconStyle =
-    type === 'admin' ? { width: 14, height: 18 } : { width: 18, height: 18 };
 
   const handleNavigation = (path: string) => {
     setShowDropdown(false);
@@ -107,18 +97,8 @@ export default function UserIcon({
             className="self-end bg-white rounded-3xl border border-accent shadow-md p-2 py-3 w-60"
             style={{ minWidth: 120 }}
           >
-            {isAdmin && (
-              <Pressable
-                className="py-3 px-4 flex gap-2 flex-row bg-accent rounded-2xl"
-                onPress={() => handleNavigation(adminSwitchPath)}
-              >
-                <Image source={adminSwitchIcon} style={adminSwitchIconStyle} />
-                <Text className="text-primary font-inter-medium">{adminSwitchLabel}</Text>
-              </Pressable>
-            )}
-
             <Pressable
-              className={`py-3 px-4 flex gap-2 flex-row ${isAdmin ? '' : 'bg-accent rounded-2xl'}`}
+              className="py-3 px-4 flex gap-2 flex-row bg-accent rounded-2xl"
               onPress={() => handleNavigation('/settings')}
             >
               <Image source={icons.activeProfileIcon} style={{ width: 18, height: 18 }} />

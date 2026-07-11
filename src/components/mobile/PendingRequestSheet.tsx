@@ -175,7 +175,10 @@ export default function PendingRequestSheet({
 
     setDeleting(true);
     try {
-      if (request.kind === 'field' && !request.requestId.startsWith('local-')) {
+      if (
+        (request.kind === 'field' || request.kind === 'identification') &&
+        !request.requestId.startsWith('local-')
+      ) {
         await deletePendingRequest(request.requestId);
       }
 

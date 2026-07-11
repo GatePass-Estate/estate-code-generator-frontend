@@ -28,8 +28,8 @@ export function ProfileFieldRow({
   return (
     <View className="flex-row items-center justify-between px-4 py-3">
       <Pressable onPress={showAction} disabled={!showAction} className="flex-1 flex-col pr-3">
-        <Text className="font-ubuntu-bold text-xs leading-[14px] text-[#6C6C6C]">{label}</Text>
-        <Text className="mt-1 font-ubuntu-regular text-xs leading-[14px] text-[#6C6C6C]">
+        <Text className="font-inter-medium text-sm text-[#6C6C6C]">{label}</Text>
+        <Text className="mt-1 font-inter-light text-sm leading-[14px] text-[#6C6C6C]">
           {displayValue}
         </Text>
       </Pressable>
@@ -37,11 +37,11 @@ export function ProfileFieldRow({
       {showAction ? (
         hasPendingRequest ? (
           <Pressable onPress={onPendingPress} hitSlop={8}>
-            <EllipsisIcon width={17} height={17} />
+            <EllipsisIcon width={20} height={20} />
           </Pressable>
         ) : (
           <Pressable onPress={onEdit} hitSlop={8}>
-            <EditIcon width={20} height={20} />
+            <EditIcon width={30} height={30} />
           </Pressable>
         )
       ) : null}

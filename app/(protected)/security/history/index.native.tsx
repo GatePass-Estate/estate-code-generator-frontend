@@ -1,13 +1,24 @@
-import { useMemo, useState } from 'react';
-import { View, Text, ScrollView, Pressable, TouchableOpacity } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  Pressable,
+  TouchableOpacity,
+  ActivityIndicator,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useNavigation, useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { sharedStyles } from '@/src/theme/styles';
 import ScreenHeader from '@/src/components/mobile/ScreenHeader';
 import { formatDateWithOrdinal } from '@/src/lib/helpers';
-import { AccessLogEntry } from '@/src/types/accessLog';
-import { MOCK_RESIDENT_LOGS, MOCK_VISITOR_LOGS } from '@/src/data/mockAccessLogs';
+import {
+  mapResidentLogToSecurityEntry,
+  mapVisitorLogToSecurityEntry,
+} from '@/src/lib/accessLogMappers';
+import { getEstateResidentLogs, getEstateVisitorLogs } from '@/src/lib/api/accessLogs';
+import { SecurityHistoryEntry } from '@/src/types/accessLogs';
 
 type HistoryMode = 'visitor' | 'resident';
 
@@ -29,8 +40,8 @@ const parseLogDate = (value: string) => {
   return new Date(iso);
 };
 
-const groupLogsByMonth = (logs: AccessLogEntry[]) => {
-  const groups = new Map<string, AccessLogEntry[]>();
+const groupLogsByMonth = (logs: SecurityHistoryEntry[]) => {
+  const groups = new Map<string, SecurityHistoryEntry[]>();
 
   logs.forEach((log) => {
     const date = parseLogDate(log.timestamp);
@@ -57,24 +68,30 @@ const groupLogsByMonth = (logs: AccessLogEntry[]) => {
     });
 };
 
-const AccessLogCard = ({ entry, onPress }: { entry: AccessLogEntry; onPress: () => void }) => (
-  <Pressable onPress={onPress} className="rounded-[8px] bg-white px-4 py-4 flex-col gap-0.5">
-    <View className=" flex-row items-start justify-between  ">
-      <Text className=" font-inter-regular text-[9px] text-[#6C6C6C] ">
+const AccessLogCard = ({
+  entry,
+  onPress,
+}: {
+  entry: SecurityHistoryEntry;
+  onPress: () => void;
+}) => (
+  <Pressable onPress={onPress} className="rounded-[8px] bg-white px-4 py-4 flex-col ">
+    <View className=" flex-row items-start justify-between  mb-2">
+      <Text className=" font-inter-regular text-[11px] text-[#6C6C6C] ">
         {formatDateWithOrdinal(parseLogDate(entry.timestamp))}
       </Text>
-      <Text className=" font-inter-regular text-[9px] text-[#6C6C6C]">Access Code</Text>
+      <Text className=" font-inter-regular text-[11px] text-[#6C6C6C]">Access Code</Text>
     </View>
 
-    <View className="items-start justify-center h-6">
-      <Text className="text-base font-ubuntu-semibold text-[#0A1F29] ">
+    <View className="items-start justify-center h-[17px]">
+      <Text className="text-sm font-inter-light text-[#0A1F29] ">
         {capitalizeWords(entry.name)}
       </Text>
     </View>
 
-    <View className=" flex-row items-center justify-between ">
-      <Text className="text-xs font-inter-regular capitalize text-[#6C6C6C]">{entry.category}</Text>
-      <Text className="text-xs font-ubuntu-medium  text-[#0A1F29]">
+    <View className=" flex-row items-center justify-between mt-1 ">
+      <Text className="text-sm font-inter-light capitalize text-[#6C6C6C]">{entry.category}</Text>
+      <Text className="text-sm font-inter-light  text-[#0A1F29]">
         {formatAccessCode(entry.hashed_code)}
       </Text>
     </View>
@@ -85,8 +102,41 @@ export default function AccessLogScreen() {
   const navigation = useNavigation();
   const router = useRouter();
   const [mode, setMode] = useState<HistoryMode>('visitor');
+  const [logs, setLogs] = useState<SecurityHistoryEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const logs = mode === 'visitor' ? MOCK_VISITOR_LOGS : MOCK_RESIDENT_LOGS;
+  const fetchLogs = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result =
+        mode === 'visitor'
+          ? await getEstateVisitorLogs({ page: 1, limit: 50 })
+          : await getEstateResidentLogs({ page: 1, limit: 50 });
+
+      const mapped: SecurityHistoryEntry[] =
+        mode === 'visitor'
+          ? (result as Awaited<ReturnType<typeof getEstateVisitorLogs>>).items.map(
+              mapVisitorLogToSecurityEntry
+            )
+          : (result as Awaited<ReturnType<typeof getEstateResidentLogs>>).items.map(
+              mapResidentLogToSecurityEntry
+            );
+
+      setLogs(mapped);
+    } catch (e: any) {
+      setError(e?.message?.trim() || 'Could not load access history.');
+      setLogs([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [mode]);
+
+  useEffect(() => {
+    fetchLogs();
+  }, [fetchLogs]);
+
   const groupedLogs = useMemo(() => groupLogsByMonth(logs), [logs]);
 
   const switchMode = (nextMode: HistoryMode) => {
@@ -94,7 +144,7 @@ export default function AccessLogScreen() {
     setMode(nextMode);
   };
 
-  const openTimeline = (entry: AccessLogEntry) => {
+  const openTimeline = (entry: SecurityHistoryEntry) => {
     router.push({
       pathname: '/security/history/detail',
       params: {
@@ -103,7 +153,6 @@ export default function AccessLogScreen() {
         hashed_code: entry.hashed_code,
         timestamp: entry.timestamp,
         receiver: entry.receiver,
-        code_created_at: entry.codeCreatedAt ?? '',
       },
     });
   };
@@ -123,9 +172,9 @@ export default function AccessLogScreen() {
 
       <ScreenHeader title="Access Log" subtitle="View all access code you have approved" />
 
-      <View style={{ flex: 1, paddingTop: 32 }}>
+      <View style={{ flex: 1, paddingTop: 24 }}>
         <View
-          className="self-start flex-row mb-[31px]"
+          className="self-center flex-row mb-[37px]"
           style={{
             borderRadius: 999,
             backgroundColor: '#EFF1F1',
@@ -138,7 +187,6 @@ export default function AccessLogScreen() {
               width: 148,
               paddingVertical: 13,
               borderRadius: 999,
-
               alignItems: 'center',
               justifyContent: 'center',
               backgroundColor: mode === 'visitor' ? '#CEE5ED' : 'transparent',
@@ -146,7 +194,7 @@ export default function AccessLogScreen() {
             onPress={() => switchMode('visitor')}
           >
             <Text
-              className={`font-ubuntu-regular text-xs ${
+              className={`font-inter-regular text-[11px] ${
                 mode === 'visitor' ? 'text-[#113E55]' : 'text-[#6C6C6C]'
               }`}
             >
@@ -159,7 +207,6 @@ export default function AccessLogScreen() {
               width: 148,
               paddingVertical: 13,
               borderRadius: 999,
-
               alignItems: 'center',
               justifyContent: 'center',
               backgroundColor: mode === 'resident' ? '#CEE5ED' : 'transparent',
@@ -167,7 +214,7 @@ export default function AccessLogScreen() {
             onPress={() => switchMode('resident')}
           >
             <Text
-              className={`font-ubuntu-regular text-xs ${
+              className={`font-inter-regular text-[11px] ${
                 mode === 'resident' ? 'text-[#113E55]' : 'text-[#6C6C6C]'
               }`}
             >
@@ -176,34 +223,42 @@ export default function AccessLogScreen() {
           </TouchableOpacity>
         </View>
 
-        <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={{ flexGrow: 0, paddingBottom: 40, gap: 35 }}
-          showsVerticalScrollIndicator={false}
-        >
-          {groupedLogs.length === 0 ? (
-            <Text className="px-6 text-center text-sm text-grey">
-              {mode === 'resident' ? 'No resident access logs yet.' : 'No guest access logs found.'}
-            </Text>
-          ) : (
-            groupedLogs.map((group, index) => (
-              <View key={group.label}>
-                <Text className="mb-3 px-4 text-xs font-ubuntu-regular tracking-[1px] text-[#6C6C6C]">
-                  {group.label}
-                </Text>
-                <View className="flex-col gap-2">
-                  {group.items.map((entry) => (
-                    <AccessLogCard
-                      key={entry.id}
-                      entry={entry}
-                      onPress={() => openTimeline(entry)}
-                    />
-                  ))}
+        {loading ? (
+          <View className="flex-1 items-center justify-center">
+            <ActivityIndicator color="#113E55" />
+          </View>
+        ) : (
+          <ScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={{ flexGrow: 0, paddingBottom: 40, gap: 35 }}
+            showsVerticalScrollIndicator={false}
+          >
+            {error ? (
+              <Text className="px-6 text-center text-sm text-grey">{error}</Text>
+            ) : groupedLogs.length === 0 ? (
+              <Text className="px-6 text-center text-sm text-grey">
+                {mode === 'resident' ? 'No resident access logs yet.' : 'No guest access logs found.'}
+              </Text>
+            ) : (
+              groupedLogs.map((group) => (
+                <View key={group.label}>
+                  <Text className="mb-3 px-4 text-sm font-inter-light  text-[#6C6C6C]">
+                    {group.label}
+                  </Text>
+                  <View className="flex-col gap-2">
+                    {group.items.map((entry) => (
+                      <AccessLogCard
+                        key={entry.id}
+                        entry={entry}
+                        onPress={() => openTimeline(entry)}
+                      />
+                    ))}
+                  </View>
                 </View>
-              </View>
-            ))
-          )}
-        </ScrollView>
+              ))
+            )}
+          </ScrollView>
+        )}
       </View>
     </SafeAreaView>
   );

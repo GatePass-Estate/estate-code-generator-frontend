@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Modal, Pressable, View, Text, Image, Alert, Dimensions, StyleSheet } from 'react-native';
+import { Modal, Pressable, View, Text, Image, Alert, Dimensions, StyleSheet, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -23,18 +23,29 @@ type ProfilePhotoSheetProps = {
   visible: boolean;
   photoUri?: string | null;
   onClose: () => void;
-  onPhotoSelected: (uri: string) => void;
+  onPhotoSelected: (uri: string) => void | Promise<void>;
+  uploading?: boolean;
 };
 
-function PhotoOptionRow({ label, onPress }: { label: string; onPress: () => void }) {
+function PhotoOptionRow({
+  label,
+  onPress,
+  disabled = false,
+}: {
+  label: string;
+  onPress: () => void;
+  disabled?: boolean;
+}) {
   return (
     <Pressable
       onPress={onPress}
+      disabled={disabled}
       className="flex-row items-center justify-between rounded-[12px] bg-[#EFF1F1] p-4"
+      style={{ opacity: disabled ? 0.6 : 1 }}
     >
-      <Text className="text-xs font-ubuntu-regular text-[#113E55]">{label}</Text>
-      <View className="h-4 w-4 items-center justify-center rounded-full bg-[#CEE5ED]">
-        <CheckIcon width={7} height={5} />
+      <Text className="text-sm font-inter-light text-[#113E55]">{label}</Text>
+      <View className="h-6 w-6 items-center justify-center rounded-full bg-[#CEE5ED]">
+        <CheckIcon width={10} height={10} />
       </View>
     </Pressable>
   );
@@ -45,12 +56,15 @@ export default function ProfilePhotoSheet({
   photoUri,
   onClose,
   onPhotoSelected,
+  uploading = false,
 }: ProfilePhotoSheetProps) {
   const insets = useSafeAreaInsets();
   const translateY = useSharedValue(SHEET_HEIGHT);
   const dragStartY = useSharedValue(0);
 
   const closeSheet = () => {
+    if (uploading) return;
+
     translateY.value = withTiming(SHEET_HEIGHT, SHEET_ANIMATION, (finished) => {
       if (finished) {
         runOnJS(onClose)();
@@ -67,6 +81,7 @@ export default function ProfilePhotoSheet({
   }, [translateY, visible]);
 
   const panGesture = Gesture.Pan()
+    .enabled(!uploading)
     .onBegin(() => {
       dragStartY.value = translateY.value;
     })
@@ -107,8 +122,7 @@ export default function ProfilePhotoSheet({
     });
 
     if (!result.canceled && result.assets[0]?.uri) {
-      onPhotoSelected(result.assets[0].uri);
-      closeSheet();
+      await onPhotoSelected(result.assets[0].uri);
     }
   };
 
@@ -126,16 +140,27 @@ export default function ProfilePhotoSheet({
     });
 
     if (!result.canceled && result.assets[0]?.uri) {
-      onPhotoSelected(result.assets[0].uri);
-      closeSheet();
+      await onPhotoSelected(result.assets[0].uri);
     }
   };
 
   return (
-    <Modal visible={visible} transparent animationType="none" onRequestClose={closeSheet}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="none"
+      onRequestClose={() => {
+        if (!uploading) closeSheet();
+      }}
+    >
       <GestureHandlerRootView style={styles.overlay}>
         <Animated.View style={[styles.backdrop, backdropAnimatedStyle]}>
-          <Pressable style={StyleSheet.absoluteFillObject} onPress={closeSheet} />
+          <Pressable
+            style={StyleSheet.absoluteFillObject}
+            onPress={() => {
+              if (!uploading) closeSheet();
+            }}
+          />
         </Animated.View>
 
         <GestureDetector gesture={panGesture}>
@@ -151,20 +176,39 @@ export default function ProfilePhotoSheet({
             </View>
 
             <View className="mb-[50px] items-center">
-              <View className="h-[120px] w-[120px] overflow-hidden rounded-full bg-[#E8F0EF]">
+              <View
+                className="h-[120px] w-[120px] overflow-hidden rounded-full bg-[#E8F0EF]"
+                style={{ position: 'relative' }}
+              >
                 {photoUri ? (
                   <Image source={{ uri: photoUri }} className="h-full w-full" resizeMode="cover" />
                 ) : (
-                  <View className="h-full w-full items-center justify-center bg-[#1B998B]">
+                  <View className="h-full w-full items-center justify-center bg-[#113E55]">
                     <ProfileAvatar width={120} height={120} />
                   </View>
                 )}
+
+                {uploading ? (
+                  <View
+                    pointerEvents="none"
+                    style={[
+                      StyleSheet.absoluteFillObject,
+                      { alignItems: 'center', justifyContent: 'center' },
+                    ]}
+                  >
+                    <ActivityIndicator color="#113E55" size="large" />
+                  </View>
+                ) : null}
               </View>
             </View>
 
             <View className="gap-4 px-5">
-              <PhotoOptionRow label="Choose from Photos" onPress={handleChooseFromPhotos} />
-              <PhotoOptionRow label="Take a Photo" onPress={handleTakePhoto} />
+              <PhotoOptionRow
+                label="Choose from Photos"
+                onPress={handleChooseFromPhotos}
+                disabled={uploading}
+              />
+              <PhotoOptionRow label="Take a Photo" onPress={handleTakePhoto} disabled={uploading} />
             </View>
           </Animated.View>
         </GestureDetector>

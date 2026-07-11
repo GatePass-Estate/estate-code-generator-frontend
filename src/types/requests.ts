@@ -33,7 +33,8 @@ export type RequestType =
   | 'first_name_change'
   | 'last_name_change'
   | 'gender_change'
-  | 'phone_number_change';
+  | 'phone_number_change'
+  | 'id_change';
 
 export type RequestStatus = 'approved' | 'rejected' | 'pending';
 

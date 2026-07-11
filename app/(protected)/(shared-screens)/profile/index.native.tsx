@@ -15,6 +15,7 @@ import * as Clipboard from 'expo-clipboard';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useUserStore } from '@/src/lib/stores/userStore';
+import { useProfileDocumentsStore } from '@/src/lib/stores/profileDocumentsStore';
 import { ProfileFieldRow } from '@/src/components/mobile/ProfileFieldRow';
 import ResidentAccessCodeQRModal from '@/src/components/mobile/ResidentAccessCodeQRModal';
 import ProfilePhotoSheet from '@/src/components/mobile/ProfilePhotoSheet';
@@ -28,19 +29,25 @@ import {
   QrCodeIcon,
   RefreshIcon,
   DownloadIcon,
-  ProfileAvatar,
   CameraIcon,
 } from '@/src/assets/svgs';
 import { sharedStyles } from '@/src/theme/styles';
 import { generateCode, getMyCode } from '@/src/lib/api/codes';
+import {
+  downloadMyDocument,
+  getMyDocumentViewUri,
+  getPendingDocumentViewUri,
+  uploadUserDocument,
+} from '@/src/lib/api/userDocuments';
 import { formatDateWithOrdinal } from '@/src/lib/helpers';
 import { useProfilePendingFields } from '@/src/hooks/useProfilePendingFields';
 import { ProfileFieldKey } from '@/src/lib/profilePendingFields';
 import {
-  createLocalIdentificationPendingRequest,
-  createLocalPhotoPendingRequest,
+  createIdentificationPendingRequest,
   downloadFile,
 } from '@/src/lib/pendingRequestHelpers';
+import { getFilenameFromUri } from '@/src/lib/userDocumentHelpers';
+import { setProfileOnboardingCache } from '@/src/lib/profileOnboardingCache';
 import {
   getProfileOnboardingStep,
   ProfileOnboardingBanner,
@@ -73,19 +80,30 @@ export default function ProfileScreen() {
   const [showQrModal, setShowQrModal] = useState(false);
   const [showPhotoSheet, setShowPhotoSheet] = useState(false);
   const [showIdentificationSheet, setShowIdentificationSheet] = useState(false);
-  const [profilePhotoUri, setProfilePhotoUri] = useState<string | null>(null);
-  const [identificationUri, setIdentificationUri] = useState<string | null>(null);
-  const [photoPendingRequest, setPhotoPendingRequest] = useState<PendingRequestSheetData | null>(
-    null
+  const profilePhotoUri = useProfileDocumentsStore((state) => state.profilePhotoUri);
+  const identificationUri = useProfileDocumentsStore((state) => state.identificationUri);
+  const identificationPendingRequest = useProfileDocumentsStore(
+    (state) => state.identificationPendingRequest
   );
-  const [identificationPendingRequest, setIdentificationPendingRequest] =
-    useState<PendingRequestSheetData | null>(null);
+  const onboardingCache = useProfileDocumentsStore((state) => state.onboarding);
+  const documentsImagesLoading = useProfileDocumentsStore((state) => state.imagesLoading);
+  const syncDocuments = useProfileDocumentsStore((state) => state.syncDocuments);
+  const hydrateOnboarding = useProfileDocumentsStore((state) => state.hydrateOnboarding);
+  const setProfilePhotoUri = useProfileDocumentsStore((state) => state.setProfilePhotoUri);
+  const setIdentificationUri = useProfileDocumentsStore((state) => state.setIdentificationUri);
+  const setIdentificationPendingRequest = useProfileDocumentsStore(
+    (state) => state.setIdentificationPendingRequest
+  );
+  const patchOnboarding = useProfileDocumentsStore((state) => state.patchOnboarding);
   const [pendingRequestSheet, setPendingRequestSheet] = useState<PendingRequestSheetData | null>(
     null
   );
   const [showPendingRequestSheet, setShowPendingRequestSheet] = useState(false);
   const [showCopiedToast, setShowCopiedToast] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [uploadingIdentification, setUploadingIdentification] = useState(false);
   const copiedToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const uploadingPhotoRef = useRef(false);
   const { pendingDetails, pendingFields, refreshPendingFields } = useProfilePendingFields(user_id);
 
   const showAccessCode = role !== 'security';
@@ -127,8 +145,10 @@ export default function ProfileScreen() {
   }, [user_id, estate_id]);
 
   useEffect(() => {
-    if (showAccessCode) fetchMyCode();
-  }, [fetchMyCode, showAccessCode]);
+    if (!user_id) return;
+    hydrateOnboarding(user_id);
+    syncDocuments(user_id);
+  }, [user_id, hydrateOnboarding, syncDocuments]);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
@@ -143,10 +163,6 @@ export default function ProfileScreen() {
   }, [expiry]);
 
   const openEditProfile = () => router.push('/profile/edit');
-
-  const showComingSoon = (feature: string) => {
-    Alert.alert(feature, 'This feature is coming soon.');
-  };
 
   const openPendingSheet = useCallback((data: PendingRequestSheetData) => {
     setPendingRequestSheet(data);
@@ -170,17 +186,42 @@ export default function ProfileScreen() {
   );
 
   const handleAvatarPress = () => {
-    if (photoPendingRequest) {
-      openPendingSheet(photoPendingRequest);
-      return;
-    }
-
+    // Profile photos apply immediately — always open the picker, never the review sheet.
     setShowPhotoSheet(true);
   };
 
-  const handlePhotoSelected = (uri: string) => {
+  const handlePhotoSelected = async (uri: string) => {
+    uploadingPhotoRef.current = true;
+    setUploadingPhoto(true);
     setProfilePhotoUri(uri);
-    setPhotoPendingRequest(createLocalPhotoPendingRequest(uri));
+
+    try {
+      const result = await uploadUserDocument(uri, 'profile_picture');
+
+      if (user_id) {
+        patchOnboarding({ hasPhoto: true });
+        await setProfileOnboardingCache(user_id, { hasPhoto: true });
+      }
+
+      try {
+        const photoUri = await getMyDocumentViewUri('profile_picture', result.content_type);
+        setProfilePhotoUri(photoUri);
+        useProfileDocumentsStore.setState({
+          photoDocumentId: result.document_id,
+          lastSyncedAt: Date.now(),
+        });
+      } catch {
+        // Keep the local picker URI if the authenticated view fetch fails.
+      }
+
+      setShowPhotoSheet(false);
+    } catch (error: any) {
+      setProfilePhotoUri(null);
+      Alert.alert('Upload failed', error?.message?.trim() || 'Could not upload profile photo.');
+    } finally {
+      uploadingPhotoRef.current = false;
+      setUploadingPhoto(false);
+    }
   };
 
   const handleIdentificationPress = () => {
@@ -192,23 +233,85 @@ export default function ProfileScreen() {
     setShowIdentificationSheet(true);
   };
 
-  const handleIdentificationSelected = (uri: string) => {
-    setIdentificationUri(uri);
-    setIdentificationPendingRequest(createLocalIdentificationPendingRequest(uri));
+  const handleIdentificationSelected = async (uri: string) => {
+    setUploadingIdentification(true);
+    try {
+      const result = await uploadUserDocument(uri, 'id_card');
+
+      if (user_id) {
+        patchOnboarding({ hasIdentification: true });
+        await setProfileOnboardingCache(user_id, { hasIdentification: true });
+      }
+
+      if (result.document_status === 'pending') {
+        let pendingUri: string | null = uri;
+        if (result.document_id) {
+          try {
+            pendingUri = await getPendingDocumentViewUri(
+              result.document_id,
+              result.content_type
+            );
+          } catch {
+            // Local picker URI is enough until preview loads later.
+          }
+        }
+
+        setIdentificationPendingRequest(
+          createIdentificationPendingRequest({
+            requestId: result.edit_request_id ?? `local-identification-${result.document_id}`,
+            newFileName: getFilenameFromUri(uri),
+            newFileUri: pendingUri,
+            currentFileUri: identificationUri,
+            currentFileName: identificationUri ? 'Current ID' : 'Name of Image title stored as..',
+          })
+        );
+        useProfileDocumentsStore.setState({
+          pendingIdDocumentId: result.document_id,
+          lastSyncedAt: Date.now(),
+        });
+      } else {
+        let activeUri: string = uri;
+        if (result.view_url) {
+          try {
+            activeUri = await getMyDocumentViewUri('id_card', result.content_type);
+          } catch {
+            // Keep local picker URI if view fetch fails.
+          }
+        }
+        setIdentificationUri(activeUri);
+        setIdentificationPendingRequest(null);
+        useProfileDocumentsStore.setState({
+          activeIdDocumentId: result.document_id,
+          pendingIdDocumentId: null,
+          lastSyncedAt: Date.now(),
+        });
+      }
+
+      setShowIdentificationSheet(false);
+    } catch (error: any) {
+      Alert.alert('Upload failed', error?.message?.trim() || 'Could not upload identification.');
+    } finally {
+      setUploadingIdentification(false);
+    }
   };
 
-  const handleIdentificationDownload = () => {
-    const fileUri =
-      identificationPendingRequest?.newFileUri ||
-      identificationPendingRequest?.currentFileUri ||
-      identificationUri;
-
-    if (fileUri) {
-      downloadFile(fileUri);
+  const handleIdentificationDownload = async () => {
+    if (identificationPendingRequest?.newFileUri) {
+      await downloadFile(identificationPendingRequest.newFileUri);
       return;
     }
 
-    showComingSoon('Download identification');
+    if (identificationUri) {
+      await downloadFile(identificationUri);
+      return;
+    }
+
+    try {
+      const uri = await downloadMyDocument('id_card');
+      await downloadFile(uri);
+    } catch {
+      Alert.alert('Download unavailable', 'No identification file is available to download yet.');
+    }
   };
 
   const closePendingRequestSheet = () => {
@@ -222,17 +325,13 @@ export default function ProfileScreen() {
       return;
     }
 
-    if (deleted.kind === 'photo') {
-      setPhotoPendingRequest(null);
-      if (deleted.newFileUri && deleted.newFileUri === profilePhotoUri) {
-        setProfilePhotoUri(null);
-      }
-      return;
-    }
-
     setIdentificationPendingRequest(null);
     if (deleted.newFileUri && deleted.newFileUri === identificationUri) {
       setIdentificationUri(null);
+    }
+
+    if (user_id) {
+      syncDocuments(user_id, { force: true });
     }
   };
 
@@ -270,10 +369,19 @@ export default function ProfileScreen() {
     };
   }, []);
 
-  const hasIdentification = !!(identificationUri || identificationPendingRequest);
-  const hasPhoto = !!(profilePhotoUri || photoPendingRequest);
+  const hasIdentification =
+    !!(
+      identificationUri ||
+      identificationPendingRequest ||
+      onboardingCache?.hasIdentification
+    ) &&
+    (!uploadingIdentification || !!onboardingCache?.hasIdentification);
+  const hasPhoto =
+    !!(profilePhotoUri || onboardingCache?.hasPhoto) &&
+    (!uploadingPhoto || !!onboardingCache?.hasPhoto);
   const onboardingStep = getProfileOnboardingStep(hasIdentification, hasPhoto);
-  const isProfileLocked = onboardingStep !== null;
+  const isProfileLocked =
+    onboardingStep !== null && !uploadingPhoto && !uploadingIdentification;
 
   const identificationDisplayValue = identificationPendingRequest
     ? identificationPendingRequest.newFileName || 'Uploaded'
@@ -316,6 +424,18 @@ export default function ProfileScreen() {
               <View className="flex-1 items-center justify-center bg-[#F4FFFE]"></View>
             )}
 
+            {uploadingPhoto || documentsImagesLoading ? (
+              <View
+                pointerEvents="none"
+                style={[
+                  StyleSheet.absoluteFillObject,
+                  { alignItems: 'center', justifyContent: 'center' },
+                ]}
+              >
+                <ActivityIndicator color="#1B998B" />
+              </View>
+            ) : null}
+
             <View
               style={{
                 position: 'absolute',
@@ -346,7 +466,7 @@ export default function ProfileScreen() {
       {showAccessCode ? (
         <View className="mt-8 flex-row items-stretch justify-between rounded-[16px] bg-white p-4">
           <View className="flex-1 gap-2 ">
-            <Text className="text-xs font-ubuntu-medium text-[#6C6C6C]">My Access Code</Text>
+            <Text className="text-[11px] font-inter-regular text-[#6C6C6C]">My Access Code</Text>
 
             <View
               className="flex-row items-center gap-1"
@@ -389,15 +509,15 @@ export default function ProfileScreen() {
             </View>
 
             {isPreview ? (
-              <Text className="text-[9px] font-inter-regular text-[#6C6C6C]">
+              <Text className="text-[11px] font-inter-regular text-[#6C6C6C]">
                 Code expires on —
               </Text>
             ) : formattedDate ? (
-              <Text className="text-[9px] font-inter-regular text-[#6C6C6C]">
+              <Text className="text-[11px] font-inter-regular text-[#6C6C6C]">
                 Code expires on {formattedDate}
               </Text>
             ) : noCode ? (
-              <Text className="text-[9px] font-inter-regular text-grey">
+              <Text className="text-[11px] font-inter-regular text-grey">
                 You do not have a code yet. Tap refresh to generate one.
               </Text>
             ) : null}
@@ -405,7 +525,7 @@ export default function ProfileScreen() {
 
           <View className="items-end justify-between">
             <Pressable onPress={() => router.push('/profile/access-log')} hitSlop={8}>
-              <Text className="text-xs font-ubuntu-medium text-primary">View History</Text>
+              <Text className="text-[11px] font-inter-semibold text-primary">View History</Text>
             </Pressable>
 
             <View className="flex-row gap-3">
@@ -474,7 +594,7 @@ export default function ProfileScreen() {
         />
       </View>
 
-      <View className="mt-4 flex-col gap-2 rounded-[16px] bg-white py-4">
+      <View className=" flex-col gap-2 rounded-[16px] bg-white py-4">
         <ProfileFieldRow label="House Hold" value={estate_name} />
         <ProfileFieldRow
           label="Address"
@@ -534,7 +654,7 @@ export default function ProfileScreen() {
           </Pressable>
 
           {isProfileLocked ? (
-            <Text className="text-xs font-ubuntu-regular text-[#000]">
+            <Text className="text-[11px] font-inter-regular text-[#0A1F29]">
               {onboardingStep === 'id' ? '1/2' : '2/2'}
             </Text>
           ) : (
@@ -588,6 +708,7 @@ export default function ProfileScreen() {
         photoUri={profilePhotoUri}
         onClose={() => setShowPhotoSheet(false)}
         onPhotoSelected={handlePhotoSelected}
+        uploading={uploadingPhoto}
       />
 
       <IdentificationSheet
@@ -595,6 +716,7 @@ export default function ProfileScreen() {
         identificationUri={identificationUri}
         onClose={() => setShowIdentificationSheet(false)}
         onIdentificationSelected={handleIdentificationSelected}
+        uploading={uploadingIdentification}
       />
 
       <PendingRequestSheet

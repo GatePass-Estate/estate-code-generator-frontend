@@ -1,14 +1,38 @@
-import { View, Pressable, ScrollView } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { View, Pressable, ScrollView, ActivityIndicator, Text } from 'react-native';
 import { Stack, router, useNavigation } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { AccessLogCard } from '@/src/components/mobile/AccessLogCard';
 import ScreenHeader from '@/src/components/mobile/ScreenHeader';
-import { mockResidentAccessLogs } from '@/src/data/mockResidentAccessLogs';
+import { mapResidentLogToAccessLog } from '@/src/lib/accessLogMappers';
+import { getMyResidentAccessLogs } from '@/src/lib/api/accessLogs';
+import { ResidentAccessLog } from '@/src/types/accessLog';
 import { sharedStyles } from '@/src/theme/styles';
 
 export default function AccessLogScreen() {
   const navigation = useNavigation();
+  const [logs, setLogs] = useState<ResidentAccessLog[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchLogs = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await getMyResidentAccessLogs({ page: 1, limit: 50 });
+      setLogs(result.items.map(mapResidentLogToAccessLog));
+    } catch (e: any) {
+      setError(e?.message?.trim() || 'Could not load access history.');
+      setLogs([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchLogs();
+  }, [fetchLogs]);
 
   return (
     <SafeAreaView
@@ -25,20 +49,34 @@ export default function AccessLogScreen() {
 
       <ScreenHeader title="Access Log" subtitle="View your access code history." />
 
-      <ScrollView
-        contentContainerStyle={{ paddingBottom: 40, paddingTop: 21 }}
-        showsVerticalScrollIndicator={false}
-      >
-        <View className="gap-3">
-          {mockResidentAccessLogs.map((log) => (
-            <AccessLogCard
-              key={log.id}
-              log={log}
-              onPress={() => router.push(`/profile/access-log/${log.id}`)}
-            />
-          ))}
+      {loading ? (
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator color="#113E55" />
         </View>
-      </ScrollView>
+      ) : (
+        <ScrollView
+          contentContainerStyle={{ paddingBottom: 40, paddingTop: 21, flexGrow: logs.length ? 0 : 1 }}
+          showsVerticalScrollIndicator={false}
+        >
+          {error ? (
+            <Text className="text-center text-sm font-inter-regular text-[#6C6C6C]">{error}</Text>
+          ) : logs.length === 0 ? (
+            <Text className="text-center text-sm font-inter-regular text-[#6C6C6C]">
+              No access logs yet.
+            </Text>
+          ) : (
+            <View className="gap-3">
+              {logs.map((log) => (
+                <AccessLogCard
+                  key={log.id}
+                  log={log}
+                  onPress={() => router.push(`/profile/access-log/${log.code}`)}
+                />
+              ))}
+            </View>
+          )}
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 }

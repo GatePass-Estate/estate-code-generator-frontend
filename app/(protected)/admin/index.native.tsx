@@ -123,7 +123,7 @@ export default function AdminUsersMobilePage() {
 
       <View className="flex-row items-center justify-between pt-2">
         <Back type="short-arrow" onPress={handleBackToHome} />
-        <UserIcon type="user" />
+        <UserIcon />
       </View>
 
       <ScrollView

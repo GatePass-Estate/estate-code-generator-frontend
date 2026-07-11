@@ -1,11 +1,12 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, Pressable, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { Stack, useLocalSearchParams, useNavigation, router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import ScreenHeader from '@/src/components/mobile/ScreenHeader';
 import { TimelineDashLine } from '@/src/assets/svgs';
-import { getResidentAccessLogById } from '@/src/data/mockResidentAccessLogs';
+import { mapResidentCodeHistoryToEvents } from '@/src/lib/accessLogMappers';
+import { getMyResidentAccessLogByCode } from '@/src/lib/api/accessLogs';
 import { generateCode } from '@/src/lib/api/codes';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { AccessLogEvent } from '@/src/types/accessLog';
@@ -85,26 +86,50 @@ export default function UsageLogScreen() {
   const navigation = useNavigation();
   const { codeId } = useLocalSearchParams<{ codeId: string }>();
   const { user_id, estate_id } = useUserStore();
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [regenerating, setRegenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isCodeActive, setIsCodeActive] = useState(false);
+  const [events, setEvents] = useState<TimelineEvent[]>([]);
 
-  const log = getResidentAccessLogById(codeId ?? '');
+  const hashedCode = codeId ?? '';
 
-  const events = useMemo<TimelineEvent[]>(() => {
-    if (!log) return [];
+  const fetchHistory = useCallback(async () => {
+    if (!hashedCode) {
+      setError('Access log not found.');
+      setLoading(false);
+      return;
+    }
 
-    return log.events.map((event) => ({
-      id: event.id,
-      title: EVENT_LABELS[event.type],
-      timestamp: formatTimelineDate(new Date(event.timestamp)),
-      isExpired: event.type === 'expired',
-    }));
-  }, [log]);
+    setLoading(true);
+    setError(null);
+    try {
+      const history = await getMyResidentAccessLogByCode(hashedCode, { page: 1, limit: 100 });
+      const mappedEvents = mapResidentCodeHistoryToEvents(history).map((event) => ({
+        id: event.id,
+        title: EVENT_LABELS[event.type],
+        timestamp: formatTimelineDate(new Date(event.timestamp)),
+        isExpired: event.type === 'expired',
+      }));
 
-  const isCodeActive = log?.isActive ?? false;
+      setEvents(mappedEvents);
+      setIsCodeActive(!history.code_deleted);
+    } catch (e: any) {
+      setError(e?.message?.trim() || 'Could not load usage log.');
+      setEvents([]);
+      setIsCodeActive(false);
+    } finally {
+      setLoading(false);
+    }
+  }, [hashedCode]);
+
+  useEffect(() => {
+    fetchHistory();
+  }, [fetchHistory]);
 
   const handleRegenerateCode = useCallback(async () => {
     if (!user_id) return;
-    setLoading(true);
+    setRegenerating(true);
     try {
       await generateCode({ user_id, estate_id: estate_id ?? '' }, 'resident');
       Alert.alert('Code regenerated', 'Your new access code is ready on your profile.', [
@@ -113,11 +138,30 @@ export default function UsageLogScreen() {
     } catch {
       Alert.alert('Could not regenerate code', 'Please try again later.');
     } finally {
-      setLoading(false);
+      setRegenerating(false);
     }
   }, [user_id, estate_id]);
 
-  if (!log) {
+  const timelineEvents = useMemo(() => events, [events]);
+
+  if (loading) {
+    return (
+      <SafeAreaView
+        style={[
+          sharedStyles.container,
+          sharedStyles.modalContainer,
+          { backgroundColor: '#F6F7F7' },
+        ]}
+      >
+        <Stack.Screen options={{ headerShown: false }} />
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator color="#113E55" />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
     return (
       <SafeAreaView
         style={[
@@ -133,9 +177,7 @@ export default function UsageLogScreen() {
         >
           <MaterialIcons name="keyboard-arrow-left" size={24} color="#113E55" />
         </Pressable>
-        <Text className="mt-6 text-base font-inter-regular text-[#6C6C6C]">
-          Access log not found.
-        </Text>
+        <Text className="mt-6 text-base font-inter-regular text-[#6C6C6C]">{error}</Text>
       </SafeAreaView>
     );
   }
@@ -167,15 +209,21 @@ export default function UsageLogScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View className="w-full pb-10">
-          {events.map((event, index) => (
-            <TimelineItem
-              key={event.id}
-              event={event}
-              lineHeight={
-                index === events.length - 1 ? TIMELINE_LAST_OVERFLOW : TIMELINE_LINE_BETWEEN
-              }
-            />
-          ))}
+          {timelineEvents.length === 0 ? (
+            <Text className="text-center text-sm text-grey">No timeline events found.</Text>
+          ) : (
+            timelineEvents.map((event, index) => (
+              <TimelineItem
+                key={event.id}
+                event={event}
+                lineHeight={
+                  index === timelineEvents.length - 1
+                    ? TIMELINE_LAST_OVERFLOW
+                    : TIMELINE_LINE_BETWEEN
+                }
+              />
+            ))
+          )}
         </View>
       </ScrollView>
 
@@ -183,10 +231,10 @@ export default function UsageLogScreen() {
         <View className="absolute bottom-10 left-5 right-5 px-[9px]">
           <Pressable
             onPress={handleRegenerateCode}
-            disabled={loading}
+            disabled={regenerating}
             className="items-center justify-center rounded-full bg-primary p-4"
           >
-            {loading ? (
+            {regenerating ? (
               <ActivityIndicator color="#fff" />
             ) : (
               <Text className="text-sm font-ubuntu-semibold text-white">Regenerate Code</Text>

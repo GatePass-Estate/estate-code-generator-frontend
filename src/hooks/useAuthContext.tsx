@@ -2,6 +2,7 @@ import { Platform } from 'react-native';
 import { fetchMe } from '@/src/lib/api/auth';
 import { broadcastLogout, clearAuthState, getAuthState, initAuthSync } from '@/src/lib/helpers';
 import { useAuthStore } from '@/src/lib/stores/authStore';
+import { useProfileDocumentsStore } from '@/src/lib/stores/profileDocumentsStore';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { AuthContextType } from '@/src/types/auth';
 import { User } from '@/src/types/user';
@@ -72,6 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     try {
       useUserStore.getState().clearUser();
+      useProfileDocumentsStore.getState().clear();
       useAuthStore.getState().clearAuth();
       router.replace('/auth/login');
     } finally {
@@ -82,6 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const performSignOut = useCallback(async () => {
     setIsReady(false);
     useUserStore.getState().clearUser();
+    useProfileDocumentsStore.getState().clear();
     useAuthStore.getState().clearAuth();
     await clearAuthState();
     broadcastLogout();

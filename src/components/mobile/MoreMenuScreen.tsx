@@ -17,6 +17,7 @@ import {
   MyProfileIcon,
   NavigateNextIcon,
   PrivacyPolicyIcon,
+  RatingsFeedbackIcon,
   TermsOfServiceIcon,
 } from '@/src/assets/svgs';
 
@@ -47,13 +48,25 @@ function MoreMenuRow({
   return (
     <Pressable
       onPress={onPress}
-      className="flex-row items-center justify-between rounded-[8px] border border-[#CEE5ED]  p-4"
+      className="flex-row items-center justify-between rounded-[8px] border-[0.5px] border-[#CEE5ED]  px-4 py-[18px]"
     >
       <View className="flex-row items-center gap-4">
         {icon}
-        <Text className="text-[13px] font-inter-regular text-primary">{label}</Text>
+        <Text className="text-sm font-inter-light text-primary">{label}</Text>
       </View>
       {showNavigateNext ? <NavigateNextIcon /> : null}
+    </Pressable>
+  );
+}
+
+function AdminAccessButton({ onPress }: { onPress: () => void }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      className="flex-row items-center justify-between rounded-[8px] bg-[#113E55] px-4 py-[18px]"
+    >
+      <Text className="text-[13px] font-inter-regular text-[#EFF1F1]">Do More as an Admin</Text>
+      <NavigateNextIcon color="#FFFFFF" width={20} height={20} />
     </Pressable>
   );
 }
@@ -65,7 +78,10 @@ export default function MoreMenuScreen({
   const navigation = useNavigation();
   const { signOut } = useAuth();
   const user_id = useUserStore((s) => s.user_id);
+  const role = useUserStore((s) => s.role);
   const [deleting, setDeleting] = useState(false);
+
+  const isAdmin = role === 'admin' || role === 'primary_admin';
 
   const confirmDelete = () => {
     Alert.alert(
@@ -111,9 +127,19 @@ export default function MoreMenuScreen({
       <ScreenHeader title={title} subtitle={subtitle || undefined} />
 
       <ScrollView
-        contentContainerStyle={{ paddingBottom: 40, paddingTop: 36, flexGrow: 0, gap: 40 }}
+        contentContainerStyle={{
+          paddingBottom: 40,
+          paddingTop: isAdmin ? 24 : 36,
+          flexGrow: 0,
+        }}
         showsVerticalScrollIndicator={false}
       >
+        {isAdmin ? (
+          <View className="mb-6">
+            <AdminAccessButton onPress={() => router.replace('/admin')} />
+          </View>
+        ) : null}
+        <View className="flex-col gap-10">
         <View>
           <SectionTitle first>Account</SectionTitle>
           <View className="flex-col gap-2">
@@ -142,7 +168,7 @@ export default function MoreMenuScreen({
 
         <View>
           <SectionTitle>About</SectionTitle>
-          <View className="flex-col gap-1">
+          <View className="flex-col gap-2">
             <MoreMenuRow
               icon={<TermsOfServiceIcon color={iconColor} />}
               label="Terms of Service"
@@ -162,6 +188,20 @@ export default function MoreMenuScreen({
                   params: { source: 'settings' },
                 })
               }
+            />
+          </View>
+        </View>
+
+        <View>
+          <SectionTitle>Help</SectionTitle>
+          <View className="flex-col gap-1">
+            <MoreMenuRow
+              icon={<RatingsFeedbackIcon color={iconColor} />}
+              label="Ratings and Feedback"
+              onPress={() =>
+                Alert.alert('Coming soon', 'Ratings and feedback is not available yet.')
+              }
+              showNavigateNext={false}
             />
           </View>
         </View>
@@ -187,7 +227,7 @@ export default function MoreMenuScreen({
         <Pressable
           onPress={confirmDelete}
           disabled={deleting}
-          className="flex-row items-center gap-4 rounded-[8px] border border-[#E30404] bg-white p-4"
+          className="flex-row items-center gap-4 rounded-[8px] border border-[#E30404] bg-white px-4 py-[18px]"
         >
           {deleting ? (
             <ActivityIndicator color="#ED0808" />
@@ -198,6 +238,7 @@ export default function MoreMenuScreen({
             </>
           )}
         </Pressable>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
