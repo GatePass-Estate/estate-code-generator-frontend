@@ -42,18 +42,29 @@ import {
 import { formatDateWithOrdinal } from '@/src/lib/helpers';
 import { useProfilePendingFields } from '@/src/hooks/useProfilePendingFields';
 import { ProfileFieldKey } from '@/src/lib/profilePendingFields';
-import { createIdentificationPendingRequest, downloadFile } from '@/src/lib/pendingRequestHelpers';
+import { createIdentificationPendingRequest, DEFAULT_PENDING_ID_LABEL, downloadFile } from '@/src/lib/pendingRequestHelpers';
 import { getFilenameFromUri } from '@/src/lib/userDocumentHelpers';
-import { setProfileOnboardingCache } from '@/src/lib/profileOnboardingCache';
 import {
   getProfileOnboardingStep,
   ProfileOnboardingBanner,
+  ProfileOnboardingStep,
 } from '@/src/components/mobile/ProfileOnboardingBanner';
 import { CopiedToast } from '@/src/components/mobile/CopiedToast';
 
 function formatAccessCode(code: string) {
   return code.replace(/\s+/g, '').toUpperCase();
 }
+
+const ONBOARDING_COPY: Record<Exclude<ProfileOnboardingStep, null>, { title: string; description: string }> = {
+  id: {
+    title: 'Verify Your ID',
+    description: 'Please upload your government issued ID to generate your access code.',
+  },
+  photo: {
+    title: 'Upload Your Photo',
+    description: 'Please upload your passport to generate your access code.',
+  },
+};
 
 export default function ProfileScreen() {
   const navigation = useNavigation();
@@ -85,13 +96,12 @@ export default function ProfileScreen() {
   const onboardingCache = useProfileDocumentsStore((state) => state.onboarding);
   const documentsImagesLoading = useProfileDocumentsStore((state) => state.imagesLoading);
   const syncDocuments = useProfileDocumentsStore((state) => state.syncDocuments);
-  const hydrateOnboarding = useProfileDocumentsStore((state) => state.hydrateOnboarding);
+  const markOnboardingStep = useProfileDocumentsStore((state) => state.markOnboardingStep);
   const setProfilePhotoUri = useProfileDocumentsStore((state) => state.setProfilePhotoUri);
   const setIdentificationUri = useProfileDocumentsStore((state) => state.setIdentificationUri);
   const setIdentificationPendingRequest = useProfileDocumentsStore(
     (state) => state.setIdentificationPendingRequest
   );
-  const patchOnboarding = useProfileDocumentsStore((state) => state.patchOnboarding);
   const [pendingRequestSheet, setPendingRequestSheet] = useState<PendingRequestSheetData | null>(
     null
   );
@@ -100,7 +110,6 @@ export default function ProfileScreen() {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [uploadingIdentification, setUploadingIdentification] = useState(false);
   const copiedToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const uploadingPhotoRef = useRef(false);
   const { pendingDetails, pendingFields, refreshPendingFields } = useProfilePendingFields(user_id);
 
   const showAccessCode = role !== 'security';
@@ -143,9 +152,8 @@ export default function ProfileScreen() {
 
   useEffect(() => {
     if (!user_id) return;
-    hydrateOnboarding(user_id);
     syncDocuments(user_id);
-  }, [user_id, hydrateOnboarding, syncDocuments]);
+  }, [user_id, syncDocuments]);
 
   useEffect(() => {
     if (showAccessCode) fetchMyCode();
@@ -187,12 +195,10 @@ export default function ProfileScreen() {
   );
 
   const handleAvatarPress = () => {
-    // Profile photos apply immediately — always open the picker, never the review sheet.
     setShowPhotoSheet(true);
   };
 
   const handlePhotoSelected = async (uri: string) => {
-    uploadingPhotoRef.current = true;
     setUploadingPhoto(true);
     setProfilePhotoUri(uri);
 
@@ -200,8 +206,7 @@ export default function ProfileScreen() {
       const result = await uploadUserDocument(uri, 'profile_picture');
 
       if (user_id) {
-        patchOnboarding({ hasPhoto: true });
-        await setProfileOnboardingCache(user_id, { hasPhoto: true });
+        await markOnboardingStep(user_id, { hasPhoto: true });
       }
 
       try {
@@ -220,7 +225,6 @@ export default function ProfileScreen() {
       setProfilePhotoUri(null);
       Alert.alert('Upload failed', error?.message?.trim() || 'Could not upload profile photo.');
     } finally {
-      uploadingPhotoRef.current = false;
       setUploadingPhoto(false);
     }
   };
@@ -240,8 +244,7 @@ export default function ProfileScreen() {
       const result = await uploadUserDocument(uri, 'id_card');
 
       if (user_id) {
-        patchOnboarding({ hasIdentification: true });
-        await setProfileOnboardingCache(user_id, { hasIdentification: true });
+        await markOnboardingStep(user_id, { hasIdentification: true });
       }
 
       if (result.document_status === 'pending') {
@@ -257,10 +260,10 @@ export default function ProfileScreen() {
         setIdentificationPendingRequest(
           createIdentificationPendingRequest({
             requestId: result.edit_request_id ?? `local-identification-${result.document_id}`,
-            newFileName: getFilenameFromUri(uri),
+            newFileName: getFilenameFromUri(uri, 'Uploaded ID'),
             newFileUri: pendingUri,
             currentFileUri: identificationUri,
-            currentFileName: identificationUri ? 'Current ID' : 'Name of Image title stored as..',
+            currentFileName: identificationUri ? 'Current ID' : DEFAULT_PENDING_ID_LABEL,
           })
         );
         useProfileDocumentsStore.setState({
@@ -367,12 +370,10 @@ export default function ProfileScreen() {
     };
   }, []);
 
-  const hasIdentification =
-    !!(identificationUri || identificationPendingRequest || onboardingCache?.hasIdentification) &&
-    (!uploadingIdentification || !!onboardingCache?.hasIdentification);
-  const hasPhoto =
-    !!(profilePhotoUri || onboardingCache?.hasPhoto) &&
-    (!uploadingPhoto || !!onboardingCache?.hasPhoto);
+  const hasIdentification = Boolean(
+    identificationUri || identificationPendingRequest || onboardingCache?.hasIdentification
+  );
+  const hasPhoto = Boolean(profilePhotoUri || onboardingCache?.hasPhoto);
   const onboardingStep = getProfileOnboardingStep(hasIdentification, hasPhoto);
   const isProfileLocked = onboardingStep !== null && !uploadingPhoto && !uploadingIdentification;
 
@@ -655,27 +656,14 @@ export default function ProfileScreen() {
           )}
         </View>
 
-        {isProfileLocked ? (
-          <View className="w-full flex-1 justify-center ">
-            {onboardingStep === 'id' ? (
-              <View className="w-full items-center px-1">
-                <ProfileOnboardingBanner
-                  title="Verify Your ID"
-                  description="Please upload your government issued ID to generate your access code."
-                  onUpload={handleOnboardingUpload}
-                />
-              </View>
-            ) : null}
-
-            {onboardingStep === 'photo' ? (
-              <View className="w-full items-center px-1">
-                <ProfileOnboardingBanner
-                  title="Upload Your Photo"
-                  description="Please upload your passport to generate your access code."
-                  onUpload={handleOnboardingUpload}
-                />
-              </View>
-            ) : null}
+        {isProfileLocked && onboardingStep ? (
+          <View className="w-full flex-1 justify-center">
+            <View className="w-full items-center px-1">
+              <ProfileOnboardingBanner
+                {...ONBOARDING_COPY[onboardingStep]}
+                onUpload={handleOnboardingUpload}
+              />
+            </View>
 
             <View style={{ opacity: 0.35 }} pointerEvents="none" className="mt-6 w-full">
               {renderProfileContent(true)}

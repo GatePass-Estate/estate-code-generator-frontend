@@ -2,6 +2,8 @@ import { Alert } from 'react-native';
 import * as Sharing from 'expo-sharing';
 import { PendingRequestSheetData } from '@/src/components/mobile/PendingRequestSheet';
 
+export const DEFAULT_PENDING_ID_LABEL = 'Previous ID';
+
 export async function downloadFile(uri?: string | null) {
   if (!uri) {
     Alert.alert('Download unavailable', 'No file is available to download yet.');
@@ -20,11 +22,6 @@ export async function downloadFile(uri?: string | null) {
   }
 }
 
-export function getFileNameFromUri(uri: string) {
-  const parts = uri.split('/');
-  return decodeURIComponent(parts[parts.length - 1] || 'document');
-}
-
 export function createIdentificationPendingRequest(params: {
   requestId: string;
   newFileName: string;
@@ -35,7 +32,7 @@ export function createIdentificationPendingRequest(params: {
   return {
     kind: 'identification',
     requestId: params.requestId,
-    currentFileName: params.currentFileName || 'Name of Image title stored as..',
+    currentFileName: params.currentFileName ?? DEFAULT_PENDING_ID_LABEL,
     newFileName: params.newFileName,
     currentFileUri: params.currentFileUri ?? null,
     newFileUri: params.newFileUri ?? null,

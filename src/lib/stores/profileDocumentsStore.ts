@@ -6,7 +6,7 @@ import {
   getMyDocuments,
   getPendingDocumentViewUri,
 } from '@/src/lib/api/userDocuments';
-import { createIdentificationPendingRequest } from '@/src/lib/pendingRequestHelpers';
+import { createIdentificationPendingRequest, DEFAULT_PENDING_ID_LABEL } from '@/src/lib/pendingRequestHelpers';
 import {
   getProfileOnboardingCache,
   setProfileOnboardingCache,
@@ -19,6 +19,29 @@ type OnboardingState = {
   hasIdentification: boolean;
   hasPhoto: boolean;
 };
+
+type DocumentItem = Awaited<ReturnType<typeof getMyDocuments>>['documents'][number];
+
+function findProfileDocuments(documents: DocumentItem[]) {
+  return {
+    activePhoto: documents.find(
+      (doc) => doc.document_type === 'profile_picture' && doc.document_status === 'active'
+    ),
+    activeId: documents.find(
+      (doc) => doc.document_type === 'id_card' && doc.document_status === 'active'
+    ),
+    pendingId: documents.find(
+      (doc) => doc.document_type === 'id_card' && doc.document_status === 'pending'
+    ),
+  };
+}
+
+function buildOnboardingState(activePhoto?: DocumentItem, activeId?: DocumentItem, pendingId?: DocumentItem): OnboardingState {
+  return {
+    hasIdentification: !!(pendingId || activeId),
+    hasPhoto: !!activePhoto,
+  };
+}
 
 type SyncOptions = {
   force?: boolean;
@@ -38,11 +61,10 @@ type ProfileDocumentsStore = {
   lastSyncedAt: number | null;
   syncInFlight: boolean;
   clear: () => void;
-  hydrateOnboarding: (userId: string) => Promise<void>;
+  markOnboardingStep: (userId: string, partial: Partial<OnboardingState>) => Promise<void>;
   setProfilePhotoUri: (uri: string | null) => void;
   setIdentificationUri: (uri: string | null) => void;
   setIdentificationPendingRequest: (request: PendingRequestSheetData | null) => void;
-  patchOnboarding: (partial: Partial<OnboardingState>) => void;
   syncDocuments: (userId: string, options?: SyncOptions) => Promise<void>;
 };
 
@@ -65,11 +87,10 @@ export const useProfileDocumentsStore = create<ProfileDocumentsStore>((set, get)
 
   clear: () => set(initialState),
 
-  hydrateOnboarding: async (userId) => {
-    const cached = await getProfileOnboardingCache(userId);
-    if (cached) {
-      set({ onboarding: cached });
-    }
+  markOnboardingStep: async (userId, partial) => {
+    const current = get().onboarding ?? { hasIdentification: false, hasPhoto: false };
+    set({ onboarding: { ...current, ...partial } });
+    await setProfileOnboardingCache(userId, partial);
   },
 
   setProfilePhotoUri: (uri) => set({ profilePhotoUri: uri }),
@@ -77,11 +98,6 @@ export const useProfileDocumentsStore = create<ProfileDocumentsStore>((set, get)
   setIdentificationUri: (uri) => set({ identificationUri: uri }),
 
   setIdentificationPendingRequest: (request) => set({ identificationPendingRequest: request }),
-
-  patchOnboarding: (partial) => {
-    const current = get().onboarding ?? { hasIdentification: false, hasPhoto: false };
-    set({ onboarding: { ...current, ...partial } });
-  },
 
   syncDocuments: async (userId, { force = false, skipPhotoClear = false } = {}) => {
     const state = get();
@@ -111,27 +127,15 @@ export const useProfileDocumentsStore = create<ProfileDocumentsStore>((set, get)
       set({ onboarding: cached });
     }
 
-    type DocumentItem = Awaited<ReturnType<typeof getMyDocuments>>['documents'][number];
     let activePhoto: DocumentItem | undefined;
     let activeId: DocumentItem | undefined;
     let pendingId: DocumentItem | undefined;
 
     try {
       const { documents } = await getMyDocuments();
-      activePhoto = documents.find(
-        (doc) => doc.document_type === 'profile_picture' && doc.document_status === 'active'
-      );
-      activeId = documents.find(
-        (doc) => doc.document_type === 'id_card' && doc.document_status === 'active'
-      );
-      pendingId = documents.find(
-        (doc) => doc.document_type === 'id_card' && doc.document_status === 'pending'
-      );
+      ({ activePhoto, activeId, pendingId } = findProfileDocuments(documents));
 
-      const onboarding = {
-        hasIdentification: !!(pendingId || activeId),
-        hasPhoto: !!activePhoto,
-      };
+      const onboarding = buildOnboardingState(activePhoto, activeId, pendingId);
       set({ onboarding });
       await setProfileOnboardingCache(userId, onboarding);
 
@@ -153,8 +157,7 @@ export const useProfileDocumentsStore = create<ProfileDocumentsStore>((set, get)
                   requestId,
                   newFileName: existingPending?.newFileName ?? 'Uploaded ID',
                   newFileUri: existingPending?.newFileUri ?? null,
-                  currentFileName:
-                    existingPending?.currentFileName ?? 'Name of Image title stored as..',
+                  currentFileName: existingPending?.currentFileName ?? DEFAULT_PENDING_ID_LABEL,
                   currentFileUri: existingPending?.currentFileUri ?? null,
                 }),
           identificationUri:

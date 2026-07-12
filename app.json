@@ -69,7 +69,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow GatePass to scan access code QR codes."
+          "cameraPermission": "Allow GatePass to use your camera to scan access codes."
         }
       ],
       [

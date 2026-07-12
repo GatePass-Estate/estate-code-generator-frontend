@@ -19,7 +19,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { deletePendingRequest } from '@/src/lib/api/requests';
-import { downloadFile } from '@/src/lib/pendingRequestHelpers';
+import { DEFAULT_PENDING_ID_LABEL, downloadFile } from '@/src/lib/pendingRequestHelpers';
 import { FileDocumentIcon } from '@/src/assets/svgs';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -55,8 +55,6 @@ const SHEET_TITLES: Record<PendingRequestKind, string> = {
   photo: 'Your photo request is under review',
   identification: 'Your ID request is under review',
 };
-
-const DEFAULT_FILE_LABEL = 'Name of Image title stored as..';
 
 function ValueRow({
   sectionLabel,
@@ -231,12 +229,12 @@ export default function PendingRequestSheet({
                 <>
                   <FileRow
                     sectionLabel="Current"
-                    fileName={request.currentFileName || DEFAULT_FILE_LABEL}
+                    fileName={request.currentFileName || DEFAULT_PENDING_ID_LABEL}
                     onDownload={() => downloadFile(request.currentFileUri)}
                   />
                   <FileRow
                     sectionLabel="New"
-                    fileName={request.newFileName || DEFAULT_FILE_LABEL}
+                    fileName={request.newFileName || DEFAULT_PENDING_ID_LABEL}
                     onDownload={() => downloadFile(request.newFileUri)}
                   />
                 </>
