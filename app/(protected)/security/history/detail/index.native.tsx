@@ -176,7 +176,7 @@ export default function AccessLogDetailScreen() {
             </View>
           </View>
 
-          <Text className="mt-3 text-[21px] font-ubuntu-semibold text-[#0A1F29]">
+          <Text className="mt-[11px] text-[21px] font-ubuntu-semibold text-[#0A1F29]">
             {capitalizeWords(name)}
           </Text>
           <Text className="mt-1.5 text-sm font-inter-light capitalize text-[#6C6C6C]">

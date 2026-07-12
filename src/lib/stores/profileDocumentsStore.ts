@@ -6,7 +6,10 @@ import {
   getMyDocuments,
   getPendingDocumentViewUri,
 } from '@/src/lib/api/userDocuments';
-import { createIdentificationPendingRequest, DEFAULT_PENDING_ID_LABEL } from '@/src/lib/pendingRequestHelpers';
+import {
+  createIdentificationPendingRequest,
+  DEFAULT_PENDING_ID_LABEL,
+} from '@/src/lib/pendingRequestHelpers';
 import {
   getProfileOnboardingCache,
   setProfileOnboardingCache,
@@ -36,7 +39,11 @@ function findProfileDocuments(documents: DocumentItem[]) {
   };
 }
 
-function buildOnboardingState(activePhoto?: DocumentItem, activeId?: DocumentItem, pendingId?: DocumentItem): OnboardingState {
+function buildOnboardingState(
+  activePhoto?: DocumentItem,
+  activeId?: DocumentItem,
+  pendingId?: DocumentItem
+): OnboardingState {
   return {
     hasIdentification: !!(pendingId || activeId),
     hasPhoto: !!activePhoto,

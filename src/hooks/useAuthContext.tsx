@@ -37,6 +37,14 @@ const PUBLIC_AUTH_ROUTES = [
   '/auth/data-protection-policy',
 ];
 
+/** Prefetch document metadata + profile photo without blocking navigation. */
+function prefetchProfileDocuments(user: User) {
+  const userId = user.user_id || user.id;
+  if (!userId) return;
+
+  void useProfileDocumentsStore.getState().syncDocuments(userId);
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isReady, setIsReady] = useState(false);
   const [resetKey, setResetKey] = useState(0);
@@ -86,6 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = async (userData: User) => {
     useUserStore.setState({ ...userData });
     setIsReady(true);
+    prefetchProfileDocuments(userData);
   };
 
   const signOut = async () => {
@@ -106,6 +115,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           useUserStore.setState({ ...myProfile });
           useAuthStore.setState({ access_token: token, role: myProfile.role });
           setIsReady(true);
+          prefetchProfileDocuments(myProfile);
           setTimeout(() => {
             routeForUser(myProfile);
           }, 50);
@@ -156,6 +166,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               useUserStore.setState({ ...myProfile });
               useAuthStore.setState({ access_token: localData.access_token, role: myProfile.role });
               setIsReady(true);
+              prefetchProfileDocuments(myProfile);
               try {
                 setTimeout(() => {
                   routeForUser(myProfile);

@@ -75,7 +75,7 @@ const AccessLogCard = ({
   entry: SecurityHistoryEntry;
   onPress: () => void;
 }) => (
-  <Pressable onPress={onPress} className="rounded-[8px] bg-white px-4 py-4 flex-col ">
+  <Pressable onPress={onPress} className="rounded-[8px] bg-white p-4 flex-col ">
     <View className=" flex-row items-start justify-between  mb-2">
       <Text className=" font-inter-regular text-[11px] text-[#6C6C6C] ">
         {formatDateWithOrdinal(parseLogDate(entry.timestamp))}
@@ -230,7 +230,7 @@ export default function AccessLogScreen() {
         ) : (
           <ScrollView
             style={{ flex: 1 }}
-            contentContainerStyle={{ flexGrow: 0, paddingBottom: 40, gap: 35 }}
+            contentContainerStyle={{ flexGrow: 0, paddingBottom: 40, gap: 30 }}
             showsVerticalScrollIndicator={false}
           >
             {error ? (

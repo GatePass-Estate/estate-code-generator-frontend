@@ -42,7 +42,11 @@ import {
 import { formatDateWithOrdinal } from '@/src/lib/helpers';
 import { useProfilePendingFields } from '@/src/hooks/useProfilePendingFields';
 import { ProfileFieldKey } from '@/src/lib/profilePendingFields';
-import { createIdentificationPendingRequest, DEFAULT_PENDING_ID_LABEL, downloadFile } from '@/src/lib/pendingRequestHelpers';
+import {
+  createIdentificationPendingRequest,
+  DEFAULT_PENDING_ID_LABEL,
+  downloadFile,
+} from '@/src/lib/pendingRequestHelpers';
 import { getFilenameFromUri } from '@/src/lib/userDocumentHelpers';
 import {
   getProfileOnboardingStep,
@@ -55,7 +59,10 @@ function formatAccessCode(code: string) {
   return code.replace(/\s+/g, '').toUpperCase();
 }
 
-const ONBOARDING_COPY: Record<Exclude<ProfileOnboardingStep, null>, { title: string; description: string }> = {
+const ONBOARDING_COPY: Record<
+  Exclude<ProfileOnboardingStep, null>,
+  { title: string; description: string }
+> = {
   id: {
     title: 'Verify Your ID',
     description: 'Please upload your government issued ID to generate your access code.',
@@ -209,23 +216,25 @@ export default function ProfileScreen() {
         await markOnboardingStep(user_id, { hasPhoto: true });
       }
 
-      try {
-        const photoUri = await getMyDocumentViewUri('profile_picture', result.content_type);
-        setProfilePhotoUri(photoUri);
-        useProfileDocumentsStore.setState({
-          photoDocumentId: result.document_id,
-          lastSyncedAt: Date.now(),
-        });
-      } catch {
-        // Keep the local picker URI if the authenticated view fetch fails.
-      }
-
+      useProfileDocumentsStore.setState({
+        photoDocumentId: result.document_id,
+        lastSyncedAt: Date.now(),
+      });
       setShowPhotoSheet(false);
+      setUploadingPhoto(false);
+
+      // Refresh authenticated preview in the background; local URI is already shown.
+      void getMyDocumentViewUri('profile_picture', result.content_type)
+        .then((photoUri) => {
+          setProfilePhotoUri(photoUri);
+        })
+        .catch(() => {
+          // Keep the local picker URI if the authenticated view fetch fails.
+        });
     } catch (error: any) {
       setProfilePhotoUri(null);
-      Alert.alert('Upload failed', error?.message?.trim() || 'Could not upload profile photo.');
-    } finally {
       setUploadingPhoto(false);
+      Alert.alert('Upload failed', error?.message?.trim() || 'Could not upload profile photo.');
     }
   };
 
@@ -247,21 +256,16 @@ export default function ProfileScreen() {
         await markOnboardingStep(user_id, { hasIdentification: true });
       }
 
-      if (result.document_status === 'pending') {
-        let pendingUri: string | null = uri;
-        if (result.document_id) {
-          try {
-            pendingUri = await getPendingDocumentViewUri(result.document_id, result.content_type);
-          } catch {
-            // Local picker URI is enough until preview loads later.
-          }
-        }
+      const requestId =
+        result.edit_request_id ?? `local-identification-${result.document_id}`;
+      const fileName = getFilenameFromUri(uri, 'Uploaded ID');
 
+      if (result.document_status === 'pending') {
         setIdentificationPendingRequest(
           createIdentificationPendingRequest({
-            requestId: result.edit_request_id ?? `local-identification-${result.document_id}`,
-            newFileName: getFilenameFromUri(uri, 'Uploaded ID'),
-            newFileUri: pendingUri,
+            requestId,
+            newFileName: fileName,
+            newFileUri: uri,
             currentFileUri: identificationUri,
             currentFileName: identificationUri ? 'Current ID' : DEFAULT_PENDING_ID_LABEL,
           })
@@ -271,15 +275,7 @@ export default function ProfileScreen() {
           lastSyncedAt: Date.now(),
         });
       } else {
-        let activeUri: string = uri;
-        if (result.view_url) {
-          try {
-            activeUri = await getMyDocumentViewUri('id_card', result.content_type);
-          } catch {
-            // Keep local picker URI if view fetch fails.
-          }
-        }
-        setIdentificationUri(activeUri);
+        setIdentificationUri(uri);
         setIdentificationPendingRequest(null);
         useProfileDocumentsStore.setState({
           activeIdDocumentId: result.document_id,
@@ -289,10 +285,36 @@ export default function ProfileScreen() {
       }
 
       setShowIdentificationSheet(false);
-    } catch (error: any) {
-      Alert.alert('Upload failed', error?.message?.trim() || 'Could not upload identification.');
-    } finally {
       setUploadingIdentification(false);
+
+      // Refresh authenticated preview in the background; local URI is already shown.
+      if (result.document_status === 'pending' && result.document_id) {
+        void getPendingDocumentViewUri(result.document_id, result.content_type)
+          .then((pendingUri) => {
+            const current = useProfileDocumentsStore.getState().identificationPendingRequest;
+            if (current?.requestId === requestId) {
+              setIdentificationPendingRequest({
+                ...current,
+                newFileUri: pendingUri,
+                newFileName: getFilenameFromUri(pendingUri, fileName),
+              });
+            }
+          })
+          .catch(() => {
+            // Local picker URI is enough until preview loads later.
+          });
+      } else if (result.document_status !== 'pending') {
+        void getMyDocumentViewUri('id_card', result.content_type)
+          .then((activeUri) => {
+            setIdentificationUri(activeUri);
+          })
+          .catch(() => {
+            // Keep local picker URI if view fetch fails.
+          });
+      }
+    } catch (error: any) {
+      setUploadingIdentification(false);
+      Alert.alert('Upload failed', error?.message?.trim() || 'Could not upload identification.');
     }
   };
 
@@ -380,7 +402,7 @@ export default function ProfileScreen() {
   const identificationDisplayValue = identificationPendingRequest
     ? identificationPendingRequest.newFileName || 'Uploaded'
     : identificationUri
-      ? 'Uploaded'
+      ? 'No Preview'
       : 'Passport or ID card only';
 
   const handleOnboardingUpload = () => {

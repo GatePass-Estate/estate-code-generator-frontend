@@ -9,6 +9,7 @@ export type RequestItem = {
   new_value: string | null;
   reviewed_by: string | null;
   updated_at: string;
+  last_reminded_at?: string | null;
   is_deleted: boolean;
 };
 
