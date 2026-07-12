@@ -124,7 +124,12 @@ export default function MoreMenuScreen({
         <MaterialIcons name="keyboard-arrow-left" size={24} color="#113E55" />
       </Pressable>
 
-      <ScreenHeader containerClassName="mt-11" titleClassName='text-[21px] font-ubuntu-semibold text-[#113E55]'  title={title} subtitle={subtitle || undefined} />
+      <ScreenHeader
+        containerClassName="mt-11"
+        titleClassName="text-[21px] font-ubuntu-semibold text-[#113E55]"
+        title={title}
+        subtitle={subtitle || undefined}
+      />
 
       <ScrollView
         contentContainerStyle={{
@@ -203,7 +208,6 @@ export default function MoreMenuScreen({
                 onPress={() =>
                   Alert.alert('Coming soon', 'Ratings and feedback is not available yet.')
                 }
-           
               />
             </View>
           </View>
@@ -225,25 +229,21 @@ export default function MoreMenuScreen({
               />
             </View>
           </View>
-
-        
         </View>
         <Pressable
-            onPress={confirmDelete}
-            disabled={deleting}
-            className="flex-row items-center gap-4 rounded-[8px] border border-[#E30404] bg-white px-4 py-[18px] mt-6"
-          >
-            {deleting ? (
-              <ActivityIndicator color="#ED0808" />
-            ) : (
-              <>
-                <DeleteAccountIcon />
-                <Text className="text-[13px] font-inter-regular text-[#E30404]">
-                  Delete Account
-                </Text>
-              </>
-            )}
-          </Pressable>
+          onPress={confirmDelete}
+          disabled={deleting}
+          className="flex-row items-center gap-4 rounded-[8px] border border-[#E30404] bg-white px-4 py-[18px] mt-6"
+        >
+          {deleting ? (
+            <ActivityIndicator color="#ED0808" />
+          ) : (
+            <>
+              <DeleteAccountIcon />
+              <Text className="text-[13px] font-inter-regular text-[#E30404]">Delete Account</Text>
+            </>
+          )}
+        </Pressable>
       </ScrollView>
     </SafeAreaView>
   );

@@ -256,8 +256,7 @@ export default function ProfileScreen() {
         await markOnboardingStep(user_id, { hasIdentification: true });
       }
 
-      const requestId =
-        result.edit_request_id ?? `local-identification-${result.document_id}`;
+      const requestId = result.edit_request_id ?? `local-identification-${result.document_id}`;
       const fileName = getFilenameFromUri(uri, 'Uploaded ID');
 
       if (result.document_status === 'pending') {
