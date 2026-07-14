@@ -206,6 +206,7 @@ export default function ProfileScreen() {
   };
 
   const handlePhotoSelected = async (uri: string) => {
+    const previousPhotoUri = useProfileDocumentsStore.getState().profilePhotoUri;
     setUploadingPhoto(true);
     setProfilePhotoUri(uri);
 
@@ -232,7 +233,7 @@ export default function ProfileScreen() {
           // Keep the local picker URI if the authenticated view fetch fails.
         });
     } catch (error: any) {
-      setProfilePhotoUri(null);
+      setProfilePhotoUri(previousPhotoUri);
       setUploadingPhoto(false);
       Alert.alert('Upload failed', error?.message?.trim() || 'Could not upload profile photo.');
     }
@@ -510,11 +511,11 @@ export default function ProfileScreen() {
                       hitSlop={8}
                       className="-mt-2"
                     >
-                      <View className="h-4 w-4 items-center justify-center rounded-full bg-[#E0FFFC80]">
+                      <View className="h-8 w-8 items-center justify-center rounded-full bg-[#E0FFFC80]">
                         {codeVisible ? (
-                          <EyeIcon width={9} height={9} />
+                          <EyeIcon width={18} height={18} />
                         ) : (
-                          <HiddenEyeIcon width={9} height={9} />
+                          <HiddenEyeIcon width={18} height={18} />
                         )}
                       </View>
                     </Pressable>

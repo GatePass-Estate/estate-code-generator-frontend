@@ -66,13 +66,13 @@ function ValueRow({
   value: string;
 }) {
   return (
-    <View className="gap-2">
-      <Text className="ml-[13px] text-[10px] font-ubuntu-regular text-[#6C6C6C]">
+    <View className="gap-[5px]">
+      <Text className="ml-[13px] text-sm font-inter-light text-[#6C6C6C]">
         {sectionLabel}
       </Text>
       <View className="flex-row items-center justify-between rounded-[16px] bg-white px-4 py-3">
-        <Text className="text-xs font-ubuntu-bold text-[#6C6C6C]">{label}</Text>
-        <Text className="ml-3 flex-1 text-right text-xs font-ubuntu-light text-[#6C6C6C]">
+        <Text className="text-sm font-inter-medium text-[#6C6C6C]">{label}</Text>
+        <Text className=" flex-1 text-right text-sm font-inter-light text-[#6C6C6C] capitalize">
           {value}
         </Text>
       </View>
@@ -90,13 +90,13 @@ function FileRow({
   onDownload: () => void;
 }) {
   return (
-    <View className="gap-2">
-      <Text className="ml-[13px] text-[10px] font-ubuntu-regular text-[#6C6C6C]">
+    <View className="gap-[5px]">
+      <Text className="ml-[13px] text-sm font-inter-light text-[#6C6C6C]">
         {sectionLabel}
       </Text>
       <View className="flex-row items-center justify-between rounded-[16px] bg-white px-4 py-3">
         <Text
-          className="mr-3 flex-1 text-xs italic text-[#6C6C6C]"
+          className=" flex-1 text-xs italic text-[#6C6C6C]"
           numberOfLines={1}
           ellipsizeMode="middle"
         >
@@ -104,10 +104,10 @@ function FileRow({
         </Text>
         <Pressable
           onPress={onDownload}
-          className="flex-row items-center gap-1 rounded-full bg-[#E5F6FF] px-[24px] py-[15px]"
+          className="flex-row items-center gap-1 rounded-full bg-[#E5F6FF] px-6 py-[9px]"
         >
-          <Text className="text-[10px] font-roboto-regular text-[#113E55]">Download</Text>
-          <FileDocumentIcon width={8} height={8} />
+          <Text className="text-[11px] font-inter-regular text-[#113E55]">Download</Text>
+          
         </Pressable>
       </View>
     </View>
@@ -220,11 +220,11 @@ export default function PendingRequestSheet({
               <View className="h-[7px] w-[134px] rounded-full bg-[#9B9797]" />
             </View>
 
-            <Text className="px-5 text-lg font-ubuntu-semibold text-[#113E55]">
+            <Text className="px-5 text-[22px] font-ubuntu-semibold text-[#113E55]">
               {SHEET_TITLES[request.kind]}
             </Text>
 
-            <View className="mt-8 gap-6 px-5">
+            <View className="mt-7 gap-4 px-5">
               {isFileRequest ? (
                 <>
                   <FileRow

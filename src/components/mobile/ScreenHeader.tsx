@@ -22,7 +22,7 @@ export default function ScreenHeader({
         {title}
       </Text>
       {subtitle ? (
-        <Text className={cn(' text-sm font-inter-light text-[#6C6C6C]', subtitleClassName)}>
+        <Text className={cn('text-sm font-inter-light text-[#6C6C6C]', subtitleClassName)}>
           {subtitle}
         </Text>
       ) : null}

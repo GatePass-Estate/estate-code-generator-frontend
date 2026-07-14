@@ -95,6 +95,8 @@ export default function IdentificationSheet({
 
   const panGesture = Gesture.Pan()
     .enabled(!uploading)
+    .activeOffsetY(8)
+    .failOffsetX([-20, 20])
     .onBegin(() => {
       dragStartY.value = translateY.value;
     })
@@ -174,67 +176,67 @@ export default function IdentificationSheet({
           />
         </Animated.View>
 
-        <GestureDetector gesture={panGesture}>
-          <Animated.View
-            style={[
-              styles.sheet,
-              { height: SHEET_HEIGHT, paddingBottom: Math.max(insets.bottom, 24) },
-              sheetAnimatedStyle,
-            ]}
-          >
+        <Animated.View
+          style={[
+            styles.sheet,
+            { height: SHEET_HEIGHT, paddingBottom: Math.max(insets.bottom, 24) },
+            sheetAnimatedStyle,
+          ]}
+        >
+          <GestureDetector gesture={panGesture}>
             <View className="items-center pb-[65px] pt-[13px]">
               <View className="h-[7px] w-[134px] rounded-full bg-[#9B9797]" />
             </View>
+          </GestureDetector>
 
-            <View className="mb-[50px] items-center">
-              <View
-                className="h-[120px] w-[120px] items-center justify-center"
-                style={{ position: 'relative' }}
-              >
-                {identificationUri ? (
-                  <View className="h-[120px] w-[120px] overflow-hidden rounded-full bg-[#E8F0EF]">
-                    <Image
-                      source={{ uri: identificationUri }}
-                      className="h-full w-full"
-                      resizeMode="cover"
-                    />
-                  </View>
-                ) : (
+          <View className="mb-[50px] items-center">
+            <View
+              className="h-[120px] w-[120px] items-center justify-center"
+              style={{ position: 'relative' }}
+            >
+              {identificationUri ? (
+                <View className="h-[120px] w-[120px] overflow-hidden rounded-full bg-[#E8F0EF]">
                   <Image
-                    source={uploadIdIcon}
-                    style={{ width: 86, height: 86 }}
-                    resizeMode="contain"
+                    source={{ uri: identificationUri }}
+                    className="h-full w-full"
+                    resizeMode="cover"
                   />
-                )}
+                </View>
+              ) : (
+                <Image
+                  source={uploadIdIcon}
+                  style={{ width: 86, height: 86 }}
+                  resizeMode="contain"
+                />
+              )}
 
-                {uploading ? (
-                  <View
-                    pointerEvents="none"
-                    style={[
-                      StyleSheet.absoluteFillObject,
-                      { alignItems: 'center', justifyContent: 'center' },
-                    ]}
-                  >
-                    <ActivityIndicator color="#113E55" size="large" />
-                  </View>
-                ) : null}
-              </View>
+              {uploading ? (
+                <View
+                  pointerEvents="none"
+                  style={[
+                    StyleSheet.absoluteFillObject,
+                    { alignItems: 'center', justifyContent: 'center' },
+                  ]}
+                >
+                  <ActivityIndicator color="#113E55" size="large" />
+                </View>
+              ) : null}
             </View>
+          </View>
 
-            <View className="gap-4 px-5">
-              <IdentificationOptionRow
-                label="Choose from Document"
-                onPress={handleChooseFromDocument}
-                disabled={uploading}
-              />
-              <IdentificationOptionRow
-                label="Take a Photo"
-                onPress={handleTakePhoto}
-                disabled={uploading}
-              />
-            </View>
-          </Animated.View>
-        </GestureDetector>
+          <View className="gap-4 px-5">
+            <IdentificationOptionRow
+              label="Choose from Document"
+              onPress={handleChooseFromDocument}
+              disabled={uploading}
+            />
+            <IdentificationOptionRow
+              label="Take a Photo"
+              onPress={handleTakePhoto}
+              disabled={uploading}
+            />
+          </View>
+        </Animated.View>
       </GestureHandlerRootView>
     </Modal>
   );

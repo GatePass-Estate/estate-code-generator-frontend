@@ -226,6 +226,17 @@ export function NavigateNextIcon({ color = '#113E55', ...props }: MenuIconProps)
   );
 }
 
+export function ChevronRightIcon({ color = '#113E55', ...props }: MenuIconProps) {
+  return (
+    <Svg width={7} height={11} viewBox="0 0 7 11" fill="none" {...props}>
+      <Path
+        d="M4.6 5.308L0 0.708L0.707999 0L6.016 5.308L0.707999 10.616L0 9.908L4.6 5.308Z"
+        fill={color}
+      />
+    </Svg>
+  );
+}
+
 export function CloseCircleIcon({ color = '#F6F7F7', ...props }: MenuIconProps) {
   return (
     <Svg width={32} height={32} viewBox="0 0 32 32" fill="none" {...props}>

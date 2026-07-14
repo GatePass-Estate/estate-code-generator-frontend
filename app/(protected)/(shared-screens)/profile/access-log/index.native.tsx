@@ -47,7 +47,7 @@ export default function AccessLogScreen() {
         <MaterialIcons name="keyboard-arrow-left" size={24} color="#113E55" />
       </Pressable>
 
-      <ScreenHeader title="Access Log" subtitle="View your access code history." />
+      <ScreenHeader subtitleClassName='text-[#0A1F29] font-inter-light' title="Access Log" subtitle="View your access code history." />
 
       {loading ? (
         <View className="flex-1 items-center justify-center">
@@ -57,7 +57,7 @@ export default function AccessLogScreen() {
         <ScrollView
           contentContainerStyle={{
             paddingBottom: 40,
-            paddingTop: 21,
+            paddingTop: 32,
             flexGrow: logs.length ? 0 : 1,
           }}
           showsVerticalScrollIndicator={false}
@@ -69,7 +69,7 @@ export default function AccessLogScreen() {
               No access logs yet.
             </Text>
           ) : (
-            <View className="gap-3">
+            <View className="gap-[9px]">
               {logs.map((log) => (
                 <AccessLogCard
                   key={log.id}

@@ -92,6 +92,8 @@ export default function ProfilePhotoSheet({
 
   const panGesture = Gesture.Pan()
     .enabled(!uploading)
+    .activeOffsetY(8)
+    .failOffsetX([-20, 20])
     .onBegin(() => {
       dragStartY.value = translateY.value;
     })
@@ -173,55 +175,55 @@ export default function ProfilePhotoSheet({
           />
         </Animated.View>
 
-        <GestureDetector gesture={panGesture}>
-          <Animated.View
-            style={[
-              styles.sheet,
-              { height: SHEET_HEIGHT, paddingBottom: Math.max(insets.bottom, 24) },
-              sheetAnimatedStyle,
-            ]}
-          >
+        <Animated.View
+          style={[
+            styles.sheet,
+            { height: SHEET_HEIGHT, paddingBottom: Math.max(insets.bottom, 24) },
+            sheetAnimatedStyle,
+          ]}
+        >
+          <GestureDetector gesture={panGesture}>
             <View className="items-center pb-[65px] pt-[13px]">
               <View className="h-[7px] w-[134px] rounded-full bg-[#9B9797]" />
             </View>
+          </GestureDetector>
 
-            <View className="mb-[50px] items-center">
-              <View
-                className="h-[120px] w-[120px] overflow-hidden rounded-full bg-[#E8F0EF]"
-                style={{ position: 'relative' }}
-              >
-                {photoUri ? (
-                  <Image source={{ uri: photoUri }} className="h-full w-full" resizeMode="cover" />
-                ) : (
-                  <View className="h-full w-full items-center justify-center bg-[#113E55]">
-                    <ProfileAvatar width={120} height={120} />
-                  </View>
-                )}
+          <View className="mb-[50px] items-center">
+            <View
+              className="h-[120px] w-[120px] overflow-hidden rounded-full bg-[#E8F0EF]"
+              style={{ position: 'relative' }}
+            >
+              {photoUri ? (
+                <Image source={{ uri: photoUri }} className="h-full w-full" resizeMode="cover" />
+              ) : (
+                <View className="h-full w-full items-center justify-center bg-[#113E55]">
+                  <ProfileAvatar width={120} height={120} />
+                </View>
+              )}
 
-                {uploading ? (
-                  <View
-                    pointerEvents="none"
-                    style={[
-                      StyleSheet.absoluteFillObject,
-                      { alignItems: 'center', justifyContent: 'center' },
-                    ]}
-                  >
-                    <ActivityIndicator color="#113E55" size="large" />
-                  </View>
-                ) : null}
-              </View>
+              {uploading ? (
+                <View
+                  pointerEvents="none"
+                  style={[
+                    StyleSheet.absoluteFillObject,
+                    { alignItems: 'center', justifyContent: 'center' },
+                  ]}
+                >
+                  <ActivityIndicator color="#113E55" size="large" />
+                </View>
+              ) : null}
             </View>
+          </View>
 
-            <View className="gap-4 px-5">
-              <PhotoOptionRow
-                label="Choose from Photos"
-                onPress={handleChooseFromPhotos}
-                disabled={uploading}
-              />
-              <PhotoOptionRow label="Take a Photo" onPress={handleTakePhoto} disabled={uploading} />
-            </View>
-          </Animated.View>
-        </GestureDetector>
+          <View className="gap-4 px-5">
+            <PhotoOptionRow
+              label="Choose from Photos"
+              onPress={handleChooseFromPhotos}
+              disabled={uploading}
+            />
+            <PhotoOptionRow label="Take a Photo" onPress={handleTakePhoto} disabled={uploading} />
+          </View>
+        </Animated.View>
       </GestureHandlerRootView>
     </Modal>
   );

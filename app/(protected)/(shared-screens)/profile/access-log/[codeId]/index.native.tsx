@@ -38,10 +38,18 @@ type TimelineEvent = {
 const TIMELINE_DOT_SIZE = 28;
 const TIMELINE_INNER_DOT_SIZE = 20;
 const TIMELINE_DASH_UNIT = 2.8 + 2.8;
-const TIMELINE_LINE_BETWEEN = TIMELINE_DASH_UNIT * 6;
+const TIMELINE_LINE_BETWEEN = TIMELINE_DASH_UNIT * 5;
 const TIMELINE_LAST_OVERFLOW = TIMELINE_DASH_UNIT * 6;
 
-const TimelineItem = ({ event, lineHeight }: { event: TimelineEvent; lineHeight: number }) => (
+const TimelineItem = ({
+  event,
+  lineHeight,
+  showLine,
+}: {
+  event: TimelineEvent;
+  lineHeight: number;
+  showLine: boolean;
+}) => (
   <View className="flex-row" style={{ gap: 19 }}>
     <View
       style={{
@@ -70,12 +78,12 @@ const TimelineItem = ({ event, lineHeight }: { event: TimelineEvent; lineHeight:
           }}
         />
       </View>
-      <TimelineDashLine height={lineHeight} style={{ marginTop: 2 }} />
+      {showLine ? <TimelineDashLine height={lineHeight} style={{ marginTop: 2 }} /> : null}
     </View>
 
     <View>
-      <Text className="text-xs font-ubuntu-semibold text-[#0A1F29]">{event.title}</Text>
-      <Text className="mt-1 text-base font-ubuntu-regular text-[#6C6C6C] tracking-[-0.2px]">
+      <Text className="text-sm font-inter-medium text-[#0A1F29]">{event.title}</Text>
+      <Text className="mt-1 text-sm font-inter-light text-[#6C6C6C] tracking-[-0.2px]">
         {event.timestamp}
       </Text>
     </View>
@@ -200,34 +208,36 @@ export default function UsageLogScreen() {
           <MaterialIcons name="keyboard-arrow-left" size={24} color="#113E55" />
         </Pressable>
 
-        <ScreenHeader title="Usage log" subtitle="View the number of time access code was used" />
+        <ScreenHeader subtitleClassName='text-[#0A1F29] font-inter-light' title="Usage log" subtitle="View the number of time access code was used" />
       </View>
 
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingBottom: isCodeActive ? 120 : 40, paddingTop: 21 }}
+        contentContainerStyle={{ paddingBottom: isCodeActive ? 120 : 40, paddingTop: 31 }}
         showsVerticalScrollIndicator={false}
       >
         <View className="w-full pb-10">
           {timelineEvents.length === 0 ? (
             <Text className="text-center text-sm text-grey">No timeline events found.</Text>
           ) : (
-            timelineEvents.map((event, index) => (
-              <TimelineItem
-                key={event.id}
-                event={event}
-                lineHeight={
-                  index === timelineEvents.length - 1
-                    ? TIMELINE_LAST_OVERFLOW
-                    : TIMELINE_LINE_BETWEEN
-                }
-              />
-            ))
+            timelineEvents.map((event, index) => {
+              const isLast = index === timelineEvents.length - 1;
+              const endsWithExpired = isLast && event.isExpired;
+
+              return (
+                <TimelineItem
+                  key={event.id}
+                  event={event}
+                  showLine={!endsWithExpired}
+                  lineHeight={isLast ? TIMELINE_LAST_OVERFLOW : TIMELINE_LINE_BETWEEN}
+                />
+              );
+            })
           )}
         </View>
       </ScrollView>
 
-      {isCodeActive ? (
+      {!isCodeActive ? (
         <View className="absolute bottom-10 left-5 right-5 px-[9px]">
           <Pressable
             onPress={handleRegenerateCode}
