@@ -71,6 +71,12 @@
       "expo-font",
       "expo-web-browser",
       [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow GatePass to use your camera to scan access codes."
+        }
+      ],
+      [
         "expo-local-authentication",
         {
           "faceIDPermission": "Use Face ID to securely sign in to GatePass."
