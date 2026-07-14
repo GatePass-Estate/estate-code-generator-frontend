@@ -22,7 +22,6 @@
       "env": {
         "EXPO_PUBLIC_USER_SERVICE_API_URL": "https://api.gatepassng.com/user",
         "EXPO_PUBLIC_CODE_SERVICE_API_URL": "https://api.gatepassng.com/code",
-        "EXPO_PUBLIC_AUTH_STORAGE_KEY": "auth-key",
         "EXPO_PUBLIC_WIDTH_BREAKPOINT": "768"
       }
     }

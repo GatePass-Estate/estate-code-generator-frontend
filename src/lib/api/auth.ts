@@ -8,6 +8,8 @@ const queryKeys = {
   verifyEmailActivationToken: (token: string) => ['verify-email-activation-token', token],
 };
 
+const DEFAULT_LOGIN_ESTATE_ID = 'e7fb4d3b-6418-4729-9454-d34c7f069968';
+
 export async function loginUser(
   email: string,
   password: string,
@@ -18,7 +20,7 @@ export async function loginUser(
     const axiosRes = await api.post(`/auth/login`, {
       email,
       password,
-      ...(estate_id ? { estate_id } : {}),
+      estate_id: estate_id || DEFAULT_LOGIN_ESTATE_ID,
     });
     const data = axiosRes.data;
 
