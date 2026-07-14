@@ -26,7 +26,6 @@
         <action android:name="android.intent.action.VIEW"/>
         <category android:name="android.intent.category.DEFAULT"/>
         <category android:name="android.intent.category.BROWSABLE"/>
-        <data android:scheme="my-expo-app"/>
         <data android:scheme="gatepass"/>
       </intent-filter>
       <intent-filter android:autoVerify="true" data-generated="true">
