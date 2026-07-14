@@ -174,7 +174,7 @@ export default function AccessLogScreen() {
 
       <View style={{ flex: 1, paddingTop: 24 }}>
         <View
-          className="self-center flex-row mb-[37px]"
+          className="self-center flex-row mb-[17px]"
           style={{
             borderRadius: 999,
             backgroundColor: '#EFF1F1',
@@ -230,7 +230,7 @@ export default function AccessLogScreen() {
         ) : (
           <ScrollView
             style={{ flex: 1 }}
-            contentContainerStyle={{ flexGrow: 0, paddingBottom: 40, gap: 30 }}
+            contentContainerStyle={{ flexGrow: 0, paddingTop: 20, paddingBottom: 40, gap: 30 }}
             showsVerticalScrollIndicator={false}
           >
             {error ? (
