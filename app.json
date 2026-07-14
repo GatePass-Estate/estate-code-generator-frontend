@@ -51,7 +51,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.gatepassng.gms",
-      "associatedDomains": ["applinks:app.gatepassng.com"],
+      "associatedDomains": ["applinks:app.gatepassng.com", "applinks:app.gatepassng.com"],
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSFaceIDUsageDescription": "Use Face ID to securely sign in to GatePass.",
@@ -70,6 +70,12 @@
       "expo-router",
       "expo-font",
       "expo-web-browser",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Use Face ID to securely sign in to GatePass."
+        }
+      ],
       [
         "expo-splash-screen",
         {
