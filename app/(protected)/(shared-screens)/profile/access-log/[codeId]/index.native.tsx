@@ -208,7 +208,11 @@ export default function UsageLogScreen() {
           <MaterialIcons name="keyboard-arrow-left" size={24} color="#113E55" />
         </Pressable>
 
-        <ScreenHeader subtitleClassName='text-[#0A1F29] font-inter-light' title="Usage log" subtitle="View the number of time access code was used" />
+        <ScreenHeader
+          subtitleClassName="text-[#0A1F29] font-inter-light"
+          title="Usage log"
+          subtitle="View the number of time access code was used"
+        />
       </View>
 
       <ScrollView

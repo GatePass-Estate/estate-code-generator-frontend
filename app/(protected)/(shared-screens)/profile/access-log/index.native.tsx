@@ -47,7 +47,11 @@ export default function AccessLogScreen() {
         <MaterialIcons name="keyboard-arrow-left" size={24} color="#113E55" />
       </Pressable>
 
-      <ScreenHeader subtitleClassName='text-[#0A1F29] font-inter-light' title="Access Log" subtitle="View your access code history." />
+      <ScreenHeader
+        subtitleClassName="text-[#0A1F29] font-inter-light"
+        title="Access Log"
+        subtitle="View your access code history."
+      />
 
       {loading ? (
         <View className="flex-1 items-center justify-center">

@@ -67,9 +67,7 @@ function ValueRow({
 }) {
   return (
     <View className="gap-[5px]">
-      <Text className="ml-[13px] text-sm font-inter-light text-[#6C6C6C]">
-        {sectionLabel}
-      </Text>
+      <Text className="ml-[13px] text-sm font-inter-light text-[#6C6C6C]">{sectionLabel}</Text>
       <View className="flex-row items-center justify-between rounded-[16px] bg-white px-4 py-3">
         <Text className="text-sm font-inter-medium text-[#6C6C6C]">{label}</Text>
         <Text className=" flex-1 text-right text-sm font-inter-light text-[#6C6C6C] capitalize">
@@ -91,9 +89,7 @@ function FileRow({
 }) {
   return (
     <View className="gap-[5px]">
-      <Text className="ml-[13px] text-sm font-inter-light text-[#6C6C6C]">
-        {sectionLabel}
-      </Text>
+      <Text className="ml-[13px] text-sm font-inter-light text-[#6C6C6C]">{sectionLabel}</Text>
       <View className="flex-row items-center justify-between rounded-[16px] bg-white px-4 py-3">
         <Text
           className=" flex-1 text-xs italic text-[#6C6C6C]"
@@ -107,7 +103,6 @@ function FileRow({
           className="flex-row items-center gap-1 rounded-full bg-[#E5F6FF] px-6 py-[9px]"
         >
           <Text className="text-[11px] font-inter-regular text-[#113E55]">Download</Text>
-          
         </Pressable>
       </View>
     </View>

@@ -39,9 +39,7 @@ export function AccessLogCard({ log, onPress }: AccessLogCardProps) {
       <View className="flex-col items-end justify-between pt-[23px]">
         <ChevronRightIcon />
 
-        <Text className="text-[9px] font-inter-medium text-[#6C6C6C]">
-          {log.usageCount} Usage
-        </Text>
+        <Text className="text-[9px] font-inter-medium text-[#6C6C6C]">{log.usageCount} Usage</Text>
       </View>
     </Pressable>
   );
