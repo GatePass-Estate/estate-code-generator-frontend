@@ -5,7 +5,6 @@
     <key>com.apple.developer.associated-domains</key>
     <array>
       <string>applinks:app.gatepassng.com</string>
-      <string>applinks:app.gatepassng.com</string>
     </array>
   </dict>
 </plist>

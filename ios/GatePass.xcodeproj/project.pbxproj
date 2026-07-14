@@ -8,11 +8,11 @@
 
 /* Begin PBXBuildFile section */
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
-		38CDA2FB42EE0F542A9EE3A3 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9B2AD26FDEB34135DA6877C /* ExpoModulesProvider.swift */; };
+		3510E7623CE112696E4AF284 /* libPods-GatePass.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 3C5DA76F2D731F7CF2638850 /* libPods-GatePass.a */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
-		7B419B008349A0F19C63C922 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 204F8FCC69B1D238EE736C7E /* PrivacyInfo.xcprivacy */; };
-		969CCE595304C9618B29B271 /* libPods-GatePass.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F437255EF48ED2047462F31D /* libPods-GatePass.a */; };
+		482EF005D36311CADAC2185A /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C45187A60DF31526E6D228E /* ExpoModulesProvider.swift */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
+		E64D731AEB604658F9B5CC05 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 8832979823DC3F194477A4E8 /* PrivacyInfo.xcprivacy */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
 /* End PBXBuildFile section */
 
@@ -20,16 +20,16 @@
 		13B07F961A680F5B00A75B9A /* GatePass.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GatePass.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = GatePass/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = GatePass/Info.plist; sourceTree = "<group>"; };
-		204F8FCC69B1D238EE736C7E /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = GatePass/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
-		4C65997FEFDE0B5D68026F53 /* Pods-GatePass.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-GatePass.debug.xcconfig"; path = "Target Support Files/Pods-GatePass/Pods-GatePass.debug.xcconfig"; sourceTree = "<group>"; };
+		3C5DA76F2D731F7CF2638850 /* libPods-GatePass.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-GatePass.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		6BFB098579382E37CD31172F /* Pods-GatePass.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-GatePass.release.xcconfig"; path = "Target Support Files/Pods-GatePass/Pods-GatePass.release.xcconfig"; sourceTree = "<group>"; };
+		7A5C46A66BB8F291D60A1BB8 /* Pods-GatePass.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-GatePass.debug.xcconfig"; path = "Target Support Files/Pods-GatePass/Pods-GatePass.debug.xcconfig"; sourceTree = "<group>"; };
+		8832979823DC3F194477A4E8 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = GatePass/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		8C45187A60DF31526E6D228E /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-GatePass/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = GatePass/SplashScreen.storyboard; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
-		D11183A53278E352130FDFB0 /* Pods-GatePass.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-GatePass.release.xcconfig"; path = "Target Support Files/Pods-GatePass/Pods-GatePass.release.xcconfig"; sourceTree = "<group>"; };
-		E9B2AD26FDEB34135DA6877C /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-GatePass/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = GatePass/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* GatePass-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "GatePass-Bridging-Header.h"; path = "GatePass/GatePass-Bridging-Header.h"; sourceTree = "<group>"; };
-		F437255EF48ED2047462F31D /* libPods-GatePass.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-GatePass.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -37,7 +37,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				969CCE595304C9618B29B271 /* libPods-GatePass.a in Frameworks */,
+				3510E7623CE112696E4AF284 /* libPods-GatePass.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -53,36 +53,28 @@
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
-				204F8FCC69B1D238EE736C7E /* PrivacyInfo.xcprivacy */,
+				8832979823DC3F194477A4E8 /* PrivacyInfo.xcprivacy */,
 			);
 			name = GatePass;
+			sourceTree = "<group>";
+		};
+		1D8E774BF0D14B06DF3E4B10 /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				7A5C46A66BB8F291D60A1BB8 /* Pods-GatePass.debug.xcconfig */,
+				6BFB098579382E37CD31172F /* Pods-GatePass.release.xcconfig */,
+			);
+			name = Pods;
+			path = Pods;
 			sourceTree = "<group>";
 		};
 		2D16E6871FA4F8E400B85C8A /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				F437255EF48ED2047462F31D /* libPods-GatePass.a */,
+				3C5DA76F2D731F7CF2638850 /* libPods-GatePass.a */,
 			);
 			name = Frameworks;
-			sourceTree = "<group>";
-		};
-		4CFF9D9F688D02EBD855E999 /* Pods */ = {
-			isa = PBXGroup;
-			children = (
-				4C65997FEFDE0B5D68026F53 /* Pods-GatePass.debug.xcconfig */,
-				D11183A53278E352130FDFB0 /* Pods-GatePass.release.xcconfig */,
-			);
-			name = Pods;
-			path = Pods;
-			sourceTree = "<group>";
-		};
-		6E7DFD329069D5F90F960494 /* ExpoModulesProviders */ = {
-			isa = PBXGroup;
-			children = (
-				E2D3A02CD463F192428CD1E7 /* GatePass */,
-			);
-			name = ExpoModulesProviders;
 			sourceTree = "<group>";
 		};
 		832341AE1AAA6A7D00B99B32 /* Libraries */ = {
@@ -99,8 +91,8 @@
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
-				4CFF9D9F688D02EBD855E999 /* Pods */,
-				6E7DFD329069D5F90F960494 /* ExpoModulesProviders */,
+				1D8E774BF0D14B06DF3E4B10 /* Pods */,
+				ADE330F479D76D9BECF0D111 /* ExpoModulesProviders */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -115,6 +107,14 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		ADE330F479D76D9BECF0D111 /* ExpoModulesProviders */ = {
+			isa = PBXGroup;
+			children = (
+				CD21DF9606C39E08FFC555CE /* GatePass */,
+			);
+			name = ExpoModulesProviders;
+			sourceTree = "<group>";
+		};
 		BB2F792B24A3F905000567C9 /* Supporting */ = {
 			isa = PBXGroup;
 			children = (
@@ -124,10 +124,10 @@
 			path = GatePass/Supporting;
 			sourceTree = "<group>";
 		};
-		E2D3A02CD463F192428CD1E7 /* GatePass */ = {
+		CD21DF9606C39E08FFC555CE /* GatePass */ = {
 			isa = PBXGroup;
 			children = (
-				E9B2AD26FDEB34135DA6877C /* ExpoModulesProvider.swift */,
+				8C45187A60DF31526E6D228E /* ExpoModulesProvider.swift */,
 			);
 			name = GatePass;
 			sourceTree = "<group>";
@@ -140,13 +140,13 @@
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "GatePass" */;
 			buildPhases = (
 				08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */,
-				2F8B7801F591197DD16C5EC0 /* [Expo] Configure project */,
+				0C5914E2798A51A191AAF0ED /* [Expo] Configure project */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */,
-				BB1B67862F37AE0FFE21A251 /* [CP] Embed Pods Frameworks */,
+				B6FC3FE910018C9440D651E7 /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -196,7 +196,7 @@
 				BB2F792D24A3F905000567C9 /* Expo.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
-				7B419B008349A0F19C63C922 /* PrivacyInfo.xcprivacy in Resources */,
+				E64D731AEB604658F9B5CC05 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -242,7 +242,7 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		2F8B7801F591197DD16C5EC0 /* [Expo] Configure project */ = {
+		0C5914E2798A51A191AAF0ED /* [Expo] Configure project */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
@@ -346,7 +346,7 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-GatePass/Pods-GatePass-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		BB1B67862F37AE0FFE21A251 /* [CP] Embed Pods Frameworks */ = {
+		B6FC3FE910018C9440D651E7 /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -376,7 +376,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
-				38CDA2FB42EE0F542A9EE3A3 /* ExpoModulesProvider.swift in Sources */,
+				482EF005D36311CADAC2185A /* ExpoModulesProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -385,7 +385,7 @@
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 4C65997FEFDE0B5D68026F53 /* Pods-GatePass.debug.xcconfig */;
+			baseConfigurationReference = 7A5C46A66BB8F291D60A1BB8 /* Pods-GatePass.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
@@ -421,7 +421,7 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = D11183A53278E352130FDFB0 /* Pods-GatePass.release.xcconfig */;
+			baseConfigurationReference = 6BFB098579382E37CD31172F /* Pods-GatePass.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
