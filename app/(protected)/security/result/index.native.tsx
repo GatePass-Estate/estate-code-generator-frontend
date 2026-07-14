@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import ValidationBack from '@/src/assets/icons/validation-back.svg';
@@ -11,6 +11,8 @@ import ValidationProfileEllipse from '@/src/assets/icons/validation-profile-elli
 import ValidationResidentCodeFrame from '@/src/assets/icons/validation-resident-code-frame.svg';
 import ValidationResidentProfile from '@/src/assets/icons/validation-resident-profile.svg';
 import { sharedStyles } from '@/src/theme/styles';
+import { useSecurityResponsiveLayout } from '@/src/lib/securityResponsive';
+import { useAuthStore } from '@/src/lib/stores/authStore';
 
 const getParam = (value: string | string[] | undefined, fallback = 'N/A') => {
   const rawValue = Array.isArray(value) ? value[0] : value;
@@ -31,7 +33,9 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 export default function ValidationResult() {
   const params = useLocalSearchParams();
   const router = useRouter();
+  const securityLayout = useSecurityResponsiveLayout();
   const [pictureOpen, setPictureOpen] = useState(false);
+  const accessToken = useAuthStore((state) => state.access_token);
 
   const receiver = String(params.receiver || '');
   const isResidentCode = receiver === 'resident';
@@ -43,6 +47,13 @@ export default function ValidationResult() {
   const residentHousehold = getParam(params.resident_household);
   const residentEmail = getParam(params.resident_email);
   const residentPhone = getParam(params.resident_phone_number);
+  const residentProfilePictureUrl = getParam(params.resident_profile_picture_url, '');
+  const residentProfilePictureSource = residentProfilePictureUrl
+    ? {
+        uri: residentProfilePictureUrl,
+        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+      }
+    : null;
 
   const handleBack = () => {
     if (router.canGoBack()) {
@@ -56,106 +67,162 @@ export default function ValidationResult() {
   return (
     <SafeAreaView style={[sharedStyles.container, styles.container]}>
       <Stack.Screen options={{ headerShown: false }} />
-      <View style={styles.backButtonSlot}>
-        <View style={styles.backButtonSpacer} />
-        <Pressable
-          accessibilityLabel="Go back"
-          onPress={handleBack}
-          style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
-        >
-          <ValidationBack width={30} height={30} />
-        </Pressable>
-      </View>
-
-      <ScrollView
-        contentContainerStyle={[styles.scrollContent, !isResidentCode && styles.guestScrollContent]}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={[styles.profileEllipse, isResidentCode && styles.residentProfileEllipse]}>
-          {isResidentCode ? (
-            <ValidationResidentProfile width={50} height={50} />
-          ) : (
-            <>
-              <ValidationProfileEllipse width={50} height={50} style={styles.profileEllipseSvg} />
-              <ValidationProfileInitials width={30} height={29} style={styles.profileInitials} />
-            </>
-          )}
-          {isResidentCode ? (
+      <View style={securityLayout.frameStyle}>
+        <View style={securityLayout.canvasStyle}>
+          <View style={styles.backButtonSlot}>
+            <View style={styles.backButtonSpacer} />
             <Pressable
-              accessibilityLabel="Open resident picture"
-              onPress={() => setPictureOpen(true)}
-              style={styles.profileTapTarget}
-            />
-          ) : null}
-        </View>
-
-        <View style={[styles.codeCard, isResidentCode && styles.residentCodeCard]}>
-          {isResidentCode ? (
-            <ValidationResidentCodeFrame width={291} height={114} />
-          ) : (
-            <ValidationCodeFrame width={291} height={114} />
-          )}
-        </View>
-
-        {!isResidentCode ? (
-          <View style={styles.guestDetailsGroup}>
-            <View style={styles.guestDetailsCard}>
-              <View style={styles.sectionHeading}>
-                <View style={styles.sectionLine} />
-                <Text style={styles.guestDetailsTitle}>Guest Details</Text>
-                <View style={styles.sectionLine} />
-              </View>
-              <View style={styles.detailList}>
-                <DetailRow label="Full Name" value={guestName} />
-                <DetailRow label="Gender" value={guestGender} />
-                <DetailRow label="Relationship" value={relationship} />
-              </View>
-            </View>
+              accessibilityLabel="Go back"
+              onPress={handleBack}
+              style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
+            >
+              <ValidationBack width={30} height={30} />
+            </Pressable>
           </View>
-        ) : null}
 
-        <View style={[styles.residentDetailsGroup, isResidentCode && styles.residentOnlyGroup]}>
-          <View style={styles.residentDetailsCard}>
-            <View style={styles.sectionHeading}>
-              <View style={[styles.sectionLine, styles.residentSectionLine]} />
-              <Text style={styles.residentDetailsTitle}>Resident Details</Text>
-              <View style={[styles.sectionLine, styles.residentSectionLine]} />
+          <ScrollView
+            contentContainerStyle={[
+              styles.scrollContent,
+              !isResidentCode && styles.guestScrollContent,
+            ]}
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={[styles.profileEllipse, isResidentCode && styles.residentProfileEllipse]}>
+              {isResidentCode ? (
+                residentProfilePictureSource ? (
+                  <Image
+                    source={residentProfilePictureSource}
+                    style={styles.residentProfileImage}
+                  />
+                ) : (
+                  <ValidationResidentProfile width={50} height={50} />
+                )
+              ) : (
+                <>
+                  <ValidationProfileEllipse
+                    width={50}
+                    height={50}
+                    style={styles.profileEllipseSvg}
+                  />
+                  <ValidationProfileInitials
+                    width={30}
+                    height={29}
+                    style={styles.profileInitials}
+                  />
+                </>
+              )}
+              {isResidentCode ? (
+                <Pressable
+                  accessibilityLabel="Open resident picture"
+                  onPress={() => setPictureOpen(true)}
+                  style={styles.profileTapTarget}
+                />
+              ) : null}
             </View>
-            <View style={styles.residentDetailList}>
-              <DetailRow label="Full Name" value={residentName} />
-              <DetailRow label="Address" value={residentAddress} />
-              <DetailRow label="Household" value={residentHousehold} />
-              <DetailRow label="Phone" value={residentPhone} />
-              <DetailRow label="Email Address" value={residentEmail} />
+
+            <View style={[styles.codeCard, isResidentCode && styles.residentCodeCard]}>
+              {isResidentCode ? (
+                <ValidationResidentCodeFrame width={291} height={114} />
+              ) : (
+                <ValidationCodeFrame width={291} height={114} />
+              )}
             </View>
-          </View>
+
+            {!isResidentCode ? (
+              <View style={styles.guestDetailsGroup}>
+                <View style={styles.guestDetailsCard}>
+                  <View style={styles.sectionHeading}>
+                    <View style={styles.sectionLine} />
+                    <Text style={styles.guestDetailsTitle}>Guest Details</Text>
+                    <View style={styles.sectionLine} />
+                  </View>
+                  <View style={styles.detailList}>
+                    <DetailRow label="Full Name" value={guestName} />
+                    <DetailRow label="Gender" value={guestGender} />
+                    <DetailRow label="Relationship" value={relationship} />
+                  </View>
+                </View>
+              </View>
+            ) : null}
+
+            <View style={[styles.residentDetailsGroup, isResidentCode && styles.residentOnlyGroup]}>
+              <View style={styles.residentDetailsCard}>
+                <View style={styles.sectionHeading}>
+                  <View style={[styles.sectionLine, styles.residentSectionLine]} />
+                  <Text style={styles.residentDetailsTitle}>Resident Details</Text>
+                  <View style={[styles.sectionLine, styles.residentSectionLine]} />
+                </View>
+                <View style={styles.residentDetailList}>
+                  <DetailRow label="Full Name" value={residentName} />
+                  <DetailRow label="Address" value={residentAddress} />
+                  <DetailRow label="Household" value={residentHousehold} />
+                  <DetailRow label="Phone" value={residentPhone} />
+                  <DetailRow label="Email Address" value={residentEmail} />
+                </View>
+              </View>
+            </View>
+          </ScrollView>
         </View>
-      </ScrollView>
+      </View>
 
       {pictureOpen ? (
         <Modal
           visible
           transparent
           animationType="fade"
+          statusBarTranslucent
+          navigationBarTranslucent
           onRequestClose={() => setPictureOpen(false)}
         >
           <Pressable
             accessibilityLabel="Close expanded picture"
             onPress={() => setPictureOpen(false)}
-            style={styles.pictureOverlayBackdrop}
+            style={[styles.pictureOverlayBackdrop, { paddingTop: securityLayout.scaleValue(263) }]}
           >
-            <View style={styles.expandedPictureFrame}>
-              <ProfileExpandedOverlay width={287} height={287} />
+            <View
+              style={[
+                styles.expandedPictureFrame,
+                {
+                  height: securityLayout.scaleValue(287),
+                  width: securityLayout.scaleValue(287),
+                },
+              ]}
+            >
+              {residentProfilePictureSource ? (
+                <Image
+                  source={residentProfilePictureSource}
+                  style={[
+                    styles.expandedProfileImage,
+                    {
+                      borderRadius: securityLayout.scaleValue(143.5),
+                      height: securityLayout.scaleValue(287),
+                      width: securityLayout.scaleValue(287),
+                    },
+                  ]}
+                />
+              ) : (
+                <ProfileExpandedOverlay
+                  width={securityLayout.scaleValue(287)}
+                  height={securityLayout.scaleValue(287)}
+                />
+              )}
             </View>
 
-            <View style={styles.pictureCloseSpacer} />
+            <View style={{ height: securityLayout.scaleValue(47) }} />
 
             <Pressable
               accessibilityLabel="Close expanded picture"
               onPress={() => setPictureOpen(false)}
-              style={({ pressed }) => [styles.overlayCloseButton, pressed && styles.pressed]}
+              style={({ pressed }) => [
+                styles.overlayCloseButton,
+                { height: securityLayout.scaleValue(32), width: securityLayout.scaleValue(32) },
+                pressed && styles.pressed,
+              ]}
             >
-              <ProfileOverlayClose width={32} height={32} />
+              <ProfileOverlayClose
+                width={securityLayout.scaleValue(32)}
+                height={securityLayout.scaleValue(32)}
+              />
             </Pressable>
           </Pressable>
         </Modal>
@@ -222,7 +289,13 @@ const styles = StyleSheet.create({
     width: 30,
   },
   residentProfileEllipse: {
+    overflow: 'hidden',
     transform: [{ translateY: 3 }],
+  },
+  residentProfileImage: {
+    borderRadius: 25,
+    height: 50,
+    width: 50,
   },
   profileTapTarget: {
     bottom: 0,
@@ -391,7 +464,11 @@ const styles = StyleSheet.create({
     borderRadius: 10000,
     height: 287,
     justifyContent: 'center',
+    overflow: 'hidden',
     width: 287,
+  },
+  expandedProfileImage: {
+    resizeMode: 'cover',
   },
   pictureCloseSpacer: {
     height: 47,
