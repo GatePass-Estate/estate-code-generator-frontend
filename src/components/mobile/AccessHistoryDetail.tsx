@@ -190,10 +190,7 @@ export default function AccessHistoryDetail({
           </ScrollView>
 
           {showRegenerate ? (
-            <View
-              className="absolute bottom-[60px] left-5 right-5"
-            
-            >
+            <View className="absolute bottom-[60px] left-5 right-5">
               <Pressable
                 onPress={onRegenerate}
                 disabled={regenerating}

@@ -210,14 +210,11 @@ export default function PendingRequestSheet({
       const nextAt = formatNextRemindTime(result.next_remind_after);
       Alert.alert(
         'Admin notified',
-        nextAt
-          ? `${result.message}\n\nYou can remind again after ${nextAt}.`
-          : result.message
+        nextAt ? `${result.message}\n\nYou can remind again after ${nextAt}.` : result.message
       );
     } catch (error: any) {
       const nextAt = formatNextRemindTime(error?.nextRemindAfter);
-      const baseMessage =
-        error instanceof Error ? error.message.trim() : 'Could not remind admin';
+      const baseMessage = error instanceof Error ? error.message.trim() : 'Could not remind admin';
       Alert.alert(
         error?.status === 429 ? 'Please wait' : 'Remind failed',
         nextAt ? `${baseMessage}\n\nTry again after ${nextAt}.` : baseMessage

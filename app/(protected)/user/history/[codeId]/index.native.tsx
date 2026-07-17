@@ -105,8 +105,7 @@ export default function HistoryDetailScreen() {
         setEvents(
           [...history.items]
             .sort(
-              (a, b) =>
-                parseLogDate(a.visit_time).getTime() - parseLogDate(b.visit_time).getTime()
+              (a, b) => parseLogDate(a.visit_time).getTime() - parseLogDate(b.visit_time).getTime()
             )
             .map((item, index) => ({
               id: item.id || `visit-${index}`,

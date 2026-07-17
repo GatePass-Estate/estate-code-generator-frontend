@@ -229,7 +229,9 @@ export default function AccessLogDetailScreen() {
                 resizeMode="cover"
               />
             ) : (
-              <Text className="text-[40px] font-ubuntu-normal uppercase text-[#1B998B]">{initials}</Text>
+              <Text className="text-[40px] font-ubuntu-normal uppercase text-[#1B998B]">
+                {initials}
+              </Text>
             )}
           </View>
 

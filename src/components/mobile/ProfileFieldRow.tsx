@@ -34,19 +34,19 @@ export function ProfileFieldRow({
         </Text>
       </Pressable>
 
-     <View className='w-[30px] h-[30px] items-center justify-center'>
-     {showAction ? (
-        hasPendingRequest ? (
-          <Pressable onPress={onPendingPress} hitSlop={8}>
-            <EllipsisIcon width={20} height={20} />
-          </Pressable>
-        ) : (
-          <Pressable onPress={onEdit} hitSlop={8}>
-            <EditIcon width={30} height={30} />
-          </Pressable>
-        )
-      ) : null}
-     </View>
+      <View className="w-[30px] h-[30px] items-center justify-center">
+        {showAction ? (
+          hasPendingRequest ? (
+            <Pressable onPress={onPendingPress} hitSlop={8}>
+              <EllipsisIcon width={20} height={20} />
+            </Pressable>
+          ) : (
+            <Pressable onPress={onEdit} hitSlop={8}>
+              <EditIcon width={30} height={30} />
+            </Pressable>
+          )
+        ) : null}
+      </View>
     </View>
   );
 }

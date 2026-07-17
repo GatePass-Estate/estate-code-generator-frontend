@@ -85,8 +85,7 @@ const groupLogsByMonth = (logs: ResidentLogEntry[]) => {
       return {
         label,
         items: items.sort(
-          (a, b) =>
-            parseLogDate(b.access_time).getTime() - parseLogDate(a.access_time).getTime()
+          (a, b) => parseLogDate(b.access_time).getTime() - parseLogDate(a.access_time).getTime()
         ),
       };
     });
@@ -221,13 +220,7 @@ function PastHistoryCard({
   );
 }
 
-function UpcomingHistoryCard({
-  entry,
-  onPress,
-}: {
-  entry: Codes;
-  onPress: () => void;
-}) {
+function UpcomingHistoryCard({ entry, onPress }: { entry: Codes; onPress: () => void }) {
   const scheduleDate = entry.validity_period?.start || entry.valid_until;
 
   return (
@@ -309,8 +302,7 @@ export default function HistoryTabScreen() {
       uniqueLogs
         .filter((entry) => entry.code_deleted)
         .sort(
-          (a, b) =>
-            parseLogDate(b.access_time).getTime() - parseLogDate(a.access_time).getTime()
+          (a, b) => parseLogDate(b.access_time).getTime() - parseLogDate(a.access_time).getTime()
         ),
     [uniqueLogs]
   );
@@ -335,9 +327,7 @@ export default function HistoryTabScreen() {
       try {
         await generateCode({ user_id, estate_id: estate_id ?? entry.estate_id ?? '' }, 'resident');
         await fetchHistory();
-        Alert.alert('Code regenerated', 'Your new access code is ready.', [
-          { text: 'OK' },
-        ]);
+        Alert.alert('Code regenerated', 'Your new access code is ready.', [{ text: 'OK' }]);
       } catch {
         Alert.alert('Could not regenerate code', 'Please try again later.');
       } finally {
