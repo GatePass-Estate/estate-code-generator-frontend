@@ -51,6 +51,7 @@ export function mapVisitorLogToSecurityEntry(entry: VisitorLogEntry): SecurityHi
     hashed_code: entry.hashed_code,
     timestamp: entry.visit_time,
     receiver: 'visitor',
+    user_id: entry.user_id,
   };
 }
 
@@ -62,5 +63,6 @@ export function mapResidentLogToSecurityEntry(entry: ResidentLogEntry): Security
     hashed_code: entry.hashed_code,
     timestamp: entry.access_time,
     receiver: 'resident',
+    user_id: entry.user_id,
   };
 }

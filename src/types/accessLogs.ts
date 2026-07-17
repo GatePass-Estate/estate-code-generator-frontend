@@ -65,4 +65,5 @@ export type SecurityHistoryEntry = {
   hashed_code: string;
   timestamp: string;
   receiver: ReceiverType;
+  user_id?: string;
 };

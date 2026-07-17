@@ -60,3 +60,9 @@ export type EditRequestResponse = {
   reviewed_by: string;
   updated_at: string;
 };
+
+export type RemindAdminsResponse = {
+  success: boolean;
+  message: string;
+  next_remind_after: string;
+};

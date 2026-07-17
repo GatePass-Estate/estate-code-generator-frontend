@@ -18,9 +18,8 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
-import { deletePendingRequest } from '@/src/lib/api/requests';
+import { deletePendingRequest, remindAdmins } from '@/src/lib/api/requests';
 import { DEFAULT_PENDING_ID_LABEL, downloadFile } from '@/src/lib/pendingRequestHelpers';
-import { FileDocumentIcon } from '@/src/assets/svgs';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 const SHEET_HEIGHT = SCREEN_HEIGHT * 0.6;
@@ -41,6 +40,20 @@ export type PendingRequestSheetData = {
   newFileName?: string;
   currentFileUri?: string | null;
   newFileUri?: string | null;
+  lastRemindedAt?: string | null;
+};
+
+const formatNextRemindTime = (value?: string) => {
+  if (!value) return null;
+  const iso = value.replace(' ', 'T').replace(/([+-]\d{2})(\d{2})$/, '$1:$2');
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString(undefined, {
+    day: 'numeric',
+    month: 'short',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
 };
 
 type PendingRequestSheetProps = {
@@ -185,11 +198,33 @@ export default function PendingRequestSheet({
     }
   };
 
-  const handleReNotifyAdmin = () => {
+  const handleReNotifyAdmin = async () => {
+    if (!request?.requestId || request.requestId.startsWith('local-')) {
+      Alert.alert('Unable to remind', 'This request is not ready to notify admin yet.');
+      return;
+    }
+
     setNotifying(true);
-    Alert.alert('Re-Notify Admin', 'Your admin will be reminded about this request.', [
-      { text: 'OK', onPress: () => setNotifying(false) },
-    ]);
+    try {
+      const result = await remindAdmins(request.requestId);
+      const nextAt = formatNextRemindTime(result.next_remind_after);
+      Alert.alert(
+        'Admin notified',
+        nextAt
+          ? `${result.message}\n\nYou can remind again after ${nextAt}.`
+          : result.message
+      );
+    } catch (error: any) {
+      const nextAt = formatNextRemindTime(error?.nextRemindAfter);
+      const baseMessage =
+        error instanceof Error ? error.message.trim() : 'Could not remind admin';
+      Alert.alert(
+        error?.status === 429 ? 'Please wait' : 'Remind failed',
+        nextAt ? `${baseMessage}\n\nTry again after ${nextAt}.` : baseMessage
+      );
+    } finally {
+      setNotifying(false);
+    }
   };
 
   if (!request) return null;

@@ -77,10 +77,10 @@ const AccessLogCard = ({
 }) => (
   <Pressable onPress={onPress} className="rounded-[8px] bg-white p-4 flex-col ">
     <View className=" flex-row items-start justify-between  mb-2">
-      <Text className=" font-inter-regular text-[11px] text-[#6C6C6C] ">
+      <Text className=" font-inter-regular text-[11.2px] text-[#6C6C6C] ">
         {formatDateWithOrdinal(parseLogDate(entry.timestamp))}
       </Text>
-      <Text className=" font-inter-regular text-[11px] text-[#6C6C6C]">Access Code</Text>
+      <Text className=" font-inter-regular text-[11.2px] text-[#6C6C6C]">Access Code</Text>
     </View>
 
     <View className="items-start justify-center h-[17px]">
@@ -153,6 +153,7 @@ export default function AccessLogScreen() {
         hashed_code: entry.hashed_code,
         timestamp: entry.timestamp,
         receiver: entry.receiver,
+        user_id: entry.user_id ?? '',
       },
     });
   };

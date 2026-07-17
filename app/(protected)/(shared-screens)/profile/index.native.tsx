@@ -574,7 +574,7 @@ export default function ProfileScreen() {
         </View>
       ) : null}
 
-      <View className="mt-4 flex-col gap-2 rounded-[16px] bg-white py-4">
+      <View className="mt-4 flex-col gap-2 rounded-[16px] bg-white py-4 mb-6">
         <ProfileFieldRow
           label="First Name"
           value={first_name}
@@ -623,7 +623,7 @@ export default function ProfileScreen() {
         />
       </View>
 
-      <View className="mt-4 flex-row items-center gap-3.5">
+      <View className="mt-6 flex-row items-center gap-3.5">
         <View className="flex-1 rounded-[16px] bg-white">
           <ProfileFieldRow
             label="Identification"

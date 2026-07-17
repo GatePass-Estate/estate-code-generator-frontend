@@ -34,7 +34,8 @@ export function ProfileFieldRow({
         </Text>
       </Pressable>
 
-      {showAction ? (
+     <View className='w-[30px] h-[30px] items-center justify-center'>
+     {showAction ? (
         hasPendingRequest ? (
           <Pressable onPress={onPendingPress} hitSlop={8}>
             <EllipsisIcon width={20} height={20} />
@@ -45,6 +46,7 @@ export function ProfileFieldRow({
           </Pressable>
         )
       ) : null}
+     </View>
     </View>
   );
 }

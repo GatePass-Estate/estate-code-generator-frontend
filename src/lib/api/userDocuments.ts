@@ -66,6 +66,17 @@ export async function getMyDocumentViewUri(
   });
 }
 
+export async function getUserDocumentViewUri(
+  userId: string,
+  documentType: DocumentType,
+  contentType?: string | null
+) {
+  return fetchAuthenticatedDocumentUri(
+    `/users/documents/${encodeURIComponent(userId)}/${documentType}/view`,
+    { contentType }
+  );
+}
+
 export async function getPendingDocumentViewUri(documentId: string, contentType?: string | null) {
   return fetchAuthenticatedDocumentUri(`/users/documents/pending/${documentId}/view`, {
     contentType,

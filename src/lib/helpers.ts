@@ -285,6 +285,10 @@ export const getErrorMessage = (error: any): string => {
     if (typeof data.detail === 'string') {
       return data.detail;
     }
+
+    if (data.detail && typeof data.detail === 'object' && typeof data.detail.message === 'string') {
+      return data.detail.message;
+    }
   }
 
   if (error.message) {

@@ -242,7 +242,7 @@ export default function UsageLogScreen() {
       </ScrollView>
 
       {!isCodeActive ? (
-        <View className="absolute bottom-10 left-5 right-5 px-[9px]">
+        <View className="absolute bottom-[60px] left-5 right-5 px-[9px]">
           <Pressable
             onPress={handleRegenerateCode}
             disabled={regenerating}

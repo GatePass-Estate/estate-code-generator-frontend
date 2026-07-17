@@ -31,6 +31,22 @@ export async function getMyResidentAccessLogs(
   }
 }
 
+export async function getMyVisitorAccessLogs(
+  params?: AccessLogHistoryParams
+): Promise<VisitorLogListResponse> {
+  try {
+    const api = Api('code');
+    const axiosRes = await api.get(`/codeservice/visitorlog/me${buildQuery(params)}`);
+    return axiosRes.data;
+  } catch (error: any) {
+    // No visitor history yet
+    if (error?.response?.status === 404) {
+      return { total: 0, page: params?.page ?? 1, limit: params?.limit ?? 20, items: [] };
+    }
+    throw new Error(`${getErrorMessage(error) || 'Could not fetch guest history'} `);
+  }
+}
+
 export async function getMyResidentAccessLogByCode(
   code: string,
   params?: AccessLogHistoryParams
@@ -43,6 +59,21 @@ export async function getMyResidentAccessLogByCode(
     return axiosRes.data;
   } catch (error: any) {
     throw new Error(`${getErrorMessage(error) || 'Could not fetch code history'} `);
+  }
+}
+
+export async function getMyVisitorAccessLogByCode(
+  code: string,
+  params?: AccessLogHistoryParams
+): Promise<VisitorLogListResponse> {
+  try {
+    const api = Api('code');
+    const axiosRes = await api.get(
+      `/codeservice/visitorlog/me/${encodeURIComponent(code)}${buildQuery(params)}`
+    );
+    return axiosRes.data;
+  } catch (error: any) {
+    throw new Error(`${getErrorMessage(error) || 'Could not fetch guest code history'} `);
   }
 }
 

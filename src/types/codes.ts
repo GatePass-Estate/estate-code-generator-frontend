@@ -2,6 +2,11 @@ import { GenderType } from './general';
 
 export type ReceiverType = 'visitor' | 'resident';
 
+export type ValidityRange = {
+  start: string;
+  end: string;
+};
+
 export type Codes = {
   user_id: string;
   estate_id: string | null;
@@ -9,9 +14,14 @@ export type Codes = {
   relationship_with_resident: string;
   hashed_code: string;
   gender: GenderType;
-  estate_name: string | null;
+  estate_name?: string | null;
   valid_until: string;
+  validity_period?: ValidityRange | null;
+  validity_window?: ValidityRange | null;
+  extended?: boolean;
+  frozen?: boolean;
   is_expired: boolean;
+  is_valid?: boolean;
   receiver: ReceiverType;
 };
 

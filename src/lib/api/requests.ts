@@ -3,6 +3,7 @@ import {
   EditRequestResponse,
   GetRequestsResponse,
   PendingRequestsResponse,
+  RemindAdminsResponse,
   RequestItem,
   RequestType,
   SearchRequestPayload,
@@ -116,5 +117,22 @@ export async function deletePendingRequest(id: string): Promise<boolean> {
     return axiosRes.data;
   } catch (error: any) {
     throw new Error(`${getErrorMessage(error) || 'Could not delete request'} `);
+  }
+}
+
+export async function remindAdmins(id: string): Promise<RemindAdminsResponse> {
+  try {
+    const api = Api();
+    const axiosRes = await api.post(`/requests/edit/${id}/remind`);
+    return axiosRes.data;
+  } catch (error: any) {
+    const detail = error?.response?.data?.detail;
+    const nextRemindAfter =
+      detail && typeof detail === 'object' ? detail.next_remind_after : undefined;
+    const message = getErrorMessage(error) || 'Could not remind admin';
+    const err = new Error(message) as Error & { nextRemindAfter?: string; status?: number };
+    err.nextRemindAfter = nextRemindAfter;
+    err.status = error?.response?.status;
+    throw err;
   }
 }
