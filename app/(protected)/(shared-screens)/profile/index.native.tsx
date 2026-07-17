@@ -481,62 +481,86 @@ export default function ProfileScreen() {
 
       {showAccessCode ? (
         <View className="mt-8 flex-row items-stretch justify-between rounded-[16px] bg-white p-4">
-          <View className="flex-1 gap-2 ">
-            <Text className="text-[11px] font-inter-regular text-[#6C6C6C]">My Access Code</Text>
+          <View className="flex-1 justify-between gap-2 ">
+            <View className="gap-2">
+              <Text className="text-[11px] font-inter-regular text-[#6C6C6C]">My Access Code</Text>
 
-            <View
-              className="flex-row items-center gap-1"
-              style={{ minHeight: isPreview ? 22 : 23 }}
-            >
-              {!isPreview ? (
-                <>
-                  <TouchableOpacity
-                    onLongPress={handleCopyCode}
-                    delayLongPress={400}
-                    activeOpacity={0.6}
-                    disabled={!canCopyCode}
-                    hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
-                    style={{ minHeight: 23, justifyContent: 'center' }}
-                  >
-                    <Text
-                      className="text-[24px] font-ubuntu-medium text-primary"
-                      style={{ lineHeight: 28, includeFontPadding: false, minWidth: 109 }}
+              <View
+                className="flex-row items-center gap-1"
+                style={{ minHeight: isPreview ? 28 : 22 }}
+              >
+                {!isPreview ? (
+                  <>
+                    <TouchableOpacity
+                      onLongPress={handleCopyCode}
+                      delayLongPress={400}
+                      activeOpacity={0.6}
+                      disabled={!canCopyCode || loading}
+                      hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+                      style={{ minHeight: 28, justifyContent: 'center' }}
                     >
-                      {codeDisplay}
-                    </Text>
-                  </TouchableOpacity>
-                  {code && !noCode ? (
-                    <Pressable
-                      onPress={() => setCodeVisible((visible) => !visible)}
-                      hitSlop={8}
-                      className="-mt-2"
-                    >
-                      <View className="h-8 w-8 items-center justify-center rounded-full bg-[#E0FFFC80]">
-                        {codeVisible ? (
-                          <EyeIcon width={18} height={18} />
-                        ) : (
-                          <HiddenEyeIcon width={18} height={18} />
-                        )}
+                      <View
+                        style={
+                          !loading && codeDisplay === '******'
+                            ? { transform: [{ translateY: 5 }] }
+                            : undefined
+                        }
+                      >
+                        <Text
+                          className={`text-[24px]   ${
+                            !loading && codeDisplay === '******'
+                              ? 'font-ubuntu-normal text-[#113E55]/90 tracking-[3.5px] '
+                              : 'font-ubuntu-medium text-primary'
+                          }`}
+                          style={{
+                            lineHeight: 28,
+                            includeFontPadding: false,
+                            minWidth: 109,
+                          }}
+                        >
+                          {loading ? '------' : codeDisplay}
+                        </Text>
                       </View>
-                    </Pressable>
-                  ) : null}
-                </>
-              ) : null}
+                    </TouchableOpacity>
+                    <View className="h-8 w-8 items-center justify-center">
+                      {code && !noCode && !loading ? (
+                        <Pressable
+                          onPress={() => setCodeVisible((visible) => !visible)}
+                          hitSlop={8}
+                          className="h-8 w-8 items-center justify-center rounded-full bg-[#E0FFFC80]"
+                        >
+                          {codeVisible ? (
+                            <EyeIcon width={18} height={18} />
+                          ) : (
+                            <HiddenEyeIcon width={18} height={18} />
+                          )}
+                        </Pressable>
+                      ) : null}
+                    </View>
+                  </>
+                ) : null}
+              </View>
             </View>
 
-            {isPreview ? (
-              <Text className="text-[11px] font-inter-regular text-[#6C6C6C]">
-                Code expires on —
-              </Text>
-            ) : formattedDate ? (
-              <Text className="text-[11px] font-inter-regular text-[#6C6C6C]">
-                Code expires on {formattedDate}
-              </Text>
-            ) : noCode ? (
-              <Text className="text-[11px] font-inter-regular text-grey">
-                You do not have a code yet. Tap refresh to generate one.
-              </Text>
-            ) : null}
+            <View>
+              {isPreview || loading ? (
+                <Text className="text-[11px] font-inter-regular text-[#6C6C6C]">
+                  Code expires on —
+                </Text>
+              ) : formattedDate ? (
+                <Text className="text-[11px] font-inter-regular text-[#6C6C6C]">
+                  Code expires on {formattedDate}
+                </Text>
+              ) : noCode ? (
+                <Text className="text-[11px] font-inter-regular text-grey">
+                  You do not have a code yet. Tap refresh to generate one.
+                </Text>
+              ) : (
+                <Text className="text-[11px] font-inter-regular text-[#6C6C6C]">
+                  Code expires on —
+                </Text>
+              )}
+            </View>
           </View>
 
           <View className="items-end justify-between">

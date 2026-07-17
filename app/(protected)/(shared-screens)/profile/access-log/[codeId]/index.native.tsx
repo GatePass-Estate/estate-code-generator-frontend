@@ -4,7 +4,7 @@ import { Stack, useLocalSearchParams, useNavigation, router } from 'expo-router'
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import ScreenHeader from '@/src/components/mobile/ScreenHeader';
-import { TimelineDashLine } from '@/src/assets/svgs';
+import AccessTimeline, { AccessTimelineEvent } from '@/src/components/mobile/AccessTimeline';
 import { mapResidentCodeHistoryToEvents } from '@/src/lib/accessLogMappers';
 import { getMyResidentAccessLogByCode } from '@/src/lib/api/accessLogs';
 import { generateCode } from '@/src/lib/api/codes';
@@ -28,67 +28,9 @@ const formatTimelineDate = (date: Date) => {
   return `${day} ${month} ${year}, ${hours}:${minutes}`;
 };
 
-type TimelineEvent = {
-  id: string;
-  title: string;
-  timestamp: string;
-  isExpired: boolean;
-};
-
-const TIMELINE_DOT_SIZE = 28;
-const TIMELINE_INNER_DOT_SIZE = 20;
-const TIMELINE_DASH_UNIT = 2.8 + 2.8;
-const TIMELINE_LINE_BETWEEN = TIMELINE_DASH_UNIT * 5;
-const TIMELINE_LAST_OVERFLOW = TIMELINE_DASH_UNIT * 6;
-
-const TimelineItem = ({
-  event,
-  lineHeight,
-  showLine,
-}: {
-  event: TimelineEvent;
-  lineHeight: number;
-  showLine: boolean;
-}) => (
-  <View className="flex-row" style={{ gap: 19 }}>
-    <View
-      style={{
-        width: TIMELINE_DOT_SIZE,
-        alignItems: 'center',
-      }}
-    >
-      <View
-        style={{
-          width: TIMELINE_DOT_SIZE,
-          height: TIMELINE_DOT_SIZE,
-          borderRadius: TIMELINE_DOT_SIZE / 2,
-          borderWidth: 1,
-          borderColor: event.isExpired ? '#9B9797' : '#1B998B',
-          backgroundColor: event.isExpired ? '#EFF1F1' : '#FFFFFF',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <View
-          style={{
-            width: TIMELINE_INNER_DOT_SIZE,
-            height: TIMELINE_INNER_DOT_SIZE,
-            borderRadius: TIMELINE_INNER_DOT_SIZE / 2,
-            backgroundColor: event.isExpired ? '#9B9797' : '#1B998B',
-          }}
-        />
-      </View>
-      {showLine ? <TimelineDashLine height={lineHeight} style={{ marginTop: 2 }} /> : null}
-    </View>
-
-    <View>
-      <Text className="text-sm font-inter-medium text-[#0A1F29]">{event.title}</Text>
-      <Text className="mt-1 text-sm font-inter-light text-[#6C6C6C] tracking-[-0.2px]">
-        {event.timestamp}
-      </Text>
-    </View>
-  </View>
-);
+/** Profile usage log keeps its tighter 16px item spacing. */
+const PROFILE_TIMELINE_GAP = 26;
+const PROFILE_TIMELINE_LAST_OVERFLOW = 34;
 
 export default function UsageLogScreen() {
   const navigation = useNavigation();
@@ -98,7 +40,7 @@ export default function UsageLogScreen() {
   const [regenerating, setRegenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isCodeActive, setIsCodeActive] = useState(false);
-  const [events, setEvents] = useState<TimelineEvent[]>([]);
+  const [events, setEvents] = useState<AccessTimelineEvent[]>([]);
 
   const hashedCode = codeId ?? '';
 
@@ -220,25 +162,13 @@ export default function UsageLogScreen() {
         contentContainerStyle={{ paddingBottom: isCodeActive ? 120 : 40, paddingTop: 31 }}
         showsVerticalScrollIndicator={false}
       >
-        <View className="w-full pb-10">
-          {timelineEvents.length === 0 ? (
-            <Text className="text-center text-sm text-grey">No timeline events found.</Text>
-          ) : (
-            timelineEvents.map((event, index) => {
-              const isLast = index === timelineEvents.length - 1;
-              const endsWithExpired = isLast && event.isExpired;
-
-              return (
-                <TimelineItem
-                  key={event.id}
-                  event={event}
-                  showLine={!endsWithExpired}
-                  lineHeight={isLast ? TIMELINE_LAST_OVERFLOW : TIMELINE_LINE_BETWEEN}
-                />
-              );
-            })
-          )}
-        </View>
+        <AccessTimeline
+          className="w-full pb-10"
+          events={timelineEvents}
+          gap={PROFILE_TIMELINE_GAP}
+          lastOverflow={PROFILE_TIMELINE_LAST_OVERFLOW}
+          dashStyle={{ marginTop: 2 }}
+        />
       </ScrollView>
 
       {!isCodeActive ? (

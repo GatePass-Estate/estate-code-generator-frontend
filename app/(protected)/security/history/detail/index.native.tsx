@@ -12,7 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useLocalSearchParams, useNavigation } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { sharedStyles } from '@/src/theme/styles';
-import { TimelineDashLine } from '@/src/assets/svgs';
+import AccessTimeline, { AccessTimelineEvent } from '@/src/components/mobile/AccessTimeline';
 import { mapResidentCodeHistoryToEvents } from '@/src/lib/accessLogMappers';
 import { getEstateResidentLogByCode, getEstateVisitorLogByCode } from '@/src/lib/api/accessLogs';
 import { getUserDocumentViewUri } from '@/src/lib/api/userDocuments';
@@ -48,69 +48,6 @@ function getInitials(name: string) {
   return `${parts[0][0] ?? ''}${parts[1][0] ?? ''}`.toUpperCase();
 }
 
-type TimelineEvent = {
-  id: string;
-  title: string;
-  timestamp: string;
-  isExpired?: boolean;
-};
-
-const TIMELINE_DOT_SIZE = 28;
-const TIMELINE_INNER_DOT_SIZE = 20;
-/** Gap between consecutive timeline items; dashed line fills this space. */
-const TIMELINE_GAP = 24;
-/** Trailing line below the last item when the code has not expired. */
-const TIMELINE_LAST_OVERFLOW = 56;
-
-const TimelineItem = ({
-  event,
-  lineHeight,
-  showLine,
-}: {
-  event: TimelineEvent;
-  lineHeight: number;
-  showLine: boolean;
-}) => {
-  const isExpired = !!event.isExpired;
-
-  return (
-    <View className="flex-row" style={{ gap: 19 }}>
-      <View style={{ width: TIMELINE_DOT_SIZE, alignItems: 'center' }}>
-        <View
-          style={{
-            width: TIMELINE_DOT_SIZE,
-            height: TIMELINE_DOT_SIZE,
-            borderRadius: TIMELINE_DOT_SIZE / 2,
-            borderWidth: 1,
-            borderColor: isExpired ? '#9B9797' : '#1B998B',
-            backgroundColor: isExpired ? '#EFF1F1' : '#FFFFFF',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <View
-            style={{
-              width: TIMELINE_INNER_DOT_SIZE,
-              height: TIMELINE_INNER_DOT_SIZE,
-              borderRadius: TIMELINE_INNER_DOT_SIZE / 2,
-              backgroundColor: isExpired ? '#9B9797' : '#1B998B',
-            }}
-          />
-        </View>
-        {showLine ? (
-          <View style={{ height: lineHeight, overflow: 'hidden' }}>
-            <TimelineDashLine height={lineHeight} />
-          </View>
-        ) : null}
-      </View>
-      <View>
-        <Text className="text-sm font-inter-medium text-[#0A1F29]">{event.title}</Text>
-        <Text className="mt-1 text-sm font-inter-light text-[#6C6C6C]">{event.timestamp}</Text>
-      </View>
-    </View>
-  );
-};
-
 export default function AccessLogDetailScreen() {
   const navigation = useNavigation();
   const params = useLocalSearchParams();
@@ -123,7 +60,7 @@ export default function AccessLogDetailScreen() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [events, setEvents] = useState<TimelineEvent[]>([]);
+  const [events, setEvents] = useState<AccessTimelineEvent[]>([]);
   const [photoUri, setPhotoUri] = useState<string | null>(null);
 
   const fetchHistory = useCallback(async () => {
@@ -242,27 +179,13 @@ export default function AccessLogDetailScreen() {
             {category}
           </Text>
 
-          <View className="mt-[59px] w-full px-3 pb-10">
-            {error ? (
-              <Text className="text-center text-sm text-grey">{error}</Text>
-            ) : timelineEvents.length === 0 ? (
-              <Text className="text-center text-sm text-grey">No timeline events found.</Text>
-            ) : (
-              timelineEvents.map((event, index) => {
-                const isLast = index === timelineEvents.length - 1;
-                const endsWithExpired = isLast && !!event.isExpired;
-
-                return (
-                  <TimelineItem
-                    key={event.id}
-                    event={event}
-                    showLine={!endsWithExpired}
-                    lineHeight={isLast ? TIMELINE_LAST_OVERFLOW : TIMELINE_GAP}
-                  />
-                );
-              })
-            )}
-          </View>
+          <AccessTimeline
+            className="mt-[59px] w-full px-3 pb-10"
+            events={timelineEvents}
+            error={error}
+            gap={24}
+            lastOverflow={56}
+          />
         </ScrollView>
       )}
     </SafeAreaView>
