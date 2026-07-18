@@ -9,10 +9,6 @@ export async function getAllCodes(id: string): Promise<CodesApiResponse> {
     const axiosRes = await api.get(`/codeservice/all/${id}?receiver=visitor`);
     return axiosRes.data;
   } catch (error: any) {
-    // No visitor codes yet — treat as empty list, not a hard failure
-    if (error?.response?.status === 404) {
-      return { items: [] };
-    }
     throw new Error(`${getErrorMessage(error) || 'Could not fetch code'} `);
   }
 }
