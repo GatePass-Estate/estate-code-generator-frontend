@@ -8,6 +8,21 @@ import {
   User,
 } from '@/src/types/user';
 
+export const updateUserPhone = async (
+  userId: string,
+  phoneNumber: string
+): Promise<{ user_id?: string; phone_number?: string; message?: string }> => {
+  try {
+    const api = Api();
+    const axiosRes = await api.patch(`/users/${encodeURIComponent(userId)}/phone`, null, {
+      params: { phone_number: phoneNumber },
+    });
+    return axiosRes.data;
+  } catch (error: any) {
+    throw new Error(`${getErrorMessage(error) || 'Could not update phone number'} `);
+  }
+};
+
 export const updatepassword = async (payload: {
   user_id: string;
   current_password: string;

@@ -77,6 +77,13 @@
         }
       ],
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow GatePass to access your photos to update your profile picture.",
+          "cameraPermission": "Allow GatePass to use your camera to take a profile picture or identification photo."
+        }
+      ],
+      [
         "expo-local-authentication",
         {
           "faceIDPermission": "Use Face ID to securely sign in to GatePass."

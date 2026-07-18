@@ -342,9 +342,9 @@ export default function SecurityVerificationMobile() {
         <IncomingGuestTitle width={209} height={33} style={styles.topBarTitle} />
         <View style={styles.topBarActions}>
           <Pressable
-            accessibilityLabel="Open recent activity"
+            accessibilityLabel="Open access log"
             hitSlop={8}
-            onPress={() => {}}
+            onPress={() => router.push('/security/history')}
             style={({ pressed }) => [styles.topIconButton, pressed && styles.pressed]}
           >
             <Group863 width={42} height={42} style={styles.group863Icon} />
@@ -352,7 +352,7 @@ export default function SecurityVerificationMobile() {
           <Pressable
             accessibilityLabel="Open more options"
             hitSlop={8}
-            onPress={() => {}}
+            onPress={() => router.push('/security/more')}
             style={({ pressed }) => [styles.topIconButton, pressed && styles.pressed]}
           >
             <Group862 width={42} height={42} style={styles.topActionIcon} />
