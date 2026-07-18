@@ -13,6 +13,7 @@ import { Toast, ToastType } from '@/src/components/mobile/Toast';
 import { sharedStyles } from '@/src/theme/styles';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { createRequest, checkPendingRequests, updatePendingRequest } from '@/src/lib/api/requests';
+import { updateUserPhone } from '@/src/lib/api/user';
 import { RequestType, PendingRequestsResponse } from '@/src/types/requests';
 import { useRouter } from 'expo-router';
 import { refreshCurrentUser } from '@/src/hooks/useRefreshUser';
@@ -73,10 +74,7 @@ export default function EditRequest() {
             pendingDetails.address.hasPending && pendingDetails.address.newValue
               ? pendingDetails.address.newValue
               : user.home_address || '',
-          phoneNumber:
-            pendingDetails.phoneNumber.hasPending && pendingDetails.phoneNumber.newValue
-              ? pendingDetails.phoneNumber.newValue
-              : user.phone_number || '',
+          phoneNumber: user.phone_number || '',
         });
       } catch (error) {
         console.log('Failed to load pending profile values', error);
@@ -138,17 +136,9 @@ export default function EditRequest() {
       pendingChecks.push(checkPendingRequests('home_address_change'));
     }
 
-    if (formData.phoneNumber !== user.phone_number) {
-      changedFields.push({
-        type: 'phone_number_change' as const,
-        old: user.phone_number || '',
-        new: formData.phoneNumber,
-        label: 'Phone Number',
-      });
-      pendingChecks.push(checkPendingRequests('phone_number_change' as RequestType));
-    }
+    const phoneChanged = formData.phoneNumber !== (user.phone_number || '');
 
-    if (changedFields.length === 0) {
+    if (changedFields.length === 0 && !phoneChanged) {
       setToastMessage('No changes detected');
       setToastType('info');
       setToastVisible(true);
@@ -157,71 +147,84 @@ export default function EditRequest() {
     }
 
     try {
-      const pendingResults = await Promise.allSettled(pendingChecks);
-      const createRequests: ChangedField[] = [];
-      const updateRequests: { field: ChangedField; requestId: string }[] = [];
-      const errorMessages: string[] = [];
-
-      pendingResults.forEach((result, index) => {
-        if (result.status === 'fulfilled') {
-          if (result.value.has_pending_request && result.value.pending_request) {
-            updateRequests.push({
-              field: changedFields[index],
-              requestId: result.value.pending_request.id,
-            });
-          } else {
-            createRequests.push(changedFields[index]);
-          }
-        } else {
-          const error = result.reason;
-          const errorMessage = error?.message || '';
-          errorMessages.push(`Error checking ${changedFields[index].label}: ${errorMessage}`);
+      if (phoneChanged) {
+        if (!formData.phoneNumber.trim()) {
+          setToastMessage('Phone number is required');
+          setToastType('error');
+          setToastVisible(true);
+          setLoading(false);
+          return;
         }
-      });
-
-      if (errorMessages.length > 0) {
-        setToastMessage(errorMessages[0]);
-        setToastType('error');
-        setToastVisible(true);
-        setLoading(false);
-        return;
+        await updateUserPhone(user.user_id, formData.phoneNumber.trim());
       }
 
-      const allRequests = [...createRequests, ...updateRequests.map((r) => r.field)];
+      let allRequests: ChangedField[] = [];
 
-      if (allRequests.length > 0) {
-        try {
+      if (changedFields.length > 0) {
+        const pendingResults = await Promise.allSettled(pendingChecks);
+        const createRequests: ChangedField[] = [];
+        const updateRequests: { field: ChangedField; requestId: string }[] = [];
+        const errorMessages: string[] = [];
+
+        pendingResults.forEach((result, index) => {
+          if (result.status === 'fulfilled') {
+            if (result.value.has_pending_request && result.value.pending_request) {
+              updateRequests.push({
+                field: changedFields[index],
+                requestId: result.value.pending_request.id,
+              });
+            } else {
+              createRequests.push(changedFields[index]);
+            }
+          } else {
+            const error = result.reason;
+            const errorMessage = error?.message || '';
+            errorMessages.push(`Error checking ${changedFields[index].label}: ${errorMessage}`);
+          }
+        });
+
+        if (errorMessages.length > 0) {
+          setToastMessage(errorMessages[0]);
+          setToastType('error');
+          setToastVisible(true);
+          setLoading(false);
+          return;
+        }
+
+        allRequests = [...createRequests, ...updateRequests.map((r) => r.field)];
+
+        if (allRequests.length > 0) {
           await Promise.all([
             ...createRequests.map((req) => createRequest(req.type as any, req.old, req.new)),
             ...updateRequests.map((req) => updatePendingRequest(req.requestId, req.field.new)),
           ]);
-
-          await refreshCurrentUser();
-
-          const successMsg =
-            allRequests.length === 1
-              ? '1 request submitted successfully. Awaiting admin approval.'
-              : `${allRequests.length} requests submitted successfully. Awaiting admin approval.`;
-          setToastMessage(successMsg);
-          setToastType('success');
-          setToastVisible(true);
-
-          setTimeout(() => {
-            router.back();
-          }, 1500);
-        } catch (submitErr: any) {
-          const submitMessage = submitErr?.message || 'Failed to submit requests';
-          setToastMessage(submitMessage);
-          setToastType('error');
-          setToastVisible(true);
         }
-      } else {
-        setToastMessage('No valid requests to submit');
-        setToastType('info');
-        setToastVisible(true);
       }
+
+      await refreshCurrentUser();
+
+      let successMsg = 'Phone number updated successfully.';
+      if (allRequests.length > 0 && phoneChanged) {
+        successMsg =
+          allRequests.length === 1
+            ? 'Phone number updated. 1 request submitted for admin approval.'
+            : `Phone number updated. ${allRequests.length} requests submitted for admin approval.`;
+      } else if (allRequests.length > 0) {
+        successMsg =
+          allRequests.length === 1
+            ? '1 request submitted successfully. Awaiting admin approval.'
+            : `${allRequests.length} requests submitted successfully. Awaiting admin approval.`;
+      }
+
+      setToastMessage(successMsg);
+      setToastType('success');
+      setToastVisible(true);
+
+      setTimeout(() => {
+        router.back();
+      }, 1500);
     } catch (err: any) {
-      const message = err?.message || 'Failed to submit edit requests';
+      const message = err?.message || 'Failed to save changes';
       setToastMessage(message);
       setToastType('error');
       setToastVisible(true);

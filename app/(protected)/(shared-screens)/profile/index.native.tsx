@@ -79,7 +79,8 @@ export default function ProfileScreen() {
     first_name,
     last_name,
     home_address,
-    estate_name,
+    household_name,
+    household_primary_resident,
     email,
     phone_number,
     user_id,
@@ -615,14 +616,7 @@ export default function ProfileScreen() {
           onPendingPress={() => openPendingRequestSheet('lastName', 'Last Name')}
           hasPendingRequest={pendingFields.lastName}
         />
-        <ProfileFieldRow
-          label="Phone Number"
-          value={phone_number}
-          pendingValue={pendingDetails.phoneNumber.newValue}
-          onEdit={openEditProfile}
-          onPendingPress={() => openPendingRequestSheet('phoneNumber', 'Phone Number')}
-          hasPendingRequest={pendingFields.phoneNumber}
-        />
+        <ProfileFieldRow label="Phone Number" value={phone_number} onEdit={openEditProfile} />
         <ProfileFieldRow
           label="Email Address"
           value={email}
@@ -635,7 +629,8 @@ export default function ProfileScreen() {
       </View>
 
       <View className=" flex-col gap-2 rounded-[16px] bg-white py-4">
-        <ProfileFieldRow label="House Hold" value={estate_name} />
+        <ProfileFieldRow label="Household" value={household_name ?? null} />
+        <ProfileFieldRow label="Primary Resident" value={household_primary_resident ?? null} />
         <ProfileFieldRow
           label="Address"
           value={home_address}
