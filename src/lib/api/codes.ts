@@ -7,22 +7,7 @@ export async function getAllCodes(id: string): Promise<CodesApiResponse> {
   try {
     const api = Api('code');
     const axiosRes = await api.get(`/codeservice/all/${id}?receiver=visitor`);
-    const data = axiosRes.data;
-
-    if (Array.isArray(data)) {
-      return { items: data };
-    }
-
-    if (data?.items && Array.isArray(data.items)) {
-      return { items: data.items };
-    }
-
-    // Single visitor object edge-case
-    if (data?.hashed_code) {
-      return { items: [data] };
-    }
-
-    return { items: [] };
+    return axiosRes.data;
   } catch (error: any) {
     // No visitor codes yet — treat as empty list, not a hard failure
     if (error?.response?.status === 404) {

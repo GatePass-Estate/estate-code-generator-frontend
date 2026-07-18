@@ -354,6 +354,46 @@ export const formatDateWithOrdinal = (date: Date): string => {
   return `${d}${ordinalSuffix(d)} ${m} ${y}`;
 };
 
+/** Parse API datetime strings that may use a space separator or offset without a colon. */
+export const parseLogDate = (value: string): Date => {
+  const iso = value.replace(' ', 'T').replace(/([+-]\d{2})(\d{2})$/, '$1:$2');
+  return new Date(iso);
+};
+
+export type MonthGroup<T> = {
+  label: string;
+  items: T[];
+};
+
+/** Group items by calendar month (newest month first; items newest-first within each month). */
+export function groupLogsByMonth<T>(logs: T[], getDate: (item: T) => string): MonthGroup<T>[] {
+  const groups = new Map<string, T[]>();
+
+  logs.forEach((log) => {
+    const date = parseLogDate(getDate(log));
+    const key = `${date.getFullYear()}-${date.getMonth()}`;
+    const existing = groups.get(key) ?? [];
+    existing.push(log);
+    groups.set(key, existing);
+  });
+
+  return Array.from(groups.entries())
+    .sort(([a], [b]) => b.localeCompare(a))
+    .map(([key, items]) => {
+      const [year, month] = key.split('-').map(Number);
+      const label = new Date(year, month, 1)
+        .toLocaleString('en-US', { month: 'long' })
+        .toUpperCase();
+
+      return {
+        label,
+        items: items.sort(
+          (a, b) => parseLogDate(getDate(b)).getTime() - parseLogDate(getDate(a)).getTime()
+        ),
+      };
+    });
+}
+
 export const formatGeneratedOnDate = (date: Date): string => {
   const d = date.getDate();
   const m = monthNames[date.getMonth()];

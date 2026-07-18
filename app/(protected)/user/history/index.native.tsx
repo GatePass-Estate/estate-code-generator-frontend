@@ -12,28 +12,15 @@ import { Stack, router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ScreenHeader from '@/src/components/mobile/ScreenHeader';
 import { ChevronRightIcon, HistoryRefreshIcon } from '@/src/assets/svgs';
-import { getMyResidentAccessLogs } from '@/src/lib/api/accessLogs';
+import { getMyVisitorAccessLogs } from '@/src/lib/api/accessLogs';
 import { generateCode, getAllCodes } from '@/src/lib/api/codes';
 import { useUserStore } from '@/src/lib/stores/userStore';
-import { ResidentLogEntry } from '@/src/types/accessLogs';
+import { VisitorLogEntry } from '@/src/types/accessLogs';
 import { Codes } from '@/src/types/codes';
-import { formatAccessCodeWithSpace, formatDateWithOrdinal } from '@/src/lib/helpers';
+import { formatDateWithOrdinal, groupLogsByMonth, parseLogDate } from '@/src/lib/helpers';
 import { sharedStyles, TAB_BAR_BASE_HEIGHT } from '@/src/theme/styles';
 
 type HistoryMode = 'past' | 'upcoming';
-
-const capitalizeWords = (value: string) =>
-  value
-    ? value
-        .split(' ')
-        .map((word) => (word ? word.charAt(0).toUpperCase() + word.slice(1) : ''))
-        .join(' ')
-    : '';
-
-const parseLogDate = (value: string) => {
-  const iso = value.replace(' ', 'T').replace(/([+-]\d{2})(\d{2})$/, '$1:$2');
-  return new Date(iso);
-};
 
 const formatUpcomingDate = (value?: string | null) => {
   if (!value) return 'Scheduled';
@@ -47,14 +34,14 @@ const formatUpcomingDate = (value?: string | null) => {
 };
 
 /** Keep the latest access event per hashed code. */
-function dedupeByCode(entries: ResidentLogEntry[]) {
-  const byCode = new Map<string, ResidentLogEntry>();
+function dedupeByCode(entries: VisitorLogEntry[]) {
+  const byCode = new Map<string, VisitorLogEntry>();
 
   entries.forEach((entry) => {
     const existing = byCode.get(entry.hashed_code);
     if (
       !existing ||
-      parseLogDate(entry.access_time).getTime() > parseLogDate(existing.access_time).getTime()
+      parseLogDate(entry.visit_time).getTime() > parseLogDate(existing.visit_time).getTime()
     ) {
       byCode.set(entry.hashed_code, entry);
     }
@@ -62,34 +49,6 @@ function dedupeByCode(entries: ResidentLogEntry[]) {
 
   return Array.from(byCode.values());
 }
-
-const groupLogsByMonth = (logs: ResidentLogEntry[]) => {
-  const groups = new Map<string, ResidentLogEntry[]>();
-
-  logs.forEach((log) => {
-    const date = parseLogDate(log.access_time);
-    const key = `${date.getFullYear()}-${date.getMonth()}`;
-    const existing = groups.get(key) ?? [];
-    existing.push(log);
-    groups.set(key, existing);
-  });
-
-  return Array.from(groups.entries())
-    .sort(([a], [b]) => b.localeCompare(a))
-    .map(([key, items]) => {
-      const [year, month] = key.split('-').map(Number);
-      const label = new Date(year, month, 1)
-        .toLocaleString('en-US', { month: 'long' })
-        .toUpperCase();
-
-      return {
-        label,
-        items: items.sort(
-          (a, b) => parseLogDate(b.access_time).getTime() - parseLogDate(a.access_time).getTime()
-        ),
-      };
-    });
-};
 
 function HistoryModeTabs({
   mode,
@@ -151,13 +110,13 @@ function HistoryModeTabs({
   );
 }
 
-function openPastDetail(entry: ResidentLogEntry) {
+function openPastDetail(entry: VisitorLogEntry) {
   router.push({
     pathname: '/user/history/[codeId]',
     params: {
       codeId: entry.hashed_code,
-      name: capitalizeWords(entry.full_name?.trim() || 'Resident'),
-      category: 'Resident',
+      name: entry.visitor_fullname,
+      category: entry.relationship_with_resident,
     },
   });
 }
@@ -167,7 +126,7 @@ function openUpcomingInvite(entry: Codes) {
     pathname: '/user/history/invite/[codeId]',
     params: {
       codeId: entry.hashed_code,
-      visitorName: entry.visitor_fullname?.trim() || 'Guest',
+      visitorName: entry.visitor_fullname ?? '',
       relationship: entry.relationship_with_resident || 'other',
       periodStart: entry.validity_period?.start || entry.valid_until || '',
       periodEnd: entry.validity_period?.end || entry.valid_until || '',
@@ -183,7 +142,7 @@ function PastHistoryCard({
   onRefresh,
   onPress,
 }: {
-  entry: ResidentLogEntry;
+  entry: VisitorLogEntry;
   regenerating: boolean;
   onRefresh: () => void;
   onPress: () => void;
@@ -195,12 +154,12 @@ function PastHistoryCard({
     >
       <View className="flex-1 gap-0.5 pr-3">
         <Text className="font-inter-regular text-[11.2px] text-[#878686]">
-          {formatDateWithOrdinal(parseLogDate(entry.access_time))}
+          {formatDateWithOrdinal(parseLogDate(entry.visit_time))}
         </Text>
-        <Text className="text-sm font-inter-light text-[#0A1F29] leading-[17px]">
-          {capitalizeWords(entry.full_name?.trim() || 'Resident')}
+        <Text className="text-sm font-inter-light text-[#0A1F29]">{entry.visitor_fullname}</Text>
+        <Text className="text-[11.2px] font-inter-regular capitalize text-[#878686]">
+          {entry.relationship_with_resident}
         </Text>
-        <Text className="text-[11.2px] font-inter-regular text-[#878686]">Resident</Text>
       </View>
 
       <Pressable
@@ -228,15 +187,15 @@ function UpcomingHistoryCard({ entry, onPress }: { entry: Codes; onPress: () => 
       onPress={onPress}
       className="flex-row items-center justify-between rounded-[8px] bg-white p-4"
     >
-      <View className="flex-1 gap-0.5 ">
-        <Text className="font-inter-regular text-[9px] text-[#878686] tracking-[-0.2px]">
+      <View className="flex-1 gap-0.5">
+        <Text className="font-inter-regular text-[9px] leading-[14px] text-[#878686] tracking-[-0.2px]">
           {formatUpcomingDate(scheduleDate)}
         </Text>
-        <Text className=" text-sm font-inter-light text-[#0A1F29] leading-[17px]">
-          {capitalizeWords(entry.visitor_fullname?.trim() || 'Guest')}
+        <Text className="text-sm font-inter-light text-[#0A1F29] leading-[17px]">
+          {entry.visitor_fullname}
         </Text>
-        <Text className=" text-xs font-inter-regular capitalize text-[#878686]">
-          {entry.relationship_with_resident || formatAccessCodeWithSpace(entry.hashed_code)}
+        <Text className="text-xs font-inter-regular leading-[14px] capitalize text-[#878686]">
+          {entry.relationship_with_resident}
         </Text>
       </View>
 
@@ -248,7 +207,7 @@ function UpcomingHistoryCard({ entry, onPress }: { entry: Codes; onPress: () => 
 export default function HistoryTabScreen() {
   const { user_id, estate_id } = useUserStore();
   const [mode, setMode] = useState<HistoryMode>('past');
-  const [logs, setLogs] = useState<ResidentLogEntry[]>([]);
+  const [logs, setLogs] = useState<VisitorLogEntry[]>([]);
   const [upcomingCodes, setUpcomingCodes] = useState<Codes[]>([]);
   const [loading, setLoading] = useState(true);
   const [pastError, setPastError] = useState<string | null>(null);
@@ -268,7 +227,7 @@ export default function HistoryTabScreen() {
     setUpcomingError(null);
 
     const [pastResult, upcomingResult] = await Promise.allSettled([
-      getMyResidentAccessLogs({ page: 1, limit: 50 }),
+      getMyVisitorAccessLogs({ page: 1, limit: 50 }),
       getAllCodes(user_id),
     ]);
 
@@ -295,16 +254,12 @@ export default function HistoryTabScreen() {
     fetchHistory();
   }, [fetchHistory]);
 
-  const uniqueLogs = useMemo(() => dedupeByCode(logs), [logs]);
-
   const pastLogs = useMemo(
     () =>
-      uniqueLogs
-        .filter((entry) => entry.code_deleted)
-        .sort(
-          (a, b) => parseLogDate(b.access_time).getTime() - parseLogDate(a.access_time).getTime()
-        ),
-    [uniqueLogs]
+      dedupeByCode(logs).sort(
+        (a, b) => parseLogDate(b.visit_time).getTime() - parseLogDate(a.visit_time).getTime()
+      ),
+    [logs]
   );
 
   const sortedUpcoming = useMemo(
@@ -317,10 +272,13 @@ export default function HistoryTabScreen() {
     [upcomingCodes]
   );
 
-  const groupedPast = useMemo(() => groupLogsByMonth(pastLogs), [pastLogs]);
+  const groupedPast = useMemo(
+    () => groupLogsByMonth(pastLogs, (log) => log.visit_time),
+    [pastLogs]
+  );
 
   const handleRefresh = useCallback(
-    async (entry: ResidentLogEntry) => {
+    async (entry: VisitorLogEntry) => {
       if (!user_id) return;
 
       setRegeneratingCode(entry.hashed_code);

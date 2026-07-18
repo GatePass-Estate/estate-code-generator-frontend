@@ -3,8 +3,8 @@ import { GenderType } from './general';
 export type ReceiverType = 'visitor' | 'resident';
 
 export type ValidityRange = {
-  start: string;
-  end: string;
+  start: string | null;
+  end: string | null;
 };
 
 export type Codes = {

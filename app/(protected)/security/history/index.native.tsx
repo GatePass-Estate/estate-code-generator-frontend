@@ -12,7 +12,7 @@ import { Stack, useNavigation, useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { sharedStyles } from '@/src/theme/styles';
 import ScreenHeader from '@/src/components/mobile/ScreenHeader';
-import { formatDateWithOrdinal } from '@/src/lib/helpers';
+import { formatDateWithOrdinal, groupLogsByMonth, parseLogDate } from '@/src/lib/helpers';
 import {
   mapResidentLogToSecurityEntry,
   mapVisitorLogToSecurityEntry,
@@ -33,39 +33,6 @@ const capitalizeWords = (value: string) =>
 const formatAccessCode = (code: string) => {
   const normalized = code.replace(/\s+/g, '').toUpperCase();
   return `${normalized.slice(0, 3)} ${normalized.slice(3)}`;
-};
-
-const parseLogDate = (value: string) => {
-  const iso = value.replace(' ', 'T').replace(/([+-]\d{2})(\d{2})$/, '$1:$2');
-  return new Date(iso);
-};
-
-const groupLogsByMonth = (logs: SecurityHistoryEntry[]) => {
-  const groups = new Map<string, SecurityHistoryEntry[]>();
-
-  logs.forEach((log) => {
-    const date = parseLogDate(log.timestamp);
-    const key = `${date.getFullYear()}-${date.getMonth()}`;
-    const existing = groups.get(key) ?? [];
-    existing.push(log);
-    groups.set(key, existing);
-  });
-
-  return Array.from(groups.entries())
-    .sort(([a], [b]) => b.localeCompare(a))
-    .map(([key, items]) => {
-      const [year, month] = key.split('-').map(Number);
-      const label = new Date(year, month, 1)
-        .toLocaleString('en-US', { month: 'long' })
-        .toUpperCase();
-
-      return {
-        label,
-        items: items.sort(
-          (a, b) => parseLogDate(b.timestamp).getTime() - parseLogDate(a.timestamp).getTime()
-        ),
-      };
-    });
 };
 
 const AccessLogCard = ({
@@ -137,7 +104,7 @@ export default function AccessLogScreen() {
     fetchLogs();
   }, [fetchLogs]);
 
-  const groupedLogs = useMemo(() => groupLogsByMonth(logs), [logs]);
+  const groupedLogs = useMemo(() => groupLogsByMonth(logs, (log) => log.timestamp), [logs]);
 
   const switchMode = (nextMode: HistoryMode) => {
     if (nextMode === mode) return;

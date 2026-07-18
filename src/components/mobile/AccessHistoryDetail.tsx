@@ -81,7 +81,7 @@ export default function AccessHistoryDetail({
             showsVerticalScrollIndicator={false}
           >
             <View
-              className="h-[105px] w-[105px] items-center justify-center rounded-full bg-[#CEE5ED]"
+              className="h-[105px] w-[105px] items-center justify-center rounded-full bg-[#F4FFFE]"
               style={{ overflow: 'hidden' }}
             >
               {photoUri ? (
@@ -91,7 +91,9 @@ export default function AccessHistoryDetail({
                   resizeMode="cover"
                 />
               ) : (
-                <Text className="text-[28px] font-ubuntu-medium text-[#113E55]">{initials}</Text>
+                <Text className="text-[40px] font-ubuntu-regular text-[#1B998B] uppercase">
+                  {initials}
+                </Text>
               )}
             </View>
 
