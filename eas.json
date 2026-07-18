@@ -9,7 +9,13 @@
       "distribution": "internal"
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_USER_SERVICE_API_URL": "http://139.84.226.209:9034",
+        "EXPO_PUBLIC_CODE_SERVICE_API_URL": "http://139.84.226.209:9033",
+        "EXPO_PUBLIC_AUTH_STORAGE_KEY": "auth-key",
+        "EXPO_PUBLIC_WIDTH_BREAKPOINT": "768"
+      }
     },
     "production": {
       "autoIncrement": true,

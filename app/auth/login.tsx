@@ -10,7 +10,7 @@ import {
   Pressable,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { FontAwesome, AntDesign, Ionicons } from '@expo/vector-icons';
+import { FontAwesome, AntDesign, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/src/components/nativewindui/Button';
 import { useAuth } from '@/src/hooks/useAuthContext';
@@ -452,7 +452,11 @@ export default function Login() {
                       disabled={isLoading}
                       className={`self-center w-14 h-14 rounded-full bg-primary items-center justify-center ${isLoading && 'opacity-80'}`}
                     >
-                      <Ionicons name="finger-print" size={28} color="#CEE5ED" />
+                      {Platform.OS === 'ios' ? (
+                        <MaterialCommunityIcons name="face-recognition" size={28} color="#CEE5ED" />
+                      ) : (
+                        <Ionicons name="finger-print" size={28} color="#CEE5ED" />
+                      )}
                     </Pressable>
                   )}
                 </View>

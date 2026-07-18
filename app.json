@@ -10,9 +10,10 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
-      "image": "./src/assets/images/splash-screen.png",
+      "image": "./src/assets/images/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#113E55"
+      "backgroundColor": "#113E55",
+      "enableFullScreenImage_legacy": true
     },
     "android": {
       "package": "com.gatepassng.gms",
@@ -53,7 +54,10 @@
       "associatedDomains": ["applinks:app.gatepassng.com", "applinks:app.gatepassng.com"],
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSFaceIDUsageDescription": "Use Face ID to securely sign in to GatePass."
+        "NSFaceIDUsageDescription": "Use Face ID to securely sign in to GatePass.",
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true
+        }
       }
     },
     "web": {
@@ -80,11 +84,19 @@
         }
       ],
       [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Use Face ID to securely sign in to GatePass."
+        }
+      ],
+      [
         "expo-splash-screen",
         {
-          "image": "./src/assets/images/splash-screen.png",
+          "image": "./src/assets/images/splash-icon.png",
           "imageWidth": 200,
+          "resizeMode": "contain",
           "backgroundColor": "#113E55",
+          "enableFullScreenImage_legacy": true,
           "dark": {
             "backgroundColor": "#113E55"
           }
