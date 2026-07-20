@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
-import { useFocusEffect, useLocalSearchParams, useNavigation } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useNavigation, router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AccessHistoryDetail, {
   AccessHistoryTimelineEvent,
@@ -8,6 +8,7 @@ import AccessHistoryDetail, {
 import { getMyVisitorAccessLogByCode } from '@/src/lib/api/accessLogs';
 import { parseLogDate } from '@/src/lib/helpers';
 import { useAndroidBottomInset } from '@/src/hooks/useAndroidBottomInset';
+import { GenderType } from '@/src/types/general';
 import { sharedStyles } from '@/src/theme/styles';
 
 const formatTimelineDate = (value: string) => {
@@ -34,6 +35,7 @@ export default function HistoryDetailScreen() {
   const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState(params.name?.trim() || '');
   const [category, setCategory] = useState(params.category?.trim() || '');
+  const [gender, setGender] = useState<GenderType>('prefer_not_to_say');
   const [events, setEvents] = useState<AccessHistoryTimelineEvent[]>([]);
 
   useFocusEffect(
@@ -67,7 +69,6 @@ export default function HistoryDetailScreen() {
     setLoading(true);
     setError(null);
     try {
-      // GET /codeservice/visitorlog/me/{code}?page=1&limit=20
       const history = await getMyVisitorAccessLogByCode(hashedCode, { page: 1, limit: 20 });
       const latest = history.items[0];
 
@@ -76,6 +77,9 @@ export default function HistoryDetailScreen() {
       }
       if (latest?.relationship_with_resident) {
         setCategory(latest.relationship_with_resident);
+      }
+      if (latest?.gender) {
+        setGender(latest.gender);
       }
 
       setEvents(
@@ -101,6 +105,17 @@ export default function HistoryDetailScreen() {
     fetchHistory();
   }, [fetchHistory]);
 
+  const openDurationScreen = useCallback(() => {
+    router.push({
+      pathname: '/user/history/duration',
+      params: {
+        visitorName: name || 'Guest',
+        relationship: category || 'other',
+        gender,
+      },
+    });
+  }, [category, gender, name]);
+
   return (
     <SafeAreaView
       style={[sharedStyles.container, sharedStyles.modalContainer, { backgroundColor: '#F6F7F7' }]}
@@ -112,7 +127,8 @@ export default function HistoryDetailScreen() {
         loading={loading}
         error={error}
         onBack={() => navigation.goBack()}
-        showRegenerate={false}
+        showRegenerate={!loading && !error}
+        onRegenerate={openDurationScreen}
       />
     </SafeAreaView>
   );

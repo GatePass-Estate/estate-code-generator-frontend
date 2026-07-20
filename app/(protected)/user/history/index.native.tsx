@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -6,14 +6,14 @@ import {
   TouchableOpacity,
   Pressable,
   ActivityIndicator,
-  Alert,
+  RefreshControl,
 } from 'react-native';
-import { Stack, router } from 'expo-router';
+import { Stack, router, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ScreenHeader from '@/src/components/mobile/ScreenHeader';
 import { ChevronRightIcon, HistoryRefreshIcon } from '@/src/assets/svgs';
 import { getMyVisitorAccessLogs } from '@/src/lib/api/accessLogs';
-import { generateCode, getAllCodes } from '@/src/lib/api/codes';
+import { getAllCodes } from '@/src/lib/api/codes';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { VisitorLogEntry } from '@/src/types/accessLogs';
 import { Codes } from '@/src/types/codes';
@@ -138,12 +138,10 @@ function openUpcomingInvite(entry: Codes) {
 
 function PastHistoryCard({
   entry,
-  regenerating,
   onRefresh,
   onPress,
 }: {
   entry: VisitorLogEntry;
-  regenerating: boolean;
   onRefresh: () => void;
   onPress: () => void;
 }) {
@@ -162,18 +160,8 @@ function PastHistoryCard({
         </Text>
       </View>
 
-      <Pressable
-        onPress={onRefresh}
-        disabled={regenerating}
-        hitSlop={8}
-        className="h-8 w-8 items-center justify-center"
-        style={{ opacity: regenerating ? 0.5 : 1 }}
-      >
-        {regenerating ? (
-          <ActivityIndicator size="small" color="#113E55" />
-        ) : (
-          <HistoryRefreshIcon width={24} height={24} />
-        )}
+      <Pressable onPress={onRefresh} hitSlop={8} className="h-8 w-8 items-center justify-center">
+        <HistoryRefreshIcon width={24} height={24} />
       </Pressable>
     </Pressable>
   );
@@ -205,24 +193,31 @@ function UpcomingHistoryCard({ entry, onPress }: { entry: Codes; onPress: () => 
 }
 
 export default function HistoryTabScreen() {
-  const { user_id, estate_id } = useUserStore();
+  const { user_id } = useUserStore();
   const [mode, setMode] = useState<HistoryMode>('past');
   const [logs, setLogs] = useState<VisitorLogEntry[]>([]);
   const [upcomingCodes, setUpcomingCodes] = useState<Codes[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [pastError, setPastError] = useState<string | null>(null);
   const [upcomingError, setUpcomingError] = useState<string | null>(null);
-  const [regeneratingCode, setRegeneratingCode] = useState<string | null>(null);
+  const hasLoadedRef = useRef(false);
 
-  const fetchHistory = useCallback(async () => {
+  const fetchHistory = useCallback(async (opts?: { silent?: boolean; pull?: boolean }) => {
     if (!user_id) {
       setLoading(false);
+      setRefreshing(false);
       setPastError('User not found.');
       setUpcomingError('User not found.');
       return;
     }
 
-    setLoading(true);
+    if (opts?.pull) {
+      setRefreshing(true);
+    } else if (!opts?.silent) {
+      setLoading(true);
+    }
+
     setPastError(null);
     setUpcomingError(null);
 
@@ -247,12 +242,16 @@ export default function HistoryTabScreen() {
       );
     }
 
+    hasLoadedRef.current = true;
     setLoading(false);
+    setRefreshing(false);
   }, [user_id]);
 
-  useEffect(() => {
-    fetchHistory();
-  }, [fetchHistory]);
+  useFocusEffect(
+    useCallback(() => {
+      void fetchHistory({ silent: hasLoadedRef.current });
+    }, [fetchHistory])
+  );
 
   const pastLogs = useMemo(
     () =>
@@ -277,23 +276,16 @@ export default function HistoryTabScreen() {
     [pastLogs]
   );
 
-  const handleRefresh = useCallback(
-    async (entry: VisitorLogEntry) => {
-      if (!user_id) return;
-
-      setRegeneratingCode(entry.hashed_code);
-      try {
-        await generateCode({ user_id, estate_id: estate_id ?? entry.estate_id ?? '' }, 'resident');
-        await fetchHistory();
-        Alert.alert('Code regenerated', 'Your new access code is ready.', [{ text: 'OK' }]);
-      } catch {
-        Alert.alert('Could not regenerate code', 'Please try again later.');
-      } finally {
-        setRegeneratingCode(null);
-      }
-    },
-    [estate_id, fetchHistory, user_id]
-  );
+  const handleRefresh = useCallback((entry: VisitorLogEntry) => {
+    router.push({
+      pathname: '/user/history/duration',
+      params: {
+        visitorName: entry.visitor_fullname || 'Guest',
+        relationship: entry.relationship_with_resident || 'other',
+        gender: entry.gender || 'prefer_not_to_say',
+      },
+    });
+  }, []);
 
   return (
     <SafeAreaView
@@ -321,6 +313,14 @@ export default function HistoryTabScreen() {
               gap: 38,
             }}
             showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={() => void fetchHistory({ pull: true })}
+                tintColor="#113E55"
+                colors={['#113E55']}
+              />
+            }
           >
             {mode === 'past' ? (
               pastError ? (
@@ -342,7 +342,6 @@ export default function HistoryTabScreen() {
                         <PastHistoryCard
                           key={entry.id}
                           entry={entry}
-                          regenerating={regeneratingCode === entry.hashed_code}
                           onRefresh={() => handleRefresh(entry)}
                           onPress={() => openPastDetail(entry)}
                         />

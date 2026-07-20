@@ -373,6 +373,18 @@ export function NavigateNextIcon({ color = '#113E55', ...props }: MenuIconProps)
   );
 }
 
+/** Plain grey chevron used on form rows (e.g. Set Duration date fields). */
+export function FormChevronRightIcon({ color = '#878686', ...props }: MenuIconProps) {
+  return (
+    <Svg width={20} height={20} viewBox="0 0 20 20" fill="none" {...props}>
+      <Path
+        d="M7.1582 6.175L10.9749 10L7.1582 13.825L8.3332 15L13.3332 10L8.3332 5L7.1582 6.175Z"
+        fill={color}
+      />
+    </Svg>
+  );
+}
+
 export function ChevronRightIcon({ color = '#113E55', ...props }: MenuIconProps) {
   return (
     <Svg width={20} height={20} viewBox="0 0 20 20" fill="none" {...props}>
