@@ -1,7 +1,7 @@
 import { View, Text, Pressable } from 'react-native';
 import { NavigateNextIcon } from '@/src/assets/svgs';
 import { ResidentAccessLog } from '@/src/types/accessLog';
-import { formatAccessCodeWithSpace, formatGeneratedOnDate } from '@/src/lib/helpers';
+import { formatAccessCodeWithSpace, formatGeneratedOnDate, parseLogDate } from '@/src/lib/helpers';
 
 type AccessLogCardProps = {
   log: ResidentAccessLog;
@@ -9,7 +9,7 @@ type AccessLogCardProps = {
 };
 
 export function AccessLogCard({ log, onPress }: AccessLogCardProps) {
-  const generatedLabel = formatGeneratedOnDate(new Date(log.generatedAt));
+  const generatedLabel = formatGeneratedOnDate(parseLogDate(log.generatedAt));
 
   return (
     <Pressable

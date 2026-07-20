@@ -400,12 +400,13 @@ export const formatGeneratedOnDate = (date: Date): string => {
   return `${d}${ordinalSuffix(d)} of ${m}`;
 };
 
+/** Format access-log timestamps in UTC so they match API `...Z` values. */
 export const formatAccessLogTimestamp = (date: Date): string => {
-  const d = date.getDate();
-  const m = monthNames[date.getMonth()];
-  const y = date.getFullYear();
-  const hours = date.getHours().toString().padStart(2, '0');
-  const minutes = date.getMinutes().toString().padStart(2, '0');
+  const d = date.getUTCDate();
+  const m = monthNames[date.getUTCMonth()];
+  const y = date.getUTCFullYear();
+  const hours = date.getUTCHours().toString().padStart(2, '0');
+  const minutes = date.getUTCMinutes().toString().padStart(2, '0');
   return `${d} ${m} ${y}, ${hours}:${minutes}`;
 };
 
