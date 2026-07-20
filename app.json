@@ -32,10 +32,7 @@
               "pathPrefix": "/activate"
             }
           ],
-          "category": [
-            "BROWSABLE",
-            "DEFAULT"
-          ]
+          "category": ["BROWSABLE", "DEFAULT"]
         },
         {
           "action": "VIEW",
@@ -47,20 +44,14 @@
               "pathPrefix": "/auth/reset-password"
             }
           ],
-          "category": [
-            "BROWSABLE",
-            "DEFAULT"
-          ]
+          "category": ["BROWSABLE", "DEFAULT"]
         }
       ]
     },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.gatepassng.gms",
-      "associatedDomains": [
-        "applinks:app.gatepassng.com",
-        "applinks:app.gatepassng.com"
-      ],
+      "associatedDomains": ["applinks:app.gatepassng.com", "applinks:app.gatepassng.com"],
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSFaceIDUsageDescription": "Use Face ID to securely sign in to GatePass.",
@@ -114,9 +105,7 @@
       "expo-secure-store",
       "@react-native-community/datetimepicker"
     ],
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "extra": {
       "router": {},
       "eas": {

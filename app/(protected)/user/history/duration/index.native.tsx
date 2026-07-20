@@ -300,10 +300,7 @@ export default function SetAccessCodeDurationScreen() {
         },
       });
     } catch (e: any) {
-      Alert.alert(
-        'Could not generate code',
-        e?.message?.trim() || 'Please try again later.'
-      );
+      Alert.alert('Could not generate code', e?.message?.trim() || 'Please try again later.');
     } finally {
       setGenerating(false);
     }
@@ -406,32 +403,34 @@ export default function SetAccessCodeDurationScreen() {
 
         {windowEnabled && daysInRange.length > 0 ? (
           <View className="rounded-[16px] bg-white p-4 mt-6">
-            <Text className='text-[#878686] text-sm font-inter-light mb-[9px]'>Validity Window</Text>
-            <View className='flex-col gap-[9px]'>
-            {daysInRange.map((day, index) => (
-              <View
-                key={day.toISOString()}
-                className={`px-3 py-2  ${index < daysInRange.length - 1 ? 'border-b-[0.3px] border-[#9B9797]' : ''}`}
-              >
-                <Text className="text-[11.2px] font-inter-regular text-[#113E55]">
-                  {formatDayHeading(day)}
-                </Text>
-                <View className="mt-2 flex-row items-start justify-between">
-                  <Pressable onPress={() => openPicker('windowStart')}>
-                    <Text className="text-[8.96px] font-inter-medium text-[#878686]">Start</Text>
-                    <Text className="mt-1.5 text-[21.88px] font-ubuntu-semibold text-[#113E55]">
-                      {formatClock(windowStart)}
-                    </Text>
-                  </Pressable>
-                  <Pressable onPress={() => openPicker('windowEnd')} >
-                    <Text className="text-[8.96px] font-inter-medium text-[#878686]">End</Text>
-                    <Text className="mt-1.5 text-[21.88px] font-ubuntu-semibold text-[#113E55]">
-                      {formatClock(windowEnd)}
-                    </Text>
-                  </Pressable>
+            <Text className="text-[#878686] text-sm font-inter-light mb-[9px]">
+              Validity Window
+            </Text>
+            <View className="flex-col gap-[9px]">
+              {daysInRange.map((day, index) => (
+                <View
+                  key={day.toISOString()}
+                  className={`px-3 py-2  ${index < daysInRange.length - 1 ? 'border-b-[0.3px] border-[#9B9797]' : ''}`}
+                >
+                  <Text className="text-[11.2px] font-inter-regular text-[#113E55]">
+                    {formatDayHeading(day)}
+                  </Text>
+                  <View className="mt-2 flex-row items-start justify-between">
+                    <Pressable onPress={() => openPicker('windowStart')}>
+                      <Text className="text-[8.96px] font-inter-medium text-[#878686]">Start</Text>
+                      <Text className="mt-1.5 text-[21.88px] font-ubuntu-semibold text-[#113E55]">
+                        {formatClock(windowStart)}
+                      </Text>
+                    </Pressable>
+                    <Pressable onPress={() => openPicker('windowEnd')}>
+                      <Text className="text-[8.96px] font-inter-medium text-[#878686]">End</Text>
+                      <Text className="mt-1.5 text-[21.88px] font-ubuntu-semibold text-[#113E55]">
+                        {formatClock(windowEnd)}
+                      </Text>
+                    </Pressable>
+                  </View>
                 </View>
-              </View>
-            ))}
+              ))}
             </View>
           </View>
         ) : null}

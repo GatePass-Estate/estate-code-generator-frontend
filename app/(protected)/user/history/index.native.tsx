@@ -203,49 +203,52 @@ export default function HistoryTabScreen() {
   const [upcomingError, setUpcomingError] = useState<string | null>(null);
   const hasLoadedRef = useRef(false);
 
-  const fetchHistory = useCallback(async (opts?: { silent?: boolean; pull?: boolean }) => {
-    if (!user_id) {
+  const fetchHistory = useCallback(
+    async (opts?: { silent?: boolean; pull?: boolean }) => {
+      if (!user_id) {
+        setLoading(false);
+        setRefreshing(false);
+        setPastError('User not found.');
+        setUpcomingError('User not found.');
+        return;
+      }
+
+      if (opts?.pull) {
+        setRefreshing(true);
+      } else if (!opts?.silent) {
+        setLoading(true);
+      }
+
+      setPastError(null);
+      setUpcomingError(null);
+
+      const [pastResult, upcomingResult] = await Promise.allSettled([
+        getMyVisitorAccessLogs({ page: 1, limit: 50 }),
+        getAllCodes(user_id),
+      ]);
+
+      if (pastResult.status === 'fulfilled') {
+        setLogs(pastResult.value.items ?? []);
+      } else {
+        setLogs([]);
+        setPastError(pastResult.reason?.message?.trim() || 'Could not load past history.');
+      }
+
+      if (upcomingResult.status === 'fulfilled') {
+        setUpcomingCodes(upcomingResult.value.items ?? []);
+      } else {
+        setUpcomingCodes([]);
+        setUpcomingError(
+          upcomingResult.reason?.message?.trim() || 'Could not load upcoming invites.'
+        );
+      }
+
+      hasLoadedRef.current = true;
       setLoading(false);
       setRefreshing(false);
-      setPastError('User not found.');
-      setUpcomingError('User not found.');
-      return;
-    }
-
-    if (opts?.pull) {
-      setRefreshing(true);
-    } else if (!opts?.silent) {
-      setLoading(true);
-    }
-
-    setPastError(null);
-    setUpcomingError(null);
-
-    const [pastResult, upcomingResult] = await Promise.allSettled([
-      getMyVisitorAccessLogs({ page: 1, limit: 50 }),
-      getAllCodes(user_id),
-    ]);
-
-    if (pastResult.status === 'fulfilled') {
-      setLogs(pastResult.value.items ?? []);
-    } else {
-      setLogs([]);
-      setPastError(pastResult.reason?.message?.trim() || 'Could not load past history.');
-    }
-
-    if (upcomingResult.status === 'fulfilled') {
-      setUpcomingCodes(upcomingResult.value.items ?? []);
-    } else {
-      setUpcomingCodes([]);
-      setUpcomingError(
-        upcomingResult.reason?.message?.trim() || 'Could not load upcoming invites.'
-      );
-    }
-
-    hasLoadedRef.current = true;
-    setLoading(false);
-    setRefreshing(false);
-  }, [user_id]);
+    },
+    [user_id]
+  );
 
   useFocusEffect(
     useCallback(() => {
