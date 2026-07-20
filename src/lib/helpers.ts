@@ -356,7 +356,11 @@ export const formatDateWithOrdinal = (date: Date): string => {
 
 /** Parse API datetime strings that may use a space separator or offset without a colon. */
 export const parseLogDate = (value: string): Date => {
-  const iso = value.replace(' ', 'T').replace(/([+-]\d{2})(\d{2})$/, '$1:$2');
+  // ``2026-07-25 14:00:00.000+0000`` → ``2026-07-25T14:00:00.000+00:00``
+  const iso = value
+    .trim()
+    .replace(' ', 'T')
+    .replace(/([+-]\d{2})(\d{2})$/, '$1:$2');
   return new Date(iso);
 };
 

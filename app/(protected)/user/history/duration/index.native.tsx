@@ -459,12 +459,17 @@ export default function SetAccessCodeDurationScreen() {
                   <Text className="text-sm font-inter-medium text-[#113E55]">Done</Text>
                 </Pressable>
               </View>
-              <DateTimePicker
-                value={pickerValue}
-                mode={pickerMode}
-                display="spinner"
-                onChange={onPickerChange}
-              />
+              <View className="w-full items-center justify-center">
+                <DateTimePicker
+                  value={pickerValue}
+                  mode={pickerMode}
+                  display="spinner"
+                  themeVariant="light"
+                  textColor="#0A1F29"
+                  onChange={onPickerChange}
+                  style={{ alignSelf: 'center', width: '100%' }}
+                />
+              </View>
             </Pressable>
           </Pressable>
         </Modal>

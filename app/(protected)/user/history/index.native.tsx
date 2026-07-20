@@ -128,10 +128,6 @@ function openUpcomingInvite(entry: Codes) {
       codeId: entry.hashed_code,
       visitorName: entry.visitor_fullname ?? '',
       relationship: entry.relationship_with_resident || 'other',
-      periodStart: entry.validity_period?.start || entry.valid_until || '',
-      periodEnd: entry.validity_period?.end || entry.valid_until || '',
-      windowStart: entry.validity_window?.start || '',
-      windowEnd: entry.validity_window?.end || '',
     },
   });
 }
