@@ -10,10 +10,10 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
-      "image": "./src/assets/gatepass_ng_Gp.png",
+      "image": "./src/assets/images/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#000000",
-      "color": "#000000"
+      "backgroundColor": "#113E55",
+      "enableFullScreenImage_legacy": true
     },
     "android": {
       "package": "com.gatepassng.gms",
@@ -53,7 +53,11 @@
       "bundleIdentifier": "com.gatepassng.gms",
       "associatedDomains": ["applinks:app.gatepassng.com", "applinks:app.gatepassng.com"],
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSFaceIDUsageDescription": "Use Face ID to securely sign in to GatePass.",
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true
+        }
       }
     },
     "web": {
@@ -67,17 +71,38 @@
       "expo-font",
       "expo-web-browser",
       [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow GatePass to use your camera to scan access codes."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow GatePass to access your photos to update your profile picture.",
+          "cameraPermission": "Allow GatePass to use your camera to take a profile picture or identification photo."
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Use Face ID to securely sign in to GatePass."
+        }
+      ],
+      [
         "expo-splash-screen",
         {
-          "backgroundColor": "#000000",
-          "image": "./src/assets/gatepass_ng_Gp.png",
+          "image": "./src/assets/images/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#113E55",
+          "enableFullScreenImage_legacy": true,
           "dark": {
-            "image": "./src/assets/gatepass_ng_Gp.png",
-            "backgroundColor": "#000000"
-          },
-          "imageWidth": 200
+            "backgroundColor": "#113E55"
+          }
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "assetBundlePatterns": ["**/*"],
     "extra": {

@@ -57,6 +57,7 @@ export default function SettingsWeb() {
   const router = useRouter();
   const { signOut } = useAuth();
   const user_id = useUserStore((s) => s.user_id);
+  const role = useUserStore((s) => s.role);
   const { width } = useWindowDimensions();
   const isLargeScreen = width > getWidthBreakpoint();
   const [deleting, setDeleting] = useState(false);
@@ -65,6 +66,7 @@ export default function SettingsWeb() {
 
   const [feedbackPopupStep, setFeedbackPopupStep] = useState<'NONE' | 'SELECT' | 'RATE_US'>('NONE');
   const [starRating, setStarRating] = useState(0);
+  const isAdmin = role === 'admin' || role === 'primary_admin';
 
   useEffect(() => {
     if (Platform.OS === 'web') document.title = 'Settings - GatePass';
@@ -98,8 +100,24 @@ export default function SettingsWeb() {
           <Text
             className={`text-primary font-ubuntu-bold mt-8 ${isLargeScreen ? 'text-4xl' : 'text-2xl'}`}
           >
-            Settings
+            More
           </Text>
+          <Text className="mt-2 text-sm font-inter-regular text-grey">
+            Adjust Gatepass to your preference, manage account.
+          </Text>
+
+          {isAdmin ? (
+            <Pressable
+              onPress={() => router.replace('/admin')}
+              className="mt-6 flex-row items-center justify-between rounded-[8px] bg-primary px-5 py-4"
+            >
+              <Text className="text-base font-inter-medium text-white">Do More as an Admin</Text>
+              <Image
+                source={icons.rightIcon}
+                style={{ width: 14, height: 14, tintColor: '#fff' }}
+              />
+            </Pressable>
+          ) : null}
 
           <SectionTitleWeb>Account</SectionTitleWeb>
           <SettingsRowWeb label="My Profile" onPress={() => router.push('/profile')} />

@@ -77,8 +77,14 @@ const BlurEllipse = ({
     ) : (
       <Image
         source={require('@/src/assets/images/blur-ellipse.png')}
-        style={StyleSheet.absoluteFill}
-        resizeMode="cover"
+        style={[
+          StyleSheet.absoluteFill,
+          {
+            left: 0,
+            position: 'absolute',
+          },
+        ]}
+        // resizeMode="cover"
       />
     )}
   </View>
@@ -166,9 +172,7 @@ const WebSuccessView = ({ router }: { router: any }) => (
             marginTop: 30,
           }}
         >
-          Your account is now verified and your password set.{'\n'}
-          You can now continue and start using GatePass.{'\n'}
-          Welcome aboard!
+          Your account is now verified and your password set.
         </Text>
         <TouchableOpacity
           onPress={() => router.push('/auth/login')}
@@ -360,13 +364,13 @@ const EmailActivationStatusPage = () => {
           </View>
         ) : (
           <View className="w-full flex-1 relative overflow-hidden bg-[#FBFEFF]">
+            <BlurEllipse status={status} variant="fullscreen" />
             <View className="flex-1 w-full justify-center flex flex-col z-10 px-5">
               <View className="flex flex-col justify-center w-full items-center">
                 <View
                   className="relative items-center justify-center"
                   style={{ width: 246, height: 246 }}
                 >
-                  <BlurEllipse status={status} variant="underImage" />
                   <Image
                     source={require('@/src/assets/images/success-rocket.png')}
                     style={{ width: 246, height: 246, zIndex: 1 }}
@@ -399,13 +403,12 @@ const EmailActivationStatusPage = () => {
                       paddingHorizontal: 16,
                     }}
                   >
-                    Your account is now verified and your password set. You can now continue and
-                    start using GatePass. Welcome aboard!
+                    Your account is now verified and your password set.
                   </Text>
 
                   <TouchableOpacity
                     onPress={() => router.push('/auth/login')}
-                    className="h-[48px] w-full max-w-[278px] bg-[#113E55] rounded-lg justify-center items-center"
+                    className="h-[48px] w-full max-w-[278px] bg-[#113E55] rounded-full justify-center items-center"
                   >
                     <Text
                       style={{

@@ -1,24 +1,86 @@
-import { View, Text, TouchableOpacity, Pressable, Image, ActivityIndicator } from 'react-native';
-import { useAuth } from '@/src/hooks/useAuthContext';
-import { router, Stack } from 'expo-router';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  View,
+  Text,
+  Pressable,
+  ActivityIndicator,
+  ScrollView,
+  Alert,
+  StyleSheet,
+  Image,
+  TouchableOpacity,
+} from 'react-native';
+import { router, Stack, useNavigation } from 'expo-router';
+import * as Clipboard from 'expo-clipboard';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { MaterialIcons } from '@expo/vector-icons';
 import { useUserStore } from '@/src/lib/stores/userStore';
-import icons from '@/src/constants/icons';
-import Back from '@/src/components/mobile/Back';
-import { SingleDetail } from '@/src/components/mobile/SIngleDetail';
+import { useProfileDocumentsStore } from '@/src/lib/stores/profileDocumentsStore';
+import { ProfileFieldRow } from '@/src/components/mobile/ProfileFieldRow';
+import ResidentAccessCodeQRModal from '@/src/components/mobile/ResidentAccessCodeQRModal';
+import ProfilePhotoSheet from '@/src/components/mobile/ProfilePhotoSheet';
+import IdentificationSheet from '@/src/components/mobile/IdentificationSheet';
+import PendingRequestSheet, {
+  PendingRequestSheetData,
+} from '@/src/components/mobile/PendingRequestSheet';
+import {
+  EyeIcon,
+  HiddenEyeIcon,
+  QrCodeIcon,
+  RefreshIcon,
+  DownloadIcon,
+  CameraIcon,
+} from '@/src/assets/svgs';
 import { sharedStyles } from '@/src/theme/styles';
-import { useEffect, useState, useMemo, useCallback } from 'react';
 import { generateCode, getMyCode } from '@/src/lib/api/codes';
+import {
+  downloadMyDocument,
+  getMyDocumentViewUri,
+  getPendingDocumentViewUri,
+  uploadUserDocument,
+} from '@/src/lib/api/userDocuments';
 import { formatDateWithOrdinal } from '@/src/lib/helpers';
+import { useProfilePendingFields } from '@/src/hooks/useProfilePendingFields';
+import { ProfileFieldKey } from '@/src/lib/profilePendingFields';
+import {
+  createIdentificationPendingRequest,
+  DEFAULT_PENDING_ID_LABEL,
+  downloadFile,
+} from '@/src/lib/pendingRequestHelpers';
+import { getFilenameFromUri } from '@/src/lib/userDocumentHelpers';
+import {
+  getProfileOnboardingStep,
+  ProfileOnboardingBanner,
+  ProfileOnboardingStep,
+} from '@/src/components/mobile/ProfileOnboardingBanner';
+import { CopiedToast } from '@/src/components/mobile/CopiedToast';
 
-const ProfileScreen = () => {
-  const { signOut } = useAuth();
+function formatAccessCode(code: string) {
+  return code.replace(/\s+/g, '').toUpperCase();
+}
 
+const ONBOARDING_COPY: Record<
+  Exclude<ProfileOnboardingStep, null>,
+  { title: string; description: string }
+> = {
+  id: {
+    title: 'Verify Your ID',
+    description: 'Please upload your government issued ID to generate your access code.',
+  },
+  photo: {
+    title: 'Upload Your Photo',
+    description: 'Please upload your passport to generate your access code.',
+  },
+};
+
+export default function ProfileScreen() {
+  const navigation = useNavigation();
   const {
     first_name,
     last_name,
     home_address,
-    estate_name,
+    household_name,
+    household_primary_resident,
     email,
     phone_number,
     user_id,
@@ -30,15 +92,47 @@ const ProfileScreen = () => {
   const [expiry, setExpiry] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [noCode, setNoCode] = useState(false);
+  const [codeVisible, setCodeVisible] = useState(false);
+  const [showQrModal, setShowQrModal] = useState(false);
+  const [showPhotoSheet, setShowPhotoSheet] = useState(false);
+  const [showIdentificationSheet, setShowIdentificationSheet] = useState(false);
+  const profilePhotoUri = useProfileDocumentsStore((state) => state.profilePhotoUri);
+  const identificationUri = useProfileDocumentsStore((state) => state.identificationUri);
+  const identificationPendingRequest = useProfileDocumentsStore(
+    (state) => state.identificationPendingRequest
+  );
+  const onboardingCache = useProfileDocumentsStore((state) => state.onboarding);
+  const documentsImagesLoading = useProfileDocumentsStore((state) => state.imagesLoading);
+  const syncDocuments = useProfileDocumentsStore((state) => state.syncDocuments);
+  const markOnboardingStep = useProfileDocumentsStore((state) => state.markOnboardingStep);
+  const setProfilePhotoUri = useProfileDocumentsStore((state) => state.setProfilePhotoUri);
+  const setIdentificationUri = useProfileDocumentsStore((state) => state.setIdentificationUri);
+  const setIdentificationPendingRequest = useProfileDocumentsStore(
+    (state) => state.setIdentificationPendingRequest
+  );
+  const [pendingRequestSheet, setPendingRequestSheet] = useState<PendingRequestSheetData | null>(
+    null
+  );
+  const [showPendingRequestSheet, setShowPendingRequestSheet] = useState(false);
+  const [showCopiedToast, setShowCopiedToast] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [uploadingIdentification, setUploadingIdentification] = useState(false);
+  const copiedToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { pendingDetails, pendingFields, refreshPendingFields } = useProfilePendingFields(user_id);
+
+  const showAccessCode = role !== 'security';
 
   const fetchMyCode = useCallback(async () => {
+    if (!user_id) return;
     setLoading(true);
     try {
       const { hashed_code, valid_until } = await getMyCode(user_id);
       setCode(hashed_code);
       setNoCode(false);
       setExpiry(valid_until);
-    } catch (e) {
+    } catch {
+      setCode(null);
+      setExpiry(null);
       setNoCode(true);
     } finally {
       setLoading(false);
@@ -46,6 +140,7 @@ const ProfileScreen = () => {
   }, [user_id]);
 
   const handleGenerateCode = useCallback(async () => {
+    if (!user_id) return;
     setLoading(true);
     try {
       const { hashed_code, valid_until } = await generateCode(
@@ -55,122 +150,603 @@ const ProfileScreen = () => {
       setCode(hashed_code);
       setExpiry(valid_until);
       setNoCode(false);
-    } catch (e) {
-      console.log('Failed to generate code:', e);
+      setCodeVisible(true);
+    } catch {
+      Alert.alert('Could not generate code', 'Please try again later.');
     } finally {
       setLoading(false);
     }
   }, [user_id, estate_id]);
 
   useEffect(() => {
-    if (role != 'security') fetchMyCode();
-  }, [fetchMyCode]);
+    if (!user_id) return;
+    syncDocuments(user_id);
+  }, [user_id, syncDocuments]);
 
-  const { expiring, formattedDate } = useMemo(() => {
-    if (!expiry) return { expiring: false, formattedDate: null };
-    const expDate = new Date(expiry);
-    const now = new Date();
-    const daysLeft = (expDate.getTime() - now.getTime()) / (1000 * 3600 * 24);
-    return {
-      expiring: daysLeft <= 30,
-      formattedDate: formatDateWithOrdinal(expDate),
-    };
+  useEffect(() => {
+    if (showAccessCode) fetchMyCode();
+  }, [fetchMyCode, showAccessCode]);
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      if (showAccessCode) fetchMyCode();
+    });
+    return unsubscribe;
+  }, [navigation, fetchMyCode, showAccessCode]);
+
+  const formattedDate = useMemo(() => {
+    if (!expiry) return null;
+    return formatDateWithOrdinal(new Date(expiry));
   }, [expiry]);
 
-  const CodeRow = () => (
-    <View className="flex-row items-center justify-between bg-accent rounded-lg px-10 py-6">
-      <Text className="text-primary text-lg font-Inter font-medium">My access code:</Text>
+  const openEditProfile = () => router.push('/profile/edit');
 
-      <View className="flex-row items-center gap-2">
-        <Text className="tracking-widest uppercase text-[17px] text-primary">
-          {code ? `${code.slice(0, 3)} ${code.slice(3)}` : '-------------'}{' '}
-        </Text>
+  const openPendingSheet = useCallback((data: PendingRequestSheetData) => {
+    setPendingRequestSheet(data);
+    setShowPendingRequestSheet(true);
+  }, []);
 
-        <Pressable
-          onPress={handleGenerateCode}
-          disabled={loading}
-          className={loading ? 'opacity-50' : ''}
-        >
-          {loading ? (
-            <ActivityIndicator size="small" color="#113E55" />
-          ) : (
-            <Image source={icons.refresh} style={{ width: 22, height: 22 }} resizeMode="contain" />
-          )}
-        </Pressable>
-      </View>
-    </View>
+  const openPendingRequestSheet = useCallback(
+    (fieldKey: ProfileFieldKey, fieldLabel: string) => {
+      const detail = pendingDetails[fieldKey];
+      if (!detail.hasPending || !detail.requestId) return;
+
+      openPendingSheet({
+        kind: 'field',
+        fieldLabel,
+        currentValue: detail.oldValue?.trim() || '—',
+        newValue: detail.newValue?.trim() || '—',
+        requestId: detail.requestId,
+      });
+    },
+    [openPendingSheet, pendingDetails]
   );
 
-  const ExpiryWarning = () =>
-    !loading && formattedDate ? (
-      <View className="flex-row items-center gap-2 mt-2">
-        <Image
-          source={expiring ? icons.warning : icons.warningInfo}
-          style={{ width: 20, height: 20 }}
-          resizeMode="contain"
-        />
-        <Text
-          className={`text-base font-inter-medium-italic ${expiring ? 'text-tertiary' : 'text-primary'}`}
-        >
-          Code expires on {formattedDate}
-          {expiring && ': Regenerate Code now'}
+  const handleAvatarPress = () => {
+    setShowPhotoSheet(true);
+  };
+
+  const handlePhotoSelected = async (uri: string) => {
+    const previousPhotoUri = useProfileDocumentsStore.getState().profilePhotoUri;
+    setUploadingPhoto(true);
+    setProfilePhotoUri(uri);
+
+    try {
+      const result = await uploadUserDocument(uri, 'profile_picture');
+
+      if (user_id) {
+        await markOnboardingStep(user_id, { hasPhoto: true });
+      }
+
+      useProfileDocumentsStore.setState({
+        photoDocumentId: result.document_id,
+        lastSyncedAt: Date.now(),
+      });
+      setShowPhotoSheet(false);
+      setUploadingPhoto(false);
+
+      // Refresh authenticated preview in the background; local URI is already shown.
+      void getMyDocumentViewUri('profile_picture', result.content_type)
+        .then((photoUri) => {
+          setProfilePhotoUri(photoUri);
+        })
+        .catch(() => {
+          // Keep the local picker URI if the authenticated view fetch fails.
+        });
+    } catch (error: any) {
+      setProfilePhotoUri(previousPhotoUri);
+      setUploadingPhoto(false);
+      Alert.alert('Upload failed', error?.message?.trim() || 'Could not upload profile photo.');
+    }
+  };
+
+  const handleIdentificationPress = () => {
+    if (identificationPendingRequest) {
+      openPendingSheet(identificationPendingRequest);
+      return;
+    }
+
+    setShowIdentificationSheet(true);
+  };
+
+  const handleIdentificationSelected = async (uri: string) => {
+    setUploadingIdentification(true);
+    try {
+      const result = await uploadUserDocument(uri, 'id_card');
+
+      if (user_id) {
+        await markOnboardingStep(user_id, { hasIdentification: true });
+      }
+
+      const requestId = result.edit_request_id ?? `local-identification-${result.document_id}`;
+      const fileName = getFilenameFromUri(uri, 'Uploaded ID');
+
+      if (result.document_status === 'pending') {
+        setIdentificationPendingRequest(
+          createIdentificationPendingRequest({
+            requestId,
+            newFileName: fileName,
+            newFileUri: uri,
+            currentFileUri: identificationUri,
+            currentFileName: identificationUri ? 'Current ID' : DEFAULT_PENDING_ID_LABEL,
+          })
+        );
+        useProfileDocumentsStore.setState({
+          pendingIdDocumentId: result.document_id,
+          lastSyncedAt: Date.now(),
+        });
+      } else {
+        setIdentificationUri(uri);
+        setIdentificationPendingRequest(null);
+        useProfileDocumentsStore.setState({
+          activeIdDocumentId: result.document_id,
+          pendingIdDocumentId: null,
+          lastSyncedAt: Date.now(),
+        });
+      }
+
+      setShowIdentificationSheet(false);
+      setUploadingIdentification(false);
+
+      // Refresh authenticated preview in the background; local URI is already shown.
+      if (result.document_status === 'pending' && result.document_id) {
+        void getPendingDocumentViewUri(result.document_id, result.content_type)
+          .then((pendingUri) => {
+            const current = useProfileDocumentsStore.getState().identificationPendingRequest;
+            if (current?.requestId === requestId) {
+              setIdentificationPendingRequest({
+                ...current,
+                newFileUri: pendingUri,
+                newFileName: getFilenameFromUri(pendingUri, fileName),
+              });
+            }
+          })
+          .catch(() => {
+            // Local picker URI is enough until preview loads later.
+          });
+      } else if (result.document_status !== 'pending') {
+        void getMyDocumentViewUri('id_card', result.content_type)
+          .then((activeUri) => {
+            setIdentificationUri(activeUri);
+          })
+          .catch(() => {
+            // Keep local picker URI if view fetch fails.
+          });
+      }
+    } catch (error: any) {
+      setUploadingIdentification(false);
+      Alert.alert('Upload failed', error?.message?.trim() || 'Could not upload identification.');
+    }
+  };
+
+  const handleIdentificationDownload = async () => {
+    if (identificationPendingRequest?.newFileUri) {
+      await downloadFile(identificationPendingRequest.newFileUri);
+      return;
+    }
+
+    if (identificationUri) {
+      await downloadFile(identificationUri);
+      return;
+    }
+
+    try {
+      const uri = await downloadMyDocument('id_card');
+      await downloadFile(uri);
+    } catch {
+      Alert.alert('Download unavailable', 'No identification file is available to download yet.');
+    }
+  };
+
+  const closePendingRequestSheet = () => {
+    setShowPendingRequestSheet(false);
+    setPendingRequestSheet(null);
+  };
+
+  const handlePendingRequestDeleted = (deleted: PendingRequestSheetData) => {
+    if (deleted.kind === 'field') {
+      refreshPendingFields();
+      return;
+    }
+
+    setIdentificationPendingRequest(null);
+    if (deleted.newFileUri && deleted.newFileUri === identificationUri) {
+      setIdentificationUri(null);
+    }
+
+    if (user_id) {
+      syncDocuments(user_id, { force: true });
+    }
+  };
+
+  const codeDisplay = useMemo(() => {
+    if (noCode || !code) return '------';
+    if (!codeVisible) return '******';
+    return formatAccessCode(code);
+  }, [code, codeVisible, noCode]);
+
+  const canCopyCode = Boolean(code && !noCode);
+
+  const handleCopyCode = useCallback(async () => {
+    if (!canCopyCode) {
+      Alert.alert('No access code', 'Generate an access code first, then long-press it to copy.');
+      return;
+    }
+
+    await Clipboard.setStringAsync(formatAccessCode(code!));
+    setShowCopiedToast(true);
+
+    if (copiedToastTimer.current) {
+      clearTimeout(copiedToastTimer.current);
+    }
+
+    copiedToastTimer.current = setTimeout(() => {
+      setShowCopiedToast(false);
+    }, 2000);
+  }, [canCopyCode, code]);
+
+  useEffect(() => {
+    return () => {
+      if (copiedToastTimer.current) {
+        clearTimeout(copiedToastTimer.current);
+      }
+    };
+  }, []);
+
+  const hasIdentification = Boolean(
+    identificationUri || identificationPendingRequest || onboardingCache?.hasIdentification
+  );
+  const hasPhoto = Boolean(profilePhotoUri || onboardingCache?.hasPhoto);
+  const onboardingStep = getProfileOnboardingStep(hasIdentification, hasPhoto);
+  const isProfileLocked = onboardingStep !== null && !uploadingPhoto && !uploadingIdentification;
+
+  const identificationDisplayValue = identificationPendingRequest
+    ? identificationPendingRequest.newFileName || 'Uploaded'
+    : identificationUri
+      ? 'No Preview'
+      : 'Passport or ID card only';
+
+  const handleOnboardingUpload = () => {
+    if (onboardingStep === 'id') {
+      setShowIdentificationSheet(true);
+      return;
+    }
+
+    if (onboardingStep === 'photo') {
+      setShowPhotoSheet(true);
+    }
+  };
+
+  const renderProfileContent = (isPreview = false) => (
+    <>
+      <View className={`items-center ${isPreview ? 'mt-0' : 'mt-6'}`}>
+        <Pressable onPress={handleAvatarPress}>
+          <View
+            style={{
+              width: 87,
+              height: 87,
+              borderRadius: 100,
+
+              backgroundColor: '#F4FFFE',
+              overflow: 'hidden',
+            }}
+          >
+            {profilePhotoUri ? (
+              <Image
+                source={{ uri: profilePhotoUri }}
+                style={StyleSheet.absoluteFillObject}
+                resizeMode="cover"
+              />
+            ) : (
+              <View className="flex-1 items-center justify-center bg-[#F4FFFE]"></View>
+            )}
+
+            {uploadingPhoto || documentsImagesLoading ? (
+              <View
+                pointerEvents="none"
+                style={[
+                  StyleSheet.absoluteFillObject,
+                  { alignItems: 'center', justifyContent: 'center' },
+                ]}
+              >
+                <ActivityIndicator color="#1B998B" />
+              </View>
+            ) : null}
+
+            <View
+              style={{
+                position: 'absolute',
+                bottom: 0,
+                left: 4,
+                width: 79,
+                height: 28,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <View
+                style={[
+                  StyleSheet.absoluteFillObject,
+                  { backgroundColor: 'rgba(27, 153, 139, 0.5)' },
+                ]}
+              />
+              <CameraIcon width={20} height={20} />
+            </View>
+          </View>
+        </Pressable>
+
+        <Text className="pt-[13px] text-[24px] leading-6 font-ubuntu-medium text-[#113E55]">
+          Hi {first_name ?? 'there'}
         </Text>
       </View>
-    ) : (
-      noCode && (
-        <View className="flex-row items-center gap-2 mt-2">
-          <Image source={icons.warning} style={{ width: 20, height: 20 }} resizeMode="contain" />
-          <Text className={`text-base font-inter-medium-italic text-tertiary`}>
-            You do not have a code, please generate your code.
-          </Text>
-        </View>
-      )
-    );
 
-  return (
-    <SafeAreaView style={[sharedStyles.container, sharedStyles.modalContainer]}>
-      <Stack.Screen options={{ headerShown: false }} />
-      <Back type="short-arrow" />
+      {showAccessCode ? (
+        <View className="mt-8 flex-row items-stretch justify-between rounded-[16px] bg-white p-4">
+          <View className="flex-1 justify-between gap-2 ">
+            <View className="gap-2">
+              <Text className="text-[11px] font-inter-regular text-[#6C6C6C]">My Access Code</Text>
 
-      <View className="flex-1">
-        <Text
-          className="text-2xl text-primary mb-5 font-ubuntu-bold mt-8"
-          style={{
-            fontSize: 23,
-          }}
-        >
-          My Profile
-        </Text>
+              <View
+                className="flex-row items-center gap-1"
+                style={{ minHeight: isPreview ? 28 : 22 }}
+              >
+                {!isPreview ? (
+                  <>
+                    <TouchableOpacity
+                      onLongPress={handleCopyCode}
+                      delayLongPress={400}
+                      activeOpacity={0.6}
+                      disabled={!canCopyCode || loading}
+                      hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+                      style={{ minHeight: 28, justifyContent: 'center' }}
+                    >
+                      <View
+                        style={
+                          !loading && codeDisplay === '******'
+                            ? { transform: [{ translateY: 5 }] }
+                            : undefined
+                        }
+                      >
+                        <Text
+                          className={`text-[24px]   ${
+                            !loading && codeDisplay === '******'
+                              ? 'font-ubuntu-normal text-[#113E55]/90 tracking-[3.5px] '
+                              : 'font-ubuntu-medium text-primary'
+                          }`}
+                          style={{
+                            lineHeight: 28,
+                            includeFontPadding: false,
+                            minWidth: 109,
+                          }}
+                        >
+                          {loading ? '------' : codeDisplay}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                    <View className="h-8 w-8 items-center justify-center">
+                      {code && !noCode && !loading ? (
+                        <Pressable
+                          onPress={() => setCodeVisible((visible) => !visible)}
+                          hitSlop={8}
+                          className="h-8 w-8 items-center justify-center rounded-full bg-[#E0FFFC80]"
+                        >
+                          {codeVisible ? (
+                            <EyeIcon width={18} height={18} />
+                          ) : (
+                            <HiddenEyeIcon width={18} height={18} />
+                          )}
+                        </Pressable>
+                      ) : null}
+                    </View>
+                  </>
+                ) : null}
+              </View>
+            </View>
 
-        {role != 'security' && <CodeRow />}
-        <ExpiryWarning />
+            <View>
+              {isPreview || loading ? (
+                <Text className="text-[11px] font-inter-regular text-[#6C6C6C]">
+                  Code expires on —
+                </Text>
+              ) : formattedDate ? (
+                <Text className="text-[11px] font-inter-regular text-[#6C6C6C]">
+                  Code expires on {formattedDate}
+                </Text>
+              ) : noCode ? (
+                <Text className="text-[11px] font-inter-regular text-grey">
+                  You do not have a code yet. Tap refresh to generate one.
+                </Text>
+              ) : (
+                <Text className="text-[11px] font-inter-regular text-[#6C6C6C]">
+                  Code expires on —
+                </Text>
+              )}
+            </View>
+          </View>
 
-        <View className="my-5 mt-10">
-          <TouchableOpacity
-            className="flex-row items-center justify-between"
-            onPress={() => router.push('/profile/edit')}
-          >
-            <Text className="text-base font-medium text-primary">PERSONAL DETAILS</Text>
-            <Image source={icons.edit} style={{ width: 20, height: 20 }} resizeMode="contain" />
-          </TouchableOpacity>
+          <View className="items-end justify-between">
+            <Pressable onPress={() => router.push('/profile/access-log')} hitSlop={8}>
+              <Text className="text-[11px] font-inter-semibold text-primary">View History</Text>
+            </Pressable>
 
-          <View className="mt-3 bg-transparent p-4 rounded-lg border-micro">
-            <SingleDetail label="Name" value={`${first_name} ${last_name}`} />
-            <SingleDetail
-              label="Address"
-              value={`${estate_name ? estate_name + ', ' : ''}${home_address && home_address + '.'}`}
-            />
-            <SingleDetail label="Email Address" value={email} />
-            <SingleDetail label="Phone Number" value={phone_number} />
+            <View className="flex-row gap-3">
+              <Pressable
+                onPress={handleGenerateCode}
+                disabled={loading}
+                hitSlop={8}
+                className="h-[30px] w-[30px] items-center justify-center rounded-full bg-[#E0FFFC80]"
+              >
+                {loading ? (
+                  <ActivityIndicator size="small" color="#1B998B" />
+                ) : (
+                  <RefreshIcon width={16} height={16} />
+                )}
+              </Pressable>
+
+              <Pressable
+                onPress={() => {
+                  if (code) setShowQrModal(true);
+                  else handleGenerateCode();
+                }}
+                className="h-[30px] w-[30px] items-center justify-center rounded-full bg-[#E0FFFC80]"
+                disabled={loading}
+                hitSlop={8}
+              >
+                <QrCodeIcon width={20} height={20} />
+              </Pressable>
+            </View>
           </View>
         </View>
+      ) : null}
 
-        <TouchableOpacity className="self-center mt-auto" onPress={signOut}>
-          <Text className="text-tertiary font-bold text-[16px] p-5 font-UbuntuSans">Log Out</Text>
-        </TouchableOpacity>
+      <View className="mt-4 flex-col gap-2 rounded-[16px] bg-white py-4 mb-6">
+        <ProfileFieldRow
+          label="First Name"
+          value={first_name}
+          pendingValue={pendingDetails.firstName.newValue}
+          onEdit={openEditProfile}
+          onPendingPress={() => openPendingRequestSheet('firstName', 'First Name')}
+          hasPendingRequest={pendingFields.firstName}
+        />
+        <ProfileFieldRow
+          label="Last Name"
+          value={last_name}
+          pendingValue={pendingDetails.lastName.newValue}
+          onEdit={openEditProfile}
+          onPendingPress={() => openPendingRequestSheet('lastName', 'Last Name')}
+          hasPendingRequest={pendingFields.lastName}
+        />
+        <ProfileFieldRow label="Phone Number" value={phone_number} onEdit={openEditProfile} />
+        <ProfileFieldRow
+          label="Email Address"
+          value={email}
+          pendingValue={pendingDetails.email.newValue}
+          onEdit={openEditProfile}
+          onPendingPress={() => openPendingRequestSheet('email', 'Email Address')}
+          hasPendingRequest={pendingFields.email}
+          isLast
+        />
       </View>
+
+      <View className=" flex-col gap-2 rounded-[16px] bg-white py-4">
+        <ProfileFieldRow label="Household" value={household_name ?? null} />
+        <ProfileFieldRow label="Primary Resident" value={household_primary_resident ?? null} />
+        <ProfileFieldRow
+          label="Address"
+          value={home_address}
+          pendingValue={pendingDetails.address.newValue}
+          onEdit={openEditProfile}
+          onPendingPress={() => openPendingRequestSheet('address', 'Address')}
+          hasPendingRequest={pendingFields.address}
+          isLast
+        />
+      </View>
+
+      <View className="mt-6 flex-row items-center gap-3.5">
+        <View className="flex-1 rounded-[16px] bg-white">
+          <ProfileFieldRow
+            label="Identification"
+            value={identificationDisplayValue}
+            pendingValue={identificationPendingRequest?.newFileName}
+            onEdit={handleIdentificationPress}
+            onPendingPress={() => {
+              if (identificationPendingRequest) {
+                openPendingSheet(identificationPendingRequest);
+              }
+            }}
+            hasPendingRequest={!!identificationPendingRequest}
+          />
+        </View>
+
+        <Pressable
+          onPress={handleIdentificationDownload}
+          className="h-10 w-10 items-center justify-center rounded-full bg-white"
+        >
+          <DownloadIcon width={10} height={12} />
+        </Pressable>
+      </View>
+    </>
+  );
+
+  return (
+    <SafeAreaView
+      style={[sharedStyles.container, sharedStyles.modalContainer, { backgroundColor: '#F6F7F7' }]}
+      className="relative flex-1"
+    >
+      <Stack.Screen options={{ headerShown: false }} />
+
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }}
+        showsVerticalScrollIndicator={false}
+      >
+        <View className="flex-row items-center justify-between">
+          <Pressable
+            onPress={() => navigation.goBack()}
+            className="h-[30px] w-[30px] items-center justify-center rounded-full bg-[#EFF1F1]"
+          >
+            <MaterialIcons name="keyboard-arrow-left" size={24} color="#113E55" />
+          </Pressable>
+
+          {isProfileLocked ? (
+            <Text className="text-[11px] font-inter-regular text-[#0A1F29]">
+              {onboardingStep === 'id' ? '1/2' : '2/2'}
+            </Text>
+          ) : (
+            <View className="h-[30px] w-[30px]" />
+          )}
+        </View>
+
+        {isProfileLocked && onboardingStep ? (
+          <View className="w-full flex-1 justify-center">
+            <View className="w-full items-center px-1">
+              <ProfileOnboardingBanner
+                {...ONBOARDING_COPY[onboardingStep]}
+                onUpload={handleOnboardingUpload}
+              />
+            </View>
+
+            <View style={{ opacity: 0.35 }} pointerEvents="none" className="mt-6 w-full">
+              {renderProfileContent(true)}
+            </View>
+          </View>
+        ) : (
+          renderProfileContent()
+        )}
+      </ScrollView>
+
+      <CopiedToast visible={showCopiedToast} />
+
+      {code ? (
+        <ResidentAccessCodeQRModal
+          visible={showQrModal}
+          code={code.replace(/\s+/g, '')}
+          onClose={() => setShowQrModal(false)}
+        />
+      ) : null}
+
+      <ProfilePhotoSheet
+        visible={showPhotoSheet}
+        photoUri={profilePhotoUri}
+        onClose={() => setShowPhotoSheet(false)}
+        onPhotoSelected={handlePhotoSelected}
+        uploading={uploadingPhoto}
+      />
+
+      <IdentificationSheet
+        visible={showIdentificationSheet}
+        identificationUri={identificationUri}
+        onClose={() => setShowIdentificationSheet(false)}
+        onIdentificationSelected={handleIdentificationSelected}
+        uploading={uploadingIdentification}
+      />
+
+      <PendingRequestSheet
+        visible={showPendingRequestSheet}
+        request={pendingRequestSheet}
+        onClose={closePendingRequestSheet}
+        onDeleted={handlePendingRequestDeleted}
+      />
     </SafeAreaView>
   );
-};
-
-export default ProfileScreen;
+}
