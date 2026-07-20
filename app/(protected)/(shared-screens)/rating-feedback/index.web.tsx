@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Back from '@/src/components/mobile/Back';
@@ -20,6 +20,10 @@ export default function RatingFeedbackWeb() {
   const [rating, setRating] = useState(0);
   const [likeMost, setLikeMost] = useState('');
   const [improve, setImprove] = useState('');
+  
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [isLoading, setIsLoading] = useState(false);
 
@@ -87,9 +91,41 @@ export default function RatingFeedbackWeb() {
           value={issueText}
           onChange={(e) => setIssueText(e.target.value)}
         />
-        <button className="w-12 h-12 rounded-xl border-2 border-dashed border-[#113E55]/40 flex items-center justify-center mt-4 text-[#113E55]/40 hover:bg-gray-50 transition">
-          <Icon name="add" size={24} color="#113E5566" />
-        </button>
+        
+        <div className="flex flex-row gap-3 mt-4">
+          {imagePreview && (
+            <div className="relative w-12 h-12">
+              <img src={imagePreview} alt="Preview" className="w-full h-full object-cover rounded-xl border border-[#113E55]/20" />
+              <button 
+                onClick={() => { setImageFile(null); setImagePreview(null); }}
+                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600 transition"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+          {!imagePreview && (
+            <button 
+              onClick={() => fileInputRef.current?.click()}
+              className="w-12 h-12 rounded-xl border-2 border-dashed border-[#113E55]/40 flex items-center justify-center text-[#113E55]/40 hover:bg-gray-50 transition"
+            >
+              <Icon name="add" size={24} color="#113E5566" />
+            </button>
+          )}
+        </div>
+        <input 
+          type="file" 
+          ref={fileInputRef} 
+          accept="image/*" 
+          className="hidden" 
+          onChange={(e) => {
+            if (e.target.files && e.target.files[0]) {
+              const file = e.target.files[0];
+              setImageFile(file);
+              setImagePreview(URL.createObjectURL(file));
+            }
+          }} 
+        />
       </div>
 
       <p className="text-[13px] font-inter-regular text-[#113E55] text-justify mt-6 mb-8 px-4">
@@ -102,16 +138,37 @@ export default function RatingFeedbackWeb() {
         onClick={async () => {
           setIsLoading(true);
           try {
+            let uploadedUrl = '';
+            
+            if (imageFile) {
+              const formData = new FormData();
+              formData.append('file', imageFile);
+              formData.append('upload_preset', 'GatePass_Feedback');
+              
+              const uploadRes = await fetch('https://api.cloudinary.com/v1_1/dcozenahn/image/upload', {
+                method: 'POST',
+                body: formData,
+              });
+              
+              if (!uploadRes.ok) throw new Error('Failed to upload image to Cloudinary');
+              
+              const uploadData = await uploadRes.json();
+              uploadedUrl = uploadData.secure_url;
+              console.log('Cloudinary Web Upload URL:', uploadedUrl);
+            }
+
             await submitFeedback({
               feedback_type: 'issue',
               rating: 1,
               liked: '',
               improvement: '',
               description: issueText,
-              attachment_url: '',
+              attachment_url: uploadedUrl,
             });
             setSuggestionStep(4);
             setActiveTab('Suggestion');
+            setImageFile(null);
+            setImagePreview(null);
           } catch (error: any) {
             alert(error.message || 'Failed to submit feedback');
           } finally {

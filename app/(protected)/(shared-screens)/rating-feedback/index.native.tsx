@@ -176,16 +176,40 @@ export default function RatingFeedbackNative() {
         onPress={async () => {
           setIsLoading(true);
           try {
+            let uploadedUrl = '';
+            
+            if (images.length > 0) {
+              const formData = new FormData();
+              formData.append('file', {
+                uri: images[0],
+                type: 'image/jpeg',
+                name: 'upload.jpg',
+              } as any);
+              formData.append('upload_preset', 'GatePass_Feedback');
+              
+              const uploadRes = await fetch('https://api.cloudinary.com/v1_1/dcozenahn/image/upload', {
+                method: 'POST',
+                body: formData,
+              });
+              
+              if (!uploadRes.ok) throw new Error('Failed to upload image to Cloudinary');
+              
+              const uploadData = await uploadRes.json();
+              uploadedUrl = uploadData.secure_url;
+              console.log('Cloudinary Native Upload URL:', uploadedUrl);
+            }
+
             await submitFeedback({
               feedback_type: 'issue',
               rating: 1,
               liked: '',
               improvement: '',
               description: issueText,
-              attachment_url: images.length > 0 ? images[0] : '',
+              attachment_url: uploadedUrl,
             });
             setSuggestionStep(4);
             setActiveTab('Suggestion');
+            setImages([]);
           } catch (error: any) {
             Alert.alert('Error', error.message || 'Failed to submit feedback');
           } finally {
