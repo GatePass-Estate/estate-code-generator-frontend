@@ -1,5 +1,21 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Modal, StyleSheet, Image, Animated, PanResponder, Linking, Platform, Alert, ActivityIndicator, KeyboardAvoidingView } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  Modal,
+  StyleSheet,
+  Image,
+  Animated,
+  PanResponder,
+  Linking,
+  Platform,
+  Alert,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -26,7 +42,7 @@ export default function RatingFeedbackNative() {
   const [likeMost, setLikeMost] = useState('');
   const [improve, setImprove] = useState('');
   const [images, setImages] = useState<string[]>([]);
-  
+
   const [isLoading, setIsLoading] = useState(false);
 
   const panY = useRef(new Animated.Value(0)).current;
@@ -109,9 +125,7 @@ export default function RatingFeedbackNative() {
             setSuggestionStep(1); // Reset step if they switch back to Suggestion
           }}
         >
-          <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
-            {tab}
-          </Text>
+          <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>{tab}</Text>
         </TouchableOpacity>
       ))}
     </View>
@@ -121,7 +135,7 @@ export default function RatingFeedbackNative() {
     <View style={styles.formContainer}>
       <Text style={styles.headerTitle}>How can we help you?</Text>
       {renderTabs()}
-      
+
       <View style={styles.textAreaContainer}>
         <TextInput
           style={styles.textArea}
@@ -136,7 +150,7 @@ export default function RatingFeedbackNative() {
           {images.map((uri, index) => (
             <View key={index} style={styles.imagePreviewWrapper}>
               <Image source={{ uri }} style={styles.imagePreview} />
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.removeImageBtn}
                 onPress={() => setImages(images.filter((_, i) => i !== index))}
               >
@@ -151,12 +165,13 @@ export default function RatingFeedbackNative() {
           )}
         </View>
       </View>
-      
+
       <Text style={styles.disclaimerText}>
-        By sending, you allow Gatepass to review related technical info to help address your feedback
+        By sending, you allow Gatepass to review related technical info to help address your
+        feedback
       </Text>
 
-      <TouchableOpacity 
+      <TouchableOpacity
         style={[styles.submitButton, isLoading && { opacity: 0.7 }]}
         onPress={async () => {
           setIsLoading(true);
@@ -167,7 +182,7 @@ export default function RatingFeedbackNative() {
               liked: '',
               improvement: '',
               description: issueText,
-              attachment_url: images.length > 0 ? images[0] : ''
+              attachment_url: images.length > 0 ? images[0] : '',
             });
             setSuggestionStep(4);
             setActiveTab('Suggestion');
@@ -199,8 +214,8 @@ export default function RatingFeedbackNative() {
           <Text style={styles.successSubtitle}>
             We review every submission to{'\n'}make Gatepass for everyone.
           </Text>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={[styles.submitButton, { marginTop: 64, width: 260 }]}
             onPress={() => router.push('/user')}
           >
@@ -247,7 +262,7 @@ export default function RatingFeedbackNative() {
           {suggestionStep === 3 && (
             <TextInput
               style={[styles.textArea, { minHeight: 250, padding: 0 }]}
-              placeholder={"What is the one thing we could do to\nimprove your experience?"}
+              placeholder={'What is the one thing we could do to\nimprove your experience?'}
               placeholderTextColor="#113E5580"
               multiline
               value={improve}
@@ -258,13 +273,15 @@ export default function RatingFeedbackNative() {
         </View>
 
         <View style={[styles.actionRow, { marginTop: 64 }]}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.backStepButton, suggestionStep > 1 && styles.backStepButtonActive]}
             onPress={handleBackPress}
           >
-            <Text style={[styles.backStepText, suggestionStep > 1 && styles.backStepTextActive]}>Back</Text>
+            <Text style={[styles.backStepText, suggestionStep > 1 && styles.backStepTextActive]}>
+              Back
+            </Text>
           </TouchableOpacity>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.nextStepButton, isLoading && { opacity: 0.7 }]}
             disabled={isLoading}
             onPress={async () => {
@@ -277,7 +294,7 @@ export default function RatingFeedbackNative() {
                     liked: likeMost,
                     improvement: improve,
                     description: '',
-                    attachment_url: ''
+                    attachment_url: '',
                   });
                   setSuggestionStep(4);
                 } catch (error: any) {
@@ -312,18 +329,18 @@ export default function RatingFeedbackNative() {
                 <Icon name="chevron-back" size={24} color="#FFF" />
               </TouchableOpacity>
               <View style={styles.headerLogo}>
-              <GatePassLogo style={{ width: 144, height: 52 }} />
+                <GatePassLogo style={{ width: 144, height: 52 }} />
               </View>
             </>
           )}
         </View>
 
         {/* Main Content Area */}
-        <KeyboardAvoidingView 
-          style={{ flex: 1 }} 
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-          <ScrollView 
+          <ScrollView
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
@@ -334,39 +351,36 @@ export default function RatingFeedbackNative() {
           </ScrollView>
         </KeyboardAvoidingView>
 
-      {/* Exit Confirmation Modal */}
-      <Modal
-        visible={showExitModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowExitModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <Animated.View 
-            style={[styles.modalContent, { transform: [{ translateY: panY }] }]}
-            {...panResponder.panHandlers}
-          >
-            <View style={styles.dragIndicator} />
-            <Text style={styles.modalTitle}>Are You sure ?</Text>
-            <Text style={styles.modalSubtitle}>Going back would erase your progress</Text>
-            
-            <View style={styles.modalActionRow}>
-              <TouchableOpacity 
-                style={styles.modalCancelButton}
-                onPress={() => setShowExitModal(false)}
-              >
-                <Text style={styles.modalCancelText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.modalConfirmButton}
-                onPress={handleConfirmExit}
-              >
-                <Text style={styles.modalConfirmText}>Confirm</Text>
-              </TouchableOpacity>
-            </View>
-          </Animated.View>
-        </View>
-      </Modal>
+        {/* Exit Confirmation Modal */}
+        <Modal
+          visible={showExitModal}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setShowExitModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <Animated.View
+              style={[styles.modalContent, { transform: [{ translateY: panY }] }]}
+              {...panResponder.panHandlers}
+            >
+              <View style={styles.dragIndicator} />
+              <Text style={styles.modalTitle}>Are You sure ?</Text>
+              <Text style={styles.modalSubtitle}>Going back would erase your progress</Text>
+
+              <View style={styles.modalActionRow}>
+                <TouchableOpacity
+                  style={styles.modalCancelButton}
+                  onPress={() => setShowExitModal(false)}
+                >
+                  <Text style={styles.modalCancelText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.modalConfirmButton} onPress={handleConfirmExit}>
+                  <Text style={styles.modalConfirmText}>Confirm</Text>
+                </TouchableOpacity>
+              </View>
+            </Animated.View>
+          </View>
+        </Modal>
       </SafeAreaView>
     </LinearGradient>
   );

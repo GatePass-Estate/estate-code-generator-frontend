@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Image, Platform, Pressable, Text, useWindowDimensions, View , Linking } from 'react-native';
+import { Image, Platform, Pressable, Text, useWindowDimensions, View, Linking } from 'react-native';
 import WebSidebar from '@/src/components/web/WebSidebar';
 import { menuRoutes } from '../../user/_layout';
 import Back from '@/src/components/mobile/Back';
@@ -11,7 +11,11 @@ import { deleteAccount } from '@/src/lib/api/user';
 import icons from '@/src/constants/icons';
 import Modal from '@/src/components/web/Modal';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { RateUsIcon, SendFeedbackIcon, RateStarshipIcon } from '@/src/components/common/FeedbackIcons';
+import {
+  RateUsIcon,
+  SendFeedbackIcon,
+  RateStarshipIcon,
+} from '@/src/components/common/FeedbackIcons';
 import StarRating from '@/src/components/common/StarRating';
 
 function SettingsRowWeb({
@@ -58,7 +62,7 @@ export default function SettingsWeb() {
   const [deleting, setDeleting] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteError, setDeleteError] = useState('');
-  
+
   const [feedbackPopupStep, setFeedbackPopupStep] = useState<'NONE' | 'SELECT' | 'RATE_US'>('NONE');
   const [starRating, setStarRating] = useState(0);
 
@@ -226,7 +230,7 @@ export default function SettingsWeb() {
             <h4 className="text-[20px] font-ubuntu-bold text-center text-[#081E27] leading-[26px] mb-4">
               Are you loving your experience with us so far?
             </h4>
-            
+
             <div className="w-full bg-[#F7F9F9] rounded-lg py-3 flex flex-col items-center mb-4">
               <StarRating rating={starRating} onRatingChange={setStarRating} size={32} />
               <span className="text-xs font-inter-regular text-[#888] mt-2">Give us a rating</span>
@@ -238,15 +242,24 @@ export default function SettingsWeb() {
               onClick={() => {
                 const userAgent = window.navigator.userAgent.toLowerCase();
                 const androidPackageName = 'com.gatepassng.gms';
-                const appleAppId = '6766627688'; 
-                
+                const appleAppId = '6766627688';
+
                 if (/android/i.test(userAgent)) {
-                  window.open(`https://play.google.com/store/apps/details?id=${androidPackageName}`, '_blank');
+                  window.open(
+                    `https://play.google.com/store/apps/details?id=${androidPackageName}`,
+                    '_blank'
+                  );
                 } else if (/iphone|ipad|ipod/i.test(userAgent)) {
-                  window.open(`https://apps.apple.com/app/id${appleAppId}?action=write-review`, '_blank');
+                  window.open(
+                    `https://apps.apple.com/app/id${appleAppId}?action=write-review`,
+                    '_blank'
+                  );
                 } else {
                   // Fallback for desktop
-                  window.open(`https://play.google.com/store/apps/details?id=${androidPackageName}`, '_blank');
+                  window.open(
+                    `https://play.google.com/store/apps/details?id=${androidPackageName}`,
+                    '_blank'
+                  );
                 }
                 setFeedbackPopupStep('NONE');
               }}

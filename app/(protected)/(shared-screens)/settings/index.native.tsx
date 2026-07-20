@@ -1,4 +1,17 @@
-import { View, Text, Pressable, ScrollView, Alert, ActivityIndicator, Image, Modal, StyleSheet, Linking, TouchableOpacity, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  Pressable,
+  ScrollView,
+  Alert,
+  ActivityIndicator,
+  Image,
+  Modal,
+  StyleSheet,
+  Linking,
+  TouchableOpacity,
+  Platform,
+} from 'react-native';
 import { router, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -11,7 +24,11 @@ import { sharedStyles } from '@/src/theme/styles';
 import { LinearGradient } from 'expo-linear-gradient';
 import icons from '@/src/constants/icons';
 import StarRating from '@/src/components/common/StarRating';
-import { RateUsIcon, SendFeedbackIcon, RateStarshipIcon } from '@/src/components/common/FeedbackIcons';
+import {
+  RateUsIcon,
+  SendFeedbackIcon,
+  RateStarshipIcon,
+} from '@/src/components/common/FeedbackIcons';
 import * as StoreReview from 'expo-store-review';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 function SettingsRow({
@@ -55,7 +72,7 @@ export default function SettingsScreen() {
   const { signOut } = useAuth();
   const user_id = useUserStore((s) => s.user_id);
   const [deleting, setDeleting] = useState(false);
-  
+
   const [feedbackPopupStep, setFeedbackPopupStep] = useState<'NONE' | 'SELECT' | 'RATE_US'>('NONE');
   const [starRating, setStarRating] = useState(0);
 
@@ -174,15 +191,12 @@ export default function SettingsScreen() {
         animationType="fade"
         onRequestClose={() => setFeedbackPopupStep('NONE')}
       >
-        <Pressable 
-          style={styles.modalOverlay}
-          onPress={() => setFeedbackPopupStep('NONE')}
-        >
+        <Pressable style={styles.modalOverlay} onPress={() => setFeedbackPopupStep('NONE')}>
           <Pressable style={styles.modalContent}>
             <Text style={styles.modalTitle}>Feedback</Text>
             <Text style={styles.modalSubtitle}>Enjoying the app?</Text>
 
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.modalButton}
               onPress={() => setFeedbackPopupStep('RATE_US')}
             >
@@ -190,7 +204,7 @@ export default function SettingsScreen() {
               <RateUsIcon size={20} color="#113E55" />
             </TouchableOpacity>
 
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.modalButton}
               onPress={() => {
                 setFeedbackPopupStep('NONE');
@@ -211,19 +225,13 @@ export default function SettingsScreen() {
         animationType="fade"
         onRequestClose={() => setFeedbackPopupStep('NONE')}
       >
-        <Pressable 
-          style={styles.modalOverlay}
-          onPress={() => setFeedbackPopupStep('NONE')}
-        >
+        <Pressable style={styles.modalOverlay} onPress={() => setFeedbackPopupStep('NONE')}>
           <Pressable style={[styles.modalContent, { alignItems: 'center' }]}>
-
             <View style={{ marginBottom: 12 }}>
               <RateStarshipIcon size={52} />
             </View>
 
-            <Text style={styles.rateUsTitle}>
-              Are you loving your experience with us so far?
-            </Text>
+            <Text style={styles.rateUsTitle}>Are you loving your experience with us so far?</Text>
 
             <View style={styles.ratingBox}>
               <StarRating rating={starRating} onRatingChange={setStarRating} size={32} />
@@ -232,13 +240,14 @@ export default function SettingsScreen() {
 
             <View style={{ flex: 1 }} />
 
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.submitButton}
               onPress={async () => {
                 try {
-                  const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
-                  
-                  if (!isExpoGo && await StoreReview.hasAction()) {
+                  const isExpoGo =
+                    Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+
+                  if (!isExpoGo && (await StoreReview.hasAction())) {
                     await StoreReview.requestReview();
                   } else {
                     // Fallback to external linking if native in-app review is not available
@@ -246,7 +255,7 @@ export default function SettingsScreen() {
                       const androidPackageName = 'com.gatepassng.gms';
                       const marketUrl = `market://details?id=${androidPackageName}`;
                       const webUrl = `https://play.google.com/store/apps/details?id=${androidPackageName}`;
-                      
+
                       const canOpen = await Linking.canOpenURL(marketUrl);
                       if (canOpen) {
                         await Linking.openURL(marketUrl);
@@ -255,10 +264,10 @@ export default function SettingsScreen() {
                       }
                     } else if (Platform.OS === 'ios') {
                       // Use actual Apple App Store ID
-                      const appleAppId = '6766627688'; 
+                      const appleAppId = '6766627688';
                       const itunesUrl = `itms-apps://itunes.apple.com/app/id${appleAppId}?action=write-review`;
                       const webUrl = `https://apps.apple.com/app/id${appleAppId}?action=write-review`;
-                      
+
                       const canOpen = await Linking.canOpenURL(itunesUrl);
                       if (canOpen) {
                         await Linking.openURL(itunesUrl);
@@ -374,4 +383,3 @@ const styles = StyleSheet.create({
     fontFamily: 'UbuntuSans-Bold',
   },
 });
-

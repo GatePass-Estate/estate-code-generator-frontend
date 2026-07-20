@@ -12,10 +12,10 @@ export async function loginUser(email: string, password: string): Promise<LoginR
   try {
     const api = Api();
     // Temporary workaround: pass Jane's estate_id manually
-    const axiosRes = await api.post(`/auth/login`, { 
-      email, 
-      password, 
-      estate_id: "e7fb4d3b-6418-4729-9454-d34c7f069968" 
+    const axiosRes = await api.post(`/auth/login`, {
+      email,
+      password,
+      estate_id: 'e7fb4d3b-6418-4729-9454-d34c7f069968',
     });
     const data = axiosRes.data;
 

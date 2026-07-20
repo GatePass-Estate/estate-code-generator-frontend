@@ -55,16 +55,17 @@ export default function RatingFeedbackWeb() {
       {(['Suggestion', 'Issue'] as Tab[]).map((tab) => (
         <button
           key={tab}
-          className={`flex-1 h-10 rounded-full flex items-center justify-center transition ${activeTab === tab
-            ? 'bg-[#D1E6EF] text-primary'
-            : 'text-gray-400 hover:text-gray-600'
-            }`}
+          className={`flex-1 h-10 rounded-full flex items-center justify-center transition ${
+            activeTab === tab ? 'bg-[#D1E6EF] text-primary' : 'text-gray-400 hover:text-gray-600'
+          }`}
           onClick={() => {
             setActiveTab(tab);
             setSuggestionStep(1);
           }}
         >
-          <span className={`text-sm ${activeTab === tab ? 'font-inter-medium' : 'font-inter-regular'}`}>
+          <span
+            className={`text-sm ${activeTab === tab ? 'font-inter-medium' : 'font-inter-regular'}`}
+          >
             {tab}
           </span>
         </button>
@@ -74,7 +75,9 @@ export default function RatingFeedbackWeb() {
 
   const renderIssueForm = () => (
     <div className="flex flex-col flex-1">
-      <h2 className="text-[28px] font-ubuntu-medium text-white text-center mb-6">How can we help you?</h2>
+      <h2 className="text-[28px] font-ubuntu-medium text-white text-center mb-6">
+        How can we help you?
+      </h2>
       {renderTabs()}
 
       <div className="bg-white/45 rounded-2xl p-5 mb-4 flex-1 flex flex-col min-h-[220px]">
@@ -90,7 +93,8 @@ export default function RatingFeedbackWeb() {
       </div>
 
       <p className="text-[13px] font-inter-regular text-[#113E55] text-justify mt-6 mb-8 px-4">
-        By sending, you allow Gatepass to review related technical info to help address your feedback
+        By sending, you allow Gatepass to review related technical info to help address your
+        feedback
       </p>
 
       <button
@@ -104,7 +108,7 @@ export default function RatingFeedbackWeb() {
               liked: '',
               improvement: '',
               description: issueText,
-              attachment_url: ''
+              attachment_url: '',
             });
             setSuggestionStep(4);
             setActiveTab('Suggestion');
@@ -119,7 +123,7 @@ export default function RatingFeedbackWeb() {
         {isLoading ? (
           <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
         ) : (
-          "Submit Feedback"
+          'Submit Feedback'
         )}
       </button>
     </div>
@@ -133,10 +137,14 @@ export default function RatingFeedbackWeb() {
             <Icon name="rocket" size={32} color="#FFF" />
           </div>
           <h2 className="text-2xl font-ubuntu-bold text-primary text-center mb-4">
-            Thank you for<br />your feedback!
+            Thank you for
+            <br />
+            your feedback!
           </h2>
           <p className="text-[15px] font-inter-regular text-gray-500 text-center mb-auto leading-relaxed">
-            We review every submission to<br />make Gatepass for everyone.
+            We review every submission to
+            <br />
+            make Gatepass for everyone.
           </p>
 
           <button
@@ -151,16 +159,24 @@ export default function RatingFeedbackWeb() {
 
     return (
       <div className="flex flex-col flex-1">
-        <h2 className="text-2xl font-ubuntu-bold text-primary text-center mb-6">We Value your Feedback</h2>
+        <h2 className="text-2xl font-ubuntu-bold text-primary text-center mb-6">
+          We Value your Feedback
+        </h2>
         {renderTabs()}
 
         <div className="bg-[#F7F9F9] rounded-2xl p-6 mb-8 flex-1 flex flex-col items-center justify-center min-h-[250px]">
           {suggestionStep === 1 && (
             <>
               <h3 className="text-base font-inter-medium text-primary text-center leading-relaxed">
-                How will you rate your<br />overall experience with<br />Gatepass
+                How will you rate your
+                <br />
+                overall experience with
+                <br />
+                Gatepass
               </h3>
-              <p className="text-sm font-inter-regular text-gray-500 text-center mt-2">(1-Poor, 5-Excellent)</p>
+              <p className="text-sm font-inter-regular text-gray-500 text-center mt-2">
+                (1-Poor, 5-Excellent)
+              </p>
               <div className="mt-8">
                 <StarRating rating={rating} onRatingChange={setRating} size={32} />
               </div>
@@ -214,7 +230,7 @@ export default function RatingFeedbackWeb() {
                     liked: likeMost,
                     improvement: improve,
                     description: '',
-                    attachment_url: ''
+                    attachment_url: '',
                   });
                   setSuggestionStep(4);
                 } catch (error: any) {
@@ -229,8 +245,10 @@ export default function RatingFeedbackWeb() {
           >
             {isLoading ? (
               <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            ) : suggestionStep === 3 ? (
+              'Submit'
             ) : (
-              suggestionStep === 3 ? 'Submit' : 'Next'
+              'Next'
             )}
           </button>
         </div>
@@ -244,7 +262,10 @@ export default function RatingFeedbackWeb() {
       <div className="h-20 flex flex-row items-center justify-center shrink-0 relative w-full mt-4">
         {suggestionStep !== 4 && (
           <>
-            <button onClick={handleBackPress} className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white hover:opacity-80 transition cursor-pointer absolute left-4 z-10">
+            <button
+              onClick={handleBackPress}
+              className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white hover:opacity-80 transition cursor-pointer absolute left-4 z-10"
+            >
               <Icon name="chevron-back" size={24} color="#FFF" />
             </button>
             <div className="flex flex-row items-center justify-center">
