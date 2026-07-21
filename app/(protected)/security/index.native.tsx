@@ -1,6 +1,6 @@
-import { useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import {
   ActivityIndicator,
   Alert,
@@ -46,8 +46,8 @@ type VerificationMode = 'enter' | 'scan';
 function InvalidCodeOverlay({ onClose }: { onClose: () => void }) {
   const securityLayout = useSecurityResponsiveLayout();
   const closeSize = securityLayout.scaleValue(32);
-  const invalidCardTop = securityLayout.scaleValue(172);
-  const invalidCloseGap = securityLayout.scaleValue(48);
+  const invalidCardTop = securityLayout.scaleValue(190);
+  const invalidCloseGap = securityLayout.scaleValue(44);
 
   return (
     <Modal
@@ -117,11 +117,18 @@ export default function SecurityVerificationMobile() {
   const [isRequestingPermission, setIsRequestingPermission] = useState(false);
   const [permission, requestPermission] = useCameraPermissions();
   const inputs = useRef<InputRefsStorage>({});
+  const scanLockRef = useRef(false);
   const router = useRouter();
 
   const setInputRef = (el: TextInput | null, index: number) => {
     if (el) inputs.current[index] = el;
   };
+
+  useFocusEffect(
+    useCallback(() => {
+      scanLockRef.current = false;
+    }, [])
+  );
 
   const showInvalidOverlay = (entered: string, message: string) => {
     setInvalidCode(entered);
@@ -212,12 +219,15 @@ export default function SecurityVerificationMobile() {
   };
 
   const handleScan = ({ data }: { data: string }) => {
-    if (isSubmitting) return;
+    if (isSubmitting || scanLockRef.current) return;
+
     const scanned = data
       .replace(/[^0-9a-zA-Z]/g, '')
       .toUpperCase()
       .slice(-6);
+
     if (scanned.length === 6) {
+      scanLockRef.current = true;
       setCode(scanned.split(''));
       void validateEnteredCode(scanned);
     }
@@ -383,7 +393,7 @@ export default function SecurityVerificationMobile() {
   );
 
   return (
-    <SafeAreaView style={sharedStyles.container}>
+    <SafeAreaView style={[sharedStyles.container, styles.screenBackground]}>
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={securityLayout.frameStyle}>
@@ -460,6 +470,7 @@ export default function SecurityVerificationMobile() {
       {invalidCode ? (
         <InvalidCodeOverlay
           onClose={() => {
+            scanLockRef.current = false;
             setInvalidCode('');
             setErrorMessage('');
             setCode(EMPTY_CODE);
@@ -471,6 +482,9 @@ export default function SecurityVerificationMobile() {
 }
 
 const styles = StyleSheet.create({
+  screenBackground: {
+    backgroundColor: '#F6F8F7',
+  },
   keyboardScrollContent: {
     flexGrow: 1,
   },
@@ -802,11 +816,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   overlayBackdrop: {
-    backgroundColor: 'rgba(17, 62, 85, 0.36)',
+    backgroundColor: 'rgba(0, 0, 0, 0.58)',
     flex: 1,
   },
   invalidOverlayContent: {
     alignItems: 'center',
+    elevation: 20,
+    zIndex: 20,
   },
   invalidCard: {
     alignItems: 'center',
@@ -825,9 +841,11 @@ const styles = StyleSheet.create({
   invalidCloseButton: {
     alignItems: 'center',
     borderRadius: 10000,
+    elevation: 24,
     height: 32,
     justifyContent: 'center',
     width: 32,
+    zIndex: 24,
   },
   invalidIllustration: {
     height: 96,
