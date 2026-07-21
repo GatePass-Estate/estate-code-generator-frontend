@@ -18,36 +18,11 @@ import {
 } from '@/src/assets/svgs';
 import ScreenHeader from '@/src/components/mobile/ScreenHeader';
 import { deleteCode, getAllCodes } from '@/src/lib/api/codes';
-import { parseLogDate } from '@/src/lib/helpers';
+import { formatInviteClockTime, formatInviteScheduleDate } from '@/src/lib/helpers';
 import { useAndroidBottomInset } from '@/src/hooks/useAndroidBottomInset';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { Codes } from '@/src/types/codes';
 import { sharedStyles } from '@/src/theme/styles';
-
-/** Format calendar date from API UTC datetimes (e.g. ``2026-07-25 14:00:00.000+0000``). */
-const formatScheduleDate = (value?: string | null) => {
-  if (!value) return '—';
-  const date = parseLogDate(value);
-  if (Number.isNaN(date.getTime())) return value;
-  const weekday = date.toLocaleString('en-GB', { weekday: 'long', timeZone: 'UTC' });
-  const day = date.getUTCDate();
-  const month = date.toLocaleString('en-GB', { month: 'long', timeZone: 'UTC' });
-  const year = date.getUTCFullYear();
-  return `${weekday}, ${day} ${month} ${year}`;
-};
-
-/** Clock time: keep ``HH:MM`` windows as-is; format datetimes in UTC to match API. */
-const formatTime = (value?: string | null) => {
-  if (!value) return '—';
-  const trimmed = value.trim();
-  if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(trimmed)) {
-    const [h, m] = trimmed.split(':');
-    return `${h.padStart(2, '0')}:${m.padStart(2, '0')}`;
-  }
-  const date = parseLogDate(trimmed);
-  if (Number.isNaN(date.getTime())) return trimmed;
-  return `${String(date.getUTCHours()).padStart(2, '0')}:${String(date.getUTCMinutes()).padStart(2, '0')}`;
-};
 
 const capitalizeWords = (value: string) =>
   value
@@ -232,13 +207,13 @@ export default function UpcomingInviteScreen() {
                 </View>
                 <DetailRow
                   label="Start Date"
-                  primary={formatScheduleDate(periodStart)}
-                  secondary={formatTime(periodStart)}
+                  primary={formatInviteScheduleDate(periodStart)}
+                  secondary={formatInviteClockTime(periodStart)}
                 />
                 <DetailRow
                   label="End Date"
-                  primary={formatScheduleDate(periodEnd)}
-                  secondary={formatTime(periodEnd)}
+                  primary={formatInviteScheduleDate(periodEnd)}
+                  secondary={formatInviteClockTime(periodEnd)}
                 />
               </View>
             </View>
@@ -252,8 +227,8 @@ export default function UpcomingInviteScreen() {
                       Validity Window
                     </Text>
                   </View>
-                  <DetailRow label="Start Hour" primary={formatTime(windowStart)} />
-                  <DetailRow label="End Hour" primary={formatTime(windowEnd)} />
+                  <DetailRow label="Start Hour" primary={formatInviteClockTime(windowStart)} />
+                  <DetailRow label="End Hour" primary={formatInviteClockTime(windowEnd)} />
                 </View>
               </View>
             ) : null}

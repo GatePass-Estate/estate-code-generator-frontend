@@ -17,21 +17,15 @@ import { getAllCodes } from '@/src/lib/api/codes';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { VisitorLogEntry } from '@/src/types/accessLogs';
 import { Codes } from '@/src/types/codes';
-import { formatDateWithOrdinal, groupLogsByMonth, parseLogDate } from '@/src/lib/helpers';
+import {
+  formatPastHistoryVisitDate,
+  formatUpcomingInviteCardDate,
+  groupLogsByMonth,
+  parseLogDate,
+} from '@/src/lib/helpers';
 import { sharedStyles, TAB_BAR_BASE_HEIGHT } from '@/src/theme/styles';
 
 type HistoryMode = 'past' | 'upcoming';
-
-const formatUpcomingDate = (value?: string | null) => {
-  if (!value) return 'Scheduled';
-  const date = parseLogDate(value);
-  if (Number.isNaN(date.getTime())) return value;
-  const day = date.getDate();
-  const month = date.toLocaleString('en-GB', { month: 'long' });
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  return `${day} ${month} ${hours}:${minutes}`;
-};
 
 /** Keep the latest access event per hashed code. */
 function dedupeByCode(entries: VisitorLogEntry[]) {
@@ -148,7 +142,7 @@ function PastHistoryCard({
     >
       <View className="flex-1 gap-0.5 pr-3">
         <Text className="font-inter-regular text-[11.2px] text-[#878686]">
-          {formatDateWithOrdinal(parseLogDate(entry.visit_time))}
+          {formatPastHistoryVisitDate(entry.visit_time)}
         </Text>
         <Text className="text-sm font-inter-light text-[#0A1F29]">{entry.visitor_fullname}</Text>
         <Text className="text-[11.2px] font-inter-regular capitalize text-[#878686]">
@@ -173,7 +167,7 @@ function UpcomingHistoryCard({ entry, onPress }: { entry: Codes; onPress: () => 
     >
       <View className="flex-1 gap-0.5">
         <Text className="font-inter-regular text-[9px] leading-[14px] text-[#878686] tracking-[-0.2px]">
-          {formatUpcomingDate(scheduleDate)}
+          {formatUpcomingInviteCardDate(scheduleDate)}
         </Text>
         <Text className="text-sm font-inter-light text-[#0A1F29] leading-[17px]">
           {entry.visitor_fullname}
@@ -271,7 +265,7 @@ export default function HistoryTabScreen() {
   );
 
   const groupedPast = useMemo(
-    () => groupLogsByMonth(pastLogs, (log) => log.visit_time),
+    () => groupLogsByMonth(pastLogs, (log) => log.visit_time, { utc: true }),
     [pastLogs]
   );
 

@@ -21,7 +21,7 @@ import {
 } from '@/src/assets/svgs';
 import ScreenHeader from '@/src/components/mobile/ScreenHeader';
 import { generateCode } from '@/src/lib/api/codes';
-import { timeCalc } from '@/src/lib/helpers';
+import { formatInvitePeriodDisplay } from '@/src/lib/helpers';
 import { useAndroidBottomInset } from '@/src/hooks/useAndroidBottomInset';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { GenderType, RelationshipType } from '@/src/types/general';
@@ -288,7 +288,7 @@ export default function SetAccessCodeDurationScreen() {
         'visitor'
       );
 
-      const { formattedDate, timeframe } = timeCalc(result.valid_until);
+      const { formattedDate, timeframe } = formatInvitePeriodDisplay(periodStart, endDate);
       router.push({
         pathname: '/invite',
         params: {

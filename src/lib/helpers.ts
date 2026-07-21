@@ -364,18 +364,85 @@ export const parseLogDate = (value: string): Date => {
   return new Date(iso);
 };
 
+/**
+ * Past history card — UTC calendar day from ``visit_time`` (date only; time is on details)
+ * e.g. ``2026-07-14T23:35:33.854563Z`` → ``14th July 2026``
+ */
+export const formatPastHistoryVisitDate = (value?: string | null): string => {
+  if (!value) return '—';
+  const date = parseLogDate(value);
+  if (Number.isNaN(date.getTime())) return value;
+  const d = date.getUTCDate();
+  const m = monthNames[date.getUTCMonth()];
+  const y = date.getUTCFullYear();
+  return `${d}${ordinalSuffix(d)} ${m} ${y}`;
+};
+
+/**
+ * Upcoming history card — UTC from ``validity_period.start``
+ * e.g. ``2026-07-25 14:00:00.000+0000`` → ``25 July 14:00``
+ */
+export const formatUpcomingInviteCardDate = (value?: string | null): string => {
+  if (!value) return 'Scheduled';
+  const date = parseLogDate(value);
+  if (Number.isNaN(date.getTime())) return value;
+  const day = date.getUTCDate();
+  const month = date.toLocaleString('en-GB', { month: 'long', timeZone: 'UTC' });
+  const hours = String(date.getUTCHours()).padStart(2, '0');
+  const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+  return `${day} ${month} ${hours}:${minutes}`;
+};
+
+/**
+ * Upcoming invite detail — calendar date in UTC
+ * e.g. ``2026-07-25 14:00:00.000+0000`` → ``Saturday, 25 July 2026``
+ */
+export const formatInviteScheduleDate = (value?: string | null): string => {
+  if (!value) return '—';
+  const date = parseLogDate(value);
+  if (Number.isNaN(date.getTime())) return value;
+  const weekday = date.toLocaleString('en-GB', { weekday: 'long', timeZone: 'UTC' });
+  const day = date.getUTCDate();
+  const month = date.toLocaleString('en-GB', { month: 'long', timeZone: 'UTC' });
+  const year = date.getUTCFullYear();
+  return `${weekday}, ${day} ${month} ${year}`;
+};
+
+/**
+ * Upcoming invite clock — keep ``HH:MM`` windows as-is; datetimes in UTC
+ * e.g. ``14:00`` or ``2026-07-25 14:00:00.000+0000`` → ``14:00``
+ */
+export const formatInviteClockTime = (value?: string | null): string => {
+  if (!value) return '—';
+  const trimmed = value.trim();
+  if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(trimmed)) {
+    const [h, m] = trimmed.split(':');
+    return `${h.padStart(2, '0')}:${m.padStart(2, '0')}`;
+  }
+  const date = parseLogDate(trimmed);
+  if (Number.isNaN(date.getTime())) return trimmed;
+  return `${String(date.getUTCHours()).padStart(2, '0')}:${String(date.getUTCMinutes()).padStart(2, '0')}`;
+};
+
 export type MonthGroup<T> = {
   label: string;
   items: T[];
 };
 
 /** Group items by calendar month (newest month first; items newest-first within each month). */
-export function groupLogsByMonth<T>(logs: T[], getDate: (item: T) => string): MonthGroup<T>[] {
+export function groupLogsByMonth<T>(
+  logs: T[],
+  getDate: (item: T) => string,
+  options?: { utc?: boolean }
+): MonthGroup<T>[] {
+  const useUtc = options?.utc ?? false;
   const groups = new Map<string, T[]>();
 
   logs.forEach((log) => {
     const date = parseLogDate(getDate(log));
-    const key = `${date.getFullYear()}-${date.getMonth()}`;
+    const key = useUtc
+      ? `${date.getUTCFullYear()}-${date.getUTCMonth()}`
+      : `${date.getFullYear()}-${date.getMonth()}`;
     const existing = groups.get(key) ?? [];
     existing.push(log);
     groups.set(key, existing);
@@ -385,9 +452,11 @@ export function groupLogsByMonth<T>(logs: T[], getDate: (item: T) => string): Mo
     .sort(([a], [b]) => b.localeCompare(a))
     .map(([key, items]) => {
       const [year, month] = key.split('-').map(Number);
-      const label = new Date(year, month, 1)
-        .toLocaleString('en-US', { month: 'long' })
-        .toUpperCase();
+      const label = useUtc
+        ? new Date(Date.UTC(year, month, 1))
+            .toLocaleString('en-US', { month: 'long', timeZone: 'UTC' })
+            .toUpperCase()
+        : new Date(year, month, 1).toLocaleString('en-US', { month: 'long' }).toUpperCase();
 
       return {
         label,
@@ -398,9 +467,10 @@ export function groupLogsByMonth<T>(logs: T[], getDate: (item: T) => string): Mo
     });
 }
 
+/** Access log card "Generated:" label — UTC calendar day from API ``created_at``. */
 export const formatGeneratedOnDate = (date: Date): string => {
-  const d = date.getDate();
-  const m = monthNames[date.getMonth()];
+  const d = date.getUTCDate();
+  const m = monthNames[date.getUTCMonth()];
   return `${d}${ordinalSuffix(d)} of ${m}`;
 };
 
@@ -463,6 +533,37 @@ export const timeCalc = (
   }
 
   return { formattedDate, timeframe, timeLeftMinutes };
+};
+
+/**
+ * Invite details from the actual start/end the user selected (local picker values).
+ * Prefer this over ``timeCalc(valid_until)``, which invents a 1-hour window from the end only.
+ */
+export const formatInvitePeriodDisplay = (
+  start: Date,
+  end: Date
+): { formattedDate: string; timeframe: string } => {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const formatDate = (d: Date) => `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+  const formatTime = (d: Date) =>
+    d
+      .toLocaleTimeString(undefined, {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      })
+      .replace(/\s+/g, '')
+      .toLowerCase();
+
+  const sameDay =
+    start.getFullYear() === end.getFullYear() &&
+    start.getMonth() === end.getMonth() &&
+    start.getDate() === end.getDate();
+
+  return {
+    formattedDate: sameDay ? formatDate(start) : `${formatDate(start)} - ${formatDate(end)}`,
+    timeframe: `${formatTime(start)} to ${formatTime(end)}`,
+  };
 };
 
 export const getRoleIcon = (role: UserRolesType) => {

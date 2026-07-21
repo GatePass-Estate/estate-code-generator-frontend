@@ -6,20 +6,10 @@ import AccessHistoryDetail, {
   AccessHistoryTimelineEvent,
 } from '@/src/components/mobile/AccessHistoryDetail';
 import { getMyVisitorAccessLogByCode } from '@/src/lib/api/accessLogs';
-import { parseLogDate } from '@/src/lib/helpers';
+import { formatAccessLogTimestamp, parseLogDate } from '@/src/lib/helpers';
 import { useAndroidBottomInset } from '@/src/hooks/useAndroidBottomInset';
 import { GenderType } from '@/src/types/general';
 import { sharedStyles } from '@/src/theme/styles';
-
-const formatTimelineDate = (value: string) => {
-  const date = parseLogDate(value);
-  const day = date.getDate();
-  const month = date.toLocaleString('en-GB', { month: 'long' });
-  const year = date.getFullYear();
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  return `${day} ${month} ${year}, ${hours}:${minutes}`;
-};
 
 export default function HistoryDetailScreen() {
   const navigation = useNavigation();
@@ -90,7 +80,7 @@ export default function HistoryDetailScreen() {
           .map((item, index) => ({
             id: item.id || `visit-${index}`,
             title: 'Access Granted',
-            timestamp: formatTimelineDate(item.visit_time),
+            timestamp: formatAccessLogTimestamp(parseLogDate(item.visit_time)),
           }))
       );
     } catch (e: any) {
