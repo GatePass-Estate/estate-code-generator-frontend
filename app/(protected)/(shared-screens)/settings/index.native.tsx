@@ -14,15 +14,12 @@ import {
 } from 'react-native';
 import { router, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Icon from 'react-native-vector-icons/Ionicons';
-import { useState } from 'react';
+import { MaterialIcons } from '@expo/vector-icons';
+import { useState, ReactNode } from 'react';
 import { useAuth } from '@/src/hooks/useAuthContext';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { deleteAccount } from '@/src/lib/api/user';
-import Back from '@/src/components/mobile/Back';
 import { sharedStyles } from '@/src/theme/styles';
-import { LinearGradient } from 'expo-linear-gradient';
-import icons from '@/src/constants/icons';
 import StarRating from '@/src/components/common/StarRating';
 import {
   RateUsIcon,
@@ -31,50 +28,75 @@ import {
 } from '@/src/components/common/FeedbackIcons';
 import * as StoreReview from 'expo-store-review';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
+import ScreenHeader from '@/src/components/mobile/ScreenHeader';
+import {
+  AccountSecurityIcon,
+  DeleteAccountIcon,
+  IncidentReportIcon,
+  LinkedDevicesIcon,
+  LogOutIcon,
+  MyProfileIcon,
+  NavigateNextIcon,
+  PrivacyPolicyIcon,
+  RatingsFeedbackIcon,
+  TermsOfServiceIcon,
+} from '@/src/assets/svgs';
+
+function SectionTitle({ children, first = false }: { children: string; first?: boolean }) {
+  return (
+    <Text className={`text-[10px] font-inter-medium uppercase tracking-wider text-[#113E55] mb-2 ${first ? '' : 'mt-[32px]'}`}>
+      {children}
+    </Text>
+  );
+}
+
 function SettingsRow({
+  icon,
   label,
   onPress,
-  showChevron = true,
-  leftIcon,
+  showNavigateNext = true,
 }: {
+  icon: ReactNode;
   label: string;
   onPress: () => void;
-  showChevron?: boolean;
-  leftIcon?: React.ReactNode;
+  showNavigateNext?: boolean;
 }) {
   return (
     <Pressable
       onPress={onPress}
-      className="flex-row items-center justify-between border border-[#CEE5ED] rounded-[8px] px-4 h-[52px] bg-white "
+      className="flex-row items-center justify-between rounded-[8px] border-[0.5px] border-[#CEE5ED] bg-white px-4 py-[18px] mb-2"
     >
-      <View className="flex-row items-center gap-3">
-        {leftIcon}
-        <Text className="text-[13px] font-inter-regular text-primary">{label}</Text>
+      <View className="flex-row items-center gap-4">
+        {icon}
+        <Text className="text-sm font-inter-light text-primary">{label}</Text>
       </View>
-      {showChevron ? (
-        <View className="w-5 h-5">
-          <Image source={icons.slideUp} style={{ width: 20, height: 20 }} resizeMode="contain" />
-        </View>
-      ) : null}
+      {showNavigateNext ? <NavigateNextIcon /> : null}
     </Pressable>
   );
 }
 
-function SectionTitle({ children }: { children: string }) {
+function AdminAccessButton({ onPress }: { onPress: () => void }) {
   return (
-    <Text className="text-xs font-inter-medium uppercase tracking-wider text-grey mt-6 mb-2">
-      {children}
-    </Text>
+    <Pressable
+      onPress={onPress}
+      className="flex-row items-center justify-between rounded-[8px] bg-[#113E55] px-4 py-[18px] mb-6"
+    >
+      <Text className="text-[13px] font-inter-regular text-[#EFF1F1]">Do More as an Admin</Text>
+      <NavigateNextIcon color="#FFFFFF" width={20} height={20} />
+    </Pressable>
   );
 }
 
 export default function SettingsScreen() {
   const { signOut } = useAuth();
   const user_id = useUserStore((s) => s.user_id);
+  const role = useUserStore((s) => s.role);
   const [deleting, setDeleting] = useState(false);
 
   const [feedbackPopupStep, setFeedbackPopupStep] = useState<'NONE' | 'SELECT' | 'RATE_US'>('NONE');
   const [starRating, setStarRating] = useState(0);
+
+  const isAdmin = role === 'admin' || role === 'primary_admin';
 
   const confirmDelete = () => {
     Alert.alert(
@@ -102,86 +124,100 @@ export default function SettingsScreen() {
     );
   };
 
+  const iconColor = '#113E55';
+
   return (
-    <SafeAreaView style={[sharedStyles.container, sharedStyles.modalContainer]}>
+    <SafeAreaView style={[sharedStyles.container, sharedStyles.modalContainer, { backgroundColor: '#F6F7F7' }]}>
       <Stack.Screen options={{ headerShown: false }} />
-      <Back type="short-arrow" />
+      
+      <Pressable
+        onPress={() => router.back()}
+        className="h-[30px] w-[30px] items-center justify-center rounded-full bg-[#EFF1F1]"
+      >
+        <MaterialIcons name="keyboard-arrow-left" size={24} color="#113E55" />
+      </Pressable>
+
+      <ScreenHeader
+        containerClassName="mt-6 mb-6"
+        titleClassName="text-[21px] font-ubuntu-semibold text-[#113E55]"
+        title="More"
+        subtitle="Adjust Gatepass to your preference, manage account."
+      />
 
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ paddingBottom: 46, flexGrow: 1 }}
         showsVerticalScrollIndicator={false}
       >
-        <Text className=" text-primary mb-1 font-ubuntu-bold mt-7" style={{ fontSize: 22 }}>
-          Settings
-        </Text>
+        {isAdmin && <AdminAccessButton onPress={() => router.replace('/admin')} />}
 
-        <Text className="text-[10px] font-inter-medium uppercase tracking-wider text-grey mt-6 mb-3">
-          Account
-        </Text>
-        <View className="flex flex-col gap-2">
-          <SettingsRow label="My Profile" onPress={() => router.push('/profile')} />
-          <SettingsRow label="Account Security" onPress={() => router.push('/account-security')} />
-        </View>
+        <SectionTitle first={!isAdmin}>Account</SectionTitle>
+        <SettingsRow
+          icon={<MyProfileIcon color={iconColor} />}
+          label="My Profile"
+          onPress={() => router.push('/profile')}
+        />
+        <SettingsRow
+          icon={<AccountSecurityIcon color={iconColor} />}
+          label="Account Security"
+          onPress={() => router.push('/account-security')}
+        />
+        <SettingsRow
+          icon={<IncidentReportIcon color={iconColor} />}
+          label="Incident Report"
+          onPress={() => Alert.alert('Coming soon', 'Incident reporting is not available yet.')}
+        />
+        <SettingsRow
+          icon={<LinkedDevicesIcon color={iconColor} />}
+          label="Linked Devices"
+          onPress={() => Alert.alert('Coming soon', 'Linked devices is not available yet.')}
+        />
 
-        <Text className="text-[10px] font-inter-medium uppercase tracking-wider text-grey mt-12 mb-2">
-          About
-        </Text>
-        <View className="flex flex-col gap-2">
-          <SettingsRow
-            label="Terms of Service"
-            onPress={() =>
-              router.push({
-                pathname: '/auth/tos',
-                params: { readonly: 'true' },
-              })
-            }
-          />
-          <SettingsRow
-            label="Privacy Policy"
-            onPress={() =>
-              router.push({
-                pathname: '/auth/data-protection-policy',
-                params: { source: 'settings' },
-              })
-            }
-          />
-        </View>
+        <SectionTitle>About</SectionTitle>
+        <SettingsRow
+          icon={<TermsOfServiceIcon color={iconColor} />}
+          label="Terms of Service"
+          onPress={() => router.push({ pathname: '/auth/tos', params: { readonly: 'true' } })}
+        />
+        <SettingsRow
+          icon={<PrivacyPolicyIcon color={iconColor} />}
+          label="Privacy Policy"
+          onPress={() => router.push({ pathname: '/auth/data-protection-policy', params: { source: 'settings' } })}
+        />
+        <SettingsRow
+          icon={<RatingsFeedbackIcon color={iconColor} />}
+          label="Rating and Feedback"
+          onPress={() => setFeedbackPopupStep('SELECT')}
+        />
 
-        <Text className="text-[10px] font-inter-medium uppercase tracking-wider text-grey mt-12 mb-2">
-          Feedback
-        </Text>
-        <View className="flex flex-col gap-2">
-          <SettingsRow
-            label="Rating and Feedback"
-            onPress={() => setFeedbackPopupStep('SELECT')}
-            leftIcon={<Icon name="star-outline" size={20} color="#2A4B5A" />}
-          />
-        </View>
-
-        <Text className="text-[10px] font-inter-medium uppercase tracking-wider text-grey mt-[42px] mb-2">
-          Sign out
-        </Text>
-        <Pressable
+        <SectionTitle>Sign out</SectionTitle>
+        <SettingsRow
+          icon={<LogOutIcon color={iconColor} />}
+          label="Log Out"
           onPress={signOut}
-          className="flex-row items-center  border border-[#CEE5ED] rounded-[8px] px-4 h-[52px] bg-white"
-        >
-          <Text className="text-[13px] font-inter-regular text-primary text-center">Log Out</Text>
-        </Pressable>
+          showNavigateNext={false}
+        />
+        <SettingsRow
+          icon={<LogOutIcon color={iconColor} />}
+          label="Log Out of All Devices"
+          onPress={signOut}
+          showNavigateNext={false}
+        />
 
-        <View className="mt-auto pt-8">
-          <Pressable
-            onPress={confirmDelete}
-            disabled={deleting}
-            className="px-4 h-[52px] flex justify-center items-center"
-          >
-            {deleting ? (
-              <ActivityIndicator color="#F46036" />
-            ) : (
-              <Text className="text-[15px] font-inter-medium text-[#F46036]">Delete Account</Text>
-            )}
-          </Pressable>
-        </View>
+        <Pressable
+          onPress={confirmDelete}
+          disabled={deleting}
+          className="flex-row items-center gap-4 rounded-[8px] border border-[#E30404] bg-white px-4 py-[18px] mt-6"
+        >
+          {deleting ? (
+            <ActivityIndicator color="#E30404" />
+          ) : (
+            <>
+              <DeleteAccountIcon />
+              <Text className="text-[13px] font-inter-regular text-[#E30404]">Delete Account</Text>
+            </>
+          )}
+        </Pressable>
       </ScrollView>
 
       {/* Select Feedback Type Modal */}
@@ -383,3 +419,4 @@ const styles = StyleSheet.create({
     fontFamily: 'UbuntuSans-Bold',
   },
 });
+

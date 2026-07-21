@@ -177,7 +177,7 @@ export default function RatingFeedbackNative() {
           setIsLoading(true);
           try {
             let uploadedUrl = '';
-            
+
             if (images.length > 0) {
               const formData = new FormData();
               formData.append('file', {
@@ -186,14 +186,17 @@ export default function RatingFeedbackNative() {
                 name: 'upload.jpg',
               } as any);
               formData.append('upload_preset', 'GatePass_Feedback');
-              
-              const uploadRes = await fetch('https://api.cloudinary.com/v1_1/dcozenahn/image/upload', {
-                method: 'POST',
-                body: formData,
-              });
-              
+
+              const uploadRes = await fetch(
+                'https://api.cloudinary.com/v1_1/dcozenahn/image/upload',
+                {
+                  method: 'POST',
+                  body: formData,
+                }
+              );
+
               if (!uploadRes.ok) throw new Error('Failed to upload image to Cloudinary');
-              
+
               const uploadData = await uploadRes.json();
               uploadedUrl = uploadData.secure_url;
               console.log('Cloudinary Native Upload URL:', uploadedUrl);
