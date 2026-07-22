@@ -7,8 +7,10 @@ import {
   Pressable,
   ActivityIndicator,
   RefreshControl,
+  AppState,
+  type AppStateStatus,
 } from 'react-native';
-import { Stack, router, useFocusEffect } from 'expo-router';
+import { Stack, router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ScreenHeader from '@/src/components/mobile/ScreenHeader';
 import { ChevronRightIcon, HistoryRefreshIcon } from '@/src/assets/svgs';
@@ -26,6 +28,11 @@ import {
 import { sharedStyles, TAB_BAR_BASE_HEIGHT } from '@/src/theme/styles';
 
 type HistoryMode = 'past' | 'upcoming';
+
+function resolveHistoryMode(tab?: string | string[]): HistoryMode {
+  const value = Array.isArray(tab) ? tab[0] : tab;
+  return value === 'upcoming' ? 'upcoming' : 'past';
+}
 
 /** Keep the latest access event per hashed code. */
 function dedupeByCode(entries: VisitorLogEntry[]) {
@@ -184,7 +191,8 @@ function UpcomingHistoryCard({ entry, onPress }: { entry: Codes; onPress: () => 
 
 export default function HistoryTabScreen() {
   const { user_id } = useUserStore();
-  const [mode, setMode] = useState<HistoryMode>('past');
+  const params = useLocalSearchParams<{ tab?: string }>();
+  const [mode, setMode] = useState<HistoryMode>(() => resolveHistoryMode(params.tab));
   const [logs, setLogs] = useState<VisitorLogEntry[]>([]);
   const [upcomingCodes, setUpcomingCodes] = useState<Codes[]>([]);
   const [loading, setLoading] = useState(true);
@@ -242,8 +250,33 @@ export default function HistoryTabScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      const nextMode = resolveHistoryMode(params.tab);
+      setMode(nextMode);
       void fetchHistory({ silent: hasLoadedRef.current });
-    }, [fetchHistory])
+
+      // If you're already on History and return from Postman/background, focus won't
+      // re-run — refresh when the app becomes active again.
+      let previousState = AppState.currentState;
+      const onAppStateChange = (nextState: AppStateStatus) => {
+        if (previousState.match(/inactive|background/) && nextState === 'active') {
+          void fetchHistory({ silent: true });
+        }
+        previousState = nextState;
+      };
+      const subscription = AppState.addEventListener('change', onAppStateChange);
+
+      return () => subscription.remove();
+    }, [fetchHistory, params.tab])
+  );
+
+  const handleModeChange = useCallback(
+    (nextMode: HistoryMode) => {
+      setMode(nextMode);
+      if (nextMode === 'upcoming') {
+        void fetchHistory({ silent: true });
+      }
+    },
+    [fetchHistory]
   );
 
   const pastLogs = useMemo(
@@ -290,7 +323,7 @@ export default function HistoryTabScreen() {
       <ScreenHeader title="History" containerClassName="mt-[29px]" />
 
       <View style={{ flex: 1, paddingTop: 8 }}>
-        <HistoryModeTabs mode={mode} onChange={setMode} />
+        <HistoryModeTabs mode={mode} onChange={handleModeChange} />
 
         {loading ? (
           <View className="flex-1 items-center justify-center">
