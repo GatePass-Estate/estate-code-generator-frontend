@@ -14,7 +14,7 @@ export type User = {
   estate_id: string | null;
   household_id?: string | null;
   household_name?: string | null;
-  profile_picture_url?: string | null;
+  household_primary_resident?: string | null;
   status: boolean;
   created_at?: string | null;
   updated_at?: string | null;
@@ -57,20 +57,4 @@ export type UpdateUserRoleResponse = {
   estate_id: string;
   message: string;
   role: UserRolesType;
-};
-
-export type DocumentType = 'profile_picture' | 'id_card';
-export type DocumentStatus = 'pending' | 'active' | 'archived';
-
-export type DocumentMetadataItem = {
-  document_type: DocumentType;
-  content_type: string;
-  document_status?: DocumentStatus | null;
-  document_id?: string | null;
-  view_url?: string | null;
-  download_url?: string | null;
-};
-
-export type UserDocumentsMetadataResponse = {
-  documents: DocumentMetadataItem[];
 };

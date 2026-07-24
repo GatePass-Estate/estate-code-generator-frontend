@@ -1,17 +1,15 @@
-import { useCallback, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { Stack, useFocusEffect, useRouter } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import {
   ActivityIndicator,
   Alert,
   Image,
   Keyboard,
-  KeyboardAvoidingView,
   Linking,
   Modal,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -34,9 +32,8 @@ import ValidateCodeButton from '@/src/assets/icons/validate-code-button.svg';
 import VerifyCodeInputs from '@/src/assets/icons/verify-code-inputs.svg';
 import VerifyAccessCodeTitle from '@/src/assets/icons/verify-access-code-title.svg';
 import { validateCode } from '@/src/lib/api/codes';
-import { getUserById, getUserProfilePictureUrl } from '@/src/lib/api/user';
+import { getUserById } from '@/src/lib/api/user';
 import { sharedStyles } from '@/src/theme/styles';
-import { useSecurityResponsiveLayout } from '@/src/lib/securityResponsive';
 import { InputRefsStorage } from '@/src/types/general';
 
 const EMPTY_CODE = ['', '', '', '', '', ''];
@@ -44,61 +41,27 @@ const invalidCodeCard = require('@/src/assets/icons/invalid-code-card.png');
 type VerificationMode = 'enter' | 'scan';
 
 function InvalidCodeOverlay({ onClose }: { onClose: () => void }) {
-  const securityLayout = useSecurityResponsiveLayout();
-  const closeSize = securityLayout.scaleValue(32);
-  const invalidCardTop = securityLayout.scaleValue(190);
-  const invalidCloseGap = securityLayout.scaleValue(44);
-
   return (
-    <Modal
-      visible
-      transparent
-      animationType="fade"
-      statusBarTranslucent
-      navigationBarTranslucent
-      onRequestClose={onClose}
-    >
+    <Modal visible transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.overlayBackdrop}>
         <Pressable
           accessibilityLabel="Close invalid code message"
           onPress={onClose}
           style={StyleSheet.absoluteFill}
         />
-        <View style={[styles.invalidOverlayContent, { paddingTop: invalidCardTop }]}>
-          <View
-            style={[
-              styles.invalidCard,
-              {
-                borderRadius: securityLayout.scaleValue(40),
-                height: securityLayout.scaleValue(351),
-                width: securityLayout.scaleValue(331),
-              },
-            ]}
-          >
-            <Image
-              source={invalidCodeCard}
-              style={[
-                styles.invalidCardImage,
-                {
-                  height: securityLayout.scaleValue(351),
-                  width: securityLayout.scaleValue(331),
-                },
-              ]}
-            />
+        <View style={styles.invalidOverlayContent}>
+          <View style={styles.invalidCard}>
+            <Image source={invalidCodeCard} style={styles.invalidCardImage} />
           </View>
 
-          <View style={{ height: invalidCloseGap }} />
+          <View style={styles.invalidCloseSpacer} />
 
           <Pressable
             accessibilityLabel="Close invalid code message"
             onPress={onClose}
-            style={({ pressed }) => [
-              styles.invalidCloseButton,
-              { height: closeSize, width: closeSize },
-              pressed && styles.pressed,
-            ]}
+            style={({ pressed }) => [styles.invalidCloseButton, pressed && styles.pressed]}
           >
-            <InvalidCodeClose width={closeSize} height={closeSize} />
+            <InvalidCodeClose width={32} height={32} />
           </Pressable>
         </View>
       </View>
@@ -108,27 +71,18 @@ function InvalidCodeOverlay({ onClose }: { onClose: () => void }) {
 
 export default function SecurityVerificationMobile() {
   const insets = useSafeAreaInsets();
-  const securityLayout = useSecurityResponsiveLayout();
   const [mode, setMode] = useState<VerificationMode>('enter');
   const [code, setCode] = useState<string[]>(EMPTY_CODE);
   const [errorMessage, setErrorMessage] = useState('');
   const [invalidCode, setInvalidCode] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isRequestingPermission, setIsRequestingPermission] = useState(false);
   const [permission, requestPermission] = useCameraPermissions();
   const inputs = useRef<InputRefsStorage>({});
-  const scanLockRef = useRef(false);
   const router = useRouter();
 
   const setInputRef = (el: TextInput | null, index: number) => {
     if (el) inputs.current[index] = el;
   };
-
-  useFocusEffect(
-    useCallback(() => {
-      scanLockRef.current = false;
-    }, [])
-  );
 
   const showInvalidOverlay = (entered: string, message: string) => {
     setInvalidCode(entered);
@@ -148,7 +102,6 @@ export default function SecurityVerificationMobile() {
     try {
       const result = await validateCode(entered);
       const resident = await getUserById(result.user_id);
-      const residentProfilePictureUrl = await getUserProfilePictureUrl(result.user_id);
 
       router.push({
         pathname: '/security/result',
@@ -160,8 +113,6 @@ export default function SecurityVerificationMobile() {
           resident_address: resident?.home_address,
           resident_email: resident?.email,
           resident_phone_number: resident?.phone_number,
-          resident_household: resident?.household_name || resident?.household_id,
-          resident_profile_picture_url: residentProfilePictureUrl,
           code: result.hashed_code,
           receiver: result.receiver,
         },
@@ -219,60 +170,60 @@ export default function SecurityVerificationMobile() {
   };
 
   const handleScan = ({ data }: { data: string }) => {
-    if (isSubmitting || scanLockRef.current) return;
-
+    if (isSubmitting) return;
     const scanned = data
       .replace(/[^0-9a-zA-Z]/g, '')
       .toUpperCase()
       .slice(-6);
-
     if (scanned.length === 6) {
-      scanLockRef.current = true;
       setCode(scanned.split(''));
       void validateEnteredCode(scanned);
     }
   };
 
-  const cameraSettingsMessage =
-    Platform.OS === 'ios'
-      ? 'Open iPhone Settings, select Expo Go, then turn Camera back on.'
-      : 'Open Android Settings, select Expo Go, then turn Camera back on.';
-
   const handleCameraPermissionPress = async () => {
-    if (isRequestingPermission) return;
-
     const openAppSettings = async () => {
       try {
+        if (Platform.OS === 'ios') {
+          await Linking.openURL('app-settings:');
+          return;
+        }
+
         await Linking.openSettings();
       } catch {
-        try {
+        if (Platform.OS === 'ios') {
           await Linking.openURL('app-settings:');
-        } catch {
-          Alert.alert('Open camera settings', cameraSettingsMessage);
         }
       }
     };
 
-    const showBlockedAlert = () => {
-      Alert.alert('Camera access is blocked', cameraSettingsMessage, [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Try Open Settings', onPress: () => void openAppSettings() },
-      ]);
-    };
-
     if (permission && !permission.canAskAgain) {
-      showBlockedAlert();
+      Alert.alert(
+        'Camera access is blocked',
+        'Open iPhone Settings, select Expo Go, then turn Camera back on.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Try Open Settings', onPress: () => void openAppSettings() },
+        ]
+      );
       return;
     }
 
-    setIsRequestingPermission(true);
-    try {
-      const result = await requestPermission();
-      if (!result.granted && !result.canAskAgain) {
-        showBlockedAlert();
-      }
-    } finally {
-      setIsRequestingPermission(false);
+    if (permission?.status === 'denied') {
+      await openAppSettings();
+      return;
+    }
+
+    const result = await requestPermission();
+    if (!result.granted && !result.canAskAgain) {
+      Alert.alert(
+        'Camera access is blocked',
+        'Open iPhone Settings, select Expo Go, then turn Camera back on.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Try Open Settings', onPress: () => void openAppSettings() },
+        ]
+      );
     }
   };
 
@@ -352,25 +303,16 @@ export default function SecurityVerificationMobile() {
             <Text style={styles.permissionTitle}>Camera access needed</Text>
             <Text style={styles.permissionBody}>
               {permission && !permission.canAskAgain
-                ? cameraSettingsMessage
+                ? 'Camera access is blocked. Enable it in iPhone Settings to scan access codes.'
                 : 'Allow GatePass to scan access codes in this space.'}
             </Text>
             <Pressable
-              disabled={isRequestingPermission}
-              style={({ pressed }) => [
-                styles.permissionButton,
-                isRequestingPermission && styles.permissionButtonDisabled,
-                pressed && styles.pressed,
-              ]}
+              style={({ pressed }) => [styles.permissionButton, pressed && styles.pressed]}
               onPress={handleCameraPermissionPress}
             >
-              {isRequestingPermission ? (
-                <ActivityIndicator color="#113E55" size="small" />
-              ) : (
-                <Text style={styles.permissionButtonText}>
-                  {permission && !permission.canAskAgain ? 'Open Settings' : 'Allow Camera'}
-                </Text>
-              )}
+              <Text style={styles.permissionButtonText}>
+                {permission && !permission.canAskAgain ? 'Open Settings' : 'Allow Camera'}
+              </Text>
             </Pressable>
           </View>
         )}
@@ -393,84 +335,58 @@ export default function SecurityVerificationMobile() {
   );
 
   return (
-    <SafeAreaView style={[sharedStyles.container, styles.screenBackground]}>
+    <SafeAreaView style={sharedStyles.container}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      <View style={securityLayout.frameStyle}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={0}
-          style={StyleSheet.absoluteFill}
-        >
-          <ScrollView
-            contentContainerStyle={[
-              styles.keyboardScrollContent,
-              { minHeight: securityLayout.frameStyle.height },
-            ]}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
+      <View style={[styles.topBar, { paddingTop: Math.max(0, 81 - insets.top) }]}>
+        <IncomingGuestTitle width={209} height={33} style={styles.topBarTitle} />
+        <View style={styles.topBarActions}>
+          <Pressable
+            accessibilityLabel="Open access log"
+            hitSlop={8}
+            onPress={() => router.push('/security/history')}
+            style={({ pressed }) => [styles.topIconButton, pressed && styles.pressed]}
           >
-            <View style={securityLayout.canvasStyle}>
-              <View style={[styles.topBar, { paddingTop: Math.max(0, 81 - insets.top) }]}>
-                <IncomingGuestTitle width={209} height={33} style={styles.topBarTitle} />
-                <View style={styles.topBarActions}>
-                  <Pressable
-                    accessibilityLabel="Open recent activity"
-                    hitSlop={8}
-                    onPress={() => {}}
-                    style={({ pressed }) => [styles.topIconButton, pressed && styles.pressed]}
-                  >
-                    <Group863 width={42} height={42} style={styles.group863Icon} />
-                  </Pressable>
-                  <Pressable
-                    accessibilityLabel="Open more options"
-                    hitSlop={8}
-                    onPress={() => {}}
-                    style={({ pressed }) => [styles.topIconButton, pressed && styles.pressed]}
-                  >
-                    <Group862 width={42} height={42} style={styles.topActionIcon} />
-                  </Pressable>
-                </View>
-              </View>
-
-              <View style={styles.segmentedControl}>
-                <Rectangle5
-                  pointerEvents="none"
-                  width={229}
-                  height={40}
-                  style={styles.segmentedControlBackground}
-                />
-                <Pressable
-                  style={[styles.segmentButton, mode === 'enter' && styles.segmentButtonActive]}
-                  onPress={() => setMode('enter')}
-                >
-                  <EnterCodeSegmentLabel
-                    width={60}
-                    height={14}
-                    style={styles.enterCodeSegmentText}
-                  />
-                </Pressable>
-                <Pressable
-                  style={[styles.segmentButton, mode === 'scan' && styles.segmentButtonActive]}
-                  onPress={() => setMode('scan')}
-                >
-                  <ScanCodeSegmentLabel width={58} height={14} style={styles.scanCodeSegmentText} />
-                </Pressable>
-              </View>
-
-              <View style={styles.content}>
-                {mode === 'enter' ? renderEnterCode() : renderScanner()}
-              </View>
-              <View pointerEvents="none" style={styles.bottomIndicator} />
-            </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
+            <Group863 width={42} height={42} style={styles.group863Icon} />
+          </Pressable>
+          <Pressable
+            accessibilityLabel="Open more options"
+            hitSlop={8}
+            onPress={() => router.push('/security/more')}
+            style={({ pressed }) => [styles.topIconButton, pressed && styles.pressed]}
+          >
+            <Group862 width={42} height={42} style={styles.topActionIcon} />
+          </Pressable>
+        </View>
       </View>
+
+      <View style={styles.segmentedControl}>
+        <Rectangle5
+          pointerEvents="none"
+          width={229}
+          height={40}
+          style={styles.segmentedControlBackground}
+        />
+        <Pressable
+          style={[styles.segmentButton, mode === 'enter' && styles.segmentButtonActive]}
+          onPress={() => setMode('enter')}
+        >
+          <EnterCodeSegmentLabel width={60} height={14} style={styles.enterCodeSegmentText} />
+        </Pressable>
+        <Pressable
+          style={[styles.segmentButton, mode === 'scan' && styles.segmentButtonActive]}
+          onPress={() => setMode('scan')}
+        >
+          <ScanCodeSegmentLabel width={58} height={14} style={styles.scanCodeSegmentText} />
+        </Pressable>
+      </View>
+
+      <View style={styles.content}>{mode === 'enter' ? renderEnterCode() : renderScanner()}</View>
+      <View pointerEvents="none" style={styles.bottomIndicator} />
 
       {invalidCode ? (
         <InvalidCodeOverlay
           onClose={() => {
-            scanLockRef.current = false;
             setInvalidCode('');
             setErrorMessage('');
             setCode(EMPTY_CODE);
@@ -482,18 +398,12 @@ export default function SecurityVerificationMobile() {
 }
 
 const styles = StyleSheet.create({
-  screenBackground: {
-    backgroundColor: '#F6F8F7',
-  },
-  keyboardScrollContent: {
-    flexGrow: 1,
-  },
   topBar: {
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'flex-start',
     marginBottom: 53,
-    paddingLeft: 22,
+    paddingHorizontal: 2,
   },
   topBarTitle: {
     height: 33,
@@ -503,7 +413,7 @@ const styles = StyleSheet.create({
   topBarActions: {
     alignItems: 'center',
     flexDirection: 'row',
-    gap: 4,
+    gap: 22,
   },
   topIconButton: {
     alignItems: 'center',
@@ -513,6 +423,7 @@ const styles = StyleSheet.create({
   },
   group863Icon: {
     height: 42,
+    transform: [{ translateX: 10 }],
     width: 42,
   },
   topActionIcon: {
@@ -523,7 +434,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     flexDirection: 'row',
     height: 40,
-    marginLeft: 73,
+    marginLeft: 52,
     overflow: 'hidden',
     width: 229,
   },
@@ -711,12 +622,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#F7F9F9',
     borderRadius: 22,
-    elevation: 4,
     height: 221.15,
     justifyContent: 'center',
     paddingHorizontal: 24,
     width: 246.94,
-    zIndex: 4,
   },
   permissionTitle: {
     color: '#113E55',
@@ -733,19 +642,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   permissionButton: {
-    alignItems: 'center',
     backgroundColor: '#CEE5ED',
     borderRadius: 18,
-    justifyContent: 'center',
     marginTop: 18,
-    minHeight: 37,
-    minWidth: 112,
     paddingHorizontal: 18,
     paddingVertical: 10,
-    zIndex: 5,
-  },
-  permissionButtonDisabled: {
-    opacity: 0.72,
   },
   permissionButtonText: {
     color: '#113E55',
@@ -758,7 +659,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     width: 250.94,
-    zIndex: 1,
   },
   scanCornerTopLeft: {
     borderColor: '#113E55',
@@ -816,13 +716,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   overlayBackdrop: {
-    backgroundColor: 'rgba(0, 0, 0, 0.58)',
+    backgroundColor: 'rgba(17, 62, 85, 0.36)',
     flex: 1,
   },
   invalidOverlayContent: {
     alignItems: 'center',
-    elevation: 20,
-    zIndex: 20,
+    paddingTop: 209,
   },
   invalidCard: {
     alignItems: 'center',
@@ -841,11 +740,9 @@ const styles = StyleSheet.create({
   invalidCloseButton: {
     alignItems: 'center',
     borderRadius: 10000,
-    elevation: 24,
     height: 32,
     justifyContent: 'center',
     width: 32,
-    zIndex: 24,
   },
   invalidIllustration: {
     height: 96,

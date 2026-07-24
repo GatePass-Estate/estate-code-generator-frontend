@@ -6,8 +6,23 @@ import {
   UpdatePasswordPayload,
   UpdateUserRoleResponse,
   User,
-  UserDocumentsMetadataResponse,
 } from '@/src/types/user';
+import { DocumentMetadataItem, UserDocumentsMetadataResponse } from '@/src/types/userDocuments';
+
+export const updateUserPhone = async (
+  userId: string,
+  phoneNumber: string
+): Promise<{ user_id?: string; phone_number?: string; message?: string }> => {
+  try {
+    const api = Api();
+    const axiosRes = await api.patch(`/users/${encodeURIComponent(userId)}/phone`, null, {
+      params: { phone_number: phoneNumber },
+    });
+    return axiosRes.data;
+  } catch (error: any) {
+    throw new Error(`${getErrorMessage(error) || 'Could not update phone number'} `);
+  }
+};
 
 export const updatepassword = async (payload: {
   user_id: string;
@@ -68,7 +83,8 @@ export const getUserProfilePictureUrl = async (userId: string): Promise<string |
     });
 
     const profilePicture = axiosRes.data.documents.find(
-      (document) => document.document_type === 'profile_picture' && document.view_url
+      (document: DocumentMetadataItem) =>
+        document.document_type === 'profile_picture' && document.view_url
     );
 
     if (!profilePicture?.view_url) return null;

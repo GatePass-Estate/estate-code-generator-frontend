@@ -9,6 +9,7 @@ export type RequestItem = {
   new_value: string | null;
   reviewed_by: string | null;
   updated_at: string;
+  last_reminded_at?: string | null;
   is_deleted: boolean;
 };
 
@@ -33,7 +34,8 @@ export type RequestType =
   | 'first_name_change'
   | 'last_name_change'
   | 'gender_change'
-  | 'phone_number_change';
+  | 'phone_number_change'
+  | 'id_change';
 
 export type RequestStatus = 'approved' | 'rejected' | 'pending';
 
@@ -57,4 +59,10 @@ export type EditRequestResponse = {
   status: RequestStatus;
   reviewed_by: string;
   updated_at: string;
+};
+
+export type RemindAdminsResponse = {
+  success: boolean;
+  message: string;
+  next_remind_after: string;
 };
