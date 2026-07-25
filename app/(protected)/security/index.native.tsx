@@ -1,28 +1,34 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import * as NavigationBar from 'expo-navigation-bar';
 import { Stack, useRouter } from 'expo-router';
 import {
   ActivityIndicator,
   Alert,
   Image,
   Keyboard,
+  KeyboardAvoidingView,
   Linking,
   Modal,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
-import Group862 from '@/src/assets/icons/group-862.svg';
-import Group863 from '@/src/assets/icons/group-863.svg';
+import HistoryRounded from '@/src/assets/icons/history-rounded.svg';
 import EnterCodeSubtitle from '@/src/assets/icons/enter-code-subtitle.svg';
 import EnterCodeSegmentLabel from '@/src/assets/icons/enter-code-segment-label.svg';
 import IncomingGuestTitle from '@/src/assets/icons/incoming-guest-title.svg';
 import InvalidCodeClose from '@/src/assets/icons/invalid-code-close.svg';
+import InvalidCodeMessage from '@/src/assets/icons/invalid-code-message.svg';
+import InvalidCodeOops from '@/src/assets/icons/invalid-code-oops.svg';
+import MoreFill from '@/src/assets/icons/more-fill.svg';
 import Rectangle5 from '@/src/assets/icons/rectangle-5.svg';
 import ScanFrame from '@/src/assets/icons/scan-frame.svg';
 import ScanCodeSegmentLabel from '@/src/assets/icons/scan-code-segment-label.svg';
@@ -37,12 +43,23 @@ import { sharedStyles } from '@/src/theme/styles';
 import { InputRefsStorage } from '@/src/types/general';
 
 const EMPTY_CODE = ['', '', '', '', '', ''];
-const invalidCodeCard = require('@/src/assets/icons/invalid-code-card.png');
+const invalidCodeIllustration = require('@/src/assets/icons/credit-card-1.png');
 type VerificationMode = 'enter' | 'scan';
 
 function InvalidCodeOverlay({ onClose }: { onClose: () => void }) {
+  const insets = useSafeAreaInsets();
+  const { height } = useWindowDimensions();
+  const closeButtonTop = Math.min(664, height - insets.bottom - 32 - 24);
+
   return (
-    <Modal visible transparent animationType="fade" onRequestClose={onClose}>
+    <Modal
+      visible
+      transparent
+      animationType="fade"
+      statusBarTranslucent
+      navigationBarTranslucent
+      onRequestClose={onClose}
+    >
       <View style={styles.overlayBackdrop}>
         <Pressable
           accessibilityLabel="Close invalid code message"
@@ -51,11 +68,15 @@ function InvalidCodeOverlay({ onClose }: { onClose: () => void }) {
         />
         <View style={styles.invalidOverlayContent}>
           <View style={styles.invalidCard}>
-            <Image source={invalidCodeCard} style={styles.invalidCardImage} />
+            <Image source={invalidCodeIllustration} style={styles.invalidCardImage} />
+            <InvalidCodeOops width={82} height={33} style={styles.invalidTitleImage} />
+            <InvalidCodeMessage width={271} height={17} style={styles.invalidMessageImage} />
           </View>
-
-          <View style={styles.invalidCloseSpacer} />
-
+        </View>
+        <View
+          pointerEvents="box-none"
+          style={[styles.invalidClosePosition, { top: closeButtonTop }]}
+        >
           <Pressable
             accessibilityLabel="Close invalid code message"
             onPress={onClose}
@@ -79,6 +100,21 @@ export default function SecurityVerificationMobile() {
   const [permission, requestPermission] = useCameraPermissions();
   const inputs = useRef<InputRefsStorage>({});
   const router = useRouter();
+
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+
+    const updateNavigationBar = async () => {
+      try {
+        await NavigationBar.setBackgroundColorAsync(invalidCode ? '#000000' : '#FBFEFF');
+        await NavigationBar.setButtonStyleAsync(invalidCode ? 'light' : 'dark');
+      } catch {
+        // Navigation bar styling is best-effort in Expo Go.
+      }
+    };
+
+    void updateNavigationBar();
+  }, [invalidCode]);
 
   const setInputRef = (el: TextInput | null, index: number) => {
     if (el) inputs.current[index] = el;
@@ -113,6 +149,7 @@ export default function SecurityVerificationMobile() {
           resident_address: resident?.home_address,
           resident_email: resident?.email,
           resident_phone_number: resident?.phone_number,
+          resident_user_id: result.user_id,
           code: result.hashed_code,
           receiver: result.receiver,
         },
@@ -338,7 +375,7 @@ export default function SecurityVerificationMobile() {
     <SafeAreaView style={sharedStyles.container}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      <View style={[styles.topBar, { paddingTop: Math.max(0, 81 - insets.top) }]}>
+      <View style={[styles.topBar, { paddingTop: Math.max(0, 88 - insets.top) }]}>
         <IncomingGuestTitle width={209} height={33} style={styles.topBarTitle} />
         <View style={styles.topBarActions}>
           <Pressable
@@ -347,7 +384,13 @@ export default function SecurityVerificationMobile() {
             onPress={() => router.push('/security/history')}
             style={({ pressed }) => [styles.topIconButton, pressed && styles.pressed]}
           >
-            <Group863 width={42} height={42} style={styles.group863Icon} />
+            <View style={styles.group863Icon}>
+              <HistoryRounded
+                width={22.105262756347656}
+                height={22.105262756347656}
+                style={styles.group863InnerIcon}
+              />
+            </View>
           </Pressable>
           <Pressable
             accessibilityLabel="Open more options"
@@ -355,7 +398,13 @@ export default function SecurityVerificationMobile() {
             onPress={() => router.push('/security/more')}
             style={({ pressed }) => [styles.topIconButton, pressed && styles.pressed]}
           >
-            <Group862 width={42} height={42} style={styles.topActionIcon} />
+            <View style={styles.topActionIcon}>
+              <MoreFill
+                width={26.526315689086914}
+                height={26.526315689086914}
+                style={styles.group862InnerIcon}
+              />
+            </View>
           </Pressable>
         </View>
       </View>
@@ -381,8 +430,19 @@ export default function SecurityVerificationMobile() {
         </Pressable>
       </View>
 
-      <View style={styles.content}>{mode === 'enter' ? renderEnterCode() : renderScanner()}</View>
-      <View pointerEvents="none" style={styles.bottomIndicator} />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 20 : 0}
+        style={styles.content}
+      >
+        <ScrollView
+          contentContainerStyle={styles.keyboardContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {mode === 'enter' ? renderEnterCode() : renderScanner()}
+        </ScrollView>
+      </KeyboardAvoidingView>
 
       {invalidCode ? (
         <InvalidCodeOverlay
@@ -402,7 +462,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'flex-start',
-    marginBottom: 53,
+    marginBottom: 42,
     paddingHorizontal: 2,
   },
   topBarTitle: {
@@ -413,7 +473,7 @@ const styles = StyleSheet.create({
   topBarActions: {
     alignItems: 'center',
     flexDirection: 'row',
-    gap: 22,
+    gap: 4,
   },
   topIconButton: {
     alignItems: 'center',
@@ -422,13 +482,30 @@ const styles = StyleSheet.create({
     width: 42,
   },
   group863Icon: {
+    backgroundColor: '#F6FCFF',
+    borderRadius: 21,
     height: 42,
-    transform: [{ translateX: 10 }],
+    position: 'relative',
+    transform: [{ translateY: -7 }],
     width: 42,
   },
+  group863InnerIcon: {
+    left: 9.947368621826172,
+    position: 'absolute',
+    top: 11.052631378173828,
+  },
   topActionIcon: {
+    backgroundColor: '#F6FCFF',
+    borderRadius: 21,
     height: 42,
+    position: 'relative',
+    transform: [{ translateY: -7 }],
     width: 42,
+  },
+  group862InnerIcon: {
+    left: 7.736842155456543,
+    position: 'absolute',
+    top: 7.736842155456543,
   },
   segmentedControl: {
     borderRadius: 24,
@@ -469,26 +546,30 @@ const styles = StyleSheet.create({
     color: '#113E55',
   },
   enterCodeSegmentText: {
-    transform: [{ translateX: 5 }],
+    transform: [{ translateX: -2.5 }],
     width: 76,
   },
   scanCodeSegmentText: {
-    transform: [{ translateX: -5 }],
+    transform: [{ translateX: 0 }],
     width: 72,
   },
   content: {
     flex: 1,
     justifyContent: 'flex-start',
-    paddingBottom: 34,
+  },
+  keyboardContent: {
+    flexGrow: 1,
+    justifyContent: 'flex-start',
+    paddingBottom: Platform.OS === 'android' ? 92 : 34,
     paddingTop: 128,
   },
   heroCopy: {
     alignItems: 'center',
-    marginBottom: 43,
+    marginBottom: 38,
   },
   title: {
     alignItems: 'center',
-    height: 28,
+    height: 26,
     justifyContent: 'center',
     width: 302,
   },
@@ -496,7 +577,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     height: 17,
     justifyContent: 'center',
-    marginTop: 8,
+    marginTop: 10,
+    transform: [{ translateX: -1 }],
     width: 205,
   },
   codeInputRow: {
@@ -559,7 +641,7 @@ const styles = StyleSheet.create({
   validateButtonSlot: {
     alignItems: 'center',
     height: 48,
-    marginTop: 106.5,
+    marginTop: 108,
     width: '100%',
   },
   primaryButtonText: {
@@ -576,20 +658,12 @@ const styles = StyleSheet.create({
     lineHeight: 13,
     textAlign: 'center',
   },
-  bottomIndicator: {
-    bottom: 0,
-    height: 34,
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    width: '100%',
-  },
   pressed: {
     opacity: 0.82,
   },
   scannerContent: {
     alignItems: 'center',
-    marginTop: -94,
+    marginTop: -90,
   },
   scannerTitle: {
     alignItems: 'center',
@@ -602,6 +676,7 @@ const styles = StyleSheet.create({
     height: 17,
     justifyContent: 'center',
     marginTop: 11,
+    transform: [{ translateX: -1.5 }],
     width: 304,
   },
   scannerShell: {
@@ -661,7 +736,7 @@ const styles = StyleSheet.create({
     width: 250.94,
   },
   scanCornerTopLeft: {
-    borderColor: '#113E55',
+    borderColor: '#9B9797',
     borderLeftWidth: 2,
     borderTopLeftRadius: 24,
     borderTopWidth: 2,
@@ -672,7 +747,7 @@ const styles = StyleSheet.create({
     width: 74,
   },
   scanCornerTopRight: {
-    borderColor: '#113E55',
+    borderColor: '#9B9797',
     borderRightWidth: 2,
     borderTopRightRadius: 24,
     borderTopWidth: 2,
@@ -685,7 +760,7 @@ const styles = StyleSheet.create({
   scanCornerBottomLeft: {
     borderBottomLeftRadius: 24,
     borderBottomWidth: 2,
-    borderColor: '#113E55',
+    borderColor: '#9B9797',
     borderLeftWidth: 2,
     bottom: 0,
     height: 74,
@@ -696,7 +771,7 @@ const styles = StyleSheet.create({
   scanCornerBottomRight: {
     borderBottomRightRadius: 24,
     borderBottomWidth: 2,
-    borderColor: '#113E55',
+    borderColor: '#9B9797',
     borderRightWidth: 2,
     bottom: 0,
     height: 74,
@@ -716,7 +791,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   overlayBackdrop: {
-    backgroundColor: 'rgba(17, 62, 85, 0.36)',
+    backgroundColor: 'rgba(0, 0, 0, 0.58)',
     flex: 1,
   },
   invalidOverlayContent: {
@@ -725,17 +800,28 @@ const styles = StyleSheet.create({
   },
   invalidCard: {
     alignItems: 'center',
+    backgroundColor: '#F6F7F7',
     borderRadius: 40,
     height: 351,
     justifyContent: 'center',
+    overflow: 'hidden',
+    position: 'relative',
     width: 331,
   },
   invalidCardImage: {
-    height: 351,
-    width: 331,
+    height: 150,
+    left: 91,
+    position: 'absolute',
+    top: 53,
+    width: 150,
   },
-  invalidCloseSpacer: {
-    height: 120,
+  invalidClosePosition: {
+    alignItems: 'center',
+    height: 32,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 664,
   },
   invalidCloseButton: {
     alignItems: 'center',
@@ -744,25 +830,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: 32,
   },
-  invalidIllustration: {
-    height: 96,
-    resizeMode: 'contain',
-    width: 118,
+  invalidTitleImage: {
+    height: 33,
+    left: 124,
+    position: 'absolute',
+    top: 219,
+    width: 82,
   },
-  invalidTitle: {
-    color: '#113E55',
-    fontFamily: 'UbuntuSans-Regular',
-    fontSize: 23,
-    lineHeight: 28,
-    marginTop: 27,
-    textAlign: 'center',
-  },
-  invalidBody: {
-    color: '#0A1F29',
-    fontFamily: 'UbuntuSans-Regular',
-    fontSize: 12,
-    lineHeight: 14,
-    marginTop: 8,
-    textAlign: 'center',
+  invalidMessageImage: {
+    height: 17,
+    left: 30,
+    position: 'absolute',
+    top: 268,
+    width: 271,
   },
 });
