@@ -1,6 +1,6 @@
 import { View, Text, TouchableOpacity, Share, Alert, Image, Pressable } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
-import { Stack, useLocalSearchParams, useNavigation } from 'expo-router';
+import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import QRCode from 'react-native-qrcode-svg';
 import { SingleDetail } from '@/src/components/mobile/SIngleDetail';
@@ -13,9 +13,15 @@ import { useState } from 'react';
 export default function InvitePage() {
   let { name, code, date, timeframe, address } = useLocalSearchParams();
   const [cancelText, setCancelText] = useState('Cancel Invite');
-  const navigation = useNavigation();
 
   code = Array.isArray(code) ? code.join(' ') : (code ?? '');
+
+  const handleBack = () => {
+    router.replace({
+      pathname: '/user/history',
+      params: { tab: 'upcoming' },
+    });
+  };
 
   const copyToClipboard = async () => {
     await Clipboard.setStringAsync(code);
@@ -38,7 +44,7 @@ export default function InvitePage() {
     } catch (error) {
       console.error('Remove code failed:', error);
     } finally {
-      navigation.goBack();
+      handleBack();
     }
   };
 
@@ -51,7 +57,7 @@ export default function InvitePage() {
         }}
       />
 
-      <Back type="short-arrow" />
+      <Back type="short-arrow" onPress={handleBack} />
 
       <View className="mb-5 items-center mt-10">
         <View className="bg-tertiary p-5 rounded-2xl my-5">

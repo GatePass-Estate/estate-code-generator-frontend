@@ -5,11 +5,13 @@ import {
   SecurityHistoryEntry,
   VisitorLogEntry,
 } from '@/src/types/accessLogs';
+import { parseLogDate } from '@/src/lib/helpers';
 
 export function mapResidentLogToAccessLog(entry: ResidentLogEntry): ResidentAccessLog {
   return {
     id: entry.id,
     code: entry.hashed_code,
+    // On /residentlog/me list items, created_at is the code generation time.
     generatedAt: entry.created_at,
     isActive: !(entry.code_deleted ?? false),
     usageCount: entry.usage_count ?? 0,
@@ -35,7 +37,7 @@ export function mapResidentCodeHistoryToEvents(
   }
 
   return events
-    .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+    .sort((a, b) => parseLogDate(a.timestamp).getTime() - parseLogDate(b.timestamp).getTime())
     .map((event, index) => ({
       id: `${event.type}-${index}`,
       type: event.type,

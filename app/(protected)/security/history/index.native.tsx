@@ -12,7 +12,11 @@ import { Stack, useNavigation, useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { sharedStyles } from '@/src/theme/styles';
 import ScreenHeader from '@/src/components/mobile/ScreenHeader';
-import { formatDateWithOrdinal, groupLogsByMonth, parseLogDate } from '@/src/lib/helpers';
+import {
+  formatAccessCodeWithSpace,
+  formatPastHistoryVisitDate,
+  groupLogsByMonth,
+} from '@/src/lib/helpers';
 import {
   mapResidentLogToSecurityEntry,
   mapVisitorLogToSecurityEntry,
@@ -30,11 +34,6 @@ const capitalizeWords = (value: string) =>
         .join(' ')
     : '';
 
-const formatAccessCode = (code: string) => {
-  const normalized = code.replace(/\s+/g, '').toUpperCase();
-  return `${normalized.slice(0, 3)} ${normalized.slice(3)}`;
-};
-
 const AccessLogCard = ({
   entry,
   onPress,
@@ -45,7 +44,7 @@ const AccessLogCard = ({
   <Pressable onPress={onPress} className="rounded-[8px] bg-white p-4 flex-col ">
     <View className=" flex-row items-start justify-between  mb-2">
       <Text className=" font-inter-regular text-[11.2px] text-[#6C6C6C] ">
-        {formatDateWithOrdinal(parseLogDate(entry.timestamp))}
+        {formatPastHistoryVisitDate(entry.timestamp)}
       </Text>
       <Text className=" font-inter-regular text-[11.2px] text-[#6C6C6C]">Access Code</Text>
     </View>
@@ -59,7 +58,7 @@ const AccessLogCard = ({
     <View className=" flex-row items-center justify-between mt-1 ">
       <Text className="text-sm font-inter-light capitalize text-[#6C6C6C]">{entry.category}</Text>
       <Text className="text-sm font-inter-light  text-[#0A1F29]">
-        {formatAccessCode(entry.hashed_code)}
+        {formatAccessCodeWithSpace(entry.hashed_code)}
       </Text>
     </View>
   </Pressable>
@@ -104,7 +103,10 @@ export default function AccessLogScreen() {
     fetchLogs();
   }, [fetchLogs]);
 
-  const groupedLogs = useMemo(() => groupLogsByMonth(logs, (log) => log.timestamp), [logs]);
+  const groupedLogs = useMemo(
+    () => groupLogsByMonth(logs, (log) => log.timestamp, { utc: true }),
+    [logs]
+  );
 
   const switchMode = (nextMode: HistoryMode) => {
     if (nextMode === mode) return;

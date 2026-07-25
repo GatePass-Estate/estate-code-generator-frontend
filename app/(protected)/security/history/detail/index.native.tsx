@@ -16,6 +16,7 @@ import AccessTimeline, { AccessTimelineEvent } from '@/src/components/mobile/Acc
 import { mapResidentCodeHistoryToEvents } from '@/src/lib/accessLogMappers';
 import { getEstateResidentLogByCode, getEstateVisitorLogByCode } from '@/src/lib/api/accessLogs';
 import { getUserDocumentViewUri } from '@/src/lib/api/userDocuments';
+import { formatAccessLogTimestamp, parseLogDate } from '@/src/lib/helpers';
 import { ReceiverType } from '@/src/types/codes';
 
 const capitalizeWords = (value: string) =>
@@ -25,21 +26,6 @@ const capitalizeWords = (value: string) =>
         .map((word) => (word ? word.charAt(0).toUpperCase() + word.slice(1) : ''))
         .join(' ')
     : '';
-
-const parseLogDate = (value: string) => {
-  const iso = value.replace(' ', 'T').replace(/([+-]\d{2})(\d{2})$/, '$1:$2');
-  return new Date(iso);
-};
-
-const formatTimelineDate = (date: Date) => {
-  const day = date.getDate();
-  const month = date.toLocaleString('en-GB', { month: 'long' });
-  const year = date.getFullYear();
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-
-  return `${day} ${month} ${year}, ${hours}:${minutes}`;
-};
 
 function getInitials(name: string) {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -87,7 +73,7 @@ export default function AccessLogDetailScreen() {
               : event.type === 'expired'
                 ? 'Code Expired'
                 : 'Access Granted',
-          timestamp: formatTimelineDate(parseLogDate(event.timestamp)),
+          timestamp: formatAccessLogTimestamp(parseLogDate(event.timestamp)),
           isExpired: event.type === 'expired',
         }));
         setEvents(mapped);
@@ -104,7 +90,7 @@ export default function AccessLogDetailScreen() {
           .map((item) => ({
             id: item.id,
             title: 'Access Granted',
-            timestamp: formatTimelineDate(parseLogDate(item.visit_time)),
+            timestamp: formatAccessLogTimestamp(parseLogDate(item.visit_time)),
           }));
 
         setEvents(mapped);

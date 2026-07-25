@@ -8,6 +8,7 @@ import AccessTimeline, { AccessTimelineEvent } from '@/src/components/mobile/Acc
 import { mapResidentCodeHistoryToEvents } from '@/src/lib/accessLogMappers';
 import { getMyResidentAccessLogByCode } from '@/src/lib/api/accessLogs';
 import { generateCode } from '@/src/lib/api/codes';
+import { formatAccessLogTimestamp, parseLogDate } from '@/src/lib/helpers';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { AccessLogEvent } from '@/src/types/accessLog';
 import { sharedStyles } from '@/src/theme/styles';
@@ -16,16 +17,6 @@ const EVENT_LABELS: Record<AccessLogEvent['type'], string> = {
   generated: 'Code Generated',
   validated: 'Code Validated',
   expired: 'Code Expired',
-};
-
-const formatTimelineDate = (date: Date) => {
-  const day = date.getDate();
-  const month = date.toLocaleString('en-GB', { month: 'long' });
-  const year = date.getFullYear();
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-
-  return `${day} ${month} ${year}, ${hours}:${minutes}`;
 };
 
 /** Profile usage log keeps its tighter 16px item spacing. */
@@ -58,7 +49,7 @@ export default function UsageLogScreen() {
       const mappedEvents = mapResidentCodeHistoryToEvents(history).map((event) => ({
         id: event.id,
         title: EVENT_LABELS[event.type],
-        timestamp: formatTimelineDate(new Date(event.timestamp)),
+        timestamp: formatAccessLogTimestamp(parseLogDate(event.timestamp)),
         isExpired: event.type === 'expired',
       }));
 
