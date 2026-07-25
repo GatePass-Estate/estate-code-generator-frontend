@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -6,32 +6,33 @@ import {
   TouchableOpacity,
   Pressable,
   ActivityIndicator,
-  Alert,
+  RefreshControl,
+  AppState,
+  type AppStateStatus,
 } from 'react-native';
-import { Stack, router } from 'expo-router';
+import { Stack, router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ScreenHeader from '@/src/components/mobile/ScreenHeader';
 import { ChevronRightIcon, HistoryRefreshIcon } from '@/src/assets/svgs';
 import { getMyVisitorAccessLogs } from '@/src/lib/api/accessLogs';
-import { generateCode, getAllCodes } from '@/src/lib/api/codes';
+import { getAllCodes } from '@/src/lib/api/codes';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { VisitorLogEntry } from '@/src/types/accessLogs';
 import { Codes } from '@/src/types/codes';
-import { formatDateWithOrdinal, groupLogsByMonth, parseLogDate } from '@/src/lib/helpers';
+import {
+  formatPastHistoryVisitDate,
+  formatUpcomingInviteCardDate,
+  groupLogsByMonth,
+  parseLogDate,
+} from '@/src/lib/helpers';
 import { sharedStyles, TAB_BAR_BASE_HEIGHT } from '@/src/theme/styles';
 
 type HistoryMode = 'past' | 'upcoming';
 
-const formatUpcomingDate = (value?: string | null) => {
-  if (!value) return 'Scheduled';
-  const date = parseLogDate(value);
-  if (Number.isNaN(date.getTime())) return value;
-  const day = date.getDate();
-  const month = date.toLocaleString('en-GB', { month: 'long' });
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  return `${day} ${month} ${hours}:${minutes}`;
-};
+function resolveHistoryMode(tab?: string | string[]): HistoryMode {
+  const value = Array.isArray(tab) ? tab[0] : tab;
+  return value === 'upcoming' ? 'upcoming' : 'past';
+}
 
 /** Keep the latest access event per hashed code. */
 function dedupeByCode(entries: VisitorLogEntry[]) {
@@ -128,22 +129,16 @@ function openUpcomingInvite(entry: Codes) {
       codeId: entry.hashed_code,
       visitorName: entry.visitor_fullname ?? '',
       relationship: entry.relationship_with_resident || 'other',
-      periodStart: entry.validity_period?.start || entry.valid_until || '',
-      periodEnd: entry.validity_period?.end || entry.valid_until || '',
-      windowStart: entry.validity_window?.start || '',
-      windowEnd: entry.validity_window?.end || '',
     },
   });
 }
 
 function PastHistoryCard({
   entry,
-  regenerating,
   onRefresh,
   onPress,
 }: {
   entry: VisitorLogEntry;
-  regenerating: boolean;
   onRefresh: () => void;
   onPress: () => void;
 }) {
@@ -154,7 +149,7 @@ function PastHistoryCard({
     >
       <View className="flex-1 gap-0.5 pr-3">
         <Text className="font-inter-regular text-[11.2px] text-[#878686]">
-          {formatDateWithOrdinal(parseLogDate(entry.visit_time))}
+          {formatPastHistoryVisitDate(entry.visit_time)}
         </Text>
         <Text className="text-sm font-inter-light text-[#0A1F29]">{entry.visitor_fullname}</Text>
         <Text className="text-[11.2px] font-inter-regular capitalize text-[#878686]">
@@ -162,18 +157,8 @@ function PastHistoryCard({
         </Text>
       </View>
 
-      <Pressable
-        onPress={onRefresh}
-        disabled={regenerating}
-        hitSlop={8}
-        className="h-8 w-8 items-center justify-center"
-        style={{ opacity: regenerating ? 0.5 : 1 }}
-      >
-        {regenerating ? (
-          <ActivityIndicator size="small" color="#113E55" />
-        ) : (
-          <HistoryRefreshIcon width={24} height={24} />
-        )}
+      <Pressable onPress={onRefresh} hitSlop={8} className="h-8 w-8 items-center justify-center">
+        <HistoryRefreshIcon width={24} height={24} />
       </Pressable>
     </Pressable>
   );
@@ -189,7 +174,7 @@ function UpcomingHistoryCard({ entry, onPress }: { entry: Codes; onPress: () => 
     >
       <View className="flex-1 gap-0.5">
         <Text className="font-inter-regular text-[9px] leading-[14px] text-[#878686] tracking-[-0.2px]">
-          {formatUpcomingDate(scheduleDate)}
+          {formatUpcomingInviteCardDate(scheduleDate)}
         </Text>
         <Text className="text-sm font-inter-light text-[#0A1F29] leading-[17px]">
           {entry.visitor_fullname}
@@ -205,54 +190,94 @@ function UpcomingHistoryCard({ entry, onPress }: { entry: Codes; onPress: () => 
 }
 
 export default function HistoryTabScreen() {
-  const { user_id, estate_id } = useUserStore();
-  const [mode, setMode] = useState<HistoryMode>('past');
+  const { user_id } = useUserStore();
+  const params = useLocalSearchParams<{ tab?: string }>();
+  const [mode, setMode] = useState<HistoryMode>(() => resolveHistoryMode(params.tab));
   const [logs, setLogs] = useState<VisitorLogEntry[]>([]);
   const [upcomingCodes, setUpcomingCodes] = useState<Codes[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [pastError, setPastError] = useState<string | null>(null);
   const [upcomingError, setUpcomingError] = useState<string | null>(null);
-  const [regeneratingCode, setRegeneratingCode] = useState<string | null>(null);
+  const hasLoadedRef = useRef(false);
 
-  const fetchHistory = useCallback(async () => {
-    if (!user_id) {
+  const fetchHistory = useCallback(
+    async (opts?: { silent?: boolean; pull?: boolean }) => {
+      if (!user_id) {
+        setLoading(false);
+        setRefreshing(false);
+        setPastError('User not found.');
+        setUpcomingError('User not found.');
+        return;
+      }
+
+      if (opts?.pull) {
+        setRefreshing(true);
+      } else if (!opts?.silent) {
+        setLoading(true);
+      }
+
+      setPastError(null);
+      setUpcomingError(null);
+
+      const [pastResult, upcomingResult] = await Promise.allSettled([
+        getMyVisitorAccessLogs({ page: 1, limit: 50 }),
+        getAllCodes(user_id),
+      ]);
+
+      if (pastResult.status === 'fulfilled') {
+        setLogs(pastResult.value.items ?? []);
+      } else {
+        setLogs([]);
+        setPastError(pastResult.reason?.message?.trim() || 'Could not load past history.');
+      }
+
+      if (upcomingResult.status === 'fulfilled') {
+        setUpcomingCodes(upcomingResult.value.items ?? []);
+      } else {
+        setUpcomingCodes([]);
+        setUpcomingError(
+          upcomingResult.reason?.message?.trim() || 'Could not load upcoming invites.'
+        );
+      }
+
+      hasLoadedRef.current = true;
       setLoading(false);
-      setPastError('User not found.');
-      setUpcomingError('User not found.');
-      return;
-    }
+      setRefreshing(false);
+    },
+    [user_id]
+  );
 
-    setLoading(true);
-    setPastError(null);
-    setUpcomingError(null);
+  useFocusEffect(
+    useCallback(() => {
+      const nextMode = resolveHistoryMode(params.tab);
+      setMode(nextMode);
+      void fetchHistory({ silent: hasLoadedRef.current });
 
-    const [pastResult, upcomingResult] = await Promise.allSettled([
-      getMyVisitorAccessLogs({ page: 1, limit: 50 }),
-      getAllCodes(user_id),
-    ]);
+      // If you're already on History and return from Postman/background, focus won't
+      // re-run — refresh when the app becomes active again.
+      let previousState = AppState.currentState;
+      const onAppStateChange = (nextState: AppStateStatus) => {
+        if (previousState.match(/inactive|background/) && nextState === 'active') {
+          void fetchHistory({ silent: true });
+        }
+        previousState = nextState;
+      };
+      const subscription = AppState.addEventListener('change', onAppStateChange);
 
-    if (pastResult.status === 'fulfilled') {
-      setLogs(pastResult.value.items ?? []);
-    } else {
-      setLogs([]);
-      setPastError(pastResult.reason?.message?.trim() || 'Could not load past history.');
-    }
+      return () => subscription.remove();
+    }, [fetchHistory, params.tab])
+  );
 
-    if (upcomingResult.status === 'fulfilled') {
-      setUpcomingCodes(upcomingResult.value.items ?? []);
-    } else {
-      setUpcomingCodes([]);
-      setUpcomingError(
-        upcomingResult.reason?.message?.trim() || 'Could not load upcoming invites.'
-      );
-    }
-
-    setLoading(false);
-  }, [user_id]);
-
-  useEffect(() => {
-    fetchHistory();
-  }, [fetchHistory]);
+  const handleModeChange = useCallback(
+    (nextMode: HistoryMode) => {
+      setMode(nextMode);
+      if (nextMode === 'upcoming') {
+        void fetchHistory({ silent: true });
+      }
+    },
+    [fetchHistory]
+  );
 
   const pastLogs = useMemo(
     () =>
@@ -273,27 +298,20 @@ export default function HistoryTabScreen() {
   );
 
   const groupedPast = useMemo(
-    () => groupLogsByMonth(pastLogs, (log) => log.visit_time),
+    () => groupLogsByMonth(pastLogs, (log) => log.visit_time, { utc: true }),
     [pastLogs]
   );
 
-  const handleRefresh = useCallback(
-    async (entry: VisitorLogEntry) => {
-      if (!user_id) return;
-
-      setRegeneratingCode(entry.hashed_code);
-      try {
-        await generateCode({ user_id, estate_id: estate_id ?? entry.estate_id ?? '' }, 'resident');
-        await fetchHistory();
-        Alert.alert('Code regenerated', 'Your new access code is ready.', [{ text: 'OK' }]);
-      } catch {
-        Alert.alert('Could not regenerate code', 'Please try again later.');
-      } finally {
-        setRegeneratingCode(null);
-      }
-    },
-    [estate_id, fetchHistory, user_id]
-  );
+  const handleRefresh = useCallback((entry: VisitorLogEntry) => {
+    router.push({
+      pathname: '/user/history/duration',
+      params: {
+        visitorName: entry.visitor_fullname || 'Guest',
+        relationship: entry.relationship_with_resident || 'other',
+        gender: entry.gender || 'prefer_not_to_say',
+      },
+    });
+  }, []);
 
   return (
     <SafeAreaView
@@ -305,7 +323,7 @@ export default function HistoryTabScreen() {
       <ScreenHeader title="History" containerClassName="mt-[29px]" />
 
       <View style={{ flex: 1, paddingTop: 8 }}>
-        <HistoryModeTabs mode={mode} onChange={setMode} />
+        <HistoryModeTabs mode={mode} onChange={handleModeChange} />
 
         {loading ? (
           <View className="flex-1 items-center justify-center">
@@ -321,6 +339,14 @@ export default function HistoryTabScreen() {
               gap: 38,
             }}
             showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={() => void fetchHistory({ pull: true })}
+                tintColor="#113E55"
+                colors={['#113E55']}
+              />
+            }
           >
             {mode === 'past' ? (
               pastError ? (
@@ -342,7 +368,6 @@ export default function HistoryTabScreen() {
                         <PastHistoryCard
                           key={entry.id}
                           entry={entry}
-                          regenerating={regeneratingCode === entry.hashed_code}
                           onRefresh={() => handleRefresh(entry)}
                           onPress={() => openPastDetail(entry)}
                         />

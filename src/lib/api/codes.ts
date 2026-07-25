@@ -40,8 +40,9 @@ export async function validateCode(code: string): Promise<Codes> {
 export const deleteCode = async (code: string): Promise<boolean> => {
   try {
     const api = Api('code');
+    const hashed = encodeURIComponent(String(code).replace(/\s+/g, '').trim());
 
-    const axiosRes = await api.delete(`/codeservice/${code}`);
+    const axiosRes = await api.delete(`/codeservice/${hashed}`);
     const data = axiosRes.data;
 
     return data;
