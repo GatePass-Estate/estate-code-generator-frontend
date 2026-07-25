@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as NavigationBar from 'expo-navigation-bar';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import {
   ActivityIndicator,
   Alert,
@@ -92,13 +92,15 @@ function InvalidCodeOverlay({ onClose }: { onClose: () => void }) {
 
 export default function SecurityVerificationMobile() {
   const insets = useSafeAreaInsets();
-  const [mode, setMode] = useState<VerificationMode>('enter');
+  const params = useLocalSearchParams();
+  const [mode, setMode] = useState<VerificationMode>(params.mode === 'scan' ? 'scan' : 'enter');
   const [code, setCode] = useState<string[]>(EMPTY_CODE);
   const [errorMessage, setErrorMessage] = useState('');
   const [invalidCode, setInvalidCode] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [permission, requestPermission] = useCameraPermissions();
   const inputs = useRef<InputRefsStorage>({});
+  const scanLockedRef = useRef(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -128,6 +130,7 @@ export default function SecurityVerificationMobile() {
   const validateEnteredCode = async (entered: string) => {
     if (entered.length < 6) {
       setErrorMessage('Please fill all 6 digits');
+      scanLockedRef.current = false;
       return;
     }
 
@@ -138,6 +141,8 @@ export default function SecurityVerificationMobile() {
     try {
       const result = await validateCode(entered);
       const resident = await getUserById(result.user_id);
+      const residentHousehold =
+        resident?.household_name || resident?.household_id || 'Household';
 
       router.push({
         pathname: '/security/result',
@@ -147,6 +152,7 @@ export default function SecurityVerificationMobile() {
           gender: result.gender,
           resident_name: `${resident?.first_name ?? ''} ${resident?.last_name ?? ''}`,
           resident_address: resident?.home_address,
+          resident_household: residentHousehold,
           resident_email: resident?.email,
           resident_phone_number: resident?.phone_number,
           resident_user_id: result.user_id,
@@ -156,6 +162,7 @@ export default function SecurityVerificationMobile() {
       });
       setCode(EMPTY_CODE);
     } catch (err: any) {
+      scanLockedRef.current = false;
       showInvalidOverlay(
         entered,
         err.message ?? 'Invalid Access Code. This does not exist or has expired.'
@@ -207,12 +214,13 @@ export default function SecurityVerificationMobile() {
   };
 
   const handleScan = ({ data }: { data: string }) => {
-    if (isSubmitting) return;
+    if (isSubmitting || scanLockedRef.current) return;
     const scanned = data
       .replace(/[^0-9a-zA-Z]/g, '')
       .toUpperCase()
       .slice(-6);
     if (scanned.length === 6) {
+      scanLockedRef.current = true;
       setCode(scanned.split(''));
       void validateEnteredCode(scanned);
     }

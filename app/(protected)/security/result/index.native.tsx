@@ -9,9 +9,10 @@ import {
   Text,
   View,
 } from 'react-native';
+import Svg, { Text as SvgText } from 'react-native-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import ValidationBack from '@/src/assets/icons/validation-back.svg';
+import KeyboardArrowLeft from '@/src/assets/icons/keyboard-arrow-left.svg';
 import ProfileExpandedOverlay from '@/src/assets/icons/profile-expanded-overlay.svg';
 import ProfileOverlayClose from '@/src/assets/icons/profile-overlay-close.svg';
 import ResidentProfileInnerGroup from '@/src/assets/icons/resident-profile-inner-group.svg';
@@ -62,7 +63,7 @@ function ResidentInitialsBadge({
   useFallbackIcon: boolean;
 }) {
   return (
-    <View style={styles.profileInitialsBadge}>
+    <View style={[styles.profileInitialsBadge, useFallbackIcon && styles.fallbackProfileBadge]}>
       {useFallbackIcon ? (
         <View style={styles.fallbackProfileIcon}>
           <ResidentProfileInnerGroup
@@ -77,7 +78,22 @@ function ResidentInitialsBadge({
           />
         </View>
       ) : (
-        <Text style={styles.profileInitialsText}>{initials}</Text>
+        <View style={styles.profileInitialsTextFrame}>
+          <Svg width={50} height={50} style={styles.profileInitialsSvg}>
+            <SvgText
+              alignmentBaseline="middle"
+              fill="#167A6F"
+              fontFamily="UbuntuSans-Regular"
+              fontSize={20}
+              letterSpacing={-0.24}
+              textAnchor="middle"
+              x={25}
+              y={25}
+            >
+              {initials}
+            </SvgText>
+          </Svg>
+        </View>
       )}
     </View>
   );
@@ -86,7 +102,9 @@ function ResidentInitialsBadge({
 function AccessCodeCard({ code, isResidentCode }: { code: string; isResidentCode: boolean }) {
   return (
     <View style={[styles.accessCodeFrame, isResidentCode && styles.residentAccessCodeFrame]}>
-      <Text style={styles.accessCodeLabel}>Access Code</Text>
+      <Text allowFontScaling={false} numberOfLines={1} style={styles.accessCodeLabel}>
+        Access Code
+      </Text>
       <Text
         adjustsFontSizeToFit
         minimumFontScale={0.76}
@@ -102,16 +120,20 @@ function AccessCodeCard({ code, isResidentCode }: { code: string; isResidentCode
 function DetailRow({
   label,
   labelWidth,
+  shouldTruncate = false,
   value,
   valueWidth,
   valueAlign = 'right',
 }: {
   label: string;
   labelWidth: number;
+  shouldTruncate?: boolean;
   value: string;
   valueWidth: number;
   valueAlign?: 'left' | 'right';
 }) {
+  const availableValueWidth = 303 - labelWidth - 12;
+
   return (
     <View style={styles.detailPill}>
       <View style={styles.detailContentFrame}>
@@ -120,14 +142,19 @@ function DetailRow({
             {label}
           </Text>
         </View>
-        <Text
-          allowFontScaling={false}
-          numberOfLines={1}
-          ellipsizeMode="tail"
-          style={[styles.detailValue, { textAlign: valueAlign, width: valueWidth }]}
-        >
-          {value}
-        </Text>
+        <View style={[styles.detailValueSlot, { width: availableValueWidth }]}>
+          <Text
+            allowFontScaling={false}
+            ellipsizeMode="tail"
+            numberOfLines={1}
+            style={[
+              styles.detailValue,
+              { textAlign: valueAlign, width: availableValueWidth },
+            ]}
+          >
+            {value}
+          </Text>
+        </View>
       </View>
     </View>
   );
@@ -214,132 +241,149 @@ export default function ValidationResult() {
             showsVerticalScrollIndicator={false}
             style={styles.resultScrollView}
           >
-            <View style={styles.backButtonSlot}>
+            <View style={[styles.backButtonSlot, styles.statusAdjustedBackButtonSlot]}>
               <Pressable
                 accessibilityLabel="Go back"
                 onPress={handleBack}
                 style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
               >
-                <ValidationBack width={30} height={30} />
+                <KeyboardArrowLeft width={27.724138259887695} height={24} />
               </Pressable>
             </View>
 
-            <View style={[styles.profileEllipse, isResidentCode && styles.residentProfileEllipse]}>
-              {shouldShowProfileImage && residentProfilePictureSource ? (
-                <Image
-                  onError={() => setProfileImageFailed(true)}
-                  source={residentProfilePictureSource}
-                  style={styles.residentProfileImage}
-                />
-              ) : (
-                <ResidentInitialsBadge
-                  initials={profileInitials}
-                  useFallbackIcon={isResidentCode}
-                />
-              )}
-              {isResidentCode ? (
-                <Pressable
-                  accessibilityLabel="Open resident picture"
-                  onPress={() => setPictureOpen(true)}
-                  style={styles.profileTapTarget}
-                />
+            <View style={styles.statusAdjustedContent}>
+              <View
+                style={[styles.profileEllipse, isResidentCode && styles.residentProfileEllipse]}
+              >
+                {shouldShowProfileImage && residentProfilePictureSource ? (
+                  <Image
+                    onError={() => setProfileImageFailed(true)}
+                    source={residentProfilePictureSource}
+                    style={styles.residentProfileImage}
+                  />
+                ) : (
+                  <ResidentInitialsBadge
+                    initials={profileInitials}
+                    useFallbackIcon={isResidentCode}
+                  />
+                )}
+                {isResidentCode ? (
+                  <Pressable
+                    accessibilityLabel="Open resident picture"
+                    onPress={() => setPictureOpen(true)}
+                    style={styles.profileTapTarget}
+                  />
+                ) : null}
+              </View>
+
+              <View style={[styles.codeCard, isResidentCode && styles.residentCodeCard]}>
+                <AccessCodeCard code={validatedCode} isResidentCode={isResidentCode} />
+              </View>
+
+              {!isResidentCode ? (
+                <View style={styles.guestDetailsGroup}>
+                  <View style={styles.guestDetailsCard}>
+                    <View style={styles.guestSectionDivider} />
+                    <View style={styles.sectionHeading}>
+                      <View style={styles.sectionLine} />
+                      <Text
+                        allowFontScaling={false}
+                        numberOfLines={1}
+                        style={styles.guestDetailsTitle}
+                      >
+                        Guest Details
+                      </Text>
+                      <View style={styles.sectionLine} />
+                    </View>
+                    <View style={styles.detailList}>
+                      <View style={styles.guestDetailNameRow}>
+                        <DetailRow
+                          label="Name"
+                          labelWidth={40}
+                          value={guestName}
+                          valueWidth={129}
+                        />
+                      </View>
+                      <View style={styles.guestDetailGenderRow}>
+                        <DetailRow
+                          label="Gender"
+                          labelWidth={50}
+                          value={guestGender}
+                          valueWidth={88}
+                        />
+                      </View>
+                      <View style={styles.guestDetailRelationshipRow}>
+                        <DetailRow
+                          label="Relationship"
+                          labelWidth={83}
+                          value={relationship}
+                          valueWidth={94}
+                        />
+                      </View>
+                    </View>
+                  </View>
+                </View>
               ) : null}
-            </View>
 
-            <View style={[styles.codeCard, isResidentCode && styles.residentCodeCard]}>
-              <AccessCodeCard code={validatedCode} isResidentCode={isResidentCode} />
-            </View>
-
-            {!isResidentCode ? (
-              <View style={styles.guestDetailsGroup}>
-                <View style={styles.guestDetailsCard}>
-                  <View style={styles.guestSectionDivider} />
-                  <View style={styles.sectionHeading}>
-                    <View style={styles.sectionLine} />
+              <View
+                style={[styles.residentDetailsGroup, isResidentCode && styles.residentOnlyGroup]}
+              >
+                <View style={styles.residentDetailsCard}>
+                  <View style={styles.residentSectionDivider} />
+                  <View style={[styles.sectionHeading, styles.residentSectionHeading]}>
+                    <View style={[styles.sectionLine, styles.residentSectionLine]} />
                     <Text
                       allowFontScaling={false}
                       numberOfLines={1}
-                      style={styles.guestDetailsTitle}
+                      style={styles.residentDetailsTitle}
                     >
-                      Guest Details
+                      Resident Details
                     </Text>
-                    <View style={styles.sectionLine} />
+                    <View style={[styles.sectionLine, styles.residentSectionLine]} />
                   </View>
-                  <View style={styles.detailList}>
-                    <View style={styles.guestDetailNameRow}>
-                      <DetailRow label="Name" labelWidth={40} value={guestName} valueWidth={129} />
-                    </View>
-                    <View style={styles.guestDetailGenderRow}>
+                  <View style={styles.residentDetailList}>
+                    <View style={styles.residentDetailNameRow}>
                       <DetailRow
-                        label="Gender"
-                        labelWidth={50}
-                        value={guestGender}
-                        valueWidth={88}
+                        label="Name"
+                        labelWidth={40}
+                        value={residentName}
+                        valueWidth={125}
                       />
                     </View>
-                    <View style={styles.guestDetailRelationshipRow}>
+                    <View style={styles.residentDetailAddressRow}>
                       <DetailRow
-                        label="Relationship"
-                        labelWidth={83}
-                        value={relationship}
+                        label="Address"
+                        labelWidth={56}
+                        shouldTruncate
+                        value={residentAddress}
+                        valueWidth={161}
+                      />
+                    </View>
+                    <View style={styles.residentDetailHouseholdRow}>
+                      <DetailRow
+                        label="Household"
+                        labelWidth={72}
+                        value={residentHousehold}
                         valueWidth={94}
                       />
                     </View>
-                  </View>
-                </View>
-              </View>
-            ) : null}
-
-            <View style={[styles.residentDetailsGroup, isResidentCode && styles.residentOnlyGroup]}>
-              <View style={styles.residentDetailsCard}>
-                <View style={styles.residentSectionDivider} />
-                <View style={[styles.sectionHeading, styles.residentSectionHeading]}>
-                  <View style={[styles.sectionLine, styles.residentSectionLine]} />
-                  <Text
-                    allowFontScaling={false}
-                    numberOfLines={1}
-                    style={styles.residentDetailsTitle}
-                  >
-                    Resident Details
-                  </Text>
-                  <View style={[styles.sectionLine, styles.residentSectionLine]} />
-                </View>
-                <View style={styles.residentDetailList}>
-                  <View style={styles.residentDetailNameRow}>
-                    <DetailRow label="Name" labelWidth={40} value={residentName} valueWidth={125} />
-                  </View>
-                  <View style={styles.residentDetailAddressRow}>
-                    <DetailRow
-                      label="Address"
-                      labelWidth={56}
-                      value={residentAddress}
-                      valueWidth={161}
-                    />
-                  </View>
-                  <View style={styles.residentDetailHouseholdRow}>
-                    <DetailRow
-                      label="Household"
-                      labelWidth={72}
-                      value={residentHousehold}
-                      valueWidth={94}
-                    />
-                  </View>
-                  <View style={styles.residentDetailPhoneRow}>
-                    <DetailRow
-                      label="Phone Number"
-                      labelWidth={100}
-                      value={residentPhone}
-                      valueWidth={85}
-                    />
-                  </View>
-                  <View style={styles.residentDetailEmailRow}>
-                    <DetailRow
-                      label="Email Address"
-                      labelWidth={95}
-                      value={residentEmail}
-                      valueAlign="left"
-                      valueWidth={128}
-                    />
+                    <View style={styles.residentDetailPhoneRow}>
+                      <DetailRow
+                        label="Phone Number"
+                        labelWidth={100}
+                        value={residentPhone}
+                        valueWidth={85}
+                      />
+                    </View>
+                    <View style={styles.residentDetailEmailRow}>
+                      <DetailRow
+                        label="Email Address"
+                        labelWidth={95}
+                        shouldTruncate
+                        value={residentEmail}
+                        valueWidth={128}
+                      />
+                    </View>
                   </View>
                 </View>
               </View>
@@ -436,6 +480,12 @@ const styles = StyleSheet.create({
     top: 88,
     zIndex: 2,
   },
+  statusAdjustedBackButtonSlot: {
+    top: 44.13664627075195,
+  },
+  statusAdjustedContent: {
+    transform: [{ translateY: -43.86335372924805 }],
+  },
   backButton: {
     alignItems: 'center',
     backgroundColor: '#EFF1F1',
@@ -485,20 +535,21 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     width: 50,
   },
-  profileInitialsText: {
-    color: '#167A6F',
-    fontFamily: 'UbuntuSans-Regular',
-    fontSize: 24,
-    height: Platform.OS === 'ios' ? 50 : 29,
-    includeFontPadding: Platform.OS === 'android' ? false : undefined,
-    left: Platform.OS === 'ios' ? 0 : 10,
-    letterSpacing: -0.24,
-    lineHeight: Platform.OS === 'ios' ? 50 : 29,
+  fallbackProfileBadge: {
+    backgroundColor: '#2A6F89',
+  },
+  profileInitialsTextFrame: {
+    height: 29,
+    left: 10,
+    overflow: 'visible',
     position: 'absolute',
-    textAlign: 'center',
-    textAlignVertical: 'center',
-    top: Platform.OS === 'ios' ? 0 : 10,
-    width: Platform.OS === 'ios' ? 50 : 30,
+    top: 10,
+    width: 30,
+  },
+  profileInitialsSvg: {
+    left: -10,
+    position: 'absolute',
+    top: -10,
   },
   fallbackProfileIcon: {
     height: 50,
@@ -581,11 +632,13 @@ const styles = StyleSheet.create({
     lineHeight: 14,
     marginBottom: 10,
     textAlign: 'center',
+    textAlignVertical: 'center',
     width: 201,
   },
   accessCodeValue: {
     color: '#113E55',
     fontFamily: 'UbuntuSans-SemiBold',
+    fontWeight: '600',
     fontSize: 47.78,
     height: 52,
     letterSpacing: 0,
@@ -767,7 +820,9 @@ const styles = StyleSheet.create({
     color: '#878686',
     fontFamily: 'Inter_18pt-Medium',
     fontSize: 14,
-    lineHeight: 14,
+    height: 17,
+    lineHeight: 17,
+    textAlignVertical: 'center',
   },
   detailLabelSlot: {
     height: 17,
@@ -777,10 +832,25 @@ const styles = StyleSheet.create({
     color: '#878686',
     fontFamily: 'Inter_18pt-Light',
     fontSize: 14,
-    lineHeight: 14,
-    paddingTop: 1,
-    textAlign: 'right',
+    height: 17,
+    lineHeight: 17,
     textAlignVertical: 'center',
+  },
+  detailValueLeft: {
+    left: 0,
+    position: 'absolute',
+    textAlign: 'left',
+  },
+  detailValueRight: {
+    position: 'absolute',
+    right: 0,
+    textAlign: 'right',
+  },
+  detailValueSlot: {
+    height: 17,
+    justifyContent: 'center',
+    overflow: 'hidden',
+    position: 'relative',
   },
   pressed: {
     opacity: 0.78,
