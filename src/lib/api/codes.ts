@@ -13,6 +13,16 @@ export async function getAllCodes(id: string): Promise<CodesApiResponse> {
   }
 }
 
+export async function getUpcomingCodes(id: string): Promise<CodesApiResponse> {
+  try {
+    const api = Api('code');
+    const axiosRes = await api.get(`/codeservice/all/${id}?receiver=visitor&upcoming=true`);
+    return axiosRes.data;
+  } catch (error: any) {
+    throw new Error(`${getErrorMessage(error) || 'Could not fetch upcoming codes'} `);
+  }
+}
+
 export async function getMyCode(id: string): Promise<Codes> {
   try {
     const api = Api('code');
