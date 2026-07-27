@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as NavigationBar from 'expo-navigation-bar';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import {
   ActivityIndicator,
   Alert,
@@ -127,6 +127,20 @@ export default function SecurityVerificationMobile() {
     setErrorMessage(message);
   };
 
+  const resetScanLock = useCallback(() => {
+    scanLockedRef.current = false;
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      resetScanLock();
+    }, [resetScanLock])
+  );
+
+  useEffect(() => {
+    if (mode === 'scan') resetScanLock();
+  }, [mode, resetScanLock]);
+
   const validateEnteredCode = async (entered: string) => {
     if (entered.length < 6) {
       setErrorMessage('Please fill all 6 digits');
@@ -141,8 +155,7 @@ export default function SecurityVerificationMobile() {
     try {
       const result = await validateCode(entered);
       const resident = await getUserById(result.user_id);
-      const residentHousehold =
-        resident?.household_name || resident?.household_id || 'Household';
+      const residentHousehold = resident?.household_name || resident?.household_id || 'Household';
 
       router.push({
         pathname: '/security/result',

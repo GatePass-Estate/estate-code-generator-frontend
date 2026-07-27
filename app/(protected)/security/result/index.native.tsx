@@ -147,10 +147,7 @@ function DetailRow({
             allowFontScaling={false}
             ellipsizeMode="tail"
             numberOfLines={1}
-            style={[
-              styles.detailValue,
-              { textAlign: valueAlign, width: availableValueWidth },
-            ]}
+            style={[styles.detailValue, { textAlign: valueAlign, width: availableValueWidth }]}
           >
             {value}
           </Text>
