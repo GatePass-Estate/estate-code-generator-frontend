@@ -36,8 +36,47 @@ import { sharedStyles } from '@/src/theme/styles';
 import { InputRefsStorage } from '@/src/types/general';
 
 const EMPTY_CODE = ['', '', '', '', '', ''];
+const SCAN_DEDUPE_MS = 1800;
 const invalidCodeIllustration = require('@/src/assets/icons/credit-card-1.png');
 type VerificationMode = 'enter' | 'scan';
+
+const extractScannedAccessCode = (value: string) => {
+  const rawValue = value.trim();
+  const codeKeys = ['code', 'access_code', 'accessCode'];
+
+  try {
+    const url = new URL(rawValue);
+
+    for (const key of codeKeys) {
+      const candidate = url.searchParams.get(key)?.replace(/[^0-9a-zA-Z]/g, '').toUpperCase();
+      if (candidate?.length === 6) return candidate;
+    }
+
+    const pathCandidate = url.pathname
+      .split('/')
+      .reverse()
+      .map((part) => part.replace(/[^0-9a-zA-Z]/g, '').toUpperCase())
+      .find((part) => /^[0-9A-Z]{6}$/.test(part));
+
+    if (pathCandidate) return pathCandidate;
+  } catch {
+    // The scanner usually receives the raw access code, not a URL.
+  }
+
+  const groupedCandidate = rawValue
+    .toUpperCase()
+    .split(/[^0-9A-Z]+/)
+    .filter(Boolean)
+    .find((part) => /^[0-9A-Z]{6}$/.test(part));
+
+  if (groupedCandidate) return groupedCandidate;
+
+  const compacted = rawValue.replace(/[^0-9a-zA-Z]/g, '').toUpperCase();
+  if (compacted.length === 6) return compacted;
+
+  const compactedMatches = compacted.match(/[0-9A-Z]{6}/g);
+  return compactedMatches?.at(-1) ?? '';
+};
 
 function InvalidCodeOverlay({ onClose }: { onClose: () => void }) {
   const insets = useSafeAreaInsets();
@@ -88,6 +127,7 @@ function InvalidCodeOverlay({ onClose }: { onClose: () => void }) {
 
 export default function SecurityVerificationMobile() {
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
   const params = useLocalSearchParams();
   const [mode, setMode] = useState<VerificationMode>(params.mode === 'scan' ? 'scan' : 'enter');
   const [code, setCode] = useState<string[]>(EMPTY_CODE);
@@ -96,7 +136,8 @@ export default function SecurityVerificationMobile() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [permission, requestPermission] = useCameraPermissions();
   const inputs = useRef<InputRefsStorage>({});
-  const scanLockedRef = useRef(false);
+  const scanNavigationInProgressRef = useRef(false);
+  const lastScanRef = useRef({ code: '', timestamp: 0 });
   const router = useRouter();
   const titleTop = Math.max(0, 88 - insets.top);
   const iconOffsetFromTitle = -4;
@@ -104,6 +145,7 @@ export default function SecurityVerificationMobile() {
   const toggleHeight = 40;
   const toggleGapFromTitle = toggleTop - (88 + 33);
   const contentTopGap = (mode === 'scan' ? 250 : 340) - (toggleTop + toggleHeight);
+  const contentWidth = width > 390 ? Math.min(width - 40, 390) : 335;
 
   useEffect(() => {
     if (Platform.OS !== 'android') return;
@@ -129,24 +171,25 @@ export default function SecurityVerificationMobile() {
     setErrorMessage(message);
   };
 
-  const resetScanLock = useCallback(() => {
-    scanLockedRef.current = false;
+  const resetScanState = useCallback(() => {
+    scanNavigationInProgressRef.current = false;
+    lastScanRef.current = { code: '', timestamp: 0 };
   }, []);
 
   useFocusEffect(
     useCallback(() => {
-      resetScanLock();
-    }, [resetScanLock])
+      resetScanState();
+    }, [resetScanState])
   );
 
   useEffect(() => {
-    if (mode === 'scan') resetScanLock();
-  }, [mode, resetScanLock]);
+    if (mode === 'scan') resetScanState();
+  }, [mode, resetScanState]);
 
-  const validateEnteredCode = async (entered: string) => {
+  const validateEnteredCode = async (entered: string, source: VerificationMode = 'enter') => {
     if (entered.length < 6) {
       setErrorMessage('Please fill all 6 digits');
-      scanLockedRef.current = false;
+      if (source === 'scan') scanNavigationInProgressRef.current = false;
       return;
     }
 
@@ -177,7 +220,7 @@ export default function SecurityVerificationMobile() {
       });
       setCode(EMPTY_CODE);
     } catch (err: any) {
-      scanLockedRef.current = false;
+      if (source === 'scan') scanNavigationInProgressRef.current = false;
       showInvalidOverlay(
         entered,
         err.message ?? 'Invalid Access Code. This does not exist or has expired.'
@@ -229,15 +272,21 @@ export default function SecurityVerificationMobile() {
   };
 
   const handleScan = ({ data }: { data: string }) => {
-    if (isSubmitting || scanLockedRef.current) return;
-    const scanned = data
-      .replace(/[^0-9a-zA-Z]/g, '')
-      .toUpperCase()
-      .slice(-6);
+    if (isSubmitting || scanNavigationInProgressRef.current) return;
+    const scanned = extractScannedAccessCode(data);
+
     if (scanned.length === 6) {
-      scanLockedRef.current = true;
+      const now = Date.now();
+      const isDuplicate =
+        lastScanRef.current.code === scanned &&
+        now - lastScanRef.current.timestamp < SCAN_DEDUPE_MS;
+
+      if (isDuplicate) return;
+
+      lastScanRef.current = { code: scanned, timestamp: now };
+      scanNavigationInProgressRef.current = true;
       setCode(scanned.split(''));
-      void validateEnteredCode(scanned);
+      void validateEnteredCode(scanned, 'scan');
     }
   };
 
@@ -311,7 +360,7 @@ export default function SecurityVerificationMobile() {
       </View>
 
       <View className="h-[64.5px] w-[304px] flex-row justify-center gap-[8px] py-[2px]">
-        {code.map((digit, idx) => (
+        {code.map((digit, idx) =>
           Platform.OS === 'ios' ? (
             <View
               key={idx}
@@ -355,7 +404,7 @@ export default function SecurityVerificationMobile() {
               blurOnSubmit
             />
           )
-        ))}
+        )}
       </View>
 
       <View className="mt-[108px] h-[48px] w-full items-center">
@@ -414,7 +463,7 @@ export default function SecurityVerificationMobile() {
             style={styles.camera}
             facing="back"
             barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-            onCameraReady={resetScanLock}
+            onCameraReady={resetScanState}
             onBarcodeScanned={handleScan}
           />
         ) : (
@@ -459,8 +508,8 @@ export default function SecurityVerificationMobile() {
       <Stack.Screen options={{ headerShown: false }} />
 
       <View
-        className="w-full max-w-[335px] flex-row items-center justify-between self-center"
-        style={{ marginBottom: toggleGapFromTitle, paddingTop: titleTop }}
+        className="flex-row items-center justify-between self-center"
+        style={{ marginBottom: toggleGapFromTitle, paddingTop: titleTop, width: contentWidth }}
       >
         <Text
           allowFontScaling={false}
