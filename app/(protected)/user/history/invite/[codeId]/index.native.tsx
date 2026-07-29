@@ -17,7 +17,7 @@ import {
   UpcomingValidityWindowIcon,
 } from '@/src/assets/svgs';
 import ScreenHeader from '@/src/components/mobile/ScreenHeader';
-import { deleteCode, getAllCodes } from '@/src/lib/api/codes';
+import { deleteCode, getUpcomingCodes } from '@/src/lib/api/codes';
 import { formatInviteClockTime, formatInviteScheduleDate } from '@/src/lib/helpers';
 import { useAndroidBottomInset } from '@/src/hooks/useAndroidBottomInset';
 import { useUserStore } from '@/src/lib/stores/userStore';
@@ -112,7 +112,7 @@ export default function UpcomingInviteScreen() {
     setLoading(true);
     setError(null);
     try {
-      const result = await getAllCodes(user_id);
+      const result = await getUpcomingCodes(user_id);
       const match =
         (result.items ?? []).find(
           (item) =>
