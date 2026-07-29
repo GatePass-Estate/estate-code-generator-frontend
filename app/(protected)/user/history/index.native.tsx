@@ -15,7 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import ScreenHeader from '@/src/components/mobile/ScreenHeader';
 import { ChevronRightIcon, HistoryRefreshIcon } from '@/src/assets/svgs';
 import { getMyVisitorAccessLogs } from '@/src/lib/api/accessLogs';
-import { getAllCodes } from '@/src/lib/api/codes';
+import { getUpcomingCodes } from '@/src/lib/api/codes';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { VisitorLogEntry } from '@/src/types/accessLogs';
 import { Codes } from '@/src/types/codes';
@@ -222,7 +222,7 @@ export default function HistoryTabScreen() {
 
       const [pastResult, upcomingResult] = await Promise.allSettled([
         getMyVisitorAccessLogs({ page: 1, limit: 50 }),
-        getAllCodes(user_id),
+        getUpcomingCodes(user_id),
       ]);
 
       if (pastResult.status === 'fulfilled') {
