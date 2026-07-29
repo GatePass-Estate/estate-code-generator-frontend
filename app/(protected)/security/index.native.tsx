@@ -22,9 +22,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import HistoryRounded from '@/src/assets/icons/history-rounded.svg';
-import EnterCodeSubtitle from '@/src/assets/icons/enter-code-subtitle.svg';
 import EnterCodeSegmentLabel from '@/src/assets/icons/enter-code-segment-label.svg';
-import IncomingGuestTitle from '@/src/assets/icons/incoming-guest-title.svg';
 import InvalidCodeClose from '@/src/assets/icons/invalid-code-close.svg';
 import InvalidCodeMessage from '@/src/assets/icons/invalid-code-message.svg';
 import InvalidCodeOops from '@/src/assets/icons/invalid-code-oops.svg';
@@ -32,11 +30,6 @@ import MoreFill from '@/src/assets/icons/more-fill.svg';
 import Rectangle5 from '@/src/assets/icons/rectangle-5.svg';
 import ScanFrame from '@/src/assets/icons/scan-frame.svg';
 import ScanCodeSegmentLabel from '@/src/assets/icons/scan-code-segment-label.svg';
-import ScanPositionQrSubtitle from '@/src/assets/icons/scan-position-qr-subtitle.svg';
-import ScanVerifyAccessCodeTitle from '@/src/assets/icons/scan-verify-access-code-title.svg';
-import ValidateCodeButton from '@/src/assets/icons/validate-code-button.svg';
-import VerifyCodeInputs from '@/src/assets/icons/verify-code-inputs.svg';
-import VerifyAccessCodeTitle from '@/src/assets/icons/verify-access-code-title.svg';
 import { validateCode } from '@/src/lib/api/codes';
 import { getUserById } from '@/src/lib/api/user';
 import { sharedStyles } from '@/src/theme/styles';
@@ -48,7 +41,10 @@ type VerificationMode = 'enter' | 'scan';
 
 function InvalidCodeOverlay({ onClose }: { onClose: () => void }) {
   const insets = useSafeAreaInsets();
-  const { height } = useWindowDimensions();
+  const { height, width } = useWindowDimensions();
+  const overlayCanvasWidth = Math.min(width, 375);
+  const invalidCardLeft = Math.max(0, (overlayCanvasWidth - 331) / 2);
+  const closeButtonLeft = Math.max(0, (overlayCanvasWidth - 32) / 2);
   const closeButtonTop = Math.min(664, height - insets.bottom - 32 - 24);
 
   return (
@@ -66,8 +62,8 @@ function InvalidCodeOverlay({ onClose }: { onClose: () => void }) {
           onPress={onClose}
           style={StyleSheet.absoluteFill}
         />
-        <View style={styles.invalidOverlayContent}>
-          <View style={styles.invalidCard}>
+        <View style={[styles.invalidOverlayContent, { width: overlayCanvasWidth }]}>
+          <View style={[styles.invalidCard, { marginLeft: invalidCardLeft }]}>
             <Image source={invalidCodeIllustration} style={styles.invalidCardImage} />
             <InvalidCodeOops width={82} height={33} style={styles.invalidTitleImage} />
             <InvalidCodeMessage width={271} height={17} style={styles.invalidMessageImage} />
@@ -75,7 +71,7 @@ function InvalidCodeOverlay({ onClose }: { onClose: () => void }) {
         </View>
         <View
           pointerEvents="box-none"
-          style={[styles.invalidClosePosition, { top: closeButtonTop }]}
+          style={[styles.invalidClosePosition, { left: closeButtonLeft, top: closeButtonTop }]}
         >
           <Pressable
             accessibilityLabel="Close invalid code message"
@@ -102,6 +98,12 @@ export default function SecurityVerificationMobile() {
   const inputs = useRef<InputRefsStorage>({});
   const scanLockedRef = useRef(false);
   const router = useRouter();
+  const titleTop = Math.max(0, 88 - insets.top);
+  const iconOffsetFromTitle = -4;
+  const toggleTop = 172;
+  const toggleHeight = 40;
+  const toggleGapFromTitle = toggleTop - (88 + 33);
+  const contentTopGap = (mode === 'scan' ? 250 : 340) - (toggleTop + toggleHeight);
 
   useEffect(() => {
     if (Platform.OS !== 'android') return;
@@ -286,73 +288,133 @@ export default function SecurityVerificationMobile() {
   };
 
   const renderEnterCode = () => (
-    <>
-      <View style={styles.heroCopy}>
-        <View style={styles.title}>
-          <VerifyAccessCodeTitle width={302} height={26} />
+    <View className="w-full items-center">
+      <View className="mb-[38px] items-center">
+        <View className="h-[26px] w-[302px] items-center justify-center">
+          <Text
+            allowFontScaling={false}
+            numberOfLines={1}
+            className="h-[26px] w-[302px] text-center font-ubuntu-semibold text-[21.88px] leading-[21.88px] text-[#113E55]"
+          >
+            Verify Access Code
+          </Text>
         </View>
-        <View style={styles.subtitle}>
-          <EnterCodeSubtitle width={205} height={17} />
+        <View className="mt-[10px] h-[17px] w-[205px] items-center justify-center">
+          <Text
+            allowFontScaling={false}
+            numberOfLines={1}
+            className="h-[17px] w-[205px] text-center font-inter-light text-[14px] leading-[14px] text-[#F46036]"
+          >
+            Enter the code from guest here
+          </Text>
         </View>
       </View>
 
-      <View style={styles.codeInputRow}>
-        <VerifyCodeInputs
-          pointerEvents="none"
-          width={304}
-          height={64.5}
-          style={styles.codeInputRowBackground}
-        />
+      <View className="h-[64.5px] w-[304px] flex-row justify-center gap-[8px] py-[2px]">
         {code.map((digit, idx) => (
-          <TextInput
-            key={idx}
-            ref={(el) => setInputRef(el, idx)}
-            style={styles.codeInput}
-            value={digit}
-            onChangeText={(t) => handleChange(t, idx)}
-            onKeyPress={(e) => handleKeyPress(e, idx)}
-            autoCapitalize="characters"
-            maxLength={1}
-            accessibilityLabel={`Digit ${idx + 1}`}
-            returnKeyType="done"
-            blurOnSubmit
-          />
+          Platform.OS === 'ios' ? (
+            <View
+              key={idx}
+              className="relative h-[60.50000762939453px] w-[44px] items-center justify-center rounded-[8px] border-[0.5px] border-[#9B9797] bg-[#EFF1F1]"
+            >
+              <Text
+                allowFontScaling={false}
+                pointerEvents="none"
+                className="text-center font-ubuntu-semibold text-[20px] leading-[20px] text-[#113E55]"
+              >
+                {digit}
+              </Text>
+              <TextInput
+                ref={(el) => setInputRef(el, idx)}
+                style={styles.codeInputCapture}
+                value={digit}
+                onChangeText={(t) => handleChange(t, idx)}
+                onKeyPress={(e) => handleKeyPress(e, idx)}
+                autoCapitalize="characters"
+                maxLength={1}
+                accessibilityLabel={`Digit ${idx + 1}`}
+                returnKeyType="done"
+                blurOnSubmit
+                caretHidden
+                selectionColor="transparent"
+              />
+            </View>
+          ) : (
+            <TextInput
+              key={idx}
+              ref={(el) => setInputRef(el, idx)}
+              className="h-[60.50000762939453px] w-[44px] rounded-[8px] border-[0.5px] border-[#9B9797] bg-[#EFF1F1] text-center font-ubuntu-semibold text-[20px] leading-[20px] text-[#113E55]"
+              style={styles.codeInputAndroid}
+              value={digit}
+              onChangeText={(t) => handleChange(t, idx)}
+              onKeyPress={(e) => handleKeyPress(e, idx)}
+              autoCapitalize="characters"
+              maxLength={1}
+              accessibilityLabel={`Digit ${idx + 1}`}
+              returnKeyType="done"
+              blurOnSubmit
+            />
+          )
         ))}
       </View>
 
-      <View style={styles.validateButtonSlot}>
+      <View className="mt-[108px] h-[48px] w-full items-center">
         <Pressable
-          style={({ pressed }) => [styles.validateButton, pressed && styles.pressed]}
+          className="h-[48px] min-w-[80px] max-w-[278px] w-[171px] flex-row items-center justify-center gap-[10px] rounded-[24px] bg-[#113E55] px-[24px] py-[16px]"
+          style={({ pressed }) => [pressed && styles.pressed]}
           onPress={() => validateEnteredCode(code.join(''))}
           disabled={isSubmitting}
         >
           {isSubmitting ? (
             <ActivityIndicator color="#FFFFFF" />
           ) : (
-            <ValidateCodeButton width={171} height={48} style={styles.validateButtonImage} />
+            <Text
+              allowFontScaling={false}
+              numberOfLines={1}
+              className="h-[17px] w-[123px] text-center font-ubuntu-semibold text-[14px] leading-[17px] tracking-[-0.24px] text-[#F6F7F7]"
+            >
+              Validate Code
+            </Text>
           )}
         </Pressable>
       </View>
 
-      {errorMessage && !invalidCode ? <Text style={styles.inlineError}>{errorMessage}</Text> : null}
-    </>
+      {errorMessage && !invalidCode ? (
+        <Text className="mt-[18px] text-center font-inter-regular text-[13px] text-[#ED0808]">
+          {errorMessage}
+        </Text>
+      ) : null}
+    </View>
   );
 
   const renderScanner = () => (
-    <View style={styles.scannerContent}>
-      <View style={styles.scannerTitle}>
-        <ScanVerifyAccessCodeTitle width={302} height={26} />
+    <View className="w-full items-center">
+      <View className="h-[26px] w-[302px] items-center justify-center">
+        <Text
+          allowFontScaling={false}
+          numberOfLines={1}
+          className="h-[26px] w-[302px] text-center font-ubuntu-semibold text-[21.88px] leading-[21.88px] text-[#113E55]"
+        >
+          Verify Access Code
+        </Text>
       </View>
-      <View style={styles.scannerSubtitle}>
-        <ScanPositionQrSubtitle width={304} height={17} />
+      <View className="mt-[11px] h-[17px] w-[304px] items-center justify-center">
+        <Text
+          allowFontScaling={false}
+          numberOfLines={1}
+          className="h-[17px] w-[304px] text-center font-inter-light text-[14px] leading-[14px] text-[#F46036]"
+        >
+          Position the QR code within the frame to scan.
+        </Text>
       </View>
 
-      <View style={styles.scannerShell}>
+      <View className="relative mt-[59px] h-[225.15234375px] w-[250.9439697265625px] items-center justify-center overflow-hidden rounded-[24px]">
         {permission?.granted ? (
           <CameraView
             style={styles.camera}
             facing="back"
             barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+            onCameraReady={resetScanLock}
             onBarcodeScanned={handleScan}
           />
         ) : (
@@ -384,9 +446,9 @@ export default function SecurityVerificationMobile() {
       </View>
 
       {isSubmitting ? (
-        <View style={styles.scanStatus}>
+        <View className="mt-[24px] flex-row items-center gap-[8px]">
           <ActivityIndicator color="#113E55" />
-          <Text style={styles.scanStatusText}>Validating code...</Text>
+          <Text className="font-inter-regular text-[13px] text-[#113E55]">Validating code...</Text>
         </View>
       ) : null}
     </View>
@@ -396,16 +458,29 @@ export default function SecurityVerificationMobile() {
     <SafeAreaView style={sharedStyles.container}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      <View style={[styles.topBar, { paddingTop: Math.max(0, 88 - insets.top) }]}>
-        <IncomingGuestTitle width={209} height={33} style={styles.topBarTitle} />
-        <View style={styles.topBarActions}>
+      <View
+        className="w-full max-w-[335px] flex-row items-center justify-between self-center"
+        style={{ marginBottom: toggleGapFromTitle, paddingTop: titleTop }}
+      >
+        <Text
+          allowFontScaling={false}
+          numberOfLines={1}
+          className="h-[33px] w-[209px] font-ubuntu-medium text-[27.34px] leading-[27.34px] text-[#113E55]"
+        >
+          Incoming Guest
+        </Text>
+        <View className="flex-row items-center gap-[4px]">
           <Pressable
             accessibilityLabel="Open access log"
             hitSlop={8}
             onPress={() => router.push('/security/history')}
-            style={({ pressed }) => [styles.topIconButton, pressed && styles.pressed]}
+            className="h-[42px] w-[42px] items-center justify-center"
+            style={({ pressed }) => [pressed && styles.pressed]}
           >
-            <View style={styles.group863Icon}>
+            <View
+              className="relative h-[42px] w-[42px] rounded-full bg-[#F6FCFF]"
+              style={{ transform: [{ translateY: iconOffsetFromTitle }] }}
+            >
               <HistoryRounded
                 width={22.105262756347656}
                 height={22.105262756347656}
@@ -417,9 +492,13 @@ export default function SecurityVerificationMobile() {
             accessibilityLabel="Open more options"
             hitSlop={8}
             onPress={() => router.push('/security/more')}
-            style={({ pressed }) => [styles.topIconButton, pressed && styles.pressed]}
+            className="h-[42px] w-[42px] items-center justify-center"
+            style={({ pressed }) => [pressed && styles.pressed]}
           >
-            <View style={styles.topActionIcon}>
+            <View
+              className="relative h-[42px] w-[42px] rounded-full bg-[#F6FCFF]"
+              style={{ transform: [{ translateY: iconOffsetFromTitle }] }}
+            >
               <MoreFill
                 width={26.526315689086914}
                 height={26.526315689086914}
@@ -430,7 +509,7 @@ export default function SecurityVerificationMobile() {
         </View>
       </View>
 
-      <View style={styles.segmentedControl}>
+      <View className="relative h-[40px] w-[229px] flex-row self-center overflow-hidden rounded-[24px]">
         <Rectangle5
           pointerEvents="none"
           width={229}
@@ -438,13 +517,17 @@ export default function SecurityVerificationMobile() {
           style={styles.segmentedControlBackground}
         />
         <Pressable
-          style={[styles.segmentButton, mode === 'enter' && styles.segmentButtonActive]}
+          className={`h-[40px] items-center justify-center rounded-[24px] ${
+            mode === 'enter' ? 'w-[119px] bg-[#CEE5ED]' : 'w-[110px]'
+          }`}
           onPress={() => setMode('enter')}
         >
           <EnterCodeSegmentLabel width={60} height={14} style={styles.enterCodeSegmentText} />
         </Pressable>
         <Pressable
-          style={[styles.segmentButton, mode === 'scan' && styles.segmentButtonActive]}
+          className={`h-[40px] items-center justify-center rounded-[24px] ${
+            mode === 'scan' ? 'w-[119px] bg-[#CEE5ED]' : 'w-[110px]'
+          }`}
           onPress={() => setMode('scan')}
         >
           <ScanCodeSegmentLabel width={58} height={14} style={styles.scanCodeSegmentText} />
@@ -457,7 +540,7 @@ export default function SecurityVerificationMobile() {
         style={styles.content}
       >
         <ScrollView
-          contentContainerStyle={styles.keyboardContent}
+          contentContainerStyle={[styles.keyboardContent, { paddingTop: contentTopGap }]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
@@ -479,62 +562,15 @@ export default function SecurityVerificationMobile() {
 }
 
 const styles = StyleSheet.create({
-  topBar: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'flex-start',
-    marginBottom: 42,
-    paddingHorizontal: 2,
-  },
-  topBarTitle: {
-    height: 33,
-    marginRight: 40,
-    width: 209,
-  },
-  topBarActions: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 4,
-  },
-  topIconButton: {
-    alignItems: 'center',
-    height: 42,
-    justifyContent: 'center',
-    width: 42,
-  },
-  group863Icon: {
-    backgroundColor: '#F6FCFF',
-    borderRadius: 21,
-    height: 42,
-    position: 'relative',
-    transform: [{ translateY: -7 }],
-    width: 42,
-  },
   group863InnerIcon: {
     left: 9.947368621826172,
     position: 'absolute',
     top: 11.052631378173828,
   },
-  topActionIcon: {
-    backgroundColor: '#F6FCFF',
-    borderRadius: 21,
-    height: 42,
-    position: 'relative',
-    transform: [{ translateY: -7 }],
-    width: 42,
-  },
   group862InnerIcon: {
     left: 7.736842155456543,
     position: 'absolute',
     top: 7.736842155456543,
-  },
-  segmentedControl: {
-    borderRadius: 24,
-    flexDirection: 'row',
-    height: 40,
-    marginLeft: 52,
-    overflow: 'hidden',
-    width: 229,
   },
   segmentedControlBackground: {
     height: 40,
@@ -542,29 +578,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     width: 229,
-  },
-  segmentButton: {
-    alignItems: 'center',
-    borderRadius: 24,
-    height: 40,
-    justifyContent: 'center',
-    width: 110,
-  },
-  segmentButtonActive: {
-    backgroundColor: '#CEE5ED',
-    width: 119,
-  },
-  segmentText: {
-    color: '#6C6C6C',
-    fontFamily: 'UbuntuSans-Regular',
-    fontSize: 12,
-    height: 14,
-    lineHeight: 14,
-    flexShrink: 0,
-    textAlign: 'center',
-  },
-  segmentTextActive: {
-    color: '#113E55',
   },
   enterCodeSegmentText: {
     transform: [{ translateX: -2.5 }],
@@ -574,6 +587,16 @@ const styles = StyleSheet.create({
     transform: [{ translateX: 0 }],
     width: 72,
   },
+  codeInputCapture: {
+    ...StyleSheet.absoluteFillObject,
+    color: 'transparent',
+    padding: 0,
+    textAlign: 'center',
+  },
+  codeInputAndroid: {
+    paddingVertical: 0,
+    textAlignVertical: 'center',
+  },
   content: {
     flex: 1,
     justifyContent: 'flex-start',
@@ -582,131 +605,9 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'flex-start',
     paddingBottom: Platform.OS === 'android' ? 92 : 34,
-    paddingTop: 128,
-  },
-  heroCopy: {
-    alignItems: 'center',
-    marginBottom: 38,
-  },
-  title: {
-    alignItems: 'center',
-    height: 26,
-    justifyContent: 'center',
-    width: 302,
-  },
-  subtitle: {
-    alignItems: 'center',
-    height: 17,
-    justifyContent: 'center',
-    marginTop: 10,
-    transform: [{ translateX: -1 }],
-    width: 205,
-  },
-  codeInputRow: {
-    alignSelf: 'center',
-    flexDirection: 'row',
-    gap: 8,
-    height: 64.5,
-    justifyContent: 'center',
-    overflow: 'hidden',
-    paddingBottom: 2,
-    paddingTop: 2,
-    width: 304,
-  },
-  codeInputRowBackground: {
-    height: 64.5,
-    left: 0,
-    position: 'absolute',
-    top: 0,
-    width: 304,
-  },
-  codeInput: {
-    backgroundColor: 'transparent',
-    borderColor: 'transparent',
-    borderRadius: 8,
-    borderWidth: 0,
-    color: '#113E55',
-    fontFamily: 'UbuntuSans-SemiBold',
-    fontSize: 20,
-    height: 57,
-    textAlign: 'center',
-    width: 42,
-  },
-  inlineError: {
-    color: '#ED0808',
-    fontFamily: 'Inter_18pt-Regular',
-    fontSize: 13,
-    marginTop: 18,
-    textAlign: 'center',
-  },
-  primaryButton: {
-    alignItems: 'center',
-    backgroundColor: '#113E55',
-    borderRadius: 24,
-    justifyContent: 'center',
-    minHeight: 48,
-    paddingHorizontal: 32,
-  },
-  validateButton: {
-    alignItems: 'center',
-    borderRadius: 24,
-    height: 48,
-    justifyContent: 'center',
-    overflow: 'hidden',
-    width: 171,
-  },
-  validateButtonImage: {
-    height: 48,
-    width: 171,
-  },
-  validateButtonSlot: {
-    alignItems: 'center',
-    height: 48,
-    marginTop: 108,
-    width: '100%',
-  },
-  primaryButtonText: {
-    color: '#FFFFFF',
-    fontFamily: 'Roboto',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  validateButtonText: {
-    color: '#FFFFFF',
-    fontFamily: 'Roboto',
-    fontSize: 10,
-    fontWeight: '500',
-    lineHeight: 13,
-    textAlign: 'center',
   },
   pressed: {
     opacity: 0.82,
-  },
-  scannerContent: {
-    alignItems: 'center',
-    marginTop: -90,
-  },
-  scannerTitle: {
-    alignItems: 'center',
-    height: 26,
-    justifyContent: 'center',
-    width: 302,
-  },
-  scannerSubtitle: {
-    alignItems: 'center',
-    height: 17,
-    justifyContent: 'center',
-    marginTop: 11,
-    transform: [{ translateX: -1.5 }],
-    width: 304,
-  },
-  scannerShell: {
-    alignItems: 'center',
-    height: 225.15,
-    justifyContent: 'center',
-    marginTop: 59,
-    overflow: 'hidden',
-    width: 250.94,
   },
   camera: {
     borderRadius: 22,
@@ -756,67 +657,12 @@ const styles = StyleSheet.create({
     top: 0,
     width: 250.94,
   },
-  scanCornerTopLeft: {
-    borderColor: '#9B9797',
-    borderLeftWidth: 2,
-    borderTopLeftRadius: 24,
-    borderTopWidth: 2,
-    height: 74,
-    left: 0,
-    position: 'absolute',
-    top: 0,
-    width: 74,
-  },
-  scanCornerTopRight: {
-    borderColor: '#9B9797',
-    borderRightWidth: 2,
-    borderTopRightRadius: 24,
-    borderTopWidth: 2,
-    height: 74,
-    position: 'absolute',
-    right: 0,
-    top: 0,
-    width: 74,
-  },
-  scanCornerBottomLeft: {
-    borderBottomLeftRadius: 24,
-    borderBottomWidth: 2,
-    borderColor: '#9B9797',
-    borderLeftWidth: 2,
-    bottom: 0,
-    height: 74,
-    left: 0,
-    position: 'absolute',
-    width: 74,
-  },
-  scanCornerBottomRight: {
-    borderBottomRightRadius: 24,
-    borderBottomWidth: 2,
-    borderColor: '#9B9797',
-    borderRightWidth: 2,
-    bottom: 0,
-    height: 74,
-    position: 'absolute',
-    right: 0,
-    width: 74,
-  },
-  scanStatus: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 24,
-  },
-  scanStatusText: {
-    color: '#113E55',
-    fontFamily: 'Inter_18pt-Regular',
-    fontSize: 13,
-  },
   overlayBackdrop: {
     backgroundColor: 'rgba(0, 0, 0, 0.58)',
     flex: 1,
   },
   invalidOverlayContent: {
-    alignItems: 'center',
+    alignSelf: 'center',
     paddingTop: 209,
   },
   invalidCard: {
@@ -837,12 +683,10 @@ const styles = StyleSheet.create({
     width: 150,
   },
   invalidClosePosition: {
-    alignItems: 'center',
     height: 32,
-    left: 0,
     position: 'absolute',
-    right: 0,
     top: 664,
+    width: 32,
   },
   invalidCloseButton: {
     alignItems: 'center',
