@@ -202,7 +202,7 @@ export default function ValidationResult() {
   const residentHeadingLeft = (detailsWidth - 106) / 2;
   const profileLeft = (resultCanvasWidth - 50) / 2;
   const codeCardLeft = (resultCanvasWidth - 291) / 2;
-  const resultContentTop = 134;
+  const resultHeaderTop = Math.max(44, 88 - insets.top);
   const pictureCanvasWidth = Math.min(width, 375);
   const expandedPictureTop = Math.max(0, Math.min(263, height - insets.bottom - 287 - 79));
 
@@ -258,7 +258,7 @@ export default function ValidationResult() {
             isResidentCode ? styles.residentCanvas : styles.guestCanvas,
           ]}
         >
-          <View className="absolute left-[17px] top-[88px] z-[2]">
+          <View style={[styles.resultHeader, { marginTop: resultHeaderTop }]}>
             <Pressable
               accessibilityLabel="Go back"
               hitSlop={12}
@@ -271,7 +271,7 @@ export default function ValidationResult() {
             </Pressable>
           </View>
 
-          <View style={{ marginTop: resultContentTop }}>
+          <View style={styles.resultContent}>
             <View
               style={[
                 styles.profileEllipse,
@@ -492,6 +492,15 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: '#F6F7F7',
     paddingTop: 0,
+  },
+  resultHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    height: 30,
+    paddingLeft: 17,
+  },
+  resultContent: {
+    marginTop: 16,
   },
   backButton: {
     alignItems: 'center',
