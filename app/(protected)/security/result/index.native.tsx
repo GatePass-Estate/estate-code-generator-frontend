@@ -20,6 +20,7 @@ import ResidentProfileOutline from '@/src/assets/icons/resident-profile-outline.
 import { sharedStyles } from '@/src/theme/styles';
 import { useAuthStore } from '@/src/lib/stores/authStore';
 import { getUserDocumentViewUri } from '@/src/lib/api/userDocuments';
+import { MaterialIcons } from '@expo/vector-icons';
 
 const getParam = (value: string | string[] | undefined, fallback = 'N/A') => {
   const rawValue = Array.isArray(value) ? value[0] : value;
@@ -81,7 +82,7 @@ function ResidentInitialsBadge({
               alignmentBaseline="middle"
               fill="#167A6F"
               fontFamily="UbuntuSans-Regular"
-              fontSize={20}
+              fontSize={24}
               letterSpacing={-0.24}
               textAnchor="middle"
               x={25}
@@ -218,7 +219,7 @@ export default function ValidationResult() {
   return (
     <SafeAreaView
       className="relative flex-1 bg-[#F6F7F7]"
-      style={[sharedStyles.container, sharedStyles.modalContainer, styles.container]}
+
     >
       <Stack.Screen options={{ headerShown: false }} />
       <ScrollView
@@ -233,44 +234,37 @@ export default function ValidationResult() {
           className="relative self-center"
           style={[{ width: '100%' }, isResidentCode ? styles.residentCanvas : styles.guestCanvas]}
         >
-          <View style={styles.resultHeader}>
-            <Pressable
-              accessibilityLabel="Go back"
-              hitSlop={12}
-              onPress={handleBack}
-              style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
-            >
-              <View style={styles.backButtonIconFrame}>
-                <KeyboardArrowLeft width={9.6} height={12} style={styles.backButtonVector} />
-              </View>
-            </Pressable>
-          </View>
+           <Pressable onPress={handleBack} style={styles.backButton}>
+            <MaterialIcons name="keyboard-arrow-left" size={24} color="#113E55" />
+          </Pressable>
 
           <View style={styles.resultContent}>
-            <View style={[styles.profileEllipse, isResidentCode && styles.residentProfileEllipse]}>
-              {shouldShowProfileImage && residentProfilePictureSource ? (
-                <Image
-                  onError={() => setProfileImageFailed(true)}
-                  source={residentProfilePictureSource}
-                  style={styles.residentProfileImage}
-                />
-              ) : (
-                <ResidentInitialsBadge
-                  initials={profileInitials}
-                  useFallbackIcon={isResidentCode}
-                />
-              )}
-              {isResidentCode ? (
-                <Pressable
-                  accessibilityLabel="Open resident picture"
-                  onPress={() => setPictureOpen(true)}
-                  style={styles.profileTapTarget}
-                />
-              ) : null}
-            </View>
+            <View style={styles.accessBlock}>
+              <View style={[styles.profileEllipse, isResidentCode && styles.residentProfileEllipse]}>
+                {shouldShowProfileImage && residentProfilePictureSource ? (
+                  <Image
+                    onError={() => setProfileImageFailed(true)}
+                    source={residentProfilePictureSource}
+                    style={styles.residentProfileImage}
+                  />
+                ) : (
+                  <ResidentInitialsBadge
+                    initials={profileInitials}
+                    useFallbackIcon={isResidentCode}
+                  />
+                )}
+                {isResidentCode ? (
+                  <Pressable
+                    accessibilityLabel="Open resident picture"
+                    onPress={() => setPictureOpen(true)}
+                    style={styles.profileTapTarget}
+                  />
+                ) : null}
+              </View>
 
-            <View style={styles.codeCard}>
-              <AccessCodeCard code={validatedCode} isResidentCode={isResidentCode} />
+              <View style={styles.codeCard}>
+                <AccessCodeCard code={validatedCode} isResidentCode={isResidentCode} />
+              </View>
             </View>
 
             {!isResidentCode ? (
@@ -410,15 +404,21 @@ const styles = StyleSheet.create({
   },
   resultContent: {
     marginTop: 16,
+    paddingHorizontal: 20,
+  },
+  accessBlock: {
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    width: '100%',
   },
   backButton: {
     alignItems: 'center',
     backgroundColor: '#EFF1F1',
     borderRadius: 10000,
-    flexDirection: 'row',
-    gap: 4,
     height: 30,
     justifyContent: 'center',
+    marginLeft: 17,
+    marginTop: 44,
     width: 30,
   },
   backButtonIconFrame: {
@@ -434,8 +434,9 @@ const styles = StyleSheet.create({
     top: 6,
   },
   scrollContent: {
-    alignItems: 'center',
+    alignItems: 'stretch',
     paddingBottom: 34,
+    paddingHorizontal: 0,
   },
   guestScrollContent: {
     minHeight: Platform.OS === 'android' ? 840 : undefined,
@@ -446,16 +447,16 @@ const styles = StyleSheet.create({
   },
   guestCanvas: {
     minHeight: Platform.OS === 'android' ? 840 : 760,
+    width: '100%',
   },
   residentCanvas: {
     minHeight: 900,
+    width: '100%',
   },
   profileEllipse: {
     alignItems: 'center',
-    alignSelf: 'center',
     backgroundColor: '#FFFFFF',
     borderRadius: 25,
-    elevation: 3,
     height: 50,
     justifyContent: 'center',
     position: 'relative',
@@ -515,12 +516,14 @@ const styles = StyleSheet.create({
   },
   codeCard: {
     alignItems: 'center',
-    alignSelf: 'center',
+    alignSelf: 'stretch',
     borderRadius: 24,
     height: 114,
+    justifyContent: 'center',
     marginBottom: 24,
     marginTop: -20,
-    width: 291,
+    paddingHorizontal: 22,
+    width: '100%',
     zIndex: 1,
   },
   accessCodeFrame: {
@@ -530,9 +533,8 @@ const styles = StyleSheet.create({
     height: 114,
     justifyContent: 'center',
     paddingBottom: 8,
-    paddingHorizontal: 45,
     paddingTop: 30,
-    width: 291,
+    width: '100%',
   },
   residentAccessCodeFrame: {
     paddingTop: 30,
@@ -560,9 +562,9 @@ const styles = StyleSheet.create({
     width: 201,
   },
   guestDetailsGroup: {
-    alignSelf: 'center',
+    alignSelf: 'stretch',
     height: 170,
-    width: 335,
+    width: '100%',
   },
   guestDetailsCard: {
     backgroundColor: 'transparent',
@@ -572,29 +574,29 @@ const styles = StyleSheet.create({
     height: 170,
     paddingHorizontal: 0,
     paddingTop: 13,
-    width: 335,
+    width: '100%',
   },
   guestSectionDivider: {
     backgroundColor: '#167A6F',
     height: 0.5,
     left: 17,
     position: 'absolute',
+    right: 17,
     top: 19.5,
-    width: 300.5,
   },
   residentSectionDivider: {
     backgroundColor: '#F46036',
     height: 0.5,
     left: 17,
     position: 'absolute',
+    right: 17,
     top: 19.5,
-    width: 300.5,
   },
   residentDetailsGroup: {
-    alignSelf: 'center',
+    alignSelf: 'stretch',
     height: 262,
     marginTop: 24,
-    width: 335,
+    width: '100%',
   },
   residentDetailsCard: {
     backgroundColor: 'transparent',
@@ -602,12 +604,11 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 0,
     height: 262,
-    paddingHorizontal: 16,
+    paddingHorizontal: 0,
     paddingTop: 13,
-    width: 335,
+    width: '100%',
   },
   residentOnlyGroup: {
-    marginLeft: 2,
     marginTop: -1,
   },
   sectionHeading: {
@@ -624,9 +625,9 @@ const styles = StyleSheet.create({
   },
   sectionHeadingRow: {
     alignItems: 'center',
-    left: 0,
+    left: 17,
     position: 'absolute',
-    right: 0,
+    right: 17,
     top: 0,
   },
   residentSectionHeading: {
@@ -668,16 +669,19 @@ const styles = StyleSheet.create({
   guestDetailNameRow: {
     left: 0,
     position: 'absolute',
+    right: 0,
     top: 37,
   },
   guestDetailGenderRow: {
     left: 0,
     position: 'absolute',
+    right: 0,
     top: 83,
   },
   guestDetailRelationshipRow: {
     left: 0,
     position: 'absolute',
+    right: 0,
     top: 129,
   },
   residentDetailList: {
@@ -686,26 +690,31 @@ const styles = StyleSheet.create({
   residentDetailNameRow: {
     left: 0,
     position: 'absolute',
+    right: 0,
     top: 37,
   },
   residentDetailAddressRow: {
     left: 0,
     position: 'absolute',
+    right: 0,
     top: 83,
   },
   residentDetailHouseholdRow: {
     left: 0,
     position: 'absolute',
+    right: 0,
     top: 129,
   },
   residentDetailPhoneRow: {
     left: 0,
     position: 'absolute',
+    right: 0,
     top: 175,
   },
   residentDetailEmailRow: {
     left: 0,
     position: 'absolute',
+    right: 0,
     top: 221,
   },
   detailPill: {
@@ -717,14 +726,14 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     paddingHorizontal: 16,
     paddingTop: 12,
-    width: 335,
+    width: '100%',
   },
   detailContentFrame: {
     alignItems: 'center',
     flexDirection: 'row',
     height: 17,
     justifyContent: 'space-between',
-    width: 303,
+    width: '100%',
   },
   detailLabel: {
     color: '#878686',
