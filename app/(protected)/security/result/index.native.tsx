@@ -217,10 +217,7 @@ export default function ValidationResult() {
   };
 
   return (
-    <SafeAreaView
-      className="relative flex-1 bg-[#F6F7F7]"
-
-    >
+    <SafeAreaView className="relative flex-1 bg-[#F6F7F7]">
       <Stack.Screen options={{ headerShown: false }} />
       <ScrollView
         contentContainerStyle={[
@@ -234,13 +231,15 @@ export default function ValidationResult() {
           className="relative self-center"
           style={[{ width: '100%' }, isResidentCode ? styles.residentCanvas : styles.guestCanvas]}
         >
-           <Pressable onPress={handleBack} style={styles.backButton}>
+          <Pressable onPress={handleBack} style={styles.backButton}>
             <MaterialIcons name="keyboard-arrow-left" size={24} color="#113E55" />
           </Pressable>
 
           <View style={styles.resultContent}>
             <View style={styles.accessBlock}>
-              <View style={[styles.profileEllipse, isResidentCode && styles.residentProfileEllipse]}>
+              <View
+                style={[styles.profileEllipse, isResidentCode && styles.residentProfileEllipse]}
+              >
                 {shouldShowProfileImage && residentProfilePictureSource ? (
                   <Image
                     onError={() => setProfileImageFailed(true)}
