@@ -16,8 +16,8 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import KeyboardArrowLeft from '@/src/assets/icons/keyboard-arrow-left.svg';
 import ProfileExpandedOverlay from '@/src/assets/icons/profile-expanded-overlay.svg';
 import ProfileOverlayClose from '@/src/assets/icons/profile-overlay-close.svg';
-import ResidentProfileInnerGroup from '@/src/assets/icons/resident-profile-inner-group.svg';
-import ResidentProfileInnerVector from '@/src/assets/icons/resident-profile-inner-vector.svg';
+import ResidentProfileHead from '@/src/assets/icons/resident-profile-head.svg';
+import ResidentProfileOutline from '@/src/assets/icons/resident-profile-outline.svg';
 import { sharedStyles } from '@/src/theme/styles';
 import { useAuthStore } from '@/src/lib/stores/authStore';
 import { getUserDocumentViewUri } from '@/src/lib/api/userDocuments';
@@ -65,18 +65,14 @@ function ResidentInitialsBadge({
   return (
     <View style={[styles.profileInitialsBadge, useFallbackIcon && styles.fallbackProfileBadge]}>
       {useFallbackIcon ? (
-        <View style={styles.fallbackProfileIcon}>
-          <ResidentProfileInnerGroup
-            width={41.66666793823242}
-            height={41.66666793823242}
-            style={styles.fallbackProfileInnerGroup}
+        <>
+          <ResidentProfileOutline
+            width={41.67}
+            height={41.67}
+            style={styles.fallbackProfileOutline}
           />
-          <ResidentProfileInnerVector
-            width={16.66666603088379}
-            height={16.66666603088379}
-            style={styles.fallbackProfileInnerVector}
-          />
-        </View>
+          <ResidentProfileHead width={16.67} height={16.67} style={styles.fallbackProfileHead} />
+        </>
       ) : (
         <View style={styles.profileInitialsTextFrame}>
           <Svg width={50} height={50} style={styles.profileInitialsSvg}>
@@ -194,14 +190,19 @@ export default function ValidationResult() {
   const shouldShowProfileImage = Boolean(
     isResidentCode && residentProfilePictureSource && !profileImageFailed
   );
-  const resultCanvasWidth = width > 390 ? Math.min(width - 24, 430) : 375;
-  const detailsWidth = width > 390 ? Math.min(width - 40, 390) : 335;
+  const availableResultWidth = Math.max(width - 24, 320);
+  const availableDetailsWidth = Math.max(width - 40, 304);
+  const resultCanvasWidth =
+    width >= 430 ? Math.min(availableResultWidth, 430) : Math.min(availableResultWidth, 375);
+  const detailsWidth =
+    width >= 430 ? Math.min(availableDetailsWidth, 390) : Math.min(availableDetailsWidth, 335);
   const detailsContentWidth = detailsWidth - 32;
-  const detailsDividerWidth = detailsWidth - 34.5;
+  const detailsDividerWidth = detailsWidth - 35;
   const guestHeadingLeft = (detailsWidth - 91) / 2;
   const residentHeadingLeft = (detailsWidth - 106) / 2;
-  const adjustedBackTop = Math.max(0, 88 - 43.86335372924805);
-  const adjustedContentTop = Math.max(0, 134 - 43.86335372924805);
+  const profileLeft = (resultCanvasWidth - 50) / 2;
+  const codeCardLeft = (resultCanvasWidth - 291) / 2;
+  const resultContentTop = 134;
   const pictureCanvasWidth = Math.min(width, 375);
   const expandedPictureTop = Math.max(0, Math.min(263, height - insets.bottom - 287 - 79));
 
@@ -257,18 +258,27 @@ export default function ValidationResult() {
             isResidentCode ? styles.residentCanvas : styles.guestCanvas,
           ]}
         >
-          <View className="absolute left-[17px] z-[2]" style={{ top: adjustedBackTop }}>
+          <View className="absolute left-[17px] top-[88px] z-[2]">
             <Pressable
               accessibilityLabel="Go back"
+              hitSlop={12}
               onPress={handleBack}
               style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
             >
-              <KeyboardArrowLeft width={27.724138259887695} height={24} />
+              <View style={styles.backButtonIconFrame}>
+                <KeyboardArrowLeft width={9.6} height={12} style={styles.backButtonVector} />
+              </View>
             </Pressable>
           </View>
 
-          <View style={{ marginTop: adjustedContentTop }}>
-            <View style={[styles.profileEllipse, isResidentCode && styles.residentProfileEllipse]}>
+          <View style={{ marginTop: resultContentTop }}>
+            <View
+              style={[
+                styles.profileEllipse,
+                { marginLeft: profileLeft },
+                isResidentCode && styles.residentProfileEllipse,
+              ]}
+            >
               {shouldShowProfileImage && residentProfilePictureSource ? (
                 <Image
                   onError={() => setProfileImageFailed(true)}
@@ -290,7 +300,7 @@ export default function ValidationResult() {
               ) : null}
             </View>
 
-            <View style={[styles.codeCard, isResidentCode && styles.residentCodeCard]}>
+            <View style={[styles.codeCard, { marginLeft: codeCardLeft }]}>
               <AccessCodeCard code={validatedCode} isResidentCode={isResidentCode} />
             </View>
 
@@ -483,18 +493,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#F6F7F7',
     paddingTop: 0,
   },
-  backButtonSlot: {
-    left: 17,
-    position: 'absolute',
-    top: 88,
-    zIndex: 2,
-  },
-  statusAdjustedBackButtonSlot: {
-    top: 44.13664627075195,
-  },
-  statusAdjustedContent: {
-    transform: [{ translateY: -43.86335372924805 }],
-  },
   backButton: {
     alignItems: 'center',
     backgroundColor: '#EFF1F1',
@@ -504,6 +502,18 @@ const styles = StyleSheet.create({
     height: 30,
     justifyContent: 'center',
     width: 30,
+  },
+  backButtonIconFrame: {
+    height: 24,
+    left: 0,
+    position: 'absolute',
+    top: 3,
+    width: 28,
+  },
+  backButtonVector: {
+    left: 9.2,
+    position: 'absolute',
+    top: 6,
   },
   scrollContent: {
     alignItems: 'center',
@@ -530,7 +540,6 @@ const styles = StyleSheet.create({
     elevation: 3,
     height: 50,
     justifyContent: 'center',
-    marginLeft: 163,
     position: 'relative',
     width: 50,
     zIndex: 3,
@@ -545,7 +554,17 @@ const styles = StyleSheet.create({
     width: 50,
   },
   fallbackProfileBadge: {
-    backgroundColor: '#2A6F89',
+    backgroundColor: '#537B85',
+  },
+  fallbackProfileOutline: {
+    left: 4.17,
+    position: 'absolute',
+    top: 4.17,
+  },
+  fallbackProfileHead: {
+    left: 16.67,
+    position: 'absolute',
+    top: 12.5,
   },
   profileInitialsTextFrame: {
     height: 29,
@@ -559,23 +578,6 @@ const styles = StyleSheet.create({
     left: -10,
     position: 'absolute',
     top: -10,
-  },
-  fallbackProfileIcon: {
-    height: 50,
-    left: 0,
-    position: 'absolute',
-    top: 0,
-    width: 50,
-  },
-  fallbackProfileInnerGroup: {
-    left: 4.17,
-    position: 'absolute',
-    top: 4.17,
-  },
-  fallbackProfileInnerVector: {
-    left: 16.67,
-    position: 'absolute',
-    top: 12.5,
   },
   residentProfileEllipse: {
     padding: 4,
@@ -595,12 +597,11 @@ const styles = StyleSheet.create({
   },
   codeCard: {
     alignItems: 'center',
+    alignSelf: 'flex-start',
     borderRadius: 24,
     height: 114,
-    marginLeft: 42,
     marginBottom: 24,
     marginTop: -20,
-    alignSelf: 'flex-start',
     width: 291,
     zIndex: 1,
   },
@@ -689,10 +690,7 @@ const styles = StyleSheet.create({
   },
   residentOnlyGroup: {
     marginLeft: 2,
-    marginTop: 24,
-  },
-  residentCodeCard: {
-    marginLeft: 42,
+    marginTop: -1,
   },
   sectionHeading: {
     alignItems: 'center',
@@ -701,7 +699,6 @@ const styles = StyleSheet.create({
     gap: 10,
     height: 34,
     justifyContent: 'center',
-    left: 119,
     padding: 10,
     position: 'absolute',
     top: 0,
@@ -709,7 +706,6 @@ const styles = StyleSheet.create({
   },
   residentSectionHeading: {
     backgroundColor: '#F6F7F7',
-    left: 114.5,
     width: 106,
   },
   sectionLine: {
@@ -791,16 +787,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    elevation: 1,
     height: 41,
     justifyContent: 'center',
     paddingBottom: 12,
     paddingHorizontal: 16,
     paddingTop: 12,
-    shadowColor: '#113E55',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 3,
     width: 335,
   },
   detailContentFrame: {
@@ -849,9 +840,7 @@ const styles = StyleSheet.create({
   },
   expandedPictureFrame: {
     alignItems: 'center',
-    borderColor: '#FFFFFF',
     borderRadius: 10000,
-    borderWidth: 4,
     height: 287,
     justifyContent: 'center',
     overflow: 'hidden',

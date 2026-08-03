@@ -22,41 +22,56 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import HistoryRounded from '@/src/assets/icons/history-rounded.svg';
-import EnterCodeSegmentLabel from '@/src/assets/icons/enter-code-segment-label.svg';
 import InvalidCodeClose from '@/src/assets/icons/invalid-code-close.svg';
 import InvalidCodeMessage from '@/src/assets/icons/invalid-code-message.svg';
 import InvalidCodeOops from '@/src/assets/icons/invalid-code-oops.svg';
 import MoreFill from '@/src/assets/icons/more-fill.svg';
 import Rectangle5 from '@/src/assets/icons/rectangle-5.svg';
 import ScanFrame from '@/src/assets/icons/scan-frame.svg';
-import ScanCodeSegmentLabel from '@/src/assets/icons/scan-code-segment-label.svg';
 import { validateCode } from '@/src/lib/api/codes';
 import { getUserById } from '@/src/lib/api/user';
 import { sharedStyles } from '@/src/theme/styles';
 import { InputRefsStorage } from '@/src/types/general';
 
 const EMPTY_CODE = ['', '', '', '', '', ''];
-const SCAN_DEDUPE_MS = 1800;
 const invalidCodeIllustration = require('@/src/assets/icons/credit-card-1.png');
 type VerificationMode = 'enter' | 'scan';
+
+const normalizeAccessCode = (value: string | null | undefined) => {
+  const candidate = value?.replace(/[^0-9a-zA-Z]/g, '').toUpperCase();
+  return candidate && /^[0-9A-Z]{6}$/.test(candidate) ? candidate : '';
+};
 
 const extractScannedAccessCode = (value: string) => {
   const rawValue = value.trim();
   const codeKeys = ['code', 'access_code', 'accessCode'];
 
   try {
+    const parsed = JSON.parse(rawValue);
+
+    if (parsed && typeof parsed === 'object') {
+      for (const key of codeKeys) {
+        const candidate = normalizeAccessCode(String(parsed[key] ?? ''));
+        if (candidate) return candidate;
+      }
+    }
+  } catch {
+    // QR payloads are often plain text or URLs rather than JSON.
+  }
+
+  try {
     const url = new URL(rawValue);
 
     for (const key of codeKeys) {
-      const candidate = url.searchParams.get(key)?.replace(/[^0-9a-zA-Z]/g, '').toUpperCase();
-      if (candidate?.length === 6) return candidate;
+      const candidate = normalizeAccessCode(url.searchParams.get(key));
+      if (candidate) return candidate;
     }
 
     const pathCandidate = url.pathname
       .split('/')
       .reverse()
-      .map((part) => part.replace(/[^0-9a-zA-Z]/g, '').toUpperCase())
-      .find((part) => /^[0-9A-Z]{6}$/.test(part));
+      .map((part) => normalizeAccessCode(part))
+      .find(Boolean);
 
     if (pathCandidate) return pathCandidate;
   } catch {
@@ -71,11 +86,21 @@ const extractScannedAccessCode = (value: string) => {
 
   if (groupedCandidate) return groupedCandidate;
 
-  const compacted = rawValue.replace(/[^0-9a-zA-Z]/g, '').toUpperCase();
-  if (compacted.length === 6) return compacted;
+  const labelledCandidate = rawValue
+    .toUpperCase()
+    .match(/(?:CODE|ACCESS_CODE|ACCESSCODE|ACCESS)[^0-9A-Z]*([0-9A-Z][0-9A-Z\s-]{4,10}[0-9A-Z])/);
 
-  const compactedMatches = compacted.match(/[0-9A-Z]{6}/g);
-  return compactedMatches?.at(-1) ?? '';
+  const normalizedLabelledCandidate = normalizeAccessCode(labelledCandidate?.[1]);
+  if (normalizedLabelledCandidate) return normalizedLabelledCandidate;
+
+  const visibleCandidate = rawValue
+    .toUpperCase()
+    .match(/(^|[^0-9A-Z])([0-9A-Z]{3}[\s-]?[0-9A-Z]{3})(?=$|[^0-9A-Z])/);
+
+  const normalizedVisibleCandidate = normalizeAccessCode(visibleCandidate?.[2]);
+  if (normalizedVisibleCandidate) return normalizedVisibleCandidate;
+
+  return normalizeAccessCode(rawValue);
 };
 
 function InvalidCodeOverlay({ onClose }: { onClose: () => void }) {
@@ -137,15 +162,17 @@ export default function SecurityVerificationMobile() {
   const [permission, requestPermission] = useCameraPermissions();
   const inputs = useRef<InputRefsStorage>({});
   const scanNavigationInProgressRef = useRef(false);
-  const lastScanRef = useRef({ code: '', timestamp: 0 });
   const router = useRouter();
   const titleTop = Math.max(0, 88 - insets.top);
-  const iconOffsetFromTitle = -4;
+  const iconOffsetFromTitle = -7;
   const toggleTop = 172;
   const toggleHeight = 40;
-  const toggleGapFromTitle = toggleTop - (88 + 33);
+  const headerHeight = 42;
+  const toggleGapFromTitle = toggleTop - (88 + headerHeight);
   const contentTopGap = (mode === 'scan' ? 250 : 340) - (toggleTop + toggleHeight);
-  const contentWidth = width > 390 ? Math.min(width - 40, 390) : 335;
+  const availableContentWidth = Math.max(width - 40, 304);
+  const contentWidth =
+    width >= 430 ? Math.min(availableContentWidth, 390) : Math.min(availableContentWidth, 335);
 
   useEffect(() => {
     if (Platform.OS !== 'android') return;
@@ -173,7 +200,6 @@ export default function SecurityVerificationMobile() {
 
   const resetScanState = useCallback(() => {
     scanNavigationInProgressRef.current = false;
-    lastScanRef.current = { code: '', timestamp: 0 };
   }, []);
 
   useFocusEffect(
@@ -276,14 +302,6 @@ export default function SecurityVerificationMobile() {
     const scanned = extractScannedAccessCode(data);
 
     if (scanned.length === 6) {
-      const now = Date.now();
-      const isDuplicate =
-        lastScanRef.current.code === scanned &&
-        now - lastScanRef.current.timestamp < SCAN_DEDUPE_MS;
-
-      if (isDuplicate) return;
-
-      lastScanRef.current = { code: scanned, timestamp: now };
       scanNavigationInProgressRef.current = true;
       setCode(scanned.split(''));
       void validateEnteredCode(scanned, 'scan');
@@ -359,12 +377,12 @@ export default function SecurityVerificationMobile() {
         </View>
       </View>
 
-      <View className="h-[64.5px] w-[304px] flex-row justify-center gap-[8px] py-[2px]">
+      <View className="h-[65px] w-[304px] flex-row justify-center gap-[8px] py-[2px]">
         {code.map((digit, idx) =>
           Platform.OS === 'ios' ? (
             <View
               key={idx}
-              className="relative h-[60.50000762939453px] w-[44px] items-center justify-center rounded-[8px] border-[0.5px] border-[#9B9797] bg-[#EFF1F1]"
+              className="relative h-[60.50px] w-[44px] items-center justify-center rounded-[8px] border-[0.5px] border-[#9B9797] bg-[#EFF1F1]"
             >
               <Text
                 allowFontScaling={false}
@@ -392,7 +410,7 @@ export default function SecurityVerificationMobile() {
             <TextInput
               key={idx}
               ref={(el) => setInputRef(el, idx)}
-              className="h-[60.50000762939453px] w-[44px] rounded-[8px] border-[0.5px] border-[#9B9797] bg-[#EFF1F1] text-center font-ubuntu-semibold text-[20px] leading-[20px] text-[#113E55]"
+              className="h-[60.50px] w-[44px] rounded-[8px] border-[0.5px] border-[#9B9797] bg-[#EFF1F1] text-center font-ubuntu-semibold text-[20px] leading-[20px] text-[#113E55]"
               style={styles.codeInputAndroid}
               value={digit}
               onChangeText={(t) => handleChange(t, idx)}
@@ -417,11 +435,7 @@ export default function SecurityVerificationMobile() {
           {isSubmitting ? (
             <ActivityIndicator color="#FFFFFF" />
           ) : (
-            <Text
-              allowFontScaling={false}
-              numberOfLines={1}
-              className="h-[17px] w-[123px] text-center font-ubuntu-semibold text-[14px] leading-[17px] tracking-[-0.24px] text-[#F6F7F7]"
-            >
+            <Text allowFontScaling={false} numberOfLines={1} style={styles.validateCodeButtonText}>
               Validate Code
             </Text>
           )}
@@ -457,7 +471,7 @@ export default function SecurityVerificationMobile() {
         </Text>
       </View>
 
-      <View className="relative mt-[59px] h-[225.15234375px] w-[250.9439697265625px] items-center justify-center overflow-hidden rounded-[24px]">
+      <View style={styles.scanFrame}>
         {permission?.granted ? (
           <CameraView
             style={styles.camera}
@@ -488,9 +502,9 @@ export default function SecurityVerificationMobile() {
 
         <ScanFrame
           pointerEvents="none"
-          width={250.9439697265625}
-          height={225.15234375}
-          style={styles.scanFrame}
+          width={250.94}
+          height={225.15}
+          style={styles.scanCornerFrame}
         />
       </View>
 
@@ -515,10 +529,11 @@ export default function SecurityVerificationMobile() {
           allowFontScaling={false}
           numberOfLines={1}
           className="h-[33px] w-[209px] font-ubuntu-medium text-[27.34px] leading-[27.34px] text-[#113E55]"
+          style={styles.incomingGuestTitle}
         >
           Incoming Guest
         </Text>
-        <View className="flex-row items-center gap-[4px]">
+        <View className="flex-row items-center gap-[4px]" style={styles.headerIconGroup}>
           <Pressable
             accessibilityLabel="Open access log"
             hitSlop={8}
@@ -530,11 +545,9 @@ export default function SecurityVerificationMobile() {
               className="relative h-[42px] w-[42px] rounded-full bg-[#F6FCFF]"
               style={{ transform: [{ translateY: iconOffsetFromTitle }] }}
             >
-              <HistoryRounded
-                width={22.105262756347656}
-                height={22.105262756347656}
-                style={styles.group863InnerIcon}
-              />
+              <View style={styles.group863InnerIcon}>
+                <HistoryRounded width={14.58} height={14.74} style={styles.group863VectorIcon} />
+              </View>
             </View>
           </Pressable>
           <Pressable
@@ -548,11 +561,9 @@ export default function SecurityVerificationMobile() {
               className="relative h-[42px] w-[42px] rounded-full bg-[#F6FCFF]"
               style={{ transform: [{ translateY: iconOffsetFromTitle }] }}
             >
-              <MoreFill
-                width={26.526315689086914}
-                height={26.526315689086914}
-                style={styles.group862InnerIcon}
-              />
+              <View style={styles.group862InnerIcon}>
+                <MoreFill width={19.89} height={4.43} style={styles.group862VectorIcon} />
+              </View>
             </View>
           </Pressable>
         </View>
@@ -566,20 +577,24 @@ export default function SecurityVerificationMobile() {
           style={styles.segmentedControlBackground}
         />
         <Pressable
-          className={`h-[40px] items-center justify-center rounded-[24px] ${
+          className={`relative h-[40px] rounded-[24px] ${
             mode === 'enter' ? 'w-[119px] bg-[#CEE5ED]' : 'w-[110px]'
           }`}
           onPress={() => setMode('enter')}
         >
-          <EnterCodeSegmentLabel width={60} height={14} style={styles.enterCodeSegmentText} />
+          <Text allowFontScaling={false} numberOfLines={1} style={styles.enterCodeSegmentText}>
+            Enter Code
+          </Text>
         </Pressable>
         <Pressable
-          className={`h-[40px] items-center justify-center rounded-[24px] ${
+          className={`relative h-[40px] rounded-[24px] ${
             mode === 'scan' ? 'w-[119px] bg-[#CEE5ED]' : 'w-[110px]'
           }`}
           onPress={() => setMode('scan')}
         >
-          <ScanCodeSegmentLabel width={58} height={14} style={styles.scanCodeSegmentText} />
+          <Text allowFontScaling={false} numberOfLines={1} style={styles.scanCodeSegmentText}>
+            Scan Code
+          </Text>
         </Pressable>
       </View>
 
@@ -611,15 +626,35 @@ export default function SecurityVerificationMobile() {
 }
 
 const styles = StyleSheet.create({
+  incomingGuestTitle: {
+    marginLeft: 2,
+  },
+  headerIconGroup: {
+    marginRight: -4,
+  },
   group863InnerIcon: {
-    left: 9.947368621826172,
+    height: 22.08,
+    left: 9.95,
     position: 'absolute',
-    top: 11.052631378173828,
+    top: 11.08,
+    width: 22.1,
+  },
+  group863VectorIcon: {
+    left: 3.81,
+    position: 'absolute',
+    top: 3.68,
   },
   group862InnerIcon: {
-    left: 7.736842155456543,
+    height: 26.53,
+    left: 7.74,
     position: 'absolute',
-    top: 7.736842155456543,
+    top: 7.74,
+    width: 26.53,
+  },
+  group862VectorIcon: {
+    left: 3.32,
+    position: 'absolute',
+    top: 11.05,
   },
   segmentedControlBackground: {
     height: 40,
@@ -629,12 +664,41 @@ const styles = StyleSheet.create({
     width: 229,
   },
   enterCodeSegmentText: {
-    transform: [{ translateX: -2.5 }],
-    width: 76,
+    color: '#113E55',
+    fontFamily: 'Inter_18pt-Regular',
+    fontSize: 11.2,
+    height: 14,
+    left: 27,
+    lineHeight: 14,
+    position: 'absolute',
+    textAlign: 'center',
+    top: 13,
+    width: 60,
   },
   scanCodeSegmentText: {
-    transform: [{ translateX: 0 }],
-    width: 72,
+    color: '#878686',
+    fontFamily: 'Inter_18pt-Regular',
+    fontSize: 11.2,
+    height: 14,
+    left: 21,
+    lineHeight: 14,
+    position: 'absolute',
+    textAlign: 'center',
+    top: 13,
+    width: 58,
+  },
+  validateCodeButtonText: {
+    color: '#F6F7F7',
+    fontFamily: 'UbuntuSans-SemiBold',
+    fontSize: 14,
+    height: 17,
+    left: 24,
+    letterSpacing: -0.24,
+    lineHeight: 17,
+    position: 'absolute',
+    textAlign: 'center',
+    top: 15.5,
+    width: 123,
   },
   codeInputCapture: {
     ...StyleSheet.absoluteFillObject,
@@ -700,11 +764,22 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   scanFrame: {
+    alignItems: 'center',
+    borderRadius: 24,
+    height: 225.15,
+    justifyContent: 'center',
+    marginTop: 59,
+    position: 'relative',
+    width: 250.94,
+  },
+  scanCornerFrame: {
+    elevation: 2,
     height: 225.15,
     left: 0,
     position: 'absolute',
     top: 0,
     width: 250.94,
+    zIndex: 2,
   },
   overlayBackdrop: {
     backgroundColor: 'rgba(0, 0, 0, 0.58)',
