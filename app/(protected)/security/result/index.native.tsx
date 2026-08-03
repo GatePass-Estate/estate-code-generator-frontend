@@ -7,11 +7,10 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  useWindowDimensions,
   View,
 } from 'react-native';
 import Svg, { Text as SvgText } from 'react-native-svg';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import KeyboardArrowLeft from '@/src/assets/icons/keyboard-arrow-left.svg';
 import ProfileExpandedOverlay from '@/src/assets/icons/profile-expanded-overlay.svg';
@@ -54,6 +53,8 @@ const toTitleCase = (value: string) => {
     .map((word) => (word ? `${word[0].toUpperCase()}${word.slice(1)}` : word))
     .join(' ');
 };
+
+const resultHeaderTopGap = 24.14;
 
 function ResidentInitialsBadge({
   initials,
@@ -114,36 +115,30 @@ function AccessCodeCard({ code, isResidentCode }: { code: string; isResidentCode
 }
 
 function DetailRow({
-  contentWidth,
   label,
   labelWidth,
-  rowWidth,
   value,
   valueAlign = 'right',
 }: {
-  contentWidth: number;
   label: string;
   labelWidth: number;
-  rowWidth: number;
   value: string;
   valueAlign?: 'left' | 'right';
 }) {
-  const availableValueWidth = contentWidth - labelWidth - 12;
-
   return (
-    <View style={[styles.detailPill, { width: rowWidth }]}>
-      <View style={[styles.detailContentFrame, { width: contentWidth }]}>
+    <View style={styles.detailPill}>
+      <View style={styles.detailContentFrame}>
         <View style={[styles.detailLabelSlot, { width: labelWidth }]}>
           <Text allowFontScaling={false} numberOfLines={1} style={styles.detailLabel}>
             {label}
           </Text>
         </View>
-        <View style={[styles.detailValueSlot, { width: availableValueWidth }]}>
+        <View style={styles.detailValueSlot}>
           <Text
             allowFontScaling={false}
             ellipsizeMode="tail"
             numberOfLines={1}
-            style={[styles.detailValue, { textAlign: valueAlign, width: availableValueWidth }]}
+            style={[styles.detailValue, { textAlign: valueAlign }]}
           >
             {value}
           </Text>
@@ -156,8 +151,6 @@ function DetailRow({
 export default function ValidationResult() {
   const params = useLocalSearchParams();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
-  const { height, width } = useWindowDimensions();
   const [pictureOpen, setPictureOpen] = useState(false);
   const [profileImageFailed, setProfileImageFailed] = useState(false);
   const [fetchedProfilePictureUrl, setFetchedProfilePictureUrl] = useState<string | null>(null);
@@ -190,21 +183,6 @@ export default function ValidationResult() {
   const shouldShowProfileImage = Boolean(
     isResidentCode && residentProfilePictureSource && !profileImageFailed
   );
-  const availableResultWidth = Math.max(width - 24, 320);
-  const availableDetailsWidth = Math.max(width - 40, 304);
-  const resultCanvasWidth =
-    width >= 430 ? Math.min(availableResultWidth, 430) : Math.min(availableResultWidth, 375);
-  const detailsWidth =
-    width >= 430 ? Math.min(availableDetailsWidth, 390) : Math.min(availableDetailsWidth, 335);
-  const detailsContentWidth = detailsWidth - 32;
-  const detailsDividerWidth = detailsWidth - 35;
-  const guestHeadingLeft = (detailsWidth - 91) / 2;
-  const residentHeadingLeft = (detailsWidth - 106) / 2;
-  const profileLeft = (resultCanvasWidth - 50) / 2;
-  const codeCardLeft = (resultCanvasWidth - 291) / 2;
-  const resultHeaderTop = Math.max(44, 88 - insets.top);
-  const pictureCanvasWidth = Math.min(width, 375);
-  const expandedPictureTop = Math.max(0, Math.min(263, height - insets.bottom - 287 - 79));
 
   useEffect(() => {
     let isMounted = true;
@@ -239,8 +217,8 @@ export default function ValidationResult() {
 
   return (
     <SafeAreaView
-      className="flex-1 bg-[#F6F7F7]"
-      style={[sharedStyles.container, styles.container]}
+      className="relative flex-1 bg-[#F6F7F7]"
+      style={[sharedStyles.container, sharedStyles.modalContainer, styles.container]}
     >
       <Stack.Screen options={{ headerShown: false }} />
       <ScrollView
@@ -253,12 +231,9 @@ export default function ValidationResult() {
       >
         <View
           className="relative self-center"
-          style={[
-            { width: resultCanvasWidth },
-            isResidentCode ? styles.residentCanvas : styles.guestCanvas,
-          ]}
+          style={[{ width: '100%' }, isResidentCode ? styles.residentCanvas : styles.guestCanvas]}
         >
-          <View style={[styles.resultHeader, { marginTop: resultHeaderTop }]}>
+          <View style={styles.resultHeader}>
             <Pressable
               accessibilityLabel="Go back"
               hitSlop={12}
@@ -272,13 +247,7 @@ export default function ValidationResult() {
           </View>
 
           <View style={styles.resultContent}>
-            <View
-              style={[
-                styles.profileEllipse,
-                { marginLeft: profileLeft },
-                isResidentCode && styles.residentProfileEllipse,
-              ]}
-            >
+            <View style={[styles.profileEllipse, isResidentCode && styles.residentProfileEllipse]}>
               {shouldShowProfileImage && residentProfilePictureSource ? (
                 <Image
                   onError={() => setProfileImageFailed(true)}
@@ -300,129 +269,73 @@ export default function ValidationResult() {
               ) : null}
             </View>
 
-            <View style={[styles.codeCard, { marginLeft: codeCardLeft }]}>
+            <View style={styles.codeCard}>
               <AccessCodeCard code={validatedCode} isResidentCode={isResidentCode} />
             </View>
 
             {!isResidentCode ? (
-              <View style={[styles.guestDetailsGroup, { width: detailsWidth }]}>
-                <View style={[styles.guestDetailsCard, { width: detailsWidth }]}>
-                  <View style={[styles.guestSectionDivider, { width: detailsDividerWidth }]} />
-                  <View style={[styles.sectionHeading, { left: guestHeadingLeft }]}>
-                    <View style={styles.sectionLine} />
-                    <Text
-                      allowFontScaling={false}
-                      numberOfLines={1}
-                      style={styles.guestDetailsTitle}
-                    >
-                      Guest Details
-                    </Text>
-                    <View style={styles.sectionLine} />
+              <View style={styles.guestDetailsGroup}>
+                <View style={styles.guestDetailsCard}>
+                  <View style={styles.guestSectionDivider} />
+                  <View style={styles.sectionHeadingRow}>
+                    <View style={styles.sectionHeading}>
+                      <View style={styles.sectionLine} />
+                      <Text
+                        allowFontScaling={false}
+                        numberOfLines={1}
+                        style={styles.guestDetailsTitle}
+                      >
+                        Guest Details
+                      </Text>
+                      <View style={styles.sectionLine} />
+                    </View>
                   </View>
                   <View style={styles.detailList}>
                     <View style={styles.guestDetailNameRow}>
-                      <DetailRow
-                        contentWidth={detailsContentWidth}
-                        label="Name"
-                        labelWidth={40}
-                        rowWidth={detailsWidth}
-                        value={guestName}
-                      />
+                      <DetailRow label="Name" labelWidth={40} value={guestName} />
                     </View>
                     <View style={styles.guestDetailGenderRow}>
-                      <DetailRow
-                        contentWidth={detailsContentWidth}
-                        label="Gender"
-                        labelWidth={50}
-                        rowWidth={detailsWidth}
-                        value={guestGender}
-                      />
+                      <DetailRow label="Gender" labelWidth={50} value={guestGender} />
                     </View>
                     <View style={styles.guestDetailRelationshipRow}>
-                      <DetailRow
-                        contentWidth={detailsContentWidth}
-                        label="Relationship"
-                        labelWidth={83}
-                        rowWidth={detailsWidth}
-                        value={relationship}
-                      />
+                      <DetailRow label="Relationship" labelWidth={83} value={relationship} />
                     </View>
                   </View>
                 </View>
               </View>
             ) : null}
 
-            <View
-              style={[
-                styles.residentDetailsGroup,
-                { width: detailsWidth },
-                isResidentCode && styles.residentOnlyGroup,
-              ]}
-            >
-              <View style={[styles.residentDetailsCard, { width: detailsWidth }]}>
-                <View style={[styles.residentSectionDivider, { width: detailsDividerWidth }]} />
-                <View
-                  style={[
-                    styles.sectionHeading,
-                    styles.residentSectionHeading,
-                    { left: residentHeadingLeft },
-                  ]}
-                >
-                  <View style={[styles.sectionLine, styles.residentSectionLine]} />
-                  <Text
-                    allowFontScaling={false}
-                    numberOfLines={1}
-                    style={styles.residentDetailsTitle}
-                  >
-                    Resident Details
-                  </Text>
-                  <View style={[styles.sectionLine, styles.residentSectionLine]} />
+            <View style={[styles.residentDetailsGroup, isResidentCode && styles.residentOnlyGroup]}>
+              <View style={styles.residentDetailsCard}>
+                <View style={styles.residentSectionDivider} />
+                <View style={styles.sectionHeadingRow}>
+                  <View style={[styles.sectionHeading, styles.residentSectionHeading]}>
+                    <View style={[styles.sectionLine, styles.residentSectionLine]} />
+                    <Text
+                      allowFontScaling={false}
+                      numberOfLines={1}
+                      style={styles.residentDetailsTitle}
+                    >
+                      Resident Details
+                    </Text>
+                    <View style={[styles.sectionLine, styles.residentSectionLine]} />
+                  </View>
                 </View>
                 <View style={styles.residentDetailList}>
                   <View style={styles.residentDetailNameRow}>
-                    <DetailRow
-                      contentWidth={detailsContentWidth}
-                      label="Name"
-                      labelWidth={40}
-                      rowWidth={detailsWidth}
-                      value={residentName}
-                    />
+                    <DetailRow label="Name" labelWidth={40} value={residentName} />
                   </View>
                   <View style={styles.residentDetailAddressRow}>
-                    <DetailRow
-                      contentWidth={detailsContentWidth}
-                      label="Address"
-                      labelWidth={56}
-                      rowWidth={detailsWidth}
-                      value={residentAddress}
-                    />
+                    <DetailRow label="Address" labelWidth={56} value={residentAddress} />
                   </View>
                   <View style={styles.residentDetailHouseholdRow}>
-                    <DetailRow
-                      contentWidth={detailsContentWidth}
-                      label="Household"
-                      labelWidth={72}
-                      rowWidth={detailsWidth}
-                      value={residentHousehold}
-                    />
+                    <DetailRow label="Household" labelWidth={72} value={residentHousehold} />
                   </View>
                   <View style={styles.residentDetailPhoneRow}>
-                    <DetailRow
-                      contentWidth={detailsContentWidth}
-                      label="Phone Number"
-                      labelWidth={100}
-                      rowWidth={detailsWidth}
-                      value={residentPhone}
-                    />
+                    <DetailRow label="Phone Number" labelWidth={100} value={residentPhone} />
                   </View>
                   <View style={styles.residentDetailEmailRow}>
-                    <DetailRow
-                      contentWidth={detailsContentWidth}
-                      label="Email Address"
-                      labelWidth={95}
-                      rowWidth={detailsWidth}
-                      value={residentEmail}
-                    />
+                    <DetailRow label="Email Address" labelWidth={95} value={residentEmail} />
                   </View>
                 </View>
               </View>
@@ -451,12 +364,7 @@ export default function ValidationResult() {
             onPress={() => setPictureOpen(false)}
             style={styles.pictureOverlayBackdrop}
           >
-            <View
-              style={[
-                styles.pictureOverlayCanvas,
-                { paddingTop: expandedPictureTop, width: pictureCanvasWidth },
-              ]}
-            >
+            <View style={styles.pictureOverlayCanvas}>
               <View style={styles.expandedPictureFrame}>
                 {shouldShowProfileImage && residentProfilePictureSource ? (
                   <Image
@@ -497,6 +405,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     height: 30,
+    marginTop: resultHeaderTopGap,
     paddingLeft: 17,
   },
   resultContent: {
@@ -543,7 +452,7 @@ const styles = StyleSheet.create({
   },
   profileEllipse: {
     alignItems: 'center',
-    alignSelf: 'flex-start',
+    alignSelf: 'center',
     backgroundColor: '#FFFFFF',
     borderRadius: 25,
     elevation: 3,
@@ -606,7 +515,7 @@ const styles = StyleSheet.create({
   },
   codeCard: {
     alignItems: 'center',
-    alignSelf: 'flex-start',
+    alignSelf: 'center',
     borderRadius: 24,
     height: 114,
     marginBottom: 24,
@@ -712,6 +621,13 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     width: 91,
+  },
+  sectionHeadingRow: {
+    alignItems: 'center',
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
   },
   residentSectionHeading: {
     backgroundColor: '#F6F7F7',
@@ -831,8 +747,10 @@ const styles = StyleSheet.create({
     textAlignVertical: 'center',
   },
   detailValueSlot: {
+    flex: 1,
     height: 17,
     justifyContent: 'center',
+    marginLeft: 12,
     overflow: 'hidden',
     position: 'relative',
   },
@@ -846,6 +764,8 @@ const styles = StyleSheet.create({
   },
   pictureOverlayCanvas: {
     alignItems: 'center',
+    paddingTop: 263,
+    width: '100%',
   },
   expandedPictureFrame: {
     alignItems: 'center',

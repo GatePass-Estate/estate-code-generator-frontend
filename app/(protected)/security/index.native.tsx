@@ -16,10 +16,9 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  useWindowDimensions,
   View,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import HistoryRounded from '@/src/assets/icons/history-rounded.svg';
 import InvalidCodeClose from '@/src/assets/icons/invalid-code-close.svg';
@@ -104,13 +103,6 @@ const extractScannedAccessCode = (value: string) => {
 };
 
 function InvalidCodeOverlay({ onClose }: { onClose: () => void }) {
-  const insets = useSafeAreaInsets();
-  const { height, width } = useWindowDimensions();
-  const overlayCanvasWidth = Math.min(width, 375);
-  const invalidCardLeft = Math.max(0, (overlayCanvasWidth - 331) / 2);
-  const closeButtonLeft = Math.max(0, (overlayCanvasWidth - 32) / 2);
-  const closeButtonTop = Math.min(664, height - insets.bottom - 32 - 24);
-
   return (
     <Modal
       visible
@@ -126,24 +118,21 @@ function InvalidCodeOverlay({ onClose }: { onClose: () => void }) {
           onPress={onClose}
           style={StyleSheet.absoluteFill}
         />
-        <View style={[styles.invalidOverlayContent, { width: overlayCanvasWidth }]}>
-          <View style={[styles.invalidCard, { marginLeft: invalidCardLeft }]}>
+        <View style={styles.invalidOverlayContent}>
+          <View style={styles.invalidCard}>
             <Image source={invalidCodeIllustration} style={styles.invalidCardImage} />
             <InvalidCodeOops width={82} height={33} style={styles.invalidTitleImage} />
             <InvalidCodeMessage width={271} height={17} style={styles.invalidMessageImage} />
           </View>
-        </View>
-        <View
-          pointerEvents="box-none"
-          style={[styles.invalidClosePosition, { left: closeButtonLeft, top: closeButtonTop }]}
-        >
-          <Pressable
-            accessibilityLabel="Close invalid code message"
-            onPress={onClose}
-            style={({ pressed }) => [styles.invalidCloseButton, pressed && styles.pressed]}
-          >
-            <InvalidCodeClose width={32} height={32} />
-          </Pressable>
+          <View pointerEvents="box-none" style={styles.invalidClosePosition}>
+            <Pressable
+              accessibilityLabel="Close invalid code message"
+              onPress={onClose}
+              style={({ pressed }) => [styles.invalidCloseButton, pressed && styles.pressed]}
+            >
+              <InvalidCodeClose width={32} height={32} />
+            </Pressable>
+          </View>
         </View>
       </View>
     </Modal>
@@ -151,8 +140,6 @@ function InvalidCodeOverlay({ onClose }: { onClose: () => void }) {
 }
 
 export default function SecurityVerificationMobile() {
-  const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
   const params = useLocalSearchParams();
   const [mode, setMode] = useState<VerificationMode>(params.mode === 'scan' ? 'scan' : 'enter');
   const [code, setCode] = useState<string[]>(EMPTY_CODE);
@@ -163,16 +150,10 @@ export default function SecurityVerificationMobile() {
   const inputs = useRef<InputRefsStorage>({});
   const scanNavigationInProgressRef = useRef(false);
   const router = useRouter();
-  const titleTop = Math.max(0, 88 - insets.top);
   const iconOffsetFromTitle = -7;
-  const toggleTop = 172;
-  const toggleHeight = 40;
-  const headerHeight = 42;
-  const toggleGapFromTitle = toggleTop - (88 + headerHeight);
-  const contentTopGap = (mode === 'scan' ? 250 : 340) - (toggleTop + toggleHeight);
-  const availableContentWidth = Math.max(width - 40, 304);
-  const contentWidth =
-    width >= 430 ? Math.min(availableContentWidth, 390) : Math.min(availableContentWidth, 335);
+  const headerTopGap = 24.14;
+  const headerToToggleGap = 51;
+  const contentTopGap = mode === 'scan' ? 40 : 128;
 
   useEffect(() => {
     if (Platform.OS !== 'android') return;
@@ -518,12 +499,15 @@ export default function SecurityVerificationMobile() {
   );
 
   return (
-    <SafeAreaView style={sharedStyles.container}>
+    <SafeAreaView
+      className="relative flex-1 bg-[#FBFEFF]"
+      style={[sharedStyles.container, sharedStyles.modalContainer]}
+    >
       <Stack.Screen options={{ headerShown: false }} />
 
       <View
-        className="flex-row items-center justify-between self-center"
-        style={{ marginBottom: toggleGapFromTitle, paddingTop: titleTop, width: contentWidth }}
+        className="w-full max-w-[390px] flex-row items-center justify-between self-center"
+        style={{ marginBottom: headerToToggleGap, marginTop: headerTopGap }}
       >
         <Text
           allowFontScaling={false}
@@ -786,7 +770,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   invalidOverlayContent: {
-    alignSelf: 'center',
+    alignItems: 'center',
+    flex: 1,
     paddingTop: 209,
   },
   invalidCard: {
@@ -808,8 +793,7 @@ const styles = StyleSheet.create({
   },
   invalidClosePosition: {
     height: 32,
-    position: 'absolute',
-    top: 664,
+    marginTop: 104,
     width: 32,
   },
   invalidCloseButton: {
