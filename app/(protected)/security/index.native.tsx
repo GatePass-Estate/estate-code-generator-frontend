@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import * as NavigationBar from 'expo-navigation-bar';
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import {
   ActivityIndicator,
@@ -156,21 +155,6 @@ export default function SecurityVerificationMobile() {
   const headerTopGap = 24.14;
   const headerToToggleGap = 51;
   const contentTopGap = mode === 'scan' ? 40 : 128;
-
-  useEffect(() => {
-    if (Platform.OS !== 'android') return;
-
-    const updateNavigationBar = async () => {
-      try {
-        await NavigationBar.setBackgroundColorAsync(invalidCode ? '#000000' : '#FBFEFF');
-        await NavigationBar.setButtonStyleAsync(invalidCode ? 'light' : 'dark');
-      } catch {
-        // Navigation bar styling is best-effort in Expo Go.
-      }
-    };
-
-    void updateNavigationBar();
-  }, [invalidCode]);
 
   const setInputRef = (el: TextInput | null, index: number) => {
     if (el) inputs.current[index] = el;
