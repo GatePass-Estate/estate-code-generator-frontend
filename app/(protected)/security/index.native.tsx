@@ -22,8 +22,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import HistoryRounded from '@/src/assets/icons/history-rounded.svg';
 import InvalidCodeClose from '@/src/assets/icons/invalid-code-close.svg';
-import InvalidCodeMessage from '@/src/assets/icons/invalid-code-message.svg';
-import InvalidCodeOops from '@/src/assets/icons/invalid-code-oops.svg';
 import MoreFill from '@/src/assets/icons/more-fill.svg';
 import Rectangle5 from '@/src/assets/icons/rectangle-5.svg';
 import ScanFrame from '@/src/assets/icons/scan-frame.svg';
@@ -121,8 +119,12 @@ function InvalidCodeOverlay({ onClose }: { onClose: () => void }) {
         <View style={styles.invalidOverlayContent}>
           <View style={styles.invalidCard}>
             <Image source={invalidCodeIllustration} style={styles.invalidCardImage} />
-            <InvalidCodeOops width={82} height={33} style={styles.invalidTitleImage} />
-            <InvalidCodeMessage width={271} height={17} style={styles.invalidMessageImage} />
+            <Text allowFontScaling={false} numberOfLines={1} style={styles.invalidTitleText}>
+              Oops!!
+            </Text>
+            <Text allowFontScaling={false} numberOfLines={1} style={styles.invalidMessageText}>
+              {"This code doesn't exist or has expired"}
+            </Text>
           </View>
           <View pointerEvents="box-none" style={styles.invalidClosePosition}>
             <Pressable
@@ -566,7 +568,11 @@ export default function SecurityVerificationMobile() {
           }`}
           onPress={() => setMode('enter')}
         >
-          <Text allowFontScaling={false} numberOfLines={1} style={styles.enterCodeSegmentText}>
+          <Text
+            allowFontScaling={false}
+            numberOfLines={1}
+            style={[styles.enterCodeSegmentText, mode === 'scan' && styles.inactiveSegmentText]}
+          >
             Enter Code
           </Text>
         </Pressable>
@@ -576,7 +582,11 @@ export default function SecurityVerificationMobile() {
           }`}
           onPress={() => setMode('scan')}
         >
-          <Text allowFontScaling={false} numberOfLines={1} style={styles.scanCodeSegmentText}>
+          <Text
+            allowFontScaling={false}
+            numberOfLines={1}
+            style={[styles.scanCodeSegmentText, mode === 'scan' && styles.activeSegmentText]}
+          >
             Scan Code
           </Text>
         </Pressable>
@@ -664,12 +674,18 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_18pt-Regular',
     fontSize: 11.2,
     height: 14,
-    left: 21,
+    left: 23,
     lineHeight: 14,
     position: 'absolute',
     textAlign: 'center',
     top: 13,
-    width: 58,
+    width: 64,
+  },
+  activeSegmentText: {
+    color: '#113E55',
+  },
+  inactiveSegmentText: {
+    color: '#878686',
   },
   validateCodeButtonText: {
     color: '#F6F7F7',
@@ -803,17 +819,27 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: 32,
   },
-  invalidTitleImage: {
+  invalidTitleText: {
+    color: '#113E55',
+    fontFamily: 'UbuntuSans-SemiBold',
+    fontSize: 26,
     height: 33,
     left: 124,
+    lineHeight: 33,
     position: 'absolute',
+    textAlign: 'center',
     top: 219,
     width: 82,
   },
-  invalidMessageImage: {
+  invalidMessageText: {
+    color: '#0A1F29',
+    fontFamily: 'Inter_18pt-Regular',
+    fontSize: 14,
     height: 17,
     left: 30,
+    lineHeight: 17,
     position: 'absolute',
+    textAlign: 'center',
     top: 268,
     width: 271,
   },
