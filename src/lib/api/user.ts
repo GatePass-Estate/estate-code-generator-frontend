@@ -7,6 +7,7 @@ import {
   UpdateUserRoleResponse,
   User,
 } from '@/src/types/user';
+import { DocumentMetadataItem, UserDocumentsMetadataResponse } from '@/src/types/userDocuments';
 
 export const updateUserPhone = async (
   userId: string,
@@ -68,6 +69,34 @@ export const getUserById = async (id: string): Promise<User> => {
     return data;
   } catch (error: any) {
     throw new Error(`${getErrorMessage(error) || 'An error occured'} `);
+  }
+};
+
+export const getUserProfilePictureUrl = async (userId: string): Promise<string | null> => {
+  try {
+    const api = Api();
+    const axiosRes = await api.get<UserDocumentsMetadataResponse>(`/users/documents/${userId}`, {
+      params: {
+        document_type: 'profile_picture',
+        document_status: 'active',
+      },
+    });
+
+    const profilePicture = axiosRes.data.documents.find(
+      (document: DocumentMetadataItem) =>
+        document.document_type === 'profile_picture' && document.view_url
+    );
+
+    if (!profilePicture?.view_url) return null;
+
+    if (/^https?:\/\//i.test(profilePicture.view_url)) {
+      return profilePicture.view_url;
+    }
+
+    const baseUrl = process.env.EXPO_PUBLIC_USER_SERVICE_API_URL || '';
+    return `${baseUrl}${profilePicture.view_url.startsWith('/') ? '' : '/'}${profilePicture.view_url}`;
+  } catch {
+    return null;
   }
 };
 
