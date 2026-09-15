@@ -322,9 +322,7 @@ const MyGuestMobile = () => {
                 )}
 
                 <View style={{ marginLeft: 8 }}>
-                  <Text className="text-sm font-inter-light text-[#0A1F29]">
-                    {item.guest_name}
-                  </Text>
+                  <Text className="text-sm font-inter-light text-[#0A1F29]">{item.guest_name}</Text>
 
                   <Text className="capitalize text-[11.2px] font-inter-regular text-primary">
                     {item.relationship}

@@ -187,7 +187,10 @@ export default function ActiveCodeCard({
       </View>
 
       <View className="absolute inset-y-0 right-0 w-[68px] items-center justify-center rounded-r-lg bg-tertiary">
-        <Pressable onPress={openDeleteConfirm} className="h-full w-full items-center justify-center">
+        <Pressable
+          onPress={openDeleteConfirm}
+          className="h-full w-full items-center justify-center"
+        >
           <Text className="text-xs font-inter-semibold text-[#F6F7F7]">Delete</Text>
         </Pressable>
       </View>

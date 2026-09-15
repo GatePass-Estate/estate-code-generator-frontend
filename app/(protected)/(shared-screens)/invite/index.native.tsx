@@ -1,4 +1,13 @@
-import { View, Text, TouchableOpacity, Share, Alert, Image, Pressable, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Share,
+  Alert,
+  Image,
+  Pressable,
+  ScrollView,
+} from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -78,7 +87,10 @@ export default function InvitePage() {
         <MaterialIcons name="keyboard-arrow-left" size={24} color="#113E55" />
       </Pressable>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 40 }}
+      >
         <View className="items-center mt-8 gap-4">
           <View className="h-[201px] w-[210px] items-center justify-center rounded-lg bg-tertiary">
             <View className="h-[176px] w-[184px] items-center justify-center rounded-lg border-2 border-dashed border-[#F6F7F7]">
