@@ -24,6 +24,7 @@ interface PickerProps {
   items: PickerItem[];
   placeholder?: string;
   enabled?: boolean;
+  variant?: 'default' | 'registration';
 }
 
 /**
@@ -37,6 +38,7 @@ export function Picker({
   items,
   placeholder = 'Select an option',
   enabled = true,
+  variant = 'default',
 }: PickerProps) {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const { bottom: safeBottom } = useSafeAreaInsets();
@@ -57,21 +59,34 @@ export function Picker({
     <View>
       {label ? <Text className="input-label">{label}</Text> : null}
       <Pressable
-        className="input-style flex-row items-center justify-between"
+        className={
+          variant === 'registration'
+            ? 'mt-2 h-12 flex-row items-center justify-between rounded-2xl border-mini border-accent bg-[#F6F7F7] px-4'
+            : 'input-style flex-row items-center justify-between'
+        }
         onPress={() => enabled && setIsModalVisible(true)}
         disabled={!enabled}
-        style={{ opacity: enabled ? 1 : 0.5 }}
+        style={{
+          opacity: enabled ? 1 : 0.5,
+          ...(variant === 'registration' && { borderWidth: StyleSheet.hairlineWidth }),
+        }}
       >
         <Text
           style={{
-            color: hasValue ? '#113E55' : '#9CA3AF',
+            color: hasValue ? '#113E55' : variant === 'registration' ? '#878686' : '#9CA3AF',
             flex: 1,
             flexShrink: 1,
+            fontFamily: variant === 'registration' ? 'Inter_18pt-Regular' : undefined,
+            fontSize: variant === 'registration' ? 14 : undefined,
           }}
         >
           {displayLabel}
         </Text>
-        <Ionicons name="chevron-down" size={20} color="#9CA3AF" />
+        <Ionicons
+          name="chevron-down"
+          size={20}
+          color={variant === 'registration' ? '#878686' : '#9CA3AF'}
+        />
       </Pressable>
 
       <Modal

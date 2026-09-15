@@ -4,23 +4,45 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
-  FlatList,
   RefreshControl,
   BackHandler,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import Svg, { G, Path } from 'react-native-svg';
 import { getAllEstateUsers } from '@/src/lib/api/user';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AllUsers } from '@/src/types/user';
 import { sharedStyles } from '@/src/theme/styles';
-import UserIcon from '@/src/components/mobile/UserIcon';
 import Back from '@/src/components/mobile/Back';
 import icons from '@/src/constants/icons';
-import { getRoleIcon, getRoleIconHeight, getRoleIconWidth, isDataEqual } from '@/src/lib/helpers';
+import { getRoleIcon, isDataEqual } from '@/src/lib/helpers';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useUserStore } from '@/src/lib/stores/userStore';
+
+function ResidentsCardIcon() {
+  return (
+    <Svg width={30} height={30} viewBox="0 0 20 20">
+      <G fill="#F46036">
+        <Path
+          d="M3.889 11H2.5a.5.5 0 0 1-.33-.875l8.5-7.5a.5.5 0 0 1 .66 0l8.5 7.5a.5.5 0 0 1-.33.875h-1.389v7a.5.5 0 0 1-.5.5H4.39a.5.5 0 0 1-.5-.5z"
+          opacity={0.2}
+        />
+        <Path
+          fillRule="evenodd"
+          d="M1 10h1.389v7a.5.5 0 0 0 .5.5H16.11a.5.5 0 0 0 .5-.5v-7H18a.5.5 0 0 0 .33-.875l-8.5-7.5a.5.5 0 0 0-.66 0l-8.5 7.5A.5.5 0 0 0 1 10m1.889-1h-.567L9.5 2.667L16.678 9h-.567a.5.5 0 0 0-.5.5v7H3.39v-7a.5.5 0 0 0-.5-.5"
+          clipRule="evenodd"
+        />
+        <Path
+          fillRule="evenodd"
+          d="M10.708 11.5h-2.5a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h2.5a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1m-2.5 5v-4h2.5v4z"
+          clipRule="evenodd"
+        />
+      </G>
+    </Svg>
+  );
+}
 
 export default function AdminUsersMobilePage() {
   const [users, setUsers] = useState<AllUsers>({ total: 0, page: 1, limit: 30, items: [] });
@@ -110,146 +132,229 @@ export default function AdminUsersMobilePage() {
     verifiedUsers.filter((user) => user.role === 'resident').length;
   const totalVerifiedCount = verifiedUsers.length;
 
-  const limitedUsers = verifiedUsers.slice(0, 4);
+  const limitedUsers = verifiedUsers.slice(0, 3);
   const greetingName = firstName || 'Admin';
 
   return (
-    <SafeAreaView style={sharedStyles.container}>
+    <SafeAreaView style={[sharedStyles.container, { backgroundColor: '#F6F7F7' }]}>
       <Stack.Screen
         options={{
           headerShown: false,
         }}
       />
 
-      <View className="flex-row items-center justify-between pt-2">
-        <Back type="short-arrow" onPress={handleBackToHome} />
-        <UserIcon />
+      <View className="pt-5">
+        <Back
+          type="short-arrow"
+          showText={false}
+          showBorder
+          borderSize={30}
+          leftOffset={-3}
+          iconStyle={{ width: 8.56, height: 12, top: 0 }}
+          onPress={handleBackToHome}
+        />
       </View>
 
       <ScrollView
         contentContainerStyle={{ paddingTop: 32, paddingBottom: 24 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       >
-        <Text className="text-2xl text-primary mb-8 font-ubuntu-bold" style={{ fontSize: 23 }}>
-          Hi {greetingName}!
+        <Text className="mb-8 h-[33px] text-[27.34px] leading-[27.34px] text-[#113E55] font-ubuntu-medium">
+          Hi {greetingName} !
         </Text>
 
-        <View className="flex-row justify-between gap-3 mb-3">
-          <View className="flex-1 border border-orange rounded-2xl p-4 py-7 bg-orange/10 flex-row gap-5 items-center">
-            <Image source={icons.adminHomeIcon} style={{ width: 58, height: 51 }} />
-            <View className="flex-col justify-center">
-              <Text className="text-orange font-inter-medium">Residents</Text>
-              <Text className="text-orange text-5xl font-ubuntu-bold">{residentsCount}</Text>
+        <View className="mb-[8px] flex-row gap-[9px]">
+          <View
+            className="relative h-[82px] flex-1 rounded-[8px] border-[#F46036] bg-[#FFF8F5]"
+            style={{ borderWidth: 0.5 }}
+          >
+            <View className="absolute top-[26px]" style={{ left: '15.6%' }}>
+              <ResidentsCardIcon />
             </View>
+            <Text
+              className="absolute top-[19px] h-[33px] w-[58px] text-center text-[34.18px] leading-[34.18px] text-[#F46036] font-ubuntu-medium"
+              style={{ left: '40.1%' }}
+            >
+              {residentsCount}
+            </Text>
+            <Text
+              className="absolute top-[54px] h-[11px] w-[50px] text-center text-[8.96px] leading-[8.96px] text-[#F46036] font-inter-medium"
+              style={{ left: '44.9%' }}
+            >
+              RESIDENTS
+            </Text>
           </View>
 
-          <View className="flex-1 border border-teal rounded-2xl p-4 py-7 bg-teal/10 flex-row gap-5 items-center">
-            <Image source={icons.securityIcon} style={{ width: 45, height: 55 }} />
-            <View className="flex-col justify-center">
-              <Text className="text-teal font-inter-medium">Security P...</Text>
-              <Text className="text-teal text-5xl font-ubuntu-bold">{securityPersonnelCount}</Text>
-            </View>
+          <View
+            className="relative h-[82px] flex-1 rounded-[8px] border-[#1B998B] bg-[#F4FFFE]"
+            style={{ borderWidth: 0.5 }}
+          >
+            <Image
+              source={icons.securityIcon}
+              className="absolute top-[26px] h-[30px] w-[30px]"
+              style={{ left: '16.2%' }}
+            />
+            <Text
+              className="absolute top-[19px] h-[33px] w-[58px] text-center text-[34.18px] leading-[34.18px] text-[#1B998B] font-ubuntu-medium"
+              style={{ left: '40.1%' }}
+            >
+              {securityPersonnelCount}
+            </Text>
+            <Text
+              className="absolute top-[56px] h-[11px] w-[101px] text-center text-[8.96px] leading-[8.96px] text-[#1B998B] font-inter-medium"
+              style={{ left: '14.4%' }}
+            >
+              SECURITY PERSONNEL
+            </Text>
           </View>
         </View>
 
-        <View className="flex-row gap-3 mb-10">
-          <View className="flex-1 border border-primary rounded-2xl p-4 py-7 items-center">
-            <Text className="text-grey/50 uppercase font-inter-medium tracking-wide">Total</Text>
-            <Text className="text-primary text-5xl font-ubuntu-bold">{totalVerifiedCount}</Text>
+        <View className="relative mb-[40px] h-[82px] flex-row">
+          <View
+            className="relative h-[82px] flex-1 rounded-[8px] border-white bg-[#113E55]"
+            style={{ maxWidth: '48.7%', borderWidth: 0.5 }}
+          >
+            <View className="absolute left-[25px] top-[28px] h-[27px] w-[25px] items-center justify-center rounded-full border border-white">
+              <Feather name="user" size={17} color="#FFFFFF" />
+            </View>
+            <Text className="absolute left-[67px] top-[19px] h-[33px] w-[58px] text-center text-[34.18px] leading-[34.18px] text-white font-ubuntu-medium">
+              {totalVerifiedCount}
+            </Text>
+            <Text
+              className="absolute left-[61px] top-[54px] h-[12px] w-[70px] text-center text-[8.96px] leading-[10px] text-white font-inter-medium"
+              numberOfLines={1}
+            >
+              TOTAL USERS
+            </Text>
           </View>
 
-          <View className="flex-1 justify-center items-center p-4 rounded-2xl">
+          <View
+            className="absolute h-[82px] w-[82px] items-center justify-center"
+            style={{ left: '65.1%' }}
+          >
             <TouchableOpacity
-              className="bg-light-grey rounded-full p-4"
+              className="h-[60px] w-[60px] items-center justify-center rounded-full bg-[#EFF8FA]"
               onPress={() => router.push('/admin/users/add')}
+              accessibilityRole="button"
+              accessibilityLabel="Register user"
             >
-              <Image
-                source={icons.thinPlus}
-                className="opacity-30"
-                style={{ width: 30, height: 30 }}
-              />
+              <Feather name="plus" size={30} color="#113E55" />
             </TouchableOpacity>
           </View>
         </View>
 
-        <View className="flex-row justify-between gap-2 mb-12 rounded-2xl">
-          <TouchableOpacity className="flex-1 items-center bg-accent rounded-xl py-5 px-2">
-            <Image source={icons.inactiveGuestIcon} style={{ width: 30, height: 30 }} />
-            <Text className="text-primary text-sm font-inter-regular mt-1.5 text-center">
-              See All Users
-            </Text>
-          </TouchableOpacity>
-
+        <View
+          className="mb-[38px] h-[66px] flex-row items-center justify-between rounded-[16px] px-[16px] py-[8px]"
+          style={{ backgroundColor: 'rgba(255, 255, 255, 0.7)' }}
+        >
           <TouchableOpacity
-            className="flex-1 items-center py-5 px-2"
+            className="h-[50px] w-[50px] items-center justify-center"
             onPress={() => router.push('/admin/users/add')}
           >
-            <Image source={icons.addUserIcon} style={{ width: 30, height: 30 }} />
-            <Text className="text-primary text-sm font-inter-regular mt-1.5 text-center">
+            <Image source={icons.addUserIcon} style={{ width: 18, height: 18 }} />
+            <Text
+              className="mt-[4px] h-[11px] w-[58px] text-center text-[6.83px] leading-[8px] text-[#113E55] font-inter-regular"
+              numberOfLines={1}
+            >
               Register User
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity className="flex-1 items-center py-5 px-2 opacity-40" disabled={true}>
-            <Image source={icons.broadcastIcon} style={{ width: 30, height: 30 }} />
-            <Text className="text-primary text-sm font-inter-regular mt-1.5 text-center">
+          <TouchableOpacity className="h-[50px] w-[50px] items-center justify-center">
+            <Image source={icons.broadcastIcon} style={{ width: 18, height: 18 }} />
+            <Text
+              className="mt-[4px] h-[11px] w-[58px] text-center text-[6.83px] leading-[8px] text-[#113E55] font-inter-regular"
+              numberOfLines={1}
+            >
               Broadcast
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            className="flex-1 items-center py-5 px-2"
+            className="h-[50px] w-[50px] items-center justify-center"
             onPress={() => router.push('/admin/edit-requests')}
           >
-            <Image source={icons.editRequestIcon} style={{ width: 30, height: 30 }} />
-            <Text className="text-primary text-sm font-inter-regular mt-1.5 text-center">
+            <Image source={icons.editRequestIcon} style={{ width: 18, height: 18 }} />
+            <Text
+              className="mt-[4px] h-[11px] w-[58px] text-center text-[6.83px] leading-[8px] text-[#113E55] font-inter-regular"
+              numberOfLines={1}
+            >
               Edit Requests
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            className="h-[50px] w-[50px] items-center justify-center"
+            onPress={() => router.push('/user/report')}
+          >
+            <View className="relative h-[18px] w-[18px] items-center justify-center">
+              <Feather name="shield" size={18} color="#113E55" />
+              <View className="absolute -right-[1px] -top-[2px] h-[6px] w-[6px] rounded-full bg-[#F04438]" />
+            </View>
+            <Text
+              className="mt-[4px] h-[11px] w-[58px] text-center text-[6.83px] leading-[8px] text-[#113E55] font-inter-regular"
+              numberOfLines={1}
+            >
+              Incident Report
             </Text>
           </TouchableOpacity>
         </View>
 
-        <View className="flex-row justify-between items-center mb-2">
-          <Text className="text-lg font-inter-regular text-gray-800">All Users</Text>
+        <View className="mb-[5px] h-[26px] flex-row items-center justify-between px-[5px]">
+          <Text className="h-[26px] w-[90px] text-[20.51px] leading-[25px] text-[#878686] font-ubuntu-medium">
+            All Users
+          </Text>
           <TouchableOpacity onPress={() => router.push('/admin/users/')}>
-            <Text className="font-ubuntu-medium text-teal text-sm">View All</Text>
+            <Text className="h-[15px] w-[47px] text-right text-[8.96px] leading-[11px] text-[#113E55] font-ubuntu-medium">
+              View All
+            </Text>
           </TouchableOpacity>
         </View>
 
-        <FlatList
-          data={limitedUsers}
-          keyExtractor={(item) => item.id!}
-          scrollEnabled={false}
-          ListEmptyComponent={
+        <View>
+          {limitedUsers.length === 0 ? (
             <View className="py-8 items-center">
               <Text className="text-grey text-center text-md font-inter-regular">
                 No users at the moment
               </Text>
             </View>
-          }
-          renderItem={({ item, index }) => (
-            <TouchableOpacity
-              className={`flex-row items-center py-3.5 ${index === limitedUsers.length - 1 ? '' : 'border-b'} border-gray-200 pl-2`}
-              onPress={() =>
-                router.push({
-                  pathname: '/(protected)/admin/users/[userId]',
-                  params: { userId: item.id!, userParam: JSON.stringify(item) },
-                })
-              }
-            >
-              <Image
-                source={getRoleIcon(item.role)}
-                style={{ width: getRoleIconWidth(item.role), height: getRoleIconHeight(item.role) }}
-              />
-              <View className="flex-1 ml-2.5">
-                <Text className="text-primary text-lg font-inter-regular">{`${item.first_name} ${item.last_name}`}</Text>
-                <Text className="text-primary text-sm font-inter-regular mt-0.5">
-                  {item.home_address}
-                </Text>
-              </View>
-              <Feather name="chevron-right" size={20} color="#1B998B" />
-            </TouchableOpacity>
+          ) : (
+            limitedUsers.map((item) => (
+              <TouchableOpacity
+                key={item.id}
+                className="mb-[4px] h-[52px] flex-row items-center rounded-[16px] px-[12px]"
+                style={{ backgroundColor: 'rgba(255, 255, 255, 0.7)' }}
+                onPress={() =>
+                  router.push({
+                    pathname: '/(protected)/admin/users/[userId]',
+                    params: { userId: item.id!, userParam: JSON.stringify(item) },
+                  })
+                }
+              >
+                <Image
+                  source={getRoleIcon(item.role)}
+                  style={{ width: 24, height: 24 }}
+                  resizeMode="contain"
+                />
+                <View className="ml-[17px] flex-1 justify-center">
+                  <Text
+                    className="text-[11.96px] leading-[14px] text-[#113E55] font-inter-regular"
+                    numberOfLines={1}
+                  >
+                    {`${item.first_name} ${item.last_name}`}
+                  </Text>
+                  <Text
+                    className="mt-[1px] text-[8.96px] leading-[11px] text-[#113E55] font-inter-regular"
+                    numberOfLines={1}
+                  >
+                    {item.home_address}
+                  </Text>
+                </View>
+                <Feather name="chevron-right" size={14} color="#113E55" />
+              </TouchableOpacity>
+            ))
           )}
-        />
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
