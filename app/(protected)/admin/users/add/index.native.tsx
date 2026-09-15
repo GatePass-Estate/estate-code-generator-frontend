@@ -18,7 +18,7 @@ import { registerUser } from '@/src/lib/api/user';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { Toast, ToastType } from '@/src/components/mobile/Toast';
 import { RegisterUserPayload } from '@/src/types/user';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation } from 'expo-router';
 import { Picker } from '@/src/components/mobile/Picker';
 import { useAndroidBottomInset } from '@/src/hooks/useAndroidBottomInset';
 

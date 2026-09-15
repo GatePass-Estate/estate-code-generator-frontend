@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Stack, router } from 'expo-router';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation } from 'expo-router';
 import { getAllEstateUsers } from '@/src/lib/api/user';
 import { useEffect, useState, useMemo } from 'react';
 import { AllUsers, User } from '@/src/types/user';
