@@ -10,6 +10,8 @@ import logoutIcon from '../assets/images/logout.png';
 import securityBg from '../assets/images/security-bg.png';
 // @ts-ignore
 import brokenCard from '../assets/images/broken-card.png';
+// @ts-ignore
+import frozenCodeCard from '../assets/images/frozen-code-card.png';
 
 const images = {
   loginImage,
@@ -18,6 +20,7 @@ const images = {
   logoutIcon,
   securityBg,
   brokenCard,
+  frozenCodeCard,
 };
 
 export default images;

@@ -1,42 +1,33 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, ScrollView } from 'react-native';
-import CheckBox from 'expo-checkbox';
+import { View, Text, TextInput, Pressable, Alert, ScrollView } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
-import UserIcon from '@/src/components/mobile/UserIcon';
-import { generateCode } from '@/src/lib/api/codes';
-import { useUserStore } from '@/src/lib/stores/userStore';
+import HeaderActions from '@/src/components/mobile/HeaderActions';
 import { createGuest } from '@/src/lib/api/guests';
+import { useUserStore } from '@/src/lib/stores/userStore';
 import { GenderType, RelationshipType } from '@/src/types/general';
 import { sharedStyles } from '@/src/theme/styles';
 import { useAndroidBottomInset } from '@/src/hooks/useAndroidBottomInset';
-import { timeCalc } from '@/src/lib/helpers';
 import { Picker } from '@/src/components/mobile/Picker';
+import { CheckIcon } from '@/src/assets/svgs';
 
 const AddGuestMobile = () => {
   const { tabContentPadding } = useAndroidBottomInset();
   const [guestName, setGuestName] = useState('');
+  const [relationship, setRelationship] = useState('');
   const [gender, setGender] = useState<GenderType>(null);
-  const [relationship, setRelationship] = useState<RelationshipType>(null);
-  const [isChecked, setIsChecked] = useState(false);
-  const [error, setError] = useState('');
+  const [addToGuestList, setAddToGuestList] = useState(false);
   const [running, setRunning] = useState<boolean>(false);
 
   const router = useRouter();
 
-  const handleCheckboxChange = () => {
-    setIsChecked(!isChecked);
-  };
-
-  const clearInput = () => {
-    setGuestName('');
-    setGender(null);
-    setRelationship(null);
-    setIsChecked(false);
-  };
-
   const inputChecks = (): boolean => {
-    if (guestName == '') {
+    if (guestName.trim() === '') {
       Alert.alert('Error', "Please enter the guest's name.");
+      return false;
+    }
+
+    if (relationship.trim() === '') {
+      Alert.alert('Error', 'Please enter your relationship with the guest.');
       return false;
     }
 
@@ -45,122 +36,96 @@ const AddGuestMobile = () => {
       return false;
     }
 
-    if (relationship == null) {
-      Alert.alert('Error', 'Please select or enter a relationship.');
-      return false;
-    }
-
     return true;
   };
 
-  async function handleGenerateCode() {
-    if (inputChecks()) {
-      setRunning(true);
-      try {
-        const result = await generateCode({
-          user_id: useUserStore.getState().user_id,
-          estate_id: useUserStore.getState().estate_id ?? '',
-          visitor_fullname: guestName,
-          relationship_with_resident: relationship,
-          gender: gender,
-        });
+  function handleContinue() {
+    if (!inputChecks()) return;
 
-        if (isChecked) {
-          await createGuest({
-            resident_id: useUserStore.getState().user_id,
-            guest_name: guestName,
-            relationship: relationship,
-            gender: gender,
-          });
-        }
-        setRunning(false);
-
-        clearInput();
-
-        let { formattedDate, timeframe } = timeCalc(result.valid_until);
-
-        router.push({
-          pathname: `/invite`,
-          params: {
-            code: result.hashed_code,
-            name: guestName,
-            address: `${useUserStore.getState().home_address}, ${useUserStore.getState().estate_name}.`,
-            timeframe,
-            date: formattedDate,
-          },
-        });
-      } catch (error) {
-        setError('Failed to generate code. Please try again.');
-      } finally {
-        setRunning(false);
-      }
-    }
+    router.push({
+      pathname: '/user/history/duration',
+      params: {
+        visitorName: guestName.trim(),
+        relationship: relationship.trim(),
+        gender: gender as string,
+        saveGuest: addToGuestList ? 'true' : 'false',
+      },
+    });
   }
 
   async function handleSaveGuest() {
-    if (inputChecks()) {
-      setRunning(true);
-      try {
-        await createGuest({
-          resident_id: useUserStore.getState().user_id,
-          guest_name: guestName,
-          relationship: relationship,
-          gender: gender,
-        });
+    if (!inputChecks()) return;
 
-        clearInput();
+    setRunning(true);
+    try {
+      await createGuest({
+        resident_id: useUserStore.getState().user_id,
+        guest_name: guestName.trim(),
+        relationship: relationship.trim() as RelationshipType,
+        gender: gender as GenderType,
+      });
 
-        router.push({
-          pathname: '/user/guests',
-          params: {
-            refresh: 'true',
-          },
-        });
-      } catch (error) {
-        setError('Failed to generate code. Please try again.');
-      } finally {
-        setRunning(false);
-      }
+      setGuestName('');
+      setRelationship('');
+      setGender(null);
+      setAddToGuestList(false);
+
+      router.push({
+        pathname: '/user/guests',
+        params: {
+          refresh: 'true',
+        },
+      });
+    } catch (error) {
+      Alert.alert('Error', 'Failed to save guest. Please try again.');
+    } finally {
+      setRunning(false);
     }
   }
 
   return (
     <ScrollView
-      style={sharedStyles.container}
+      style={[sharedStyles.container, { backgroundColor: '#F6F7F7' }]}
       contentContainerStyle={{ paddingBottom: tabContentPadding }}
+      showsVerticalScrollIndicator={false}
     >
       <Stack.Screen
         options={{
           headerShown: true,
-          title: 'Add Guest',
+          title: '',
           headerShadowVisible: false,
-          headerTitleAlign: 'left',
-          headerStyle: sharedStyles.header,
-          headerTitleStyle: sharedStyles.title,
-          headerRight: () => <UserIcon />,
+          headerStyle: { backgroundColor: '#F6F7F7' },
+          headerRight: () => <HeaderActions />,
         }}
       />
 
-      <Text className="text-base text-grey mt-8 my-3">Fill in your guest information</Text>
+      <Text className="text-[27.34px] font-ubuntu-medium text-primary mt-4">Add Guest</Text>
+      <Text className="text-sm font-inter-light text-[#878686] mt-3 mb-6">
+        Fill in your guest information
+      </Text>
 
-      <View style={{ gap: 10 }}>
-        <View>
-          <Text className="input-label">Name</Text>
+      <View style={{ gap: 20 }}>
+        <View className="gap-2">
+          <Text className="text-[9px] font-inter-medium text-[#878686]">Name</Text>
           <TextInput
-            className="input-style"
+            className="h-12 rounded-2xl bg-[#EFF1F1] px-4 text-sm font-inter-light text-[#878686]"
             placeholder="Enter Guest Name..."
+            placeholderTextColor="#878686"
             value={guestName}
             onChangeText={setGuestName}
           />
         </View>
 
         <View>
-          <Text className="input-label">Gender</Text>
           <Picker
-            label=""
+            label="Gender"
             selectedValue={gender}
             onValueChange={(value) => setGender(value as GenderType)}
             placeholder="Select the gender of your guest"
+            labelClassName="text-[9px] font-inter-medium text-[#878686] mb-2"
+            fieldClassName="h-12 rounded-2xl bg-[#EFF1F1] px-4 mt-0"
+            placeholderColor="#878686"
+            chevronColor="#878686"
             items={[
               { label: 'Female', value: 'female' },
               { label: 'Male', value: 'male' },
@@ -169,47 +134,42 @@ const AddGuestMobile = () => {
           />
         </View>
 
-        <View>
-          <Text className="input-label">Relationship</Text>
-          <Picker
-            label=""
-            selectedValue={relationship}
-            onValueChange={(value) => setRelationship(value as RelationshipType)}
-            placeholder="Select the relationship with your guest"
-            items={[
-              { label: 'Partner', value: 'partner' },
-              { label: 'Friend', value: 'friend' },
-              { label: 'Family', value: 'family' },
-              { label: 'Taxi', value: 'taxi' },
-              { label: 'Delivery', value: 'delivery' },
-              { label: 'Technician', value: 'technician' },
-              { label: 'Other', value: 'other' },
-            ]}
+        <View className="gap-2">
+          <Text className="text-[9px] font-inter-medium text-[#878686]">Relationship</Text>
+          <TextInput
+            className="h-12 rounded-2xl bg-[#EFF1F1] px-4 text-sm font-inter-light text-[#878686]"
+            placeholder="Enter your relationship with guest"
+            placeholderTextColor="#878686"
+            value={relationship}
+            onChangeText={setRelationship}
           />
-        </View>
-
-        <View>
-          <View className="flex-row items-center mt-4">
-            <CheckBox value={isChecked} onValueChange={handleCheckboxChange} />
-            <Text className="text-dark-teal p-2" onPress={handleCheckboxChange}>
-              Add to My Guest List
-            </Text>
-          </View>
         </View>
       </View>
 
-      <View className="mt-14 items-center gap-2">
-        <TouchableOpacity
-          className={`px-20 bg-primary justify-center items-center py-4 font-UbuntuSans !rounded-md ${running ? 'opacity-70' : ''}`}
-          onPress={handleGenerateCode}
-          disabled={running}
-        >
-          <Text className="text-white font-ubuntu-semibold text-md">Generate Code</Text>
-        </TouchableOpacity>
+      <Pressable
+        onPress={() => setAddToGuestList((prev) => !prev)}
+        className="mt-8 flex-row items-center gap-1.5 self-start"
+      >
+        {addToGuestList ? <CheckIcon /> : null}
+        <Text className="text-[11.2px] font-inter-semibold text-primary">Add to Guest List</Text>
+      </Pressable>
 
-        <TouchableOpacity onPress={handleSaveGuest} disabled={running} className="py-4 px-20">
-          <Text className="text-primary text-[16px] font-ubuntu-medium">Save Guest </Text>
-        </TouchableOpacity>
+      <View className="mt-14 mb-6 flex-row items-center justify-center gap-3">
+        <Pressable
+          onPress={handleSaveGuest}
+          disabled={running}
+          className={`h-11 w-[155px] items-center justify-center rounded-full bg-[#E5F6FF] ${running ? 'opacity-70' : ''}`}
+        >
+          <Text className="text-sm font-ubuntu-semibold text-primary">Save Guest</Text>
+        </Pressable>
+
+        <Pressable
+          onPress={handleContinue}
+          disabled={running}
+          className={`h-11 w-[155px] items-center justify-center rounded-full bg-primary ${running ? 'opacity-70' : ''}`}
+        >
+          <Text className="text-sm font-ubuntu-semibold text-white">Continue</Text>
+        </Pressable>
       </View>
     </ScrollView>
   );

@@ -41,7 +41,10 @@ export const sharedStyles = StyleSheet.create({
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0,
     shadowRadius: 0,
-    borderTopWidth: 0,
+    borderTopWidth: 0.5,
+    borderTopColor: '#F6F7F7',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
   },
 
   fab: {
@@ -49,7 +52,7 @@ export const sharedStyles = StyleSheet.create({
     width: 90,
     height: 90,
     borderRadius: 50,
-    borderColor: '#FBFEFF',
+    borderColor: '#F6F7F7',
     borderWidth: 6,
     justifyContent: 'center',
     alignItems: 'center',

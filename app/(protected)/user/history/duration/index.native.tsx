@@ -21,6 +21,7 @@ import {
 } from '@/src/assets/svgs';
 import ScreenHeader from '@/src/components/mobile/ScreenHeader';
 import { generateCode } from '@/src/lib/api/codes';
+import { createGuest } from '@/src/lib/api/guests';
 import { formatInvitePeriodDisplay } from '@/src/lib/helpers';
 import { useAndroidBottomInset } from '@/src/hooks/useAndroidBottomInset';
 import { useUserStore } from '@/src/lib/stores/userStore';
@@ -114,6 +115,7 @@ export default function SetAccessCodeDurationScreen() {
     visitorName?: string;
     relationship?: string;
     gender?: string;
+    saveGuest?: string;
   }>();
 
   const visitorName = params.visitorName?.trim() || 'Guest';
@@ -123,6 +125,7 @@ export default function SetAccessCodeDurationScreen() {
     RELATIONSHIPS.has(relationshipParam) ? relationshipParam : 'other'
   ) as RelationshipType;
   const gender = (GENDERS.has(genderParam) ? genderParam : 'prefer_not_to_say') as GenderType;
+  const shouldSaveGuest = params.saveGuest === 'true';
 
   useFocusEffect(
     useCallback(() => {
@@ -288,6 +291,19 @@ export default function SetAccessCodeDurationScreen() {
         'visitor'
       );
 
+      if (shouldSaveGuest) {
+        try {
+          await createGuest({
+            resident_id: user_id,
+            guest_name: visitorName,
+            relationship,
+            gender,
+          });
+        } catch (e) {
+          console.log('Failed to save guest:', e);
+        }
+      }
+
       const { formattedDate, timeframe } = formatInvitePeriodDisplay(periodStart, endDate);
       router.push({
         pathname: '/invite',
@@ -312,6 +328,7 @@ export default function SetAccessCodeDurationScreen() {
     gender,
     home_address,
     relationship,
+    shouldSaveGuest,
     startDate,
     user_id,
     visitorName,

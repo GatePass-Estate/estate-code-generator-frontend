@@ -51,7 +51,7 @@ export const FloatingButton: React.FC<{
         !focused ? { backgroundColor: '#CEE5ED' } : { backgroundColor: '#113E55' },
       ]}
     >
-      <PlusTabIcon color={focused ? '#FFFFFF' : ACTIVE_TAB_COLOR} />
+      <PlusTabIcon color={focused ? '#F6F7F7' : INACTIVE_TAB_COLOR} />
     </View>
   );
 };
@@ -63,7 +63,7 @@ export const HomeIcon: React.FC<{ focused?: boolean; isMobile?: boolean }> = ({
 
   return (
     <TabLabel label="Home" focused={focused}>
-      <HomeTabIcon width={20} height={20} color={color} />
+      <HomeTabIcon width={20} height={20} color={color} focused={focused} />
     </TabLabel>
   );
 };

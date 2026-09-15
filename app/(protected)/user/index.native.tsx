@@ -1,9 +1,8 @@
 import { Stack, router } from 'expo-router';
 import { useNavigation } from '@react-navigation/native';
-import CountdownRing from '@/src/components/common/CountdownRing';
-import { View, Text, FlatList, Animated, Platform } from 'react-native';
+import { View, Text, FlatList, Image } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import UserIcon from '@/src/components/mobile/UserIcon';
 import { useEffect, useRef, useState } from 'react';
 import images from '@/src/constants/images';
 import { Codes } from '@/src/types/codes';
@@ -12,17 +11,20 @@ import { useUserStore } from '@/src/lib/stores/userStore';
 import { sharedStyles } from '@/src/theme/styles';
 import { useAndroidBottomInset } from '@/src/hooks/useAndroidBottomInset';
 import { isDataEqual } from '@/src/lib/helpers';
-import CodeItem from '@/src/components/mobile/CodeItem';
+import ActiveCodeCard from '@/src/components/mobile/ActiveCodeCard';
+import HeaderActions from '@/src/components/mobile/HeaderActions';
+import { CopiedToast } from '@/src/components/mobile/CopiedToast';
 
 export default function HomeMobile({}) {
   const { tabContentPadding } = useAndroidBottomInset();
-  const bounceValue = useRef(new Animated.Value(0)).current;
   const [refreshing, setRefreshing] = useState(true);
   const [codes, setCodes] = useState<Codes[]>([]);
+  const [frozenCodes, setFrozenCodes] = useState<Set<string>>(new Set());
+  const [showCopiedToast, setShowCopiedToast] = useState(false);
   const navigation = useNavigation();
   const codesRef = useRef<Codes[]>(codes);
+  const copiedToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Keep ref in sync with state
   useEffect(() => {
     codesRef.current = codes;
   }, [codes]);
@@ -42,14 +44,10 @@ export default function HomeMobile({}) {
     }
   };
 
-  const filteredCodes = codes;
-
-  // Fetch data when component mounts
   useEffect(() => {
     fetchCodes(true);
   }, []);
 
-  // Fetch data when screen comes into focus
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
       fetchCodes(false);
@@ -57,12 +55,11 @@ export default function HomeMobile({}) {
     return unsubscribe;
   }, [navigation]);
 
-  // Polling: Fetch data every 30 seconds when the screen is focused
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
       const intervalId = setInterval(() => {
         fetchCodes(false);
-      }, 30000); // 30 seconds
+      }, 30000);
 
       return () => clearInterval(intervalId);
     });
@@ -71,111 +68,127 @@ export default function HomeMobile({}) {
   }, [navigation]);
 
   useEffect(() => {
-    const anim = Animated.loop(
-      Animated.sequence([
-        Animated.timing(bounceValue, {
-          toValue: -10,
-          duration: 500,
-          useNativeDriver: Platform.OS !== 'web',
-        }),
-        Animated.timing(bounceValue, {
-          toValue: 0,
-          duration: 500,
-          useNativeDriver: Platform.OS !== 'web',
-        }),
-      ])
-    );
-    anim.start();
-
     return () => {
-      anim.stop();
+      if (copiedToastTimer.current) clearTimeout(copiedToastTimer.current);
     };
-  }, [bounceValue]);
+  }, []);
+
+  const handleCopied = () => {
+    setShowCopiedToast(true);
+    if (copiedToastTimer.current) clearTimeout(copiedToastTimer.current);
+    copiedToastTimer.current = setTimeout(() => setShowCopiedToast(false), 1600);
+  };
+
+  const handleDeleted = (hashedCode: string) => {
+    setCodes((prev) => prev.filter((c) => c.hashed_code !== hashedCode));
+  };
+
+  const handleToggleFreeze = (hashedCode: string) => {
+    setFrozenCodes((prev) => {
+      const next = new Set(prev);
+      if (next.has(hashedCode)) {
+        next.delete(hashedCode);
+      } else {
+        next.add(hashedCode);
+      }
+      return next;
+    });
+  };
+
+  const openHistory = (item: Codes) => {
+    router.push({
+      pathname: '/user/history/[codeId]',
+      params: {
+        codeId: item.hashed_code,
+        name: item.visitor_fullname ?? '',
+        category: item.relationship_with_resident ?? '',
+        isActive: 'true',
+      },
+    });
+  };
+
+  const openExtend = (item: Codes) => {
+    router.push({
+      pathname: '/user/history/duration',
+      params: {
+        visitorName: item.visitor_fullname ?? 'Guest',
+        relationship: item.relationship_with_resident ?? 'other',
+        gender: item.gender ?? 'prefer_not_to_say',
+      },
+    });
+  };
 
   return (
-    <SafeAreaView style={sharedStyles.container} edges={['left', 'right']}>
+    <SafeAreaView
+      style={[sharedStyles.container, { backgroundColor: '#F6F7F7' }]}
+      edges={['top', 'left', 'right']}
+    >
       <Stack.Screen
         options={{
-          title: 'Active Codes',
-          headerShown: true,
-          headerShadowVisible: false,
-          headerTitleAlign: 'left',
-          headerStyle: sharedStyles.header,
-          headerTitleStyle: sharedStyles.title,
-          headerRight: () => <UserIcon />,
+          headerShown: false,
         }}
       />
 
+      <CopiedToast visible={showCopiedToast} />
+
       <View>
-        <Text className="text-base font-Inter font-medium text-black mt-8 mb-7">
-          All incoming guest
-        </Text>
+        <View className="mb-6 mt-11 flex-row items-center justify-between">
+          <Text className="text-[27.34px] font-ubuntu-medium text-primary">Active Codes</Text>
+          <HeaderActions />
+        </View>
 
-        <FlatList
-          data={filteredCodes}
-          keyExtractor={(item) => item.hashed_code}
-          refreshing={refreshing}
-          onRefresh={fetchCodes}
-          contentContainerStyle={{ paddingBottom: tabContentPadding }}
-          ListEmptyComponent={() => (
-            <View className="flex-1 justify-center items-center">
-              <Animated.Image
-                source={images.ghostImg}
-                className={`w-80 h-80 res`}
-                style={{
-                  resizeMode: 'contain',
-                  transform: [{ translateY: bounceValue }],
-                }}
-              />
+        <GestureHandlerRootView>
+          <FlatList
+            data={codes}
+            keyExtractor={(item) => item.hashed_code}
+            refreshing={refreshing}
+            onRefresh={fetchCodes}
+            contentContainerStyle={{ paddingBottom: tabContentPadding, gap: 12 }}
+            ListEmptyComponent={() => (
+              <View className="flex-1 items-center mt-16">
+                <Image
+                  source={images.ghostImg}
+                  style={{ width: 201, height: 221, opacity: 0.5 }}
+                  resizeMode="contain"
+                />
+                <Text className="text-center text-[22px] font-ubuntu-semibold text-[#D3D3D3] mt-6 w-[195px]">
+                  {`Click the '+' to add your guest`}
+                </Text>
+              </View>
+            )}
+            renderItem={({ item }) => {
+              const iso = String(item.valid_until ?? '')
+                .replace(' ', 'T')
+                .replace(/([+-]\d{2})(\d{2})$/, '$1:$2');
+              const expiresAt = new Date(iso).getTime();
 
-              <Text className="text-center text-2xl opacity-20">{`Click the ‘+’ to add \nyour guest`}</Text>
-            </View>
-          )}
-          renderItem={({ item }) => {
-            const iso = String(item.valid_until ?? '')
-              .replace(' ', 'T')
-              .replace(/([+-]\d{2})(\d{2})$/, '$1:$2');
-            const parsed = new Date(iso);
+              const startIso = item.validity_period?.start
+                ? String(item.validity_period.start)
+                    .replace(' ', 'T')
+                    .replace(/([+-]\d{2})(\d{2})$/, '$1:$2')
+                : null;
+              const startAt = startIso ? new Date(startIso).getTime() : null;
 
-            let formattedDate = 'Invalid date';
-            let timeframe = 'Unknown';
-            let timeLeftMinutes = 0;
+              const frozen = Boolean(item.frozen) || frozenCodes.has(item.hashed_code);
 
-            if (!isNaN(parsed.getTime())) {
-              const day = String(parsed.getDate()).padStart(2, '0');
-              const month = String(parsed.getMonth() + 1).padStart(2, '0');
-              const year = parsed.getFullYear();
-              formattedDate = `${day}/${month}/${year}`;
-
-              const diffMs = parsed.getTime() - Date.now();
-              if (diffMs <= 0) {
-                timeframe = 'Expired';
-              } else {
-                const startDate = new Date(parsed.getTime() - 60 * 60 * 1000);
-                const formatTime = (d: Date) =>
-                  d
-                    .toLocaleTimeString(undefined, {
-                      hour: 'numeric',
-                      minute: '2-digit',
-                      hour12: true,
-                    })
-                    .replace(/\s+/g, '')
-                    .toLowerCase();
-                timeLeftMinutes = Math.floor((diffMs % 3600000) / 60000);
-                timeframe = `${formatTime(startDate)} to ${formatTime(parsed)}`;
-              }
-            }
-
-            return (
-              <CodeItem
-                item={item}
-                timeframe={timeframe}
-                formattedDate={formattedDate}
-                parsed={parsed}
-              />
-            );
-          }}
-        />
+              return (
+                <ActiveCodeCard
+                  item={item}
+                  guestName={item.visitor_fullname ?? 'Guest'}
+                  code={item.hashed_code.toUpperCase()}
+                  expiresAt={expiresAt}
+                  startAt={startAt}
+                  frozen={frozen}
+                  onToggleFreeze={() => handleToggleFreeze(item.hashed_code)}
+                  onDeleted={() => handleDeleted(item.hashed_code)}
+                  onCopied={handleCopied}
+                  onOpenHistory={() => openHistory(item)}
+                  onExtend={() => openExtend(item)}
+                />
+              );
+            }}
+          />
+        </GestureHandlerRootView>
       </View>
     </SafeAreaView>
   );

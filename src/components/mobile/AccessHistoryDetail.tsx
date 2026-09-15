@@ -24,6 +24,12 @@ type AccessHistoryDetailProps = {
   showRegenerate?: boolean;
   regenerating?: boolean;
   onRegenerate?: () => void;
+  /** Active (not-yet-expired) codes show Share/Delete instead of Regenerate. */
+  activeCodeActions?: {
+    onShare: () => void;
+    onDelete: () => void;
+    deleting?: boolean;
+  };
   /** Extra space above the bottom nav when the tab bar stays visible. */
   bottomInset?: number;
   /** Gap between timeline items. Default 24. */
@@ -50,6 +56,7 @@ export default function AccessHistoryDetail({
   showRegenerate = false,
   regenerating = false,
   onRegenerate,
+  activeCodeActions,
   bottomInset = 0,
   timelineGap = 24,
   timelineLastOverflow = 59,
@@ -72,14 +79,7 @@ export default function AccessHistoryDetail({
         </View>
       ) : (
         <>
-          <ScrollView
-            contentContainerStyle={{
-              alignItems: 'center',
-              paddingTop: 6,
-              paddingBottom: showRegenerate ? 120 + bottomInset : 40 + bottomInset,
-            }}
-            showsVerticalScrollIndicator={false}
-          >
+          <View className="items-center" style={{ paddingTop: 6 }}>
             <View
               className="h-[105px] w-[105px] items-center justify-center rounded-full bg-[#F4FFFE]"
               style={{ overflow: 'hidden' }}
@@ -105,9 +105,20 @@ export default function AccessHistoryDetail({
                 {category}
               </Text>
             ) : null}
+          </View>
 
+          {/* Timeline scrolls within its own bounded frame, independent of the header above. */}
+          <ScrollView
+            className="mt-[54px] flex-1"
+            contentContainerStyle={{
+              paddingHorizontal: 12,
+              paddingBottom:
+                showRegenerate || activeCodeActions ? 120 + bottomInset : 40 + bottomInset,
+            }}
+            showsVerticalScrollIndicator={false}
+          >
             <AccessTimeline
-              className="mt-[54px] w-full px-3"
+              className="w-full"
               events={events}
               error={error}
               gap={timelineGap}
@@ -115,7 +126,27 @@ export default function AccessHistoryDetail({
             />
           </ScrollView>
 
-          {showRegenerate ? (
+          {activeCodeActions ? (
+            <View className="absolute bottom-[60px] left-5 right-5 flex-row items-center justify-center gap-3">
+              <Pressable
+                onPress={activeCodeActions.onDelete}
+                disabled={activeCodeActions.deleting}
+                className="h-[49px] w-[156px] items-center justify-center rounded-full bg-[#E5F6FF]"
+              >
+                {activeCodeActions.deleting ? (
+                  <ActivityIndicator color="#113E55" />
+                ) : (
+                  <Text className="text-sm font-ubuntu-semibold text-primary">Delete Invite</Text>
+                )}
+              </Pressable>
+              <Pressable
+                onPress={activeCodeActions.onShare}
+                className="h-12 w-[155px] items-center justify-center rounded-full bg-primary"
+              >
+                <Text className="text-sm font-ubuntu-semibold text-white">Share Invite</Text>
+              </Pressable>
+            </View>
+          ) : showRegenerate ? (
             <View className="absolute bottom-[60px] left-5 right-5">
               <Pressable
                 onPress={onRegenerate}
