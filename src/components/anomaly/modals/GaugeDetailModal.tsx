@@ -22,10 +22,10 @@ export interface GaugeData {
   arcColor?: string;
   records: number;
   days: number;
-  items: Array<{
+  items: {
     title: string;
     percentage: number;
-  }>;
+  }[];
 }
 
 interface GaugeDetailModalProps {

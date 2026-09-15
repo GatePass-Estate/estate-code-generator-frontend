@@ -8,7 +8,7 @@ import {
   Share,
   NativeSyntheticEvent,
   NativeScrollEvent,
-} from 'react-native';
+ ActivityIndicator } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
 import { router } from 'expo-router';
@@ -28,7 +28,11 @@ import TimeframeModal from './modals/TimeframeModal';
 import EstateSvg from '@/src/assets/icons/estate.svg';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { useAnomalyOverview, useAnomalyPredictions } from '@/src/hooks/useAnomalyQueries';
-import { ActivityIndicator } from 'react-native';
+import LocationSvg from '@/src/assets/icons/location.svg';
+import TotalUsersSvg from '@/src/assets/icons/totalusers.svg';
+import UserWarningSvg from '@/src/assets/icons/userwarning.svg';
+import AlertSvg from '@/src/assets/icons/alert.svg';
+import UpAndDownSvg from '@/src/assets/icons/upanddown.svg';
 
 const GAUGE_MOCK_DATA: GaugeData[] = [
   // ... (keep GAUGE_MOCK_DATA as is, but it's not the target here. I will just target the import line)
@@ -76,11 +80,6 @@ const GAUGE_MOCK_DATA: GaugeData[] = [
     ],
   }
 ];
-import LocationSvg from '@/src/assets/icons/location.svg';
-import TotalUsersSvg from '@/src/assets/icons/totalusers.svg';
-import UserWarningSvg from '@/src/assets/icons/userwarning.svg';
-import AlertSvg from '@/src/assets/icons/alert.svg';
-import UpAndDownSvg from '@/src/assets/icons/upanddown.svg';
 
 const USER_ROWS = [
   {

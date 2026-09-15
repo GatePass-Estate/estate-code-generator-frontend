@@ -1,6 +1,6 @@
 import Back from '@/src/components/mobile/Back';
 import { sharedStyles } from '@/src/theme/styles';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useRouter , useNavigation } from 'expo-router';
 import { useState, useEffect } from 'react';
 import {
   ActivityIndicator,
@@ -18,7 +18,6 @@ import { registerUser } from '@/src/lib/api/user';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { Toast, ToastType } from '@/src/components/mobile/Toast';
 import { RegisterUserPayload } from '@/src/types/user';
-import { useNavigation } from 'expo-router';
 import { Picker } from '@/src/components/mobile/Picker';
 import { useAndroidBottomInset } from '@/src/hooks/useAndroidBottomInset';
 
