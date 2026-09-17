@@ -13,7 +13,6 @@ import {
 } from 'react-native';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import UserIcon from '@/src/components/mobile/UserIcon';
-import HeaderActions from '@/src/components/mobile/HeaderActions';
 import { useEffect, useRef, useState } from 'react';
 import images from '@/src/constants/images';
 import { deleteMyGuest, getMyGuests } from '@/src/lib/api/guests';
@@ -201,20 +200,17 @@ const MyGuestMobile = () => {
   return (
     <View style={sharedStyles.container}>
       {Platform.OS !== 'web' ? (
-        <>
-          <Stack.Screen
-            options={{
-              headerShown: true,
-              title: '',
-              headerShadowVisible: false,
-              headerStyle: { backgroundColor: '#FBFEFF' },
-              headerRight: () => <HeaderActions />,
-            }}
-          />
-          <Text className="text-[21.33px] font-ubuntu-semibold text-primary mt-1 mb-5">
-            My Guests
-          </Text>
-        </>
+        <Stack.Screen
+          options={{
+            headerShown: true,
+            title: 'My Guests',
+            headerShadowVisible: false,
+            headerTitleAlign: 'left',
+            headerStyle: sharedStyles.header,
+            headerTitleStyle: sharedStyles.title,
+            headerRight: () => <UserIcon />,
+          }}
+        />
       ) : (
         <>
           <WebSidebar routes={menuRoutes} onNavigate={(route) => router.push(route as any)} />
@@ -231,30 +227,27 @@ const MyGuestMobile = () => {
         </>
       )}
 
-      <View className="flex-row items-center justify-between gap-2 rounded-2xl border-[0.5px] border-primary bg-[#EFF1F1] px-4 py-1 mb-6">
-        <View className="flex-1 flex-row items-center gap-2">
-          <TextInput
-            placeholder="Search database"
-            placeholderTextColor="#113E55"
-            className="flex-1 text-sm font-inter-light text-primary"
-            style={{ paddingVertical: 12 }}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-          <Image source={icons.searchIcon} style={{ width: 20, height: 20 }} />
-        </View>
-        {searchQuery ? (
-          <Text
-            className="text-sm font-inter-medium text-dark-teal"
-            onPress={() => setSearchQuery('')}
-          >
-            Cancel
-          </Text>
-        ) : null}
+      <View className="flex-row bg-light-grey rounded-xl items-center px-2 mb-5 mt-4">
+        <Image source={icons.searchIcon} style={{ width: 18, height: 18 }} />
+        <TextInput
+          placeholder="Search"
+          style={styles.searchInput}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
       </View>
 
       <>
-        <Text className="text-sm font-inter-light text-[#0A1F29] mb-2">All Saved Guests</Text>
+        <Text
+          style={[
+            styles.savedLabel,
+            {
+              marginTop: filteredGuests?.length > limit ? 20 : 0,
+            },
+          ]}
+        >
+          All Saved Guests
+        </Text>
         <View style={styles.divider} />
       </>
 
@@ -299,10 +292,10 @@ const MyGuestMobile = () => {
                 {
                   backgroundColor:
                     item.gender == 'female'
-                      ? '#FFF8F5'
+                      ? '#f45f36e'
                       : item.gender == 'male'
-                        ? '#F4FFFE'
-                        : '#F6F7F7',
+                        ? '#167a6ec'
+                        : '#F7F9F9',
                   borderColor:
                     item.gender == 'female'
                       ? '#F46036'
@@ -321,10 +314,12 @@ const MyGuestMobile = () => {
                   <Image source={icons.notSayingGender} style={{ width: 24, height: 24 }} />
                 )}
 
-                <View style={{ marginLeft: 8 }}>
-                  <Text className="text-sm font-inter-light text-[#0A1F29]">{item.guest_name}</Text>
+                <View style={{ marginLeft: 10 }}>
+                  <Text className="font-Inter text-[16px] font-normal text-black">
+                    {item.guest_name}
+                  </Text>
 
-                  <Text className="capitalize text-[11.2px] font-inter-regular text-primary">
+                  <Text className="capitalize text-[14px] text-primary font-inter-semibold text-sm ">
                     {item.relationship}
                   </Text>
                 </View>
@@ -356,9 +351,10 @@ const MyGuestMobile = () => {
                   <Image
                     source={icons.deleteMobileIcon}
                     style={{
-                      width: 24,
-                      height: 24,
+                      width: 22,
+                      height: 22,
                       resizeMode: 'contain',
+                      tintColor: '#a6a4a4',
                     }}
                   />
                 </TouchableOpacity>
@@ -375,9 +371,10 @@ const MyGuestMobile = () => {
                   <Image
                     source={icons.generateCodeIcon}
                     style={{
-                      width: 24,
-                      height: 24,
+                      width: 22,
+                      height: 22,
                       resizeMode: 'contain',
+                      tintColor: '#a6a4a4',
                     }}
                   />
                 </TouchableOpacity>
@@ -475,12 +472,13 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    padding: 8,
-    borderRadius: 8,
+    padding: 12,
+    borderRadius: 10,
     backgroundColor: '#F6F6F6',
-    marginBottom: 8,
+    marginBottom: 10,
     alignItems: 'center',
-    borderWidth: 0.5,
+    borderWidth: 1,
+    height: 60,
     borderColor: '#e5e5e5',
   },
 
