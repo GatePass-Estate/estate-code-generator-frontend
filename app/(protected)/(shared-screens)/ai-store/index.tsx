@@ -94,9 +94,28 @@ type AITool = {
   rating: number;
   icon: ReactNode;
   disabled?: boolean;
-  category: 'incident' | 'traffic';
+  category: string;
   isPurchased?: boolean;
 };
+
+const toggleFilter = (currentSelection: string[], value: string, allValues: string[]) => {
+  if (value === 'all') {
+    return ['all'];
+  }
+  let newSelection = currentSelection.filter(v => v !== 'all');
+  if (newSelection.includes(value)) {
+    newSelection = newSelection.filter(v => v !== value);
+  } else {
+    newSelection = [...newSelection, value];
+  }
+  if (newSelection.length === 0 || newSelection.length === allValues.length) {
+    return ['all'];
+  }
+  return newSelection;
+};
+
+const PURCHASE_OPTIONS = ['purchased', 'not_purchased'];
+const CATEGORY_OPTIONS = ['Access Anomaly Detection', 'Incident Report Insights'];
 
 export default function AIStoreScreen() {
   const [tools, setTools] = useState<AITool[]>([]);
@@ -104,8 +123,8 @@ export default function AIStoreScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isFilterModalVisible, setFilterModalVisible] = useState(false);
-  const [purchaseFilter, setPurchaseFilter] = useState<'purchased' | 'all'>('all');
-  const [categoryFilter, setCategoryFilter] = useState<'incident' | 'traffic' | 'all'>('all');
+  const [purchaseFilters, setPurchaseFilters] = useState<string[]>(['all']);
+  const [categoryFilters, setCategoryFilters] = useState<string[]>(['all']);
 
   useEffect(() => {
     let isMounted = true;
@@ -113,11 +132,11 @@ export default function AIStoreScreen() {
     async function loadData() {
       try {
         const params: any = {};
-        if (purchaseFilter === 'purchased') {
-          params.purchase_status = 'purchased';
+        if (!purchaseFilters.includes('all') && purchaseFilters.length > 0) {
+          params.purchase_status = purchaseFilters;
         }
-        if (categoryFilter !== 'all') {
-          params.category = categoryFilter;
+        if (!categoryFilters.includes('all') && categoryFilters.length > 0) {
+          params.category = categoryFilters;
         }
         const data = await getMarketplaceFeatures(params);
         console.log('\n================== [AI MARKETPLACE API RESPONSE] ==================');
@@ -126,9 +145,9 @@ export default function AIStoreScreen() {
 
         if (isMounted && data && data.items && data.items.length > 0) {
           const liveTools: AITool[] = data.items.map((item: MarketplaceListItem) => {
-            const cat = item.category?.toLowerCase().includes('traffic') ? 'traffic' : 'incident';
+            const cat = item.category || 'Access Anomaly Detection';
             const iconUrl = (item as any).display_picture_url || item.picture_path;
-            
+
             return {
               id: item.id,
               title: item.name,
@@ -136,8 +155,8 @@ export default function AIStoreScreen() {
               price: item.purchased
                 ? undefined
                 : item.price != null
-                ? `${item.currency_code === 'NGN' ? '₦' : '$'}${item.price}`
-                : undefined,
+                  ? `${item.currency_code === 'NGN' ? '₦' : '$'}${item.price}`
+                  : undefined,
               rating: item.rating != null ? Math.round(item.rating) : 0,
               icon: iconUrl ? (
                 <Image
@@ -169,25 +188,25 @@ export default function AIStoreScreen() {
     return () => {
       isMounted = false;
     };
-  }, [purchaseFilter, categoryFilter]);
+  }, [purchaseFilters, categoryFilters]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
       const params: any = {};
-      if (purchaseFilter === 'purchased') {
-        params.purchase_status = 'purchased';
+      if (!purchaseFilters.includes('all') && purchaseFilters.length > 0) {
+        params.purchase_status = purchaseFilters;
       }
-      if (categoryFilter !== 'all') {
-        params.category = categoryFilter;
+      if (!categoryFilters.includes('all') && categoryFilters.length > 0) {
+        params.category = categoryFilters;
       }
       const data = await getMarketplaceFeatures(params);
 
       if (data && data.items && data.items.length > 0) {
         const liveTools: AITool[] = data.items.map((item: MarketplaceListItem) => {
-          const cat = item.category?.toLowerCase().includes('traffic') ? 'traffic' : 'incident';
+          const cat = item.category || 'Access Anomaly Detection';
           const iconUrl = (item as any).display_picture_url || item.picture_path;
-          
+
           return {
             id: item.id,
             title: item.name,
@@ -195,8 +214,8 @@ export default function AIStoreScreen() {
             price: item.purchased
               ? undefined
               : item.price != null
-              ? `${item.currency_code === 'NGN' ? '₦' : '$'}${item.price}`
-              : undefined,
+                ? `${item.currency_code === 'NGN' ? '₦' : '$'}${item.price}`
+                : undefined,
             rating: item.rating != null ? Math.round(item.rating) : 0,
             icon: iconUrl ? (
               <Image
@@ -219,7 +238,7 @@ export default function AIStoreScreen() {
     } finally {
       setRefreshing(false);
     }
-  }, [purchaseFilter, categoryFilter]);
+  }, [purchaseFilters, categoryFilters]);
 
   // Drag-to-close animation state
   const [panY] = useState(() => new Animated.Value(0));
@@ -261,12 +280,16 @@ export default function AIStoreScreen() {
       return false;
     }
     // Purchase Filter
-    if (purchaseFilter === 'purchased' && !tool.isPurchased) {
-      return false;
+    if (!purchaseFilters.includes('all') && purchaseFilters.length > 0) {
+      const isMatch = (tool.isPurchased && purchaseFilters.includes('purchased')) ||
+        (!tool.isPurchased && purchaseFilters.includes('not_purchased'));
+      if (!isMatch) return false;
     }
     // Category Filter
-    if (categoryFilter !== 'all' && tool.category !== categoryFilter) {
-      return false;
+    if (!categoryFilters.includes('all') && categoryFilters.length > 0) {
+      if (!categoryFilters.includes(tool.category)) {
+        return false;
+      }
     }
     return true;
   });
@@ -376,50 +399,50 @@ export default function AIStoreScreen() {
                   { width: CARD_WIDTH },
                 ]}
               >
-              {/* Card Header (Price/Badge) */}
-              <View style={styles.cardHeader}>
-                {tool.isVerified ? (
-                  <MaterialCommunityIcons name="check-decagram" size={20} color="#107569" />
-                ) : tool.price ? (
-                  <View className="bg-[#F4FFFE] px-2 py-[2px] rounded-full justify-center items-center">
-                    <Text className="text-[12px] font-inter-medium text-[#107569]">
-                      {tool.price}
+                {/* Card Header (Price/Badge) */}
+                <View style={styles.cardHeader}>
+                  {tool.isVerified ? (
+                    <MaterialCommunityIcons name="check-decagram" size={20} color="#107569" />
+                  ) : tool.price ? (
+                    <View className="bg-[#F4FFFE] px-2 py-[2px] rounded-full justify-center items-center">
+                      <Text className="text-[12px] font-inter-medium text-[#107569]">
+                        {tool.price}
+                      </Text>
+                    </View>
+                  ) : (
+                    <View style={{ height: 20 }} />
+                  )}
+                </View>
+
+                {/* Illustration */}
+                <View style={[styles.illustrationContainer, { opacity: tool.disabled ? 0.15 : 1 }]}>
+                  <View style={{ width: 96, height: 89, borderRadius: 12, overflow: 'hidden' }}>
+                    {tool.icon}
+                  </View>
+                </View>
+
+                {/* "Coming Soon" Overlay for disabled cards */}
+                {tool.disabled && (
+                  <View style={[StyleSheet.absoluteFill, { top: 32 }]} className="items-center">
+                    <Text className="text-[15px] font-ubuntu-medium text-[#113E55]">
+                      Coming Soon
                     </Text>
                   </View>
-                ) : (
-                  <View style={{ height: 20 }} />
                 )}
-              </View>
 
-              {/* Illustration */}
-              <View style={[styles.illustrationContainer, { opacity: tool.disabled ? 0.15 : 1 }]}>
-                <View style={{ width: 96, height: 89, borderRadius: 12, overflow: 'hidden' }}>
-                  {tool.icon}
-                </View>
-              </View>
-
-              {/* "Coming Soon" Overlay for disabled cards */}
-              {tool.disabled && (
-                <View style={[StyleSheet.absoluteFill, { top: 32 }]} className="items-center">
-                  <Text className="text-[15px] font-ubuntu-medium text-[#113E55]">
-                    Coming Soon
+                {/* Title & Rating */}
+                <View className="mt-[12px] flex-col gap-1 w-full items-start">
+                  <Text
+                    className={`text-[11px] font-inter-regular ${tool.disabled ? 'text-[#C4C4C4]' : 'text-[#113E55]'}`}
+                    numberOfLines={1}
+                  >
+                    {tool.title}
                   </Text>
+                  <StaticStarRating rating={tool.rating} disabled={tool.disabled} />
                 </View>
-              )}
-
-              {/* Title & Rating */}
-              <View className="mt-[12px] flex-col gap-1 w-full items-start">
-                <Text
-                  className={`text-[11px] font-inter-regular ${tool.disabled ? 'text-[#C4C4C4]' : 'text-[#113E55]'}`}
-                  numberOfLines={1}
-                >
-                  {tool.title}
-                </Text>
-                <StaticStarRating rating={tool.rating} disabled={tool.disabled} />
-              </View>
-            </Pressable>
-          ))}
-        </View>
+              </Pressable>
+            ))}
+          </View>
         )}
       </ScrollView>
 
@@ -431,16 +454,16 @@ export default function AIStoreScreen() {
         onRequestClose={() => setFilterModalVisible(false)}
       >
         <View className="flex-1 justify-end">
-          <BlurView 
-            intensity={25} 
-            tint="light" 
-            style={StyleSheet.absoluteFill} 
+          <BlurView
+            intensity={25}
+            tint="light"
+            style={StyleSheet.absoluteFill}
           />
-          <Pressable 
-            style={StyleSheet.absoluteFill} 
-            onPress={() => setFilterModalVisible(false)} 
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={() => setFilterModalVisible(false)}
           />
-          <Animated.View 
+          <Animated.View
             {...panResponder.panHandlers}
             style={{ transform: [{ translateY: panY }], maxHeight: '90%' }}
             className="bg-[#F6F7F7] w-full rounded-t-[40px] px-8 pb-8 pt-4 flex-col"
@@ -448,7 +471,7 @@ export default function AIStoreScreen() {
             {/* Drag Handle */}
             <View className="w-[100px] h-[6px] bg-[#A0A0A0] rounded-full self-center mb-6" />
 
-            <ScrollView 
+            <ScrollView
               showsVerticalScrollIndicator={false}
               bounces={false}
               contentContainerStyle={{ paddingBottom: 16 }}
@@ -460,31 +483,39 @@ export default function AIStoreScreen() {
                 </Text>
                 <View className="flex-row flex-wrap gap-4">
                   <Pressable
-                    onPress={() => setPurchaseFilter('purchased')}
-                    className={`px-5 py-[10px] rounded-full ${
-                      purchaseFilter === 'purchased' ? 'bg-[#D2E7ED]' : 'bg-[#EFF1F1]'
-                    }`}
+                    onPress={() => setPurchaseFilters(['all'])}
+                    className={`px-5 py-[10px] rounded-full ${purchaseFilters.includes('all') ? 'bg-[#D2E7ED]' : 'bg-[#EFF1F1]'
+                      }`}
                   >
                     <Text
-                      className={`text-[14px] font-inter-regular ${
-                        purchaseFilter === 'purchased' ? 'text-[#113E55]' : 'text-[#8A9A9D]'
+                      className={`text-[14px] font-inter-regular ${purchaseFilters.includes('all') ? 'text-[#113E55]' : 'text-[#8A9A9D]'
+                        }`}
+                    >
+                      All
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => setPurchaseFilters(prev => toggleFilter(prev, 'purchased', PURCHASE_OPTIONS))}
+                    className={`px-5 py-[10px] rounded-full ${purchaseFilters.includes('purchased') ? 'bg-[#D2E7ED]' : 'bg-[#EFF1F1]'
                       }`}
+                  >
+                    <Text
+                      className={`text-[14px] font-inter-regular ${purchaseFilters.includes('purchased') ? 'text-[#113E55]' : 'text-[#8A9A9D]'
+                        }`}
                     >
                       Purchased Only
                     </Text>
                   </Pressable>
                   <Pressable
-                    onPress={() => setPurchaseFilter('all')}
-                    className={`px-5 py-[10px] rounded-full ${
-                      purchaseFilter === 'all' ? 'bg-[#D2E7ED]' : 'bg-[#EFF1F1]'
-                    }`}
+                    onPress={() => setPurchaseFilters(prev => toggleFilter(prev, 'not_purchased', PURCHASE_OPTIONS))}
+                    className={`px-5 py-[10px] rounded-full ${purchaseFilters.includes('not_purchased') ? 'bg-[#D2E7ED]' : 'bg-[#EFF1F1]'
+                      }`}
                   >
                     <Text
-                      className={`text-[14px] font-inter-regular ${
-                        purchaseFilter === 'all' ? 'text-[#113E55]' : 'text-[#8A9A9D]'
-                      }`}
+                      className={`text-[14px] font-inter-regular ${purchaseFilters.includes('not_purchased') ? 'text-[#113E55]' : 'text-[#8A9A9D]'
+                        }`}
                     >
-                      All AI Tools
+                      Not Purchased
                     </Text>
                   </Pressable>
                 </View>
@@ -500,31 +531,39 @@ export default function AIStoreScreen() {
                 </Text>
                 <View className="flex-row flex-wrap gap-4">
                   <Pressable
-                    onPress={() => setCategoryFilter(prev => prev === 'incident' ? 'all' : 'incident')}
-                    className={`px-5 py-[10px] rounded-full ${
-                      categoryFilter === 'incident' ? 'bg-[#D2E7ED]' : 'bg-[#EFF1F1]'
-                    }`}
+                    onPress={() => setCategoryFilters(['all'])}
+                    className={`px-5 py-[10px] rounded-full ${categoryFilters.includes('all') ? 'bg-[#D2E7ED]' : 'bg-[#EFF1F1]'
+                      }`}
                   >
                     <Text
-                      className={`text-[14px] font-inter-regular ${
-                        categoryFilter === 'incident' ? 'text-[#113E55]' : 'text-[#8A9A9D]'
-                      }`}
+                      className={`text-[14px] font-inter-regular ${categoryFilters.includes('all') ? 'text-[#113E55]' : 'text-[#8A9A9D]'
+                        }`}
                     >
-                      Incident Tools
+                      All
                     </Text>
                   </Pressable>
                   <Pressable
-                    onPress={() => setCategoryFilter(prev => prev === 'traffic' ? 'all' : 'traffic')}
-                    className={`px-5 py-[10px] rounded-full ${
-                      categoryFilter === 'traffic' ? 'bg-[#D2E7ED]' : 'bg-[#EFF1F1]'
-                    }`}
+                    onPress={() => setCategoryFilters(prev => toggleFilter(prev, 'Access Anomaly Detection', CATEGORY_OPTIONS))}
+                    className={`px-5 py-[10px] rounded-full ${categoryFilters.includes('Access Anomaly Detection') ? 'bg-[#D2E7ED]' : 'bg-[#EFF1F1]'
+                      }`}
                   >
                     <Text
-                      className={`text-[14px] font-inter-regular ${
-                        categoryFilter === 'traffic' ? 'text-[#113E55]' : 'text-[#8A9A9D]'
-                      }`}
+                      className={`text-[14px] font-inter-regular ${categoryFilters.includes('Access Anomaly Detection') ? 'text-[#113E55]' : 'text-[#8A9A9D]'
+                        }`}
                     >
-                      Traffic Tools
+                      Access Anomaly Detection
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => setCategoryFilters(prev => toggleFilter(prev, 'Incident Report Insights', CATEGORY_OPTIONS))}
+                    className={`px-5 py-[10px] rounded-full ${categoryFilters.includes('Incident Report Insights') ? 'bg-[#D2E7ED]' : 'bg-[#EFF1F1]'
+                      }`}
+                  >
+                    <Text
+                      className={`text-[14px] font-inter-regular ${categoryFilters.includes('Incident Report Insights') ? 'text-[#113E55]' : 'text-[#8A9A9D]'
+                        }`}
+                    >
+                      Incident Report Insights
                     </Text>
                   </Pressable>
                 </View>
