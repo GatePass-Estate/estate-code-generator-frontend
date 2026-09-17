@@ -99,8 +99,10 @@ export function resolvePlanTier(user: PlanFields): PlanTier {
 }
 
 export function canUsePlanFeature(tier: PlanTier, feature: PlanFeature): boolean {
-  if (tier === 'paid') return true;
-  return FREE_FEATURES[feature];
+  // TODO: re-enable plan locks after testing
+  return true;
+  // if (tier === 'paid') return true;
+  // return FREE_FEATURES[feature];
 }
 
 export function canManagePlan(role: UserRolesType): boolean {

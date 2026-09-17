@@ -28,7 +28,6 @@ export default function SetTimeSheet({ visible, start, end, onClose, onDone }: S
   const [startMinutes, setStartMinutes] = useState(start.getMinutes());
   const [endHours, setEndHours] = useState(end.getHours());
   const [endMinutes, setEndMinutes] = useState(end.getMinutes());
-  const [showError, setShowError] = useState(false);
 
   useEffect(() => {
     if (!visible) return;
@@ -36,7 +35,6 @@ export default function SetTimeSheet({ visible, start, end, onClose, onDone }: S
     setStartMinutes(start.getMinutes());
     setEndHours(end.getHours());
     setEndMinutes(end.getMinutes());
-    setShowError(false);
   }, [end, start, visible]);
 
   const draftStart = cloneTime(start, startHours, startMinutes);
@@ -44,10 +42,7 @@ export default function SetTimeSheet({ visible, start, end, onClose, onDone }: S
   const isSame = sameClock(draftStart, draftEnd);
 
   const handleDone = () => {
-    if (isSame) {
-      setShowError(true);
-      return;
-    }
+    if (isSame) return;
     onDone(draftStart, draftEnd);
   };
 
@@ -70,11 +65,11 @@ export default function SetTimeSheet({ visible, start, end, onClose, onDone }: S
           <View className="mt-[46px] items-center">
             <View className="flex-row items-center">
               <Text className="w-[84px] text-center text-[11.2px] font-inter-regular text-[#878686]">
-                START HOUR
+                START TIME
               </Text>
               <View className="w-[57px]" />
               <Text className="w-[84px] text-center text-[11.2px] font-inter-regular text-[#878686]">
-                END HOUR
+                END TIME
               </Text>
             </View>
 
@@ -104,8 +99,8 @@ export default function SetTimeSheet({ visible, start, end, onClose, onDone }: S
             </View>
           </View>
 
-          {showError ? (
-            <View className="mt-8 h-[33px] w-[289px] self-center items-center justify-center rounded-2xl border-[0.5px] border-[#FF0C0C] bg-[rgba(255,13,13,0.12)] px-4">
+          {isSame ? (
+            <View className="mt-8 h-[33px] w-[289px] self-center items-center justify-center rounded-full border-[0.5px] border-[#FF0C0C] bg-[rgba(255,13,13,0.12)] px-4 py-1">
               <Text className="text-center text-[12px] font-inter-medium-italic italic leading-[14px] text-[#E30404]">
                 Start time must be different from end time
               </Text>
