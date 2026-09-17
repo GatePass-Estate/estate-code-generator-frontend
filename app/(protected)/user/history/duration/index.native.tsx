@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState, type ReactNode } from 'react';
-import { View, Text, Pressable, ScrollView, Alert, Platform } from 'react-native';
+import { View, Text, Pressable, ScrollView, Alert } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router, useFocusEffect, useLocalSearchParams, useNavigation } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -80,7 +80,7 @@ const GENDERS = new Set(['male', 'female', 'prefer_not_to_say']);
 export default function SetAccessCodeDurationScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const { systemBottom, tabBarHeight } = useAndroidBottomInset();
+  const { tabBarStyle } = useAndroidBottomInset();
   const { user_id, estate_id, home_address, estate_name } = useUserStore();
   const { requestFeature } = usePlan();
   const params = useLocalSearchParams<{
@@ -108,16 +108,10 @@ export default function SetAccessCodeDurationScreen() {
 
       return () => {
         parent?.setOptions({
-          tabBarStyle: [
-            sharedStyles.tabBar,
-            Platform.OS === 'android' && {
-              bottom: systemBottom,
-              height: tabBarHeight,
-            },
-          ],
+          tabBarStyle,
         });
       };
-    }, [navigation, systemBottom, tabBarHeight])
+    }, [navigation, tabBarStyle])
   );
 
   const [durationEnabled, setDurationEnabled] = useState(false);

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Platform, Share } from 'react-native';
+import { Share } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, useNavigation, router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AccessHistoryDetail, {
@@ -14,7 +14,7 @@ import { sharedStyles } from '@/src/theme/styles';
 
 export default function HistoryDetailScreen() {
   const navigation = useNavigation();
-  const { systemBottom, tabBarHeight } = useAndroidBottomInset();
+  const { tabBarStyle } = useAndroidBottomInset();
   const params = useLocalSearchParams<{
     codeId: string;
     name?: string;
@@ -41,16 +41,10 @@ export default function HistoryDetailScreen() {
 
       return () => {
         parent?.setOptions({
-          tabBarStyle: [
-            sharedStyles.tabBar,
-            Platform.OS === 'android' && {
-              bottom: systemBottom,
-              height: tabBarHeight,
-            },
-          ],
+          tabBarStyle,
         });
       };
-    }, [navigation, systemBottom, tabBarHeight])
+    }, [navigation, tabBarStyle])
   );
 
   const fetchHistory = useCallback(async () => {

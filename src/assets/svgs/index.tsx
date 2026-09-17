@@ -106,7 +106,26 @@ export function HistoryRefreshIcon({ color = '#113E55', ...props }: MenuIconProp
   );
 }
 
-export function GuestsTabIcon({ color = '#6F91A0', ...props }: MenuIconProps) {
+export function GuestsTabIcon({
+  color = '#6F91A0',
+  focused = false,
+  ...props
+}: MenuIconProps & { focused?: boolean }) {
+  if (focused) {
+    return (
+      <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" {...props}>
+        <Path
+          d="M11.575 3C9.18942 3 7.25 4.93922 7.25 7.32455C7.25 9.66436 9.08016 11.5581 11.4657 11.64C11.5386 11.6309 11.6114 11.6309 11.6661 11.64C11.6843 11.64 11.6934 11.64 11.7116 11.64C11.7207 11.64 11.7207 11.64 11.7298 11.64C14.0607 11.5581 15.8909 9.66436 15.9 7.32455C15.9 4.93922 13.9606 3 11.575 3Z"
+          fill={color}
+        />
+        <Path
+          d="M15.9149 14.3022C13.4023 12.5659 9.30472 12.5659 6.77412 14.3022C5.6304 15.0957 5 16.1692 5 17.3173C5 18.4655 5.6304 19.5297 6.76511 20.3138C8.02591 21.1913 9.68295 21.63 11.34 21.63C12.997 21.63 14.6541 21.1913 15.9149 20.3138C17.0496 19.5203 17.68 18.4562 17.68 17.2987C17.671 16.1505 17.0496 15.0863 15.9149 14.3022Z"
+          fill={color}
+        />
+      </Svg>
+    );
+  }
+
   return (
     <Svg width={20} height={20} viewBox="0 0 20 20" fill="none" {...props}>
       <Path
@@ -156,7 +175,29 @@ export function HomeTabIcon({
   );
 }
 
-export function ReportTabIconSvg({ color = '#6F91A0', ...props }: MenuIconProps) {
+export function ReportTabIconSvg({
+  color = '#6F91A0',
+  focused = false,
+  ...props
+}: MenuIconProps & { focused?: boolean }) {
+  if (focused) {
+    return (
+      <Svg width={20} height={20} viewBox="0 0 20 20" fill="none" {...props}>
+        <Path
+          d="M15 14.5833H5V8.75C5 5.98875 7.23875 3.75 10 3.75C12.7612 3.75 15 5.98875 15 8.75V14.5833Z"
+          fill={color}
+        />
+        <Path
+          d="M3.33366 17.5013H16.667M1.66699 5.41797L2.91699 5.83464M5.41699 1.66797L5.83366 2.91797M4.16699 4.16797L2.91699 2.91797"
+          stroke={color}
+          strokeWidth={1.5}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </Svg>
+    );
+  }
+
   return (
     <Svg width={20} height={20} viewBox="0 0 20 20" fill="none" {...props}>
       <Path
@@ -176,14 +217,13 @@ export function ReportTabIconSvg({ color = '#6F91A0', ...props }: MenuIconProps)
   );
 }
 
+/** Figma 5074:5421 — material-symbols-light:add-rounded, 32×32 with 16px glyph. */
 export function PlusTabIcon({ color = '#113E55', ...props }: MenuIconProps) {
   return (
-    <Svg width={15} height={15} viewBox="0 0 15 15" fill="none" {...props}>
+    <Svg width={32} height={32} viewBox="0 0 32 32" fill="none" {...props}>
       <Path
-        d="M7.5 2.1875V12.8125M2.1875 7.5H12.8125"
-        stroke={color}
-        strokeWidth={1.5}
-        strokeLinecap="round"
+        d="M15.3333 16.6667H8.66668C8.47734 16.6667 8.31912 16.6027 8.19201 16.4747C8.0649 16.3467 8.0009 16.188 8.00001 15.9987C7.99912 15.8093 8.06312 15.6511 8.19201 15.524C8.3209 15.3969 8.47912 15.3333 8.66668 15.3333H15.3333V8.66668C15.3333 8.47734 15.3973 8.31912 15.5253 8.19201C15.6533 8.0649 15.812 8.0009 16.0013 8.00001C16.1907 7.99912 16.3489 8.06312 16.476 8.19201C16.6031 8.3209 16.6667 8.47912 16.6667 8.66668V15.3333H23.3333C23.5227 15.3333 23.6809 15.3973 23.808 15.5253C23.9351 15.6533 23.9991 15.812 24 16.0013C24.0009 16.1907 23.9369 16.3489 23.808 16.476C23.6791 16.6031 23.5209 16.6667 23.3333 16.6667H16.6667V23.3333C16.6667 23.5227 16.6027 23.6809 16.4747 23.808C16.3467 23.9351 16.188 23.9991 15.9987 24C15.8093 24.0009 15.6511 23.9369 15.524 23.808C15.3969 23.6791 15.3333 23.5209 15.3333 23.3333V16.6667Z"
+        fill={color}
       />
     </Svg>
   );

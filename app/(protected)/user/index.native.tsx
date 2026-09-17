@@ -9,6 +9,7 @@ import { Codes } from '@/src/types/codes';
 import { freezeCode, getAllCodes } from '@/src/lib/api/codes';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { sharedStyles } from '@/src/theme/styles';
+import { UbuntuSans } from '@/src/constants/fonts';
 import { useAndroidBottomInset } from '@/src/hooks/useAndroidBottomInset';
 import { isDataEqual, formatInvitePeriodDisplay, parseLogDate, timeCalc } from '@/src/lib/helpers';
 import ActiveCodeCard from '@/src/components/mobile/ActiveCodeCard';
@@ -220,29 +221,41 @@ export default function HomeMobile({}) {
 
         {isEmpty && !refreshing ? (
           <View
-            pointerEvents="box-none"
+            pointerEvents="none"
             style={{
               position: 'absolute',
               top: 0,
               right: 0,
-              bottom: tabContentPadding,
+              bottom: 0,
               left: 0,
               alignItems: 'center',
               justifyContent: 'center',
+              transform: [{ translateY: -32 }],
             }}
           >
             <Animated.Image
               source={images.ghostImg}
-              className={`w-80 h-80 res`}
               style={{
+                width: 201,
+                height: 221,
+                opacity: 0.5,
                 resizeMode: 'contain',
                 transform: [{ translateY: bounceValue }],
               }}
             />
             <Text
-              className="text-center text-2xl opacity-20"
-              style={{ position: 'absolute', top: '50%', marginTop: 100, width: 220 }}
-            >{`Click the ‘+’ to add \nyour guest`}</Text>
+              style={{
+                marginTop: -20,
+                width: 195,
+                textAlign: 'center',
+                fontFamily: UbuntuSans.semiBold,
+                fontSize: 22,
+                letterSpacing: -0.24,
+                color: '#D3D3D3',
+              }}
+            >
+              Click the ‘+’ to add your guest
+            </Text>
           </View>
         ) : null}
 

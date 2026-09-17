@@ -1,6 +1,6 @@
-import { Platform, Pressable, View, StyleSheet } from 'react-native';
+import { Platform, View } from 'react-native';
 import { Tabs, Stack, router } from 'expo-router';
-import { useAndroidBottomInset } from '@/src/hooks/useAndroidBottomInset';
+import UserTabBar from '@/src/components/mobile/UserTabBar';
 import { menuRouteType } from '@/src/types/general';
 
 type NavigationContainerProps = {
@@ -16,8 +16,6 @@ export default function NavigationContainer({
   tabBarStyle,
   enableForMobile = true,
 }: NavigationContainerProps) {
-  const { systemBottom, tabBarHeight } = useAndroidBottomInset();
-
   if (Platform.OS === 'web') {
     return (
       <>
@@ -35,19 +33,12 @@ export default function NavigationContainer({
   return enableForMobile ? (
     <View style={{ flex: 1 }}>
       <Tabs
+        tabBar={(props) => <UserTabBar {...props} />}
         screenOptions={{
-          tabBarStyle: [
-            { ...tabBarStyle },
-            Platform.OS === 'android' && {
-              bottom: systemBottom,
-              height: tabBarHeight,
-            },
-          ],
+          tabBarStyle,
           tabBarShowLabel: false,
           tabBarActiveTintColor: '#113E55',
-          tabBarInactiveTintColor: '#113E55',
-          tabBarLabelStyle: { display: 'none', fontFamily: 'UbuntuSans' },
-          tabBarButton: (props: any) => <Pressable {...props} android_ripple={null} />,
+          tabBarInactiveTintColor: '#6F91A0',
         }}
       >
         {routes &&
@@ -88,5 +79,3 @@ export default function NavigationContainer({
     <Stack screenOptions={{ headerShown: false }} />
   );
 }
-
-const styles = StyleSheet.create({});

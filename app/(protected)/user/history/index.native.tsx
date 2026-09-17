@@ -25,7 +25,8 @@ import {
   groupLogsByMonth,
   parseLogDate,
 } from '@/src/lib/helpers';
-import { sharedStyles, TAB_BAR_BASE_HEIGHT } from '@/src/theme/styles';
+import { sharedStyles } from '@/src/theme/styles';
+import { useAndroidBottomInset } from '@/src/hooks/useAndroidBottomInset';
 
 type HistoryMode = 'past' | 'upcoming';
 
@@ -130,6 +131,7 @@ function UpcomingHistoryCard({ entry, onPress }: { entry: Codes; onPress: () => 
 }
 
 export default function HistoryTabScreen() {
+  const { tabContentPadding } = useAndroidBottomInset();
   const { user_id } = useUserStore();
   const params = useLocalSearchParams<{ tab?: string }>();
   const [mode, setMode] = useState<HistoryMode>(() => resolveHistoryMode(params.tab));
@@ -283,7 +285,7 @@ export default function HistoryTabScreen() {
             contentContainerStyle={{
               flexGrow: 1,
               paddingTop: mode === 'upcoming' ? 35 : 31,
-              paddingBottom: TAB_BAR_BASE_HEIGHT + 40,
+              paddingBottom: tabContentPadding + 40,
               gap: 38,
             }}
             showsVerticalScrollIndicator={false}
