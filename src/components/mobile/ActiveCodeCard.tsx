@@ -16,7 +16,7 @@ import AccessCodeRing from './AccessCodeRing';
 import CodeActionsSheet from './CodeActionsSheet';
 import { CarbonAddFilledIcon } from '@/src/assets/svgs';
 import images from '@/src/constants/images';
-import { useRequirePlan } from '@/src/hooks/usePlan';
+import { usePlan } from '@/src/hooks/usePlan';
 import { deleteCode } from '@/src/lib/api/codes';
 import { PLAN_FEATURES } from '@/src/lib/plans';
 import { Codes } from '@/src/types/codes';
@@ -75,7 +75,20 @@ export default function ActiveCodeCard({
   const [deleting, setDeleting] = useState(false);
   const [cardWidth, setCardWidth] = useState(339);
   const [openAction, setOpenAction] = useState<'none' | 'freeze' | 'delete'>('none');
-  const requireAdvanced = useRequirePlan(PLAN_FEATURES.advanced_code_management);
+  const [showPlanLock, setShowPlanLock] = useState(false);
+  const { isAdmin, requestFeature } = usePlan();
+
+  const tryAdvanced = useCallback(
+    (action: () => void) => {
+      if (requestFeature(PLAN_FEATURES.advanced_code_management)) {
+        action();
+        return true;
+      }
+      if (!isAdmin) setShowPlanLock(true);
+      return false;
+    },
+    [isAdmin, requestFeature]
+  );
 
   const closeSwipe = useCallback(() => {
     translateX.value = withSpring(0, SPRING);
@@ -272,16 +285,26 @@ export default function ActiveCodeCard({
       frozen={frozen}
       initialView={sheetView}
       deleting={deleting}
-      onClose={() => setSheetVisible(false)}
-      onFreezeToggle={requireAdvanced(() => {
+      onClose={() => {
         setSheetVisible(false);
-        closeSwipe();
-        onToggleFreeze();
-      })}
-      onExtend={requireAdvanced(() => {
-        setSheetVisible(false);
-        onExtend();
-      })}
+        setShowPlanLock(false);
+      }}
+      showPlanNotice={showPlanLock}
+      onFreezeToggle={() => {
+        tryAdvanced(() => {
+          setSheetVisible(false);
+          setShowPlanLock(false);
+          closeSwipe();
+          onToggleFreeze();
+        });
+      }}
+      onExtend={() => {
+        tryAdvanced(() => {
+          setSheetVisible(false);
+          setShowPlanLock(false);
+          onExtend();
+        });
+      }}
       onShare={() => {
         setSheetVisible(false);
         handleShare();
@@ -472,10 +495,16 @@ export default function ActiveCodeCard({
         ]}
       >
         <Pressable
-          onPress={requireAdvanced(() => {
-            closeSwipe();
-            onToggleFreeze();
-          })}
+          onPress={() => {
+            const allowed = tryAdvanced(() => {
+              closeSwipe();
+              onToggleFreeze();
+            });
+            if (!allowed) {
+              closeSwipe();
+              openMenu();
+            }
+          }}
           style={{ height: '100%', width: '100%', alignItems: 'center', justifyContent: 'center' }}
         >
           <Text className="text-xs font-inter-semibold text-[#F6F7F7]">Freeze</Text>

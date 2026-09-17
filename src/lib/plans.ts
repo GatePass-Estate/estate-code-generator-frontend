@@ -14,6 +14,9 @@ export const PLAN_FEATURES = {
   save_guest_contact: 'save_guest_contact',
 } as const;
 
+/** Flip this to test paid features. `false` = all features unlocked. */
+export const PLAN_LOCKS_ENABLED = true;
+
 export type PlanFeature = (typeof PLAN_FEATURES)[keyof typeof PLAN_FEATURES];
 
 export type PlanTier = 'free' | 'paid';
@@ -99,6 +102,7 @@ export function resolvePlanTier(user: PlanFields): PlanTier {
 }
 
 export function canUsePlanFeature(tier: PlanTier, feature: PlanFeature): boolean {
+  if (!PLAN_LOCKS_ENABLED) return true;
   if (tier === 'paid') return true;
   return FREE_FEATURES[feature];
 }
