@@ -123,7 +123,8 @@ const AddGuestMobile = () => {
           <View className="gap-2">
             <Text className="text-[8.96px] font-inter-medium text-[#878686]">Name</Text>
             <TextInput
-              className="rounded-[16px] bg-[#EFF1F1] px-4 py-4 text-sm font-inter-light text-[#113E55]"
+              className="rounded-[16px] bg-[#EFF1F1] px-4 py-4 font-inter-light text-[#113E55]"
+              style={{ fontSize: 14 }}
               placeholder="Enter Guest Name..."
               placeholderTextColor="#878686"
               value={guestName}
@@ -149,7 +150,8 @@ const AddGuestMobile = () => {
           <View className="gap-2">
             <Text className="text-[8.96px] font-inter-medium text-[#878686]">Relationship</Text>
             <TextInput
-              className="rounded-[16px] bg-[#EFF1F1] px-4 py-4 text-sm font-inter-light text-[#113E55]"
+              className="rounded-[16px] bg-[#EFF1F1] px-4 py-4 font-inter-light text-[#113E55]"
+              style={{ fontSize: 14 }}
               placeholder="Enter your relationship with guest"
               placeholderTextColor="#878686"
               value={relationship}
