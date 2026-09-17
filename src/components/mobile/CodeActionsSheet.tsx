@@ -124,10 +124,7 @@ export default function CodeActionsSheet({
               <Text className="mt-[50px] text-center text-[27.34px] font-ubuntu-medium text-[#878686]">
                 Are You sure ?
               </Text>
-              <Text
-                className="mt-[30px] w-[305px] text-sm text-center font-inter-light text-[#0A1F29]"
-             
-              >
+              <Text className="mt-[30px] w-[305px] text-sm text-center font-inter-light text-[#0A1F29]">
                 Confirm if you want to delete your invite code. This action is irreversible.
               </Text>
 
