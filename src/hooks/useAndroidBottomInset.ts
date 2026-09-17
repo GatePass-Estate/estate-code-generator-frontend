@@ -12,7 +12,8 @@ export function useAndroidBottomInset() {
     Platform.OS === 'android' ? (bottom > 0 ? bottom : ANDROID_NAV_BAR_FALLBACK) : bottom;
 
   const visualHeight = TAB_BAR_BASE_HEIGHT + TAB_BAR_FAB_OVERHANG;
-  const tabBarHeight = Platform.OS === 'ios' ? visualHeight + bottom : visualHeight;
+  // iOS: 49px strip + home-indicator inset only when present (0 on SE / 8 / etc.)
+  const tabBarHeight = Platform.OS === 'ios' ? TAB_BAR_BASE_HEIGHT + bottom : visualHeight;
 
   const tabBarStyle = useMemo(
     () => [
@@ -42,7 +43,11 @@ export function useAndroidBottomInset() {
   return {
     systemBottom,
     tabBarHeight,
-    /** Opaque teal strip only — the plus overhangs into the screen. */
+    /**
+     * Space to clear the opaque teal strip + home indicator (when any).
+     * FAB overhang floats above content and is not included.
+     * On iPhones without a home indicator, `systemBottom` is 0 — no extra gap.
+     */
     tabContentPadding: TAB_BAR_BASE_HEIGHT + systemBottom,
     tabBarStyle,
   };

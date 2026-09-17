@@ -19,8 +19,12 @@ function isTabBarHidden(style: unknown) {
 export default function UserTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const focusedOptions = descriptors[state.routes[state.index].key].options;
+
+  // Android: float above the system nav (3-button / gesture inset).
   const androidBottom = Platform.OS === 'android' ? (insets.bottom > 0 ? insets.bottom : 48) : 0;
-  const iosBottom = Platform.OS === 'ios' ? insets.bottom : 0;
+
+  // iOS: only pad when a home indicator exists. SE / 8 / etc. get 0 — bar sits flush, no empty gap.
+  const iosHomeIndicator = Platform.OS === 'ios' ? insets.bottom : 0;
 
   if (isTabBarHidden(focusedOptions.tabBarStyle)) {
     return null;
@@ -34,8 +38,11 @@ export default function UserTabBar({ state, descriptors, navigation }: BottomTab
       style={[
         styles.wrap,
         {
-          paddingBottom: iosBottom,
           bottom: androidBottom,
+          // Teal extends through the home-indicator zone so there’s no grey “gap of nothing”.
+          // When iosHomeIndicator === 0, this is just the 49px bar flush to the bottom edge.
+          paddingBottom: iosHomeIndicator,
+          backgroundColor: APP_TAB_BAR_COLOR,
         },
       ]}
     >
@@ -119,20 +126,20 @@ const styles = StyleSheet.create({
     right: 0,
     overflow: 'visible',
     zIndex: 100,
-  },
-  bar: {
-    height: TAB_BAR_BASE_HEIGHT,
-    paddingTop: 7,
-    paddingBottom: 7,
-    paddingLeft: 22,
-    paddingRight: 22,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: APP_TAB_BAR_COLOR,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     borderTopWidth: 0.5,
     borderTopColor: '#F6F7F7',
+  },
+  /** Figma 5074:5421 — icon row only; safe-area is handled on `wrap`. */
+  bar: {
+    height: TAB_BAR_BASE_HEIGHT,
+    paddingTop: 7,
+    paddingBottom: 7,
+    paddingLeft: 20,
+    paddingRight: 20,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
   },
   item: {
     flex: 1,
