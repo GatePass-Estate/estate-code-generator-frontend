@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import AccessTimeline, { AccessTimelineEvent } from '@/src/components/mobile/AccessTimeline';
+import Button from '@/src/components/mobile/Button';
 
 /** @deprecated Prefer `AccessTimelineEvent` from AccessTimeline. */
 export type AccessHistoryTimelineEvent = AccessTimelineEvent;
@@ -127,24 +128,18 @@ export default function AccessHistoryDetail({
           </ScrollView>
 
           {activeCodeActions ? (
-            <View className="absolute bottom-[60px] left-5 right-5 flex-row items-center justify-center gap-3">
-              <Pressable
+            <View
+              className="absolute bottom-8 left-5 right-5 flex-row items-center justify-center"
+              style={{ gap: 20 }}
+            >
+              <Button
+                label="Delete Invite"
+                variant="secondary"
+                size="md"
+                loading={activeCodeActions.deleting}
                 onPress={activeCodeActions.onDelete}
-                disabled={activeCodeActions.deleting}
-                className="h-[49px] w-[156px] items-center justify-center rounded-full bg-[#E5F6FF]"
-              >
-                {activeCodeActions.deleting ? (
-                  <ActivityIndicator color="#113E55" />
-                ) : (
-                  <Text className="text-sm font-ubuntu-semibold text-primary">Delete Invite</Text>
-                )}
-              </Pressable>
-              <Pressable
-                onPress={activeCodeActions.onShare}
-                className="h-12 w-[155px] items-center justify-center rounded-full bg-primary"
-              >
-                <Text className="text-sm font-ubuntu-semibold text-white">Share Invite</Text>
-              </Pressable>
+              />
+              <Button label="Share Invite" size="md" onPress={activeCodeActions.onShare} />
             </View>
           ) : showRegenerate ? (
             <View className="absolute bottom-[60px] left-5 right-5">

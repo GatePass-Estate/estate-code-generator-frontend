@@ -73,9 +73,8 @@ export const sharedStyles = StyleSheet.create({
     backgroundColor: '#F7F9F9',
     borderRadius: 8,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 16,
     marginTop: 5,
-    height: 50,
     paddingLeft: 15,
   },
 });

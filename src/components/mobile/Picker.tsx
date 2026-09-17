@@ -26,8 +26,10 @@ interface PickerProps {
   enabled?: boolean;
   labelClassName?: string;
   fieldClassName?: string;
+  textClassName?: string;
   chevronColor?: string;
   placeholderColor?: string;
+  chevron?: React.ReactNode;
 }
 
 /**
@@ -43,8 +45,10 @@ export function Picker({
   enabled = true,
   labelClassName = 'input-label',
   fieldClassName = 'input-style',
+  textClassName = 'text-sm font-inter-light',
   chevronColor = '#9CA3AF',
   placeholderColor = '#9CA3AF',
+  chevron,
 }: PickerProps) {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const { bottom: safeBottom } = useSafeAreaInsets();
@@ -71,6 +75,7 @@ export function Picker({
         style={{ opacity: enabled ? 1 : 0.5 }}
       >
         <Text
+          className={textClassName}
           style={{
             color: hasValue ? '#113E55' : placeholderColor,
             flex: 1,
@@ -79,7 +84,7 @@ export function Picker({
         >
           {displayLabel}
         </Text>
-        <Ionicons name="chevron-down" size={20} color={chevronColor} />
+        {chevron ?? <Ionicons name="chevron-down" size={20} color={chevronColor} />}
       </Pressable>
 
       <Modal

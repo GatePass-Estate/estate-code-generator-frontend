@@ -33,3 +33,9 @@ export type GenerateCodePayload = {
   hashed_code: string;
   valid_until: string;
 };
+
+export type FreezeCodeResponse = {
+  hashed_code: string;
+  frozen: boolean;
+  is_valid?: boolean;
+};

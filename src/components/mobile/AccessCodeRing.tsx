@@ -1,9 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { View, Text } from 'react-native';
-import Svg, { Circle } from 'react-native-svg';
+import Svg, { Circle, Path } from 'react-native-svg';
 import Animated, { useAnimatedProps, useSharedValue, withTiming } from 'react-native-reanimated';
+import { Inter } from '@/src/constants/fonts';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+
+/** Figma 5123:2361 Ellipse 41/42 — same annulus path stacked at 60% + 30%
+ * opacity (≈72% combined), used instead of an animated progress stroke when frozen. */
+const FROZEN_RING_PATH =
+  'M70.9997 35.4998C70.9997 55.1059 55.1059 70.9997 35.4998 70.9997C15.8938 70.9997 0 55.1059 0 35.4998C0 15.8938 15.8938 0 35.4998 0C55.1059 0 70.9997 15.8938 70.9997 35.4998ZM5.67998 35.4998C5.67998 51.9689 19.0308 65.3197 35.4998 65.3197C51.9689 65.3197 65.3197 51.9689 65.3197 35.4998C65.3197 19.0308 51.9689 5.67998 35.4998 5.67998C19.0308 5.67998 5.67998 19.0308 5.67998 35.4998Z';
 
 type Props = {
   size?: number;
@@ -22,7 +28,8 @@ export default function AccessCodeRing({
   expiresAt,
   dimmed = false,
 }: Props) {
-  const radius = (size - strokeWidth) / 2;
+  const ringStroke = dimmed ? 5.68 : strokeWidth;
+  const radius = (size - ringStroke) / 2;
   const circumference = 2 * Math.PI * radius;
 
   const computeRemaining = () => Math.max(0, expiresAt - Date.now());
@@ -55,45 +62,125 @@ export default function AccessCodeRing({
     strokeDashoffset: circumference * (1 - progress.value),
   }));
 
-  const trackColor = dimmed ? 'rgba(246,247,247,0.35)' : '#CEE5ED';
-  const progressColor = dimmed ? 'rgba(246,247,247,0.6)' : '#46EE6A';
-  const textColor = dimmed ? 'rgba(241,248,251,0.6)' : '#113E55';
-  const labelColor = dimmed ? 'rgba(241,248,251,0.6)' : '#9B9797';
+  // Frozen (5165:5472): frosted #F1F8FB rings instead of green
+  const trackColor = dimmed ? 'rgba(241, 248, 251, 0.3)' : '#CEE5ED';
+  const progressColor = dimmed ? 'rgba(241, 248, 251, 0.6)' : '#46EE6A';
+  const progressOverlay = 'rgba(0, 0, 0, 0.20)';
+  const textColor = dimmed ? 'rgba(241, 248, 251, 0.6)' : '#113E55';
+  const labelColor = dimmed ? 'rgba(241, 248, 251, 0.6)' : '#9B9797';
 
   return (
     <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
       <Svg width={size} height={size} style={{ position: 'absolute' }}>
-        <Circle
-          fill="transparent"
-          stroke={trackColor}
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          strokeWidth={strokeWidth}
-        />
-        <AnimatedCircle
-          fill="transparent"
-          stroke={progressColor}
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          strokeWidth={strokeWidth}
-          strokeDasharray={circumference}
-          animatedProps={animatedProps}
-          rotation="-90"
-          originX={size / 2}
-          originY={size / 2}
-        />
+        {dimmed ? (
+          <>
+            {/* Figma Ellipse 41 @ 0.6 + Ellipse 42 @ 0.3 */}
+            <Path d={FROZEN_RING_PATH} fill="#F1F8FB" fillOpacity={0.6} />
+            <Path d={FROZEN_RING_PATH} fill="#F1F8FB" fillOpacity={0.3} />
+          </>
+        ) : (
+          <>
+            <Circle
+              fill="transparent"
+              stroke={trackColor}
+              cx={size / 2}
+              cy={size / 2}
+              r={radius}
+              strokeWidth={ringStroke}
+            />
+            <AnimatedCircle
+              fill="transparent"
+              stroke={progressColor}
+              cx={size / 2}
+              cy={size / 2}
+              r={radius}
+              strokeWidth={ringStroke}
+              strokeDasharray={circumference}
+              animatedProps={animatedProps}
+              rotation="-90"
+              originX={size / 2}
+              originY={size / 2}
+            />
+            {/* Figma: linear-gradient(0deg, rgba(0,0,0,0.20), rgba(0,0,0,0.20)), #46EE6A */}
+            <AnimatedCircle
+              fill="transparent"
+              stroke={progressOverlay}
+              cx={size / 2}
+              cy={size / 2}
+              r={radius}
+              strokeWidth={ringStroke}
+              strokeDasharray={circumference}
+              animatedProps={animatedProps}
+              rotation="-90"
+              originX={size / 2}
+              originY={size / 2}
+            />
+          </>
+        )}
       </Svg>
 
-      <View style={{ alignItems: 'center', width: size * 0.83 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'center' }}>
+        {/* Hours Column */}
+        <View style={{ alignItems: 'center', gap: 2 }}>
+          <Text
+            style={{
+              fontFamily: Inter.semiBold,
+              fontSize: dimmed ? 14.5 : 13,
+              color: textColor,
+              textAlign: 'center',
+              lineHeight: 14,
+            }}
+          >
+            {hours}
+          </Text>
+          <Text
+            style={{
+              fontFamily: Inter.semiBold,
+              fontSize: 5,
+              color: labelColor,
+              textAlign: 'center',
+            }}
+          >
+            HOUR
+          </Text>
+        </View>
+
+        {/* Colon */}
         <Text
-          className="font-inter-semibold"
-          style={{ fontSize: 13, color: textColor }}
-        >{`${hours} : ${String(minutes).padStart(2, '0')}`}</Text>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%' }}>
-          <Text style={{ fontSize: 5, fontWeight: '700', color: labelColor }}>HOUR</Text>
-          <Text style={{ fontSize: 5, fontWeight: '700', color: labelColor }}>MINS</Text>
+          style={{
+            fontFamily: Inter.semiBold,
+            fontSize: dimmed ? 14.5 : 13,
+            color: textColor,
+            textAlign: 'center',
+            lineHeight: 14,
+          }}
+        >
+          :
+        </Text>
+
+        {/* Minutes Column */}
+        <View style={{ alignItems: 'center', gap: 2 }}>
+          <Text
+            style={{
+              fontFamily: Inter.semiBold,
+              fontSize: dimmed ? 14.5 : 13,
+              color: textColor,
+              textAlign: 'center',
+              lineHeight: 14,
+            }}
+          >
+            {String(minutes).padStart(2, '0')}
+          </Text>
+          <Text
+            style={{
+              fontFamily: Inter.semiBold,
+              fontSize: 5,
+              color: labelColor,
+              textAlign: 'center',
+            }}
+          >
+            MINS
+          </Text>
         </View>
       </View>
     </View>

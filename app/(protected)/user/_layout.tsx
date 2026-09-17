@@ -87,7 +87,7 @@ export const HistoryTabIcon: React.FC<{ focused?: boolean; isMobile?: boolean }>
 
   return (
     <TabLabel label="History" focused={focused}>
-      <HistoryIcon width={20} height={20} color={color} />
+      <HistoryIcon width={18} height={18} color={color} />
     </TabLabel>
   );
 };

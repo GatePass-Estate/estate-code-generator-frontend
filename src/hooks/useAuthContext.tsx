@@ -11,6 +11,7 @@ import {
 import { useAuthStore } from '@/src/lib/stores/authStore';
 import { useProfileDocumentsStore } from '@/src/lib/stores/profileDocumentsStore';
 import { useUserStore } from '@/src/lib/stores/userStore';
+import { usePlanLockStore } from '@/src/hooks/usePlan';
 import { AuthContextType } from '@/src/types/auth';
 import { User } from '@/src/types/user';
 import { usePathname, useRouter } from 'expo-router';
@@ -59,6 +60,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       useUserStore.getState().clearUser();
       useProfileDocumentsStore.getState().clear();
+      usePlanLockStore.getState().setLockedFeature(null);
       useAuthStore.getState().clearAuth();
       const institution = await getSelectedInstitution();
       router.replace(getPostAuthRedirectRoute(institution));
@@ -71,6 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsReady(false);
     useUserStore.getState().clearUser();
     useProfileDocumentsStore.getState().clear();
+    usePlanLockStore.getState().setLockedFeature(null);
     useAuthStore.getState().clearAuth();
     await clearAuthState();
     broadcastLogout();

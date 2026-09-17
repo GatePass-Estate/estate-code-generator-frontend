@@ -1,5 +1,5 @@
 import { Platform, Pressable, View, StyleSheet } from 'react-native';
-import { Tabs, Stack } from 'expo-router';
+import { Tabs, Stack, router } from 'expo-router';
 import { useAndroidBottomInset } from '@/src/hooks/useAndroidBottomInset';
 import { menuRouteType } from '@/src/types/general';
 
@@ -58,6 +58,15 @@ export default function NavigationContainer({
                 <Tabs.Screen
                   key={name}
                   name={name}
+                  listeners={
+                    name === 'history'
+                      ? {
+                          tabPress: () => {
+                            router.dismissTo('/user/history');
+                          },
+                        }
+                      : undefined
+                  }
                   options={{
                     title,
                     headerTitleStyle: {
@@ -68,6 +77,7 @@ export default function NavigationContainer({
 
                     headerShown: false,
                     tabBarIcon: ({ focused }) => (TabIcon ? <TabIcon focused={focused} /> : null),
+                    popToTopOnBlur: name === 'history',
                   }}
                 />
               ) : null

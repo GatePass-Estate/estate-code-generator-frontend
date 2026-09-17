@@ -1,22 +1,23 @@
 import { Stack, router } from 'expo-router';
 import { useNavigation } from '@react-navigation/native';
-import { View, Text, FlatList, Image } from 'react-native';
+import { View, Text, FlatList, Animated, Platform } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEffect, useRef, useState } from 'react';
 import images from '@/src/constants/images';
 import { Codes } from '@/src/types/codes';
-import { getAllCodes } from '@/src/lib/api/codes';
+import { freezeCode, getAllCodes } from '@/src/lib/api/codes';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { sharedStyles } from '@/src/theme/styles';
 import { useAndroidBottomInset } from '@/src/hooks/useAndroidBottomInset';
-import { isDataEqual } from '@/src/lib/helpers';
+import { isDataEqual, formatInvitePeriodDisplay, parseLogDate, timeCalc } from '@/src/lib/helpers';
 import ActiveCodeCard from '@/src/components/mobile/ActiveCodeCard';
-import HeaderActions from '@/src/components/mobile/HeaderActions';
+import ScreenHeader from '@/src/components/mobile/ScreenHeader';
 import { CopiedToast } from '@/src/components/mobile/CopiedToast';
 
 export default function HomeMobile({}) {
   const { tabContentPadding } = useAndroidBottomInset();
+  const bounceValue = useRef(new Animated.Value(0)).current;
   const [refreshing, setRefreshing] = useState(true);
   const [codes, setCodes] = useState<Codes[]>([]);
   const [frozenCodes, setFrozenCodes] = useState<Set<string>>(new Set());
@@ -68,6 +69,28 @@ export default function HomeMobile({}) {
   }, [navigation]);
 
   useEffect(() => {
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(bounceValue, {
+          toValue: -10,
+          duration: 500,
+          useNativeDriver: Platform.OS !== 'web',
+        }),
+        Animated.timing(bounceValue, {
+          toValue: 0,
+          duration: 500,
+          useNativeDriver: Platform.OS !== 'web',
+        }),
+      ])
+    );
+    anim.start();
+
+    return () => {
+      anim.stop();
+    };
+  }, [bounceValue]);
+
+  useEffect(() => {
     return () => {
       if (copiedToastTimer.current) clearTimeout(copiedToastTimer.current);
     };
@@ -83,15 +106,69 @@ export default function HomeMobile({}) {
     setCodes((prev) => prev.filter((c) => c.hashed_code !== hashedCode));
   };
 
-  const handleToggleFreeze = (hashedCode: string) => {
+  const applyFrozenState = (hashedCode: string, frozen: boolean, isValid?: boolean) => {
     setFrozenCodes((prev) => {
       const next = new Set(prev);
-      if (next.has(hashedCode)) {
-        next.delete(hashedCode);
-      } else {
-        next.add(hashedCode);
-      }
+      if (frozen) next.add(hashedCode);
+      else next.delete(hashedCode);
       return next;
+    });
+    setCodes((prev) =>
+      prev.map((c) =>
+        c.hashed_code === hashedCode
+          ? {
+              ...c,
+              frozen,
+              ...(typeof isValid === 'boolean' ? { is_valid: isValid } : {}),
+            }
+          : c
+      )
+    );
+  };
+
+  /** `isCurrentlyFrozen` must match what the card is showing (not a stale item snapshot). */
+  const handleToggleFreeze = async (hashedCode: string, isCurrentlyFrozen: boolean) => {
+    const targetFrozen = !isCurrentlyFrozen;
+
+    applyFrozenState(hashedCode, targetFrozen);
+
+    try {
+      const res = await freezeCode(hashedCode, targetFrozen);
+      // Keep the requested state on success so a sticky `frozen: true` response can't block unfreeze
+      applyFrozenState(hashedCode, targetFrozen, res?.is_valid);
+    } catch (error) {
+      console.log('Failed to freeze code via API:', error);
+      applyFrozenState(hashedCode, isCurrentlyFrozen);
+    }
+  };
+
+  const openInviteDetails = (item: Codes) => {
+    const { home_address, estate_name } = useUserStore.getState();
+    const startRaw = item.validity_period?.start;
+    const endRaw = item.validity_period?.end || item.valid_until;
+    const start = startRaw ? parseLogDate(startRaw) : null;
+    const end = endRaw ? parseLogDate(endRaw) : null;
+
+    let formattedDate = '';
+    let timeframe = '';
+    if (start && end && !Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime())) {
+      ({ formattedDate, timeframe } = formatInvitePeriodDisplay(start, end));
+    } else {
+      const calc = timeCalc(item.valid_until);
+      formattedDate = calc.formattedDate;
+      timeframe = calc.timeframe;
+    }
+
+    router.push({
+      pathname: '/invite',
+      params: {
+        name: item.visitor_fullname ?? 'Guest',
+        code: item.hashed_code,
+        date: formattedDate,
+        timeframe,
+        address: [home_address, estate_name].filter(Boolean).join(', '),
+        from: 'home',
+      },
     });
   };
 
@@ -118,6 +195,8 @@ export default function HomeMobile({}) {
     });
   };
 
+  const isEmpty = codes.length === 0;
+
   return (
     <SafeAreaView
       style={[sharedStyles.container, { backgroundColor: '#F6F7F7' }]}
@@ -131,31 +210,59 @@ export default function HomeMobile({}) {
 
       <CopiedToast visible={showCopiedToast} />
 
-      <View>
-        <View className="mb-6 mt-11 flex-row items-center justify-between">
-          <Text className="text-[27.34px] font-ubuntu-medium text-primary">Active Codes</Text>
-          <HeaderActions />
-        </View>
+      <View className="flex-1">
+        <ScreenHeader
+          title="Active Codes"
+          showActions
+          containerClassName="z-10"
+          titleClassName="text-[27.34px]"
+        />
 
-        <GestureHandlerRootView>
+        {isEmpty && !refreshing ? (
+          <View
+            pointerEvents="box-none"
+            style={{
+              position: 'absolute',
+              top: 0,
+              right: 0,
+              bottom: tabContentPadding,
+              left: 0,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Animated.Image
+              source={images.ghostImg}
+              className={`w-80 h-80 res`}
+              style={{
+                resizeMode: 'contain',
+                transform: [{ translateY: bounceValue }],
+              }}
+            />
+            <Text
+              className="text-center text-2xl opacity-20"
+              style={{ position: 'absolute', top: '50%', marginTop: 100, width: 220 }}
+            >{`Click the ‘+’ to add \nyour guest`}</Text>
+          </View>
+        ) : null}
+
+        <GestureHandlerRootView style={{ flex: 1 }}>
           <FlatList
             data={codes}
+            extraData={frozenCodes}
             keyExtractor={(item) => item.hashed_code}
             refreshing={refreshing}
             onRefresh={fetchCodes}
-            contentContainerStyle={{ paddingBottom: tabContentPadding, gap: 12 }}
-            ListEmptyComponent={() => (
-              <View className="flex-1 items-center mt-16">
-                <Image
-                  source={images.ghostImg}
-                  style={{ width: 201, height: 221, opacity: 0.5 }}
-                  resizeMode="contain"
-                />
-                <Text className="text-center text-[22px] font-ubuntu-semibold text-[#D3D3D3] mt-6 w-[195px]">
-                  {`Click the '+' to add your guest`}
+            scrollEnabled={!isEmpty}
+            contentContainerStyle={{ paddingBottom: tabContentPadding, flexGrow: 1, gap: 8 }}
+            ListHeaderComponent={
+              !isEmpty ? (
+                <Text className="mt-9 mb-[18px] font-inter-medium text-sm text-[#878686]">
+                  All incoming guest
                 </Text>
-              </View>
-            )}
+              ) : null
+            }
+            ListEmptyComponent={null}
             renderItem={({ item }) => {
               const iso = String(item.valid_until ?? '')
                 .replace(' ', 'T')
@@ -179,10 +286,11 @@ export default function HomeMobile({}) {
                   expiresAt={expiresAt}
                   startAt={startAt}
                   frozen={frozen}
-                  onToggleFreeze={() => handleToggleFreeze(item.hashed_code)}
+                  onToggleFreeze={() => handleToggleFreeze(item.hashed_code, frozen)}
                   onDeleted={() => handleDeleted(item.hashed_code)}
                   onCopied={handleCopied}
                   onOpenHistory={() => openHistory(item)}
+                  onOpenDetails={() => openInviteDetails(item)}
                   onExtend={() => openExtend(item)}
                 />
               );

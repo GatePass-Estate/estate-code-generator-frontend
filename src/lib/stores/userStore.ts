@@ -25,6 +25,10 @@ const initialState: State = {
   household_primary_resident: null,
   role: null,
   status: true,
+  plan: null,
+  subscription_plan: null,
+  tier: null,
+  plan_name: null,
 };
 
 const userStoreCreator: StateCreator<UserStore> = (set) => ({

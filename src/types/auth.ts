@@ -17,6 +17,10 @@ export type LoginResponse = {
   two_fa_token?: string | null;
   token_type?: string;
   success?: boolean;
+  plan?: string | null;
+  subscription_plan?: string | null;
+  tier?: string | null;
+  plan_name?: string | null;
 };
 
 export type VerifyEmailActivationResponse = {
