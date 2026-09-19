@@ -834,7 +834,7 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
                 <Pressable
                   key={row.prediction_id || row.id || index}
                   onPress={() =>
-                    router.push(`/(protected)/(shared-screens)/ai-store/anomaly-detection/user/${row.prediction_id || row.id}`)
+                    router.push(`/(protected)/(shared-screens)/ai-store/anomaly-detection/user/${row.prediction_id || row.id}?gender=${row.gender || ''}`)
                   }
                   style={{
                     flexDirection: 'row',
@@ -957,12 +957,6 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
               size={300} 
               labels={overview.anomaly_overview.spider_plot.map((p: any) => p.feature_name || '')}
               series={[
-                {
-                  data: overview.anomaly_overview.spider_plot.map((p: any) => p.normal_value || 0),
-                  strokeColor: '#F25B2A',
-                  fillColor: 'rgba(242, 91, 42, 0.28)',
-                  dotColor: '#F25B2A',
-                },
                 {
                   data: overview.anomaly_overview.spider_plot.map((p: any) => p.percentage || 0),
                   strokeColor: '#1B998B',

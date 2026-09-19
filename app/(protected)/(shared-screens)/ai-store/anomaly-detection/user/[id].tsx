@@ -16,7 +16,7 @@ import { useAuthStore } from '@/src/lib/stores/authStore';
 import { useAnomalyCaseDemographic, useAnomalyCaseHistory, useAnomalyCaseSummary, useAnomalyCaseResults } from '@/src/hooks/useAnomalyQueries';
 
 export default function AnomalyDetectionUserDetailsScreen() {
-  const { id } = useLocalSearchParams();
+  const { id, gender } = useLocalSearchParams();
   const authEstateId = useAuthStore((s: any) => s.user?.estate_id || '');
   const estateId = authEstateId || 'fallback-estate-id'; // Fallback so queries run if auth is empty in dev
   const [aiState, setAiState] = useState<'idle' | 'loading' | 'loaded' | 'forbidden' | 'error'>('idle');
@@ -42,7 +42,7 @@ export default function AnomalyDetectionUserDetailsScreen() {
 
   const demo = demographic?.demographic || {};
   const isGuest = demo.user_type?.toLowerCase() === 'guest';
-  const isFemale = demo.gender?.toLowerCase() === 'female';
+  const isFemale = (gender as string)?.toLowerCase() === 'female' || demo.gender?.toLowerCase() === 'female';
   const accentColor = isGuest ? '#113E55' : '#F25B2A';
 
   const gaugeList = useMemo(() => {
@@ -154,11 +154,7 @@ export default function AnomalyDetectionUserDetailsScreen() {
               </Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                 <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 9, lineHeight: 11, color: '#8A9A9D' }}>
-                  {demo.date_start ? new Date(demo.date_start).toLocaleDateString() : 'N/A'}
-                </Text>
-                <View style={{ width: 3, height: 3, borderRadius: 1.5, backgroundColor: '#8A9A9D' }} />
-                <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 9, lineHeight: 11, color: '#8A9A9D' }}>
-                  {demo.date_end ? new Date(demo.date_end).toLocaleDateString() : 'N/A'}
+                  {demo.user_id ? 'Verified User' : 'N/A'}
                 </Text>
               </View>
             </View>
@@ -204,9 +200,9 @@ export default function AnomalyDetectionUserDetailsScreen() {
               <View style={{ flexDirection: 'row', gap: 10 }}>
                 <View style={{ width: 3, backgroundColor: accentColor, borderRadius: 2 }} />
                 <View>
-                  <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 9, lineHeight: 9, color: '#878686', marginBottom: 2 }}>Average Entry Time</Text>
+                  <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 9, lineHeight: 9, color: '#878686', marginBottom: 2 }}>Avg. Entries / Week</Text>
                   <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 11, lineHeight: 11, color: '#04162D' }}>
-                    {demo.average_entry_time || '--:--'}
+                    {demo.average_entry_per_week?.toFixed(2) || '0.00'}
                   </Text>
                 </View>
               </View>
@@ -215,9 +211,9 @@ export default function AnomalyDetectionUserDetailsScreen() {
               <View style={{ flexDirection: 'row', gap: 10 }}>
                 <View style={{ width: 3, backgroundColor: accentColor, borderRadius: 2 }} />
                 <View>
-                  <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 9, lineHeight: 9, color: '#878686', marginBottom: 2 }}>Total Entry Times</Text>
+                  <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 9, lineHeight: 9, color: '#878686', marginBottom: 2 }}>Total Entries</Text>
                   <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 11, lineHeight: 11, color: '#04162D' }}>
-                    {demo.total_entry_time || '0'}
+                    {demo.total_entries || '0'}
                   </Text>
                 </View>
               </View>
@@ -232,16 +228,20 @@ export default function AnomalyDetectionUserDetailsScreen() {
           </Text>
           <View style={{ position: 'relative' }}>
             {/* Dashed Line Background - starts from center of first card (top: 51) */}
-            {historyData?.history && historyData.history.length > 0 && (
-              <Svg height={historyData.history.length * 90} width="2" style={{ position: 'absolute', top: 51, left: 12, zIndex: 1 }}>
+            {historyData?.items && historyData.items.length > 0 && (
+              <Svg height={historyData.items.length * 90} width="2" style={{ position: 'absolute', top: 51, left: 12, zIndex: 1 }}>
                 <Line x1="1" y1="0" x2="1" y2="100%" stroke="#878686" strokeWidth="1.4" strokeDasharray="2.8, 2.8" />
               </Svg>
             )}
             
             <View style={{ gap: 12 }}>
-              {historyData?.history && historyData.history.length > 0 ? (
-                historyData.history.map((record: any, index: number) => {
+              {historyData?.items && historyData.items.length > 0 ? (
+                historyData.items.map((record: any, index: number) => {
                   const isHigh = record.severity?.toLowerCase() === 'high';
+                  const d = new Date(record.validated_at);
+                  const timeString = isNaN(d.getTime()) ? '--:--' : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                  const dateString = isNaN(d.getTime()) ? 'N/A' : d.toLocaleDateString();
+
                   return (
                     <View key={`history-${index}`} style={{ flexDirection: 'row', alignItems: 'center', gap: 24 }}>
                       <View style={{ width: 26, height: 26, borderRadius: 13, borderWidth: 1.4, borderColor: '#8A9A9D', backgroundColor: '#F6F7F7', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
@@ -249,11 +249,11 @@ export default function AnomalyDetectionUserDetailsScreen() {
                       </View>
                       <View style={{ flex: 1, height: 78, backgroundColor: '#FFFFFF', borderRadius: 16, paddingHorizontal: 16, paddingVertical: 12, justifyContent: 'space-between' }}>
                         <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 13, color: '#8A9A9D' }}>
-                          {record.time} • {new Date(record.date).toLocaleDateString()}
+                          {timeString} • {dateString}
                         </Text>
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                           <Text allowFontScaling={false} style={{ fontFamily: 'UbuntuSans-SemiBold', fontSize: 22, lineHeight: 22, color: '#113E55' }}>
-                            {record.code || 'N/A'}
+                            {record.validated_code || 'N/A'}
                           </Text>
                           <View style={{ backgroundColor: isHigh ? '#FEE2E2' : '#E0F2F1', paddingHorizontal: 16, paddingVertical: 6, borderRadius: 16 }}>
                             <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 12, color: isHigh ? '#ED0808' : '#1B998B', textTransform: 'capitalize' }}>
@@ -373,13 +373,13 @@ export default function AnomalyDetectionUserDetailsScreen() {
                     labels={spider.map((p: any) => p.feature_name || '')}
                     series={[
                       {
-                        data: spider.map((p: any) => p.normal_value || 0),
+                        data: spider.map((p: any) => p.percentage || 0),
                         strokeColor: '#F25B2A',
                         fillColor: 'rgba(242, 91, 42, 0.28)',
                         dotColor: '#F25B2A',
                       },
                       {
-                        data: spider.map((p: any) => p.percentage || 0),
+                        data: spider.map((p: any) => p.instance_percentage || 0),
                         strokeColor: '#1B998B',
                         fillColor: 'rgba(27, 153, 139, 0.28)',
                         dotColor: '#1B998B',
