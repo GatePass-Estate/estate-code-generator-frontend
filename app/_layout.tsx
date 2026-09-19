@@ -14,6 +14,7 @@ import { queryClient } from '@/lib/queryClient';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useEffect } from 'react';
 import LoadingTransition from '@/src/components/common/LoadingTransition';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 ExpoSplashScreen.preventAutoHideAsync();
 
@@ -95,9 +96,9 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <View style={{ flex: 1 }}>
+          <GestureHandlerRootView style={{ flex: 1 }}>
             <RootLayoutContent />
-          </View>
+          </GestureHandlerRootView>
         </AuthProvider>
       </QueryClientProvider>
     </SafeAreaProvider>

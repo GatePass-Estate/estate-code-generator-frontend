@@ -17,24 +17,23 @@ const ANDROID_NAV_BAR = {
   },
 } as const;
 
-function resolveDeviceColorScheme(scheme: ColorSchemeName | undefined): 'light' | 'dark' {
+function resolveDeviceColorScheme(scheme: ColorSchemeName | null | undefined): 'light' | 'dark' {
   return scheme === 'dark' ? 'dark' : 'light';
 }
 
 function applyAndroidNavBar(colorScheme: 'light' | 'dark') {
   const theme = ANDROID_NAV_BAR[colorScheme];
-  NavigationBar.setButtonStyleAsync(theme.buttons).catch(() => {});
   NavigationBar.setStyle(theme.style);
 }
 
-export function getAndroidNavBarBackground(scheme: ColorSchemeName | undefined): string {
+export function getAndroidNavBarBackground(scheme: ColorSchemeName | null | undefined): string {
   return ANDROID_NAV_BAR[resolveDeviceColorScheme(scheme)].background;
 }
 
 export function useInitialAndroidBarSync() {
   const pathname = usePathname();
 
-  const applyDeviceNavBar = React.useCallback((scheme: ColorSchemeName) => {
+  const applyDeviceNavBar = React.useCallback((scheme: ColorSchemeName | null | undefined) => {
     applyAndroidNavBar(resolveDeviceColorScheme(scheme));
   }, []);
 
