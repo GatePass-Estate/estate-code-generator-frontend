@@ -8,7 +8,9 @@ import {
   Share,
   NativeSyntheticEvent,
   NativeScrollEvent,
- ActivityIndicator } from 'react-native';
+  ActivityIndicator,
+  Image
+} from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
 import { router } from 'expo-router';
@@ -34,113 +36,26 @@ import UserWarningSvg from '@/src/assets/icons/userwarning.svg';
 import AlertSvg from '@/src/assets/icons/alert.svg';
 import UpAndDownSvg from '@/src/assets/icons/upanddown.svg';
 
-const GAUGE_MOCK_DATA: GaugeData[] = [
-  // ... (keep GAUGE_MOCK_DATA as is, but it's not the target here. I will just target the import line)
-
-  {
-    title: 'Unusual Entry Time',
-    percentage: 5,
-    color: '#F46036',
-    arcColor: '#1B998B',
-    records: 34,
-    days: 40,
-    items: [
-      { title: 'Relationship Frequency', percentage: 80 },
-      { title: 'Relationship Frequency', percentage: 18 },
-      { title: 'Relationship Frequency', percentage: 1 },
-      { title: 'Relationship Frequency', percentage: 1 },
-    ],
-  },
-  {
-    title: 'Late Night Entry',
-    percentage: 80,
-    color: '#1B998B',
-    arcColor: '#E81616',
-    records: 12,
-    days: 30,
-    items: [
-      { title: 'Visitor Role', percentage: 70 },
-      { title: 'Visitor Role', percentage: 20 },
-      { title: 'Visitor Role', percentage: 5 },
-      { title: 'Visitor Role', percentage: 5 },
-    ],
-  },
-  {
-    title: 'Late Night Entry',
-    percentage: 25,
-    color: '#113E55',
-    arcColor: '#D97706',
-    records: 8,
-    days: 14,
-    items: [
-      { title: 'Unknown Factor', percentage: 90 },
-      { title: 'Unknown Factor', percentage: 5 },
-      { title: 'Unknown Factor', percentage: 3 },
-      { title: 'Unknown Factor', percentage: 2 },
-    ],
-  }
-];
-
-const USER_ROWS = [
-  {
-    id: '1',
-    rank: '1',
-    name: 'Daisy Gatsby',
-    role: 'Resident',
-    severity: 'HIGH',
-    badgeBg: 'bg-[#FFECEC]',
-    badgeText: 'text-[#F46036]',
-  },
-  {
-    id: '2',
-    rank: '2',
-    name: 'Daisy Gatsby',
-    role: 'Security',
-    severity: 'MED',
-    badgeBg: 'bg-[#FFF8E7]',
-    badgeText: 'text-[#D97706]',
-  },
-  {
-    id: '3',
-    rank: '3',
-    name: 'Daisy Gatsby',
-    role: 'Guest',
-    severity: 'LOW',
-    badgeBg: 'bg-[#E6F4EA]',
-    badgeText: 'text-[#1B998B]',
-  },
-  {
-    id: '4',
-    rank: '4',
-    name: 'Daisy Gatsby',
-    role: 'Guest',
-    severity: 'LOW',
-    badgeBg: 'bg-[#E6F4EA]',
-    badgeText: 'text-[#1B998B]',
-  },
-  {
-    id: '5',
-    rank: '5',
-    name: 'Daisy Gatsby',
-    role: 'Security',
-    severity: 'MED',
-    badgeBg: 'bg-[#FFF8E7]',
-    badgeText: 'text-[#D97706]',
-  },
-];
 
 export default function AnomalyResultView({ isActive = true }: { isActive?: boolean }) {
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [orderModalVisible, setOrderModalVisible] = useState(false);
   const [timeframeVisible, setTimeframeVisible] = useState(false);
+  const [selectedTimeframe, setSelectedTimeframe] = useState('Last Week');
   const [datePickerVisible, setDatePickerVisible] = useState(false);
-  const [startDate, setStartDate] = useState<Date | null>(null);
-  const [endDate, setEndDate] = useState<Date | null>(null);
+  const [startDate, setStartDate] = useState<Date | null>(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 7);
+    return d;
+  });
+  const [endDate, setEndDate] = useState<Date | null>(() => new Date());
   const [activeEvidenceDot, setActiveEvidenceDot] = useState(0);
   const [sortAscending, setSortAscending] = useState(true);
   const [gaugesInView, setGaugesInView] = useState(false);
   const [gaugeSectionLayout, setGaugeSectionLayout] = useState<{ y: number; height: number } | null>(null);
   const [selectedGaugeIndex, setSelectedGaugeIndex] = React.useState<number | null>(null);
+  const [paginationLimit, setPaginationLimit] = useState(5);
+  const [gaugeLimit, setGaugeLimit] = useState(4);
 
   const estate_id = useUserStore((state) => state.estate_id) || '';
   const userEstateName = useUserStore((state) => state.estate_name);
@@ -168,7 +83,9 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
     {
       from_date: startDate ? startDate.toISOString() : undefined,
       to_date: endDate ? endDate.toISOString() : undefined,
-      sort_order: sortAscending ? 'asc' : 'desc'
+      sort_order: sortAscending ? 'asc' : 'desc',
+      limit: paginationLimit,
+      page: 1,
     }
   );
 
@@ -179,12 +96,12 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
   const gaugeList: GaugeData[] = React.useMemo(() => {
     const factors = overview?.anomaly_overview?.contributing_factors;
     if (!factors || factors.length === 0) return [];
-    return factors.map((factor: any) => {
-      // Treat null as 0
+    
+    const colors = ['#F46036', '#1B998B', '#113E55', '#D97706'];
+    
+    return factors.map((factor: any, index: number) => {
       const percentage = factor.percentage || 0;
-      let color = '#1B998B';
-      if (percentage >= 20 && percentage < 60) color = '#D97706';
-      if (percentage >= 60) color = '#E81616';
+      const themeColor = colors[index % colors.length];
 
       const rawTitle = factor.name || factor.feature_name || 'Unknown Factor';
       const formattedTitle = rawTitle.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
@@ -192,13 +109,18 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
       return {
         title: formattedTitle,
         percentage,
-        color,
-        records: 0,
-        days: 0,
-        items: (factor.sub_factors || []).map((sf: any) => ({
-          title: sf.feature_name || 'Sub-factor',
-          percentage: sf.percentage || 0
-        }))
+        color: themeColor,
+        arcColor: themeColor,
+        records: factor.records || 0,
+        days: factor.days || 0,
+        items: (factor.sub_factors || []).map((sf: any) => {
+          const rawSfTitle = sf.name || sf.feature_name || 'Sub-factor';
+          return {
+            title: rawSfTitle.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+            description: sf.description || '',
+            percentage: sf.percentage || 0
+          };
+        })
       };
     });
   }, [overview]);
@@ -218,25 +140,17 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
     }
   };
 
-  const handleExport = async () => {
-    try {
-      await Share.share({
-        title: 'Anomaly Detection Summary',
-        message:
-          `Anomaly Detection Summary Report:\n- Anomalous Events: ${overview?.demographic.total_anomalous_instances || 0}\n- High Risk Events: ${overview?.demographic.total_high_risk_instances || 0}\n- Total Evaluated Users: ${overview?.demographic.total_users || 0}`,
-      });
-    } catch {
-      Alert.alert('Export', 'Summary report ready to export.');
-    }
+  const handleExport = () => {
+    Alert.alert('Coming Soon', 'This feature is not yet active.');
   };
 
   const handleCycleRange = () => {
     setTimeframeVisible(true);
   };
 
-  const selectedRangeText = startDate && endDate 
+  const selectedRangeText = selectedTimeframe === 'Custom' && startDate && endDate 
     ? `${startDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })} - ${endDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}`
-    : 'Select Range';
+    : selectedTimeframe;
 
   if (isLoading) {
     return (
@@ -246,7 +160,7 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
     );
   }
 
-  const predictions = rawPredictions?.items || [];
+  const predictions = rawPredictions?.items || rawPredictions?.results || rawPredictions?.data?.items || rawPredictions?.data || (Array.isArray(rawPredictions) ? rawPredictions : []);
 
   return (
     <Animated.View
@@ -483,7 +397,14 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
               marginLeft: 4,
             }}
           >
-            <AnomalyDonutChart size={106} isActive={isActive} countText={(overview?.demographic?.total_users || 0).toString()} />
+            <AnomalyDonutChart 
+              size={106} 
+              isActive={isActive} 
+              countText={(overview?.demographic?.total_users || 0).toString()} 
+              residentPercentage={overview?.demographic?.ratio?.resident?.percentage || 0}
+              guestPercentage={overview?.demographic?.ratio?.guest?.percentage || 0}
+              securityPercentage={overview?.demographic?.ratio?.security?.percentage || 0}
+            />
           </View>
 
           {/* Legend Items */}
@@ -899,21 +820,21 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
           ) : (
             (sortAscending ? predictions : [...predictions].reverse()).map((row: any, index: number) => {
               const severityStr = (row.severity || 'LOW').toUpperCase();
-              let badgeBg = 'bg-[#E6F4EA]';
-              let badgeText = 'text-[#1B998B]';
+              let badgeBg = 'bg-[#E4F4F0]';
+              let badgeText = 'text-[#2B9B84]';
               if (severityStr === 'HIGH') {
-                badgeBg = 'bg-[#FFECEC]';
-                badgeText = 'text-[#F46036]';
+                badgeBg = 'bg-[#FDECEC]';
+                badgeText = 'text-[#E12828]';
               } else if (severityStr === 'MEDIUM' || severityStr === 'MED') {
-                badgeBg = 'bg-[#FFF8E7]';
-                badgeText = 'text-[#D97706]';
+                badgeBg = 'bg-[#FCF6E3]';
+                badgeText = 'text-[#B68A13]';
               }
 
               return (
                 <Pressable
-                  key={row.id || index}
+                  key={row.prediction_id || row.id || index}
                   onPress={() =>
-                    router.push(`/(protected)/(shared-screens)/ai-store/anomaly-detection/user/${row.id}`)
+                    router.push(`/(protected)/(shared-screens)/ai-store/anomaly-detection/user/${row.prediction_id || row.id}`)
                   }
                   style={{
                     flexDirection: 'row',
@@ -926,12 +847,27 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
                       fontFamily: 'Inter_18pt-Regular',
                       fontSize: 11.2,
                       color: '#8A9A9D',
-                      width: 32,
+                      width: 24,
                     }}
                   >
                     {index + 1}
                   </Text>
-                  <View style={{ flex: 1, marginLeft: 8 }}>
+                  
+                  {/* Avatar section */}
+                  {['resident', 'security'].includes((row.user_type || row.role || '').toLowerCase()) && (row.profile_picture || row.avatar_url) ? (
+                    <Image 
+                      source={{ uri: row.profile_picture || row.avatar_url }} 
+                      style={{ width: 32, height: 32, borderRadius: 16, marginRight: 8, backgroundColor: '#EFF1F3' }} 
+                    />
+                  ) : (
+                    <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#EFF1F3', marginRight: 8, alignItems: 'center', justifyContent: 'center' }}>
+                      <Text style={{ fontFamily: 'UbuntuSans-Medium', fontSize: 14, color: '#113E55' }}>
+                        {(row.display_name || row.name || 'U').charAt(0).toUpperCase()}
+                      </Text>
+                    </View>
+                  )}
+
+                  <View style={{ flex: 1, marginLeft: 2 }}>
                     <Text
                       style={{
                         fontFamily: 'Inter_18pt-Regular',
@@ -939,7 +875,7 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
                         color: '#113E55',
                       }}
                     >
-                      {row.name || 'Unknown User'}
+                      {row.display_name || row.name || 'Unknown User'}
                     </Text>
                     <Text
                       style={{
@@ -949,7 +885,9 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
                         textTransform: 'capitalize',
                       }}
                     >
-                      {row.user_type || row.role || 'Guest'}
+                      {(row.user_type || row.role || 'Guest').toLowerCase() === 'visitor'
+                        ? 'Guest'
+                        : row.user_type || row.role || 'Guest'}
                     </Text>
                   </View>
                   <View style={{ width: 90, alignItems: 'center' }}>
@@ -968,12 +906,12 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
           )}
 
           {/* Load More */}
-          {predictions.length > 0 && (
-            <Pressable style={{ alignItems: 'center', paddingTop: 2 }} hitSlop={8}>
+          {predictions.length > 0 && (predictions.length === paginationLimit || predictions.length < (rawPredictions?.total || 0)) && (
+            <Pressable onPress={() => setPaginationLimit(l => l + 5)} style={{ alignItems: 'center', paddingTop: 24, paddingBottom: 16 }} hitSlop={8}>
               <Text
                 style={{
-                  fontFamily: 'Inter_18pt-Medium',
-                  fontSize: 12,
+                  fontFamily: 'UbuntuSans-SemiBold',
+                  fontSize: 14,
                   color: '#113E55',
                 }}
               >
@@ -1013,7 +951,7 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
         <View className="items-center justify-center my-2 relative">
           {(() => {
             const spider = overview?.anomaly_overview?.spider_plot;
-            if (spider && spider.length > 0 && !spider.every((p: any) => (!p.percentage || p.percentage === 0) && (!p.normal_value || p.normal_value === 0))) {
+            if (spider && spider.length > 0) {
               return (
             <AnomalyRadarChart 
               size={300} 
@@ -1092,31 +1030,35 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
         {/* Semi-Circle Gauges */}
         <View onLayout={(e) => setGaugeSectionLayout(e.nativeEvent.layout)}>
           {gaugeList.length > 0 ? (
-            gaugeList.map((gauge, index) => (
-              <Pressable key={`gauge-${index}`} onPress={() => setSelectedGaugeIndex(index)} style={{ width: '100%', minHeight: 136, backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, justifyContent: 'space-between', flexDirection: 'column', alignSelf: 'center', marginBottom: 12, borderWidth: 1, borderColor: '#EFF1F3' }}>
-                {/* Top Row: Title */}
-                <View className="flex-row items-center gap-2" style={{ marginLeft: 16 }}>
-                  <View className="w-2 h-2 rounded-full" style={{ backgroundColor: gauge.color }} />
-                  <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 14, lineHeight: 14, color: '#0A1F29' }}>{gauge.title}</Text>
-                </View>
-                {/* Bottom Row: Percentage and Gauge */}
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', width: '100%' }}>
-                  <Text allowFontScaling={false} style={{ fontFamily: 'UbuntuSans-Medium', fontSize: 34.18, lineHeight: 34.18, letterSpacing: 0, color: '#0A1F29', marginBottom: -4, marginLeft: 16 }}>{gauge.percentage}%</Text>
-                  <View style={{ position: 'relative', top: 4 }}>
-                    <SemiCircleGauge percentage={gauge.percentage} color={gauge.arcColor || gauge.color} size={130} animate={gaugesInView} />
+            <>
+              {gaugeList.slice(0, gaugeLimit).map((gauge, index) => (
+                <Pressable key={`gauge-${index}`} onPress={() => setSelectedGaugeIndex(index)} style={{ width: '100%', minHeight: 136, backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, justifyContent: 'space-between', flexDirection: 'column', alignSelf: 'center', marginBottom: 12, borderWidth: 1, borderColor: '#EFF1F3' }}>
+                  {/* Top Row: Title */}
+                  <View className="flex-row items-center gap-2" style={{ marginLeft: 16 }}>
+                    <View className="w-2 h-2 rounded-full" style={{ backgroundColor: gauge.color }} />
+                    <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 14, lineHeight: 14, color: '#0A1F29' }}>{gauge.title}</Text>
                   </View>
-                </View>
-              </Pressable>
-            ))
+                  {/* Bottom Row: Percentage and Gauge */}
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', width: '100%' }}>
+                    <Text allowFontScaling={false} style={{ fontFamily: 'UbuntuSans-Medium', fontSize: 34.18, lineHeight: 34.18, letterSpacing: 0, color: '#0A1F29', marginBottom: -4, marginLeft: 16 }}>{gauge.percentage}%</Text>
+                    <View style={{ position: 'relative', top: 4 }}>
+                      <SemiCircleGauge percentage={gauge.percentage} color={gauge.arcColor || gauge.color} size={130} animate={gaugesInView} />
+                    </View>
+                  </View>
+                </Pressable>
+              ))}
+              {gaugeList.length > gaugeLimit && (
+                <Pressable onPress={() => setGaugeLimit(l => l + 4)} style={{ alignItems: 'center', paddingVertical: 12 }}>
+                  <Text allowFontScaling={false} style={{ fontFamily: 'UbuntuSans-SemiBold', fontSize: 14, color: '#113E55' }}>Load More</Text>
+                </Pressable>
+              )}
+            </>
           ) : (
             <Text style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 13, color: '#878686', textAlign: 'center', marginVertical: 20 }}>No contributing factors found</Text>
           )}
         </View>
 
-        {/* Load More */}
-        <Pressable className="py-2 items-center" hitSlop={8}>
-          <Text allowFontScaling={false} className="text-[12px] font-inter-medium text-[#113E55]">Load More</Text>
-        </Pressable>
+
       </View>
 
       {/* EVIDENCE SUMMARY Section */}
@@ -1213,7 +1155,14 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
       <TimeframeModal
         visible={timeframeVisible}
         onClose={() => setTimeframeVisible(false)}
+        selectedLabel={selectedTimeframe}
+        onSelect={(label, start, end) => {
+          setSelectedTimeframe(label);
+          setStartDate(start);
+          setEndDate(end);
+        }}
         onCustomSelect={() => {
+          setSelectedTimeframe('Custom');
           setTimeframeVisible(false);
           setDatePickerVisible(true);
         }}

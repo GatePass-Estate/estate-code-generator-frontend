@@ -8,6 +8,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
+import { GestureDetector } from 'react-native-gesture-handler';
+import { useSwipeDown } from './useSwipeDown';
 
 type AISummaryModalProps = {
   visible: boolean;
@@ -15,6 +17,10 @@ type AISummaryModalProps = {
 };
 
 export default function AISummaryModal({ visible, onClose }: AISummaryModalProps) {
+  const { panGesture, animatedStyle, translateY } = useSwipeDown(onClose);
+  React.useEffect(() => {
+    if (visible) translateY.value = 0;
+  }, [visible]);
   if (!visible) return null;
 
   return (
@@ -41,15 +47,32 @@ export default function AISummaryModal({ visible, onClose }: AISummaryModalProps
       <Animated.View
         entering={SlideInDown.springify().damping(20).stiffness(90)}
         exiting={SlideOutDown}
-        style={{
-          backgroundColor: '#F6F7F7',
-          borderTopLeftRadius: 32,
-          borderTopRightRadius: 32,
-          maxHeight: '90%',
-          padding: 24,
-        }}
+        style={[
+          animatedStyle,
+          {
+            backgroundColor: '#F6F7F7',
+            borderTopLeftRadius: 32,
+            borderTopRightRadius: 32,
+            maxHeight: '90%',
+            padding: 24,
+          }
+        ]}
       >
-        <View style={{ width: 40, height: 4, backgroundColor: '#E5E7EB', borderRadius: 2, alignSelf: 'center', marginBottom: 24 }} />
+        {/* Draggable Handle Area */}
+        <GestureDetector gesture={panGesture}>
+          <View style={{ paddingBottom: 16 }}>
+            {/* Handle */}
+            <View
+              style={{
+                width: 100,
+                height: 6,
+                borderRadius: 3,
+                backgroundColor: '#A0A0A0',
+                alignSelf: 'center',
+              }}
+            />
+          </View>
+        </GestureDetector>
         
         <Text allowFontScaling={false} style={{ fontFamily: 'UbuntuSans-Medium', fontSize: 20, color: '#113E55', marginBottom: 16 }}>
           AI SUMMARY

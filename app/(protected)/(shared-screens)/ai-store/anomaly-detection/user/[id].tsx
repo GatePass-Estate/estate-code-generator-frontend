@@ -17,10 +17,12 @@ import { useAnomalyCaseDemographic, useAnomalyCaseHistory, useAnomalyCaseSummary
 
 export default function AnomalyDetectionUserDetailsScreen() {
   const { id } = useLocalSearchParams();
-  const estateId = useAuthStore((s: any) => s.user?.estate_id || '');
+  const authEstateId = useAuthStore((s: any) => s.user?.estate_id || '');
+  const estateId = authEstateId || 'fallback-estate-id'; // Fallback so queries run if auth is empty in dev
   const [aiState, setAiState] = useState<'idle' | 'loading' | 'loaded' | 'forbidden' | 'error'>('idle');
   const [showAiSummaryModal, setShowAiSummaryModal] = useState(false);
   const [selectedGaugeIndex, setSelectedGaugeIndex] = useState<number | null>(null);
+  const [gaugeLimit, setGaugeLimit] = useState(4);
   
   const { data: rawDemographic } = useAnomalyCaseDemographic(estateId, id as string);
   const { data: rawHistoryData } = useAnomalyCaseHistory(estateId, id as string);
@@ -29,8 +31,14 @@ export default function AnomalyDetectionUserDetailsScreen() {
   const { refetch: fetchSummary, data: summaryData } = useAnomalyCaseSummary(estateId, id as string, false);
 
   const demographic = rawDemographic || {};
-  const historyData = rawHistoryData || {};
+  let historyData = rawHistoryData || {};
   const resultsData = rawResultsData || {};
+
+  console.log('--- USER OVERVIEW MOUNTED ---');
+  console.log('ID:', id, 'ESTATE:', estateId);
+  console.log('RAW DEMOGRAPHIC:', rawDemographic);
+  console.log('RAW HISTORY:', rawHistoryData);
+  console.log('RAW RESULTS:', rawResultsData);
 
   const demo = demographic?.demographic || {};
   const isGuest = demo.user_type?.toLowerCase() === 'guest';
@@ -40,11 +48,17 @@ export default function AnomalyDetectionUserDetailsScreen() {
   const gaugeList = useMemo(() => {
     const factors = resultsData?.anomaly_overview?.contributing_factors;
     if (!factors || factors.length === 0) return [];
-    return factors.map((factor: any) => {
+    
+    const colors = ['#F46036', '#1B998B', '#113E55', '#D97706'];
+
+    return factors
+      .filter((factor: any) => {
+        const raw = factor.name || factor.feature_name || '';
+        return !raw.toLowerCase().includes('security');
+      })
+      .map((factor: any, index: number) => {
       const percentage = factor.percentage || 0;
-      let color = '#1B998B';
-      if (percentage >= 20 && percentage < 60) color = '#D97706';
-      if (percentage >= 60) color = '#E81616';
+      const themeColor = colors[index % colors.length];
 
       const rawTitle = factor.name || factor.feature_name || 'Unknown Factor';
       const formattedTitle = rawTitle.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
@@ -52,13 +66,18 @@ export default function AnomalyDetectionUserDetailsScreen() {
       return {
         title: formattedTitle,
         percentage,
-        color,
-        records: 0,
-        days: 0,
-        items: (factor.sub_factors || []).map((sf: any) => ({
-          title: sf.feature_name || 'Sub-factor',
-          percentage: sf.percentage || 0
-        }))
+        color: themeColor,
+        arcColor: themeColor,
+        records: factor.records || 0,
+        days: factor.days || 0,
+        items: (factor.sub_factors || []).map((sf: any) => {
+          const rawSfTitle = sf.name || sf.feature_name || 'Sub-factor';
+          return {
+            title: rawSfTitle.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+            description: sf.description || '',
+            percentage: sf.percentage || 0
+          };
+        })
       };
     });
   }, [resultsData]);
@@ -131,7 +150,7 @@ export default function AnomalyDetectionUserDetailsScreen() {
             </View>
             <View>
               <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 14, lineHeight: 14, color: '#113E55', marginBottom: 4 }}>
-                {demo.name || 'Unknown User'}
+                {demo.display_name || demo.name || 'Unknown User'}
               </Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                 <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 9, lineHeight: 11, color: '#8A9A9D' }}>
@@ -155,17 +174,15 @@ export default function AnomalyDetectionUserDetailsScreen() {
                 </Svg>
               </Animated.View>
               <View style={{ backgroundColor: '#EEF0F2', borderRadius: 44, padding: 5 }}>
-                {isGuest ? (
-                  isFemale ? (
-                    <GuestFemaleSvg width={78} height={78} style={{ borderRadius: 39 }} />
-                  ) : (
-                    <GuestMaleSvg width={78} height={78} style={{ borderRadius: 39 }} />
-                  )
-                ) : (
+                {demo.avatar_url ? (
                   <Image 
-                    source={{ uri: demo.avatar_url || 'https://i.pravatar.cc/150?img=11' }} 
+                    source={{ uri: demo.avatar_url }} 
                     style={{ width: 78, height: 78, borderRadius: 39 }} 
                   />
+                ) : isFemale ? (
+                  <GuestFemaleSvg width={78} height={78} style={{ borderRadius: 39 }} />
+                ) : (
+                  <GuestMaleSvg width={78} height={78} style={{ borderRadius: 39 }} />
                 )}
               </View>
             </View>
@@ -289,7 +306,7 @@ export default function AnomalyDetectionUserDetailsScreen() {
                 </View>
               </View>
               <Text allowFontScaling={false} numberOfLines={3} style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 12, color: '#8A9A9D', lineHeight: 20 }}>
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam.
+                This section provides a detailed summary of the anomalous behavior detected for this user. It breaks down the key factors contributing to the anomaly, including unusual entry times, late-night activity, and irregular visitor patterns over the selected timeframe.
               </Text>
               
               {/* Blur Overlay */}
@@ -349,7 +366,7 @@ export default function AnomalyDetectionUserDetailsScreen() {
           <View style={{ alignItems: 'center', marginBottom: 40 }}>
             {(() => {
               const spider = resultsData?.anomaly_overview?.spider_plot;
-              if (spider && spider.length > 0 && !spider.every((p: any) => (!p.percentage || p.percentage === 0) && (!p.normal_value || p.normal_value === 0))) {
+              if (spider && spider.length > 0) {
                 return (
                   <AnomalyRadarChart 
                     size={280} 
@@ -386,7 +403,7 @@ export default function AnomalyDetectionUserDetailsScreen() {
               const topFactors = resultsData?.anomaly_overview?.top_contributing_factors;
               const factors = resultsData?.anomaly_overview?.contributing_factors;
               
-              if (topFactors && topFactors.length > 0 && factors && !factors.every((f: any) => !f.percentage || f.percentage === 0)) {
+              if (topFactors && topFactors.length > 0 && factors) {
                 return topFactors.map((factor: any, index: number) => {
                   const colors = ['#F46036', '#1B998B', '#113E55', '#D97706'];
                   const bgs = ['rgba(244, 96, 54, 0.2)', 'rgba(27, 153, 139, 0.2)', 'rgba(17, 62, 85, 0.2)', 'rgba(217, 119, 6, 0.2)'];
@@ -404,40 +421,38 @@ export default function AnomalyDetectionUserDetailsScreen() {
                 });
               } else {
                 return (
-              <>
-                <View style={{ flexDirection: 'row', alignItems: 'center', height: 34, paddingHorizontal: 14, borderRadius: 17, backgroundColor: 'rgba(244, 96, 54, 0.2)', gap: 8 }}>
-                  <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#F46036' }} />
-                  <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 11.5, color: '#F46036' }}>Unusual Entry Time</Text>
-                </View>
-                <View style={{ flexDirection: 'row', alignItems: 'center', height: 34, paddingHorizontal: 14, borderRadius: 17, backgroundColor: 'rgba(27, 153, 139, 0.2)', gap: 8 }}>
-                  <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#1B998B' }} />
-                  <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 11.5, color: '#1B998B' }}>Late Night Entry</Text>
-                </View>
-              </>
+                  <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 13, color: '#8A9A9D' }}>
+                    No top contributing factors identified.
+                  </Text>
                 );
               }
             })()}
-          </View>
-
-          {/* Gauge Cards */}
+          </View>          {/* Gauge Cards */}
           <View style={{ gap: 16 }}>
             {gaugeList.length > 0 ? (
-              gaugeList.map((gauge: any, index: number) => (
-                <Pressable key={`gauge-${index}`} onPress={() => setSelectedGaugeIndex(index)} style={{ width: '100%', minHeight: 136, backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, justifyContent: 'space-between', flexDirection: 'column', alignSelf: 'center', marginBottom: 12, borderWidth: 1, borderColor: '#EFF1F3' }}>
-                  {/* Top Row: Title */}
-                  <View className="flex-row items-center gap-2" style={{ marginLeft: 16 }}>
-                    <View className="w-2 h-2 rounded-full" style={{ backgroundColor: gauge.color }} />
-                    <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 14, lineHeight: 14, color: '#0A1F29' }}>{gauge.title}</Text>
-                  </View>
-                  {/* Bottom Row: Percentage and Gauge */}
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', width: '100%' }}>
-                    <Text allowFontScaling={false} style={{ fontFamily: 'UbuntuSans-Medium', fontSize: 34.18, lineHeight: 34.18, letterSpacing: 0, color: '#0A1F29', marginBottom: -4, marginLeft: 16 }}>{gauge.percentage}%</Text>
-                    <View style={{ position: 'relative', top: 4 }}>
-                      <SemiCircleGauge percentage={gauge.percentage} color={gauge.arcColor || gauge.color} size={130} animate={true} />
+              <>
+                {gaugeList.slice(0, gaugeLimit).map((gauge: any, index: number) => (
+                  <Pressable key={`gauge-${index}`} onPress={() => setSelectedGaugeIndex(index)} style={{ width: '100%', minHeight: 136, backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, justifyContent: 'space-between', flexDirection: 'column', alignSelf: 'center', marginBottom: 12, borderWidth: 1, borderColor: '#EFF1F3' }}>
+                    {/* Top Row: Title */}
+                    <View className="flex-row items-center gap-2" style={{ marginLeft: 16 }}>
+                      <View className="w-2 h-2 rounded-full" style={{ backgroundColor: gauge.color }} />
+                      <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 14, lineHeight: 14, color: '#0A1F29' }}>{gauge.title}</Text>
                     </View>
-                  </View>
-                </Pressable>
-              ))
+                    {/* Bottom Row: Percentage and Gauge */}
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', width: '100%' }}>
+                      <Text allowFontScaling={false} style={{ fontFamily: 'UbuntuSans-Medium', fontSize: 34.18, lineHeight: 34.18, letterSpacing: 0, color: '#0A1F29', marginBottom: -4, marginLeft: 16 }}>{gauge.percentage}%</Text>
+                      <View style={{ position: 'relative', top: 4 }}>
+                        <SemiCircleGauge percentage={gauge.percentage} color={gauge.arcColor || gauge.color} size={130} animate={true} />
+                      </View>
+                    </View>
+                  </Pressable>
+                ))}
+                {gaugeList.length > gaugeLimit && (
+                  <Pressable onPress={() => setGaugeLimit(l => l + 4)} style={{ alignItems: 'center', paddingVertical: 12 }}>
+                    <Text style={{ fontFamily: 'UbuntuSans-SemiBold', fontSize: 14, color: '#113E55' }}>Load More</Text>
+                  </Pressable>
+                )}
+              </>
             ) : (
               <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 13, color: '#8A9A9D' }}>
                 No gauges found.
@@ -445,11 +460,7 @@ export default function AnomalyDetectionUserDetailsScreen() {
             )}
           </View>
 
-          {/* Load More */}
-          <Pressable style={{ alignItems: 'center', marginTop: 32, marginBottom: 20 }}>
-            <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 14, color: '#113E55' }}>Load More</Text>
-          </Pressable>
-          
+
         </View>
 
       </ScrollView>

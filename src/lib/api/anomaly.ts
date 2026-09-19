@@ -12,6 +12,7 @@ export const anomalyApi = {
     const { data } = await Api('ai').get('/spatial-anomaly/result-page/overview', {
       params: { estate_id, from_date, to_date },
     });
+    console.log('OVERVIEW API RESPONSE:', JSON.stringify(data, null, 2));
     return data;
   },
 
@@ -39,16 +40,17 @@ export const anomalyApi = {
     const { data } = await Api('ai').get('/spatial-anomaly/result-page/predictions', {
       params: {
         estate_id,
-        from_date,
-        to_date,
-        severity,
-        gender,
-        user_type,
-        sort_order,
+        ...(from_date && { from_date }),
+        ...(to_date && { to_date }),
+        ...(severity && { severity }),
+        ...(gender && { gender }),
+        ...(user_type && { user_type }),
+        ...(sort_order && { sort_order }),
         page,
         limit,
       },
     });
+    console.log('PREDICTIONS API RESPONSE:', JSON.stringify(data, null, 2));
     return data;
   },
 

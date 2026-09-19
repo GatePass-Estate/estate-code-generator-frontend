@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, Pressable, Modal, StyleSheet, Dimensions, SafeAreaView } from 'react-native';
 import Animated, { SlideInDown } from 'react-native-reanimated';
 import { BlurView } from 'expo-blur';
+import { GestureDetector } from 'react-native-gesture-handler';
+import { useSwipeDown } from './useSwipeDown';
 
 interface FilterModalProps {
   visible: boolean;
@@ -13,6 +15,10 @@ type Gender = 'Female' | 'Male' | 'Prefer not to say' | null;
 type UserType = 'Guest' | 'Resident' | 'Security' | null;
 
 export default function FilterModal({ visible, onClose }: FilterModalProps) {
+  const { panGesture, animatedStyle, translateY } = useSwipeDown(onClose);
+  React.useEffect(() => {
+    if (visible) translateY.value = 0;
+  }, [visible]);
   const [selectedSeverity, setSelectedSeverity] = useState<Severity>('High');
   const [selectedGender, setSelectedGender] = useState<Gender>('Prefer not to say');
   const [selectedUserType, setSelectedUserType] = useState<UserType>(null);
@@ -57,27 +63,31 @@ export default function FilterModal({ visible, onClose }: FilterModalProps) {
         
         <Animated.View
           entering={SlideInDown.springify().damping(25).stiffness(200)}
-          style={{
-            backgroundColor: '#F9FAFA',
-            borderTopLeftRadius: 32,
-            borderTopRightRadius: 32,
-            paddingHorizontal: 24,
-            paddingTop: 12,
-            paddingBottom: 40,
-            width: '100%',
-          }}
+          style={[
+            animatedStyle,
+            {
+              backgroundColor: '#FFFFFF',
+              borderTopLeftRadius: 32,
+              borderTopRightRadius: 32,
+              padding: 24,
+              paddingBottom: 40,
+            }
+          ]}
         >
           {/* Handle */}
-          <View
-            style={{
-              width: 50,
-              height: 4,
-              borderRadius: 2,
-              backgroundColor: '#A3A3A3',
-              alignSelf: 'center',
-              marginBottom: 32,
-            }}
-          />
+          <GestureDetector gesture={panGesture}>
+            <View style={{ marginBottom: 32 }}>
+              <View
+                style={{
+                  width: 50,
+                  height: 4,
+                  borderRadius: 2,
+                  backgroundColor: '#A3A3A3',
+                  alignSelf: 'center',
+                }}
+              />
+            </View>
+          </GestureDetector>
 
           {/* Severity */}
           <View style={{ marginBottom: 16 }}>

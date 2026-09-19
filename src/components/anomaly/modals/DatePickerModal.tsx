@@ -3,6 +3,8 @@ import { View, Text, Pressable } from 'react-native';
 import Animated, { SlideInDown, SlideOutDown, FadeIn, FadeOut } from 'react-native-reanimated';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
+import { GestureDetector } from 'react-native-gesture-handler';
+import { useSwipeDown } from './useSwipeDown';
 
 type DatePickerModalProps = {
   visible: boolean;
@@ -13,6 +15,10 @@ type DatePickerModalProps = {
 const DAYS_OF_WEEK = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 export default function DatePickerModal({ visible, onClose, onApply }: DatePickerModalProps) {
+  const { panGesture, animatedStyle, translateY } = useSwipeDown(onClose);
+  React.useEffect(() => {
+    if (visible) translateY.value = 0;
+  }, [visible]);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
@@ -86,9 +92,16 @@ export default function DatePickerModal({ visible, onClose, onApply }: DatePicke
       <Animated.View
         entering={SlideInDown.springify().damping(20).stiffness(90)}
         exiting={SlideOutDown}
-        style={{ backgroundColor: '#F6F7F7', borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, paddingBottom: 40 }}
+        style={[
+          animatedStyle,
+          { backgroundColor: '#F6F7F7', borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, paddingBottom: 40 }
+        ]}
       >
-        <View style={{ width: 40, height: 4, backgroundColor: '#E5E7EB', borderRadius: 2, alignSelf: 'center', marginBottom: 24 }} />
+        <GestureDetector gesture={panGesture}>
+          <View style={{ paddingBottom: 24 }}>
+            <View style={{ width: 40, height: 4, backgroundColor: '#E5E7EB', borderRadius: 2, alignSelf: 'center' }} />
+          </View>
+        </GestureDetector>
         
         <View style={{ marginBottom: 24 }}>
           <Text allowFontScaling={false} style={{ fontFamily: 'UbuntuSans-Medium', fontSize: 20, color: '#113E55' }}>Set Date</Text>

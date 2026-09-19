@@ -3,6 +3,8 @@ import { View, Text, Pressable, Modal, StyleSheet } from 'react-native';
 import Animated, { SlideInDown } from 'react-native-reanimated';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
+import { GestureDetector } from 'react-native-gesture-handler';
+import { useSwipeDown } from './useSwipeDown';
 
 interface OrderModalProps {
   visible: boolean;
@@ -12,6 +14,10 @@ interface OrderModalProps {
 }
 
 export default function OrderModal({ visible, onClose, sortAscending, setSortAscending }: OrderModalProps) {
+  const { panGesture, animatedStyle, translateY } = useSwipeDown(onClose);
+  React.useEffect(() => {
+    if (visible) translateY.value = 0;
+  }, [visible]);
   const Option = ({ label, isSelected, onPress }: { label: string, isSelected: boolean, onPress: () => void }) => (
     <Pressable
       onPress={onPress}
@@ -50,27 +56,25 @@ export default function OrderModal({ visible, onClose, sortAscending, setSortAsc
         
         <Animated.View
           entering={SlideInDown.springify().damping(25).stiffness(200)}
-          style={{
-            backgroundColor: '#F9FAFA',
-            borderTopLeftRadius: 32,
-            borderTopRightRadius: 32,
-            paddingHorizontal: 24,
-            paddingTop: 12,
-            paddingBottom: 40,
-            width: '100%',
-          }}
+          style={[
+            animatedStyle,
+            {
+              backgroundColor: '#F9FAFA',
+              borderTopLeftRadius: 32,
+              borderTopRightRadius: 32,
+              paddingHorizontal: 24,
+              paddingTop: 12,
+              paddingBottom: 40,
+              width: '100%',
+            }
+          ]}
         >
-          {/* Handle */}
-          <View
-            style={{
-              width: 50,
-              height: 4,
-              borderRadius: 2,
-              backgroundColor: '#A3A3A3',
-              alignSelf: 'center',
-              marginBottom: 32,
-            }}
-          />
+          {/* Draggable Handle Area */}
+          <GestureDetector gesture={panGesture}>
+            <View style={{ paddingVertical: 12 }}>
+              <View style={{ width: 40, height: 4, backgroundColor: '#EFF1F3', borderRadius: 2, alignSelf: 'center' }} />
+            </View>
+          </GestureDetector>
 
           <Text allowFontScaling={false} style={{ fontFamily: 'UbuntuSans-Medium', fontSize: 24, color: '#113E55', marginBottom: 24 }}>
             Select Order

@@ -1,6 +1,7 @@
 import React from 'react';
 import { View } from 'react-native';
-import Svg, { Polygon, Line, Text as SvgText, Circle } from 'react-native-svg';
+import Svg, { Polygon, Line, Circle } from 'react-native-svg';
+import TextTicker from 'react-native-text-ticker';
 
 export interface RadarSeries {
   data: number[];
@@ -41,12 +42,16 @@ export default function AnomalyRadarChart({
   const radius = size / 2 - 55; // Leave plenty of space for labels so they don't clip
   const dataLength = labels.length;
 
+  const maxDataValue = Math.max(...(series?.flatMap(s => s.data) || []));
+  const isDecimal = maxDataValue <= 1 && maxDataValue > 0;
+  const scaleMax = isDecimal ? Math.max(0.2, maxDataValue) : Math.max(20, maxDataValue);
+
   // Calculate coordinates for a polygon given its values
-  const getCoordinates = (values: number[]) => {
+  const getCoordinates = (values: number[], scale = scaleMax) => {
     return values
       .map((val, i) => {
         const angle = (Math.PI * 2 * i) / dataLength - Math.PI / 2;
-        const distance = (val / 100) * radius;
+        const distance = (val / scale) * radius;
         const x = center + distance * Math.cos(angle);
         const y = center + distance * Math.sin(angle);
         return `${x},${y}`;
@@ -69,11 +74,11 @@ export default function AnomalyRadarChart({
         {/* Draw background grid (concentric polygons) */}
         {[...Array(levels)].map((_, i) => {
           const levelRatio = (i + 1) / levels;
-          const bgData = Array(dataLength).fill(levelRatio * 100);
+          const bgData = Array(dataLength).fill(levelRatio * scaleMax);
           return (
             <Polygon
               key={`grid-${i}`}
-              points={getCoordinates(bgData)}
+              points={getCoordinates(bgData, scaleMax)}
               fill="none"
               stroke={gridColor}
               strokeWidth="1.5"
@@ -103,14 +108,14 @@ export default function AnomalyRadarChart({
         {series.map((s, index) => (
           <React.Fragment key={`series-${index}`}>
             <Polygon
-              points={getCoordinates(s.data)}
+              points={getCoordinates(s.data, scaleMax)}
               fill={s.fillColor}
               stroke={s.strokeColor}
               strokeWidth="2"
             />
             {s.data.map((val, i) => {
               const angle = (Math.PI * 2 * i) / dataLength - Math.PI / 2;
-              const distance = (val / 100) * radius;
+              const distance = (val / scaleMax) * radius;
               const x = center + distance * Math.cos(angle);
               const y = center + distance * Math.sin(angle);
               return (
@@ -126,29 +131,56 @@ export default function AnomalyRadarChart({
           </React.Fragment>
         ))}
 
-        {/* Draw Labels */}
-        {labels.map((label, i) => {
-          const { x, y } = getLabelCoordinates(i, dataLength, 18);
+      </Svg>
 
-          let textAnchor = 'middle';
-          if (x > center + 10) textAnchor = 'start';
-          if (x < center - 10) textAnchor = 'end';
+      {/* Draw Labels as absolute positioned components outside SVG */}
+      {labels.map((label, i) => {
+        const { x, y } = getLabelCoordinates(i, dataLength, 18);
 
-          return (
-            <SvgText
-              key={`label-${i}`}
-              x={x}
-              y={y + 4}
-              fill="#113E55"
-              fontSize="13"
-              fontFamily="Inter_18pt-Medium"
-              textAnchor={textAnchor as any}
+        let positionStyle: any = { top: y - 8 }; // Center vertically
+        let maxWidth = 90;
+        let textAlign = 'center';
+
+        if (x > center + 10) {
+          positionStyle.left = x;
+          positionStyle.alignItems = 'flex-start';
+          textAlign = 'left';
+        } else if (x < center - 10) {
+          positionStyle.right = size - x;
+          positionStyle.alignItems = 'flex-end';
+          textAlign = 'right';
+        } else {
+          positionStyle.left = x - maxWidth / 2;
+          positionStyle.alignItems = 'center';
+          positionStyle.width = maxWidth;
+        }
+
+        return (
+          <View
+            key={`label-${i}`}
+            style={[
+              { position: 'absolute', width: maxWidth },
+              positionStyle
+            ]}
+          >
+            <TextTicker
+              style={{
+                color: '#113E55',
+                fontSize: 13,
+                fontFamily: 'Inter_18pt-Medium',
+                textAlign: textAlign as any,
+              }}
+              duration={4000}
+              loop
+              bounce
+              repeatSpacer={30}
+              marqueeDelay={1000}
             >
               {label}
-            </SvgText>
-          );
-        })}
-      </Svg>
+            </TextTicker>
+          </View>
+        );
+      })}
     </View>
   );
 }

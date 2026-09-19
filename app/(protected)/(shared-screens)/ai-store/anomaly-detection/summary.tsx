@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import BiInfoSvg from '@/src/assets/icons/bi_info.svg';
 import ValidationBackSvg from '@/src/assets/icons/validation-back.svg';
 import AnomalyResultView from '@/src/components/anomaly/AnomalyResultView';
+import DataInsightModal from '@/src/components/anomaly/modals/DataInsightModal';
 
 const PILL_WIDTH = 228;
 const PILL_HEIGHT = 40;
@@ -13,6 +14,8 @@ const TAB_WIDTH = (PILL_WIDTH - PADDING * 2) / 2;
 const TAB_HEIGHT = PILL_HEIGHT - PADDING * 2;
 
 export default function AnomalyDetectionSummaryScreen() {
+  const [dataInsightVisible, setDataInsightVisible] = React.useState(false);
+
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: '#F6F7F7' }}>
       {/* Header: matches Figma */}
@@ -65,14 +68,29 @@ export default function AnomalyDetectionSummaryScreen() {
           </Pressable>
         </View>
 
-        <Pressable className="h-[30px] w-[30px] items-center justify-center" hitSlop={8}>
-          <BiInfoSvg width={24} height={24} />
+        <Pressable
+          className="h-[30px] w-[30px] items-center justify-center"
+          hitSlop={20}
+          onPress={() => {
+            console.log('INFO ICON CLICKED IN SUMMARY');
+            setDataInsightVisible(true);
+          }}
+          style={{ zIndex: 100 }}
+        >
+          <View pointerEvents="none">
+            <BiInfoSvg width={24} height={24} />
+          </View>
         </Pressable>
       </View>
 
       <View style={{ flex: 1 }}>
         <AnomalyResultView />
       </View>
+
+      <DataInsightModal
+        visible={dataInsightVisible}
+        onClose={() => setDataInsightVisible(false)}
+      />
     </SafeAreaView>
   );
 }

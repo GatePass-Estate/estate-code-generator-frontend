@@ -3,18 +3,47 @@ import { View, Text, Pressable } from 'react-native';
 import Animated, { SlideInDown, SlideOutDown, FadeIn, FadeOut } from 'react-native-reanimated';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
+import { GestureDetector } from 'react-native-gesture-handler';
+import { useSwipeDown } from './useSwipeDown';
 
 type TimeframeModalProps = {
   visible: boolean;
   onClose: () => void;
   onCustomSelect: () => void;
+  selectedLabel: string;
+  onSelect: (label: string, start: Date, end: Date) => void;
 };
 
-export default function TimeframeModal({ visible, onClose, onCustomSelect }: TimeframeModalProps) {
+export default function TimeframeModal({ visible, onClose, onCustomSelect, selectedLabel, onSelect }: TimeframeModalProps) {
+  const { panGesture, animatedStyle, translateY } = useSwipeDown(onClose);
+  React.useEffect(() => {
+    if (visible) translateY.value = 0;
+  }, [visible]);
   if (!visible) return null;
 
   const options = ['Last Week', 'Last Month', 'Last Quarter', 'Custom'];
-  const selected = 'Custom';
+  const selected = selectedLabel;
+
+  const handleSelect = (opt: string) => {
+    if (opt === 'Custom') {
+      onCustomSelect();
+      return;
+    }
+
+    const end = new Date();
+    const start = new Date();
+
+    if (opt === 'Last Week') {
+      start.setDate(end.getDate() - 7);
+    } else if (opt === 'Last Month') {
+      start.setMonth(end.getMonth() - 1);
+    } else if (opt === 'Last Quarter') {
+      start.setMonth(end.getMonth() - 3);
+    }
+
+    onSelect(opt, start, end);
+    onClose();
+  };
 
   return (
     <Animated.View
@@ -29,9 +58,16 @@ export default function TimeframeModal({ visible, onClose, onCustomSelect }: Tim
       <Animated.View
         entering={SlideInDown.springify().damping(20).stiffness(90)}
         exiting={SlideOutDown}
-        style={{ backgroundColor: '#F6F7F7', borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, paddingBottom: 40 }}
+        style={[
+          animatedStyle,
+          { backgroundColor: '#F6F7F7', borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, paddingBottom: 40 }
+        ]}
       >
-        <View style={{ width: 40, height: 4, backgroundColor: '#E5E7EB', borderRadius: 2, alignSelf: 'center', marginBottom: 24 }} />
+        <GestureDetector gesture={panGesture}>
+          <View style={{ paddingBottom: 24 }}>
+            <View style={{ width: 40, height: 4, backgroundColor: '#E5E7EB', borderRadius: 2, alignSelf: 'center' }} />
+          </View>
+        </GestureDetector>
         
         <Text allowFontScaling={false} style={{ fontFamily: 'UbuntuSans-Medium', fontSize: 20, color: '#113E55', marginBottom: 24 }}>Set Timeframe</Text>
 
@@ -41,7 +77,7 @@ export default function TimeframeModal({ visible, onClose, onCustomSelect }: Tim
             return (
               <Pressable
                 key={opt}
-                onPress={opt === 'Custom' ? onCustomSelect : onClose}
+                onPress={() => handleSelect(opt)}
                 style={{
                   flexDirection: 'row',
                   justifyContent: 'space-between',

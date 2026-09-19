@@ -18,6 +18,9 @@ interface AnomalyDonutChartProps {
   totalText?: string;
   countText?: string;
   isActive?: boolean;
+  residentPercentage?: number;
+  guestPercentage?: number;
+  securityPercentage?: number;
 }
 
 interface TickData {
@@ -35,8 +38,8 @@ const TICK_WIDTH = 1.308;
 const TICK_HEIGHT = 5.275;
 
 // Colors matching user specs
-const COLOR_GUEST = '#113E55';
-const COLOR_RESIDENT = '#F46036';
+const COLOR_GUEST = '#F46036';
+const COLOR_RESIDENT = '#113E55';
 const COLOR_SECURITY = '#1B998B';
 
 const AnimatedTick = ({
@@ -93,6 +96,9 @@ export default function AnomalyDonutChart({
   size = 106,
   totalText = 'TOTAL USERS',
   countText = '50k',
+  residentPercentage = 0,
+  guestPercentage = 0,
+  securityPercentage = 0,
 }: AnomalyDonutChartProps) {
   const progress = useSharedValue(0);
   const pulse = useSharedValue(1);
@@ -131,19 +137,30 @@ export default function AnomalyDonutChart({
     const radius = 41.5; // Tick center radius matching track band
     const list: TickData[] = [];
 
-    // 60 tick slots around 360 degrees (6 deg each)
+    // Calculate tick counts based on percentages (out of 59 ticks to leave 1 gap)
+    const totalTicks = 59;
+    let rTicks = Math.round((residentPercentage / 100) * totalTicks);
+    let gTicks = Math.round((guestPercentage / 100) * totalTicks);
+    let sTicks = Math.round((securityPercentage / 100) * totalTicks);
+
+    const sum = rTicks + gTicks + sTicks;
+    if (sum > 0 && sum !== totalTicks) {
+      if (rTicks >= gTicks && rTicks >= sTicks) rTicks += (totalTicks - sum);
+      else if (gTicks >= rTicks && gTicks >= sTicks) gTicks += (totalTicks - sum);
+      else sTicks += (totalTicks - sum);
+    }
+
     for (let i = 0; i < 60; i++) {
       let color: string | null = null;
-      if (i <= 5) {
-        color = COLOR_RESIDENT; // Resident (34% top-right section)
-      } else if (i <= 37) {
-        color = COLOR_GUEST; // Guest (54% right & bottom section)
-      } else if (i === 38) {
-        color = null; // Gap at bottom-left
-      } else if (i <= 45) {
-        color = COLOR_SECURITY; // Security (12% bottom-left section)
-      } else {
-        color = COLOR_RESIDENT; // Resident (34% top-left section)
+
+      if (i < rTicks) {
+        color = COLOR_RESIDENT;
+      } else if (i < rTicks + gTicks) {
+        color = COLOR_GUEST;
+      } else if (i === rTicks + gTicks && sum > 0) {
+        color = null; // 1 gap tick if there's data
+      } else if (i < rTicks + gTicks + 1 + sTicks) {
+        color = COLOR_SECURITY;
       }
 
       if (!color) continue;
@@ -153,8 +170,8 @@ export default function AnomalyDonutChart({
       const x = center + radius * Math.sin(rad) - TICK_WIDTH / 2;
       const y = center - radius * Math.cos(rad) - TICK_HEIGHT / 2;
 
-      // Clockwise sweep starting from 9 o'clock (slot 46)
-      const order = (i - 46 + 60) % 60;
+      // Clockwise sweep starting from 9 o'clock (slot 45)
+      const order = (i - 45 + 60) % 60;
 
       list.push({
         index: i,
@@ -167,7 +184,7 @@ export default function AnomalyDonutChart({
     }
 
     return list;
-  }, [size]);
+  }, [size, residentPercentage, guestPercentage, securityPercentage]);
 
   const centerTextStyle = useAnimatedStyle(() => {
     'worklet';

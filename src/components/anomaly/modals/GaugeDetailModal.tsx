@@ -14,6 +14,8 @@ import { BlurView } from 'expo-blur';
 import { MaterialIcons } from '@expo/vector-icons';
 import Svg, { Path, Circle } from 'react-native-svg';
 import VShapeSvg from '@/src/assets/icons/vshape.svg';
+import { GestureDetector } from 'react-native-gesture-handler';
+import { useSwipeDown } from './useSwipeDown';
 
 export interface GaugeData {
   title: string;
@@ -24,6 +26,7 @@ export interface GaugeData {
   days: number;
   items: {
     title: string;
+    description?: string;
     percentage: number;
   }[];
 }
@@ -157,6 +160,15 @@ const SegmentedProgressBar = ({ percentage }: { percentage: number }) => {
 };
 
 export default function GaugeDetailModal({ visible, onClose, gaugeData, onNext, onPrev }: GaugeDetailModalProps) {
+  const { panGesture, animatedStyle, translateY } = useSwipeDown(onClose);
+
+  // When modal becomes visible, reset translateY
+  useEffect(() => {
+    if (visible) {
+      translateY.value = 0;
+    }
+  }, [visible]);
+
   if (!gaugeData) return null;
 
   return (
@@ -173,33 +185,38 @@ export default function GaugeDetailModal({ visible, onClose, gaugeData, onNext, 
           <BlurView intensity={25} tint="dark" style={StyleSheet.absoluteFill} />
         )}
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-        
         <Animated.View
-          entering={SlideInDown.springify().damping(25).stiffness(200)}
-          style={{
-            backgroundColor: '#F9FAFA',
-            borderTopLeftRadius: 40,
-            borderTopRightRadius: 40,
-            paddingHorizontal: 24,
-            paddingTop: 16,
-            paddingBottom: 40,
-            width: '100%',
-            maxHeight: '90%',
-          }}
-        >
-          {/* Handle */}
-          <View
-            style={{
-              width: 100,
-              height: 6,
-              borderRadius: 3,
-              backgroundColor: '#A0A0A0',
-              alignSelf: 'center',
-              marginBottom: 32,
-            }}
-          />
+            entering={SlideInDown.duration(400).springify()}
+            style={[
+              animatedStyle,
+              {
+                backgroundColor: '#FFFFFF',
+                borderTopLeftRadius: 32,
+                borderTopRightRadius: 32,
+                paddingHorizontal: 24,
+                paddingTop: 24,
+                paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+                height: '85%',
+              }
+            ]}
+          >
+            {/* Draggable Handle Area */}
+            <GestureDetector gesture={panGesture}>
+              <View style={{ paddingBottom: 16 }}>
+                {/* Handle */}
+                <View
+                  style={{
+                    width: 100,
+                    height: 6,
+                    borderRadius: 3,
+                    backgroundColor: '#A0A0A0',
+                    alignSelf: 'center',
+                  }}
+                />
+              </View>
+            </GestureDetector>
 
-          <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
+            <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
             {/* Header */}
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
               <View>
@@ -252,10 +269,10 @@ export default function GaugeDetailModal({ visible, onClose, gaugeData, onNext, 
                   <VShapeSvg />
                   <View style={{ flex: 1 }}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                      <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 14, color: '#8A9A9D' }}>
+                      <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 14, color: '#113E55' }}>
                         {item.title}
                       </Text>
-                      <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 14, color: '#8A9A9D' }}>
+                      <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 14, color: '#113E55' }}>
                         {item.percentage}%
                       </Text>
                     </View>

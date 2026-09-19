@@ -12,15 +12,25 @@ import Animated, {
   runOnJS,
   FadeIn,
 } from 'react-native-reanimated';
-import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import BiInfoSvg from '@/src/assets/icons/bi_info.svg';
 import ValidationBackSvg from '@/src/assets/icons/validation-back.svg';
+import AnomalyRadarChart from '@/src/components/anomaly/AnomalyRadarChart';
+import AnomalyDonutChart from '@/src/components/anomaly/AnomalyDonutChart';
+import SemiCircleGauge from '@/src/components/anomaly/SemiCircleGauge';
+import FilterModal from '@/src/components/anomaly/modals/FilterModal';
+import OrderModal from '@/src/components/anomaly/modals/OrderModal';
+import GaugeDetailModal, { GaugeData } from '@/src/components/anomaly/modals/GaugeDetailModal';
+import DatePickerModal from '@/src/components/anomaly/modals/DatePickerModal';
+import TimeframeModal from '@/src/components/anomaly/modals/TimeframeModal';
+
 import Pf1Svg from '@/src/assets/icons/pf_1.svg';
 import Pf2Svg from '@/src/assets/icons/pf_2.svg';
 import Pf3Svg from '@/src/assets/icons/pf_3.svg';
 import DownloadSvg from '@/src/assets/icons/download.svg';
 import AnomalySvg from '@/src/assets/images/anomaly.svg';
 import RatingModal from '@/src/components/anomaly/modals/RatingModal';
+import DataInsightModal from '@/src/components/anomaly/modals/DataInsightModal';
 import AnomalyResultView from '@/src/components/anomaly/AnomalyResultView';
 import {
   getMarketplaceFeatureById,
@@ -58,9 +68,16 @@ export default function AnomalyDetectionPreviewScreen() {
   const [featureDetail, setFeatureDetail] = useState<MarketplaceDetailResponse | null>(null);
   const [isSubscribing, setIsSubscribing] = useState(false);
   const [subscribingTierKey, setSubscribingTierKey] = useState<string | null>(null);
+  const [dataInsightVisible, setDataInsightVisible] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [isRatingModalVisible, setIsRatingModalVisible] = useState(false);
   const [cardHeight, setCardHeight] = useState<number>(120);
+
+  const formatTierName = (tier: string) => {
+    const map: Record<string, string> = { '1': 'One', '2': 'Two', '3': 'Three' };
+    return tier.split('_').map(w => map[w] || (w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())).join(' ');
+  };
+
   const handleRate = async (rating: number) => {
     const targetId = featureDetail?.id || params.featureId;
     if (!targetId) return;
@@ -323,16 +340,15 @@ export default function AnomalyDetectionPreviewScreen() {
             <ValidationBackSvg width={30} height={30} />
           </Pressable>
 
-          <GestureHandlerRootView style={{ width: PILL_WIDTH, height: PILL_HEIGHT }}>
-            <GestureDetector gesture={pillGesture}>
-              <View style={styles.pillContainer}>
-                <Animated.View style={[styles.pillIndicator, animatedIndicatorStyle]} />
-                <Pressable
-                  accessibilityRole="tab"
-                  accessibilityState={{ selected: activeTab === 'Overview' }}
-                  onPress={() => handleTabPress('Overview')}
-                  style={styles.pillTab}
-                >
+          <GestureDetector gesture={pillGesture}>
+            <View style={styles.pillContainer}>
+              <Animated.View style={[styles.pillIndicator, animatedIndicatorStyle]} />
+              <Pressable
+                accessibilityRole="tab"
+                accessibilityState={{ selected: activeTab === 'Overview' }}
+                onPress={() => handleTabPress('Overview')}
+                style={styles.pillTab}
+              >
                   <Animated.Text style={[styles.pillText, overviewTextStyle]}>
                     Overview
                   </Animated.Text>
@@ -349,13 +365,19 @@ export default function AnomalyDetectionPreviewScreen() {
                 </Pressable>
               </View>
             </GestureDetector>
-          </GestureHandlerRootView>
 
           <Pressable
             className="h-[30px] w-[30px] items-center justify-center"
-            hitSlop={8}
+            hitSlop={20}
+            onPress={() => {
+              console.log('INFO ICON CLICKED');
+              setDataInsightVisible(true);
+            }}
+            style={{ zIndex: 100 }}
           >
-            <BiInfoSvg width={24} height={24} />
+            <View pointerEvents="none">
+              <BiInfoSvg width={24} height={24} />
+            </View>
           </Pressable>
         </Animated.View>
 
@@ -514,7 +536,7 @@ export default function AnomalyDetectionPreviewScreen() {
               {/* Tier One */}
               <View className={`bg-white rounded-[16px] p-5 mb-4 ${expandedTier === 'Tier One' ? 'border border-[#113E55]' : ''}`}>
                 <Text allowFontScaling={false} className="text-[17.5px] font-inter-regular text-[#113E55] leading-[17.5px] mb-1.5">
-                  {tierOneApi?.tier ? tierOneApi.tier.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ') : 'Tier One'}
+                  {tierOneApi?.tier ? formatTierName(tierOneApi.tier) : 'Tier One'}
                 </Text>
                 <Text allowFontScaling={false} className="text-[15px] font-inter-medium text-[#113E55] leading-[22px] mb-2.5">
                   {tierOneApi?.name || 'Access Code Anomaly Scan'}
@@ -574,7 +596,7 @@ export default function AnomalyDetectionPreviewScreen() {
               {/* Tier Two */}
               <View className={`bg-white rounded-[16px] p-5 mb-4 ${expandedTier === 'Tier Two' ? 'border border-[#113E55]' : ''}`}>
                 <Text allowFontScaling={false} className="text-[17.5px] font-inter-regular text-[#113E55] leading-[17.5px] mb-1.5">
-                  {tierTwoApi?.tier ? tierTwoApi.tier.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ') : 'Tier Two'}
+                  {tierTwoApi?.tier ? formatTierName(tierTwoApi.tier) : 'Tier Two'}
                 </Text>
                 <Text allowFontScaling={false} className="text-[15px] font-inter-medium text-[#113E55] leading-[22px] mb-2.5">
                   {tierTwoApi?.name || 'Anomaly Scan Results In-house AI Review'}
@@ -634,7 +656,7 @@ export default function AnomalyDetectionPreviewScreen() {
               {/* Tier Three */}
               <View className={`bg-white rounded-[16px] p-5 mb-4 ${expandedTier === 'Tier Three' ? 'border border-[#113E55]' : ''}`}>
                 <Text allowFontScaling={false} className="text-[17.5px] font-inter-regular text-[#113E55] leading-[17.5px] mb-1.5">
-                  {tierThreeApi?.tier ? tierThreeApi.tier.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ') : 'Tier Three'}
+                  {tierThreeApi?.tier ? formatTierName(tierThreeApi.tier) : 'Tier Three'}
                 </Text>
                 <Text allowFontScaling={false} className="text-[15px] font-inter-medium text-[#113E55] leading-[22px] mb-2.5">
                   {tierThreeApi?.name || 'Anomaly Scan Results Third-Party AI Review'}
@@ -693,6 +715,13 @@ export default function AnomalyDetectionPreviewScreen() {
         onClose={() => setIsRatingModalVisible(false)}
         onSubmit={handleRate}
       />
+
+      <DataInsightModal
+        visible={dataInsightVisible}
+        onClose={() => setDataInsightVisible(false)}
+      />
+
+
     </Animated.View>
   );
 }
