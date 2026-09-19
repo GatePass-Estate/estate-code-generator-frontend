@@ -468,7 +468,7 @@ export default function Login() {
                 >
                   <Text
                     className="text-primary font-ubuntu-semibold text-lg"
-                    style={{ letterSpacing: -0.24, lineHeight: 16 }}
+                    style={{ letterSpacing: -0.24 }}
                   >
                     Forgot Password?
                   </Text>

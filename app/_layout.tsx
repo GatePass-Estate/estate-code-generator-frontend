@@ -7,6 +7,16 @@ import AndroidNavBarGlobal from '@/src/components/common/AndroidNavBarGlobal';
 import { AuthProvider, useAuth } from '@/src/hooks/useAuthContext';
 import 'react-native-reanimated';
 import { Inter, UbuntuSans } from '@/src/constants/fonts';
+import {
+  Inter_200ExtraLight,
+  Inter_300Light,
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+  Inter_800ExtraBold,
+  Inter_500Medium_Italic,
+} from '@expo-google-fonts/inter';
 // @ts-ignore
 import './global.css';
 import { QueryClientProvider } from '@tanstack/react-query';
@@ -65,12 +75,17 @@ export default function RootLayout() {
     [UbuntuSans.bold]: require('../src/assets/fonts/UbuntuSans-Bold.ttf'),
     [UbuntuSans.extraBold]: require('../src/assets/fonts/UbuntuSans-ExtraBold.ttf'),
 
-    [Inter.extraLight]: require('../src/assets/fonts/Inter_18pt-ExtraLight.ttf'),
-    [Inter.light]: require('../src/assets/fonts/Inter_18pt-Light.ttf'),
-    [Inter.regular]: require('../src/assets/fonts/Inter_18pt-Regular.ttf'),
-    [Inter.medium]: require('../src/assets/fonts/Inter_18pt-Medium.ttf'),
-    [Inter.semiBold]: require('../src/assets/fonts/Inter_18pt-SemiBold.ttf'),
-    [Inter.mediumItalic]: require('../src/assets/fonts/Inter_18pt-MediumItalic.ttf'),
+    [Inter.extraLight]: Inter_200ExtraLight,
+    [Inter.light]: Inter_300Light,
+    [Inter.regular]: Inter_400Regular,
+    [Inter.medium]: Inter_500Medium,
+    [Inter.semiBold]: Inter_600SemiBold,
+    [Inter.bold]: Inter_700Bold,
+    [Inter.extraBold]: Inter_800ExtraBold,
+    [Inter.mediumItalic]: Inter_500Medium_Italic,
+    Inter: Inter_400Regular,
+    'Inter-Regular': Inter_400Regular,
+    'Inter-Medium': Inter_500Medium,
   });
 
   useEffect(() => {

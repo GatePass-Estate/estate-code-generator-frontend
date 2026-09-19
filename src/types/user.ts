@@ -19,6 +19,11 @@ export type User = {
   created_at?: string | null;
   updated_at?: string | null;
   is_deleted?: false;
+  /** Estate/subscription plan from `/users/profile/me` when the API sends it. */
+  plan?: string | null;
+  subscription_plan?: string | null;
+  tier?: string | null;
+  plan_name?: string | null;
 };
 
 export type UpdatePasswordPayload = {

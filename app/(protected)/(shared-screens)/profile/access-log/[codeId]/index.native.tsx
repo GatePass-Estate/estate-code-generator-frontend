@@ -9,6 +9,8 @@ import { mapResidentCodeHistoryToEvents } from '@/src/lib/accessLogMappers';
 import { getMyResidentAccessLogByCode } from '@/src/lib/api/accessLogs';
 import { generateCode } from '@/src/lib/api/codes';
 import { formatAccessLogTimestamp, parseLogDate } from '@/src/lib/helpers';
+import { usePlan } from '@/src/hooks/usePlan';
+import { PLAN_FEATURES } from '@/src/lib/plans';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { AccessLogEvent } from '@/src/types/accessLog';
 import { sharedStyles } from '@/src/theme/styles';
@@ -27,6 +29,7 @@ export default function UsageLogScreen() {
   const navigation = useNavigation();
   const { codeId } = useLocalSearchParams<{ codeId: string }>();
   const { user_id, estate_id } = useUserStore();
+  const { requestFeature } = usePlan();
   const [loading, setLoading] = useState(true);
   const [regenerating, setRegenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -70,6 +73,7 @@ export default function UsageLogScreen() {
 
   const handleRegenerateCode = useCallback(async () => {
     if (!user_id) return;
+    if (!requestFeature(PLAN_FEATURES.advanced_code_management)) return;
     setRegenerating(true);
     try {
       await generateCode({ user_id, estate_id: estate_id ?? '' }, 'resident');
@@ -81,7 +85,7 @@ export default function UsageLogScreen() {
     } finally {
       setRegenerating(false);
     }
-  }, [user_id, estate_id]);
+  }, [user_id, estate_id, requestFeature]);
 
   const timelineEvents = useMemo(() => events, [events]);
 

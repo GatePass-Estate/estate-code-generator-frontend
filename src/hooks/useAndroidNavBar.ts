@@ -7,12 +7,10 @@ import { Appearance, AppState, ColorSchemeName, Platform } from 'react-native';
 const ANDROID_NAV_BAR = {
   light: {
     background: '#FFFFFF',
-    buttons: 'dark' as const,
     style: 'light' as const,
   },
   dark: {
     background: '#000000',
-    buttons: 'light' as const,
     style: 'dark' as const,
   },
 } as const;
@@ -23,8 +21,11 @@ function resolveDeviceColorScheme(scheme: ColorSchemeName | undefined): 'light' 
 
 function applyAndroidNavBar(colorScheme: 'light' | 'dark') {
   const theme = ANDROID_NAV_BAR[colorScheme];
-  NavigationBar.setButtonStyleAsync(theme.buttons).catch(() => {});
-  NavigationBar.setStyle(theme.style);
+  try {
+    NavigationBar.setStyle?.(theme.style);
+  } catch {
+    // Expo Go or a missing native module should not crash the root layout.
+  }
 }
 
 export function getAndroidNavBarBackground(scheme: ColorSchemeName | undefined): string {

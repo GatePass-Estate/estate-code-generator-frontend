@@ -1,28 +1,31 @@
-import { Stack, router } from 'expo-router';
-import { useNavigation } from '@react-navigation/native';
-import CountdownRing from '@/src/components/common/CountdownRing';
-import { View, Text, FlatList, Animated, Platform } from 'react-native';
+import { Stack, router, useNavigation } from 'expo-router';
+import { View, Text, FlatList, Animated, Platform, Alert } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import UserIcon from '@/src/components/mobile/UserIcon';
 import { useEffect, useRef, useState } from 'react';
 import images from '@/src/constants/images';
 import { Codes } from '@/src/types/codes';
-import { getAllCodes } from '@/src/lib/api/codes';
+import { extendCode, freezeCode, getAllCodes } from '@/src/lib/api/codes';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { sharedStyles } from '@/src/theme/styles';
+import { UbuntuSans } from '@/src/constants/fonts';
 import { useAndroidBottomInset } from '@/src/hooks/useAndroidBottomInset';
-import { isDataEqual } from '@/src/lib/helpers';
-import CodeItem from '@/src/components/mobile/CodeItem';
+import { isDataEqual, formatInvitePeriodDisplay, parseLogDate, timeCalc } from '@/src/lib/helpers';
+import ActiveCodeCard from '@/src/components/mobile/ActiveCodeCard';
+import ScreenHeader from '@/src/components/mobile/ScreenHeader';
+import { CopiedToast } from '@/src/components/mobile/CopiedToast';
 
 export default function HomeMobile({}) {
   const { tabContentPadding } = useAndroidBottomInset();
   const bounceValue = useRef(new Animated.Value(0)).current;
   const [refreshing, setRefreshing] = useState(true);
   const [codes, setCodes] = useState<Codes[]>([]);
+  const [frozenCodes, setFrozenCodes] = useState<Set<string>>(new Set());
+  const [showCopiedToast, setShowCopiedToast] = useState(false);
   const navigation = useNavigation();
   const codesRef = useRef<Codes[]>(codes);
+  const copiedToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Keep ref in sync with state
   useEffect(() => {
     codesRef.current = codes;
   }, [codes]);
@@ -42,14 +45,10 @@ export default function HomeMobile({}) {
     }
   };
 
-  const filteredCodes = codes;
-
-  // Fetch data when component mounts
   useEffect(() => {
     fetchCodes(true);
   }, []);
 
-  // Fetch data when screen comes into focus
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
       fetchCodes(false);
@@ -57,12 +56,11 @@ export default function HomeMobile({}) {
     return unsubscribe;
   }, [navigation]);
 
-  // Polling: Fetch data every 30 seconds when the screen is focused
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
       const intervalId = setInterval(() => {
         fetchCodes(false);
-      }, 30000); // 30 seconds
+      }, 30000);
 
       return () => clearInterval(intervalId);
     });
@@ -92,90 +90,234 @@ export default function HomeMobile({}) {
     };
   }, [bounceValue]);
 
+  useEffect(() => {
+    return () => {
+      if (copiedToastTimer.current) clearTimeout(copiedToastTimer.current);
+    };
+  }, []);
+
+  const handleCopied = () => {
+    setShowCopiedToast(true);
+    if (copiedToastTimer.current) clearTimeout(copiedToastTimer.current);
+    copiedToastTimer.current = setTimeout(() => setShowCopiedToast(false), 1600);
+  };
+
+  const handleDeleted = (hashedCode: string) => {
+    setCodes((prev) => prev.filter((c) => c.hashed_code !== hashedCode));
+  };
+
+  const applyFrozenState = (hashedCode: string, frozen: boolean, isValid?: boolean) => {
+    setFrozenCodes((prev) => {
+      const next = new Set(prev);
+      if (frozen) next.add(hashedCode);
+      else next.delete(hashedCode);
+      return next;
+    });
+    setCodes((prev) =>
+      prev.map((c) =>
+        c.hashed_code === hashedCode
+          ? {
+              ...c,
+              frozen,
+              ...(typeof isValid === 'boolean' ? { is_valid: isValid } : {}),
+            }
+          : c
+      )
+    );
+  };
+
+  /** `isCurrentlyFrozen` must match what the card is showing (not a stale item snapshot). */
+  const handleToggleFreeze = async (hashedCode: string, isCurrentlyFrozen: boolean) => {
+    const targetFrozen = !isCurrentlyFrozen;
+
+    applyFrozenState(hashedCode, targetFrozen);
+
+    try {
+      const res = await freezeCode(hashedCode, targetFrozen);
+      // Keep the requested state on success so a sticky `frozen: true` response can't block unfreeze
+      applyFrozenState(hashedCode, targetFrozen, res?.is_valid);
+    } catch (error) {
+      console.log('Failed to freeze code via API:', error);
+      applyFrozenState(hashedCode, isCurrentlyFrozen);
+    }
+  };
+
+  const openInviteDetails = (item: Codes) => {
+    const { home_address, estate_name } = useUserStore.getState();
+    const startRaw = item.validity_period?.start;
+    const endRaw = item.validity_period?.end || item.valid_until;
+    const start = startRaw ? parseLogDate(startRaw) : null;
+    const end = endRaw ? parseLogDate(endRaw) : null;
+
+    let formattedDate = '';
+    let timeframe = '';
+    if (start && end && !Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime())) {
+      ({ formattedDate, timeframe } = formatInvitePeriodDisplay(start, end));
+    } else {
+      const calc = timeCalc(item.valid_until);
+      formattedDate = calc.formattedDate;
+      timeframe = calc.timeframe;
+    }
+
+    router.push({
+      pathname: '/invite',
+      params: {
+        name: item.visitor_fullname ?? 'Guest',
+        code: item.hashed_code,
+        date: formattedDate,
+        timeframe,
+        address: [home_address, estate_name].filter(Boolean).join(', '),
+        from: 'home',
+      },
+    });
+  };
+
+  const openHistory = (item: Codes) => {
+    router.push({
+      pathname: '/user/history/[codeId]',
+      params: {
+        codeId: item.hashed_code,
+        name: item.visitor_fullname ?? '',
+        category: item.relationship_with_resident ?? '',
+        isActive: 'true',
+      },
+    });
+  };
+
+  const handleExtend = async (item: Codes) => {
+    try {
+      const res = await extendCode(item.hashed_code);
+      setCodes((prev) =>
+        prev.map((c) =>
+          c.hashed_code === item.hashed_code
+            ? {
+                ...c,
+                valid_until: res.valid_until || c.valid_until,
+                validity_period: res.validity_period ?? c.validity_period,
+                extended: res.extended ?? true,
+              }
+            : c
+        )
+      );
+    } catch (error: any) {
+      Alert.alert('Could not extend code', error?.message?.trim() || 'Please try again later.');
+    }
+  };
+
+  const isEmpty = codes.length === 0;
+
   return (
-    <SafeAreaView style={sharedStyles.container} edges={['left', 'right']}>
+    <SafeAreaView
+      style={[sharedStyles.container, { backgroundColor: '#F6F7F7' }]}
+      edges={['top', 'left', 'right']}
+    >
       <Stack.Screen
         options={{
-          title: 'Active Codes',
-          headerShown: true,
-          headerShadowVisible: false,
-          headerTitleAlign: 'left',
-          headerStyle: sharedStyles.header,
-          headerTitleStyle: sharedStyles.title,
-          headerRight: () => <UserIcon />,
+          headerShown: false,
         }}
       />
 
-      <View>
-        <Text className="text-base font-Inter font-medium text-black mt-8 mb-7">
-          All incoming guest
-        </Text>
+      <CopiedToast visible={showCopiedToast} />
 
-        <FlatList
-          data={filteredCodes}
-          keyExtractor={(item) => item.hashed_code}
-          refreshing={refreshing}
-          onRefresh={fetchCodes}
-          contentContainerStyle={{ paddingBottom: tabContentPadding }}
-          ListEmptyComponent={() => (
-            <View className="flex-1 justify-center items-center">
-              <Animated.Image
-                source={images.ghostImg}
-                className={`w-80 h-80 res`}
-                style={{
-                  resizeMode: 'contain',
-                  transform: [{ translateY: bounceValue }],
-                }}
-              />
-
-              <Text className="text-center text-2xl opacity-20">{`Click the ‘+’ to add \nyour guest`}</Text>
-            </View>
-          )}
-          renderItem={({ item }) => {
-            const iso = String(item.valid_until ?? '')
-              .replace(' ', 'T')
-              .replace(/([+-]\d{2})(\d{2})$/, '$1:$2');
-            const parsed = new Date(iso);
-
-            let formattedDate = 'Invalid date';
-            let timeframe = 'Unknown';
-            let timeLeftMinutes = 0;
-
-            if (!isNaN(parsed.getTime())) {
-              const day = String(parsed.getDate()).padStart(2, '0');
-              const month = String(parsed.getMonth() + 1).padStart(2, '0');
-              const year = parsed.getFullYear();
-              formattedDate = `${day}/${month}/${year}`;
-
-              const diffMs = parsed.getTime() - Date.now();
-              if (diffMs <= 0) {
-                timeframe = 'Expired';
-              } else {
-                const startDate = new Date(parsed.getTime() - 60 * 60 * 1000);
-                const formatTime = (d: Date) =>
-                  d
-                    .toLocaleTimeString(undefined, {
-                      hour: 'numeric',
-                      minute: '2-digit',
-                      hour12: true,
-                    })
-                    .replace(/\s+/g, '')
-                    .toLowerCase();
-                timeLeftMinutes = Math.floor((diffMs % 3600000) / 60000);
-                timeframe = `${formatTime(startDate)} to ${formatTime(parsed)}`;
-              }
-            }
-
-            return (
-              <CodeItem
-                item={item}
-                timeframe={timeframe}
-                formattedDate={formattedDate}
-                parsed={parsed}
-              />
-            );
-          }}
+      <View className="flex-1">
+        <ScreenHeader
+          title="Active Codes"
+          showActions
+          containerClassName="z-10"
+          titleClassName="text-[27.34px]"
         />
+
+        {isEmpty && !refreshing ? (
+          <View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              top: 0,
+              right: 0,
+              bottom: 0,
+              left: 0,
+              alignItems: 'center',
+              justifyContent: 'center',
+              transform: [{ translateY: -32 }],
+            }}
+          >
+            <Animated.Image
+              source={images.ghostImg}
+              style={{
+                width: 201,
+                height: 221,
+                opacity: 0.5,
+                resizeMode: 'contain',
+                transform: [{ translateY: bounceValue }],
+              }}
+            />
+            <Text
+              style={{
+                marginTop: -20,
+                width: 195,
+                textAlign: 'center',
+                fontFamily: UbuntuSans.semiBold,
+                fontSize: 22,
+                letterSpacing: -0.24,
+                color: '#D3D3D3',
+              }}
+            >
+              Click the ‘+’ to add your guest
+            </Text>
+          </View>
+        ) : null}
+
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <FlatList
+            data={codes}
+            extraData={frozenCodes}
+            keyExtractor={(item) => item.hashed_code}
+            refreshing={refreshing}
+            onRefresh={fetchCodes}
+            scrollEnabled={!isEmpty}
+            contentContainerStyle={{ paddingBottom: tabContentPadding, flexGrow: 1, gap: 8 }}
+            ListHeaderComponent={
+              !isEmpty ? (
+                <Text className="mt-9 mb-[18px] font-inter-medium text-sm text-[#878686]">
+                  All incoming guest
+                </Text>
+              ) : null
+            }
+            ListEmptyComponent={null}
+            renderItem={({ item }) => {
+              const iso = String(item.valid_until ?? '')
+                .replace(' ', 'T')
+                .replace(/([+-]\d{2})(\d{2})$/, '$1:$2');
+              const expiresAt = new Date(iso).getTime();
+
+              const startIso = item.validity_period?.start
+                ? String(item.validity_period.start)
+                    .replace(' ', 'T')
+                    .replace(/([+-]\d{2})(\d{2})$/, '$1:$2')
+                : null;
+              const startAt = startIso ? new Date(startIso).getTime() : null;
+
+              const frozen = Boolean(item.frozen) || frozenCodes.has(item.hashed_code);
+
+              return (
+                <ActiveCodeCard
+                  item={item}
+                  guestName={item.visitor_fullname ?? 'Guest'}
+                  code={item.hashed_code.toUpperCase()}
+                  expiresAt={expiresAt}
+                  startAt={startAt}
+                  frozen={frozen}
+                  onToggleFreeze={() => handleToggleFreeze(item.hashed_code, frozen)}
+                  onDeleted={() => handleDeleted(item.hashed_code)}
+                  onCopied={handleCopied}
+                  onOpenHistory={() => openHistory(item)}
+                  onOpenDetails={() => openInviteDetails(item)}
+                  onExtend={() => handleExtend(item)}
+                />
+              );
+            }}
+          />
+        </GestureHandlerRootView>
       </View>
     </SafeAreaView>
   );

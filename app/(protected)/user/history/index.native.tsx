@@ -3,7 +3,6 @@ import {
   View,
   Text,
   ScrollView,
-  TouchableOpacity,
   Pressable,
   ActivityIndicator,
   RefreshControl,
@@ -13,6 +12,7 @@ import {
 import { Stack, router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ScreenHeader from '@/src/components/mobile/ScreenHeader';
+import SegmentedPillTabs from '@/src/components/mobile/SegmentedPillTabs';
 import { ChevronRightIcon, HistoryRefreshIcon } from '@/src/assets/svgs';
 import { getMyVisitorAccessLogs } from '@/src/lib/api/accessLogs';
 import { getUpcomingCodes } from '@/src/lib/api/codes';
@@ -25,7 +25,8 @@ import {
   groupLogsByMonth,
   parseLogDate,
 } from '@/src/lib/helpers';
-import { sharedStyles, TAB_BAR_BASE_HEIGHT } from '@/src/theme/styles';
+import { sharedStyles } from '@/src/theme/styles';
+import { useAndroidBottomInset } from '@/src/hooks/useAndroidBottomInset';
 
 type HistoryMode = 'past' | 'upcoming';
 
@@ -49,66 +50,6 @@ function dedupeByCode(entries: VisitorLogEntry[]) {
   });
 
   return Array.from(byCode.values());
-}
-
-function HistoryModeTabs({
-  mode,
-  onChange,
-}: {
-  mode: HistoryMode;
-  onChange: (mode: HistoryMode) => void;
-}) {
-  return (
-    <View
-      className="self-start flex-row"
-      style={{
-        borderRadius: 999,
-        backgroundColor: '#EFF1F1',
-        overflow: 'hidden',
-      }}
-    >
-      <TouchableOpacity
-        activeOpacity={0.8}
-        style={{
-          width: 119,
-          paddingVertical: 13,
-          borderRadius: 999,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: mode === 'past' ? '#CEE5ED' : 'transparent',
-        }}
-        onPress={() => onChange('past')}
-      >
-        <Text
-          className={`font-inter-regular text-[11px] ${
-            mode === 'past' ? 'text-[#113E55]' : 'text-[#6C6C6C]'
-          }`}
-        >
-          Past
-        </Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        activeOpacity={0.8}
-        style={{
-          width: 119,
-          paddingVertical: 13,
-          borderRadius: 999,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: mode === 'upcoming' ? '#CEE5ED' : 'transparent',
-        }}
-        onPress={() => onChange('upcoming')}
-      >
-        <Text
-          className={`font-inter-regular text-[11px] ${
-            mode === 'upcoming' ? 'text-[#113E55]' : 'text-[#6C6C6C]'
-          }`}
-        >
-          Upcoming
-        </Text>
-      </TouchableOpacity>
-    </View>
-  );
 }
 
 function openPastDetail(entry: VisitorLogEntry) {
@@ -190,6 +131,7 @@ function UpcomingHistoryCard({ entry, onPress }: { entry: Codes; onPress: () => 
 }
 
 export default function HistoryTabScreen() {
+  const { tabContentPadding } = useAndroidBottomInset();
   const { user_id } = useUserStore();
   const params = useLocalSearchParams<{ tab?: string }>();
   const [mode, setMode] = useState<HistoryMode>(() => resolveHistoryMode(params.tab));
@@ -323,7 +265,15 @@ export default function HistoryTabScreen() {
       <ScreenHeader title="History" containerClassName="mt-[29px]" />
 
       <View style={{ flex: 1, paddingTop: 8 }}>
-        <HistoryModeTabs mode={mode} onChange={handleModeChange} />
+        <SegmentedPillTabs
+          className="self-start"
+          value={mode}
+          onChange={handleModeChange}
+          options={[
+            { value: 'past', label: 'Past' },
+            { value: 'upcoming', label: 'Upcoming' },
+          ]}
+        />
 
         {loading ? (
           <View className="flex-1 items-center justify-center">
@@ -335,7 +285,7 @@ export default function HistoryTabScreen() {
             contentContainerStyle={{
               flexGrow: 1,
               paddingTop: mode === 'upcoming' ? 35 : 31,
-              paddingBottom: TAB_BAR_BASE_HEIGHT + 40,
+              paddingBottom: tabContentPadding + 40,
               gap: 38,
             }}
             showsVerticalScrollIndicator={false}

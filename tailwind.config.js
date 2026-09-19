@@ -6,7 +6,20 @@ module.exports = {
   theme: {
     extend: {
       fontSize: {
+        xs: '12px',
+        sm: '14px',
+        base: '16px',
         md: '17px',
+        lg: '18px',
+        xl: '20px',
+        '2xl': '24px',
+        '3xl': '30px',
+        '4xl': '36px',
+        '5xl': '48px',
+        '6xl': '60px',
+        '7xl': '72px',
+        '8xl': '96px',
+        '9xl': '128px',
       },
 
       fontFamily: {
@@ -20,16 +33,16 @@ module.exports = {
         'ubuntu-italic': ['UbuntuSansItalic', 'system-ui'],
         'roboto-italic': ['RobotoItalic', 'system-ui'],
         'roboto-regular': ['Roboto', 'system-ui'],
-        'inter-extralight': ['Inter_18pt-ExtraLight', 'system-ui'],
-        'inter-light': ['Inter_18pt-Light', 'system-ui'],
-        'inter-regular': ['Inter_18pt-Regular', 'system-ui'],
-        'inter-medium': ['Inter_18pt-Medium', 'system-ui'],
-        'inter-medium-italic': ['Inter_18pt-mediumItalic', 'system-ui'],
-        'inter-semibold': ['Inter_18pt-SemiBold', 'system-ui'],
+        'inter-extralight': ['Inter_200ExtraLight', 'system-ui'],
+        'inter-light': ['Inter_300Light', 'system-ui'],
+        'inter-regular': ['Inter_400Regular', 'system-ui'],
+        'inter-medium': ['Inter_500Medium', 'system-ui'],
+        'inter-medium-italic': ['Inter_500Medium_Italic', 'system-ui'],
+        'inter-semibold': ['Inter_600SemiBold', 'system-ui'],
         roboto: ['Roboto', 'system-ui'],
         UbuntuSans: ['"UbuntuSans"', 'system-ui'],
         UbuntuSansItalic: ['"UbuntuSansItalic"', 'system-ui'],
-        Inter: ['"Inter"', 'system-ui'],
+        Inter: ['Inter_400Regular', 'system-ui'],
       },
 
       colors: {

@@ -10,6 +10,8 @@ import logoutIcon from '../assets/images/logout.png';
 import securityBg from '../assets/images/security-bg.png';
 // @ts-ignore
 import brokenCard from '../assets/images/broken-card.png';
+// @ts-ignore — Figma 8054:6286 ice overlay (1024×683, natural alpha fade)
+import frozenIceOverlay from '../assets/images/frozen-ice-overlay-v3.png';
 
 const images = {
   loginImage,
@@ -18,6 +20,7 @@ const images = {
   logoutIcon,
   securityBg,
   brokenCard,
+  frozenIceOverlay,
 };
 
 export default images;
