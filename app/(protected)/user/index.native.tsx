@@ -1,12 +1,11 @@
-import { Stack, router } from 'expo-router';
-import { useNavigation } from '@react-navigation/native';
-import { View, Text, FlatList, Animated, Platform } from 'react-native';
+import { Stack, router, useNavigation } from 'expo-router';
+import { View, Text, FlatList, Animated, Platform, Alert } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEffect, useRef, useState } from 'react';
 import images from '@/src/constants/images';
 import { Codes } from '@/src/types/codes';
-import { freezeCode, getAllCodes } from '@/src/lib/api/codes';
+import { extendCode, freezeCode, getAllCodes } from '@/src/lib/api/codes';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { sharedStyles } from '@/src/theme/styles';
 import { UbuntuSans } from '@/src/constants/fonts';
@@ -185,15 +184,24 @@ export default function HomeMobile({}) {
     });
   };
 
-  const openExtend = (item: Codes) => {
-    router.push({
-      pathname: '/user/history/duration',
-      params: {
-        visitorName: item.visitor_fullname ?? 'Guest',
-        relationship: item.relationship_with_resident ?? 'other',
-        gender: item.gender ?? 'prefer_not_to_say',
-      },
-    });
+  const handleExtend = async (item: Codes) => {
+    try {
+      const res = await extendCode(item.hashed_code);
+      setCodes((prev) =>
+        prev.map((c) =>
+          c.hashed_code === item.hashed_code
+            ? {
+                ...c,
+                valid_until: res.valid_until || c.valid_until,
+                validity_period: res.validity_period ?? c.validity_period,
+                extended: res.extended ?? true,
+              }
+            : c
+        )
+      );
+    } catch (error: any) {
+      Alert.alert('Could not extend code', error?.message?.trim() || 'Please try again later.');
+    }
   };
 
   const isEmpty = codes.length === 0;
@@ -304,7 +312,7 @@ export default function HomeMobile({}) {
                   onCopied={handleCopied}
                   onOpenHistory={() => openHistory(item)}
                   onOpenDetails={() => openInviteDetails(item)}
-                  onExtend={() => openExtend(item)}
+                  onExtend={() => handleExtend(item)}
                 />
               );
             }}

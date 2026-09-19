@@ -471,12 +471,12 @@ export function CalendarChevronRightIcon({ color = '#113E55', ...props }: MenuIc
   );
 }
 
-/** Figma 5241:7466 system-uicons:arrow-up — 21×21, rotated 90° in the validity window. */
-export function ValidityWindowArrowIcon({ color = '#113E55', ...props }: MenuIconProps) {
+/** Figma validity-window arrow — 14×10, stroke #878686. */
+export function ValidityWindowArrowIcon({ color = '#878686', ...props }: MenuIconProps) {
   return (
-    <Svg width={21} height={21} viewBox="0 0 21 21" fill="none" {...props}>
+    <Svg width={14} height={10} viewBox="0 0 14 10" fill="none" {...props}>
       <Path
-        d="M6.471 7.5L10.5 3.5L14.5 7.5M10.5 3.5V16.5"
+        d="M9.5 0.5L13.5 4.529L9.5 8.529M13.5 4.529H0.5"
         stroke={color}
         strokeLinecap="round"
         strokeLinejoin="round"

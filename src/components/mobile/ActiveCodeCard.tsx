@@ -37,6 +37,7 @@ const RING_TOP = 12;
 const PLUS_TOP = RING_TOP + (RING_WIDTH - PLUS_SIZE) / 2;
 const SPRING = { damping: 22, stiffness: 280, mass: 0.65, overshootClamping: true };
 const FROZEN_TEXT = 'rgba(241, 248, 251, 0.6)';
+const FROZEN_BORDER = '#BEE4F5';
 
 type ActiveCodeCardProps = {
   item: Codes;
@@ -318,81 +319,77 @@ export default function ActiveCodeCard({
   );
 
   if (frozen) {
-    // Figma 5165:5472 / 8073:8227 — frozen card is static: no swipe Unfreeze/Delete.
+    // Figma 8054:6286 / 8073:8227 —
+    // border: 1px solid #BEE4F5; radius 16;
+    // background: ice image cover + linear-gradient(106.59deg, #70B1EE 20.78%, rgba(230,242,255,.5) 51.23%, #62A5D7 89.52%)
     return (
       <View
         style={{
           height: CARD_HEIGHT,
           borderRadius: CARD_RADIUS,
-          backgroundColor: '#0F4870',
+          borderWidth: 1,
+          borderColor: FROZEN_BORDER,
+          backgroundColor: '#70B1EE',
           overflow: 'hidden',
         }}
       >
         <GestureDetector gesture={Gesture.Exclusive(longPress, tap)}>
           <View style={{ flex: 1, height: CARD_HEIGHT }}>
+            {/* Gradient behind — Figma first paints this, then ice on top */}
             <LinearGradient
-              colors={['#BEE4F5', '#1993DE']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={{
-                height: CARD_HEIGHT,
-                borderRadius: CARD_RADIUS,
-                padding: 1,
-              }}
-            >
-              <View
+              colors={['#70B1EE', 'rgba(230, 242, 255, 0.5)', '#62A5D7']}
+              locations={[0.2078, 0.5123, 0.8952]}
+              start={{ x: 0.021, y: 0.357 }}
+              end={{ x: 0.979, y: 0.643 }}
+              pointerEvents="none"
+              style={StyleSheet.absoluteFillObject}
+            />
+            {/* Official Figma ice overlay (natural alpha fade L→R) */}
+            <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
+              <Image
+                source={images.frozenIceOverlay}
+                resizeMode="cover"
+                style={{ width: '100%', height: '100%' }}
+              />
+            </View>
+
+            <View style={{ position: 'absolute', left: 16, top: 22 }} pointerEvents="none">
+              <Text
+                className="font-inter-regular"
                 style={{
-                  flex: 1,
-                  borderRadius: CARD_RADIUS - 1,
-                  overflow: 'hidden',
-                  backgroundColor: '#70B1EE',
+                  color: FROZEN_TEXT,
+                  fontSize: 11.2,
+                  lineHeight: 11.2,
+                  includeFontPadding: false,
                 }}
               >
-                <LinearGradient
-                  colors={['#70B1EE', 'rgba(230, 242, 255, 0.5)', '#62A5D7']}
-                  locations={[0.2078, 0.5123, 0.8952]}
-                  start={{ x: 0.021, y: 0.357 }}
-                  end={{ x: 0.979, y: 0.643 }}
-                  pointerEvents="none"
-                  style={StyleSheet.absoluteFillObject}
-                />
-                <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
-                  <Image
-                    source={images.frozenIceOverlay}
-                    resizeMode="cover"
-                    style={{ width: '100%', height: '100%' }}
-                  />
-                </View>
+                {guestName}
+              </Text>
+              <Text
+                className="font-ubuntu-medium"
+                style={{
+                  color: FROZEN_TEXT,
+                  fontSize: 34.18,
+                  lineHeight: 34.18,
+                  includeFontPadding: false,
+                }}
+              >
+                {code.toUpperCase()}
+              </Text>
+            </View>
 
-                <View style={{ position: 'absolute', left: 16, top: 22 }} pointerEvents="none">
-                  <Text
-                    className="text-[11.2px] font-inter-regular"
-                    style={{ color: FROZEN_TEXT, lineHeight: 14 }}
-                  >
-                    {guestName}
-                  </Text>
-                  <Text
-                    className="text-[34.18px] font-ubuntu-medium"
-                    style={{ color: FROZEN_TEXT, lineHeight: 41, marginTop: -3 }}
-                  >
-                    {code.toUpperCase()}
-                  </Text>
-                </View>
-
-                <View
-                  style={{
-                    position: 'absolute',
-                    right: 16 + PLUS_SIZE + CLUSTER_GAP,
-                    top: RING_TOP,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                  }}
-                  pointerEvents="none"
-                >
-                  <AccessCodeRing expiresAt={expiresAt} startAt={startAt} dimmed />
-                </View>
-              </View>
-            </LinearGradient>
+            <View
+              style={{
+                position: 'absolute',
+                right: 16 + PLUS_SIZE + CLUSTER_GAP,
+                top: RING_TOP,
+                flexDirection: 'row',
+                alignItems: 'center',
+              }}
+              pointerEvents="none"
+            >
+              <AccessCodeRing expiresAt={expiresAt} startAt={startAt} dimmed />
+            </View>
           </View>
         </GestureDetector>
 
@@ -448,8 +445,16 @@ export default function ActiveCodeCard({
             ]}
             pointerEvents="none"
           >
-            <Text className="text-[11.2px] font-inter-regular text-[#9B9797]">{guestName}</Text>
-            <Text className="text-[34.18px] font-ubuntu-medium leading-[41px] text-[#F46036]">
+            <Text
+              className="text-[11.2px] font-inter-regular text-[#9B9797]"
+              style={{ lineHeight: 16, includeFontPadding: false }}
+            >
+              {guestName}
+            </Text>
+            <Text
+              className="text-[34.18px] font-ubuntu-medium text-[#F46036]"
+              style={{ lineHeight: 42, includeFontPadding: false }}
+            >
               {code.toUpperCase()}
             </Text>
           </Animated.View>

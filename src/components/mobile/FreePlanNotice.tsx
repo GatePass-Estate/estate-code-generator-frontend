@@ -1,5 +1,20 @@
+import { useEffect, useRef, type ReactNode } from 'react';
 import { Text, View } from 'react-native';
+import Animated, {
+  Easing,
+  cancelAnimation,
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import { WarningLineIcon } from '@/src/assets/svgs';
+
+const FADE_IN = { duration: 360, easing: Easing.bezier(0.33, 0, 0.2, 1) };
+const FADE_OUT = { duration: 200, easing: Easing.out(Easing.cubic) };
+const SPACE = { duration: 320, easing: Easing.bezier(0.22, 1, 0.36, 1) };
+const SPACE_IN = { duration: 360, easing: Easing.bezier(0.22, 1, 0.36, 1) };
+const NOTICE_FALLBACK_HEIGHT = 126;
 
 /** Figma 6649:8833 — resident free-plan notice. */
 export default function FreePlanNotice() {
@@ -15,6 +30,87 @@ export default function FreePlanNotice() {
       >
         Not available on the Free Plan. Contact Admin to upgrade.
       </Text>
+    </View>
+  );
+}
+
+function NoticeCard() {
+  return (
+    <View className="mb-6 items-center">
+      <FreePlanNotice />
+    </View>
+  );
+}
+
+/** Hide: fade to 0, then buttons ease up. Show: fade in immediately while buttons ease down. */
+export function PlanNoticeSlot({ visible, children }: { visible: boolean; children: ReactNode }) {
+  const opacity = useSharedValue(0);
+  const open = useSharedValue(0);
+  const blockHeight = useSharedValue(NOTICE_FALLBACK_HEIGHT);
+  const shown = useSharedValue(0);
+  const hasMounted = useRef(false);
+
+  useEffect(() => {
+    shown.value = visible ? 1 : 0;
+
+    if (!hasMounted.current) {
+      hasMounted.current = true;
+      if (visible) {
+        open.value = 1;
+        opacity.value = 1;
+      }
+      return;
+    }
+
+    cancelAnimation(opacity);
+    cancelAnimation(open);
+
+    if (visible) {
+      opacity.value = withTiming(1, FADE_IN);
+      open.value = withTiming(1, SPACE_IN);
+      return;
+    }
+
+    opacity.value = withTiming(0, FADE_OUT, (finished) => {
+      if (finished && shown.value === 0) {
+        open.value = withTiming(0, SPACE);
+      }
+    });
+  }, [visible, opacity, open, shown]);
+
+  const spacerStyle = useAnimatedStyle(() => ({
+    height: interpolate(open.value, [0, 1], [0, blockHeight.value]),
+  }));
+
+  const noticeStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ translateY: interpolate(opacity.value, [0, 1], [10, 0]) }],
+  }));
+
+  return (
+    <View>
+      <View>
+        <View
+          pointerEvents="none"
+          onLayout={(event) => {
+            const nextHeight = event.nativeEvent.layout.height;
+            if (nextHeight > 0) blockHeight.value = nextHeight;
+          }}
+          style={{ position: 'absolute', opacity: 0, left: 0, right: 0 }}
+        >
+          <NoticeCard />
+        </View>
+        <Animated.View style={spacerStyle} />
+        <Animated.View
+          pointerEvents={visible ? 'auto' : 'none'}
+          accessibilityElementsHidden={!visible}
+          importantForAccessibility={visible ? 'yes' : 'no-hide-descendants'}
+          style={[{ position: 'absolute', left: 0, right: 0, top: 0 }, noticeStyle]}
+        >
+          <NoticeCard />
+        </Animated.View>
+      </View>
+      {children}
     </View>
   );
 }

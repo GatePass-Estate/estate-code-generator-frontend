@@ -16,5 +16,7 @@ export const Inter = {
   regular: 'Inter_400Regular',
   medium: 'Inter_500Medium',
   semiBold: 'Inter_600SemiBold',
+  bold: 'Inter_700Bold',
+  extraBold: 'Inter_800ExtraBold',
   mediumItalic: 'Inter_500Medium_Italic',
 };

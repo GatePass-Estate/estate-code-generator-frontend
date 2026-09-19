@@ -15,7 +15,7 @@ export const PLAN_FEATURES = {
 } as const;
 
 /** Flip this to test paid features. `false` = all features unlocked. */
-export const PLAN_LOCKS_ENABLED = true;
+export const PLAN_LOCKS_ENABLED = false;
 
 export type PlanFeature = (typeof PLAN_FEATURES)[keyof typeof PLAN_FEATURES];
 

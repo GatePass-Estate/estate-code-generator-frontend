@@ -13,6 +13,8 @@ import {
   Inter_400Regular,
   Inter_500Medium,
   Inter_600SemiBold,
+  Inter_700Bold,
+  Inter_800ExtraBold,
   Inter_500Medium_Italic,
 } from '@expo-google-fonts/inter';
 // @ts-ignore
@@ -78,6 +80,8 @@ export default function RootLayout() {
     [Inter.regular]: Inter_400Regular,
     [Inter.medium]: Inter_500Medium,
     [Inter.semiBold]: Inter_600SemiBold,
+    [Inter.bold]: Inter_700Bold,
+    [Inter.extraBold]: Inter_800ExtraBold,
     [Inter.mediumItalic]: Inter_500Medium_Italic,
     Inter: Inter_400Regular,
     'Inter-Regular': Inter_400Regular,

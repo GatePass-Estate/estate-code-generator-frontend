@@ -10,7 +10,7 @@ import logoutIcon from '../assets/images/logout.png';
 import securityBg from '../assets/images/security-bg.png';
 // @ts-ignore
 import brokenCard from '../assets/images/broken-card.png';
-// @ts-ignore — Figma ice overlay PNG with built-in natural alpha fade
+// @ts-ignore — Figma 8054:6286 ice overlay (1024×683, natural alpha fade)
 import frozenIceOverlay from '../assets/images/frozen-ice-overlay-v3.png';
 
 const images = {

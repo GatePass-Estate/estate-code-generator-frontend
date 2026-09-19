@@ -82,11 +82,8 @@ export default function SetTimeSheet({ visible, start, end, onClose, onDone }: S
                 <TimeWheelColumn value={startMinutes} length={60} onChange={setStartMinutes} />
               </View>
 
-              <View
-                className="mx-[18px] h-[21px] w-[21px] items-center justify-center"
-                style={{ transform: [{ rotate: '90deg' }] }}
-              >
-                <ValidityWindowArrowIcon width={21} height={21} />
+              <View className="mx-[18px] h-[10px] w-[14px] items-center justify-center">
+                <ValidityWindowArrowIcon width={14} height={10} />
               </View>
 
               <View className="w-[84px] flex-row items-center justify-center">

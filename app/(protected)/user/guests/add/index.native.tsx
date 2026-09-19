@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { View, Text, TextInput, Pressable, Alert, ScrollView, Modal } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -9,7 +9,7 @@ import { sharedStyles } from '@/src/theme/styles';
 import { useAndroidBottomInset } from '@/src/hooks/useAndroidBottomInset';
 import { CheckIcon, CheckRingIcon, ExpandMoreIcon } from '@/src/assets/svgs';
 import Button, { BUTTON_MARGIN_BOTTOM } from '@/src/components/mobile/Button';
-import PlanNotice from '@/src/components/mobile/PlanNotice';
+import { PlanNoticeSlot } from '@/src/components/mobile/FreePlanNotice';
 import ScreenHeader from '@/src/components/mobile/ScreenHeader';
 import { usePlan } from '@/src/hooks/usePlan';
 import { PLAN_FEATURES } from '@/src/lib/plans';
@@ -20,6 +20,8 @@ const GENDER_OPTIONS: { label: string; value: Exclude<GenderType, null> }[] = [
   { label: "I'd prefer not to say", value: 'prefer_not_to_say' },
 ];
 
+const PLAN_NOTICE_MS = 3000;
+
 const AddGuestMobile = () => {
   const { tabContentPadding } = useAndroidBottomInset();
   const [guestName, setGuestName] = useState('');
@@ -28,12 +30,31 @@ const AddGuestMobile = () => {
   const [genderSheetVisible, setGenderSheetVisible] = useState(false);
   const [addToGuestList, setAddToGuestList] = useState(false);
   const [running, setRunning] = useState<boolean>(false);
+  const [showPlanNotice, setShowPlanNotice] = useState(false);
+  const noticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { canUse, isAdmin, requestFeature } = usePlan();
   const canSaveGuest = canUse(PLAN_FEATURES.save_guest_contact);
-  const showPlanLock = !isAdmin && !canSaveGuest;
 
   const genderLabel = GENDER_OPTIONS.find((option) => option.value === gender)?.label;
   const router = useRouter();
+
+  useEffect(() => {
+    return () => {
+      if (noticeTimerRef.current) clearTimeout(noticeTimerRef.current);
+    };
+  }, []);
+
+  const flashPlanNotice = () => {
+    setShowPlanNotice(true);
+    if (noticeTimerRef.current) clearTimeout(noticeTimerRef.current);
+    noticeTimerRef.current = setTimeout(() => setShowPlanNotice(false), PLAN_NOTICE_MS);
+  };
+
+  const guardSaveGuest = (): boolean => {
+    if (requestFeature(PLAN_FEATURES.save_guest_contact, { present: isAdmin })) return true;
+    if (!isAdmin) flashPlanNotice();
+    return false;
+  };
 
   const inputChecks = (): boolean => {
     if (guestName.trim() === '') {
@@ -70,7 +91,7 @@ const AddGuestMobile = () => {
 
   async function handleSaveGuest() {
     if (!inputChecks()) return;
-    if (!requestFeature(PLAN_FEATURES.save_guest_contact)) return;
+    if (!guardSaveGuest()) return;
 
     setRunning(true);
     try {
@@ -162,24 +183,21 @@ const AddGuestMobile = () => {
 
         <Pressable
           onPress={() => {
-            if (!requestFeature(PLAN_FEATURES.save_guest_contact)) return;
+            if (!guardSaveGuest()) return;
             setAddToGuestList((prev) => !prev);
           }}
-          className="mt-[19px] h-10 flex-row items-center self-start"
+          className="mt-[19px] h-10 flex-row items-center gap-1.5 self-start"
         >
-          {canSaveGuest && addToGuestList ? <CheckIcon /> : null}
-          <Text
-            className={`text-[11.2px] font-inter-semibold ${
-              canSaveGuest ? 'text-[#113E55]' : 'text-[#878686]'
-            }`}
-          >
+          <View className="h-4 w-4 items-center justify-center rounded-[3px] border border-[#113E55]">
+            {addToGuestList && canSaveGuest ? <CheckIcon /> : null}
+          </View>
+          <Text className="text-[11.2px] font-inter-semibold text-[#113E55]">
             Add to Guest List
           </Text>
         </Pressable>
 
         <View className="mt-[90px]" style={{ paddingBottom: BUTTON_MARGIN_BOTTOM }}>
-          <PlanNotice feature={PLAN_FEATURES.save_guest_contact} />
-          {showPlanLock ? null : (
+          <PlanNoticeSlot visible={showPlanNotice}>
             <View className="flex-row items-center justify-between">
               <Button
                 label="Save Guest"
@@ -190,7 +208,7 @@ const AddGuestMobile = () => {
               />
               <Button label="Continue" size="md" loading={running} onPress={handleContinue} />
             </View>
-          )}
+          </PlanNoticeSlot>
         </View>
 
         <Modal

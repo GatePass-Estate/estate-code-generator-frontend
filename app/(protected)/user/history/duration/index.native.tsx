@@ -376,11 +376,8 @@ export default function SetAccessCodeDurationScreen() {
                     {formatClock(windowStart)}
                   </Text>
                 </View>
-                <View
-                  className="h-[21px] w-[21px] items-center justify-center"
-                  style={{ transform: [{ rotate: '90deg' }] }}
-                >
-                  <ValidityWindowArrowIcon width={21} height={21} />
+                <View className="h-[10px] w-[14px] items-center justify-center">
+                  <ValidityWindowArrowIcon width={14} height={10} />
                 </View>
                 <View className="w-[41px] items-center" style={{ gap: 6 }}>
                   <Text className="w-[81px] text-center text-[11.2px] font-inter-regular text-[#878686]">
