@@ -71,7 +71,7 @@ const GaugeCardsSection = React.memo(({ gaugeList }: { gaugeList: any[] }) => {
 });
 
 export default function AnomalyDetectionUserDetailsScreen() {
-  const { id, gender, user_type, display_name } = useLocalSearchParams();
+  const { id, gender } = useLocalSearchParams();
   const authEstateId = useAuthStore((s: any) => s.user?.estate_id || '');
   const estateId = authEstateId || 'fallback-estate-id'; // Fallback so queries run if auth is empty in dev
   const [aiState, setAiState] = useState<'idle' | 'loading' | 'loaded' | 'forbidden' | 'error'>('idle');
@@ -81,12 +81,11 @@ export default function AnomalyDetectionUserDetailsScreen() {
   const { data: rawHistoryData } = useAnomalyCaseHistory(estateId, id as string);
   const { data: rawResultsData } = useAnomalyCaseResults(estateId, id as string);
   
-  const { refetch: fetchSummary, data: rawSummaryData } = useAnomalyCaseSummary(estateId, id as string, false);
-  const summaryData: any = rawSummaryData;
+  const { refetch: fetchSummary, data: summaryData } = useAnomalyCaseSummary(estateId, id as string, false);
 
-  const demographic: any = rawDemographic || {};
-  let historyData: any = rawHistoryData || {};
-  const resultsData: any = rawResultsData || {};
+  const demographic = rawDemographic || {};
+  let historyData = rawHistoryData || {};
+  const resultsData = rawResultsData || {};
 
   console.log('--- USER OVERVIEW MOUNTED ---');
   console.log('ID:', id, 'ESTATE:', estateId);
@@ -94,15 +93,9 @@ export default function AnomalyDetectionUserDetailsScreen() {
   console.log('RAW HISTORY:', rawHistoryData);
   console.log('RAW RESULTS:', rawResultsData);
 
-  const demo = {
-    ...demographic,
-    user_type: user_type || demographic.user_type,
-    display_name: display_name ? decodeURIComponent(display_name as string) : demographic.display_name,
-    gender: gender || demographic.gender,
-  };
-  
+  const demo = demographic?.demographic || {};
   const isGuest = demo.user_type?.toLowerCase() === 'guest';
-  const isFemale = demo.gender?.toLowerCase() === 'female';
+  const isFemale = (gender as string)?.toLowerCase() === 'female' || demo.gender?.toLowerCase() === 'female';
   const accentColor = isGuest ? '#113E55' : '#F25B2A';
 
   const gaugeList = useMemo(() => {
@@ -484,16 +477,13 @@ export default function AnomalyDetectionUserDetailsScreen() {
                 });
               } else {
                 return (
-                  <View>
-                    <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 13, color: '#8A9A9D' }}>
-                      No top contributing factors identified.
-                    </Text>
-                  </View>
+                  <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 13, color: '#8A9A9D' }}>
+                    No top contributing factors identified.
+                  </Text>
                 );
               }
             })()}
-          </View>
-          {/* Gauge Cards Section */}
+          </View>          {/* Gauge Cards Section */}
           <GaugeCardsSection gaugeList={gaugeList} />
 
 

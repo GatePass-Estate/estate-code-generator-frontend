@@ -19,12 +19,12 @@ interface SemiCircleGaugeProps {
   animate?: boolean;
 }
 
-const SemiCircleGauge = ({
+export default function SemiCircleGauge({
   percentage,
   color,
   size = 130,
   animate = true,
-}: SemiCircleGaugeProps) => {
+}: SemiCircleGaugeProps) {
   const strokeWidth = 15;
   const radius = size / 2 - strokeWidth;
   const cx = size / 2;

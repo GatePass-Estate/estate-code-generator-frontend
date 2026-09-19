@@ -18,7 +18,7 @@ interface AnomalyRadarChartProps {
   levels?: number;
 }
 
-export default function AnomalyRadarChart({
+const AnomalyRadarChart = ({
   series = [
     {
       data: [90, 80, 60, 60, 60, 90], // Expected (Orange)
@@ -37,7 +37,7 @@ export default function AnomalyRadarChart({
   size = 280,
   gridColor = '#E5E7EB',
   levels = 4,
-}: AnomalyRadarChartProps) {
+}: AnomalyRadarChartProps) => {
   const center = size / 2;
   const radius = size / 2 - 55; // Leave plenty of space for labels so they don't clip
   const dataLength = labels.length;
@@ -184,3 +184,7 @@ export default function AnomalyRadarChart({
     </View>
   );
 }
+
+export default React.memo(AnomalyRadarChart, (prevProps, nextProps) => {
+  return JSON.stringify(prevProps) === JSON.stringify(nextProps);
+});

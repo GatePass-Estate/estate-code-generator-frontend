@@ -22,7 +22,7 @@ import {
 import AnomalyRadarChart from './AnomalyRadarChart';
 import AnomalyDonutChart from './AnomalyDonutChart';
 import SemiCircleGauge from './SemiCircleGauge';
-import FilterModal from './modals/FilterModal';
+import FilterModal, { Severity, Gender, UserType } from './modals/FilterModal';
 import OrderModal from './modals/OrderModal';
 import GaugeDetailModal, { GaugeData } from './modals/GaugeDetailModal';
 import DatePickerModal from './modals/DatePickerModal';
@@ -57,6 +57,10 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
   const [paginationLimit, setPaginationLimit] = useState(5);
   const [gaugeLimit, setGaugeLimit] = useState(4);
 
+  const [filterSeverity, setFilterSeverity] = useState<Severity>(null);
+  const [filterGender, setFilterGender] = useState<Gender>(null);
+  const [filterUserType, setFilterUserType] = useState<UserType>(null);
+
   const estate_id = useUserStore((state) => state.estate_id) || '';
   const userEstateName = useUserStore((state) => state.estate_name);
   const userHomeAddress = useUserStore((state) => state.home_address);
@@ -78,11 +82,14 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
     endDate ? endDate.toISOString() : undefined
   );
   
-  const { data: rawPredictions, isLoading: predictionsLoading } = useAnomalyPredictions(
+  const { data: rawPredictions, isLoading: predictionsLoading, isFetching: predictionsFetching } = useAnomalyPredictions(
     estate_id,
     {
       from_date: startDate ? startDate.toISOString() : undefined,
       to_date: endDate ? endDate.toISOString() : undefined,
+      severity: filterSeverity ? [filterSeverity.toLowerCase()] : undefined,
+      gender: filterGender ? [filterGender.toLowerCase()] : undefined,
+      user_type: filterUserType ? [filterUserType.toLowerCase()] : undefined,
       sort_order: sortAscending ? 'asc' : 'desc',
       limit: paginationLimit,
       page: 1,
@@ -160,7 +167,7 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
     );
   }
 
-  const predictions = rawPredictions?.items || rawPredictions?.results || rawPredictions?.data?.items || rawPredictions?.data || (Array.isArray(rawPredictions) ? rawPredictions : []);
+  const predictions = rawPredictions?.items || [];
 
   return (
     <Animated.View
@@ -834,7 +841,7 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
                 <Pressable
                   key={row.prediction_id || row.id || index}
                   onPress={() =>
-                    router.push(`/(protected)/(shared-screens)/ai-store/anomaly-detection/user/${row.prediction_id || row.id}?gender=${row.gender || ''}`)
+                    router.push(`/(protected)/(shared-screens)/ai-store/anomaly-detection/user/${row.prediction_id || row.id}?gender=${row.gender || ''}&user_type=${row.user_type || ''}&display_name=${encodeURIComponent(row.display_name || row.name || '')}`)
                   }
                   style={{
                     flexDirection: 'row',
@@ -847,25 +854,14 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
                       fontFamily: 'Inter_18pt-Regular',
                       fontSize: 11.2,
                       color: '#8A9A9D',
-                      width: 24,
+                      width: 32,
+                      marginLeft: 12,
                     }}
                   >
                     {index + 1}
                   </Text>
                   
-                  {/* Avatar section */}
-                  {['resident', 'security'].includes((row.user_type || row.role || '').toLowerCase()) && (row.profile_picture || row.avatar_url) ? (
-                    <Image 
-                      source={{ uri: row.profile_picture || row.avatar_url }} 
-                      style={{ width: 32, height: 32, borderRadius: 16, marginRight: 8, backgroundColor: '#EFF1F3' }} 
-                    />
-                  ) : (
-                    <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#EFF1F3', marginRight: 8, alignItems: 'center', justifyContent: 'center' }}>
-                      <Text style={{ fontFamily: 'UbuntuSans-Medium', fontSize: 14, color: '#113E55' }}>
-                        {(row.display_name || row.name || 'U').charAt(0).toUpperCase()}
-                      </Text>
-                    </View>
-                  )}
+
 
                   <View style={{ flex: 1, marginLeft: 2 }}>
                     <Text
@@ -906,17 +902,21 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
           )}
 
           {/* Load More */}
-          {predictions.length > 0 && (predictions.length === paginationLimit || predictions.length < (rawPredictions?.total || 0)) && (
-            <Pressable onPress={() => setPaginationLimit(l => l + 5)} style={{ alignItems: 'center', paddingTop: 24, paddingBottom: 16 }} hitSlop={8}>
-              <Text
-                style={{
-                  fontFamily: 'UbuntuSans-SemiBold',
-                  fontSize: 14,
-                  color: '#113E55',
-                }}
-              >
-                Load More
-              </Text>
+          {predictions.length > 0 && predictions.length < (rawPredictions?.total || 0) && (
+            <Pressable onPress={() => setPaginationLimit(l => l + 5)} style={{ alignItems: 'center', paddingTop: 24, paddingBottom: 16 }} hitSlop={8} disabled={predictionsFetching}>
+              {predictionsFetching ? (
+                <ActivityIndicator size="small" color="#113E55" />
+              ) : (
+                <Text
+                  style={{
+                    fontFamily: 'UbuntuSans-SemiBold',
+                    fontSize: 14,
+                    color: '#113E55',
+                  }}
+                >
+                  Load More
+                </Text>
+              )}
             </Pressable>
           )}
         </View>
@@ -1135,6 +1135,15 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
       <FilterModal
         visible={filterModalVisible}
         onClose={() => setFilterModalVisible(false)}
+        onApply={(severity, gender, userType) => {
+          setFilterSeverity(severity);
+          setFilterGender(gender);
+          setFilterUserType(userType);
+          setPaginationLimit(5); // Reset pagination when filter changes
+        }}
+        currentSeverity={filterSeverity}
+        currentGender={filterGender}
+        currentUserType={filterUserType}
       />
 
       {/* Order Modal */}

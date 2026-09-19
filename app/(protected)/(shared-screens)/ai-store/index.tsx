@@ -108,9 +108,6 @@ const toggleFilter = (currentSelection: string[], value: string, allValues: stri
   } else {
     newSelection = [...newSelection, value];
   }
-  if (newSelection.length === 0 || newSelection.length === allValues.length) {
-    return ['all'];
-  }
   return newSelection;
 };
 
@@ -503,7 +500,7 @@ export default function AIStoreScreen() {
                       className={`text-[14px] font-inter-regular ${purchaseFilters.includes('purchased') ? 'text-[#113E55]' : 'text-[#8A9A9D]'
                         }`}
                     >
-                      Purchased Only
+                      Purchased
                     </Text>
                   </Pressable>
                   <Pressable

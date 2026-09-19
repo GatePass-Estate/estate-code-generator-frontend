@@ -14,8 +14,6 @@ import { BlurView } from 'expo-blur';
 import { MaterialIcons } from '@expo/vector-icons';
 import Svg, { Path, Circle } from 'react-native-svg';
 import VShapeSvg from '@/src/assets/icons/vshape.svg';
-import { GestureDetector } from 'react-native-gesture-handler';
-import { useSwipeDown } from './useSwipeDown';
 
 export interface GaugeData {
   title: string;
@@ -45,8 +43,6 @@ const getMagnitudeColor = (percent: number) => {
   return '#1B998B'; // Green
 };
 
-const AnimatedPath = Animated.createAnimatedComponent(Path);
-
 const MotionGauge = ({ percentage, color }: { percentage: number; color: string }) => {
   const radius = 80;
   const strokeWidth = 20;
@@ -54,24 +50,7 @@ const MotionGauge = ({ percentage, color }: { percentage: number; color: string 
   const arcRadius = radius;
   
   const circumference = Math.PI * arcRadius;
-  
-  // Animation state
-  const animatedStrokeDashoffset = useSharedValue(circumference);
-  
-  useEffect(() => {
-    // Reset to 0 (empty) initially
-    animatedStrokeDashoffset.value = circumference;
-    
-    // Sprinkle motion: Fill to 100% then revert to actual percentage. Wait 500ms for modal to open.
-    animatedStrokeDashoffset.value = withSequence(
-      withDelay(500, withTiming(0, { duration: 700, easing: Easing.out(Easing.cubic) })), // Fill completely
-      withTiming(circumference - (percentage / 100) * circumference, { duration: 700, easing: Easing.inOut(Easing.cubic) }) // Settle to actual
-    );
-  }, [percentage, circumference]);
-
-  const animatedProps = useAnimatedProps(() => ({
-    strokeDashoffset: animatedStrokeDashoffset.value,
-  }));
+  const strokeDashoffset = circumference - (percentage / 100) * circumference;
 
   const d = `
     M ${strokeWidth} ${center}
@@ -90,22 +69,22 @@ const MotionGauge = ({ percentage, color }: { percentage: number; color: string 
             fill="none"
             strokeLinecap="round"
           />
-          {/* Foreground Animated Arc */}
-          <AnimatedPath
+          {/* Foreground Arc */}
+          <Path
             d={d}
             stroke={color}
             strokeWidth={strokeWidth}
             fill="none"
             strokeLinecap="round"
             strokeDasharray={circumference}
-            animatedProps={animatedProps}
+            strokeDashoffset={strokeDashoffset}
           />
         </Svg>
         
         {/* Percentage Label */}
-        <View style={{ position: 'absolute', bottom: 6, alignSelf: 'center', flexDirection: 'row', alignItems: 'center' }}>
-          <MaterialIcons name="arrow-drop-up" size={42} color={color} style={{ marginRight: -6, marginTop: 4 }} />
-          <Text allowFontScaling={false} style={{ fontFamily: 'UbuntuSans-Medium', fontSize: 34.18, color: color }}>
+        <View style={{ position: 'absolute', bottom: 6, width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+          <MaterialIcons name="arrow-drop-up" size={36} color={color} style={{ marginRight: -4, marginTop: 2 }} />
+          <Text allowFontScaling={false} style={{ fontFamily: 'UbuntuSans-Medium', fontSize: percentage.toString().length > 3 ? 28 : 34.18, color: color }}>
             {percentage}%
           </Text>
         </View>
@@ -118,56 +97,27 @@ const SegmentedProgressBar = ({ percentage }: { percentage: number }) => {
   const totalSegments = 50;
   const targetSegments = Math.round((percentage / 100) * totalSegments);
   const activeColor = getMagnitudeColor(percentage);
-  
-  const animatedSegments = useSharedValue(0);
-  
-  useEffect(() => {
-    animatedSegments.value = 0;
-    // Animate up to the target segment count
-    animatedSegments.value = withDelay(
-      500,
-      withTiming(targetSegments, { duration: 1000, easing: Easing.out(Easing.cubic) })
-    );
-  }, [targetSegments]);
 
   const segments = Array.from({ length: totalSegments }, (_, i) => i);
 
   return (
     <View style={{ flexDirection: 'row', gap: 2 }}>
-      {segments.map((index) => {
-        const animatedStyle = useAnimatedStyle(() => {
-          return {
-            backgroundColor: animatedSegments.value > index ? activeColor : '#E5E7EB',
-          };
-        });
-
-        return (
-          <Animated.View
-            key={index}
-            style={[
-              {
-                flex: 1,
-                height: 16,
-                borderRadius: 8,
-              },
-              animatedStyle
-            ]}
-          />
-        );
-      })}
+      {segments.map((index) => (
+        <View
+          key={index}
+          style={{
+            flex: 1,
+            height: 16,
+            borderRadius: 8,
+            backgroundColor: targetSegments > index ? activeColor : '#E5E7EB',
+          }}
+        />
+      ))}
     </View>
   );
 };
 
 export default function GaugeDetailModal({ visible, onClose, gaugeData, onNext, onPrev }: GaugeDetailModalProps) {
-  const { panGesture, animatedStyle, translateY } = useSwipeDown(onClose);
-
-  // When modal becomes visible, reset translateY
-  useEffect(() => {
-    if (visible) {
-      translateY.value = 0;
-    }
-  }, [visible]);
 
   if (!gaugeData) return null;
 
@@ -185,11 +135,8 @@ export default function GaugeDetailModal({ visible, onClose, gaugeData, onNext, 
           <BlurView intensity={25} tint="dark" style={StyleSheet.absoluteFill} />
         )}
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-        <Animated.View
-            entering={SlideInDown.duration(400).springify()}
-            style={[
-              animatedStyle,
-              {
+        <View
+            style={[{
                 backgroundColor: '#FFFFFF',
                 borderTopLeftRadius: 32,
                 borderTopRightRadius: 32,
@@ -201,8 +148,7 @@ export default function GaugeDetailModal({ visible, onClose, gaugeData, onNext, 
             ]}
           >
             {/* Draggable Handle Area */}
-            <GestureDetector gesture={panGesture}>
-              <View style={{ paddingBottom: 16 }}>
+                          <View style={{ paddingBottom: 16 }}>
                 {/* Handle */}
                 <View
                   style={{
@@ -214,8 +160,7 @@ export default function GaugeDetailModal({ visible, onClose, gaugeData, onNext, 
                   }}
                 />
               </View>
-            </GestureDetector>
-
+            
             <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
             {/* Header */}
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -282,7 +227,7 @@ export default function GaugeDetailModal({ visible, onClose, gaugeData, onNext, 
               ))}
             </View>
           </ScrollView>
-        </Animated.View>
+        </View>
       </View>
     </Modal>
   );

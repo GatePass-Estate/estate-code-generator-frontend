@@ -195,7 +195,8 @@ export default function MoreMenuScreen({
   const [feedbackPopupStep, setFeedbackPopupStep] = useState<'NONE' | 'SELECT' | 'RATE_US'>('NONE');
   const [starRating, setStarRating] = useState(0);
 
-  const isAdmin = role === 'admin' || role === 'primary_admin';
+  const isAdmin = role === 'admin' || role === 'primary_admin' || role === 'root';
+  const isPrimaryAdmin = role === 'primary_admin' || role === 'root';
 
   const confirmDelete = () => {
     Alert.alert(
@@ -253,16 +254,16 @@ export default function MoreMenuScreen({
         }}
         showsVerticalScrollIndicator={false}
       >
-        <View className="mb-6">
-          <BannerCard
-            colors={['#185A75', '#5796AB']}
-            icon={<Ionicons name="diamond-outline" size={24} color="white" />}
-            title="Current Plan"
-            subtitle="Upgrade your account plan to get exclusive features including Freeze, Scheduling and more"
-            onPress={() => {}}
-          />
-          <View className="flex-row gap-2">
-            {isAdmin && (
+        {isPrimaryAdmin && (
+          <View className="mb-6">
+            <BannerCard
+              colors={['#185A75', '#5796AB']}
+              icon={<Ionicons name="diamond-outline" size={24} color="white" />}
+              title="Current Plan"
+              subtitle="Upgrade your account plan to get exclusive features including Freeze, Scheduling and more"
+              onPress={() => {}}
+            />
+            <View className="flex-row gap-2">
               <SquareCard
                 colors={['#F05E3E', '#F99573']}
                 icon={<MaterialCommunityIcons name="account-cog-outline" size={20} color="white" />}
@@ -270,16 +271,16 @@ export default function MoreMenuScreen({
                 subtitle="Control and manage access on your dashboard"
                 onPress={() => router.replace('/admin')}
               />
-            )}
-            <SquareCard
-              colors={['#129B85', '#49CCB8']}
-              icon={<SparklesIcon size={20} color="white" />}
-              title="AI STORE"
-              subtitle="Get AI assistance on your dashboard"
-              onPress={() => router.push('/ai-store')}
-            />
+              <SquareCard
+                colors={['#129B85', '#49CCB8']}
+                icon={<SparklesIcon size={20} color="white" />}
+                title="AI STORE"
+                subtitle="Get AI assistance on your dashboard"
+                onPress={() => router.push('/ai-store')}
+              />
+            </View>
           </View>
-        </View>
+        )}
         <View className="flex-col gap-10">
           <View>
             <SectionTitle first>Account</SectionTitle>

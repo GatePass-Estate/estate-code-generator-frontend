@@ -1,10 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable, Modal, StyleSheet } from 'react-native';
-import Animated, { SlideInDown } from 'react-native-reanimated';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
-import { GestureDetector } from 'react-native-gesture-handler';
-import { useSwipeDown } from './useSwipeDown';
 
 interface OrderModalProps {
   visible: boolean;
@@ -14,11 +11,7 @@ interface OrderModalProps {
 }
 
 export default function OrderModal({ visible, onClose, sortAscending, setSortAscending }: OrderModalProps) {
-  const { panGesture, animatedStyle, translateY } = useSwipeDown(onClose);
-  React.useEffect(() => {
-    if (visible) translateY.value = 0;
-  }, [visible]);
-  const Option = ({ label, isSelected, onPress }: { label: string, isSelected: boolean, onPress: () => void }) => (
+      const Option = ({ label, isSelected, onPress }: { label: string, isSelected: boolean, onPress: () => void }) => (
     <Pressable
       onPress={onPress}
       style={{
@@ -47,18 +40,15 @@ export default function OrderModal({ visible, onClose, sortAscending, setSortAsc
     <Modal
       visible={visible}
       transparent
-      animationType="fade"
+      animationType="slide"
       onRequestClose={onClose}
     >
       <View style={{ flex: 1, justifyContent: 'flex-end' }}>
         <BlurView intensity={15} tint="dark" style={StyleSheet.absoluteFill} />
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
         
-        <Animated.View
-          entering={SlideInDown.springify().damping(25).stiffness(200)}
-          style={[
-            animatedStyle,
-            {
+        <View
+          style={[{
               backgroundColor: '#F9FAFA',
               borderTopLeftRadius: 32,
               borderTopRightRadius: 32,
@@ -70,12 +60,10 @@ export default function OrderModal({ visible, onClose, sortAscending, setSortAsc
           ]}
         >
           {/* Draggable Handle Area */}
-          <GestureDetector gesture={panGesture}>
-            <View style={{ paddingVertical: 12 }}>
+                      <View style={{ paddingVertical: 12 }}>
               <View style={{ width: 40, height: 4, backgroundColor: '#EFF1F3', borderRadius: 2, alignSelf: 'center' }} />
             </View>
-          </GestureDetector>
-
+          
           <Text allowFontScaling={false} style={{ fontFamily: 'UbuntuSans-Medium', fontSize: 24, color: '#113E55', marginBottom: 24 }}>
             Select Order
           </Text>
@@ -97,7 +85,7 @@ export default function OrderModal({ visible, onClose, sortAscending, setSortAsc
               onClose();
             }}
           />
-        </Animated.View>
+        </View>
       </View>
     </Modal>
   );

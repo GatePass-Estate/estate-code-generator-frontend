@@ -13,7 +13,7 @@ export default function DataInsightModal({ visible, onClose }: DataInsightModalP
   if (!visible) return null;
 
   return (
-    <Modal visible={visible} transparent animationType="none">
+    <Modal visible={visible} transparent animationType="fade">
       <View style={{ flex: 1 }}>
         <View style={{ flex: 1, justifyContent: 'flex-end' }}>
         {Platform.OS === 'ios' ? (
@@ -21,10 +21,10 @@ export default function DataInsightModal({ visible, onClose }: DataInsightModalP
         ) : (
           <BlurView intensity={25} tint="dark" style={StyleSheet.absoluteFill} />
         )}
-        <View style={StyleSheet.absoluteFill} />
+        <Pressable style={StyleSheet.absoluteFill} />
         
         <Animated.View
-          entering={SlideInDown.springify().damping(25).stiffness(200)}
+          entering={SlideInDown.duration(250)}
           exiting={SlideOutDown}
           style={[
             {

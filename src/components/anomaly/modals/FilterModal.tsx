@@ -1,27 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, Pressable, Modal, StyleSheet, Dimensions, SafeAreaView } from 'react-native';
-import Animated, { SlideInDown } from 'react-native-reanimated';
 import { BlurView } from 'expo-blur';
-import { GestureDetector } from 'react-native-gesture-handler';
-import { useSwipeDown } from './useSwipeDown';
+
+export type Severity = 'Low' | 'Medium' | 'High' | null;
+export type Gender = 'Female' | 'Male' | 'Prefer not to say' | null;
+export type UserType = 'Guest' | 'Resident' | 'Security' | null;
 
 interface FilterModalProps {
   visible: boolean;
   onClose: () => void;
+  onApply: (severity: Severity, gender: Gender, userType: UserType) => void;
+  currentSeverity: Severity;
+  currentGender: Gender;
+  currentUserType: UserType;
 }
 
-type Severity = 'Low' | 'Medium' | 'High' | null;
-type Gender = 'Female' | 'Male' | 'Prefer not to say' | null;
-type UserType = 'Guest' | 'Resident' | 'Security' | null;
+export default function FilterModal({ visible, onClose, onApply, currentSeverity, currentGender, currentUserType }: FilterModalProps) {
+  const [selectedSeverity, setSelectedSeverity] = useState<Severity>(currentSeverity);
+  const [selectedGender, setSelectedGender] = useState<Gender>(currentGender);
+  const [selectedUserType, setSelectedUserType] = useState<UserType>(currentUserType);
 
-export default function FilterModal({ visible, onClose }: FilterModalProps) {
-  const { panGesture, animatedStyle, translateY } = useSwipeDown(onClose);
-  React.useEffect(() => {
-    if (visible) translateY.value = 0;
-  }, [visible]);
-  const [selectedSeverity, setSelectedSeverity] = useState<Severity>('High');
-  const [selectedGender, setSelectedGender] = useState<Gender>('Prefer not to say');
-  const [selectedUserType, setSelectedUserType] = useState<UserType>(null);
+  useEffect(() => {
+    if (visible) {
+      setSelectedSeverity(currentSeverity);
+      setSelectedGender(currentGender);
+      setSelectedUserType(currentUserType);
+    }
+  }, [visible, currentSeverity, currentGender, currentUserType]);
 
   const severities: Severity[] = ['Low', 'Medium', 'High'];
   const genders: Gender[] = ['Female', 'Male', 'Prefer not to say'];
@@ -54,18 +59,15 @@ export default function FilterModal({ visible, onClose }: FilterModalProps) {
     <Modal
       visible={visible}
       transparent
-      animationType="fade"
+      animationType="slide"
       onRequestClose={onClose}
     >
       <View style={{ flex: 1, justifyContent: 'flex-end' }}>
         <BlurView intensity={15} tint="dark" style={StyleSheet.absoluteFill} />
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
         
-        <Animated.View
-          entering={SlideInDown.springify().damping(25).stiffness(200)}
-          style={[
-            animatedStyle,
-            {
+        <View
+          style={[{
               backgroundColor: '#FFFFFF',
               borderTopLeftRadius: 32,
               borderTopRightRadius: 32,
@@ -75,20 +77,18 @@ export default function FilterModal({ visible, onClose }: FilterModalProps) {
           ]}
         >
           {/* Handle */}
-          <GestureDetector gesture={panGesture}>
-            <View style={{ marginBottom: 32 }}>
-              <View
-                style={{
-                  width: 50,
-                  height: 4,
-                  borderRadius: 2,
-                  backgroundColor: '#A3A3A3',
-                  alignSelf: 'center',
-                }}
-              />
-            </View>
-          </GestureDetector>
-
+          <View style={{ marginBottom: 32 }}>
+            <View
+              style={{
+                width: 50,
+                height: 4,
+                borderRadius: 2,
+                backgroundColor: '#A3A3A3',
+                alignSelf: 'center',
+              }}
+            />
+          </View>
+          
           {/* Severity */}
           <View style={{ marginBottom: 16 }}>
             <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 16, color: '#8A9A9D', marginBottom: 16 }}>
@@ -100,7 +100,7 @@ export default function FilterModal({ visible, onClose }: FilterModalProps) {
                   key={s}
                   label={s!}
                   isSelected={selectedSeverity === s}
-                  onPress={() => setSelectedSeverity(s)}
+                  onPress={() => setSelectedSeverity(selectedSeverity === s ? null : s)}
                 />
               ))}
             </View>
@@ -119,7 +119,7 @@ export default function FilterModal({ visible, onClose }: FilterModalProps) {
                   key={g}
                   label={g!}
                   isSelected={selectedGender === g}
-                  onPress={() => setSelectedGender(g)}
+                  onPress={() => setSelectedGender(selectedGender === g ? null : g)}
                 />
               ))}
             </View>
@@ -138,7 +138,7 @@ export default function FilterModal({ visible, onClose }: FilterModalProps) {
                   key={u}
                   label={u!}
                   isSelected={selectedUserType === u}
-                  onPress={() => setSelectedUserType(u)}
+                  onPress={() => setSelectedUserType(selectedUserType === u ? null : u)}
                 />
               ))}
             </View>
@@ -146,7 +146,10 @@ export default function FilterModal({ visible, onClose }: FilterModalProps) {
 
           {/* Confirm Button */}
           <Pressable
-            onPress={onClose}
+            onPress={() => {
+              onApply(selectedSeverity, selectedGender, selectedUserType);
+              onClose();
+            }}
             style={{
               width: '100%',
               height: 56,
@@ -161,7 +164,7 @@ export default function FilterModal({ visible, onClose }: FilterModalProps) {
               Confirm
             </Text>
           </Pressable>
-        </Animated.View>
+        </View>
       </View>
     </Modal>
   );

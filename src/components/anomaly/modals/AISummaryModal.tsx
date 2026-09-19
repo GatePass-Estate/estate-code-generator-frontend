@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Pressable, ScrollView } from 'react-native';
+import { View, Text, Pressable, ScrollView, Modal, StyleSheet } from 'react-native';
 import Animated, {
   SlideInDown,
   SlideOutDown,
@@ -8,8 +8,6 @@ import Animated, {
 } from 'react-native-reanimated';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
-import { GestureDetector } from 'react-native-gesture-handler';
-import { useSwipeDown } from './useSwipeDown';
 
 type AISummaryModalProps = {
   visible: boolean;
@@ -17,39 +15,25 @@ type AISummaryModalProps = {
 };
 
 export default function AISummaryModal({ visible, onClose }: AISummaryModalProps) {
-  const { panGesture, animatedStyle, translateY } = useSwipeDown(onClose);
-  React.useEffect(() => {
-    if (visible) translateY.value = 0;
-  }, [visible]);
-  if (!visible) return null;
+      if (!visible) return null;
 
   return (
-    <Animated.View
-      entering={FadeIn.duration(200)}
-      exiting={FadeOut.duration(200)}
-      style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        zIndex: 100,
-        justifyContent: 'flex-end',
-      }}
-    >
-      <BlurView
-        intensity={20}
-        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <View
+        style={{
+          flex: 1,
+          justifyContent: 'flex-end',
+        }}
       >
-        <Pressable style={{ flex: 1 }} onPress={onClose} />
-      </BlurView>
+        <BlurView
+          intensity={20}
+          style={StyleSheet.absoluteFill}
+        >
+          <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+        </BlurView>
 
-      <Animated.View
-        entering={SlideInDown.springify().damping(20).stiffness(90)}
-        exiting={SlideOutDown}
-        style={[
-          animatedStyle,
-          {
+        <View
+          style={[{
             backgroundColor: '#F6F7F7',
             borderTopLeftRadius: 32,
             borderTopRightRadius: 32,
@@ -59,8 +43,7 @@ export default function AISummaryModal({ visible, onClose }: AISummaryModalProps
         ]}
       >
         {/* Draggable Handle Area */}
-        <GestureDetector gesture={panGesture}>
-          <View style={{ paddingBottom: 16 }}>
+                  <View style={{ paddingBottom: 16 }}>
             {/* Handle */}
             <View
               style={{
@@ -72,8 +55,7 @@ export default function AISummaryModal({ visible, onClose }: AISummaryModalProps
               }}
             />
           </View>
-        </GestureDetector>
-        
+                
         <Text allowFontScaling={false} style={{ fontFamily: 'UbuntuSans-Medium', fontSize: 20, color: '#113E55', marginBottom: 16 }}>
           AI SUMMARY
         </Text>
@@ -138,7 +120,8 @@ export default function AISummaryModal({ visible, onClose }: AISummaryModalProps
             </View>
           </View>
         </ScrollView>
-      </Animated.View>
-    </Animated.View>
+      </View>
+    </View>
+  </Modal>
   );
 }

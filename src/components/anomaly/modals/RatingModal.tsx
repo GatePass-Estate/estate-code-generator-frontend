@@ -45,7 +45,7 @@ export default function RatingModal({ visible, onClose, onSubmit }: RatingModalP
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View className="flex-1 justify-center items-center">
         <BlurView intensity={25} tint="dark" style={StyleSheet.absoluteFill} />
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} disabled={isSubmitting} />

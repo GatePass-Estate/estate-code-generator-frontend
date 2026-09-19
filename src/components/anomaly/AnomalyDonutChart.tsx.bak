@@ -92,14 +92,14 @@ const AnimatedTick = ({
   );
 };
 
-const AnomalyDonutChart = ({
+export default function AnomalyDonutChart({
   size = 106,
   totalText = 'TOTAL USERS',
   countText = '50k',
   residentPercentage = 0,
   guestPercentage = 0,
   securityPercentage = 0,
-}: AnomalyDonutChartProps) => {
+}: AnomalyDonutChartProps) {
   const progress = useSharedValue(0);
   const pulse = useSharedValue(1);
 

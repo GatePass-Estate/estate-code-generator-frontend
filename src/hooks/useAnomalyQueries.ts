@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { anomalyApi } from '@/src/lib/api/anomaly';
 
 export const useAnomalyOverview = (estate_id: string, from_date?: string, to_date?: string) => {
@@ -26,6 +26,7 @@ export const useAnomalyPredictions = (
     queryKey: ['anomaly', 'predictions', estate_id, params],
     queryFn: () => anomalyApi.getPredictions({ estate_id, ...params }),
     enabled: !!estate_id,
+    placeholderData: keepPreviousData,
   });
 };
 

@@ -99,7 +99,7 @@ const AnomalyDonutChart = ({
   residentPercentage = 0,
   guestPercentage = 0,
   securityPercentage = 0,
-}: AnomalyDonutChartProps) => {
+}: AnomalyDonutChartProps) {
   const progress = useSharedValue(0);
   const pulse = useSharedValue(1);
 
