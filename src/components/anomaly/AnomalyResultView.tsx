@@ -741,7 +741,7 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
         {/* Table: width 100%, minHeight 350, border-radius 16, padding-top/bottom 16, gap 14 */}
         <View
           style={{
-            width: '108%',
+            width: '100%',
             minHeight: predictions.length === 0 ? 150 : 350,
             alignSelf: 'center',
             borderRadius: 16,

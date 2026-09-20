@@ -199,6 +199,9 @@ export const anomalyApi = {
         page,
         limit,
       },
+      paramsSerializer: {
+        indexes: null,
+      },
     });
     return data;
   },
