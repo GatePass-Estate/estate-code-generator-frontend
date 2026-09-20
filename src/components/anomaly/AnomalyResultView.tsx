@@ -101,21 +101,30 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
 
   // Generate dynamic gauge data from API, safely handling null percentages
   const gaugeList: GaugeData[] = React.useMemo(() => {
-    const factors = overview?.anomaly_overview?.contributing_factors;
+    const factors = overview?.anomaly_overview?.contributing_factors || overview?.anomaly_overview?.top_contributing_factors;
     if (!factors || factors.length === 0) return [];
     
     const colors = ['#F46036', '#1B998B', '#113E55', '#D97706'];
     
+    const formatFallbackString = (str: string) => {
+      if (!str) return '';
+      return str.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    };
+
     return factors.map((factor: any, index: number) => {
       const percentage = factor.percentage || 0;
       const themeColor = colors[index % colors.length];
 
       const rawTitle = factor.name || factor.feature_name || 'Unknown Factor';
-      const formattedTitle = rawTitle.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      const formattedTitle = factor.label || formatFallbackString(rawTitle);
+
+      const weight = factor.weight;
+      const formattedWeight = weight != null ? `${Number(weight).toFixed(weight === 0 ? 0 : 2)}%` : '-';
 
       return {
         title: formattedTitle,
         percentage,
+        weightLabel: formattedWeight,
         color: themeColor,
         arcColor: themeColor,
         records: factor.records || 0,
@@ -123,9 +132,10 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
         items: (factor.sub_factors || []).map((sf: any) => {
           const rawSfTitle = sf.name || sf.feature_name || 'Sub-factor';
           return {
-            title: rawSfTitle.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+            title: sf.label || formatFallbackString(rawSfTitle),
             description: sf.description || '',
-            percentage: sf.percentage || 0
+            percentage: sf.percentage || 0,
+            value: sf.weight != null ? sf.weight : '-'
           };
         })
       };
@@ -167,7 +177,7 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
     );
   }
 
-  const predictions = rawPredictions?.items || [];
+  const predictions = (rawPredictions?.items || []).slice(0, paginationLimit);
 
   return (
     <Animated.View
@@ -1034,7 +1044,7 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
                   </View>
                   {/* Bottom Row: Percentage and Gauge */}
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', width: '100%' }}>
-                    <Text allowFontScaling={false} style={{ fontFamily: 'UbuntuSans-Medium', fontSize: 34.18, lineHeight: 34.18, letterSpacing: 0, color: '#0A1F29', marginBottom: -4, marginLeft: 16 }}>{gauge.percentage}%</Text>
+                    <Text allowFontScaling={false} style={{ fontFamily: 'UbuntuSans-Medium', fontSize: 34.18, lineHeight: 34.18, letterSpacing: 0, color: '#0A1F29', marginBottom: -4, marginLeft: 16 }}>{gauge.weightLabel}</Text>
                     <View style={{ position: 'relative', top: 4 }}>
                       <SemiCircleGauge percentage={gauge.percentage} color={gauge.arcColor || gauge.color} size={130} animate={gaugesInView} />
                     </View>

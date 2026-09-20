@@ -4,7 +4,7 @@ import { BlurView } from 'expo-blur';
 
 export type Severity = 'Low' | 'Medium' | 'High' | null;
 export type Gender = 'Female' | 'Male' | 'Prefer not to say' | null;
-export type UserType = 'Guest' | 'Resident' | 'Security' | null;
+export type UserType = 'Guest' | 'Resident' | null;
 
 interface FilterModalProps {
   visible: boolean;
@@ -30,7 +30,7 @@ export default function FilterModal({ visible, onClose, onApply, currentSeverity
 
   const severities: Severity[] = ['Low', 'Medium', 'High'];
   const genders: Gender[] = ['Female', 'Male', 'Prefer not to say'];
-  const userTypes: UserType[] = ['Guest', 'Resident', 'Security'];
+  const userTypes: UserType[] = ['Guest', 'Resident'];
 
   const Pill = ({ label, isSelected, onPress }: { label: string, isSelected: boolean, onPress: () => void }) => (
     <Pressable

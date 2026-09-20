@@ -18,6 +18,7 @@ import VShapeSvg from '@/src/assets/icons/vshape.svg';
 export interface GaugeData {
   title: string;
   percentage: number;
+  weightLabel: string;
   color: string;
   arcColor?: string;
   records: number;
@@ -26,6 +27,7 @@ export interface GaugeData {
     title: string;
     description?: string;
     percentage: number;
+    value: number | string;
   }[];
 }
 

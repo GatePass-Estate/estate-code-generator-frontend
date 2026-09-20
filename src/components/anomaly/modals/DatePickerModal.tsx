@@ -174,6 +174,29 @@ export default function DatePickerModal({ visible, onClose, onApply }: DatePicke
            </View>
         </View>
 
+        {/* Apply Button */}
+        <Pressable
+          onPress={() => {
+            if (onApply) {
+              onApply(startDate, endDate);
+            }
+            onClose();
+          }}
+          style={{
+            width: '100%',
+            height: 56,
+            backgroundColor: '#113E55',
+            borderRadius: 28,
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginTop: 8,
+          }}
+        >
+          <Text allowFontScaling={false} style={{ fontFamily: 'UbuntuSans-Medium', fontSize: 16, color: '#FFFFFF' }}>
+            Apply Date Range
+          </Text>
+        </Pressable>
+
       </View>
     </View>
   </Modal>

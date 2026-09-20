@@ -33,7 +33,7 @@ const GaugeCardsSection = React.memo(({ gaugeList }: { gaugeList: any[] }) => {
                 </View>
                 {/* Bottom Row: Percentage and Gauge */}
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', width: '100%' }}>
-                  <Text allowFontScaling={false} style={{ fontFamily: 'UbuntuSans-Medium', fontSize: 34.18, lineHeight: 34.18, letterSpacing: 0, color: '#0A1F29', marginBottom: -4, marginLeft: 16 }}>{gauge.percentage}%</Text>
+                  <Text allowFontScaling={false} style={{ fontFamily: 'UbuntuSans-Medium', fontSize: 34.18, lineHeight: 34.18, letterSpacing: 0, color: '#0A1F29', marginBottom: -4, marginLeft: 16 }}>{gauge.weightLabel}</Text>
                   <View style={{ position: 'relative', top: 4 }}>
                     <SemiCircleGauge percentage={gauge.percentage} color={gauge.arcColor || gauge.color} size={130} animate={true} />
                   </View>
@@ -111,6 +111,11 @@ export default function AnomalyDetectionUserDetailsScreen() {
     
     const colors = ['#F46036', '#1B998B', '#113E55', '#D97706'];
 
+    const formatFallbackString = (str: string) => {
+      if (!str) return '';
+      return str.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    };
+
     return factors
       .filter((factor: any) => {
         const raw = factor.name || factor.feature_name || '';
@@ -121,11 +126,15 @@ export default function AnomalyDetectionUserDetailsScreen() {
       const themeColor = colors[index % colors.length];
 
       const rawTitle = factor.name || factor.feature_name || 'Unknown Factor';
-      const formattedTitle = rawTitle.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      const formattedTitle = factor.label || formatFallbackString(rawTitle);
+      
+      const weight = factor.weight;
+      const formattedWeight = weight != null ? `${Number(weight).toFixed(weight === 0 ? 0 : 2)}%` : '-';
 
       return {
         title: formattedTitle,
         percentage,
+        weightLabel: formattedWeight,
         color: themeColor,
         arcColor: themeColor,
         records: factor.records || 0,
@@ -133,9 +142,10 @@ export default function AnomalyDetectionUserDetailsScreen() {
         items: (factor.sub_factors || []).map((sf: any) => {
           const rawSfTitle = sf.name || sf.feature_name || 'Sub-factor';
           return {
-            title: rawSfTitle.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+            title: sf.label || formatFallbackString(rawSfTitle),
             description: sf.description || '',
-            percentage: sf.percentage || 0
+            percentage: sf.percentage || 0,
+            value: sf.weight != null ? sf.weight : '-'
           };
         })
       };
@@ -290,15 +300,15 @@ export default function AnomalyDetectionUserDetailsScreen() {
           <ScrollView style={{ maxHeight: 258 }} showsVerticalScrollIndicator={false} nestedScrollEnabled={true}>
             <View style={{ position: 'relative' }}>
               {/* Dashed Line Background - starts from center of first card (top: 39) */}
-              {historyData?.items && historyData.items.length > 0 ? (
-                <Svg height={historyData.items.length * 90} width="2" style={{ position: 'absolute', top: 39, left: 12, zIndex: 1 }}>
+              {(Array.isArray(historyData) ? historyData : historyData?.items)?.length > 0 ? (
+                <Svg height={(Array.isArray(historyData) ? historyData : historyData?.items).length * 90} width="2" style={{ position: 'absolute', top: 39, left: 12, zIndex: 1 }}>
                   <Line x1="1" y1="0" x2="1" y2="100%" stroke="#878686" strokeWidth="1.4" strokeDasharray="2.8, 2.8" />
                 </Svg>
               ) : null}
               
               <View style={{ gap: 12 }}>
-              {historyData?.items && historyData.items.length > 0 ? (
-                historyData.items.map((record: any, index: number) => {
+              {(Array.isArray(historyData) ? historyData : historyData?.items)?.length > 0 ? (
+                (Array.isArray(historyData) ? historyData : historyData?.items).map((record: any, index: number) => {
                   const isHigh = record.severity?.toLowerCase() === 'high';
                   const d = new Date(record.validated_at);
                   const timeString = isNaN(d.getTime()) ? '--:--' : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
