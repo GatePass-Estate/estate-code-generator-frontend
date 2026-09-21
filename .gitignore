@@ -44,9 +44,6 @@ app-example
 .env
 .env.example
 
-
 # generated native folders
 /ios
 /android
-
-new-screens
