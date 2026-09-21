@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, Alert, ScrollView } from 'reac
 import CheckBox from 'expo-checkbox';
 import { Stack, useRouter } from 'expo-router';
 import UserIcon from '@/src/components/mobile/UserIcon';
+import NotificationBell from '@/src/components/common/NotificationBell';
 import { generateCode } from '@/src/lib/api/codes';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { createGuest } from '@/src/lib/api/guests';
@@ -135,7 +136,12 @@ const AddGuestMobile = () => {
           headerTitleAlign: 'left',
           headerStyle: sharedStyles.header,
           headerTitleStyle: sharedStyles.title,
-          headerRight: () => <UserIcon />,
+          headerRight: () => (
+            <View className="flex-row items-center">
+              <NotificationBell />
+              <UserIcon />
+            </View>
+          ),
         }}
       />
 

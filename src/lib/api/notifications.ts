@@ -68,3 +68,44 @@ export async function deleteAllNotifications(): Promise<{ deleted?: number }> {
     throw new Error(`${getErrorMessage(error) || 'Could not clear your activity'}`);
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* Push device tokens                                                  */
+/* ------------------------------------------------------------------ */
+
+export type DevicePlatform = 'IOS' | 'ANDROID';
+
+/**
+ * Registers this device for push.
+ *
+ * `token` must be an **FCM registration token** — the backend delivers through
+ * firebase-admin, so an Expo push token (`ExponentPushToken[...]`) would be
+ * rejected.
+ */
+export async function registerDeviceToken(
+  token: string,
+  platform: DevicePlatform,
+  session_id?: string | null
+): Promise<{ id?: string }> {
+  try {
+    const api = Api();
+    const axiosRes = await api.post(`/device-tokens`, {
+      token,
+      platform,
+      ...(session_id ? { session_id } : {}),
+    });
+    return axiosRes.data;
+  } catch (error: any) {
+    throw new Error(`${getErrorMessage(error) || 'Could not register this device for push'}`);
+  }
+}
+
+/** Removes this device's token so a signed-out device stops receiving push. */
+export async function unregisterDeviceToken(token: string): Promise<void> {
+  try {
+    const api = Api();
+    await api.delete(`/device-tokens/by-token/${encodeURIComponent(token)}`);
+  } catch (error: any) {
+    throw new Error(`${getErrorMessage(error) || 'Could not unregister this device'}`);
+  }
+}

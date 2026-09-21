@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { enableTwoFactor, setupTwoFactor } from '@/src/lib/api/auth';
-import { setTwoFactorOverride } from '@/src/hooks/useTwoFactorStatus';
+import { writeTwoFactorFlag } from '@/src/lib/twoFactorState';
+import { useUserStore } from '@/src/lib/stores/userStore';
 
 /**
  * Drives TOTP enrolment: fetches the provisioning URI on mount, then exchanges
@@ -9,6 +10,8 @@ import { setTwoFactorOverride } from '@/src/hooks/useTwoFactorStatus';
  * Shared by the native and web setup screens so the two stay in lock-step.
  */
 export function useTwoFactorSetup() {
+  const userId = useUserStore((state) => state.user_id);
+
   const [provisioningUri, setProvisioningUri] = useState('');
   const [secret, setSecret] = useState('');
   const [code, setCode] = useState('');
@@ -37,7 +40,7 @@ export function useTwoFactorSetup() {
   // Clear a stale error as soon as the user starts correcting the code.
   useEffect(() => {
     if (code) setErrorMessage('');
-  }, [code]);
+  }, [code, userId]);
 
   /** Returns the recovery codes on success, or null when activation failed. */
   const activate = useCallback(async (): Promise<string[] | null> => {
@@ -53,8 +56,8 @@ export function useTwoFactorSetup() {
     try {
       const response = await enableTwoFactor(trimmed);
       // The current session's is_2fa_verified flag cannot move until the next
-      // sign-in, so record the change for the Account Security toggle.
-      setTwoFactorOverride(true);
+      // sign-in, so persist the change for the Account Security toggle.
+      await writeTwoFactorFlag(userId, true);
       return response.recovery_codes ?? [];
     } catch (error: any) {
       setErrorMessage(error?.message || 'That code was not accepted. Try again.');
@@ -62,7 +65,7 @@ export function useTwoFactorSetup() {
     } finally {
       setActivating(false);
     }
-  }, [code]);
+  }, [code, userId]);
 
   return {
     provisioningUri,

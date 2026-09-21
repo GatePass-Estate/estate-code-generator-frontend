@@ -9,6 +9,7 @@ import { fetchMe, recoverTwoFactor, verifyTwoFactor } from '@/src/lib/api/auth';
 import { useAuthStore } from '@/src/lib/stores/authStore';
 import { useAuth } from '@/src/hooks/useAuthContext';
 import { broadcastLogin, storeAuthState } from '@/src/lib/helpers';
+import { writeTwoFactorFlag } from '@/src/lib/twoFactorState';
 import type { User } from '@/src/types/user';
 
 export default function TwoFactorChallengeScreen() {
@@ -88,6 +89,11 @@ export default function TwoFactorChallengeScreen() {
       }
 
       const user = await fetchMe(result.access_token);
+
+      // Completing a challenge is proof of the account's 2FA state: verifying
+      // means it is on, while a recovery code disables it server-side.
+      await writeTwoFactorFlag(user.user_id, !useRecovery);
+
       useAuthStore.setState({
         access_token: result.access_token,
         role: user.role,

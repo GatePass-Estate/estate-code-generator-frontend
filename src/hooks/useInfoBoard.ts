@@ -28,7 +28,10 @@ export function useInfoBoard() {
   const [tab, setTab] = useState<InfoBoardTab>('message');
   const [broadcasts, setBroadcasts] = useState<BroadcastItem[]>([]);
   const [activities, setActivities] = useState<NotificationItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  // One flag per tab so switching is instant: the other list can still be
+  // in flight without blocking the tab you just opened.
+  const [broadcastsLoading, setBroadcastsLoading] = useState(true);
+  const [activitiesLoading, setActivitiesLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [busy, setBusy] = useState(false);
@@ -37,31 +40,44 @@ export function useInfoBoard() {
   const setActivityUnread = useNotificationStore((state) => state.setActivityUnread);
   const refreshCounts = useNotificationStore((state) => state.refreshCounts);
 
+  const loadBroadcasts = useCallback(async () => {
+    try {
+      const response = await listBroadcasts(1, 50);
+      setBroadcasts(response?.items ?? []);
+      return true;
+    } catch {
+      return false;
+    } finally {
+      setBroadcastsLoading(false);
+    }
+  }, []);
+
+  const loadActivities = useCallback(async () => {
+    try {
+      const response = await listNotifications(1, 50);
+      setActivities(response?.items ?? []);
+      return true;
+    } catch {
+      return false;
+    } finally {
+      setActivitiesLoading(false);
+    }
+  }, []);
+
+  /** Kicks off both lists. They resolve independently. */
   const load = useCallback(async () => {
     setErrorMessage('');
-    // Settled: an empty or failing broadcast list should not hide activity.
-    const [broadcastResult, activityResult] = await Promise.allSettled([
-      listBroadcasts(1, 50),
-      listNotifications(1, 50),
-    ]);
+    const [broadcastsOk, activitiesOk] = await Promise.all([loadBroadcasts(), loadActivities()]);
 
-    if (broadcastResult.status === 'fulfilled') {
-      setBroadcasts(broadcastResult.value?.items ?? []);
-    }
-    if (activityResult.status === 'fulfilled') {
-      setActivities(activityResult.value?.items ?? []);
+    // Only surface an error when nothing at all could be loaded; a single
+    // failing list still leaves the other tab usable.
+    if (!broadcastsOk && !activitiesOk) {
+      setErrorMessage('Could not load your Info Board.');
     }
 
-    if (broadcastResult.status === 'rejected' && activityResult.status === 'rejected') {
-      setErrorMessage(
-        (broadcastResult.reason as Error)?.message || 'Could not load your Info Board.'
-      );
-    }
-
-    setLoading(false);
     setRefreshing(false);
     void refreshCounts();
-  }, [refreshCounts]);
+  }, [loadBroadcasts, loadActivities, refreshCounts]);
 
   useEffect(() => {
     load();
@@ -179,9 +195,12 @@ export function useInfoBoard() {
   return {
     tab,
     setTab,
+    broadcastsLoading,
+    activitiesLoading,
+    /** Loading state for whichever tab is showing. */
+    loading: tab === 'message' ? broadcastsLoading : activitiesLoading,
     broadcasts,
     activities,
-    loading,
     refreshing,
     refresh,
     errorMessage,

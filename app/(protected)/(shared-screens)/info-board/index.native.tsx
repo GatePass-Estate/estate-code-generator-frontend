@@ -1,53 +1,29 @@
-import { useCallback } from 'react';
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { useCallback, useState } from 'react';
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Stack, router } from 'expo-router';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import Back from '@/src/components/mobile/Back';
-import SwipeableRow from '@/src/components/mobile/SwipeableRow';
+import InfoBoardTabs from '@/src/components/mobile/InfoBoardTabs';
+import ActivityDetailModal from '@/src/components/mobile/ActivityDetailModal';
+import { ActivityRow, BroadcastRow } from '@/src/components/mobile/InfoBoardRows';
 import { sharedStyles } from '@/src/theme/styles';
-import { ActivityAlertIcon, PriorityAlarmIcon } from '@/src/assets/svgs';
-import { useInfoBoard, type InfoBoardTab } from '@/src/hooks/useInfoBoard';
+import { useInfoBoard } from '@/src/hooks/useInfoBoard';
 import { useNotificationStore } from '@/src/lib/stores/notificationStore';
-import { isAlertNotification, priorityStyle, relativeTime } from '@/src/lib/broadcastStyle';
+import type { NotificationItem } from '@/src/types/notification';
 
-function TabSwitch({
-  tab,
-  onChange,
-  broadcastUnread,
-  activityUnread,
-}: {
-  tab: InfoBoardTab;
-  onChange: (next: InfoBoardTab) => void;
-  broadcastUnread: number;
-  activityUnread: number;
-}) {
+/** Keeps virtualisation tight so switching tabs never mounts a long list. */
+const LIST_TUNING = {
+  initialNumToRender: 8,
+  maxToRenderPerBatch: 8,
+  windowSize: 7,
+  removeClippedSubviews: true,
+};
+
+function EmptyState({ text }: { text: string }) {
   return (
-    <View className="flex-row self-start rounded-[24px] bg-[#EFF1F1] p-0 mt-5">
-      {(['message', 'activities'] as InfoBoardTab[]).map((value) => {
-        const active = tab === value;
-        const unread = value === 'message' ? broadcastUnread : activityUnread;
-        return (
-          <Pressable
-            key={value}
-            onPress={() => onChange(value)}
-            className="h-10 w-[119px] items-center justify-center rounded-[24px]"
-            style={{ backgroundColor: active ? '#CEE5ED' : 'transparent' }}
-          >
-            <Text
-              className="font-inter-regular text-[11px]"
-              style={{ color: active ? '#113E55' : '#878686' }}
-            >
-              {value === 'message' ? 'Message' : 'Activities'}
-            </Text>
-            {/* The dot marks unread on the tab you are not currently viewing. */}
-            {!active && unread > 0 && (
-              <View className="absolute right-3 top-2 h-[9px] w-[9px] rounded-full bg-[#E30404]" />
-            )}
-          </Pressable>
-        );
-      })}
-    </View>
+    <Text className="text-[#878686] font-inter-regular text-sm text-center py-10">{text}</Text>
   );
 }
 
@@ -73,6 +49,8 @@ export default function InfoBoardScreen() {
   const broadcastUnread = useNotificationStore((state) => state.broadcastUnread);
   const activityUnread = useNotificationStore((state) => state.activityUnread);
 
+  const [selectedActivity, setSelectedActivity] = useState<NotificationItem | null>(null);
+
   const openBroadcast = useCallback(
     (id: string) => {
       void readBroadcast(id);
@@ -80,6 +58,25 @@ export default function InfoBoardScreen() {
     },
     [readBroadcast]
   );
+
+  const handleRemoveBroadcast = useCallback(
+    (id: string) => void removeBroadcast(id),
+    [removeBroadcast]
+  );
+  const handleRemoveActivity = useCallback(
+    (id: string) => void removeActivity(id),
+    [removeActivity]
+  );
+
+  const openActivity = useCallback(
+    (item: NotificationItem) => {
+      setSelectedActivity(item);
+      void readActivity(item.id);
+    },
+    [readActivity]
+  );
+
+  const isMessages = tab === 'message';
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -94,10 +91,10 @@ export default function InfoBoardScreen() {
         <Back type="short-arrow" showText={false} showBorder />
 
         <Text className="text-primary font-ubuntu-medium mt-[18px]" style={{ fontSize: 27 }}>
-          {tab === 'message' ? 'Info Board' : 'Recent Activity'}
+          {isMessages ? 'Info Board' : 'Recent Activity'}
         </Text>
 
-        <TabSwitch
+        <InfoBoardTabs
           tab={tab}
           onChange={setTab}
           broadcastUnread={broadcastUnread}
@@ -108,119 +105,50 @@ export default function InfoBoardScreen() {
           <Text className="text-danger font-inter-regular text-xs mt-4">{errorMessage}</Text>
         )}
 
-        {loading ? (
-          <View className="items-center py-14">
-            <ActivityIndicator color="#113E55" />
-          </View>
-        ) : (
-          <ScrollView
-            className="mt-6"
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ gap: 12, paddingBottom: 24 }}
-            refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor="#113E55" />
-            }
-          >
-            {tab === 'message' ? (
-              broadcasts.length === 0 ? (
-                <Text className="text-[#878686] font-inter-regular text-sm text-center py-10">
-                  No messages from your estate yet.
-                </Text>
-              ) : (
-                broadcasts.map((item) => {
-                  const style = priorityStyle(item.priority);
-                  return (
-                    <SwipeableRow
-                      key={item.id}
-                      onSwipeLeft={() => void removeBroadcast(item.id)}
-                      onSwipeRight={() => openBroadcast(item.id)}
-                      leftActionLabel="Open"
-                      rightActionLabel="Delete"
-                    >
-                      <Pressable
-                        onPress={() => openBroadcast(item.id)}
-                        className="flex-row items-center rounded-[8px] border px-4 py-3"
-                        style={{ backgroundColor: style.background, borderColor: style.border }}
-                      >
-                        <PriorityAlarmIcon color={style.icon} circleColor={style.circle} />
-
-                        <View className="flex-1 px-3">
-                          <Text
-                            className="text-[#0A1F29] text-sm"
-                            style={{
-                              fontFamily: item.is_read ? 'Inter_18pt-Light' : 'Inter_18pt-SemiBold',
-                            }}
-                            numberOfLines={1}
-                          >
-                            {item.title}
-                          </Text>
-                          <Text
-                            className="text-[#878686] font-inter-regular text-[11px] mt-0.5"
-                            numberOfLines={1}
-                          >
-                            {item.message}
-                          </Text>
-                        </View>
-
-                        <Text className="text-[#878686] font-inter-regular text-[11px]">
-                          {relativeTime(item.created_at)}
-                        </Text>
-                      </Pressable>
-                    </SwipeableRow>
-                  );
-                })
-              )
-            ) : activities.length === 0 ? (
-              <Text className="text-[#878686] font-inter-regular text-sm text-center py-10">
-                Nothing has happened on your account yet.
-              </Text>
-            ) : (
-              activities.map((item) => {
-                const alert = isAlertNotification(item.type);
-                return (
-                  <SwipeableRow
-                    key={item.id}
-                    onSwipeLeft={() => void removeActivity(item.id)}
-                    onSwipeRight={() => void readActivity(item.id)}
-                    leftActionLabel="Mark read"
-                    rightActionLabel="Delete"
-                  >
-                    <Pressable
-                      onPress={() => void readActivity(item.id)}
-                      className="flex-row items-center rounded-[8px] px-4 py-4"
-                      style={{
-                        backgroundColor: alert ? '#FFF8F5' : '#FFFFFF',
-                        borderWidth: alert ? 1 : 0,
-                        borderColor: '#E30404',
-                      }}
-                    >
-                      <ActivityAlertIcon
-                        color={alert ? '#E30404' : '#113E55'}
-                        circleColor={alert ? '#FFF0EC' : '#CEE5ED'}
-                      />
-
-                      <View className="flex-1 px-3">
-                        <Text
-                          className="text-[#0A1F29] text-sm"
-                          style={{
-                            fontFamily: item.is_read ? 'Inter_18pt-Light' : 'Inter_18pt-SemiBold',
-                          }}
-                          numberOfLines={1}
-                        >
-                          {item.title}
-                        </Text>
-                      </View>
-
-                      <Text className="text-[#878686] font-inter-regular text-[11px]">
-                        {relativeTime(item.created_at)}
-                      </Text>
-                    </Pressable>
-                  </SwipeableRow>
-                );
-              })
-            )}
-          </ScrollView>
-        )}
+        {/*
+          Keyed on the tab so React swaps the list outright instead of diffing
+          two different row types, and `FadeIn` animates only the incoming
+          content. The switch itself is synchronous — nothing awaits data.
+        */}
+        <Animated.View key={tab} entering={FadeIn.duration(160)} style={{ flex: 1 }}>
+          {loading ? (
+            <View className="items-center py-14">
+              <ActivityIndicator color="#113E55" />
+            </View>
+          ) : isMessages ? (
+            <FlatList
+              {...LIST_TUNING}
+              className="mt-6"
+              data={broadcasts}
+              keyExtractor={(item) => item.id}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ gap: 12, paddingBottom: 24 }}
+              refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor="#113E55" />
+              }
+              ListEmptyComponent={<EmptyState text="No messages from your estate yet." />}
+              renderItem={({ item }) => (
+                <BroadcastRow item={item} onOpen={openBroadcast} onRemove={handleRemoveBroadcast} />
+              )}
+            />
+          ) : (
+            <FlatList
+              {...LIST_TUNING}
+              className="mt-6"
+              data={activities}
+              keyExtractor={(item) => item.id}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ gap: 12, paddingBottom: 24 }}
+              refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor="#113E55" />
+              }
+              ListEmptyComponent={<EmptyState text="Nothing has happened on your account yet." />}
+              renderItem={({ item }) => (
+                <ActivityRow item={item} onOpen={openActivity} onRemove={handleRemoveActivity} />
+              )}
+            />
+          )}
+        </Animated.View>
 
         {hasItems && (
           <Pressable
@@ -236,6 +164,11 @@ export default function InfoBoardScreen() {
             )}
           </Pressable>
         )}
+
+        <ActivityDetailModal
+          activity={selectedActivity}
+          onClose={() => setSelectedActivity(null)}
+        />
       </SafeAreaView>
     </GestureHandlerRootView>
   );

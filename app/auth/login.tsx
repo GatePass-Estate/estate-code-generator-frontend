@@ -57,6 +57,9 @@ export default function Login() {
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showTosRejected, setShowTosRejected] = useState(searchParams.tos_rejected === 'true');
+  // Set when a session was revoked or expired elsewhere and we signed this
+  // device out; explains why the user is suddenly back on the login screen.
+  const sessionExpired = searchParams.session_expired === 'true';
   const [showBiometric, setShowBiometric] = useState(false);
   const [showBiometricPrompt, setShowBiometricPrompt] = useState(false);
   const [pendingAuth, setPendingAuth] = useState<{ token: string; user: User } | null>(null);
@@ -370,6 +373,14 @@ export default function Login() {
           style={{ flex: 1 }}
         >
           <Back type="short-arrow" onPress={handleBackPress} showText={false} showBorder={true} />
+
+          {sessionExpired && (
+            <View className="rounded-2xl border-mini border-[#FFCDD2] bg-[#FFF0F0] px-6 py-3.5 mb-4 self-center">
+              <Text className="text-[#B3261E] font-inter-regular text-xs text-center">
+                You were signed out because this session was ended on another device.
+              </Text>
+            </View>
+          )}
 
           {showTosRejected && !isLargeScreen && (
             <View
