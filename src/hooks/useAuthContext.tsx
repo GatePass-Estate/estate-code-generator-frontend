@@ -14,6 +14,8 @@ import { useProfileDocumentsStore } from '@/src/lib/stores/profileDocumentsStore
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { useUpgradePromptStore } from '@/src/hooks/usePlan';
 import { clearTwoFactorOverride } from '@/src/hooks/useTwoFactorStatus';
+import { resetBroadcastPopupSuppression } from '@/src/components/common/BroadcastPopupHost';
+import { useNotificationStore } from '@/src/lib/stores/notificationStore';
 import { AuthContextType } from '@/src/types/auth';
 import { User } from '@/src/types/user';
 import { usePathname, useRouter } from 'expo-router';
@@ -71,6 +73,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       clearUserData();
       useAuthStore.getState().clearAuth();
       clearTwoFactorOverride();
+      resetBroadcastPopupSuppression();
+      useNotificationStore.getState().clear();
       const institution = await getSelectedInstitution();
       router.replace(getPostAuthRedirectRoute(institution));
     } finally {
@@ -83,6 +87,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     clearUserData();
     useAuthStore.getState().clearAuth();
     clearTwoFactorOverride();
+    resetBroadcastPopupSuppression();
+    useNotificationStore.getState().clear();
     await clearAuthState();
     broadcastLogout();
     // Force full component reset by incrementing key

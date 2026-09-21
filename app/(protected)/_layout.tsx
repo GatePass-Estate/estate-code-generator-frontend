@@ -3,6 +3,7 @@ import { Redirect, Stack } from 'expo-router';
 import PlanGuard from '@/src/components/mobile/PlanGuard';
 import { useAuth } from '@/src/hooks/useAuthContext';
 import { useUserStore } from '@/src/lib/stores/userStore';
+import BroadcastPopupHost from '@/src/components/common/BroadcastPopupHost';
 
 export const unstable_home_settings = {
   initialRouteName: '(protected)',
@@ -27,6 +28,8 @@ export default function ProtectedLayout() {
         <Stack.Screen name="user" />
       </Stack>
       <PlanGuard />
+      {/* Announcements sit above every signed-in screen. */}
+      <BroadcastPopupHost />
     </>
   );
 }

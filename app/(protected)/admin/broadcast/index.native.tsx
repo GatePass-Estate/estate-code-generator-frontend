@@ -21,16 +21,13 @@ import {
   PRIORITY_LEVELS,
   USER_TYPES,
 } from '@/src/types/broadcast';
+import { createBroadcast } from '@/src/lib/api/broadcast';
+import { toCreateBroadcastPayload } from '@/src/lib/broadcastForm';
 import { Picker } from '@/src/components/mobile/Picker';
 
-// Dummy API functions
 const sendBroadcastAPI = async (data: BroadcastFormData): Promise<boolean> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      console.log('Broadcasting:', data);
-      resolve(Math.random() > 0.1); // 95% success rate
-    }, 2000);
-  });
+  await createBroadcast(toCreateBroadcastPayload(data));
+  return true;
 };
 
 const BroadcastMobile = () => {

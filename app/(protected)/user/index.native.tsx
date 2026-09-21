@@ -3,6 +3,7 @@ import CountdownRing from '@/src/components/common/CountdownRing';
 import { View, Text, FlatList, Animated, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import UserIcon from '@/src/components/mobile/UserIcon';
+import NotificationBell from '@/src/components/common/NotificationBell';
 import { useEffect, useRef, useState } from 'react';
 import images from '@/src/constants/images';
 import { Codes } from '@/src/types/codes';
@@ -101,7 +102,12 @@ export default function HomeMobile({}) {
           headerTitleAlign: 'left',
           headerStyle: sharedStyles.header,
           headerTitleStyle: sharedStyles.title,
-          headerRight: () => <UserIcon />,
+          headerRight: () => (
+            <View className="flex-row items-center">
+              <NotificationBell />
+              <UserIcon />
+            </View>
+          ),
         }}
       />
 
