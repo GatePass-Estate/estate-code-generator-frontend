@@ -88,7 +88,7 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
       from_date: startDate ? startDate.toISOString() : undefined,
       to_date: endDate ? endDate.toISOString() : undefined,
       severity: filterSeverity ? [filterSeverity.toLowerCase()] : undefined,
-      gender: filterGender ? [filterGender.toLowerCase()] : undefined,
+      gender: filterGender ? [filterGender] : undefined,
       user_type: filterUserType ? [filterUserType.toLowerCase()] : undefined,
       sort_order: sortAscending ? 'asc' : 'desc',
       limit: paginationLimit,
@@ -115,7 +115,8 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
       const percentage = factor.percentage || 0;
       const themeColor = colors[index % colors.length];
 
-      const rawTitle = factor.name || factor.feature_name || 'Unknown Factor';
+      const factorName = factor.name || factor.feature_name;
+      const rawTitle = factorName || 'Unknown Factor';
       const formattedTitle = factor.label || formatFallbackString(rawTitle);
 
       const weight = factor.weight;
@@ -835,7 +836,7 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
               </Text>
             </View>
           ) : (
-            (sortAscending ? predictions : [...predictions].reverse()).map((row: any, index: number) => {
+            predictions.map((row: any, index: number) => {
               const severityStr = (row.severity || 'LOW').toUpperCase();
               let badgeBg = 'bg-[#E4F4F0]';
               let badgeText = 'text-[#2B9B84]';

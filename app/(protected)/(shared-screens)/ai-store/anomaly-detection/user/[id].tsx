@@ -12,7 +12,7 @@ import GaugeDetailModal from '@/src/components/anomaly/modals/GaugeDetailModal';
 import TotalUsersSvg from '@/src/assets/icons/totalusers.svg';
 import GuestMaleSvg from '@/src/assets/images/guestmale.svg';
 import GuestFemaleSvg from '@/src/assets/images/guestfemale.svg';
-import { useAuthStore } from '@/src/lib/stores/authStore';
+import { useUserStore } from '@/src/lib/stores/userStore';
 import { useAnomalyCaseDemographic, useAnomalyCaseHistory, useAnomalyCaseSummary, useAnomalyCaseResults } from '@/src/hooks/useAnomalyQueries';
 
 const GaugeCardsSection = React.memo(({ gaugeList }: { gaugeList: any[] }) => {
@@ -72,8 +72,7 @@ const GaugeCardsSection = React.memo(({ gaugeList }: { gaugeList: any[] }) => {
 
 export default function AnomalyDetectionUserDetailsScreen() {
   const { id, gender, user_type, display_name } = useLocalSearchParams();
-  const authEstateId = useAuthStore((s: any) => s.user?.estate_id || '');
-  const estateId = authEstateId || 'fallback-estate-id'; // Fallback so queries run if auth is empty in dev
+  const estateId = useUserStore((state: any) => state.estate_id) || '';
   const [aiState, setAiState] = useState<'idle' | 'loading' | 'loaded' | 'forbidden' | 'error'>('idle');
   const [showAiSummaryModal, setShowAiSummaryModal] = useState(false);
   
@@ -128,8 +127,8 @@ export default function AnomalyDetectionUserDetailsScreen() {
       const rawTitle = factor.name || factor.feature_name || 'Unknown Factor';
       const formattedTitle = factor.label || formatFallbackString(rawTitle);
       
-      const weight = factor.weight;
-      const formattedWeight = weight != null ? `${Number(weight).toFixed(weight === 0 ? 0 : 2)}%` : '-';
+      const weight = factor.weight !== undefined ? factor.weight : factor.percentage;
+      const formattedWeight = weight != null ? `${Number(weight).toFixed(weight === 0 ? 0 : 0)}%` : '-';
 
       return {
         title: formattedTitle,
@@ -145,7 +144,7 @@ export default function AnomalyDetectionUserDetailsScreen() {
             title: sf.label || formatFallbackString(rawSfTitle),
             description: sf.description || '',
             percentage: sf.percentage || 0,
-            value: sf.weight != null ? sf.weight : '-'
+            value: sf.weight != null ? sf.weight : (sf.percentage != null ? `${Math.round(sf.percentage)}%` : '-')
           };
         })
       };
@@ -473,8 +472,8 @@ export default function AnomalyDetectionUserDetailsScreen() {
           {/* Pill tags */}
           <View style={{ flexDirection: 'row', gap: 12, marginBottom: 32, flexWrap: 'wrap' }}>
             {(() => {
-              const topFactors = resultsData?.anomaly_overview?.top_contributing_factors;
               const factors = resultsData?.anomaly_overview?.contributing_factors;
+              const topFactors = factors ? [...factors].sort((a: any, b: any) => (b.percentage || 0) - (a.percentage || 0)).slice(0, 4) : [];
               
               if (topFactors && topFactors.length > 0 && factors) {
                 return topFactors.map((factor: any, index: number) => {
