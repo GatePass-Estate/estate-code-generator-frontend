@@ -1,6 +1,12 @@
 import Api from '.';
 import axios, { isAxiosError } from 'axios';
-import { LoginResponse, VerifyEmailActivationResponse } from '@/src/types/auth';
+import {
+  LoginResponse,
+  SessionListResponse,
+  TwoFARecoveryCodesResponse,
+  TwoFASetupResponse,
+  VerifyEmailActivationResponse,
+} from '@/src/types/auth';
 import { getErrorMessage } from '../helpers';
 import { useQuery } from '@tanstack/react-query';
 
@@ -8,19 +14,21 @@ const queryKeys = {
   verifyEmailActivationToken: (token: string) => ['verify-email-activation-token', token],
 };
 
-const DEFAULT_LOGIN_ESTATE_ID = 'e7fb4d3b-6418-4729-9454-d34c7f069968';
-
 export async function loginUser(
   email: string,
   password: string,
   estate_id?: string | null
 ): Promise<LoginResponse> {
+  if (!estate_id) {
+    throw new Error('Please select your institution before logging in.');
+  }
+
   try {
     const api = Api();
     const axiosRes = await api.post(`/auth/login`, {
       email,
       password,
-      estate_id: estate_id || DEFAULT_LOGIN_ESTATE_ID,
+      estate_id,
     });
     const data = axiosRes.data;
 
@@ -207,5 +215,127 @@ export async function resetPassword(
     return axiosRes.data;
   } catch (error: any) {
     throw new Error(`${getErrorMessage(error) || 'Failed to reset password'} `);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Two-factor authentication                                           */
+/* ------------------------------------------------------------------ */
+
+/** Starts TOTP enrolment. Returns the provisioning URI to render as a QR code. */
+export async function setupTwoFactor(): Promise<TwoFASetupResponse> {
+  try {
+    const api = Api();
+    const axiosRes = await api.post(`/auth/2fa/setup`);
+    return axiosRes.data;
+  } catch (error: any) {
+    throw new Error(`${getErrorMessage(error) || 'Could not start two-factor setup'}`);
+  }
+}
+
+/** Confirms enrolment with a code from the authenticator app. Returns recovery codes. */
+export async function enableTwoFactor(code: string): Promise<TwoFARecoveryCodesResponse> {
+  try {
+    const api = Api();
+    const axiosRes = await api.post(`/auth/2fa/enable`, { code });
+    return axiosRes.data;
+  } catch (error: any) {
+    throw new Error(`${getErrorMessage(error) || 'Could not enable two-factor authentication'}`);
+  }
+}
+
+/** Turns TOTP off. Requires a current code, so it is sent as a DELETE body. */
+export async function disableTwoFactor(code: string): Promise<{ success?: boolean }> {
+  try {
+    const api = Api();
+    const axiosRes = await api.delete(`/auth/2fa/disable`, { data: { code } });
+    return axiosRes.data;
+  } catch (error: any) {
+    throw new Error(`${getErrorMessage(error) || 'Could not disable two-factor authentication'}`);
+  }
+}
+
+/** Issues a fresh set of recovery codes, invalidating the previous set. */
+export async function regenerateRecoveryCodes(code: string): Promise<TwoFARecoveryCodesResponse> {
+  try {
+    const api = Api();
+    const axiosRes = await api.post(`/auth/2fa/regenerate-codes`, { code });
+    return axiosRes.data;
+  } catch (error: any) {
+    throw new Error(`${getErrorMessage(error) || 'Could not regenerate recovery codes'}`);
+  }
+}
+
+/**
+ * Completes a pending 2FA login challenge.
+ *
+ * Runs before an access token exists, so it deliberately bypasses the shared
+ * Api() client (which would attach a stale/empty Authorization header).
+ */
+export async function verifyTwoFactor(two_fa_token: string, code: string): Promise<LoginResponse> {
+  try {
+    const baseUrl = process.env.EXPO_PUBLIC_USER_SERVICE_API_URL;
+    const axiosRes = await axios.post(
+      `${baseUrl}/api/v1/auth/2fa/verify`,
+      { two_fa_token, code },
+      { headers: { 'Content-Type': 'application/json' }, timeout: 10000 }
+    );
+    return axiosRes.data;
+  } catch (error: any) {
+    throw new Error(`${getErrorMessage(error) || 'Invalid authentication code'}`);
+  }
+}
+
+/** Completes a pending 2FA login with a one-time recovery code. Disables 2FA. */
+export async function recoverTwoFactor(
+  two_fa_token: string,
+  recovery_code: string
+): Promise<LoginResponse> {
+  try {
+    const baseUrl = process.env.EXPO_PUBLIC_USER_SERVICE_API_URL;
+    const axiosRes = await axios.post(
+      `${baseUrl}/api/v1/auth/2fa/recover`,
+      { two_fa_token, recovery_code },
+      { headers: { 'Content-Type': 'application/json' }, timeout: 10000 }
+    );
+    return axiosRes.data;
+  } catch (error: any) {
+    throw new Error(`${getErrorMessage(error) || 'Invalid recovery code'}`);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Sessions (linked devices)                                           */
+/* ------------------------------------------------------------------ */
+
+export async function listSessions(): Promise<SessionListResponse> {
+  try {
+    const api = Api();
+    const axiosRes = await api.get(`/auth/sessions`);
+    return axiosRes.data;
+  } catch (error: any) {
+    throw new Error(`${getErrorMessage(error) || 'Could not load your devices'}`);
+  }
+}
+
+/** Revokes a single session, signing that device out. */
+export async function revokeSession(session_id: string): Promise<{ success?: boolean }> {
+  try {
+    const api = Api();
+    const axiosRes = await api.delete(`/auth/sessions/${session_id}`);
+    return axiosRes.data;
+  } catch (error: any) {
+    throw new Error(`${getErrorMessage(error) || 'Could not log that device out'}`);
+  }
+}
+
+/** Revokes every session for the current user, including this one. */
+export async function revokeAllSessions(): Promise<{ success?: boolean }> {
+  try {
+    const api = Api();
+    const axiosRes = await api.delete(`/auth/sessions`);
+    return axiosRes.data;
+  } catch (error: any) {
+    throw new Error(`${getErrorMessage(error) || 'Could not log out of all devices'}`);
   }
 }

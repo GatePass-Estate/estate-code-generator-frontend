@@ -118,10 +118,14 @@ export default function Login() {
   }, [router]);
 
   const finishSignIn = useCallback(
-    async (token: string, options?: { skipRouting?: boolean }): Promise<User> => {
+    async (
+      token: string,
+      options?: { skipRouting?: boolean; sessionId?: string | null }
+    ): Promise<User> => {
       const user = await fetchMe(token);
-      useAuthStore.setState({ access_token: token, role: user.role });
-      await storeAuthState({ access_token: token, role: user.role });
+      const session_id = options?.sessionId ?? null;
+      useAuthStore.setState({ access_token: token, role: user.role, session_id });
+      await storeAuthState({ access_token: token, role: user.role, session_id });
       broadcastLogin(token, user.role);
       signIn(user);
 
@@ -158,8 +162,27 @@ export default function Login() {
       return;
     }
 
+    if (!estate?.estate_id) {
+      setIsLoading(false);
+      router.replace('/auth/institution');
+      return;
+    }
+
     try {
-      const result = await loginUser(emailValue, password, estate?.estate_id);
+      const result = await loginUser(emailValue, password, estate.estate_id);
+
+      // A 2FA challenge comes back without an access token, so it must be
+      // handled before any code path that expects one.
+      if (result.requires_2fa && result.two_fa_token) {
+        await setLastLoginInstitution(estate ?? null);
+        await AsyncStorage.setItem('gatepass-last-email', emailValue);
+        router.push({
+          pathname: '/auth/two-factor',
+          params: { two_fa_token: result.two_fa_token },
+        });
+        setIsLoading(false);
+        return;
+      }
 
       if (result.requires_tos_acceptance && result.access_token) {
         router.push({
@@ -170,7 +193,10 @@ export default function Login() {
         return;
       }
 
-      const user = await finishSignIn(result.access_token, { skipRouting: true });
+      const user = await finishSignIn(result.access_token, {
+        skipRouting: true,
+        sessionId: result.session_id,
+      });
       setIsLoading(false);
       await setLastLoginInstitution(estate ?? null);
       await AsyncStorage.setItem('gatepass-last-email', emailValue);
@@ -247,7 +273,10 @@ export default function Login() {
       }
 
       if (response.access_token) {
-        const user = await finishSignIn(response.access_token, { skipRouting: true });
+        const user = await finishSignIn(response.access_token, {
+          skipRouting: true,
+          sessionId: response.session_id,
+        });
         if (response.biometric_token) {
           await saveBiometricCredentials(response.biometric_token, user.user_id, user.estate_id);
         }

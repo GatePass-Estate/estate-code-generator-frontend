@@ -13,6 +13,7 @@ import { useAuthStore } from '@/src/lib/stores/authStore';
 import { useProfileDocumentsStore } from '@/src/lib/stores/profileDocumentsStore';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { useUpgradePromptStore } from '@/src/hooks/usePlan';
+import { clearTwoFactorOverride } from '@/src/hooks/useTwoFactorStatus';
 import { AuthContextType } from '@/src/types/auth';
 import { User } from '@/src/types/user';
 import { usePathname, useRouter } from 'expo-router';
@@ -33,6 +34,7 @@ const PUBLIC_AUTH_ROUTES = [
   '/auth/email-activation-status',
   '/auth/institution',
   '/auth/login',
+  '/auth/two-factor',
   '/auth/forgot-password',
   '/auth/reset-password',
   '/auth/tos',
@@ -68,6 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       clearUserData();
       useAuthStore.getState().clearAuth();
+      clearTwoFactorOverride();
       const institution = await getSelectedInstitution();
       router.replace(getPostAuthRedirectRoute(institution));
     } finally {
@@ -79,6 +82,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsReady(false);
     clearUserData();
     useAuthStore.getState().clearAuth();
+    clearTwoFactorOverride();
     await clearAuthState();
     broadcastLogout();
     // Force full component reset by incrementing key
