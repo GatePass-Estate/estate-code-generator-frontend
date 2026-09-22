@@ -328,7 +328,7 @@ const RegisterUser = () => {
                   ]}
                 />
                 {errors.firstName && (
-                  <Text className="text-red-600 text-xs font-ubuntu-regular mt-1">
+                  <Text className="mt-1 text-xs text-red-600 font-inter-regular">
                     {errors.firstName}
                   </Text>
                 )}
@@ -376,7 +376,7 @@ const RegisterUser = () => {
                   ]}
                 />
                 {errors.phoneNumber && (
-                  <Text className="text-red-600 text-xs font-ubuntu-regular mt-1">
+                  <Text className="mt-1 text-xs text-red-600 font-inter-regular">
                     {errors.phoneNumber}
                   </Text>
                 )}
@@ -399,7 +399,7 @@ const RegisterUser = () => {
                   ]}
                 />
                 {errors.email && (
-                  <Text className="text-red-600 text-xs font-ubuntu-regular mt-1">
+                  <Text className="mt-1 text-xs text-red-600 font-inter-regular">
                     {errors.email}
                   </Text>
                 )}
@@ -424,7 +424,7 @@ const RegisterUser = () => {
                   items={REGISTRATION_GENDER_OPTIONS}
                 />
                 {errors.gender && (
-                  <Text className="text-red-600 text-xs font-ubuntu-regular mt-1">
+                  <Text className="mt-1 text-xs text-red-600 font-inter-regular">
                     {errors.gender}
                   </Text>
                 )}

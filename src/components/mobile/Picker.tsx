@@ -159,13 +159,13 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     color: '#113E55',
+    fontFamily: 'Inter_18pt-Medium',
     fontSize: 14,
-    fontWeight: '500',
   },
   doneButton: {
     color: '#113E55',
+    fontFamily: 'Inter_18pt-Medium',
     fontSize: 16,
-    fontWeight: '600',
   },
   scrollView: {
     maxHeight: 350,
@@ -186,6 +186,7 @@ const styles = StyleSheet.create({
   },
   itemText: {
     color: '#113E55',
+    fontFamily: 'Inter_18pt-Regular',
     fontSize: 16,
     flex: 1,
     flexShrink: 1,
@@ -193,6 +194,6 @@ const styles = StyleSheet.create({
   },
   itemTextSelected: {
     color: '#113E55',
-    fontWeight: '600',
+    fontFamily: 'Inter_18pt-Medium',
   },
 });
