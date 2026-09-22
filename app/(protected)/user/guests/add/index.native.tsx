@@ -20,14 +20,25 @@ const GENDER_OPTIONS: { label: string; value: Exclude<GenderType, null> }[] = [
   { label: "I'd prefer not to say", value: 'prefer_not_to_say' },
 ];
 
+const RELATIONSHIP_OPTIONS: { label: string; value: Exclude<RelationshipType, null> }[] = [
+  { label: 'Partner', value: 'partner' },
+  { label: 'Friend', value: 'friend' },
+  { label: 'Family', value: 'family' },
+  { label: 'Taxi', value: 'taxi' },
+  { label: 'Delivery', value: 'delivery' },
+  { label: 'Technician', value: 'technician' },
+  { label: 'Other', value: 'other' },
+];
+
 const PLAN_NOTICE_MS = 3000;
 
 const AddGuestMobile = () => {
   const { tabContentPadding } = useAndroidBottomInset();
   const [guestName, setGuestName] = useState('');
-  const [relationship, setRelationship] = useState('');
+  const [relationship, setRelationship] = useState<RelationshipType>(null);
   const [gender, setGender] = useState<GenderType>(null);
   const [genderSheetVisible, setGenderSheetVisible] = useState(false);
+  const [relationshipSheetVisible, setRelationshipSheetVisible] = useState(false);
   const [addToGuestList, setAddToGuestList] = useState(false);
   const [running, setRunning] = useState<boolean>(false);
   const [showPlanNotice, setShowPlanNotice] = useState(false);
@@ -36,6 +47,9 @@ const AddGuestMobile = () => {
   const canSaveGuest = canUse(PLAN_FEATURES.save_guest_contact);
 
   const genderLabel = GENDER_OPTIONS.find((option) => option.value === gender)?.label;
+  const relationshipLabel = RELATIONSHIP_OPTIONS.find(
+    (option) => option.value === relationship
+  )?.label;
   const router = useRouter();
 
   useEffect(() => {
@@ -62,8 +76,8 @@ const AddGuestMobile = () => {
       return false;
     }
 
-    if (relationship.trim() === '') {
-      Alert.alert('Error', 'Please enter your relationship with the guest.');
+    if (relationship == null) {
+      Alert.alert('Error', 'Please select your relationship with the guest.');
       return false;
     }
 
@@ -82,7 +96,7 @@ const AddGuestMobile = () => {
       pathname: '/user/history/duration',
       params: {
         visitorName: guestName.trim(),
-        relationship: relationship.trim(),
+        relationship: relationship as string,
         gender: gender as string,
         saveGuest: addToGuestList && canSaveGuest ? 'true' : 'false',
       },
@@ -98,12 +112,12 @@ const AddGuestMobile = () => {
       await createGuest({
         resident_id: useUserStore.getState().user_id,
         guest_name: guestName.trim(),
-        relationship: relationship.trim() as RelationshipType,
+        relationship: relationship as RelationshipType,
         gender: gender as GenderType,
       });
 
       setGuestName('');
-      setRelationship('');
+      setRelationship(null);
       setGender(null);
       setAddToGuestList(false);
 
@@ -170,14 +184,17 @@ const AddGuestMobile = () => {
 
           <View className="gap-2">
             <Text className="text-[8.96px] font-inter-medium text-[#878686]">Relationship</Text>
-            <TextInput
-              className="rounded-[16px] bg-[#EFF1F1] px-4 py-4 font-inter-light text-[#113E55]"
-              style={{ fontSize: 14 }}
-              placeholder="Enter your relationship with guest"
-              placeholderTextColor="#878686"
-              value={relationship}
-              onChangeText={setRelationship}
-            />
+            <Pressable
+              onPress={() => setRelationshipSheetVisible(true)}
+              className="flex-row items-center justify-between rounded-[16px] bg-[#EFF1F1] px-4 py-4"
+            >
+              <Text
+                className={`text-sm font-inter-light ${relationshipLabel ? 'text-[#113E55]' : 'text-[#878686]'}`}
+              >
+                {relationshipLabel ?? 'Select the relationship with your guest'}
+              </Text>
+              <ExpandMoreIcon width={24} height={24} color="#9B9797" />
+            </Pressable>
           </View>
         </View>
 
@@ -238,6 +255,55 @@ const AddGuestMobile = () => {
                         onPress={() => {
                           setGender(option.value);
                           setGenderSheetVisible(false);
+                        }}
+                        className="h-12 w-full flex-row items-center justify-between rounded-2xl bg-[#EFF1F1] px-4"
+                      >
+                        <Text className="text-sm font-inter-light text-[#113E55]">
+                          {option.label}
+                        </Text>
+                        {selected ? (
+                          <View className="h-6 w-6 items-center justify-center">
+                            <CheckRingIcon />
+                          </View>
+                        ) : (
+                          <View className="h-6 w-6" />
+                        )}
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+            </Pressable>
+          </Pressable>
+        </Modal>
+
+        <Modal
+          transparent
+          visible={relationshipSheetVisible}
+          animationType="slide"
+          onRequestClose={() => setRelationshipSheetVisible(false)}
+        >
+          <Pressable
+            className="flex-1 justify-end bg-black/30"
+            onPress={() => setRelationshipSheetVisible(false)}
+          >
+            <Pressable className="rounded-t-[40px] bg-[#F6F7F7] pb-10" onPress={() => {}}>
+              <View className="h-[34px] items-center justify-center">
+                <View className="h-[7px] w-[134px] rounded-[4px] bg-[#9B9797]" />
+              </View>
+              <View className="px-5 pb-4 pt-4">
+                <Text className="mb-6 text-center text-[21.88px] font-ubuntu-semibold text-[#113E55]">
+                  Relationship
+                </Text>
+                <View className="gap-2">
+                  {RELATIONSHIP_OPTIONS.map((option) => {
+                    const selected = relationship === option.value;
+                    return (
+                      <Pressable
+                        key={option.value}
+                        onPress={() => {
+                          setRelationship(option.value);
+                          setRelationshipSheetVisible(false);
                         }}
                         className="h-12 w-full flex-row items-center justify-between rounded-2xl bg-[#EFF1F1] px-4"
                       >

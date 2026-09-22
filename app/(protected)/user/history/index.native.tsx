@@ -12,7 +12,7 @@ import {
 import { Stack, router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ScreenHeader from '@/src/components/mobile/ScreenHeader';
-import SegmentedPillTabs from '@/src/components/mobile/SegmentedPillTabs';
+import AnimatedPillTabs from '@/src/components/mobile/AnimatedPillTabs';
 import { ChevronRightIcon, HistoryRefreshIcon } from '@/src/assets/svgs';
 import { getMyVisitorAccessLogs } from '@/src/lib/api/accessLogs';
 import { getUpcomingCodes } from '@/src/lib/api/codes';
@@ -265,8 +265,8 @@ export default function HistoryTabScreen() {
       <ScreenHeader title="History" containerClassName="mt-[29px]" />
 
       <View style={{ flex: 1, paddingTop: 8 }}>
-        <SegmentedPillTabs
-          className="self-start"
+        <AnimatedPillTabs
+          style={{ alignSelf: 'flex-start' }}
           value={mode}
           onChange={handleModeChange}
           options={[

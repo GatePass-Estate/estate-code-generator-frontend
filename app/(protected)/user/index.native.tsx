@@ -2,7 +2,7 @@ import { Stack, router, useNavigation } from 'expo-router';
 import { View, Text, FlatList, Animated, Platform, Alert } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import images from '@/src/constants/images';
 import { Codes } from '@/src/types/codes';
 import { extendCode, freezeCode, getAllCodes } from '@/src/lib/api/codes';
@@ -212,6 +212,15 @@ export default function HomeMobile() {
 
   const isEmpty = codes.length === 0;
 
+  const sortedCodes = useMemo(() => {
+    return [...codes].sort((a, b) => {
+      const aFrozen = Boolean(a.frozen) || frozenCodes.has(a.hashed_code);
+      const bFrozen = Boolean(b.frozen) || frozenCodes.has(b.hashed_code);
+      if (aFrozen === bFrozen) return 0;
+      return aFrozen ? 1 : -1;
+    });
+  }, [codes, frozenCodes]);
+
   return (
     <SafeAreaView
       style={[sharedStyles.container, { backgroundColor: '#F6F7F7' }]}
@@ -275,7 +284,7 @@ export default function HomeMobile() {
 
         <GestureHandlerRootView style={{ flex: 1 }}>
           <FlatList
-            data={codes}
+            data={sortedCodes}
             extraData={frozenCodes}
             keyExtractor={(item) => item.hashed_code}
             refreshing={refreshing}

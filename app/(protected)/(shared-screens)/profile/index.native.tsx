@@ -465,10 +465,7 @@ export default function ProfileScreen() {
               }}
             >
               <View
-                style={[
-                  StyleSheet.absoluteFill,
-                  { backgroundColor: 'rgba(27, 153, 139, 0.5)' },
-                ]}
+                style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(27, 153, 139, 0.5)' }]}
               />
               <CameraIcon width={20} height={20} />
             </View>
