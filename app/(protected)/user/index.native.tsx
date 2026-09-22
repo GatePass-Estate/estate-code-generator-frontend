@@ -10,12 +10,12 @@ import { useUserStore } from '@/src/lib/stores/userStore';
 import { sharedStyles } from '@/src/theme/styles';
 import { UbuntuSans } from '@/src/constants/fonts';
 import { useAndroidBottomInset } from '@/src/hooks/useAndroidBottomInset';
-import { isDataEqual, formatInvitePeriodDisplay, parseLogDate, timeCalc } from '@/src/lib/helpers';
+import { isDataEqual, formatInvitePeriodDisplay, isUpcomingCode, parseLogDate, timeCalc } from '@/src/lib/helpers';
 import ActiveCodeCard from '@/src/components/mobile/ActiveCodeCard';
 import ScreenHeader from '@/src/components/mobile/ScreenHeader';
 import { CopiedToast } from '@/src/components/mobile/CopiedToast';
 
-export default function HomeMobile({}) {
+export default function HomeMobile() {
   const { tabContentPadding } = useAndroidBottomInset();
   const bounceValue = useRef(new Animated.Value(0)).current;
   const [refreshing, setRefreshing] = useState(true);
@@ -34,7 +34,7 @@ export default function HomeMobile({}) {
     if (showLoading) setRefreshing(true);
     try {
       const result = await getAllCodes(useUserStore.getState().user_id);
-      const newCodes = result.items.filter((code) => !code.is_expired);
+      const newCodes = result.items.filter((code) => !code.is_expired && !isUpcomingCode(code));
       if (!isDataEqual(newCodes, codesRef.current)) {
         setCodes(newCodes);
       }
