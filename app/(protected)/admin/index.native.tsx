@@ -8,8 +8,7 @@ import {
   BackHandler,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { Stack, useRouter } from 'expo-router';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { Stack, useFocusEffect, useNavigation, useRouter } from 'expo-router';
 import Svg, { G, Path } from 'react-native-svg';
 import { getAllEstateUsers } from '@/src/lib/api/user';
 import { useCallback, useEffect, useRef, useState } from 'react';

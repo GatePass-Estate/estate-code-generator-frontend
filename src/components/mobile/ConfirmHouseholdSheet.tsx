@@ -36,7 +36,7 @@ export default function ConfirmHouseholdSheet({
   return (
     <Pressable
       className="justify-end bg-black/50"
-      style={[StyleSheet.absoluteFillObject, styles.overlay]}
+      style={[StyleSheet.absoluteFill, styles.overlay]}
       onPress={onCancel}
     >
       <Pressable

@@ -61,14 +61,17 @@ export function Picker({
       <Pressable
         className={
           variant === 'registration'
-            ? 'mt-2 h-12 flex-row items-center justify-between rounded-2xl border-mini border-accent bg-[#F6F7F7] px-4'
+            ? 'mt-2 flex-row items-center justify-between rounded-2xl border-mini border-accent bg-[#F6F7F7] px-4'
             : 'input-style flex-row items-center justify-between'
         }
         onPress={() => enabled && setIsModalVisible(true)}
         disabled={!enabled}
         style={{
           opacity: enabled ? 1 : 0.5,
-          ...(variant === 'registration' && { borderWidth: StyleSheet.hairlineWidth }),
+          ...(variant === 'registration' && {
+            borderWidth: StyleSheet.hairlineWidth,
+            height: 48,
+          }),
         }}
       >
         <Text

@@ -264,7 +264,10 @@ export default function HouseholdSelectorSheet({
                       isSelected ? 'border border-primary bg-accent' : 'bg-[#EFF1F1]'
                     }`}
                   >
-                    <Text className="flex-1 text-[14px] leading-[14px] text-primary font-inter-light">
+                    <Text
+                      className="flex-1 text-[14px] leading-[17px] text-primary font-inter-light"
+                      style={{ includeFontPadding: false }}
+                    >
                       {item.name}
                     </Text>
                     <View className="h-4 w-4 items-center justify-center rounded-full bg-accent">

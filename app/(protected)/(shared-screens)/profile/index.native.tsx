@@ -434,7 +434,7 @@ export default function ProfileScreen() {
             {profilePhotoUri ? (
               <Image
                 source={{ uri: profilePhotoUri }}
-                style={StyleSheet.absoluteFillObject}
+                style={StyleSheet.absoluteFill}
                 resizeMode="cover"
               />
             ) : (
@@ -445,7 +445,7 @@ export default function ProfileScreen() {
               <View
                 pointerEvents="none"
                 style={[
-                  StyleSheet.absoluteFillObject,
+                  StyleSheet.absoluteFill,
                   { alignItems: 'center', justifyContent: 'center' },
                 ]}
               >
@@ -465,10 +465,7 @@ export default function ProfileScreen() {
               }}
             >
               <View
-                style={[
-                  StyleSheet.absoluteFillObject,
-                  { backgroundColor: 'rgba(27, 153, 139, 0.5)' },
-                ]}
+                style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(27, 153, 139, 0.5)' }]}
               />
               <CameraIcon width={20} height={20} />
             </View>

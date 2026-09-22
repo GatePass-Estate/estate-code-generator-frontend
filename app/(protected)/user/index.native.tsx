@@ -1,5 +1,4 @@
-import { Stack, router } from 'expo-router';
-import { useNavigation } from '@react-navigation/native';
+import { Stack, router, useNavigation } from 'expo-router';
 import CountdownRing from '@/src/components/common/CountdownRing';
 import { View, Text, FlatList, Animated, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';

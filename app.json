@@ -8,13 +8,6 @@
     "orientation": "portrait",
     "icon": "./src/assets/gatepass_ng_Gp.png",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
-    "splash": {
-      "image": "./src/assets/images/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#113E55",
-      "enableFullScreenImage_legacy": true
-    },
     "android": {
       "package": "com.gatepassng.gms",
       "adaptiveIcon": {
@@ -51,7 +44,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.gatepassng.gms",
-      "associatedDomains": ["applinks:app.gatepassng.com", "applinks:app.gatepassng.com"],
+      "associatedDomains": ["applinks:app.gatepassng.com"],
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSFaceIDUsageDescription": "Use Face ID to securely sign in to GatePass.",
@@ -103,7 +96,9 @@
         }
       ],
       "expo-secure-store",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "expo-sharing",
+      "expo-status-bar"
     ],
     "assetBundlePatterns": ["**/*"],
     "extra": {

@@ -9,6 +9,15 @@ const BIOMETRIC_PREFERENCE_KEY = 'gatepass-biometric-auth-preferences';
 
 type BiometricPreferenceMap = Record<string, boolean>;
 
+async function getSecureStoreItem(key: string): Promise<string | null> {
+  try {
+    return await SecureStore.getItemAsync(key);
+  } catch (error) {
+    console.warn(`Secure storage is unavailable for ${key}`, error);
+    return null;
+  }
+}
+
 function biometricPromptDismissedKey(userId: string) {
   return `biometric-prompt-dismissed-${userId}`;
 }
@@ -69,14 +78,14 @@ export async function promptBiometrics(reason?: string): Promise<boolean> {
  * Reads the stored biometric access token, if any.
  */
 export async function getBiometricToken(): Promise<string | null> {
-  return SecureStore.getItemAsync(BIOMETRIC_TOKEN_KEY);
+  return getSecureStoreItem(BIOMETRIC_TOKEN_KEY);
 }
 
 /**
  * Reads the stored biometric user id, if any.
  */
 export async function getBiometricUserId(): Promise<string | null> {
-  return SecureStore.getItemAsync(BIOMETRIC_USER_KEY);
+  return getSecureStoreItem(BIOMETRIC_USER_KEY);
 }
 
 /**
@@ -165,7 +174,7 @@ export async function canUseBiometricLogin(
     isBiometricAvailable(),
     getBiometricToken(),
     getBiometricUserId(),
-    SecureStore.getItemAsync(BIOMETRIC_ESTATE_KEY),
+    getSecureStoreItem(BIOMETRIC_ESTATE_KEY),
     isBiometricPreferenceEnabled(identity, estateId),
   ]);
 
@@ -207,7 +216,7 @@ export async function biometricTokenMatchesUser(
   const [token, storedUserId, storedEstateId] = await Promise.all([
     getBiometricToken(),
     getBiometricUserId(),
-    SecureStore.getItemAsync(BIOMETRIC_ESTATE_KEY),
+    getSecureStoreItem(BIOMETRIC_ESTATE_KEY),
   ]);
 
   if (token == null || storedUserId !== userId) return false;

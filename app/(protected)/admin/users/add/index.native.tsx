@@ -1,6 +1,6 @@
 import Back from '@/src/components/mobile/Back';
 import { sharedStyles } from '@/src/theme/styles';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useNavigation, useRouter } from 'expo-router';
 import { useState, useEffect } from 'react';
 import {
   ActivityIndicator,
@@ -19,7 +19,6 @@ import { registerUser } from '@/src/lib/api/user';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { Toast, ToastType } from '@/src/components/mobile/Toast';
 import { RegisterUserPayload } from '@/src/types/user';
-import { useNavigation } from '@react-navigation/native';
 import { Picker } from '@/src/components/mobile/Picker';
 import { useAndroidBottomInset } from '@/src/hooks/useAndroidBottomInset';
 import { Feather } from '@expo/vector-icons';
@@ -467,12 +466,12 @@ const RegisterUser = () => {
                 <Text style={sharedStyles.registrationLabel}>Household</Text>
                 <TouchableOpacity
                   onPress={() => setHouseholdSelectorVisible(true)}
-                  className={`mt-2 h-12 flex-row items-center justify-between rounded-2xl border px-4 ${
+                  className={`mt-2 flex-row items-center justify-between rounded-2xl border px-4 ${
                     errors.householdId
                       ? 'border-danger bg-[#FFF1F1]'
                       : 'border-[#CEE5ED] bg-[#F6F7F7]'
                   }`}
-                  style={{ borderWidth: StyleSheet.hairlineWidth }}
+                  style={{ borderWidth: StyleSheet.hairlineWidth, height: 48 }}
                 >
                   <Text
                     className={`text-[14px] font-inter-regular ${

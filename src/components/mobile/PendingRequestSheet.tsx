@@ -232,7 +232,7 @@ export default function PendingRequestSheet({
     <Modal visible={visible} transparent animationType="none" onRequestClose={closeSheet}>
       <GestureHandlerRootView style={styles.overlay}>
         <Animated.View style={[styles.backdrop, backdropAnimatedStyle]}>
-          <Pressable style={StyleSheet.absoluteFillObject} onPress={closeSheet} />
+          <Pressable style={StyleSheet.absoluteFill} onPress={closeSheet} />
         </Animated.View>
 
         <GestureDetector gesture={panGesture}>
@@ -321,7 +321,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0, 0, 0, 0.35)',
   },
   sheet: {
