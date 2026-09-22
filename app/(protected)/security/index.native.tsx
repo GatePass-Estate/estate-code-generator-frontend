@@ -686,7 +686,7 @@ const styles = StyleSheet.create({
     width: 123,
   },
   codeInputCapture: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     color: 'transparent',
     padding: 0,
     textAlign: 'center',

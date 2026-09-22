@@ -10,7 +10,13 @@ import { useUserStore } from '@/src/lib/stores/userStore';
 import { sharedStyles } from '@/src/theme/styles';
 import { UbuntuSans } from '@/src/constants/fonts';
 import { useAndroidBottomInset } from '@/src/hooks/useAndroidBottomInset';
-import { isDataEqual, formatInvitePeriodDisplay, isUpcomingCode, parseLogDate, timeCalc } from '@/src/lib/helpers';
+import {
+  isDataEqual,
+  formatInvitePeriodDisplay,
+  isUpcomingCode,
+  parseLogDate,
+  timeCalc,
+} from '@/src/lib/helpers';
 import ActiveCodeCard from '@/src/components/mobile/ActiveCodeCard';
 import ScreenHeader from '@/src/components/mobile/ScreenHeader';
 import { CopiedToast } from '@/src/components/mobile/CopiedToast';

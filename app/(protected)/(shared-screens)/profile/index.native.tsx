@@ -169,10 +169,11 @@ export default function ProfileScreen() {
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
+      if (user_id) void syncDocuments(user_id);
       if (showAccessCode) fetchMyCode();
     });
     return unsubscribe;
-  }, [navigation, fetchMyCode, showAccessCode]);
+  }, [navigation, fetchMyCode, showAccessCode, syncDocuments, user_id]);
 
   const formattedDate = useMemo(() => {
     if (!expiry) return null;
@@ -426,7 +427,6 @@ export default function ProfileScreen() {
               width: 87,
               height: 87,
               borderRadius: 100,
-
               backgroundColor: '#F4FFFE',
               overflow: 'hidden',
             }}
@@ -434,18 +434,18 @@ export default function ProfileScreen() {
             {profilePhotoUri ? (
               <Image
                 source={{ uri: profilePhotoUri }}
-                style={StyleSheet.absoluteFillObject}
+                style={{ width: 87, height: 87 }}
                 resizeMode="cover"
               />
             ) : (
               <View className="flex-1 items-center justify-center bg-[#F4FFFE]"></View>
             )}
 
-            {uploadingPhoto || documentsImagesLoading ? (
+            {uploadingPhoto || (documentsImagesLoading && !profilePhotoUri) ? (
               <View
                 pointerEvents="none"
                 style={[
-                  StyleSheet.absoluteFillObject,
+                  StyleSheet.absoluteFill,
                   { alignItems: 'center', justifyContent: 'center' },
                 ]}
               >
@@ -466,7 +466,7 @@ export default function ProfileScreen() {
             >
               <View
                 style={[
-                  StyleSheet.absoluteFillObject,
+                  StyleSheet.absoluteFill,
                   { backgroundColor: 'rgba(27, 153, 139, 0.5)' },
                 ]}
               />

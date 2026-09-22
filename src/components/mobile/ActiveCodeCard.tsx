@@ -342,10 +342,10 @@ export default function ActiveCodeCard({
               start={{ x: 0.021, y: 0.357 }}
               end={{ x: 0.979, y: 0.643 }}
               pointerEvents="none"
-              style={StyleSheet.absoluteFillObject}
+              style={StyleSheet.absoluteFill}
             />
             {/* Official Figma ice overlay (natural alpha fade L→R) */}
-            <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
+            <View pointerEvents="none" style={StyleSheet.absoluteFill}>
               <Image
                 source={images.frozenIceOverlay}
                 resizeMode="cover"
