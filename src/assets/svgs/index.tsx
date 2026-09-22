@@ -1256,4 +1256,3 @@ export function ShareBarSecurityIcon({ color = '#1B998B', ...props }: MenuIconPr
     </Svg>
   );
 }
-

@@ -10,7 +10,6 @@ import Animated, {
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 
 /* Reanimated shared values are mutated on the UI thread; Compiler immutability rules don't apply. */
- 
 
 /** Figma 6578:4500 track */
 export const PILL_TRACK_WIDTH = 229;

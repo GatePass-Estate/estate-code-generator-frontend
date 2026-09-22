@@ -70,10 +70,7 @@ export default function AnomalyDetectionSummaryScreen() {
         <AnomalyResultView />
       </View>
 
-      <DataInsightModal
-        visible={dataInsightVisible}
-        onClose={() => setDataInsightVisible(false)}
-      />
+      <DataInsightModal visible={dataInsightVisible} onClose={() => setDataInsightVisible(false)} />
     </SafeAreaView>
   );
 }

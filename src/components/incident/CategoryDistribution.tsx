@@ -11,11 +11,7 @@ import {
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { BlurView } from 'expo-blur';
 import { MaterialIcons } from '@expo/vector-icons';
 import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
@@ -28,10 +24,7 @@ import {
   CategoryPropertyIcon,
   NarrativeSnippetIcon,
 } from '@/src/assets/svgs';
-import {
-  type IncidentCategory,
-  type IncidentCategoryId,
-} from './incidentMockData';
+import { type IncidentCategory, type IncidentCategoryId } from './incidentMockData';
 import { mapCategoryEdaToUi } from './mapIncidentApi';
 
 type CategoryDistributionProps = {
@@ -60,11 +53,7 @@ function ActiveBubbleRing({ size, id }: { size: number; id: string }) {
   const center = svgSize / 2;
   const gradId = `activeBubble-${id}`;
   return (
-    <Svg
-      width={svgSize}
-      height={svgSize}
-      style={{ position: 'absolute', left: -2, top: -2 }}
-    >
+    <Svg width={svgSize} height={svgSize} style={{ position: 'absolute', left: -2, top: -2 }}>
       <Defs>
         <LinearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
           <Stop offset="0" stopColor="#0C72A6" stopOpacity={0.44} />
@@ -96,7 +85,8 @@ function CategoryIcon({
 }) {
   if (icon === 'lock') return <CategorySecurityIcon color={color} size={size} filled={filled} />;
   if (icon === 'medical') return <CategoryMedicalIcon color={color} size={size} filled={filled} />;
-  if (icon === 'wrench') return <CategoryMaintenanceIcon color={color} size={size} filled={filled} />;
+  if (icon === 'wrench')
+    return <CategoryMaintenanceIcon color={color} size={size} filled={filled} />;
   if (icon === 'home') return <CategoryPropertyIcon color={color} size={size} filled={filled} />;
   if (icon === 'access') return <CategoryAccessIcon color={color} size={size} filled={filled} />;
   return <MoreDotsIcon color={color} size={size} />;
@@ -358,10 +348,9 @@ function CategoryExpandSheet({
 }) {
   const index = categories.findIndex((c) => c.id === categoryId);
   const category = categories[index] ?? categories[0];
-  const thresholdCopy =
-    category.thresholdLabel.startsWith('>')
-      ? 'Category more than 5%'
-      : 'Category less than 5%';
+  const thresholdCopy = category.thresholdLabel.startsWith('>')
+    ? 'Category more than 5%'
+    : 'Category less than 5%';
 
   const goPrev = () => {
     const next = (index - 1 + categories.length) % categories.length;
@@ -445,7 +434,10 @@ function CategoryExpandSheet({
             </View>
 
             <View className="h-[52px] w-[104px] gap-1 rounded bg-white p-2">
-              <Text allowFontScaling={false} className="text-[8.96px] font-inter-medium text-[#878686]">
+              <Text
+                allowFontScaling={false}
+                className="text-[8.96px] font-inter-medium text-[#878686]"
+              >
                 Incident Count
               </Text>
               <Text allowFontScaling={false} className="text-sm font-inter-medium text-[#878686]">
@@ -455,7 +447,10 @@ function CategoryExpandSheet({
             </View>
 
             <View className="h-[52px] w-[104px] gap-1 rounded bg-white p-2">
-              <Text allowFontScaling={false} className="text-[8.96px] font-inter-medium text-[#878686]">
+              <Text
+                allowFontScaling={false}
+                className="text-[8.96px] font-inter-medium text-[#878686]"
+              >
                 Incident Share
               </Text>
               <Text allowFontScaling={false} className="text-sm font-inter-medium text-[#878686]">
@@ -501,7 +496,10 @@ export default function CategoryDistribution({
     /* -mx-5 cancels parent ScrollView px-5 so Figma 26px inset isn’t doubled */
     <View className="-mx-5 mt-4">
       <View className="mb-[33px] flex-row items-center justify-between px-[26px]">
-        <Text allowFontScaling={false} className="text-[21.88px] font-ubuntu-semibold text-[#0A1F29]">
+        <Text
+          allowFontScaling={false}
+          className="text-[21.88px] font-ubuntu-semibold text-[#0A1F29]"
+        >
           Category Distribution
         </Text>
         <View className="h-[45px] w-[45px] items-center justify-center">
@@ -541,10 +539,7 @@ export default function CategoryDistribution({
 
               {category.icon === 'more' ? (
                 /* Figma 6577:3262 — dots dead-centered in the bubble */
-                <View
-                  className="absolute inset-0 items-center justify-center"
-                  pointerEvents="none"
-                >
+                <View className="absolute inset-0 items-center justify-center" pointerEvents="none">
                   <MoreDotsIcon color={iconColor} size={bubble.size} />
                 </View>
               ) : showPct && bubble.size >= 54 ? (
@@ -696,11 +691,7 @@ export default function CategoryDistribution({
         )}
       </View>
 
-      <NarrativeSnippetSlider
-        selectedId={selectedId}
-        onSelect={onSelect}
-        categories={catalog}
-      />
+      <NarrativeSnippetSlider selectedId={selectedId} onSelect={onSelect} categories={catalog} />
 
       <View className="mt-8 flex-row items-center justify-center gap-[4px]">
         {catalog.map((cat, i) => (

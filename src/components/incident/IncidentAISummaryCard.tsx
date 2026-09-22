@@ -18,13 +18,7 @@ type IncidentAISummaryCardProps = {
 };
 
 function InsightLogo() {
-  return (
-    <Image
-      source={images.insightLogo}
-      className="h-[36px] w-[33px]"
-      resizeMode="contain"
-    />
-  );
+  return <Image source={images.insightLogo} className="h-[36px] w-[33px]" resizeMode="contain" />;
 }
 
 function LockedSummaryCard({ onUpgradePress }: { onUpgradePress?: () => void }) {
@@ -41,19 +35,13 @@ function LockedSummaryCard({ onUpgradePress }: { onUpgradePress?: () => void }) 
       <View className="mt-2 flex-row items-center gap-1">
         <View className="h-5 flex-row items-center gap-1 rounded-lg bg-[#FFF8F5] p-1">
           <AiSummaryTimeSvg width={12} height={12} />
-          <Text
-            allowFontScaling={false}
-            className="text-[8.96px] font-inter-medium text-[#F46036]"
-          >
+          <Text allowFontScaling={false} className="text-[8.96px] font-inter-medium text-[#F46036]">
             2 mins Read
           </Text>
         </View>
         <View className="h-5 flex-row items-center gap-1 rounded-lg bg-[#F4FFFE] p-1">
           <AiSummaryThirdPartySvg width={12} height={12} />
-          <Text
-            allowFontScaling={false}
-            className="text-[8.96px] font-inter-medium text-[#167A6F]"
-          >
+          <Text allowFontScaling={false} className="text-[8.96px] font-inter-medium text-[#167A6F]">
             Third Party
           </Text>
         </View>
@@ -66,10 +54,7 @@ function LockedSummaryCard({ onUpgradePress }: { onUpgradePress?: () => void }) 
           className="h-[70px] w-full"
           resizeMode="stretch"
         />
-        <View
-          pointerEvents="none"
-          className="absolute inset-0 items-center justify-center"
-        >
+        <View pointerEvents="none" className="absolute inset-0 items-center justify-center">
           <AiSummaryLockSvg width={36} height={50} />
         </View>
       </View>

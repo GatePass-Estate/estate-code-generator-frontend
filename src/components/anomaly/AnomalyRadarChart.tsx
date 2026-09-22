@@ -30,7 +30,7 @@ const AnomalyRadarChart = ({
       strokeColor: '#1B998B',
       fillColor: 'rgba(27, 153, 139, 0.28)',
       dotColor: '#1B998B',
-    }
+    },
   ],
   labels = ['Data 1', 'Data 2', 'Data 3', 'Data 4', 'Data 5', 'Data 6'],
   size = 280,
@@ -41,7 +41,7 @@ const AnomalyRadarChart = ({
   const radius = size / 2 - 55; // Leave plenty of space for labels so they don't clip
   const dataLength = labels.length;
 
-  const maxDataValue = Math.max(...(series?.flatMap(s => s.data) || []));
+  const maxDataValue = Math.max(...(series?.flatMap((s) => s.data) || []));
   const isDecimal = maxDataValue <= 1 && maxDataValue > 0;
   const scaleMax = isDecimal ? Math.max(0.2, maxDataValue) : Math.max(20, maxDataValue);
 
@@ -117,19 +117,10 @@ const AnomalyRadarChart = ({
               const distance = (val / scaleMax) * radius;
               const x = center + distance * Math.cos(angle);
               const y = center + distance * Math.sin(angle);
-              return (
-                <Circle
-                  key={`point-${index}-${i}`}
-                  cx={x}
-                  cy={y}
-                  r="4"
-                  fill={s.dotColor}
-                />
-              );
+              return <Circle key={`point-${index}-${i}`} cx={x} cy={y} r="4" fill={s.dotColor} />;
             })}
           </React.Fragment>
         ))}
-
       </Svg>
 
       {/* Draw Labels as absolute positioned components outside SVG */}
@@ -157,10 +148,7 @@ const AnomalyRadarChart = ({
         return (
           <View
             key={`label-${i}`}
-            style={[
-              { position: 'absolute', width: maxWidth },
-              positionStyle
-            ]}
+            style={[{ position: 'absolute', width: maxWidth }, positionStyle]}
           >
             <Text
               numberOfLines={1}
@@ -179,7 +167,7 @@ const AnomalyRadarChart = ({
       })}
     </View>
   );
-}
+};
 
 export default React.memo(AnomalyRadarChart, (prevProps, nextProps) => {
   return JSON.stringify(prevProps) === JSON.stringify(nextProps);

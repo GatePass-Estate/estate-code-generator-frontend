@@ -15,7 +15,14 @@ interface FilterModalProps {
   currentUserType: UserType;
 }
 
-export default function FilterModal({ visible, onClose, onApply, currentSeverity, currentGender, currentUserType }: FilterModalProps) {
+export default function FilterModal({
+  visible,
+  onClose,
+  onApply,
+  currentSeverity,
+  currentGender,
+  currentUserType,
+}: FilterModalProps) {
   const [selectedSeverity, setSelectedSeverity] = useState<Severity>(currentSeverity);
   const [selectedGender, setSelectedGender] = useState<Gender>(currentGender);
   const [selectedUserType, setSelectedUserType] = useState<UserType>(currentUserType);
@@ -32,7 +39,15 @@ export default function FilterModal({ visible, onClose, onApply, currentSeverity
   const genders: Gender[] = ['Female', 'Male', 'Prefer not to say'];
   const userTypes: UserType[] = ['Guest', 'Resident'];
 
-  const Pill = ({ label, isSelected, onPress }: { label: string, isSelected: boolean, onPress: () => void }) => (
+  const Pill = ({
+    label,
+    isSelected,
+    onPress,
+  }: {
+    label: string;
+    isSelected: boolean;
+    onPress: () => void;
+  }) => (
     <Pressable
       onPress={onPress}
       style={{
@@ -56,24 +71,20 @@ export default function FilterModal({ visible, onClose, onApply, currentSeverity
   );
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={{ flex: 1, justifyContent: 'flex-end' }}>
         <BlurView intensity={15} tint="dark" style={StyleSheet.absoluteFill} />
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-        
+
         <View
-          style={[{
+          style={[
+            {
               backgroundColor: '#FFFFFF',
               borderTopLeftRadius: 32,
               borderTopRightRadius: 32,
               padding: 24,
               paddingBottom: 40,
-            }
+            },
           ]}
         >
           {/* Handle */}
@@ -88,14 +99,22 @@ export default function FilterModal({ visible, onClose, onApply, currentSeverity
               }}
             />
           </View>
-          
+
           {/* Severity */}
           <View style={{ marginBottom: 16 }}>
-            <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 16, color: '#8A9A9D', marginBottom: 16 }}>
+            <Text
+              allowFontScaling={false}
+              style={{
+                fontFamily: 'Inter_18pt-Regular',
+                fontSize: 16,
+                color: '#8A9A9D',
+                marginBottom: 16,
+              }}
+            >
               Severity
             </Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-              {severities.map(s => (
+              {severities.map((s) => (
                 <Pill
                   key={s}
                   label={s!}
@@ -110,11 +129,19 @@ export default function FilterModal({ visible, onClose, onApply, currentSeverity
 
           {/* Gender */}
           <View style={{ marginBottom: 16 }}>
-            <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 16, color: '#8A9A9D', marginBottom: 16 }}>
+            <Text
+              allowFontScaling={false}
+              style={{
+                fontFamily: 'Inter_18pt-Regular',
+                fontSize: 16,
+                color: '#8A9A9D',
+                marginBottom: 16,
+              }}
+            >
               Gender
             </Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-              {genders.map(g => (
+              {genders.map((g) => (
                 <Pill
                   key={g}
                   label={g!}
@@ -129,11 +156,19 @@ export default function FilterModal({ visible, onClose, onApply, currentSeverity
 
           {/* User Type */}
           <View style={{ marginBottom: 32 }}>
-            <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 16, color: '#8A9A9D', marginBottom: 16 }}>
+            <Text
+              allowFontScaling={false}
+              style={{
+                fontFamily: 'Inter_18pt-Regular',
+                fontSize: 16,
+                color: '#8A9A9D',
+                marginBottom: 16,
+              }}
+            >
               User Type
             </Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-              {userTypes.map(u => (
+              {userTypes.map((u) => (
                 <Pill
                   key={u}
                   label={u!}
@@ -160,7 +195,10 @@ export default function FilterModal({ visible, onClose, onApply, currentSeverity
               marginBottom: 10,
             }}
           >
-            <Text allowFontScaling={false} style={{ fontFamily: 'UbuntuSans-Medium', fontSize: 16, color: '#FFFFFF' }}>
+            <Text
+              allowFontScaling={false}
+              style={{ fontFamily: 'UbuntuSans-Medium', fontSize: 16, color: '#FFFFFF' }}
+            >
               Confirm
             </Text>
           </Pressable>

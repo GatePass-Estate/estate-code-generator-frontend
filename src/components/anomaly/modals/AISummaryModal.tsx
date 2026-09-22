@@ -167,7 +167,9 @@ export default function AISummaryModal({
             </View>
 
             {detailedInsight?.trim() && detailedInsight.trim() !== body ? (
-              <View style={{ paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
+              <View
+                style={{ paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}
+              >
                 <View
                   style={{
                     flexDirection: 'row',

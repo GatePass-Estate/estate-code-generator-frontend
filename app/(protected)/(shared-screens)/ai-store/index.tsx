@@ -51,14 +51,22 @@ const RoundedStar = ({ size, color, filled }: { size: number; color: string; fil
   </Svg>
 );
 
-function StaticStarRating({ rating, size = 12, disabled }: { rating: number, size?: number, disabled?: boolean }) {
+function StaticStarRating({
+  rating,
+  size = 12,
+  disabled,
+}: {
+  rating: number;
+  size?: number;
+  disabled?: boolean;
+}) {
   return (
     <View className="flex-row items-center gap-[2px]">
       {[1, 2, 3, 4, 5].map((star) => (
         <RoundedStar
           key={star}
           size={size}
-          color={disabled ? '#E5E7EB' : (rating === 0 ? '#C4C4C4' : '#F46036')}
+          color={disabled ? '#E5E7EB' : rating === 0 ? '#C4C4C4' : '#F46036'}
           filled={star <= rating}
         />
       ))}
@@ -102,9 +110,9 @@ const toggleFilter = (currentSelection: string[], value: string, allValues: stri
   if (value === 'all') {
     return ['all'];
   }
-  let newSelection = currentSelection.filter(v => v !== 'all');
+  let newSelection = currentSelection.filter((v) => v !== 'all');
   if (newSelection.includes(value)) {
-    newSelection = newSelection.filter(v => v !== value);
+    newSelection = newSelection.filter((v) => v !== value);
   } else {
     newSelection = [...newSelection, value];
   }
@@ -289,7 +297,8 @@ export default function AIStoreScreen() {
     }
     // Purchase Filter
     if (!purchaseFilters.includes('all') && purchaseFilters.length > 0) {
-      const isMatch = (tool.isPurchased && purchaseFilters.includes('purchased')) ||
+      const isMatch =
+        (tool.isPurchased && purchaseFilters.includes('purchased')) ||
         (!tool.isPurchased && purchaseFilters.includes('not_purchased'));
       if (!isMatch) return false;
     }
@@ -304,7 +313,11 @@ export default function AIStoreScreen() {
 
   return (
     <SafeAreaView
-      style={[sharedStyles.container, sharedStyles.modalContainer, { backgroundColor: '#F6F7F7', paddingHorizontal: 21 }]}
+      style={[
+        sharedStyles.container,
+        sharedStyles.modalContainer,
+        { backgroundColor: '#F6F7F7', paddingHorizontal: 21 },
+      ]}
     >
       <Stack.Screen options={{ headerShown: false }} />
 
@@ -410,10 +423,7 @@ export default function AIStoreScreen() {
                     });
                   }
                 }}
-                style={[
-                  styles.card,
-                  { width: CARD_WIDTH },
-                ]}
+                style={[styles.card, { width: CARD_WIDTH }]}
               >
                 {/* Card Header (Price/Badge) */}
                 <View style={styles.cardHeader}>
@@ -470,15 +480,8 @@ export default function AIStoreScreen() {
         onRequestClose={() => setFilterModalVisible(false)}
       >
         <View className="flex-1 justify-end">
-          <BlurView
-            intensity={25}
-            tint="light"
-            style={StyleSheet.absoluteFill}
-          />
-          <Pressable
-            style={StyleSheet.absoluteFill}
-            onPress={() => setFilterModalVisible(false)}
-          />
+          <BlurView intensity={25} tint="light" style={StyleSheet.absoluteFill} />
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setFilterModalVisible(false)} />
           <Animated.View
             {...panResponder.panHandlers}
             style={{ transform: [{ translateY: panY }], maxHeight: '90%' }}
@@ -494,42 +497,56 @@ export default function AIStoreScreen() {
             >
               {/* Purchase Section */}
               <View className="mb-6">
-                <Text className="text-[16px] font-inter-regular text-[#8A9A9D] mb-3">
-                  Purchase
-                </Text>
+                <Text className="text-[16px] font-inter-regular text-[#8A9A9D] mb-3">Purchase</Text>
                 <View className="flex-row flex-wrap gap-4">
                   <Pressable
                     onPress={() => setPurchaseFilters(['all'])}
-                    className={`px-5 py-[10px] rounded-full ${purchaseFilters.includes('all') ? 'bg-[#D2E7ED]' : 'bg-[#EFF1F1]'
-                      }`}
+                    className={`px-5 py-[10px] rounded-full ${
+                      purchaseFilters.includes('all') ? 'bg-[#D2E7ED]' : 'bg-[#EFF1F1]'
+                    }`}
                   >
                     <Text
-                      className={`text-[14px] font-inter-regular ${purchaseFilters.includes('all') ? 'text-[#113E55]' : 'text-[#8A9A9D]'
-                        }`}
+                      className={`text-[14px] font-inter-regular ${
+                        purchaseFilters.includes('all') ? 'text-[#113E55]' : 'text-[#8A9A9D]'
+                      }`}
                     >
                       All
                     </Text>
                   </Pressable>
                   <Pressable
-                    onPress={() => setPurchaseFilters(prev => toggleFilter(prev, 'purchased', PURCHASE_OPTIONS))}
-                    className={`px-5 py-[10px] rounded-full ${purchaseFilters.includes('purchased') ? 'bg-[#D2E7ED]' : 'bg-[#EFF1F1]'
-                      }`}
+                    onPress={() =>
+                      setPurchaseFilters((prev) =>
+                        toggleFilter(prev, 'purchased', PURCHASE_OPTIONS)
+                      )
+                    }
+                    className={`px-5 py-[10px] rounded-full ${
+                      purchaseFilters.includes('purchased') ? 'bg-[#D2E7ED]' : 'bg-[#EFF1F1]'
+                    }`}
                   >
                     <Text
-                      className={`text-[14px] font-inter-regular ${purchaseFilters.includes('purchased') ? 'text-[#113E55]' : 'text-[#8A9A9D]'
-                        }`}
+                      className={`text-[14px] font-inter-regular ${
+                        purchaseFilters.includes('purchased') ? 'text-[#113E55]' : 'text-[#8A9A9D]'
+                      }`}
                     >
                       Purchased
                     </Text>
                   </Pressable>
                   <Pressable
-                    onPress={() => setPurchaseFilters(prev => toggleFilter(prev, 'not_purchased', PURCHASE_OPTIONS))}
-                    className={`px-5 py-[10px] rounded-full ${purchaseFilters.includes('not_purchased') ? 'bg-[#D2E7ED]' : 'bg-[#EFF1F1]'
-                      }`}
+                    onPress={() =>
+                      setPurchaseFilters((prev) =>
+                        toggleFilter(prev, 'not_purchased', PURCHASE_OPTIONS)
+                      )
+                    }
+                    className={`px-5 py-[10px] rounded-full ${
+                      purchaseFilters.includes('not_purchased') ? 'bg-[#D2E7ED]' : 'bg-[#EFF1F1]'
+                    }`}
                   >
                     <Text
-                      className={`text-[14px] font-inter-regular ${purchaseFilters.includes('not_purchased') ? 'text-[#113E55]' : 'text-[#8A9A9D]'
-                        }`}
+                      className={`text-[14px] font-inter-regular ${
+                        purchaseFilters.includes('not_purchased')
+                          ? 'text-[#113E55]'
+                          : 'text-[#8A9A9D]'
+                      }`}
                     >
                       Not Purchased
                     </Text>
@@ -542,42 +559,62 @@ export default function AIStoreScreen() {
 
               {/* Category Section */}
               <View className="mb-6">
-                <Text className="text-[16px] font-inter-regular text-[#8A9A9D] mb-3">
-                  Category
-                </Text>
+                <Text className="text-[16px] font-inter-regular text-[#8A9A9D] mb-3">Category</Text>
                 <View className="flex-row flex-wrap gap-4">
                   <Pressable
                     onPress={() => setCategoryFilters(['all'])}
-                    className={`px-5 py-[10px] rounded-full ${categoryFilters.includes('all') ? 'bg-[#D2E7ED]' : 'bg-[#EFF1F1]'
-                      }`}
+                    className={`px-5 py-[10px] rounded-full ${
+                      categoryFilters.includes('all') ? 'bg-[#D2E7ED]' : 'bg-[#EFF1F1]'
+                    }`}
                   >
                     <Text
-                      className={`text-[14px] font-inter-regular ${categoryFilters.includes('all') ? 'text-[#113E55]' : 'text-[#8A9A9D]'
-                        }`}
+                      className={`text-[14px] font-inter-regular ${
+                        categoryFilters.includes('all') ? 'text-[#113E55]' : 'text-[#8A9A9D]'
+                      }`}
                     >
                       All
                     </Text>
                   </Pressable>
                   <Pressable
-                    onPress={() => setCategoryFilters(prev => toggleFilter(prev, 'Access Anomaly Detection', CATEGORY_OPTIONS))}
-                    className={`px-5 py-[10px] rounded-full ${categoryFilters.includes('Access Anomaly Detection') ? 'bg-[#D2E7ED]' : 'bg-[#EFF1F1]'
-                      }`}
+                    onPress={() =>
+                      setCategoryFilters((prev) =>
+                        toggleFilter(prev, 'Access Anomaly Detection', CATEGORY_OPTIONS)
+                      )
+                    }
+                    className={`px-5 py-[10px] rounded-full ${
+                      categoryFilters.includes('Access Anomaly Detection')
+                        ? 'bg-[#D2E7ED]'
+                        : 'bg-[#EFF1F1]'
+                    }`}
                   >
                     <Text
-                      className={`text-[14px] font-inter-regular ${categoryFilters.includes('Access Anomaly Detection') ? 'text-[#113E55]' : 'text-[#8A9A9D]'
-                        }`}
+                      className={`text-[14px] font-inter-regular ${
+                        categoryFilters.includes('Access Anomaly Detection')
+                          ? 'text-[#113E55]'
+                          : 'text-[#8A9A9D]'
+                      }`}
                     >
                       Access Anomaly Detection
                     </Text>
                   </Pressable>
                   <Pressable
-                    onPress={() => setCategoryFilters(prev => toggleFilter(prev, 'Incident Report Insights', CATEGORY_OPTIONS))}
-                    className={`px-5 py-[10px] rounded-full ${categoryFilters.includes('Incident Report Insights') ? 'bg-[#D2E7ED]' : 'bg-[#EFF1F1]'
-                      }`}
+                    onPress={() =>
+                      setCategoryFilters((prev) =>
+                        toggleFilter(prev, 'Incident Report Insights', CATEGORY_OPTIONS)
+                      )
+                    }
+                    className={`px-5 py-[10px] rounded-full ${
+                      categoryFilters.includes('Incident Report Insights')
+                        ? 'bg-[#D2E7ED]'
+                        : 'bg-[#EFF1F1]'
+                    }`}
                   >
                     <Text
-                      className={`text-[14px] font-inter-regular ${categoryFilters.includes('Incident Report Insights') ? 'text-[#113E55]' : 'text-[#8A9A9D]'
-                        }`}
+                      className={`text-[14px] font-inter-regular ${
+                        categoryFilters.includes('Incident Report Insights')
+                          ? 'text-[#113E55]'
+                          : 'text-[#8A9A9D]'
+                      }`}
                     >
                       Incident Report Insights
                     </Text>

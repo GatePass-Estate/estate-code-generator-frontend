@@ -47,8 +47,7 @@ export const INCIDENT_CATEGORIES: IncidentCategory[] = [
     thresholdLabel: '> 5%',
     detail:
       'Security reports were the largest share this period. Most clustered around morning patrol handovers and the main gate.',
-    narrative:
-      'Residents reported a drone hovering for ~10 minutes. Direction of flight unknown.',
+    narrative: 'Residents reported a drone hovering for ~10 minutes. Direction of flight unknown.',
     icon: 'lock',
     color: '#113E55',
     subcategories: [
@@ -151,8 +150,7 @@ export const INCIDENT_CATEGORIES: IncidentCategory[] = [
     peakPct: 38,
     thresholdLabel: '< 5%',
     detail: 'Uncategorized reports include noise complaints and miscellaneous estate notices.',
-    narrative:
-      'Residents reported a drone hovering for ~10 minutes. Direction of flight unknown.',
+    narrative: 'Residents reported a drone hovering for ~10 minutes. Direction of flight unknown.',
     icon: 'more',
     color: '#113E55',
     subcategories: [

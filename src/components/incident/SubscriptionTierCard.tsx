@@ -9,8 +9,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { BenefitsChevronIcon } from '@/src/assets/svgs';
 
-const DEFAULT_BENEFIT =
-  'Spot peak times and repeat locations before they become patterns.';
+const DEFAULT_BENEFIT = 'Spot peak times and repeat locations before they become patterns.';
 
 const EXPAND = {
   duration: 300,
@@ -103,10 +102,7 @@ export default function SubscriptionTierCard({
         </Text>
 
         <Pressable onPress={onToggle} className="flex-row items-center gap-1.5">
-          <Text
-            allowFontScaling={false}
-            className="text-[11.2px] font-inter-normal text-[#113E55]"
-          >
+          <Text allowFontScaling={false} className="text-[11.2px] font-inter-normal text-[#113E55]">
             See benefits
           </Text>
           <Animated.View style={chevronStyle}>
@@ -130,11 +126,7 @@ export default function SubscriptionTierCard({
                     isActive ? 'bg-[#CEE5ED]' : 'bg-[#EFF1F3]'
                   }`}
                 >
-                  <MaterialIcons
-                    name="check"
-                    size={12}
-                    color={isActive ? '#113E55' : '#A0AAB0'}
-                  />
+                  <MaterialIcons name="check" size={12} color={isActive ? '#113E55' : '#A0AAB0'} />
                 </View>
                 <Text
                   allowFontScaling={false}
@@ -156,10 +148,7 @@ export default function SubscriptionTierCard({
             {isSubscribing ? (
               <ActivityIndicator size="small" color="white" />
             ) : (
-              <Text
-                allowFontScaling={false}
-                className="text-[14px] font-inter-medium text-white"
-              >
+              <Text allowFontScaling={false} className="text-[14px] font-inter-medium text-white">
                 {isInstalled ? 'Installed' : 'Activate'}
               </Text>
             )}

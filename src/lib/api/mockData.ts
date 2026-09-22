@@ -1,894 +1,898 @@
 export const mockOverview = {
-    "demographic": {
-        "estate_name": "PrimeView Estate",
-        "state": "Lagos",
-        "country": "Nigeria",
-        "total_users": 25,
-        "total_guests": 17,
-        "ratio": {
-            "guest": {
-                "count": 17,
-                "percentage": 68.0
-            },
-            "resident": {
-                "count": 5,
-                "percentage": 20.0
-            },
-            "security": {
-                "count": 3,
-                "percentage": 12.0
-            }
-        },
-        "total_anomalous_instances": 19,
-        "total_high_risk_instances": 10
+  demographic: {
+    estate_name: 'PrimeView Estate',
+    state: 'Lagos',
+    country: 'Nigeria',
+    total_users: 25,
+    total_guests: 17,
+    ratio: {
+      guest: {
+        count: 17,
+        percentage: 68.0,
+      },
+      resident: {
+        count: 5,
+        percentage: 20.0,
+      },
+      security: {
+        count: 3,
+        percentage: 12.0,
+      },
     },
-    "evidence_summary": {
-        "total_anomalous_residents_instances": 4,
-        "total_anomalous_visitors_instances": 15
-    },
-    "anomaly_overview": {
-        "spider_plot": [
-            {
-                "feature_name": "visitor_weekly_frequency",
-                "description": "Average weekly visit rate for this visitor.",
-                "weight": null,
-                "normal_value": 0.466667,
-                "scale": 5.833333,
-                "percentage": 8.0
-            },
-            {
-                "feature_name": "visitor_total_visits",
-                "description": "Lifetime visit count for this visitor.",
-                "weight": null,
-                "normal_value": 2.0,
-                "scale": 17.0,
-                "percentage": 11.76
-            },
-            {
-                "feature_name": "visit_interarrival_time",
-                "description": "Gap between consecutive visits in the cohort.",
-                "weight": null,
-                "normal_value": 0.117218,
-                "scale": 104.432469,
-                "percentage": 0.11
-            },
-            {
-                "feature_name": "visit_hour_bucket",
-                "description": "Coarse bucket of the visit hour.",
-                "weight": null,
-                "normal_value": 2.0,
-                "scale": 3.0,
-                "percentage": 66.67
-            },
-            {
-                "feature_name": "time_since_last_visit",
-                "description": "Elapsed time since this actor's previous visit.",
-                "weight": null,
-                "normal_value": 0.111586,
-                "scale": 293.252783,
-                "percentage": 0.04
-            },
-            {
-                "feature_name": "resident_visit_frequency",
-                "description": "Average visit rate for this resident.",
-                "weight": null,
-                "normal_value": 0.466667,
-                "scale": 5.833333,
-                "percentage": 8.0
-            }
+    total_anomalous_instances: 19,
+    total_high_risk_instances: 10,
+  },
+  evidence_summary: {
+    total_anomalous_residents_instances: 4,
+    total_anomalous_visitors_instances: 15,
+  },
+  anomaly_overview: {
+    spider_plot: [
+      {
+        feature_name: 'visitor_weekly_frequency',
+        description: 'Average weekly visit rate for this visitor.',
+        weight: null,
+        normal_value: 0.466667,
+        scale: 5.833333,
+        percentage: 8.0,
+      },
+      {
+        feature_name: 'visitor_total_visits',
+        description: 'Lifetime visit count for this visitor.',
+        weight: null,
+        normal_value: 2.0,
+        scale: 17.0,
+        percentage: 11.76,
+      },
+      {
+        feature_name: 'visit_interarrival_time',
+        description: 'Gap between consecutive visits in the cohort.',
+        weight: null,
+        normal_value: 0.117218,
+        scale: 104.432469,
+        percentage: 0.11,
+      },
+      {
+        feature_name: 'visit_hour_bucket',
+        description: 'Coarse bucket of the visit hour.',
+        weight: null,
+        normal_value: 2.0,
+        scale: 3.0,
+        percentage: 66.67,
+      },
+      {
+        feature_name: 'time_since_last_visit',
+        description: "Elapsed time since this actor's previous visit.",
+        weight: null,
+        normal_value: 0.111586,
+        scale: 293.252783,
+        percentage: 0.04,
+      },
+      {
+        feature_name: 'resident_visit_frequency',
+        description: 'Average visit rate for this resident.',
+        weight: null,
+        normal_value: 0.466667,
+        scale: 5.833333,
+        percentage: 8.0,
+      },
+    ],
+    top_contributing_factors: [
+      {
+        feature_name: 'visitor_weekly_frequency',
+        description: 'Average weekly visit rate for this visitor.',
+        weight: null,
+        normal_value: 0.466667,
+        scale: 5.833333,
+        percentage: 8.0,
+      },
+      {
+        feature_name: 'visitor_total_visits',
+        description: 'Lifetime visit count for this visitor.',
+        weight: null,
+        normal_value: 2.0,
+        scale: 17.0,
+        percentage: 11.76,
+      },
+      {
+        feature_name: 'visit_interarrival_time',
+        description: 'Gap between consecutive visits in the cohort.',
+        weight: null,
+        normal_value: 0.117218,
+        scale: 104.432469,
+        percentage: 0.11,
+      },
+      {
+        feature_name: 'visit_hour_bucket',
+        description: 'Coarse bucket of the visit hour.',
+        weight: null,
+        normal_value: 2.0,
+        scale: 3.0,
+        percentage: 66.67,
+      },
+      {
+        feature_name: 'time_since_last_visit',
+        description: "Elapsed time since this actor's previous visit.",
+        weight: null,
+        normal_value: 0.111586,
+        scale: 293.252783,
+        percentage: 0.04,
+      },
+      {
+        feature_name: 'resident_visit_frequency',
+        description: 'Average visit rate for this resident.',
+        weight: null,
+        normal_value: 0.466667,
+        scale: 5.833333,
+        percentage: 8.0,
+      },
+    ],
+    contributing_factors: [
+      {
+        name: 'visitor_specific',
+        description: 'Visitor-centred timing, frequency, and relationship patterns.',
+        normal_value: 0.0,
+        weight: null,
+        scale: 0.981302,
+        percentage: 85.4,
+        sub_factors: [
+          {
+            feature_name: 'day_of_week',
+            description: 'Day of week of the visit (0=Monday through 6=Sunday).',
+            normal_value: 6.0,
+            weight: null,
+            scale: 6.0,
+            percentage: 100.0,
+          },
+          {
+            feature_name: 'hour_of_day',
+            description: 'Hour of day when the visit was validated (0-23).',
+            normal_value: 16.0,
+            weight: null,
+            scale: 22.0,
+            percentage: 72.73,
+          },
+          {
+            feature_name: 'is_weekend',
+            description: 'Whether the visit fell on a weekend (1) or weekday (0).',
+            normal_value: 1.0,
+            weight: null,
+            scale: 1.0,
+            percentage: 100.0,
+          },
+          {
+            feature_name: 'night_visit_flag',
+            description: 'Whether the visit occurred during night hours.',
+            normal_value: 0.0,
+            weight: null,
+            scale: 1.0,
+            percentage: 0.0,
+          },
+          {
+            feature_name: 'relationship_frequency',
+            description: 'How often this resident-visitor relation appears.',
+            normal_value: 1.0,
+            weight: null,
+            scale: 1.0,
+            percentage: 100.0,
+          },
+          {
+            feature_name: 'relationship_transition',
+            description: 'Whether the stated relationship changed.',
+            normal_value: 0.0,
+            weight: null,
+            scale: 0.0,
+            percentage: 0.0,
+          },
+          {
+            feature_name: 'time_since_last_visit',
+            description: "Elapsed time since this actor's previous visit.",
+            normal_value: 0.083428,
+            weight: null,
+            scale: 293.252783,
+            percentage: 0.03,
+          },
+          {
+            feature_name: 'visit_hour_bucket',
+            description: 'Coarse bucket of the visit hour.',
+            normal_value: 2.0,
+            weight: null,
+            scale: 3.0,
+            percentage: 66.67,
+          },
+          {
+            feature_name: 'visit_interarrival_time',
+            description: 'Gap between consecutive visits in the cohort.',
+            normal_value: 0.083428,
+            weight: null,
+            scale: 104.432469,
+            percentage: 0.08,
+          },
+          {
+            feature_name: 'visitor_total_visits',
+            description: 'Lifetime visit count for this visitor.',
+            normal_value: 2.0,
+            weight: null,
+            scale: 17.0,
+            percentage: 11.76,
+          },
+          {
+            feature_name: 'visitor_weekly_frequency',
+            description: 'Average weekly visit rate for this visitor.',
+            normal_value: 0.466667,
+            weight: null,
+            scale: 3.966667,
+            percentage: 11.76,
+          },
         ],
-        "top_contributing_factors": [
-            {
-                "feature_name": "visitor_weekly_frequency",
-                "description": "Average weekly visit rate for this visitor.",
-                "weight": null,
-                "normal_value": 0.466667,
-                "scale": 5.833333,
-                "percentage": 8.0
-            },
-            {
-                "feature_name": "visitor_total_visits",
-                "description": "Lifetime visit count for this visitor.",
-                "weight": null,
-                "normal_value": 2.0,
-                "scale": 17.0,
-                "percentage": 11.76
-            },
-            {
-                "feature_name": "visit_interarrival_time",
-                "description": "Gap between consecutive visits in the cohort.",
-                "weight": null,
-                "normal_value": 0.117218,
-                "scale": 104.432469,
-                "percentage": 0.11
-            },
-            {
-                "feature_name": "visit_hour_bucket",
-                "description": "Coarse bucket of the visit hour.",
-                "weight": null,
-                "normal_value": 2.0,
-                "scale": 3.0,
-                "percentage": 66.67
-            },
-            {
-                "feature_name": "time_since_last_visit",
-                "description": "Elapsed time since this actor's previous visit.",
-                "weight": null,
-                "normal_value": 0.111586,
-                "scale": 293.252783,
-                "percentage": 0.04
-            },
-            {
-                "feature_name": "resident_visit_frequency",
-                "description": "Average visit rate for this resident.",
-                "weight": null,
-                "normal_value": 0.466667,
-                "scale": 5.833333,
-                "percentage": 8.0
-            }
+      },
+      {
+        name: 'resident_specific',
+        description: 'Resident-centred visit timing and frequency patterns.',
+        normal_value: 0.0,
+        weight: null,
+        scale: 0.998874,
+        percentage: 62.1,
+        sub_factors: [
+          {
+            feature_name: 'day_of_week',
+            description: 'Day of week of the visit (0=Monday through 6=Sunday).',
+            normal_value: 6.0,
+            weight: null,
+            scale: 6.0,
+            percentage: 100.0,
+          },
+          {
+            feature_name: 'hour_of_day',
+            description: 'Hour of day when the visit was validated (0-23).',
+            normal_value: 16.0,
+            weight: null,
+            scale: 22.0,
+            percentage: 72.73,
+          },
+          {
+            feature_name: 'is_weekend',
+            description: 'Whether the visit fell on a weekend (1) or weekday (0).',
+            normal_value: 1.0,
+            weight: null,
+            scale: 1.0,
+            percentage: 100.0,
+          },
+          {
+            feature_name: 'night_visit_flag',
+            description: 'Whether the visit occurred during night hours.',
+            normal_value: 0.0,
+            weight: null,
+            scale: 1.0,
+            percentage: 0.0,
+          },
+          {
+            feature_name: 'resident_visit_frequency',
+            description: 'Average visit rate for this resident.',
+            normal_value: 0.466667,
+            weight: null,
+            scale: 5.833333,
+            percentage: 8.0,
+          },
+          {
+            feature_name: 'time_since_last_visit',
+            description: "Elapsed time since this actor's previous visit.",
+            normal_value: 0.125665,
+            weight: null,
+            scale: 293.252783,
+            percentage: 0.04,
+          },
+          {
+            feature_name: 'visit_hour_bucket',
+            description: 'Coarse bucket of the visit hour.',
+            normal_value: 2.0,
+            weight: null,
+            scale: 3.0,
+            percentage: 66.67,
+          },
+          {
+            feature_name: 'visit_interarrival_time',
+            description: 'Gap between consecutive visits in the cohort.',
+            normal_value: 0.125665,
+            weight: null,
+            scale: 27.475693,
+            percentage: 0.46,
+          },
         ],
-        "contributing_factors": [
-            {
-                "name": "visitor_specific",
-                "description": "Visitor-centred timing, frequency, and relationship patterns.",
-                "normal_value": 0.0,
-                "weight": null,
-                "scale": 0.981302,
-                "percentage": 85.4,
-                "sub_factors": [
-                    {
-                        "feature_name": "day_of_week",
-                        "description": "Day of week of the visit (0=Monday through 6=Sunday).",
-                        "normal_value": 6.0,
-                        "weight": null,
-                        "scale": 6.0,
-                        "percentage": 100.0
-                    },
-                    {
-                        "feature_name": "hour_of_day",
-                        "description": "Hour of day when the visit was validated (0-23).",
-                        "normal_value": 16.0,
-                        "weight": null,
-                        "scale": 22.0,
-                        "percentage": 72.73
-                    },
-                    {
-                        "feature_name": "is_weekend",
-                        "description": "Whether the visit fell on a weekend (1) or weekday (0).",
-                        "normal_value": 1.0,
-                        "weight": null,
-                        "scale": 1.0,
-                        "percentage": 100.0
-                    },
-                    {
-                        "feature_name": "night_visit_flag",
-                        "description": "Whether the visit occurred during night hours.",
-                        "normal_value": 0.0,
-                        "weight": null,
-                        "scale": 1.0,
-                        "percentage": 0.0
-                    },
-                    {
-                        "feature_name": "relationship_frequency",
-                        "description": "How often this resident-visitor relation appears.",
-                        "normal_value": 1.0,
-                        "weight": null,
-                        "scale": 1.0,
-                        "percentage": 100.0
-                    },
-                    {
-                        "feature_name": "relationship_transition",
-                        "description": "Whether the stated relationship changed.",
-                        "normal_value": 0.0,
-                        "weight": null,
-                        "scale": 0.0,
-                        "percentage": 0.0
-                    },
-                    {
-                        "feature_name": "time_since_last_visit",
-                        "description": "Elapsed time since this actor's previous visit.",
-                        "normal_value": 0.083428,
-                        "weight": null,
-                        "scale": 293.252783,
-                        "percentage": 0.03
-                    },
-                    {
-                        "feature_name": "visit_hour_bucket",
-                        "description": "Coarse bucket of the visit hour.",
-                        "normal_value": 2.0,
-                        "weight": null,
-                        "scale": 3.0,
-                        "percentage": 66.67
-                    },
-                    {
-                        "feature_name": "visit_interarrival_time",
-                        "description": "Gap between consecutive visits in the cohort.",
-                        "normal_value": 0.083428,
-                        "weight": null,
-                        "scale": 104.432469,
-                        "percentage": 0.08
-                    },
-                    {
-                        "feature_name": "visitor_total_visits",
-                        "description": "Lifetime visit count for this visitor.",
-                        "normal_value": 2.0,
-                        "weight": null,
-                        "scale": 17.0,
-                        "percentage": 11.76
-                    },
-                    {
-                        "feature_name": "visitor_weekly_frequency",
-                        "description": "Average weekly visit rate for this visitor.",
-                        "normal_value": 0.466667,
-                        "weight": null,
-                        "scale": 3.966667,
-                        "percentage": 11.76
-                    }
-                ]
-            },
-            {
-                "name": "resident_specific",
-                "description": "Resident-centred visit timing and frequency patterns.",
-                "normal_value": 0.0,
-                "weight": null,
-                "scale": 0.998874,
-                "percentage": 62.1,
-                "sub_factors": [
-                    {
-                        "feature_name": "day_of_week",
-                        "description": "Day of week of the visit (0=Monday through 6=Sunday).",
-                        "normal_value": 6.0,
-                        "weight": null,
-                        "scale": 6.0,
-                        "percentage": 100.0
-                    },
-                    {
-                        "feature_name": "hour_of_day",
-                        "description": "Hour of day when the visit was validated (0-23).",
-                        "normal_value": 16.0,
-                        "weight": null,
-                        "scale": 22.0,
-                        "percentage": 72.73
-                    },
-                    {
-                        "feature_name": "is_weekend",
-                        "description": "Whether the visit fell on a weekend (1) or weekday (0).",
-                        "normal_value": 1.0,
-                        "weight": null,
-                        "scale": 1.0,
-                        "percentage": 100.0
-                    },
-                    {
-                        "feature_name": "night_visit_flag",
-                        "description": "Whether the visit occurred during night hours.",
-                        "normal_value": 0.0,
-                        "weight": null,
-                        "scale": 1.0,
-                        "percentage": 0.0
-                    },
-                    {
-                        "feature_name": "resident_visit_frequency",
-                        "description": "Average visit rate for this resident.",
-                        "normal_value": 0.466667,
-                        "weight": null,
-                        "scale": 5.833333,
-                        "percentage": 8.0
-                    },
-                    {
-                        "feature_name": "time_since_last_visit",
-                        "description": "Elapsed time since this actor's previous visit.",
-                        "normal_value": 0.125665,
-                        "weight": null,
-                        "scale": 293.252783,
-                        "percentage": 0.04
-                    },
-                    {
-                        "feature_name": "visit_hour_bucket",
-                        "description": "Coarse bucket of the visit hour.",
-                        "normal_value": 2.0,
-                        "weight": null,
-                        "scale": 3.0,
-                        "percentage": 66.67
-                    },
-                    {
-                        "feature_name": "visit_interarrival_time",
-                        "description": "Gap between consecutive visits in the cohort.",
-                        "normal_value": 0.125665,
-                        "weight": null,
-                        "scale": 27.475693,
-                        "percentage": 0.46
-                    }
-                ]
-            },
-            {
-                "name": "security_specific",
-                "description": "Guard validation volume and night-shift patterns.",
-                "normal_value": 0.0,
-                "weight": null,
-                "scale": 0.988631,
-                "percentage": 45.0,
-                "sub_factors": [
-                    {
-                        "feature_name": "guard_night_validations",
-                        "description": "Night-hour validations performed by the guard.",
-                        "normal_value": 0.0,
-                        "weight": null,
-                        "scale": 4.0,
-                        "percentage": 0.0
-                    },
-                    {
-                        "feature_name": "guard_total_validations",
-                        "description": "Total validations performed by the guard.",
-                        "normal_value": 2.0,
-                        "weight": null,
-                        "scale": 25.0,
-                        "percentage": 8.0
-                    },
-                    {
-                        "feature_name": "hour_of_day",
-                        "description": "Hour of day when the visit was validated (0-23).",
-                        "normal_value": 16.0,
-                        "weight": null,
-                        "scale": 22.0,
-                        "percentage": 72.73
-                    },
-                    {
-                        "feature_name": "night_visit_flag",
-                        "description": "Whether the visit occurred during night hours.",
-                        "normal_value": 0.0,
-                        "weight": null,
-                        "scale": 1.0,
-                        "percentage": 0.0
-                    }
-                ]
-            },
-            {
-                "name": "estate_wide",
-                "description": "Estate-wide visit timing, frequency, and validation patterns.",
-                "normal_value": 0.0,
-                "weight": null,
-                "scale": 0.99173,
-                "percentage": 78.9,
-                "sub_factors": [
-                    {
-                        "feature_name": "day_of_week",
-                        "description": "Day of week of the visit (0=Monday through 6=Sunday).",
-                        "normal_value": 6.0,
-                        "weight": null,
-                        "scale": 6.0,
-                        "percentage": 100.0
-                    },
-                    {
-                        "feature_name": "guard_total_validations",
-                        "description": "Total validations performed by the guard.",
-                        "normal_value": 2.0,
-                        "weight": null,
-                        "scale": 25.0,
-                        "percentage": 8.0
-                    },
-                    {
-                        "feature_name": "hour_of_day",
-                        "description": "Hour of day when the visit was validated (0-23).",
-                        "normal_value": 16.0,
-                        "weight": null,
-                        "scale": 22.0,
-                        "percentage": 72.73
-                    },
-                    {
-                        "feature_name": "is_weekend",
-                        "description": "Whether the visit fell on a weekend (1) or weekday (0).",
-                        "normal_value": 1.0,
-                        "weight": null,
-                        "scale": 1.0,
-                        "percentage": 100.0
-                    },
-                    {
-                        "feature_name": "night_visit_flag",
-                        "description": "Whether the visit occurred during night hours.",
-                        "normal_value": 0.0,
-                        "weight": null,
-                        "scale": 1.0,
-                        "percentage": 0.0
-                    },
-                    {
-                        "feature_name": "resident_visit_frequency",
-                        "description": "Average visit rate for this resident.",
-                        "normal_value": 0.466667,
-                        "weight": null,
-                        "scale": 5.833333,
-                        "percentage": 8.0
-                    },
-                    {
-                        "feature_name": "visit_interarrival_time",
-                        "description": "Gap between consecutive visits in the cohort.",
-                        "normal_value": 0.125665,
-                        "weight": null,
-                        "scale": 27.475693,
-                        "percentage": 0.46
-                    },
-                    {
-                        "feature_name": "visitor_weekly_frequency",
-                        "description": "Average weekly visit rate for this visitor.",
-                        "normal_value": 0.466667,
-                        "weight": null,
-                        "scale": 5.833333,
-                        "percentage": 8.0
-                    }
-                ]
-            }
-        ]
-    }
+      },
+      {
+        name: 'security_specific',
+        description: 'Guard validation volume and night-shift patterns.',
+        normal_value: 0.0,
+        weight: null,
+        scale: 0.988631,
+        percentage: 45.0,
+        sub_factors: [
+          {
+            feature_name: 'guard_night_validations',
+            description: 'Night-hour validations performed by the guard.',
+            normal_value: 0.0,
+            weight: null,
+            scale: 4.0,
+            percentage: 0.0,
+          },
+          {
+            feature_name: 'guard_total_validations',
+            description: 'Total validations performed by the guard.',
+            normal_value: 2.0,
+            weight: null,
+            scale: 25.0,
+            percentage: 8.0,
+          },
+          {
+            feature_name: 'hour_of_day',
+            description: 'Hour of day when the visit was validated (0-23).',
+            normal_value: 16.0,
+            weight: null,
+            scale: 22.0,
+            percentage: 72.73,
+          },
+          {
+            feature_name: 'night_visit_flag',
+            description: 'Whether the visit occurred during night hours.',
+            normal_value: 0.0,
+            weight: null,
+            scale: 1.0,
+            percentage: 0.0,
+          },
+        ],
+      },
+      {
+        name: 'estate_wide',
+        description: 'Estate-wide visit timing, frequency, and validation patterns.',
+        normal_value: 0.0,
+        weight: null,
+        scale: 0.99173,
+        percentage: 78.9,
+        sub_factors: [
+          {
+            feature_name: 'day_of_week',
+            description: 'Day of week of the visit (0=Monday through 6=Sunday).',
+            normal_value: 6.0,
+            weight: null,
+            scale: 6.0,
+            percentage: 100.0,
+          },
+          {
+            feature_name: 'guard_total_validations',
+            description: 'Total validations performed by the guard.',
+            normal_value: 2.0,
+            weight: null,
+            scale: 25.0,
+            percentage: 8.0,
+          },
+          {
+            feature_name: 'hour_of_day',
+            description: 'Hour of day when the visit was validated (0-23).',
+            normal_value: 16.0,
+            weight: null,
+            scale: 22.0,
+            percentage: 72.73,
+          },
+          {
+            feature_name: 'is_weekend',
+            description: 'Whether the visit fell on a weekend (1) or weekday (0).',
+            normal_value: 1.0,
+            weight: null,
+            scale: 1.0,
+            percentage: 100.0,
+          },
+          {
+            feature_name: 'night_visit_flag',
+            description: 'Whether the visit occurred during night hours.',
+            normal_value: 0.0,
+            weight: null,
+            scale: 1.0,
+            percentage: 0.0,
+          },
+          {
+            feature_name: 'resident_visit_frequency',
+            description: 'Average visit rate for this resident.',
+            normal_value: 0.466667,
+            weight: null,
+            scale: 5.833333,
+            percentage: 8.0,
+          },
+          {
+            feature_name: 'visit_interarrival_time',
+            description: 'Gap between consecutive visits in the cohort.',
+            normal_value: 0.125665,
+            weight: null,
+            scale: 27.475693,
+            percentage: 0.46,
+          },
+          {
+            feature_name: 'visitor_weekly_frequency',
+            description: 'Average weekly visit rate for this visitor.',
+            normal_value: 0.466667,
+            weight: null,
+            scale: 5.833333,
+            percentage: 8.0,
+          },
+        ],
+      },
+    ],
+  },
 };
 
 export const mockPredictions = {
-    "items": [
-        {
-            "id": "d475dc21-cf1d-4782-a431-f4222082d570-0",
-            "created_at": "2026-09-19T00:28:22.041861Z",
-            "prediction_type": "VisitorAnomalyRealtime",
-            "user_type": "guest",
-            "gender": "male",
-            "display_name": "Segun Doe",
-            "final_score": 0.7425033144771942,
-            "is_anomalous": true,
-            "severity": "medium",
-            "anomaly_type": "visitor",
-            "has_tier1_summary": false,
-            "has_tier2_summary": false
-        },
-        {
-            "id": "81a93f86-e9df-4e8a-8134-159c4b2cc055-1",
-            "created_at": "2026-09-19T00:21:18.775832Z",
-            "prediction_type": "VisitorAnomalyRealtime",
-            "user_type": "guest",
-            "gender": "male",
-            "display_name": "Joshua Doe",
-            "final_score": 0.7447152341164082,
-            "is_anomalous": true,
-            "severity": "medium",
-            "anomaly_type": "visitor",
-            "has_tier1_summary": false,
-            "has_tier2_summary": false
-        },
-        {
-            "id": "5748010f-2bb6-4952-a901-18a0eef50ebc-2",
-            "created_at": "2026-09-06T19:06:08.601067Z",
-            "prediction_type": "VisitorAnomalyRealtime",
-            "user_type": "guest",
-            "gender": "male",
-            "display_name": "Joshua Doe",
-            "final_score": 0.742793451571952,
-            "is_anomalous": true,
-            "severity": "medium",
-            "anomaly_type": "visitor",
-            "has_tier1_summary": true,
-            "has_tier2_summary": true
-        },
-        {
-            "id": "69c6bbad-2baa-4177-9545-b295b0ed29f6-3",
-            "created_at": "2026-08-30T22:38:51.421162Z",
-            "prediction_type": "VisitorAnomalyRealtime",
-            "user_type": "guest",
-            "gender": "male",
-            "display_name": "Joshua Doe",
-            "final_score": 0.7414823944575522,
-            "is_anomalous": true,
-            "severity": "medium",
-            "anomaly_type": "visitor",
-            "has_tier1_summary": false,
-            "has_tier2_summary": false
-        },
-        {
-            "id": "062898bc-5cef-4c60-a41f-0b5a140d28a3-4",
-            "created_at": "2026-08-28T09:16:57.821354Z",
-            "prediction_type": "ResidentAnomalyRealtime",
-            "user_type": "resident",
-            "gender": "male",
-            "display_name": "John Doe",
-            "final_score": 0.9822975707638338,
-            "is_anomalous": true,
-            "severity": "high",
-            "anomaly_type": "resident",
-            "has_tier1_summary": true,
-            "has_tier2_summary": true
-        },
-        {
-            "id": "bc642e62-1bc9-4887-bf96-fc44669cfbe4-5",
-            "created_at": "2026-08-28T09:15:35.471580Z",
-            "prediction_type": "VisitorAnomalyRealtime",
-            "user_type": "guest",
-            "gender": "male",
-            "display_name": "Joshua Doe",
-            "final_score": 0.7350722072405674,
-            "is_anomalous": true,
-            "severity": "medium",
-            "anomaly_type": "visitor",
-            "has_tier1_summary": false,
-            "has_tier2_summary": false
-        },
-        {
-            "id": "4ba1dfee-bcaa-4729-825a-543a6640faab-6",
-            "created_at": "2026-08-23T22:28:46.095510Z",
-            "prediction_type": "VisitorAnomalyRealtime",
-            "user_type": "guest",
-            "gender": "male",
-            "display_name": "Joshua Doe",
-            "final_score": 0.7314819051616913,
-            "is_anomalous": true,
-            "severity": "medium",
-            "anomaly_type": "visitor",
-            "has_tier1_summary": false,
-            "has_tier2_summary": false
-        },
-        {
-            "id": "8367eecd-f0b4-4e82-8782-1c983320a30b-7",
-            "created_at": "2026-08-23T21:45:37.166604Z",
-            "prediction_type": "VisitorAnomalyRealtime",
-            "user_type": "guest",
-            "gender": "male",
-            "display_name": "Joshua Doe",
-            "final_score": 0.7294450049466298,
-            "is_anomalous": true,
-            "severity": "medium",
-            "anomaly_type": "visitor",
-            "has_tier1_summary": false,
-            "has_tier2_summary": false
-        },
-        {
-            "id": "71544398-4cfc-4751-8133-b4d14abee67f-8",
-            "created_at": "2026-08-23T21:45:11.684855Z",
-            "prediction_type": "VisitorAnomalyRealtime",
-            "user_type": "guest",
-            "gender": "male",
-            "display_name": "Sampson Doe",
-            "final_score": 0.9759660620439164,
-            "is_anomalous": true,
-            "severity": "high",
-            "anomaly_type": "visitor",
-            "has_tier1_summary": false,
-            "has_tier2_summary": false
-        },
-        {
-            "id": "05df9657-22f4-4470-9070-b10e704d5068-9",
-            "created_at": "2026-08-23T21:43:54.407866Z",
-            "prediction_type": "ResidentAnomalyRealtime",
-            "user_type": "resident",
-            "gender": "male",
-            "display_name": "John Doe",
-            "final_score": 0.9561231476345813,
-            "is_anomalous": true,
-            "severity": "high",
-            "anomaly_type": "resident",
-            "has_tier1_summary": false,
-            "has_tier2_summary": false
-        }
-    ],
-    "total": 10,
-    "page": 1,
-    "limit": 10,
-    "sort_order": "desc"
+  items: [
+    {
+      id: 'd475dc21-cf1d-4782-a431-f4222082d570-0',
+      created_at: '2026-09-19T00:28:22.041861Z',
+      prediction_type: 'VisitorAnomalyRealtime',
+      user_type: 'guest',
+      gender: 'male',
+      display_name: 'Segun Doe',
+      final_score: 0.7425033144771942,
+      is_anomalous: true,
+      severity: 'medium',
+      anomaly_type: 'visitor',
+      has_tier1_summary: false,
+      has_tier2_summary: false,
+    },
+    {
+      id: '81a93f86-e9df-4e8a-8134-159c4b2cc055-1',
+      created_at: '2026-09-19T00:21:18.775832Z',
+      prediction_type: 'VisitorAnomalyRealtime',
+      user_type: 'guest',
+      gender: 'male',
+      display_name: 'Joshua Doe',
+      final_score: 0.7447152341164082,
+      is_anomalous: true,
+      severity: 'medium',
+      anomaly_type: 'visitor',
+      has_tier1_summary: false,
+      has_tier2_summary: false,
+    },
+    {
+      id: '5748010f-2bb6-4952-a901-18a0eef50ebc-2',
+      created_at: '2026-09-06T19:06:08.601067Z',
+      prediction_type: 'VisitorAnomalyRealtime',
+      user_type: 'guest',
+      gender: 'male',
+      display_name: 'Joshua Doe',
+      final_score: 0.742793451571952,
+      is_anomalous: true,
+      severity: 'medium',
+      anomaly_type: 'visitor',
+      has_tier1_summary: true,
+      has_tier2_summary: true,
+    },
+    {
+      id: '69c6bbad-2baa-4177-9545-b295b0ed29f6-3',
+      created_at: '2026-08-30T22:38:51.421162Z',
+      prediction_type: 'VisitorAnomalyRealtime',
+      user_type: 'guest',
+      gender: 'male',
+      display_name: 'Joshua Doe',
+      final_score: 0.7414823944575522,
+      is_anomalous: true,
+      severity: 'medium',
+      anomaly_type: 'visitor',
+      has_tier1_summary: false,
+      has_tier2_summary: false,
+    },
+    {
+      id: '062898bc-5cef-4c60-a41f-0b5a140d28a3-4',
+      created_at: '2026-08-28T09:16:57.821354Z',
+      prediction_type: 'ResidentAnomalyRealtime',
+      user_type: 'resident',
+      gender: 'male',
+      display_name: 'John Doe',
+      final_score: 0.9822975707638338,
+      is_anomalous: true,
+      severity: 'high',
+      anomaly_type: 'resident',
+      has_tier1_summary: true,
+      has_tier2_summary: true,
+    },
+    {
+      id: 'bc642e62-1bc9-4887-bf96-fc44669cfbe4-5',
+      created_at: '2026-08-28T09:15:35.471580Z',
+      prediction_type: 'VisitorAnomalyRealtime',
+      user_type: 'guest',
+      gender: 'male',
+      display_name: 'Joshua Doe',
+      final_score: 0.7350722072405674,
+      is_anomalous: true,
+      severity: 'medium',
+      anomaly_type: 'visitor',
+      has_tier1_summary: false,
+      has_tier2_summary: false,
+    },
+    {
+      id: '4ba1dfee-bcaa-4729-825a-543a6640faab-6',
+      created_at: '2026-08-23T22:28:46.095510Z',
+      prediction_type: 'VisitorAnomalyRealtime',
+      user_type: 'guest',
+      gender: 'male',
+      display_name: 'Joshua Doe',
+      final_score: 0.7314819051616913,
+      is_anomalous: true,
+      severity: 'medium',
+      anomaly_type: 'visitor',
+      has_tier1_summary: false,
+      has_tier2_summary: false,
+    },
+    {
+      id: '8367eecd-f0b4-4e82-8782-1c983320a30b-7',
+      created_at: '2026-08-23T21:45:37.166604Z',
+      prediction_type: 'VisitorAnomalyRealtime',
+      user_type: 'guest',
+      gender: 'male',
+      display_name: 'Joshua Doe',
+      final_score: 0.7294450049466298,
+      is_anomalous: true,
+      severity: 'medium',
+      anomaly_type: 'visitor',
+      has_tier1_summary: false,
+      has_tier2_summary: false,
+    },
+    {
+      id: '71544398-4cfc-4751-8133-b4d14abee67f-8',
+      created_at: '2026-08-23T21:45:11.684855Z',
+      prediction_type: 'VisitorAnomalyRealtime',
+      user_type: 'guest',
+      gender: 'male',
+      display_name: 'Sampson Doe',
+      final_score: 0.9759660620439164,
+      is_anomalous: true,
+      severity: 'high',
+      anomaly_type: 'visitor',
+      has_tier1_summary: false,
+      has_tier2_summary: false,
+    },
+    {
+      id: '05df9657-22f4-4470-9070-b10e704d5068-9',
+      created_at: '2026-08-23T21:43:54.407866Z',
+      prediction_type: 'ResidentAnomalyRealtime',
+      user_type: 'resident',
+      gender: 'male',
+      display_name: 'John Doe',
+      final_score: 0.9561231476345813,
+      is_anomalous: true,
+      severity: 'high',
+      anomaly_type: 'resident',
+      has_tier1_summary: false,
+      has_tier2_summary: false,
+    },
+  ],
+  total: 10,
+  page: 1,
+  limit: 10,
+  sort_order: 'desc',
 };
 
 export const mockDemographic = {
-    "prediction_id": "062898bc-5cef-4c60-a41f-0b5a140d28a3",
-    "display_name": "John Doe",
-    "user_type": "resident",
-    "user_id": "ea544461-05f0-43f0-b207-066d5f128a07",
-    "total_entries": 35,
-    "average_entry_per_week": 0.01,
-    "has_tier1_summary": true,
-    "has_tier2_summary": true
+  prediction_id: '062898bc-5cef-4c60-a41f-0b5a140d28a3',
+  display_name: 'John Doe',
+  user_type: 'resident',
+  user_id: 'ea544461-05f0-43f0-b207-066d5f128a07',
+  total_entries: 35,
+  average_entry_per_week: 0.01,
+  has_tier1_summary: true,
+  has_tier2_summary: true,
 };
 
 export const mockHistory = {
-    "items": [
-        {
-            "id": "062898bc-5cef-4c60-a41f-0b5a140d28a3",
-            "validated_at": "2026-08-28T09:16:57.579313Z",
-            "validated_code": "Y04KUL",
-            "severity": "high",
-            "is_anomalous": true,
-            "final_score": 0.9822975707638338
-        },
-        {
-            "id": "05df9657-22f4-4470-9070-b10e704d5068",
-            "validated_at": "2026-08-23T21:43:53.273608Z",
-            "validated_code": "Y04KUL",
-            "severity": "high",
-            "is_anomalous": true,
-            "final_score": 0.9561231476345813
-        },
-        {
-            "id": "f893a609-5239-4a7c-a3c9-60179fce7628",
-            "validated_at": "2026-08-23T17:14:14.557344Z",
-            "validated_code": "Y04KUL",
-            "severity": "high",
-            "is_anomalous": true,
-            "final_score": 0.8978892766933915
-        },
-        {
-            "id": "491f6655-6e26-4d78-9b8d-abe7394138e5",
-            "validated_at": "2026-08-23T16:51:59.012806Z",
-            "validated_code": "Y04KUL",
-            "severity": "medium",
-            "is_anomalous": true,
-            "final_score": 0.7471717956539404
-        },
-        {
-            "id": "c37aa0bb-d79c-40c8-8d1d-f4cd6cc60ad2",
-            "validated_at": "2026-08-23T16:47:46.116239Z",
-            "validated_code": "Y04KUL",
-            "severity": "low",
-            "is_anomalous": false,
-            "final_score": 0.0
-        }
-    ]
+  items: [
+    {
+      id: '062898bc-5cef-4c60-a41f-0b5a140d28a3',
+      validated_at: '2026-08-28T09:16:57.579313Z',
+      validated_code: 'Y04KUL',
+      severity: 'high',
+      is_anomalous: true,
+      final_score: 0.9822975707638338,
+    },
+    {
+      id: '05df9657-22f4-4470-9070-b10e704d5068',
+      validated_at: '2026-08-23T21:43:53.273608Z',
+      validated_code: 'Y04KUL',
+      severity: 'high',
+      is_anomalous: true,
+      final_score: 0.9561231476345813,
+    },
+    {
+      id: 'f893a609-5239-4a7c-a3c9-60179fce7628',
+      validated_at: '2026-08-23T17:14:14.557344Z',
+      validated_code: 'Y04KUL',
+      severity: 'high',
+      is_anomalous: true,
+      final_score: 0.8978892766933915,
+    },
+    {
+      id: '491f6655-6e26-4d78-9b8d-abe7394138e5',
+      validated_at: '2026-08-23T16:51:59.012806Z',
+      validated_code: 'Y04KUL',
+      severity: 'medium',
+      is_anomalous: true,
+      final_score: 0.7471717956539404,
+    },
+    {
+      id: 'c37aa0bb-d79c-40c8-8d1d-f4cd6cc60ad2',
+      validated_at: '2026-08-23T16:47:46.116239Z',
+      validated_code: 'Y04KUL',
+      severity: 'low',
+      is_anomalous: false,
+      final_score: 0.0,
+    },
+  ],
 };
 
 export const mockResults = {
-    "prediction_id": "062898bc-5cef-4c60-a41f-0b5a140d28a3",
-    "final_score": 0.9822975707638338,
-    "is_anomalous": true,
-    "severity": "high",
-    "anomaly_overview": {
-        "spider_plot": [
-            {
-                "feature_name": "visitor_weekly_frequency",
-                "description": "Average weekly visit rate for this visitor.",
-                "weight": null,
-                "normal_value": 0.466667,
-                "instance_value": 1.6333333333333333,
-                "scale": 5.833333,
-                "percentage": 8.0,
-                "instance_percentage": 28.0
-            },
-            {
-                "feature_name": "visit_interarrival_time",
-                "description": "Gap between consecutive visits in the cohort.",
-                "weight": null,
-                "normal_value": 0.117218,
-                "instance_value": 18.775736772453705,
-                "scale": 104.432469,
-                "percentage": 0.11,
-                "instance_percentage": 17.98
-            },
-            {
-                "feature_name": "visit_hour_bucket",
-                "description": "Coarse bucket of the visit hour.",
-                "weight": null,
-                "normal_value": 2.0,
-                "instance_value": 1.0,
-                "scale": 3.0,
-                "percentage": 66.67,
-                "instance_percentage": 33.33
-            },
-            {
-                "feature_name": "time_since_last_visit",
-                "description": "Elapsed time since this actor's previous visit.",
-                "weight": null,
-                "normal_value": 0.111586,
-                "instance_value": 107.55119602916668,
-                "scale": 293.252783,
-                "percentage": 0.04,
-                "instance_percentage": 36.68
-            },
-            {
-                "feature_name": "resident_visit_frequency",
-                "description": "Average visit rate for this resident.",
-                "weight": null,
-                "normal_value": 0.466667,
-                "instance_value": 1.6333333333333333,
-                "scale": 5.833333,
-                "percentage": 8.0,
-                "instance_percentage": 28.0
-            },
-            {
-                "feature_name": "night_visit_flag",
-                "description": "Whether the visit occurred during night hours.",
-                "weight": null,
-                "normal_value": 0.0,
-                "instance_value": 0.0,
-                "scale": 1.0,
-                "percentage": 0.0,
-                "instance_percentage": 0.0
-            }
+  prediction_id: '062898bc-5cef-4c60-a41f-0b5a140d28a3',
+  final_score: 0.9822975707638338,
+  is_anomalous: true,
+  severity: 'high',
+  anomaly_overview: {
+    spider_plot: [
+      {
+        feature_name: 'visitor_weekly_frequency',
+        description: 'Average weekly visit rate for this visitor.',
+        weight: null,
+        normal_value: 0.466667,
+        instance_value: 1.6333333333333333,
+        scale: 5.833333,
+        percentage: 8.0,
+        instance_percentage: 28.0,
+      },
+      {
+        feature_name: 'visit_interarrival_time',
+        description: 'Gap between consecutive visits in the cohort.',
+        weight: null,
+        normal_value: 0.117218,
+        instance_value: 18.775736772453705,
+        scale: 104.432469,
+        percentage: 0.11,
+        instance_percentage: 17.98,
+      },
+      {
+        feature_name: 'visit_hour_bucket',
+        description: 'Coarse bucket of the visit hour.',
+        weight: null,
+        normal_value: 2.0,
+        instance_value: 1.0,
+        scale: 3.0,
+        percentage: 66.67,
+        instance_percentage: 33.33,
+      },
+      {
+        feature_name: 'time_since_last_visit',
+        description: "Elapsed time since this actor's previous visit.",
+        weight: null,
+        normal_value: 0.111586,
+        instance_value: 107.55119602916668,
+        scale: 293.252783,
+        percentage: 0.04,
+        instance_percentage: 36.68,
+      },
+      {
+        feature_name: 'resident_visit_frequency',
+        description: 'Average visit rate for this resident.',
+        weight: null,
+        normal_value: 0.466667,
+        instance_value: 1.6333333333333333,
+        scale: 5.833333,
+        percentage: 8.0,
+        instance_percentage: 28.0,
+      },
+      {
+        feature_name: 'night_visit_flag',
+        description: 'Whether the visit occurred during night hours.',
+        weight: null,
+        normal_value: 0.0,
+        instance_value: 0.0,
+        scale: 1.0,
+        percentage: 0.0,
+        instance_percentage: 0.0,
+      },
+    ],
+    contributing_factors: [
+      {
+        name: 'resident_specific',
+        description: 'Resident-centred visit timing and frequency patterns.',
+        instance_value: 0.9969763451878594,
+        scale: 0.998874,
+        percentage: 99.81,
+        sub_factors: [
+          {
+            feature_name: 'day_of_week',
+            description: 'Day of week of the visit (0=Monday through 6=Sunday).',
+            instance_value: 4.0,
+            scale: 6.0,
+            percentage: 66.67,
+          },
+          {
+            feature_name: 'hour_of_day',
+            description: 'Hour of day when the visit was validated (0-23).',
+            instance_value: 9.0,
+            scale: 22.0,
+            percentage: 40.91,
+          },
+          {
+            feature_name: 'is_weekend',
+            description: 'Whether the visit fell on a weekend (1) or weekday (0).',
+            instance_value: 0.0,
+            scale: 1.0,
+            percentage: 0.0,
+          },
+          {
+            feature_name: 'night_visit_flag',
+            description: 'Whether the visit occurred during night hours.',
+            instance_value: 0.0,
+            scale: 1.0,
+            percentage: 0.0,
+          },
+          {
+            feature_name: 'resident_visit_frequency',
+            description: 'Average visit rate for this resident.',
+            instance_value: 1.6333333333333333,
+            scale: 5.833333,
+            percentage: 28.0,
+          },
+          {
+            feature_name: 'time_since_last_visit',
+            description: "Elapsed time since this actor's previous visit.",
+            instance_value: 107.55119602916668,
+            scale: 293.252783,
+            percentage: 36.68,
+          },
+          {
+            feature_name: 'visit_hour_bucket',
+            description: 'Coarse bucket of the visit hour.',
+            instance_value: 1.0,
+            scale: 3.0,
+            percentage: 33.33,
+          },
+          {
+            feature_name: 'visit_interarrival_time',
+            description: 'Gap between consecutive visits in the cohort.',
+            instance_value: 18.775736772453705,
+            scale: 27.475693,
+            percentage: 68.34,
+          },
         ],
-        "contributing_factors": [
-            {
-                "name": "resident_specific",
-                "description": "Resident-centred visit timing and frequency patterns.",
-                "instance_value": 0.9969763451878594,
-                "scale": 0.998874,
-                "percentage": 99.81,
-                "sub_factors": [
-                    {
-                        "feature_name": "day_of_week",
-                        "description": "Day of week of the visit (0=Monday through 6=Sunday).",
-                        "instance_value": 4.0,
-                        "scale": 6.0,
-                        "percentage": 66.67
-                    },
-                    {
-                        "feature_name": "hour_of_day",
-                        "description": "Hour of day when the visit was validated (0-23).",
-                        "instance_value": 9.0,
-                        "scale": 22.0,
-                        "percentage": 40.91
-                    },
-                    {
-                        "feature_name": "is_weekend",
-                        "description": "Whether the visit fell on a weekend (1) or weekday (0).",
-                        "instance_value": 0.0,
-                        "scale": 1.0,
-                        "percentage": 0.0
-                    },
-                    {
-                        "feature_name": "night_visit_flag",
-                        "description": "Whether the visit occurred during night hours.",
-                        "instance_value": 0.0,
-                        "scale": 1.0,
-                        "percentage": 0.0
-                    },
-                    {
-                        "feature_name": "resident_visit_frequency",
-                        "description": "Average visit rate for this resident.",
-                        "instance_value": 1.6333333333333333,
-                        "scale": 5.833333,
-                        "percentage": 28.0
-                    },
-                    {
-                        "feature_name": "time_since_last_visit",
-                        "description": "Elapsed time since this actor's previous visit.",
-                        "instance_value": 107.55119602916668,
-                        "scale": 293.252783,
-                        "percentage": 36.68
-                    },
-                    {
-                        "feature_name": "visit_hour_bucket",
-                        "description": "Coarse bucket of the visit hour.",
-                        "instance_value": 1.0,
-                        "scale": 3.0,
-                        "percentage": 33.33
-                    },
-                    {
-                        "feature_name": "visit_interarrival_time",
-                        "description": "Gap between consecutive visits in the cohort.",
-                        "instance_value": 18.775736772453705,
-                        "scale": 27.475693,
-                        "percentage": 68.34
-                    }
-                ]
-            },
-            {
-                "name": "security_specific",
-                "description": "Guard validation volume and night-shift patterns.",
-                "instance_value": 0.9652861859952392,
-                "scale": 0.988631,
-                "percentage": 97.64,
-                "sub_factors": [
-                    {
-                        "feature_name": "guard_night_validations",
-                        "description": "Night-hour validations performed by the guard.",
-                        "instance_value": 0.0,
-                        "scale": 4.0,
-                        "percentage": 0.0
-                    },
-                    {
-                        "feature_name": "guard_total_validations",
-                        "description": "Total validations performed by the guard.",
-                        "instance_value": 7.0,
-                        "scale": 25.0,
-                        "percentage": 28.0
-                    },
-                    {
-                        "feature_name": "hour_of_day",
-                        "description": "Hour of day when the visit was validated (0-23).",
-                        "instance_value": 9.0,
-                        "scale": 22.0,
-                        "percentage": 40.91
-                    },
-                    {
-                        "feature_name": "night_visit_flag",
-                        "description": "Whether the visit occurred during night hours.",
-                        "instance_value": 0.0,
-                        "scale": 1.0,
-                        "percentage": 0.0
-                    }
-                ]
-            },
-            {
-                "name": "estate_wide",
-                "description": "Estate-wide visit timing, frequency, and validation patterns.",
-                "instance_value": 0.9846301811084031,
-                "scale": 0.99173,
-                "percentage": 99.28,
-                "sub_factors": [
-                    {
-                        "feature_name": "day_of_week",
-                        "description": "Day of week of the visit (0=Monday through 6=Sunday).",
-                        "instance_value": 4.0,
-                        "scale": 6.0,
-                        "percentage": 66.67
-                    },
-                    {
-                        "feature_name": "guard_total_validations",
-                        "description": "Total validations performed by the guard.",
-                        "instance_value": 7.0,
-                        "scale": 25.0,
-                        "percentage": 28.0
-                    },
-                    {
-                        "feature_name": "hour_of_day",
-                        "description": "Hour of day when the visit was validated (0-23).",
-                        "instance_value": 9.0,
-                        "scale": 22.0,
-                        "percentage": 40.91
-                    },
-                    {
-                        "feature_name": "is_weekend",
-                        "description": "Whether the visit fell on a weekend (1) or weekday (0).",
-                        "instance_value": 0.0,
-                        "scale": 1.0,
-                        "percentage": 0.0
-                    },
-                    {
-                        "feature_name": "night_visit_flag",
-                        "description": "Whether the visit occurred during night hours.",
-                        "instance_value": 0.0,
-                        "scale": 1.0,
-                        "percentage": 0.0
-                    },
-                    {
-                        "feature_name": "resident_visit_frequency",
-                        "description": "Average visit rate for this resident.",
-                        "instance_value": 1.6333333333333333,
-                        "scale": 5.833333,
-                        "percentage": 28.0
-                    },
-                    {
-                        "feature_name": "visit_interarrival_time",
-                        "description": "Gap between consecutive visits in the cohort.",
-                        "instance_value": 18.775736772453705,
-                        "scale": 27.475693,
-                        "percentage": 68.34
-                    },
-                    {
-                        "feature_name": "visitor_weekly_frequency",
-                        "description": "Average weekly visit rate for this visitor.",
-                        "instance_value": 1.6333333333333333,
-                        "scale": 5.833333,
-                        "percentage": 28.0
-                    }
-                ]
-            }
-        ]
-    }
+      },
+      {
+        name: 'security_specific',
+        description: 'Guard validation volume and night-shift patterns.',
+        instance_value: 0.9652861859952392,
+        scale: 0.988631,
+        percentage: 97.64,
+        sub_factors: [
+          {
+            feature_name: 'guard_night_validations',
+            description: 'Night-hour validations performed by the guard.',
+            instance_value: 0.0,
+            scale: 4.0,
+            percentage: 0.0,
+          },
+          {
+            feature_name: 'guard_total_validations',
+            description: 'Total validations performed by the guard.',
+            instance_value: 7.0,
+            scale: 25.0,
+            percentage: 28.0,
+          },
+          {
+            feature_name: 'hour_of_day',
+            description: 'Hour of day when the visit was validated (0-23).',
+            instance_value: 9.0,
+            scale: 22.0,
+            percentage: 40.91,
+          },
+          {
+            feature_name: 'night_visit_flag',
+            description: 'Whether the visit occurred during night hours.',
+            instance_value: 0.0,
+            scale: 1.0,
+            percentage: 0.0,
+          },
+        ],
+      },
+      {
+        name: 'estate_wide',
+        description: 'Estate-wide visit timing, frequency, and validation patterns.',
+        instance_value: 0.9846301811084031,
+        scale: 0.99173,
+        percentage: 99.28,
+        sub_factors: [
+          {
+            feature_name: 'day_of_week',
+            description: 'Day of week of the visit (0=Monday through 6=Sunday).',
+            instance_value: 4.0,
+            scale: 6.0,
+            percentage: 66.67,
+          },
+          {
+            feature_name: 'guard_total_validations',
+            description: 'Total validations performed by the guard.',
+            instance_value: 7.0,
+            scale: 25.0,
+            percentage: 28.0,
+          },
+          {
+            feature_name: 'hour_of_day',
+            description: 'Hour of day when the visit was validated (0-23).',
+            instance_value: 9.0,
+            scale: 22.0,
+            percentage: 40.91,
+          },
+          {
+            feature_name: 'is_weekend',
+            description: 'Whether the visit fell on a weekend (1) or weekday (0).',
+            instance_value: 0.0,
+            scale: 1.0,
+            percentage: 0.0,
+          },
+          {
+            feature_name: 'night_visit_flag',
+            description: 'Whether the visit occurred during night hours.',
+            instance_value: 0.0,
+            scale: 1.0,
+            percentage: 0.0,
+          },
+          {
+            feature_name: 'resident_visit_frequency',
+            description: 'Average visit rate for this resident.',
+            instance_value: 1.6333333333333333,
+            scale: 5.833333,
+            percentage: 28.0,
+          },
+          {
+            feature_name: 'visit_interarrival_time',
+            description: 'Gap between consecutive visits in the cohort.',
+            instance_value: 18.775736772453705,
+            scale: 27.475693,
+            percentage: 68.34,
+          },
+          {
+            feature_name: 'visitor_weekly_frequency',
+            description: 'Average weekly visit rate for this visitor.',
+            instance_value: 1.6333333333333333,
+            scale: 5.833333,
+            percentage: 28.0,
+          },
+        ],
+      },
+    ],
+  },
 };
 
 export const mockSummary = {
-    "entitled_tier": "tier2",
-    "from_cache": true,
-    "tier1": {
-        "executive_summary": "This resident prediction is anomalous with a final score of 0.982 (high severity). The sections below list each analysis scope and the features that contributed to that score.",
-        "detailed_insight": "Resident-centred visit timing and frequency patterns. (scope score 0.997)\n  - Hour of day when the visit was validated (0-23).: value 9.000, weight n/a\n  - Day of week of the visit (0=Monday through 6=Sunday).: value 4.000, weight n/a\n  - Whether the visit fell on a weekend (1) or weekday (0).: value 0.000, weight n/a\n  - Coarse bucket of the visit hour.: value 1.000, weight n/a\n  - Elapsed time since this actor's previous visit.: value 107.551, weight n/a\n  - Gap between consecutive visits in the cohort.: value 18.776, weight n/a\n  - Whether the visit occurred during night hours.: value 0.000, weight n/a\n  - Average visit rate for this resident.: value 1.633, weight n/a\nGuard validation volume and night-shift patterns. (scope score 0.965)\n  - Total validations performed by the guard.: value 7.000, weight n/a\n  - Night-hour validations performed by the guard.: value 0.000, weight n/a\n  - Whether the visit occurred during night hours.: value 0.000, weight n/a\n  - Hour of day when the visit was validated (0-23).: value 9.000, weight n/a\nEstate-wide visit timing, frequency, and validation patterns. (scope score 0.985)\n  - Hour of day when the visit was validated (0-23).: value 9.000, weight n/a\n  - Day of week of the visit (0=Monday through 6=Sunday).: value 4.000, weight n/a\n  - Whether the visit fell on a weekend (1) or weekday (0).: value 0.000, weight n/a\n  - Gap between consecutive visits in the cohort.: value 18.776, weight n/a\n  - Average visit rate for this resident.: value 1.633, weight n/a\n  - Average weekly visit rate for this visitor.: value 1.633, weight n/a\n  - Total validations performed by the guard.: value 7.000, weight n/a\n  - Whether the visit occurred during night hours.: value 0.000, weight n/a"
-    },
-    "tier2": {
-        "executive_summary": "The anomaly detection for this resident indicates a high severity risk with a final score of 0.982. The analysis reveals unusual visit patterns, particularly in timing and frequency, which deviate significantly from established norms.",
-        "detailed_insight": "The resident's visit timing and frequency patterns show a strong deviation from expected behavior, with a high score of 0.997 in this category. The visit occurred at 9 AM on a Thursday, which is atypical for this resident, as they have not visited during the previous 107.55 hours. This extended gap between visits, coupled with an average visit rate of 1.63, suggests a potential change in behavior or circumstances that warrants further investigation.\n\nIn terms of security validation, the guard's performance also reflects anomalies, scoring 0.965. The guard conducted a total of 7 validations, but notably, none occurred during night hours. This lack of night validations raises concerns about the security measures in place during those times, especially since the visit did not take place at night either. The absence of night-time activity could indicate a potential vulnerability in the estate's security protocols.\n\nThe estate-wide analysis corroborates these findings with a score of 0.985, indicating that the visit patterns are not only unusual for this resident but also stand out within the broader context of the estate's visitor behavior. The combination of these factors suggests a heightened risk that could be linked to either the resident's personal circumstances or broader security implications for the estate.",
-        "risk_drivers": [
-            "Unusual visit timing (9 AM on a Thursday)",
-            "Extended gap since last visit (107.55 hours)",
-            "High average visit rate (1.63)",
-            "Lack of night validations by security",
-            "No weekend visits recorded"
-        ],
-        "recommended_actions": [
-            "Conduct a follow-up investigation into the resident's recent activities and circumstances.",
-            "Review and enhance security protocols during night hours.",
-            "Monitor the resident's visit patterns closely for any further anomalies.",
-            "Engage with the resident to understand any changes in their routine or needs."
-        ],
-        "data_limitations": "The analysis relies on historical visit data and validation records, which may not capture all contextual factors influencing the resident's behavior or security dynamics."
-    }
+  entitled_tier: 'tier2',
+  from_cache: true,
+  tier1: {
+    executive_summary:
+      'This resident prediction is anomalous with a final score of 0.982 (high severity). The sections below list each analysis scope and the features that contributed to that score.',
+    detailed_insight:
+      "Resident-centred visit timing and frequency patterns. (scope score 0.997)\n  - Hour of day when the visit was validated (0-23).: value 9.000, weight n/a\n  - Day of week of the visit (0=Monday through 6=Sunday).: value 4.000, weight n/a\n  - Whether the visit fell on a weekend (1) or weekday (0).: value 0.000, weight n/a\n  - Coarse bucket of the visit hour.: value 1.000, weight n/a\n  - Elapsed time since this actor's previous visit.: value 107.551, weight n/a\n  - Gap between consecutive visits in the cohort.: value 18.776, weight n/a\n  - Whether the visit occurred during night hours.: value 0.000, weight n/a\n  - Average visit rate for this resident.: value 1.633, weight n/a\nGuard validation volume and night-shift patterns. (scope score 0.965)\n  - Total validations performed by the guard.: value 7.000, weight n/a\n  - Night-hour validations performed by the guard.: value 0.000, weight n/a\n  - Whether the visit occurred during night hours.: value 0.000, weight n/a\n  - Hour of day when the visit was validated (0-23).: value 9.000, weight n/a\nEstate-wide visit timing, frequency, and validation patterns. (scope score 0.985)\n  - Hour of day when the visit was validated (0-23).: value 9.000, weight n/a\n  - Day of week of the visit (0=Monday through 6=Sunday).: value 4.000, weight n/a\n  - Whether the visit fell on a weekend (1) or weekday (0).: value 0.000, weight n/a\n  - Gap between consecutive visits in the cohort.: value 18.776, weight n/a\n  - Average visit rate for this resident.: value 1.633, weight n/a\n  - Average weekly visit rate for this visitor.: value 1.633, weight n/a\n  - Total validations performed by the guard.: value 7.000, weight n/a\n  - Whether the visit occurred during night hours.: value 0.000, weight n/a",
+  },
+  tier2: {
+    executive_summary:
+      'The anomaly detection for this resident indicates a high severity risk with a final score of 0.982. The analysis reveals unusual visit patterns, particularly in timing and frequency, which deviate significantly from established norms.',
+    detailed_insight:
+      "The resident's visit timing and frequency patterns show a strong deviation from expected behavior, with a high score of 0.997 in this category. The visit occurred at 9 AM on a Thursday, which is atypical for this resident, as they have not visited during the previous 107.55 hours. This extended gap between visits, coupled with an average visit rate of 1.63, suggests a potential change in behavior or circumstances that warrants further investigation.\n\nIn terms of security validation, the guard's performance also reflects anomalies, scoring 0.965. The guard conducted a total of 7 validations, but notably, none occurred during night hours. This lack of night validations raises concerns about the security measures in place during those times, especially since the visit did not take place at night either. The absence of night-time activity could indicate a potential vulnerability in the estate's security protocols.\n\nThe estate-wide analysis corroborates these findings with a score of 0.985, indicating that the visit patterns are not only unusual for this resident but also stand out within the broader context of the estate's visitor behavior. The combination of these factors suggests a heightened risk that could be linked to either the resident's personal circumstances or broader security implications for the estate.",
+    risk_drivers: [
+      'Unusual visit timing (9 AM on a Thursday)',
+      'Extended gap since last visit (107.55 hours)',
+      'High average visit rate (1.63)',
+      'Lack of night validations by security',
+      'No weekend visits recorded',
+    ],
+    recommended_actions: [
+      "Conduct a follow-up investigation into the resident's recent activities and circumstances.",
+      'Review and enhance security protocols during night hours.',
+      "Monitor the resident's visit patterns closely for any further anomalies.",
+      'Engage with the resident to understand any changes in their routine or needs.',
+    ],
+    data_limitations:
+      "The analysis relies on historical visit data and validation records, which may not capture all contextual factors influencing the resident's behavior or security dynamics.",
+  },
 };
-

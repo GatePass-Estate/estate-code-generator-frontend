@@ -79,10 +79,7 @@ export default function MonthCalendar({
   card = false,
 }: MonthCalendarProps) {
   const { width: screenWidth } = useWindowDimensions();
-  const cells = useMemo(
-    () => monthCells(cursor.getFullYear(), cursor.getMonth()),
-    [cursor]
-  );
+  const cells = useMemo(() => monthCells(cursor.getFullYear(), cursor.getMonth()), [cursor]);
   const monthLabel = cursor.toLocaleString('en-GB', { month: 'long' });
   const minDay = minDate ? startOfDay(minDate).getTime() : null;
   /** Card is ~360 on 375; keep the same absolute date inset as validity (11.33% of screen). */
@@ -92,8 +89,7 @@ export default function MonthCalendar({
     : screenWidth * insetRatio;
   const weekCount = cells.length / 7;
 
-  const isSelected = (date: Date) =>
-    selectedDates.some((d) => d != null && isSameDay(d, date));
+  const isSelected = (date: Date) => selectedDates.some((d) => d != null && isSameDay(d, date));
 
   const grid = (
     <View style={{ paddingHorizontal: gridPad }}>
@@ -106,9 +102,7 @@ export default function MonthCalendar({
         }}
       >
         <Pressable
-          onPress={() =>
-            onCursorChange(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))
-          }
+          onPress={() => onCursorChange(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))}
           hitSlop={16}
           style={{
             flex: 1,
@@ -127,9 +121,7 @@ export default function MonthCalendar({
           {monthLabel}
         </Text>
         <Pressable
-          onPress={() =>
-            onCursorChange(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))
-          }
+          onPress={() => onCursorChange(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))}
           hitSlop={16}
           style={{
             flex: 1,
@@ -159,11 +151,7 @@ export default function MonthCalendar({
       </View>
 
       {Array.from({ length: weekCount }, (_, week) => (
-        <View
-          key={week}
-          className="flex-row"
-          style={{ height: DAY_ROW_H, alignItems: 'center' }}
-        >
+        <View key={week} className="flex-row" style={{ height: DAY_ROW_H, alignItems: 'center' }}>
           {cells.slice(week * 7, week * 7 + 7).map((cell) => {
             const selected = cell.inMonth && isSelected(cell.date);
             const disabled =

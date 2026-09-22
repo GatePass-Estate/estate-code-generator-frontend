@@ -24,7 +24,6 @@ import {
 } from '@/src/lib/api/aiMarketplace';
 import { MarketplaceDetailResponse } from '@/src/types/aiMarketplace';
 
-
 export default function AnomalyDetectionPreviewScreen() {
   const params = useLocalSearchParams<{ featureId?: string; title?: string; tab?: string }>();
   const [activeTab, setActiveTab] = useState<'Overview' | 'Result'>(
@@ -47,7 +46,10 @@ export default function AnomalyDetectionPreviewScreen() {
 
   const formatTierName = (tier: string) => {
     const map: Record<string, string> = { '1': 'One', '2': 'Two', '3': 'Three' };
-    return tier.split('_').map(w => map[w] || (w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())).join(' ');
+    return tier
+      .split('_')
+      .map((w) => map[w] || w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join(' ');
   };
 
   const handleRate = async (rating: number) => {
@@ -66,30 +68,33 @@ export default function AnomalyDetectionPreviewScreen() {
 
   const [isLoading, setIsLoading] = useState(true);
 
-  const loadFeature = useCallback(async (id?: string) => {
-    setIsLoading(true);
-    try {
-      let targetId = id || params.featureId;
-      if (!targetId) {
-        const list = await getMarketplaceFeatures();
-        const anomalyTool = list.items?.find((item) =>
-          item.name.toLowerCase().includes('anomaly')
-        );
-        if (anomalyTool) {
-          targetId = anomalyTool.id;
+  const loadFeature = useCallback(
+    async (id?: string) => {
+      setIsLoading(true);
+      try {
+        let targetId = id || params.featureId;
+        if (!targetId) {
+          const list = await getMarketplaceFeatures();
+          const anomalyTool = list.items?.find((item) =>
+            item.name.toLowerCase().includes('anomaly')
+          );
+          if (anomalyTool) {
+            targetId = anomalyTool.id;
+          }
         }
-      }
 
-      if (targetId) {
-        const detail = await getMarketplaceFeatureById(targetId);
-        setFeatureDetail(detail);
+        if (targetId) {
+          const detail = await getMarketplaceFeatureById(targetId);
+          setFeatureDetail(detail);
+        }
+      } catch (err: any) {
+        console.log('Error loading feature details:', err?.message || err);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (err: any) {
-      console.log('Error loading feature details:', err?.message || err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [params.featureId]);
+    },
+    [params.featureId]
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -186,10 +191,7 @@ export default function AnomalyDetectionPreviewScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: activeTab === 'Result' ? '#F6F7F7' : '#FFFFFF' }}>
-      <SafeAreaView
-        edges={['top', 'left', 'right']}
-        style={{ flex: 1 }}
-      >
+      <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1 }}>
         {/* Header: matches Figma top 55px to 109px (height 54px) */}
         <View
           style={{
@@ -235,7 +237,14 @@ export default function AnomalyDetectionPreviewScreen() {
         {activeTab === 'Result' ? (
           <AnomalyResultView />
         ) : isLoading ? (
-          <View style={{ flex: 1, backgroundColor: '#F6F7F7', justifyContent: 'center', alignItems: 'center' }}>
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: '#F6F7F7',
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+          >
             <ActivityIndicator size="large" color="#113E55" />
           </View>
         ) : (
@@ -299,31 +308,52 @@ export default function AnomalyDetectionPreviewScreen() {
                 >
                   {/* Title and Rating */}
                   <View className="flex-row justify-between items-center">
-                    <Text allowFontScaling={false} className="text-[21.88px] font-ubuntu-semibold text-[#113E55] leading-[21.88px]">
+                    <Text
+                      allowFontScaling={false}
+                      className="text-[21.88px] font-ubuntu-semibold text-[#113E55] leading-[21.88px]"
+                    >
                       {featureDetail?.name || 'Anomaly Detection'}
                     </Text>
-                    <Pressable onPress={() => setIsRatingModalVisible(true)} className="flex-row items-center gap-1.5">
+                    <Pressable
+                      onPress={() => setIsRatingModalVisible(true)}
+                      className="flex-row items-center gap-1.5"
+                    >
                       <RatingStarIcon width={17} height={16} />
-                      <Text allowFontScaling={false} className="text-[21.88px] font-ubuntu-semibold text-[#6B7280] leading-[21.88px] text-center">
+                      <Text
+                        allowFontScaling={false}
+                        className="text-[21.88px] font-ubuntu-semibold text-[#6B7280] leading-[21.88px] text-center"
+                      >
                         {featureDetail?.rating != null ? featureDetail.rating.toFixed(1) : '0.0'}
                       </Text>
                     </Pressable>
                   </View>
 
                   {/* Description */}
-                  <Text allowFontScaling={false} className="text-[11.2px] font-inter-regular text-[#8A9A9D] leading-[16px]">
-                    {featureDetail?.description || "See unusual patterns, understand user behavior, and uncover hidden insights all from your dashboard."}
+                  <Text
+                    allowFontScaling={false}
+                    className="text-[11.2px] font-inter-regular text-[#8A9A9D] leading-[16px]"
+                  >
+                    {featureDetail?.description ||
+                      'See unusual patterns, understand user behavior, and uncover hidden insights all from your dashboard.'}
                   </Text>
 
                   {/* Stats */}
                   <View className="flex-row items-center gap-6 mt-1">
                     <View className="flex-row items-center gap-1.5">
                       <FeatureDownloadIcon width={13} height={13} />
-                      <Text allowFontScaling={false} className="text-[11.2px] font-inter-medium text-[#8A9A9D]">0</Text>
+                      <Text
+                        allowFontScaling={false}
+                        className="text-[11.2px] font-inter-medium text-[#8A9A9D]"
+                      >
+                        0
+                      </Text>
                     </View>
                     <View className="flex-row items-center gap-1.5">
                       <FeatureUsersIcon width={16} height={16} />
-                      <Text allowFontScaling={false} className="text-[11.2px] font-inter-medium text-[#8A9A9D]">
+                      <Text
+                        allowFontScaling={false}
+                        className="text-[11.2px] font-inter-medium text-[#8A9A9D]"
+                      >
                         {featureDetail?.rating_count || 0}
                       </Text>
                     </View>
@@ -332,221 +362,333 @@ export default function AnomalyDetectionPreviewScreen() {
               </View>
 
               {/* Lower Body Section on #F6F7F7 */}
-              <View style={{ flex: 1, backgroundColor: '#F6F7F7', paddingHorizontal: 20, paddingTop: 24, paddingBottom: 100 }}>
-
-              {/* Product Feature */}
-              <Text allowFontScaling={false} className="text-[14px] font-inter-medium text-[#113E55] mb-3 leading-[14px]">
-                Product Feature
-              </Text>
-
-              <View className="bg-white rounded-[16px] px-[16px] py-[8px] mb-3 flex-row items-center gap-[12px] min-h-[44px] border border-[#EFF1F3]">
-                <View className="w-[16px] h-[16px] items-center justify-center">
-                  <Pf1Svg width={16} height={16} />
-                </View>
-                <Text allowFontScaling={false} className="text-[12px] font-inter-regular text-[#8A9A9D] flex-1 leading-[18px]">
-                  Spot unusual activities early, so you can investigate before they become bigger issues.
-                </Text>
-              </View>
-
-              <View className="bg-white rounded-[16px] px-[16px] py-[8px] mb-3 flex-row items-center gap-[12px] min-h-[44px] border border-[#EFF1F3]">
-                <View className="w-[16px] h-[16px] items-center justify-center">
-                  <Pf2Svg width={16} height={16} />
-                </View>
-                <Text allowFontScaling={false} className="text-[12px] font-inter-regular text-[#8A9A9D] flex-1 leading-[18px]">
-                  Instead of reviewing everything, instantly see the people or patterns that deserve your attention.
-                </Text>
-              </View>
-
-              <View className="bg-white rounded-[16px] px-[16px] py-[8px] mb-8 flex-row items-center gap-[12px] min-h-[44px] border border-[#EFF1F3]">
-                <View className="w-[16px] h-[16px] items-center justify-center">
-                  <Pf3Svg width={16} height={16} />
-                </View>
-                <Text allowFontScaling={false} className="text-[12px] font-inter-regular text-[#8A9A9D] flex-1 leading-[18px]">
-                  No complicated reports. Get simple insights that help you understand what&apos;s happening and why.
-                </Text>
-              </View>
-
-              {/* Choose Subscription Plan */}
-              <Text allowFontScaling={false} className="text-[14px] font-inter-medium text-[#113E55] mb-4 leading-[14px]">
-                Choose Subscription Plan
-              </Text>
-
-              {/* Tier One */}
-              <View className={`bg-white rounded-[16px] p-5 mb-4 ${expandedTier === 'Tier One' ? 'border border-[#113E55]' : ''}`}>
-                <Text allowFontScaling={false} className="text-[17.5px] font-inter-regular text-[#113E55] leading-[17.5px] mb-1.5">
-                  {tierOneApi?.tier ? formatTierName(tierOneApi.tier) : 'Tier One'}
-                </Text>
-                <Text allowFontScaling={false} className="text-[15px] font-inter-medium text-[#113E55] leading-[22px] mb-2.5">
-                  {tierOneApi?.name || 'Access Code Anomaly Scan'}
-                </Text>
-                <Text allowFontScaling={false} className="text-[11.2px] font-inter-regular text-[#8A9A9D] leading-[16px] text-justify">
-                  {tierOneApi?.description || 'Instead of reviewing everything, instantly see the people or patterns that deserve your attention.'}
-                </Text>
-                
-                <Pressable 
-                  onPress={() => setExpandedTier(expandedTier === 'Tier One' ? null : 'Tier One')}
-                  className={`flex-row items-center gap-1 mt-5 ${expandedTier === 'Tier One' ? 'mb-5' : ''}`}
+              <View
+                style={{
+                  flex: 1,
+                  backgroundColor: '#F6F7F7',
+                  paddingHorizontal: 20,
+                  paddingTop: 24,
+                  paddingBottom: 100,
+                }}
+              >
+                {/* Product Feature */}
+                <Text
+                  allowFontScaling={false}
+                  className="text-[14px] font-inter-medium text-[#113E55] mb-3 leading-[14px]"
                 >
-                  <Text allowFontScaling={false} className="text-[13px] font-inter-medium text-[#113E55]">See benefits</Text>
-                  <MaterialIcons 
-                    name={expandedTier === 'Tier One' ? "keyboard-arrow-down" : "keyboard-arrow-right"} 
-                    size={18} 
-                    color="#113E55" 
-                  />
-                </Pressable>
+                  Product Feature
+                </Text>
 
-                {expandedTier === 'Tier One' && (
-                  <View className="space-y-3">
-                    {[0, 1, 2, 3, 4].map((index) => {
-                      const isActive = index < 3;
-                      return (
-                        <View key={index} className="flex-row items-start gap-2 mb-3">
-                          <View className={`rounded-full p-[2px] mt-[2px] ${isActive ? 'bg-[#CEE5ED]' : 'bg-[#EFF1F3]'}`}>
-                            <MaterialIcons 
-                              name="check" 
-                              size={12} 
-                              color={isActive ? "#113E55" : "#A0AAB0"} 
-                            />
+                <View className="bg-white rounded-[16px] px-[16px] py-[8px] mb-3 flex-row items-center gap-[12px] min-h-[44px] border border-[#EFF1F3]">
+                  <View className="w-[16px] h-[16px] items-center justify-center">
+                    <Pf1Svg width={16} height={16} />
+                  </View>
+                  <Text
+                    allowFontScaling={false}
+                    className="text-[12px] font-inter-regular text-[#8A9A9D] flex-1 leading-[18px]"
+                  >
+                    Spot unusual activities early, so you can investigate before they become bigger
+                    issues.
+                  </Text>
+                </View>
+
+                <View className="bg-white rounded-[16px] px-[16px] py-[8px] mb-3 flex-row items-center gap-[12px] min-h-[44px] border border-[#EFF1F3]">
+                  <View className="w-[16px] h-[16px] items-center justify-center">
+                    <Pf2Svg width={16} height={16} />
+                  </View>
+                  <Text
+                    allowFontScaling={false}
+                    className="text-[12px] font-inter-regular text-[#8A9A9D] flex-1 leading-[18px]"
+                  >
+                    Instead of reviewing everything, instantly see the people or patterns that
+                    deserve your attention.
+                  </Text>
+                </View>
+
+                <View className="bg-white rounded-[16px] px-[16px] py-[8px] mb-8 flex-row items-center gap-[12px] min-h-[44px] border border-[#EFF1F3]">
+                  <View className="w-[16px] h-[16px] items-center justify-center">
+                    <Pf3Svg width={16} height={16} />
+                  </View>
+                  <Text
+                    allowFontScaling={false}
+                    className="text-[12px] font-inter-regular text-[#8A9A9D] flex-1 leading-[18px]"
+                  >
+                    No complicated reports. Get simple insights that help you understand what&apos;s
+                    happening and why.
+                  </Text>
+                </View>
+
+                {/* Choose Subscription Plan */}
+                <Text
+                  allowFontScaling={false}
+                  className="text-[14px] font-inter-medium text-[#113E55] mb-4 leading-[14px]"
+                >
+                  Choose Subscription Plan
+                </Text>
+
+                {/* Tier One */}
+                <View
+                  className={`bg-white rounded-[16px] p-5 mb-4 ${expandedTier === 'Tier One' ? 'border border-[#113E55]' : ''}`}
+                >
+                  <Text
+                    allowFontScaling={false}
+                    className="text-[17.5px] font-inter-regular text-[#113E55] leading-[17.5px] mb-1.5"
+                  >
+                    {tierOneApi?.tier ? formatTierName(tierOneApi.tier) : 'Tier One'}
+                  </Text>
+                  <Text
+                    allowFontScaling={false}
+                    className="text-[15px] font-inter-medium text-[#113E55] leading-[22px] mb-2.5"
+                  >
+                    {tierOneApi?.name || 'Access Code Anomaly Scan'}
+                  </Text>
+                  <Text
+                    allowFontScaling={false}
+                    className="text-[11.2px] font-inter-regular text-[#8A9A9D] leading-[16px] text-justify"
+                  >
+                    {tierOneApi?.description ||
+                      'Instead of reviewing everything, instantly see the people or patterns that deserve your attention.'}
+                  </Text>
+
+                  <Pressable
+                    onPress={() => setExpandedTier(expandedTier === 'Tier One' ? null : 'Tier One')}
+                    className={`flex-row items-center gap-1 mt-5 ${expandedTier === 'Tier One' ? 'mb-5' : ''}`}
+                  >
+                    <Text
+                      allowFontScaling={false}
+                      className="text-[13px] font-inter-medium text-[#113E55]"
+                    >
+                      See benefits
+                    </Text>
+                    <MaterialIcons
+                      name={
+                        expandedTier === 'Tier One' ? 'keyboard-arrow-down' : 'keyboard-arrow-right'
+                      }
+                      size={18}
+                      color="#113E55"
+                    />
+                  </Pressable>
+
+                  {expandedTier === 'Tier One' && (
+                    <View className="space-y-3">
+                      {[0, 1, 2, 3, 4].map((index) => {
+                        const isActive = index < 3;
+                        return (
+                          <View key={index} className="flex-row items-start gap-2 mb-3">
+                            <View
+                              className={`rounded-full p-[2px] mt-[2px] ${isActive ? 'bg-[#CEE5ED]' : 'bg-[#EFF1F3]'}`}
+                            >
+                              <MaterialIcons
+                                name="check"
+                                size={12}
+                                color={isActive ? '#113E55' : '#A0AAB0'}
+                              />
+                            </View>
+                            <Text
+                              allowFontScaling={false}
+                              className={`text-[11.2px] font-inter-regular flex-1 leading-[16px] text-justify ${isActive ? 'text-[#8A9A9D]' : 'text-[#B5BFC4]'}`}
+                            >
+                              Instead of reviewing everything, instantly see the people or patterns
+                              that deserve your attention.
+                            </Text>
                           </View>
-                          <Text allowFontScaling={false} className={`text-[11.2px] font-inter-regular flex-1 leading-[16px] text-justify ${isActive ? 'text-[#8A9A9D]' : 'text-[#B5BFC4]'}`}>
-                            Instead of reviewing everything, instantly see the people or patterns that deserve your attention.
+                        );
+                      })}
+                      <Pressable
+                        disabled={isSubscribing}
+                        onPress={() => handleSubscribe(tierOneApi || { tier: 'Tier One' })}
+                        className="w-full h-[48px] bg-[#113E55] rounded-full items-center justify-center mt-4"
+                      >
+                        {subscribingTierKey === (tierOneApi?.tier || 'Tier One') ? (
+                          <ActivityIndicator size="small" color="white" />
+                        ) : (
+                          <Text
+                            allowFontScaling={false}
+                            className="text-[14px] font-inter-medium text-white"
+                          >
+                            {tierOneApi?.is_installed ? 'Installed' : 'Activate'}
+                          </Text>
+                        )}
+                      </Pressable>
+                    </View>
+                  )}
+                </View>
+
+                {/* Tier Two */}
+                <View
+                  className={`bg-white rounded-[16px] p-5 mb-4 ${expandedTier === 'Tier Two' ? 'border border-[#113E55]' : ''}`}
+                >
+                  <Text
+                    allowFontScaling={false}
+                    className="text-[17.5px] font-inter-regular text-[#113E55] leading-[17.5px] mb-1.5"
+                  >
+                    {tierTwoApi?.tier ? formatTierName(tierTwoApi.tier) : 'Tier Two'}
+                  </Text>
+                  <Text
+                    allowFontScaling={false}
+                    className="text-[15px] font-inter-medium text-[#113E55] leading-[22px] mb-2.5"
+                  >
+                    {tierTwoApi?.name || 'Anomaly Scan Results In-house AI Review'}
+                  </Text>
+                  <Text
+                    allowFontScaling={false}
+                    className="text-[11.2px] font-inter-regular text-[#8A9A9D] leading-[16px] text-justify"
+                  >
+                    {tierTwoApi?.description ||
+                      'Instead of reviewing everything, instantly see the people or patterns that deserve your attention.'}
+                  </Text>
+
+                  <Pressable
+                    onPress={() => setExpandedTier(expandedTier === 'Tier Two' ? null : 'Tier Two')}
+                    className={`flex-row items-center gap-1 mt-5 ${expandedTier === 'Tier Two' ? 'mb-5' : ''}`}
+                  >
+                    <Text
+                      allowFontScaling={false}
+                      className="text-[13px] font-inter-medium text-[#113E55]"
+                    >
+                      See benefits
+                    </Text>
+                    <MaterialIcons
+                      name={
+                        expandedTier === 'Tier Two' ? 'keyboard-arrow-down' : 'keyboard-arrow-right'
+                      }
+                      size={18}
+                      color="#113E55"
+                    />
+                  </Pressable>
+
+                  {expandedTier === 'Tier Two' && (
+                    <View className="space-y-3">
+                      {[0, 1, 2, 3, 4].map((index) => {
+                        const isActive = index < 3;
+                        return (
+                          <View key={index} className="flex-row items-start gap-2 mb-3">
+                            <View
+                              className={`rounded-full p-[2px] mt-[2px] ${isActive ? 'bg-[#CEE5ED]' : 'bg-[#EFF1F3]'}`}
+                            >
+                              <MaterialIcons
+                                name="check"
+                                size={12}
+                                color={isActive ? '#113E55' : '#A0AAB0'}
+                              />
+                            </View>
+                            <Text
+                              allowFontScaling={false}
+                              className={`text-[11.2px] font-inter-regular flex-1 leading-[16px] text-justify ${isActive ? 'text-[#8A9A9D]' : 'text-[#B5BFC4]'}`}
+                            >
+                              Instead of reviewing everything, instantly see the people or patterns
+                              that deserve your attention.
+                            </Text>
+                          </View>
+                        );
+                      })}
+                      <Pressable
+                        disabled={isSubscribing}
+                        onPress={() => handleSubscribe(tierTwoApi || { tier: 'Tier Two' })}
+                        className="w-full h-[48px] bg-[#113E55] rounded-full items-center justify-center mt-4"
+                      >
+                        {subscribingTierKey === (tierTwoApi?.tier || 'Tier Two') ? (
+                          <ActivityIndicator size="small" color="white" />
+                        ) : (
+                          <Text
+                            allowFontScaling={false}
+                            className="text-[14px] font-inter-medium text-white"
+                          >
+                            {tierTwoApi?.is_installed ? 'Installed' : 'Activate'}
+                          </Text>
+                        )}
+                      </Pressable>
+                    </View>
+                  )}
+                </View>
+
+                {/* Tier Three */}
+                <View
+                  className={`bg-white rounded-[16px] p-5 mb-4 ${expandedTier === 'Tier Three' ? 'border border-[#113E55]' : ''}`}
+                >
+                  <Text
+                    allowFontScaling={false}
+                    className="text-[17.5px] font-inter-regular text-[#113E55] leading-[17.5px] mb-1.5"
+                  >
+                    {tierThreeApi?.tier ? formatTierName(tierThreeApi.tier) : 'Tier Three'}
+                  </Text>
+                  <Text
+                    allowFontScaling={false}
+                    className="text-[15px] font-inter-medium text-[#113E55] leading-[22px] mb-2.5"
+                  >
+                    {tierThreeApi?.name || 'Anomaly Scan Results Third-Party AI Review'}
+                  </Text>
+                  <Text
+                    allowFontScaling={false}
+                    className="text-[11.2px] font-inter-regular text-[#8A9A9D] leading-[16px] text-justify"
+                  >
+                    {tierThreeApi?.description ||
+                      'Instead of reviewing everything, instantly see the people or patterns that deserve your attention.'}
+                  </Text>
+
+                  <Pressable
+                    onPress={() =>
+                      setExpandedTier(expandedTier === 'Tier Three' ? null : 'Tier Three')
+                    }
+                    className={`flex-row items-center gap-1 mt-5 ${expandedTier === 'Tier Three' ? 'mb-5' : ''}`}
+                  >
+                    <Text
+                      allowFontScaling={false}
+                      className="text-[13px] font-inter-medium text-[#113E55]"
+                    >
+                      See benefits
+                    </Text>
+                    <MaterialIcons
+                      name={
+                        expandedTier === 'Tier Three'
+                          ? 'keyboard-arrow-down'
+                          : 'keyboard-arrow-right'
+                      }
+                      size={18}
+                      color="#113E55"
+                    />
+                  </Pressable>
+
+                  {expandedTier === 'Tier Three' && (
+                    <View className="space-y-3">
+                      {[0, 1, 2, 3, 4].map((index) => (
+                        <View key={index} className="flex-row items-start gap-2 mb-3">
+                          <View className="bg-[#CEE5ED] rounded-full p-[2px] mt-[2px]">
+                            <MaterialIcons name="check" size={12} color="#113E55" />
+                          </View>
+                          <Text
+                            allowFontScaling={false}
+                            className="text-[11.2px] font-inter-regular text-[#8A9A9D] flex-1 leading-[16px] text-justify"
+                          >
+                            Instead of reviewing everything, instantly see the people or patterns
+                            that deserve your attention.
                           </Text>
                         </View>
-                      );
-                    })}
-                    <Pressable 
-                      disabled={isSubscribing}
-                      onPress={() => handleSubscribe(tierOneApi || { tier: 'Tier One' })}
-                      className="w-full h-[48px] bg-[#113E55] rounded-full items-center justify-center mt-4"
-                    >
-                      {subscribingTierKey === (tierOneApi?.tier || 'Tier One') ? (
-                        <ActivityIndicator size="small" color="white" />
-                      ) : (
-                        <Text allowFontScaling={false} className="text-[14px] font-inter-medium text-white">
-                          {tierOneApi?.is_installed ? 'Installed' : 'Activate'}
-                        </Text>
-                      )}
-                    </Pressable>
-                  </View>
-                )}
-              </View>
-
-              {/* Tier Two */}
-              <View className={`bg-white rounded-[16px] p-5 mb-4 ${expandedTier === 'Tier Two' ? 'border border-[#113E55]' : ''}`}>
-                <Text allowFontScaling={false} className="text-[17.5px] font-inter-regular text-[#113E55] leading-[17.5px] mb-1.5">
-                  {tierTwoApi?.tier ? formatTierName(tierTwoApi.tier) : 'Tier Two'}
-                </Text>
-                <Text allowFontScaling={false} className="text-[15px] font-inter-medium text-[#113E55] leading-[22px] mb-2.5">
-                  {tierTwoApi?.name || 'Anomaly Scan Results In-house AI Review'}
-                </Text>
-                <Text allowFontScaling={false} className="text-[11.2px] font-inter-regular text-[#8A9A9D] leading-[16px] text-justify">
-                  {tierTwoApi?.description || 'Instead of reviewing everything, instantly see the people or patterns that deserve your attention.'}
-                </Text>
-                
-                <Pressable 
-                  onPress={() => setExpandedTier(expandedTier === 'Tier Two' ? null : 'Tier Two')}
-                  className={`flex-row items-center gap-1 mt-5 ${expandedTier === 'Tier Two' ? 'mb-5' : ''}`}
-                >
-                  <Text allowFontScaling={false} className="text-[13px] font-inter-medium text-[#113E55]">See benefits</Text>
-                  <MaterialIcons 
-                    name={expandedTier === 'Tier Two' ? "keyboard-arrow-down" : "keyboard-arrow-right"} 
-                    size={18} 
-                    color="#113E55" 
-                  />
-                </Pressable>
-
-                {expandedTier === 'Tier Two' && (
-                  <View className="space-y-3">
-                    {[0, 1, 2, 3, 4].map((index) => {
-                      const isActive = index < 3;
-                      return (
-                        <View key={index} className="flex-row items-start gap-2 mb-3">
-                          <View className={`rounded-full p-[2px] mt-[2px] ${isActive ? 'bg-[#CEE5ED]' : 'bg-[#EFF1F3]'}`}>
-                            <MaterialIcons 
-                              name="check" 
-                              size={12} 
-                              color={isActive ? "#113E55" : "#A0AAB0"} 
-                            />
-                          </View>
-                          <Text allowFontScaling={false} className={`text-[11.2px] font-inter-regular flex-1 leading-[16px] text-justify ${isActive ? 'text-[#8A9A9D]' : 'text-[#B5BFC4]'}`}>
-                            Instead of reviewing everything, instantly see the people or patterns that deserve your attention.
+                      ))}
+                      <Pressable
+                        disabled={isSubscribing}
+                        onPress={() => handleSubscribe(tierThreeApi || { tier: 'Tier Three' })}
+                        className="w-full h-[48px] bg-[#113E55] rounded-full items-center justify-center mt-4"
+                      >
+                        {subscribingTierKey === (tierThreeApi?.tier || 'Tier Three') ? (
+                          <ActivityIndicator size="small" color="white" />
+                        ) : (
+                          <Text
+                            allowFontScaling={false}
+                            className="text-[14px] font-inter-medium text-white"
+                          >
+                            {tierThreeApi?.is_installed ? 'Installed' : 'Activate'}
                           </Text>
-                        </View>
-                      );
-                    })}
-                    <Pressable 
-                      disabled={isSubscribing}
-                      onPress={() => handleSubscribe(tierTwoApi || { tier: 'Tier Two' })}
-                      className="w-full h-[48px] bg-[#113E55] rounded-full items-center justify-center mt-4"
-                    >
-                      {subscribingTierKey === (tierTwoApi?.tier || 'Tier Two') ? (
-                        <ActivityIndicator size="small" color="white" />
-                      ) : (
-                        <Text allowFontScaling={false} className="text-[14px] font-inter-medium text-white">
-                          {tierTwoApi?.is_installed ? 'Installed' : 'Activate'}
-                        </Text>
-                      )}
-                    </Pressable>
-                  </View>
-                )}
+                        )}
+                      </Pressable>
+                    </View>
+                  )}
+                </View>
               </View>
-
-              {/* Tier Three */}
-              <View className={`bg-white rounded-[16px] p-5 mb-4 ${expandedTier === 'Tier Three' ? 'border border-[#113E55]' : ''}`}>
-                <Text allowFontScaling={false} className="text-[17.5px] font-inter-regular text-[#113E55] leading-[17.5px] mb-1.5">
-                  {tierThreeApi?.tier ? formatTierName(tierThreeApi.tier) : 'Tier Three'}
-                </Text>
-                <Text allowFontScaling={false} className="text-[15px] font-inter-medium text-[#113E55] leading-[22px] mb-2.5">
-                  {tierThreeApi?.name || 'Anomaly Scan Results Third-Party AI Review'}
-                </Text>
-                <Text allowFontScaling={false} className="text-[11.2px] font-inter-regular text-[#8A9A9D] leading-[16px] text-justify">
-                  {tierThreeApi?.description || 'Instead of reviewing everything, instantly see the people or patterns that deserve your attention.'}
-                </Text>
-                
-                <Pressable 
-                  onPress={() => setExpandedTier(expandedTier === 'Tier Three' ? null : 'Tier Three')}
-                  className={`flex-row items-center gap-1 mt-5 ${expandedTier === 'Tier Three' ? 'mb-5' : ''}`}
-                >
-                  <Text allowFontScaling={false} className="text-[13px] font-inter-medium text-[#113E55]">See benefits</Text>
-                  <MaterialIcons 
-                    name={expandedTier === 'Tier Three' ? "keyboard-arrow-down" : "keyboard-arrow-right"} 
-                    size={18} 
-                    color="#113E55" 
-                  />
-                </Pressable>
-
-                {expandedTier === 'Tier Three' && (
-                  <View className="space-y-3">
-                    {[0, 1, 2, 3, 4].map((index) => (
-                      <View key={index} className="flex-row items-start gap-2 mb-3">
-                        <View className="bg-[#CEE5ED] rounded-full p-[2px] mt-[2px]">
-                          <MaterialIcons name="check" size={12} color="#113E55" />
-                        </View>
-                        <Text allowFontScaling={false} className="text-[11.2px] font-inter-regular text-[#8A9A9D] flex-1 leading-[16px] text-justify">
-                          Instead of reviewing everything, instantly see the people or patterns that deserve your attention.
-                        </Text>
-                      </View>
-                    ))}
-                    <Pressable 
-                      disabled={isSubscribing}
-                      onPress={() => handleSubscribe(tierThreeApi || { tier: 'Tier Three' })}
-                      className="w-full h-[48px] bg-[#113E55] rounded-full items-center justify-center mt-4"
-                    >
-                      {subscribingTierKey === (tierThreeApi?.tier || 'Tier Three') ? (
-                        <ActivityIndicator size="small" color="white" />
-                      ) : (
-                        <Text allowFontScaling={false} className="text-[14px] font-inter-medium text-white">
-                          {tierThreeApi?.is_installed ? 'Installed' : 'Activate'}
-                        </Text>
-                      )}
-                    </Pressable>
-                  </View>
-                )}
-              </View>
-            </View>
             </Animated.View>
           </ScrollView>
-        )}</SafeAreaView>
+        )}
+      </SafeAreaView>
 
       <RatingModal
         visible={isRatingModalVisible}
@@ -554,12 +696,7 @@ export default function AnomalyDetectionPreviewScreen() {
         onSubmit={handleRate}
       />
 
-      <DataInsightModal
-        visible={dataInsightVisible}
-        onClose={() => setDataInsightVisible(false)}
-      />
-
-
+      <DataInsightModal visible={dataInsightVisible} onClose={() => setDataInsightVisible(false)} />
     </View>
   );
 }

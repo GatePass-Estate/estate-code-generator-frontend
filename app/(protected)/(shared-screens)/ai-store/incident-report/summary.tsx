@@ -70,10 +70,7 @@ export default function IncidentReportSummaryScreen() {
         <IncidentResultView />
       </View>
 
-      <DataInsightModal
-        visible={dataInsightVisible}
-        onClose={() => setDataInsightVisible(false)}
-      />
+      <DataInsightModal visible={dataInsightVisible} onClose={() => setDataInsightVisible(false)} />
     </SafeAreaView>
   );
 }

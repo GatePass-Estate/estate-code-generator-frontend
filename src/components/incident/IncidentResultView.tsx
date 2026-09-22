@@ -41,11 +41,7 @@ import {
   ratioPercentage,
   resolveCategorySection,
 } from './mapIncidentApi';
-import {
-  TRENDS,
-  type IncidentCategoryId,
-  type IncidentRow,
-} from './incidentMockData';
+import { TRENDS, type IncidentCategoryId, type IncidentRow } from './incidentMockData';
 
 function ShareBar({
   pct,
@@ -68,9 +64,7 @@ function ShareBar({
         style={{ height: fillHeight, backgroundColor: fill }}
       >
         {/* Icon sits on the top edge of the fill (Figma: icon y=53, fill y=54) */}
-        <View className="h-5 w-5 items-center justify-center -mt-px">
-          {icon}
-        </View>
+        <View className="h-5 w-5 items-center justify-center -mt-px">{icon}</View>
         <Text allowFontScaling={false} className="text-sm font-inter-medium" style={{ color }}>
           {pct}
           <Text className="text-[11.2px] font-inter-regular">%</Text>
@@ -220,13 +214,13 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
     error: reportsErr,
     refetch: refetchReports,
   } = useIncidentReports(estate_id, {
-      from_date: fromDate,
-      to_date: toDate,
-      category: filterCategories.length ? filterCategories : undefined,
-      user_type: filterUserTypes.length ? filterUserTypes : undefined,
-      page: 1,
-      limit: 20,
-    });
+    from_date: fromDate,
+    to_date: toDate,
+    category: filterCategories.length ? filterCategories : undefined,
+    user_type: filterUserTypes.length ? filterUserTypes : undefined,
+    page: 1,
+    limit: 20,
+  });
   const {
     data: summary,
     isFetching: summaryLoading,
@@ -239,7 +233,10 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
     const fromApi = demographicLocation(demographic);
     if (fromApi !== 'N/A') return fromApi;
     if (!userHomeAddress) return 'N/A';
-    const parts = userHomeAddress.split(',').map((p) => p.trim()).filter(Boolean);
+    const parts = userHomeAddress
+      .split(',')
+      .map((p) => p.trim())
+      .filter(Boolean);
     return parts.slice(-2).join(', ') || userHomeAddress;
   }, [demographic, userHomeAddress]);
 
@@ -276,18 +273,11 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
     return sorted;
   }, [reports?.items, sortAscending]);
 
-  const trendCards = useMemo(
-    () => mapTrendsFromEda(overview?.eda, TRENDS, false),
-    [overview?.eda]
-  );
+  const trendCards = useMemo(() => mapTrendsFromEda(overview?.eda, TRENDS, false), [overview?.eda]);
   const executiveSummary =
-    summary?.tier2?.executive_summary ||
-    summary?.tier1?.executive_summary ||
-    undefined;
+    summary?.tier2?.executive_summary || summary?.tier1?.executive_summary || undefined;
   const detailedInsight =
-    summary?.tier1?.detailed_insight ||
-    summary?.tier2?.severity_assessment ||
-    undefined;
+    summary?.tier1?.detailed_insight || summary?.tier2?.severity_assessment || undefined;
   const keyPatterns = summary?.tier2?.key_patterns ?? [];
   const recommendedActions = summary?.tier2?.recommended_actions ?? [];
   const dataLimitations = summary?.tier2?.data_limitations;
@@ -299,11 +289,7 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
         setInsightMode('generated');
         return;
       }
-      if (
-        overview &&
-        !overview.has_tier1_summary &&
-        !overview.has_tier2_summary
-      ) {
+      if (overview && !overview.has_tier1_summary && !overview.has_tier2_summary) {
         setInsightMode('locked');
         return;
       }
@@ -354,12 +340,15 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
 
   const isBootLoading = !!estate_id && (overviewLoading || reportsLoading);
   // Only blank the page when both boot queries failed with no usable payload.
-  const bootFailed =
-    !!estate_id && overviewError && reportsError && !overview && !reports;
+  const bootFailed = !!estate_id && overviewError && reportsError && !overview && !reports;
 
   const bootErrorDetail = (() => {
     const err = (overviewErr || reportsErr) as
-      | { message?: string; code?: string; response?: { status?: number; data?: { detail?: unknown } } }
+      | {
+          message?: string;
+          code?: string;
+          response?: { status?: number; data?: { detail?: unknown } };
+        }
       | undefined;
     if (!err) return null;
     if (err.code === 'ECONNABORTED' || /timeout/i.test(err.message || '')) {
@@ -374,10 +363,16 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
   if (!estate_id) {
     return (
       <View className="flex-1 items-center justify-center bg-[#F6F7F7] px-8">
-        <Text allowFontScaling={false} className="text-center text-sm font-inter-medium text-[#113E55]">
+        <Text
+          allowFontScaling={false}
+          className="text-center text-sm font-inter-medium text-[#113E55]"
+        >
           No estate selected
         </Text>
-        <Text allowFontScaling={false} className="mt-2 text-center text-[11.2px] font-inter-regular text-[#878686]">
+        <Text
+          allowFontScaling={false}
+          className="mt-2 text-center text-[11.2px] font-inter-regular text-[#878686]"
+        >
           Switch to an estate to view incident report insights for that community.
         </Text>
       </View>
@@ -395,10 +390,16 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
   if (bootFailed) {
     return (
       <View className="flex-1 items-center justify-center bg-[#F6F7F7] px-8">
-        <Text allowFontScaling={false} className="text-center text-sm font-inter-medium text-[#113E55]">
+        <Text
+          allowFontScaling={false}
+          className="text-center text-sm font-inter-medium text-[#113E55]"
+        >
           Couldn’t load incident reports
         </Text>
-        <Text allowFontScaling={false} className="mt-2 text-center text-[11.2px] font-inter-regular text-[#878686]">
+        <Text
+          allowFontScaling={false}
+          className="mt-2 text-center text-[11.2px] font-inter-regular text-[#878686]"
+        >
           {bootErrorDetail || 'Check your connection and try again.'}
         </Text>
         <Pressable
@@ -456,7 +457,10 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
           <View className="min-h-[61px] flex-1 flex-row gap-[7px] items-center rounded-[16px] bg-white px-2.5 py-4">
             <EstateSvg width={28} height={28} />
             <View className="flex-1 shrink">
-              <Text allowFontScaling={false} className="text-[8.96px] font-inter-medium text-[#878686]">
+              <Text
+                allowFontScaling={false}
+                className="text-[8.96px] font-inter-medium text-[#878686]"
+              >
                 NAME
               </Text>
               <Text
@@ -471,7 +475,10 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
           <View className="min-h-[61px] flex-1 flex-row gap-[7px] items-center rounded-[16px] border border-[#EFF1F3] bg-white px-[10px] py-4">
             <LocationSvg width={28} height={28} />
             <View className="flex-1 shrink">
-              <Text allowFontScaling={false} className="text-[8.96px] font-inter-medium text-[#878686]">
+              <Text
+                allowFontScaling={false}
+                className="text-[8.96px] font-inter-medium text-[#878686]"
+              >
                 LOCATION
               </Text>
               <Text
@@ -538,7 +545,10 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
         />
 
         <View className="mt-[65px] flex-row items-center justify-between">
-          <Text allowFontScaling={false} className="text-[21.88px] font-ubuntu-semibold text-[#0A1F29]">
+          <Text
+            allowFontScaling={false}
+            className="text-[21.88px] font-ubuntu-semibold text-[#0A1F29]"
+          >
             Incident Reported
           </Text>
           <Pressable
@@ -553,7 +563,10 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
         <View className="mt-3 gap-2 rounded-[16px] bg-white p-4">
           {/* Figma 6355:2658 — headers + sort */}
           <View className="h-7 w-full flex-row items-center">
-            <Text allowFontScaling={false} className="text-[8.96px] font-inter-medium text-[#878686]">
+            <Text
+              allowFontScaling={false}
+              className="text-[8.96px] font-inter-medium text-[#878686]"
+            >
               REPORTED BY
             </Text>
             <Text
@@ -597,7 +610,10 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
         </View>
 
         <View className="pt-[60px]">
-          <Text allowFontScaling={false} className="text-[21.88px] font-ubuntu-semibold text-[#0A1F29]">
+          <Text
+            allowFontScaling={false}
+            className="text-[21.88px] font-ubuntu-semibold text-[#0A1F29]"
+          >
             TRENDS DETECTED
           </Text>
           {/* -mx-5 bleeds past page px-5 so next card peeks off-screen like Figma */}
@@ -628,7 +644,9 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
               pct={trendCards[1]?.pct ?? 0}
               unitLabel={trendCards[1]?.unitLabel ?? 'INCIDENTS'}
               body={trendCards[1]?.body ?? 'No trend data for this window.'}
-              icon={<MaterialCommunityIcons name="alert-circle-outline" size={28} color="#CEE5ED" />}
+              icon={
+                <MaterialCommunityIcons name="alert-circle-outline" size={28} color="#CEE5ED" />
+              }
             />
           </ScrollView>
 

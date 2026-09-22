@@ -29,10 +29,7 @@ export const BUBBLE_CATEGORY_IDS: IncidentCategoryId[] = [
   'others',
 ];
 
-const SLOT_META: Record<
-  IncidentCategoryId,
-  { name: string; icon: IncidentCategory['icon'] }
-> = {
+const SLOT_META: Record<IncidentCategoryId, { name: string; icon: IncidentCategory['icon'] }> = {
   security: { name: 'Security', icon: 'lock' },
   medical: { name: 'Medical Emergency', icon: 'medical' },
   maintenance: { name: 'Maintenance', icon: 'wrench' },
@@ -210,9 +207,7 @@ export function mapCategoryEdaToUi(
     const meta = SLOT_META[id];
     // Prefer count/total so merged slots stay consistent with Incident Count /total.
     const share =
-      total > 0
-        ? Math.round((slot.count / total) * 1000) / 10
-        : Math.round(slot.share * 10) / 10;
+      total > 0 ? Math.round((slot.count / total) * 1000) / 10 : Math.round(slot.share * 10) / 10;
     const sample = slot.sample_reports[0];
     const narrative = sample
       ? (() => {
@@ -264,9 +259,7 @@ export function mapListItemToRow(item: IncidentListItem): IncidentRow {
 
   const categoryLabel =
     item.custom_category ||
-    (item.category?.length
-      ? item.category.map(formatCategoryLabel).join(', ')
-      : 'Uncategorized');
+    (item.category?.length ? item.category.map(formatCategoryLabel).join(', ') : 'Uncategorized');
 
   return {
     id: item.id,
@@ -377,9 +370,7 @@ export function mapTrendsFromEda(
   const narrative = eda?.trends_detected?.trim() || '';
   const timelineRaw = findInStats(stats, 'timeline_summary');
   const timeline =
-    typeof timelineRaw === 'string' && timelineRaw.trim()
-      ? timelineRaw.trim()
-      : narrative;
+    typeof timelineRaw === 'string' && timelineRaw.trim() ? timelineRaw.trim() : narrative;
 
   const weekend = findInStats(stats, 'weekend_vs_weekday') ?? {};
   const weekdayCount = Number(weekend.weekday ?? weekend.weekdays ?? 0);
@@ -396,19 +387,14 @@ export function mapTrendsFromEda(
           : 0;
 
   const temporal = findInStats(stats, 'temporal_overview') ?? {};
-  const hourBucket =
-    temporal.hour_bucket ?? findInStats(stats, 'hour_bucket') ?? {};
+  const hourBucket = temporal.hour_bucket ?? findInStats(stats, 'hour_bucket') ?? {};
   const morning = Number(hourBucket.morning ?? 0);
   const afternoon = Number(hourBucket.afternoon ?? 0);
   const night = Number(hourBucket.night ?? hourBucket.evening_night ?? 0);
   const timeTotal = morning + afternoon + night;
   const peak = Math.max(morning, afternoon, night, 0);
   const timePct =
-    timeTotal > 0
-      ? Math.round((peak / timeTotal) * 100)
-      : useFallback
-        ? fallback.time.pct
-        : 0;
+    timeTotal > 0 ? Math.round((peak / timeTotal) * 100) : useFallback ? fallback.time.pct : 0;
 
   const emptyBody = 'No trend data for this window.';
 

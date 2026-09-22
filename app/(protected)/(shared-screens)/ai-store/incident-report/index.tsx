@@ -25,7 +25,6 @@ import {
 } from '@/src/lib/api/aiMarketplace';
 import { MarketplaceDetailResponse } from '@/src/types/aiMarketplace';
 
-
 export default function IncidentReportPreviewScreen() {
   const params = useLocalSearchParams<{ featureId?: string; title?: string; tab?: string }>();
   const [activeTab, setActiveTab] = useState<'Preview' | 'Result'>(
@@ -48,7 +47,10 @@ export default function IncidentReportPreviewScreen() {
 
   const formatTierName = (tier: string) => {
     const map: Record<string, string> = { '1': 'One', '2': 'Two', '3': 'Three' };
-    return tier.split('_').map(w => map[w] || (w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())).join(' ');
+    return tier
+      .split('_')
+      .map((w) => map[w] || w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join(' ');
   };
 
   const handleRate = async (rating: number) => {
@@ -67,30 +69,33 @@ export default function IncidentReportPreviewScreen() {
 
   const [isLoading, setIsLoading] = useState(true);
 
-  const loadFeature = useCallback(async (id?: string) => {
-    setIsLoading(true);
-    try {
-      let targetId = id || params.featureId;
-      if (!targetId) {
-        const list = await getMarketplaceFeatures();
-        const anomalyTool = list.items?.find((item) =>
-          item.name.toLowerCase().includes('incident')
-        );
-        if (anomalyTool) {
-          targetId = anomalyTool.id;
+  const loadFeature = useCallback(
+    async (id?: string) => {
+      setIsLoading(true);
+      try {
+        let targetId = id || params.featureId;
+        if (!targetId) {
+          const list = await getMarketplaceFeatures();
+          const anomalyTool = list.items?.find((item) =>
+            item.name.toLowerCase().includes('incident')
+          );
+          if (anomalyTool) {
+            targetId = anomalyTool.id;
+          }
         }
-      }
 
-      if (targetId) {
-        const detail = await getMarketplaceFeatureById(targetId);
-        setFeatureDetail(detail);
+        if (targetId) {
+          const detail = await getMarketplaceFeatureById(targetId);
+          setFeatureDetail(detail);
+        }
+      } catch (err: any) {
+        console.log('Error loading feature details:', err?.message || err);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (err: any) {
-      console.log('Error loading feature details:', err?.message || err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [params.featureId]);
+    },
+    [params.featureId]
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -187,10 +192,7 @@ export default function IncidentReportPreviewScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: activeTab === 'Result' ? '#F6F7F7' : '#FFFFFF' }}>
-      <SafeAreaView
-        edges={['top', 'left', 'right']}
-        style={{ flex: 1 }}
-      >
+      <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1 }}>
         {/* Header: matches Figma top 55px to 109px (height 54px) */}
         <View
           style={{
@@ -236,7 +238,14 @@ export default function IncidentReportPreviewScreen() {
         {activeTab === 'Result' ? (
           <IncidentResultView isActive={activeTab === 'Result'} />
         ) : isLoading ? (
-          <View style={{ flex: 1, backgroundColor: '#F6F7F7', justifyContent: 'center', alignItems: 'center' }}>
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: '#F6F7F7',
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+          >
             <ActivityIndicator size="large" color="#113E55" />
           </View>
         ) : (
@@ -301,33 +310,52 @@ export default function IncidentReportPreviewScreen() {
                 >
                   {/* Title and Rating */}
                   <View className="flex-row justify-between items-center">
-                    <Text allowFontScaling={false} className="text-[21.88px] font-ubuntu-semibold text-[#113E55] leading-[21.88px]">
+                    <Text
+                      allowFontScaling={false}
+                      className="text-[21.88px] font-ubuntu-semibold text-[#113E55] leading-[21.88px]"
+                    >
                       {featureDetail?.name || 'Incident Report Insights'}
                     </Text>
-                    <Pressable onPress={() => setIsRatingModalVisible(true)} className="flex-row items-center gap-1">
+                    <Pressable
+                      onPress={() => setIsRatingModalVisible(true)}
+                      className="flex-row items-center gap-1"
+                    >
                       <RatingStarIcon width={17} height={16} />
-                      <Text allowFontScaling={false} className="text-[21.88px] font-ubuntu-semibold text-[#6B7280] leading-[26px] text-center w-[39px]">
+                      <Text
+                        allowFontScaling={false}
+                        className="text-[21.88px] font-ubuntu-semibold text-[#6B7280] leading-[26px] text-center w-[39px]"
+                      >
                         {featureDetail?.rating != null ? featureDetail.rating.toFixed(1) : '0.0'}
                       </Text>
                     </Pressable>
                   </View>
 
                   {/* Description */}
-                  <Text allowFontScaling={false} className="text-[11.2px] font-inter-regular text-[#878686]">
-                    {featureDetail?.description || "See which incidents dominate your estate, when they peak, and what the reports are saying."}
+                  <Text
+                    allowFontScaling={false}
+                    className="text-[11.2px] font-inter-regular text-[#878686]"
+                  >
+                    {featureDetail?.description ||
+                      'See which incidents dominate your estate, when they peak, and what the reports are saying.'}
                   </Text>
 
                   {/* Stats */}
                   <View className="flex-row items-center gap-2 mt-1">
                     <View className="flex-row items-center ">
                       <FeatureDownloadIcon width={13} height={13} />
-                      <Text allowFontScaling={false} className="text-[8.96px] font-inter-medium text-[#878686] px-1">
+                      <Text
+                        allowFontScaling={false}
+                        className="text-[8.96px] font-inter-medium text-[#878686] px-1"
+                      >
                         0
                       </Text>
                     </View>
                     <View className="flex-row items-center">
                       <FeatureUsersIcon width={16} height={16} />
-                      <Text allowFontScaling={false} className="text-[8.96px] font-inter-medium text-[#878686] px-1">
+                      <Text
+                        allowFontScaling={false}
+                        className="text-[8.96px] font-inter-medium text-[#878686] px-1"
+                      >
                         {featureDetail?.rating_count ?? 0}
                       </Text>
                     </View>
@@ -338,20 +366,27 @@ export default function IncidentReportPreviewScreen() {
               {/* Lower Body Section on #F6F7F7 */}
               <View className="flex-1 bg-[#F6F7F7] px-5 pt-[44px] pb-[100px]">
                 {/* Product Feature */}
-               
-               <View className='px-[17px]'>
-               <Text allowFontScaling={false} className="text-[14px] font-inter-medium text-[#113E55] mb-4 leading-[14px]">
-                  Product Feature
-                </Text>
-               </View>
+
+                <View className="px-[17px]">
+                  <Text
+                    allowFontScaling={false}
+                    className="text-[14px] font-inter-medium text-[#113E55] mb-4 leading-[14px]"
+                  >
+                    Product Feature
+                  </Text>
+                </View>
 
                 <View className="gap-2 mb-[44px]">
                   <View className="bg-white rounded-[16px] px-4 py-2 flex-row items-center gap-3  ">
                     <View className="w-4 h-4 shrink-0 items-center justify-center">
                       <Pf1Svg width={16} height={16} />
                     </View>
-                    <Text allowFontScaling={false} className="text-[11.2px] font-inter-regular text-[#878686] flex-1 leading-[18px]">
-                      Spot unusual activities early, so you can investigate before they become bigger issues.
+                    <Text
+                      allowFontScaling={false}
+                      className="text-[11.2px] font-inter-regular text-[#878686] flex-1 leading-[18px]"
+                    >
+                      Spot unusual activities early, so you can investigate before they become
+                      bigger issues.
                     </Text>
                   </View>
 
@@ -359,8 +394,12 @@ export default function IncidentReportPreviewScreen() {
                     <View className="w-4 h-4 shrink-0 items-center justify-center">
                       <Pf2Svg width={16} height={16} />
                     </View>
-                    <Text allowFontScaling={false} className="text-[11.2px] font-inter-regular text-[#878686] flex-1 leading-[18px]">
-                      Instead of reviewing everything, instantly see the people or patterns that deserve your attention.
+                    <Text
+                      allowFontScaling={false}
+                      className="text-[11.2px] font-inter-regular text-[#878686] flex-1 leading-[18px]"
+                    >
+                      Instead of reviewing everything, instantly see the people or patterns that
+                      deserve your attention.
                     </Text>
                   </View>
 
@@ -368,16 +407,24 @@ export default function IncidentReportPreviewScreen() {
                     <View className="w-4 h-4 shrink-0 items-center justify-center">
                       <Pf3Svg width={16} height={16} />
                     </View>
-                    <Text allowFontScaling={false} className="text-[11.2px] font-inter-regular text-[#878686] flex-1 leading-[18px]">
-                      {"No complicated reports. Get simple insights that help you understand what's happening and why."}
+                    <Text
+                      allowFontScaling={false}
+                      className="text-[11.2px] font-inter-regular text-[#878686] flex-1 leading-[18px]"
+                    >
+                      {
+                        "No complicated reports. Get simple insights that help you understand what's happening and why."
+                      }
                     </Text>
                   </View>
                 </View>
-                <View className='px-[17px]'>
-                {/* Choose Subscription Plan */}
-                <Text allowFontScaling={false} className="text-[14px] font-inter-medium text-[#113E55] mb-4 leading-[14px]">
-                  Choose Subscription Plan
-                </Text>
+                <View className="px-[17px]">
+                  {/* Choose Subscription Plan */}
+                  <Text
+                    allowFontScaling={false}
+                    className="text-[14px] font-inter-medium text-[#113E55] mb-4 leading-[14px]"
+                  >
+                    Choose Subscription Plan
+                  </Text>
                 </View>
 
                 {/* Tier cards */}
@@ -387,7 +434,9 @@ export default function IncidentReportPreviewScreen() {
                     subtitle="FREE"
                     description="Instead of reviewing everything, instantly see the people or patterns that deserve your attention."
                     expanded={expandedTier === 'Tier One'}
-                    onToggle={() => setExpandedTier(expandedTier === 'Tier One' ? null : 'Tier One')}
+                    onToggle={() =>
+                      setExpandedTier(expandedTier === 'Tier One' ? null : 'Tier One')
+                    }
                     onActivate={() => handleSubscribe(tierOneApi || { tier: 'Tier One' })}
                     isSubscribing={subscribingTierKey === (tierOneApi?.tier || 'Tier One')}
                     isInstalled={!!tierOneApi?.is_installed}
@@ -403,7 +452,9 @@ export default function IncidentReportPreviewScreen() {
                       'Spot peak times and repeat locations before they become patterns.'
                     }
                     expanded={expandedTier === 'Tier Two'}
-                    onToggle={() => setExpandedTier(expandedTier === 'Tier Two' ? null : 'Tier Two')}
+                    onToggle={() =>
+                      setExpandedTier(expandedTier === 'Tier Two' ? null : 'Tier Two')
+                    }
                     onActivate={() => handleSubscribe(tierTwoApi || { tier: 'Tier Two' })}
                     isSubscribing={subscribingTierKey === (tierTwoApi?.tier || 'Tier Two')}
                     isInstalled={!!tierTwoApi?.is_installed}
@@ -411,7 +462,9 @@ export default function IncidentReportPreviewScreen() {
                   />
 
                   <SubscriptionTierCard
-                    tierLabel={tierThreeApi?.tier ? formatTierName(tierThreeApi.tier) : 'Tier Three'}
+                    tierLabel={
+                      tierThreeApi?.tier ? formatTierName(tierThreeApi.tier) : 'Tier Three'
+                    }
                     subtitle={tierThreeApi?.name || 'Incident Insights Third-Party AI Review'}
                     subtitleUppercase
                     description={
@@ -419,7 +472,9 @@ export default function IncidentReportPreviewScreen() {
                       'Spot peak times and repeat locations before they become patterns.'
                     }
                     expanded={expandedTier === 'Tier Three'}
-                    onToggle={() => setExpandedTier(expandedTier === 'Tier Three' ? null : 'Tier Three')}
+                    onToggle={() =>
+                      setExpandedTier(expandedTier === 'Tier Three' ? null : 'Tier Three')
+                    }
                     onActivate={() => handleSubscribe(tierThreeApi || { tier: 'Tier Three' })}
                     isSubscribing={subscribingTierKey === (tierThreeApi?.tier || 'Tier Three')}
                     isInstalled={!!tierThreeApi?.is_installed}
@@ -429,7 +484,8 @@ export default function IncidentReportPreviewScreen() {
               </View>
             </Animated.View>
           </ScrollView>
-        )}</SafeAreaView>
+        )}
+      </SafeAreaView>
 
       <RatingModal
         visible={isRatingModalVisible}
@@ -437,12 +493,7 @@ export default function IncidentReportPreviewScreen() {
         onSubmit={handleRate}
       />
 
-      <DataInsightModal
-        visible={dataInsightVisible}
-        onClose={() => setDataInsightVisible(false)}
-      />
-
-
+      <DataInsightModal visible={dataInsightVisible} onClose={() => setDataInsightVisible(false)} />
     </View>
   );
 }

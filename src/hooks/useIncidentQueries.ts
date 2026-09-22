@@ -1,14 +1,7 @@
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
-import {
-  incidentReportsApi,
-  type IncidentReportsListParams,
-} from '@/src/lib/api/incidentReports';
+import { incidentReportsApi, type IncidentReportsListParams } from '@/src/lib/api/incidentReports';
 
-export const useIncidentOverview = (
-  estate_id: string,
-  from_date?: string,
-  to_date?: string
-) => {
+export const useIncidentOverview = (estate_id: string, from_date?: string, to_date?: string) => {
   return useQuery({
     queryKey: ['incident-reports', 'overview', estate_id, from_date, to_date],
     queryFn: () => incidentReportsApi.getOverview({ estate_id, from_date, to_date }),

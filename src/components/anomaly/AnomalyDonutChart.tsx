@@ -187,7 +187,15 @@ const AnomalyDonutChart = ({
     }
 
     return list;
-  }, [size, tickRadius, tickWidth, tickHeight, residentPercentage, guestPercentage, securityPercentage]);
+  }, [
+    size,
+    tickRadius,
+    tickWidth,
+    tickHeight,
+    residentPercentage,
+    guestPercentage,
+    securityPercentage,
+  ]);
 
   const centerTextStyle = useAnimatedStyle(() => {
     'worklet';
@@ -207,11 +215,7 @@ const AnomalyDonutChart = ({
       className="relative items-center justify-center"
       style={[{ width: size, height: size }, chartPulseStyle]}
     >
-      <Svg
-        width={size}
-        height={size}
-        style={{ position: 'absolute', top: 0, left: 0 }}
-      >
+      <Svg width={size} height={size} style={{ position: 'absolute', top: 0, left: 0 }}>
         <Circle cx={size / 2} cy={size / 2} r={whiteRadius} fill="#FFFFFF" />
         <Circle
           cx={size / 2}

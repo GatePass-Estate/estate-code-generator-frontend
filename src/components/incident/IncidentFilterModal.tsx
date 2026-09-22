@@ -86,12 +86,8 @@ export default function IncidentFilterModal({
   onConfirm,
   current,
 }: IncidentFilterModalProps) {
-  const [categories, setCategories] = useState<IncidentFilterCategory[]>(
-    current?.categories ?? []
-  );
-  const [userTypes, setUserTypes] = useState<IncidentFilterUserType[]>(
-    current?.userTypes ?? []
-  );
+  const [categories, setCategories] = useState<IncidentFilterCategory[]>(current?.categories ?? []);
+  const [userTypes, setUserTypes] = useState<IncidentFilterUserType[]>(current?.userTypes ?? []);
 
   useEffect(() => {
     if (!visible) return;
