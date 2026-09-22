@@ -189,7 +189,10 @@ export default function AdminUsersMobilePage() {
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity className="flex-1 items-center py-5 px-2 opacity-40" disabled={true}>
+          <TouchableOpacity
+            className="flex-1 items-center py-5 px-2"
+            onPress={() => router.push('/admin/broadcast')}
+          >
             <Image source={icons.broadcastIcon} style={{ width: 30, height: 30 }} />
             <Text className="text-primary text-sm font-inter-regular mt-1.5 text-center">
               Broadcast

@@ -56,28 +56,31 @@ export default function BroadcastPopup({
     [pageWidth]
   );
 
-  const handleAcknowledge = useCallback(async () => {
-    const current = broadcasts[index];
-    if (!current || acknowledging) return;
+  const handleAcknowledge = useCallback(
+    async (item: BroadcastItem) => {
+      if (acknowledging) return;
 
-    setAcknowledging(true);
-    try {
-      await onAcknowledge(current.id);
+      setAcknowledging(true);
+      try {
+        await onAcknowledge(item.id);
 
-      // Acknowledging the last remaining card closes the popup; otherwise stay
-      // put — the list shrinks under us, so this index now holds the next one.
-      if (broadcasts.length <= 1) {
-        onClose();
-        return;
+        // Acknowledging the last remaining card closes the popup; otherwise
+        // stay put — the list shrinks under us, so this index now holds the
+        // next one.
+        if (broadcasts.length <= 1) {
+          onClose();
+          return;
+        }
+
+        const nextIndex = Math.min(index, broadcasts.length - 2);
+        setIndex(nextIndex);
+        scrollRef.current?.scrollTo({ x: nextIndex * pageWidth, animated: false });
+      } finally {
+        setAcknowledging(false);
       }
-
-      const nextIndex = Math.min(index, broadcasts.length - 2);
-      setIndex(nextIndex);
-      scrollRef.current?.scrollTo({ x: nextIndex * pageWidth, animated: false });
-    } finally {
-      setAcknowledging(false);
-    }
-  }, [broadcasts, index, acknowledging, onAcknowledge, onClose, pageWidth]);
+    },
+    [broadcasts.length, index, acknowledging, onAcknowledge, onClose, pageWidth]
+  );
 
   if (broadcasts.length === 0) return null;
 
@@ -127,6 +130,19 @@ export default function BroadcastPopup({
                       {item.message}
                     </Text>
                   </ScrollView>
+
+                  <Pressable
+                    onPress={() => void handleAcknowledge(item)}
+                    disabled={acknowledging}
+                    className="bg-primary rounded-[24px] h-11 items-center justify-center self-stretch mt-7"
+                    style={{ opacity: acknowledging ? 0.7 : 1 }}
+                  >
+                    {acknowledging ? (
+                      <ActivityIndicator color="#F6F7F7" />
+                    ) : (
+                      <Text className="text-[#F6F7F7] font-ubuntu-semibold text-sm">Got it!</Text>
+                    )}
+                  </Pressable>
                 </View>
               </View>
             );
@@ -148,19 +164,6 @@ export default function BroadcastPopup({
             ))}
           </View>
         )}
-
-        <Pressable
-          onPress={handleAcknowledge}
-          disabled={acknowledging}
-          className="bg-primary rounded-[24px] h-11 items-center justify-center mt-6"
-          style={{ width: cardWidth - 40, opacity: acknowledging ? 0.7 : 1 }}
-        >
-          {acknowledging ? (
-            <ActivityIndicator color="#F6F7F7" />
-          ) : (
-            <Text className="text-[#F6F7F7] font-ubuntu-semibold text-sm">Got it!</Text>
-          )}
-        </Pressable>
 
         <Pressable
           onPress={onClose}

@@ -154,7 +154,7 @@ export default function InfoBoardScreen() {
           <Pressable
             onPress={() => void clearCurrentTab()}
             disabled={busy}
-            className="bg-primary rounded-[24px] h-11 items-center justify-center mb-6 mt-2"
+            className="bg-primary rounded-[24px] h-12 items-center justify-center mb-6 mt-2"
             style={{ opacity: busy ? 0.7 : 1 }}
           >
             {busy ? (

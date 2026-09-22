@@ -1,5 +1,8 @@
+export type BroadcastAudienceChoice = 'residents' | 'security' | 'admins' | 'all';
+
 export interface BroadcastFormData {
-  userType: 'residents' | 'admin' | 'security' | 'users';
+  /** Multi-select. 'all' covers every role and is set alongside the others. */
+  userType: BroadcastAudienceChoice[];
   priorityLevel: 'low' | 'medium' | 'high' | 'urgent';
   duration: '1_hour' | '6_hours' | '24_hours' | '7_days';
   subjectLine: string;
@@ -16,9 +19,10 @@ export interface BroadcastFormErrors {
 
 export const USER_TYPES = [
   { label: 'Residents Only', value: 'residents' },
-  { label: 'Admins Only', value: 'admins' },
-  { label: 'Security Personnel Only', value: 'security' },
-  { label: 'All Users', value: 'users' },
+  { label: 'Security Personnel only', value: 'security' },
+  { label: 'Admins only', value: 'admins' },
+  // Ticking this selects every other option and locks them.
+  { label: 'All Users', value: 'all', selectsAll: true },
 ];
 
 export const PRIORITY_LEVELS = [

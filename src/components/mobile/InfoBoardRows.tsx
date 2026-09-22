@@ -26,7 +26,7 @@ export const BroadcastRow = memo(function BroadcastRow({
     >
       <Pressable
         onPress={() => onOpen(item.id)}
-        className="flex-row items-center rounded-[8px] border px-4 py-3"
+        className="flex-row items-center rounded-[8px] border-[0.5px] px-4 py-3"
         style={{ backgroundColor: style.background, borderColor: style.border }}
       >
         <PriorityAlarmIcon color={style.icon} circleColor={style.circle} />

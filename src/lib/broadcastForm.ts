@@ -16,16 +16,22 @@ import type {
 // both spellings are accepted to keep the picker and the type in sync.
 const ALL_ROLES: BroadcastAudienceRole[] = ['primary_admin', 'admin', 'resident', 'security'];
 
+/**
+ * Audience choice -> API roles.
+ *
+ * 'admins' covers both admin roles: a primary admin is an admin, and leaving
+ * them out would drop the estate owner from a broadcast addressed to admins.
+ * 'root' is never targeted — that is the platform owner, not estate staff.
+ */
 const AUDIENCE_BY_USER_TYPE: Record<string, BroadcastAudienceRole[]> = {
-  // Mobile compose vocabulary.
   residents: ['resident'],
-  admin: ['primary_admin', 'admin'],
-  admins: ['primary_admin', 'admin'],
   security: ['security'],
-  users: ALL_ROLES,
-  // Web compose vocabulary.
-  resident: ['resident'],
+  admins: ['primary_admin', 'admin'],
   all: ALL_ROLES,
+  // Accepted aliases from the older single-select form and the web screen.
+  resident: ['resident'],
+  admin: ['primary_admin', 'admin'],
+  users: ALL_ROLES,
 };
 
 const PRIORITY_BY_LEVEL: Record<string, BroadcastPriority> = {
@@ -46,8 +52,27 @@ const DURATION_HOURS: Record<string, number> = {
   '30_days': 720,
 };
 
-export function audienceForUserType(userType: string): BroadcastAudienceRole[] {
-  return AUDIENCE_BY_USER_TYPE[userType] ?? AUDIENCE_BY_USER_TYPE.residents;
+/**
+ * Resolves one or several audience choices to a deduplicated role list.
+ *
+ * Overlapping choices are expected — picking "Admins only" and "All Users"
+ * together must not send `primary_admin` twice.
+ */
+export function audienceForUserType(userType: string | string[]): BroadcastAudienceRole[] {
+  const choices = Array.isArray(userType) ? userType : [userType];
+  const roles = new Set<BroadcastAudienceRole>();
+
+  for (const choice of choices) {
+    for (const role of AUDIENCE_BY_USER_TYPE[choice] ?? []) {
+      roles.add(role);
+    }
+  }
+
+  // An empty or unrecognised selection would be rejected by the API, so fall
+  // back to the safest non-empty audience rather than sending nothing.
+  if (roles.size === 0) return ['resident'];
+
+  return Array.from(roles);
 }
 
 export function priorityForLevel(level: string): BroadcastPriority {

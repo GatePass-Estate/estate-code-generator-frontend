@@ -12,6 +12,12 @@ import {
   markNotificationRead,
 } from '@/src/lib/api/notifications';
 import { useNotificationStore } from '@/src/lib/stores/notificationStore';
+import { useUserStore } from '@/src/lib/stores/userStore';
+import {
+  addLocallyReadBroadcasts,
+  getLocallyReadBroadcasts,
+  pruneLocallyReadBroadcasts,
+} from '@/src/lib/readBroadcasts';
 import type { BroadcastItem } from '@/src/types/broadcast';
 import type { NotificationItem } from '@/src/types/notification';
 
@@ -36,6 +42,7 @@ export function useInfoBoard() {
   const [errorMessage, setErrorMessage] = useState('');
   const [busy, setBusy] = useState(false);
 
+  const userId = useUserStore((state) => state.user_id);
   const setBroadcastUnread = useNotificationStore((state) => state.setBroadcastUnread);
   const setActivityUnread = useNotificationStore((state) => state.setActivityUnread);
   const refreshCounts = useNotificationStore((state) => state.refreshCounts);
@@ -43,14 +50,29 @@ export function useInfoBoard() {
   const loadBroadcasts = useCallback(async () => {
     try {
       const response = await listBroadcasts(1, 50);
-      setBroadcasts(response?.items ?? []);
+      const items = response?.items ?? [];
+
+      // The server under-reports is_read (see readBroadcasts.ts), so OR it with
+      // what this device knows. This can only ever mark something read, never
+      // unread, so it stays correct once the backend is fixed.
+      const locallyRead = await getLocallyReadBroadcasts(userId);
+      setBroadcasts(
+        items.map((item) =>
+          item.is_read || locallyRead.has(item.id) ? { ...item, is_read: true } : item
+        )
+      );
+
+      void pruneLocallyReadBroadcasts(
+        userId,
+        items.map((item) => item.id)
+      );
       return true;
     } catch {
       return false;
     } finally {
       setBroadcastsLoading(false);
     }
-  }, []);
+  }, [userId]);
 
   const loadActivities = useCallback(async () => {
     try {
@@ -99,6 +121,8 @@ export function useInfoBoard() {
       );
       setBroadcastUnread(useNotificationStore.getState().broadcastUnread - 1);
 
+      void addLocallyReadBroadcasts(userId, id);
+
       try {
         await markBroadcastRead(id);
       } catch {
@@ -106,7 +130,7 @@ export function useInfoBoard() {
         void load();
       }
     },
-    [broadcasts, setBroadcastUnread, load]
+    [broadcasts, setBroadcastUnread, load, userId]
   );
 
   /** Removes one broadcast from this user's list (swipe-left). */

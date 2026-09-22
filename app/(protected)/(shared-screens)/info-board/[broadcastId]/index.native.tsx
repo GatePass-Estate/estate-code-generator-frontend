@@ -6,12 +6,15 @@ import Back from '@/src/components/mobile/Back';
 import { sharedStyles } from '@/src/theme/styles';
 import { getBroadcast, markBroadcastRead } from '@/src/lib/api/broadcast';
 import { useNotificationStore } from '@/src/lib/stores/notificationStore';
+import { useUserStore } from '@/src/lib/stores/userStore';
+import { addLocallyReadBroadcasts } from '@/src/lib/readBroadcasts';
 import { formatSentDate } from '@/src/lib/broadcastStyle';
 import type { BroadcastItem } from '@/src/types/broadcast';
 
 export default function BroadcastDetailScreen() {
   const { broadcastId } = useLocalSearchParams<{ broadcastId?: string }>();
   const refreshCounts = useNotificationStore((state) => state.refreshCounts);
+  const userId = useUserStore((state) => state.user_id);
 
   const [broadcast, setBroadcast] = useState<BroadcastItem | null>(null);
   const [loading, setLoading] = useState(true);
@@ -29,6 +32,9 @@ export default function BroadcastDetailScreen() {
       // Opening the message counts as reading it; the list may have navigated
       // here without marking it (e.g. a deep link).
       if (!item.is_read) {
+        // Recorded locally too: the list endpoint under-reports is_read.
+        void addLocallyReadBroadcasts(userId, broadcastId);
+
         try {
           await markBroadcastRead(broadcastId);
           void refreshCounts();
@@ -41,7 +47,7 @@ export default function BroadcastDetailScreen() {
     } finally {
       setLoading(false);
     }
-  }, [broadcastId, refreshCounts]);
+  }, [broadcastId, refreshCounts, userId]);
 
   useEffect(() => {
     load();
@@ -87,11 +93,11 @@ export default function BroadcastDetailScreen() {
               </Text>
             </View>
 
-            {!!broadcast?.sender_name && (
+            {/* {!!broadcast?.sender_name && (
               <Text className="text-[#878686] font-inter-regular text-[11px] mt-4">
                 From {broadcast.sender_name}
               </Text>
-            )}
+            )} */}
           </ScrollView>
         </>
       )}

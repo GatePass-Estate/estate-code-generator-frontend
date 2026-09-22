@@ -78,6 +78,19 @@ export async function dismissAllBroadcasts(): Promise<{ dismissed?: number }> {
   }
 }
 
+/**
+ * True when a failure was the paid-plan gate rather than a real error.
+ *
+ * `POST /broadcasts` is entitlement-gated: estates on the free tier get a 403
+ * reading `Estate is not entitled to 'admin_broadcast'`, which deserves an
+ * upgrade prompt rather than a generic failure message.
+ */
+export function isBroadcastEntitlementError(message?: string | null): boolean {
+  if (!message) return false;
+  const normalised = message.toLowerCase();
+  return normalised.includes('not entitled') && normalised.includes('admin_broadcast');
+}
+
 /** Admin/primary-admin only: sends a new broadcast. */
 export async function createBroadcast(payload: CreateBroadcastPayload): Promise<{ id: string }> {
   try {

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { listBroadcasts, markBroadcastRead } from '@/src/lib/api/broadcast';
 import { useNotificationStore } from '@/src/lib/stores/notificationStore';
 import { useUserStore } from '@/src/lib/stores/userStore';
+import { addLocallyReadBroadcasts, getLocallyReadBroadcasts } from '@/src/lib/readBroadcasts';
 import BroadcastPopup from './BroadcastPopup';
 import type { BroadcastItem } from '@/src/types/broadcast';
 
@@ -42,7 +43,13 @@ export default function BroadcastPopupHost() {
         const response = await listBroadcasts(1, 20);
         if (cancelled) return;
 
-        const unread = (response?.items ?? []).filter((item) => !item.is_read);
+        // The list endpoint under-reports is_read, so exclude anything this
+        // device has acknowledged. Without this an already-dismissed
+        // announcement would pop up again on the next launch.
+        const locallyRead = await getLocallyReadBroadcasts(user_id);
+        const unread = (response?.items ?? []).filter(
+          (item) => !item.is_read && !locallyRead.has(item.id)
+        );
         setPending(unread);
         setVisible(unread.length > 0);
       } catch {
@@ -58,6 +65,9 @@ export default function BroadcastPopupHost() {
 
   const handleAcknowledge = useCallback(
     async (id: string) => {
+      // Recorded locally too: the list endpoint under-reports is_read.
+      void addLocallyReadBroadcasts(user_id, id);
+
       try {
         await markBroadcastRead(id);
       } catch {
@@ -70,7 +80,7 @@ export default function BroadcastPopupHost() {
       setPending(next);
       setBroadcastUnread(next.length);
     },
-    [pending, setBroadcastUnread]
+    [pending, setBroadcastUnread, user_id]
   );
 
   const handleClose = useCallback(() => {
