@@ -87,7 +87,7 @@ export default function AccessHistoryDetail({
               {photoUri ? (
                 <Image
                   source={{ uri: photoUri }}
-                  style={StyleSheet.absoluteFillObject}
+                  style={StyleSheet.absoluteFill}
                   resizeMode="cover"
                 />
               ) : (

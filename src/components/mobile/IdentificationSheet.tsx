@@ -78,10 +78,9 @@ export default function IdentificationSheet({
   const closeSheet = () => {
     if (uploading) return;
 
-    translateY.value = withTiming(SHEET_HEIGHT, SHEET_ANIMATION, (finished) => {
-      if (finished) {
-        runOnJS(onClose)();
-      }
+    translateY.value = withTiming(SHEET_HEIGHT, SHEET_ANIMATION, () => {
+      // Always dismiss — interrupted close must not leave a blocking invisible Modal.
+      runOnJS(onClose)();
     });
   };
 
@@ -169,7 +168,7 @@ export default function IdentificationSheet({
       <GestureHandlerRootView style={styles.overlay}>
         <Animated.View style={[styles.backdrop, backdropAnimatedStyle]}>
           <Pressable
-            style={StyleSheet.absoluteFillObject}
+            style={StyleSheet.absoluteFill}
             onPress={() => {
               if (!uploading) closeSheet();
             }}
@@ -214,7 +213,7 @@ export default function IdentificationSheet({
                 <View
                   pointerEvents="none"
                   style={[
-                    StyleSheet.absoluteFillObject,
+                    StyleSheet.absoluteFill,
                     { alignItems: 'center', justifyContent: 'center' },
                   ]}
                 >
@@ -248,7 +247,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0, 0, 0, 0.35)',
   },
   sheet: {

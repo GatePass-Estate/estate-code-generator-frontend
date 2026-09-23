@@ -395,7 +395,9 @@ export default function SetAccessCodeDurationScreen() {
           </View>
           <Switch
             value={windowEnabled}
-            onValueChange={setWindowEnabled}
+            onValueChange={(next) => {
+              setWindowEnabled(next);
+            }}
             trackColor={{ false: '#D9D9D9', true: '#1B998B' }}
             thumbColor="#FFFFFF"
           />
@@ -435,18 +437,20 @@ export default function SetAccessCodeDurationScreen() {
           </View>
         ) : null}
 
-        <Pressable
-          onPress={handleGenerate}
-          disabled={!canGenerate || generating}
-          className="mt-8 items-center justify-center rounded-full p-4"
-          style={{ backgroundColor: canGenerate && !generating ? '#113E55' : '#C8CDD0' }}
-        >
-          {generating ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text className="text-sm font-ubuntu-semibold text-white">Generate Code</Text>
-          )}
-        </Pressable>
+        <View className="mt-8 items-center">
+          <Pressable
+            onPress={handleGenerate}
+            disabled={!canGenerate || generating}
+            className="w-full items-center justify-center rounded-full p-4"
+            style={{ backgroundColor: canGenerate && !generating ? '#113E55' : '#C8CDD0' }}
+          >
+            {generating ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text className="text-sm font-ubuntu-semibold text-white">Generate Code</Text>
+            )}
+          </Pressable>
+        </View>
       </ScrollView>
 
       {pickerTarget && Platform.OS === 'ios' ? (

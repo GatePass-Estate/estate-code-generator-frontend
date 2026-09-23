@@ -18,13 +18,12 @@ const AddGuestMobile = () => {
   const [gender, setGender] = useState<GenderType>(null);
   const [relationship, setRelationship] = useState<RelationshipType>(null);
   const [isChecked, setIsChecked] = useState(false);
-  const [error, setError] = useState('');
   const [running, setRunning] = useState<boolean>(false);
 
   const router = useRouter();
 
   const handleCheckboxChange = () => {
-    setIsChecked(!isChecked);
+    setIsChecked((prev) => !prev);
   };
 
   const clearInput = () => {
@@ -35,7 +34,7 @@ const AddGuestMobile = () => {
   };
 
   const inputChecks = (): boolean => {
-    if (guestName == '') {
+    if (guestName === '') {
       Alert.alert('Error', "Please enter the guest's name.");
       return false;
     }
@@ -54,73 +53,72 @@ const AddGuestMobile = () => {
   };
 
   async function handleGenerateCode() {
-    if (inputChecks()) {
-      setRunning(true);
-      try {
-        const result = await generateCode({
-          user_id: useUserStore.getState().user_id,
-          estate_id: useUserStore.getState().estate_id ?? '',
-          visitor_fullname: guestName,
-          relationship_with_resident: relationship,
-          gender: gender,
-        });
+    if (!inputChecks()) return;
 
-        if (isChecked) {
-          await createGuest({
-            resident_id: useUserStore.getState().user_id,
-            guest_name: guestName,
-            relationship: relationship,
-            gender: gender,
-          });
-        }
-        setRunning(false);
+    setRunning(true);
+    try {
+      const result = await generateCode({
+        user_id: useUserStore.getState().user_id,
+        estate_id: useUserStore.getState().estate_id ?? '',
+        visitor_fullname: guestName,
+        relationship_with_resident: relationship,
+        gender: gender,
+      });
 
-        clearInput();
-
-        let { formattedDate, timeframe } = timeCalc(result.valid_until);
-
-        router.push({
-          pathname: `/invite`,
-          params: {
-            code: result.hashed_code,
-            name: guestName,
-            address: `${useUserStore.getState().home_address}, ${useUserStore.getState().estate_name}.`,
-            timeframe,
-            date: formattedDate,
-          },
-        });
-      } catch (error) {
-        setError('Failed to generate code. Please try again.');
-      } finally {
-        setRunning(false);
-      }
-    }
-  }
-
-  async function handleSaveGuest() {
-    if (inputChecks()) {
-      setRunning(true);
-      try {
+      if (isChecked) {
         await createGuest({
           resident_id: useUserStore.getState().user_id,
           guest_name: guestName,
           relationship: relationship,
           gender: gender,
         });
-
-        clearInput();
-
-        router.push({
-          pathname: '/user/guests',
-          params: {
-            refresh: 'true',
-          },
-        });
-      } catch (error) {
-        setError('Failed to generate code. Please try again.');
-      } finally {
-        setRunning(false);
       }
+
+      clearInput();
+
+      const { formattedDate, timeframe } = timeCalc(result.valid_until);
+
+      router.push({
+        pathname: `/invite`,
+        params: {
+          code: result.hashed_code,
+          name: guestName,
+          address: `${useUserStore.getState().home_address}, ${useUserStore.getState().estate_name}.`,
+          timeframe,
+          date: formattedDate,
+        },
+      });
+    } catch {
+      Alert.alert('Error', 'Failed to generate code. Please try again.');
+    } finally {
+      setRunning(false);
+    }
+  }
+
+  async function handleSaveGuest() {
+    if (!inputChecks()) return;
+
+    setRunning(true);
+    try {
+      await createGuest({
+        resident_id: useUserStore.getState().user_id,
+        guest_name: guestName,
+        relationship: relationship,
+        gender: gender,
+      });
+
+      clearInput();
+
+      router.push({
+        pathname: '/user/guests',
+        params: {
+          refresh: 'true',
+        },
+      });
+    } catch {
+      Alert.alert('Error', 'Failed to save guest. Please try again.');
+    } finally {
+      setRunning(false);
     }
   }
 
