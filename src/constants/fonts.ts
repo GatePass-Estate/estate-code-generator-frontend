@@ -9,14 +9,11 @@ export const UbuntuSans = {
   extraBold: 'UbuntuSans-ExtraBold',
 };
 
-/** Google Inter (default family), not Inter 18pt optical size. */
 export const Inter = {
-  extraLight: 'Inter_200ExtraLight',
-  light: 'Inter_300Light',
-  regular: 'Inter_400Regular',
-  medium: 'Inter_500Medium',
-  semiBold: 'Inter_600SemiBold',
-  bold: 'Inter_700Bold',
-  extraBold: 'Inter_800ExtraBold',
-  mediumItalic: 'Inter_500Medium_Italic',
+  extraLight: 'Inter_18pt-ExtraLight',
+  light: 'Inter_18pt-Light',
+  regular: 'Inter_18pt-Regular',
+  medium: 'Inter_18pt-Medium',
+  semiBold: 'Inter_18pt-SemiBold',
+  mediumItalic: 'Inter_18pt-MediumItalic',
 };

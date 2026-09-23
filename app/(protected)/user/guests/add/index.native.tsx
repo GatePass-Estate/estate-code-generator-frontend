@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { View, Text, TextInput, Pressable, Alert, ScrollView, Modal } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -11,8 +11,7 @@ import { CheckIcon, CheckRingIcon, ExpandMoreIcon } from '@/src/assets/svgs';
 import Button, { BUTTON_MARGIN_BOTTOM } from '@/src/components/mobile/Button';
 import { PlanNoticeSlot } from '@/src/components/mobile/FreePlanNotice';
 import ScreenHeader from '@/src/components/mobile/ScreenHeader';
-import { usePlan } from '@/src/hooks/usePlan';
-import { PLAN_FEATURES } from '@/src/lib/plans';
+import { useFeatureGate } from '@/src/hooks/usePlan';
 
 const GENDER_OPTIONS: { label: string; value: Exclude<GenderType, null> }[] = [
   { label: 'Female', value: 'female' },
@@ -30,8 +29,6 @@ const RELATIONSHIP_OPTIONS: { label: string; value: Exclude<RelationshipType, nu
   { label: 'Other', value: 'other' },
 ];
 
-const PLAN_NOTICE_MS = 3000;
-
 const AddGuestMobile = () => {
   const { tabContentPadding } = useAndroidBottomInset();
   const [guestName, setGuestName] = useState('');
@@ -41,34 +38,13 @@ const AddGuestMobile = () => {
   const [relationshipSheetVisible, setRelationshipSheetVisible] = useState(false);
   const [addToGuestList, setAddToGuestList] = useState(false);
   const [running, setRunning] = useState<boolean>(false);
-  const [showPlanNotice, setShowPlanNotice] = useState(false);
-  const noticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const { canUse, isAdmin, requestFeature } = usePlan();
-  const canSaveGuest = canUse(PLAN_FEATURES.save_guest_contact);
+  const saveGuestGate = useFeatureGate('guest_management');
 
   const genderLabel = GENDER_OPTIONS.find((option) => option.value === gender)?.label;
   const relationshipLabel = RELATIONSHIP_OPTIONS.find(
     (option) => option.value === relationship
   )?.label;
   const router = useRouter();
-
-  useEffect(() => {
-    return () => {
-      if (noticeTimerRef.current) clearTimeout(noticeTimerRef.current);
-    };
-  }, []);
-
-  const flashPlanNotice = () => {
-    setShowPlanNotice(true);
-    if (noticeTimerRef.current) clearTimeout(noticeTimerRef.current);
-    noticeTimerRef.current = setTimeout(() => setShowPlanNotice(false), PLAN_NOTICE_MS);
-  };
-
-  const guardSaveGuest = (): boolean => {
-    if (requestFeature(PLAN_FEATURES.save_guest_contact, { present: isAdmin })) return true;
-    if (!isAdmin) flashPlanNotice();
-    return false;
-  };
 
   const inputChecks = (): boolean => {
     if (guestName.trim() === '') {
@@ -98,14 +74,14 @@ const AddGuestMobile = () => {
         visitorName: guestName.trim(),
         relationship: relationship as string,
         gender: gender as string,
-        saveGuest: addToGuestList && canSaveGuest ? 'true' : 'false',
+        saveGuest: addToGuestList && saveGuestGate.allowed ? 'true' : 'false',
       },
     });
   }
 
   async function handleSaveGuest() {
     if (!inputChecks()) return;
-    if (!guardSaveGuest()) return;
+    if (!saveGuestGate.requestAccess()) return;
 
     setRunning(true);
     try {
@@ -200,13 +176,13 @@ const AddGuestMobile = () => {
 
         <Pressable
           onPress={() => {
-            if (!guardSaveGuest()) return;
+            if (!saveGuestGate.requestAccess()) return;
             setAddToGuestList((prev) => !prev);
           }}
           className="mt-[19px] h-10 flex-row items-center gap-1.5 self-start"
         >
           <View className="h-4 w-4 items-center justify-center rounded-[3px] border border-[#113E55]">
-            {addToGuestList && canSaveGuest ? <CheckIcon /> : null}
+            {addToGuestList && saveGuestGate.allowed ? <CheckIcon /> : null}
           </View>
           <Text className="text-[11.2px] font-inter-semibold text-[#113E55]">
             Add to Guest List
@@ -214,7 +190,7 @@ const AddGuestMobile = () => {
         </Pressable>
 
         <View className="mt-[90px]" style={{ paddingBottom: BUTTON_MARGIN_BOTTOM }}>
-          <PlanNoticeSlot visible={showPlanNotice}>
+          <PlanNoticeSlot {...saveGuestGate.noticeProps}>
             <View className="flex-row items-center justify-between">
               <Button
                 label="Save Guest"

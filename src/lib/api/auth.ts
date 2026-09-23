@@ -1,7 +1,6 @@
 import Api from '.';
 import axios, { isAxiosError } from 'axios';
 import { LoginResponse, VerifyEmailActivationResponse } from '@/src/types/auth';
-import { extractPlanFields } from '@/src/lib/plans';
 import { getErrorMessage } from '../helpers';
 import { useQuery } from '@tanstack/react-query';
 
@@ -24,10 +23,11 @@ export async function loginUser(
       estate_id: estate_id || DEFAULT_LOGIN_ESTATE_ID,
     });
     const data = axiosRes.data;
-    if (__DEV__) {
-      console.log('[auth/login] keys', Object.keys(data ?? {}));
-      console.log('[auth/login] plan fields', extractPlanFields(data));
+
+    if (data?.requires_tos_acceptance && data?.access_token) {
+      return data;
     }
+
     return data;
   } catch (error: any) {
     if (
@@ -69,14 +69,7 @@ export async function fetchMe(token: string) {
         Authorization: `Bearer ${token}`,
       },
     });
-    const data = axiosRes.data;
-    const planFields = extractPlanFields(data);
-    if (__DEV__) {
-      console.log('[users/profile/me] keys', Object.keys(data ?? {}));
-      console.log('[users/profile/me] plan fields', planFields);
-      console.log('[users/profile/me] payload', data);
-    }
-    return { ...data, ...planFields };
+    return axiosRes.data;
   } catch (error: any) {
     throw new Error(`${getErrorMessage(error) || 'An error occured'} `);
   }

@@ -1,11 +1,11 @@
 import { Modal, Pressable, Text, View } from 'react-native';
 import { CrownIcon, CloseCircleIcon } from '@/src/assets/svgs';
 import Button from './Button';
-import { PlanFeature, UPGRADE_COPY } from '@/src/lib/plans';
+import { PlanFeature, getUpgradeCopy } from '@/src/lib/plans';
 
 type UpgradePlanModalProps = {
   visible: boolean;
-  feature: PlanFeature | null;
+  feature: PlanFeature;
   onClose: () => void;
   onUpgrade?: () => void;
 };
@@ -16,7 +16,7 @@ export default function UpgradePlanModal({
   onClose,
   onUpgrade,
 }: UpgradePlanModalProps) {
-  const body = feature ? UPGRADE_COPY[feature] : UPGRADE_COPY.advanced_code_management;
+  const body = getUpgradeCopy(feature);
 
   return (
     <Modal transparent animationType="fade" visible={visible} onRequestClose={onClose}>

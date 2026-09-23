@@ -1,15 +1,13 @@
 import UpgradePlanModal from './UpgradePlanModal';
-import { usePlan } from '@/src/hooks/usePlan';
+import { useUpgradePromptStore } from '@/src/hooks/usePlan';
 
-/** Mount once. `requestFeature` opens the admin Upgrade Plan modal. Residents use inline `PlanNotice`. */
+/** Mount once in the protected layout. Shown by `useFeatureGate().requestAccess()` for admins. */
 export default function PlanGuard() {
-  const { isAdmin, lockedFeature, clearLock } = usePlan();
+  const feature = useUpgradePromptStore((s) => s.feature);
+  const visible = useUpgradePromptStore((s) => s.visible);
+  const dismiss = useUpgradePromptStore((s) => s.dismiss);
 
-  return (
-    <UpgradePlanModal
-      visible={Boolean(lockedFeature) && isAdmin}
-      feature={lockedFeature}
-      onClose={clearLock}
-    />
-  );
+  if (!feature) return null;
+
+  return <UpgradePlanModal visible={visible} feature={feature} onClose={dismiss} />;
 }

@@ -1,9 +1,9 @@
 import { View } from 'react-native';
 import FreePlanNotice from './FreePlanNotice';
-import { usePlan } from '@/src/hooks/usePlan';
+import { useFeatureAccess } from '@/src/hooks/usePlan';
 import { PlanFeature } from '@/src/lib/plans';
 
-/** Inline resident banner. Use on screens that should always show the Figma free-plan notice. */
+/** Persistent "Contact Admin" banner, shown only to non-admins whose plan lacks `feature`. */
 export default function PlanNotice({
   feature,
   className,
@@ -11,11 +11,11 @@ export default function PlanNotice({
   feature: PlanFeature;
   className?: string;
 }) {
-  const { isAdmin, canUse } = usePlan();
-  if (isAdmin || canUse(feature)) return null;
+  const access = useFeatureAccess(feature);
+  if (access !== 'contact_admin') return null;
   return (
     <View className={className ? `${className} items-center` : 'items-center'}>
-      <FreePlanNotice />
+      <FreePlanNotice feature={feature} />
     </View>
   );
 }

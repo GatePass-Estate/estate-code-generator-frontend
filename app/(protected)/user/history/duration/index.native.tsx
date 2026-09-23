@@ -19,9 +19,8 @@ import { generateCode } from '@/src/lib/api/codes';
 import { createGuest } from '@/src/lib/api/guests';
 import { formatInvitePeriodDisplay } from '@/src/lib/helpers';
 import { useAndroidBottomInset } from '@/src/hooks/useAndroidBottomInset';
-import { usePlan } from '@/src/hooks/usePlan';
+import { useFeatureGate } from '@/src/hooks/usePlan';
 import { useUserStore } from '@/src/lib/stores/userStore';
-import { PLAN_FEATURES } from '@/src/lib/plans';
 import { GenderType, RelationshipType } from '@/src/types/general';
 import { sharedStyles } from '@/src/theme/styles';
 
@@ -82,7 +81,7 @@ export default function SetAccessCodeDurationScreen() {
   const insets = useSafeAreaInsets();
   const { tabBarStyle } = useAndroidBottomInset();
   const { user_id, estate_id, home_address, estate_name } = useUserStore();
-  const { requestFeature } = usePlan();
+  const { requestAccess: requestCodeAccess } = useFeatureGate('advanced_code_management');
   const params = useLocalSearchParams<{
     visitorName?: string;
     relationship?: string;
@@ -142,7 +141,7 @@ export default function SetAccessCodeDurationScreen() {
       setDurationEnabled(false);
       return;
     }
-    if (!requestFeature(PLAN_FEATURES.advanced_code_management)) return;
+    if (!requestCodeAccess()) return;
     setDurationEnabled(true);
     if (!startDate || !endDate) {
       const start = new Date();
@@ -157,14 +156,13 @@ export default function SetAccessCodeDurationScreen() {
       setWindowEnabled(false);
       return;
     }
-    if (!requestFeature(PLAN_FEATURES.advanced_code_management)) return;
+    if (!requestCodeAccess()) return;
     setWindowEnabled(true);
   };
 
   const handleGenerate = useCallback(async () => {
     if (!canGenerate || !user_id || !startDate || !endDate) return;
-    if (!requestFeature(PLAN_FEATURES.advanced_code_management)) return;
-    if (windowEnabled && !requestFeature(PLAN_FEATURES.advanced_code_management)) return;
+    if (!requestCodeAccess()) return;
 
     const now = new Date();
     const start = startDate;
@@ -242,7 +240,7 @@ export default function SetAccessCodeDurationScreen() {
     gender,
     home_address,
     relationship,
-    requestFeature,
+    requestCodeAccess,
     shouldSaveGuest,
     startDate,
     user_id,
@@ -396,7 +394,7 @@ export default function SetAccessCodeDurationScreen() {
         ) : null}
 
         <View className="mt-auto items-center pt-10">
-          <PlanNotice feature={PLAN_FEATURES.advanced_code_management} className="mb-8 w-full" />
+          <PlanNotice feature="advanced_code_management" className="mb-8 w-full" />
           <Button
             label="Generate Code"
             loading={generating}

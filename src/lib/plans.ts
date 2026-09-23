@@ -1,125 +1,107 @@
-import { User } from '@/src/types/user';
 import { UserRolesType } from '@/src/types/general';
+import { EstateEntitlementsResponse } from '@/src/types/entitlements';
+import { SERVICE_CATALOG_LIST, ServiceKey, getServiceByKey } from '@/src/lib/serviceCatalog';
+
+/** Any service catalog key. */
+export type PlanFeature = ServiceKey;
 
 /**
- * GatePass Service Catalog keys we currently enforce on Free.
- * GPF1 visitor_access_code stays free (1-hour guest codes).
- * GPPF5 / E15 advanced_code_management is paid.
- * GPPF2 guest_management is paid (save guest).
+ * - `granted`: the estate's plan includes the feature.
+ * - `upgrade`: an admin whose plan lacks it — prompt them to upgrade.
+ * - `contact_admin`: anyone else whose plan lacks it — tell them to ask their admin.
  */
-export const PLAN_FEATURES = {
-  /** Catalogue GPPF5 / E15 */
-  advanced_code_management: 'advanced_code_management',
-  /** Catalogue GPPF2 */
-  save_guest_contact: 'save_guest_contact',
-} as const;
+export type FeatureAccess = 'granted' | 'upgrade' | 'contact_admin';
 
-/** Flip this to test paid features. `false` = all features unlocked. */
-export const PLAN_LOCKS_ENABLED = false;
-
-export type PlanFeature = (typeof PLAN_FEATURES)[keyof typeof PLAN_FEATURES];
-
-export type PlanTier = 'free' | 'paid';
-
-export type PlanFields = Pick<User, 'plan' | 'subscription_plan' | 'tier' | 'plan_name'>;
-
-export const CATALOGUE_FEATURES = {
-  GPF1: { id: 'visitor_access_code', feature: null, free: true },
-  GPPF5: {
-    id: 'advanced_code_management',
-    feature: PLAN_FEATURES.advanced_code_management,
-    free: false,
-    row: 'E15',
-  },
-  GPPF2: {
-    id: 'guest_management',
-    feature: PLAN_FEATURES.save_guest_contact,
-    free: false,
-  },
-} as const;
-
-export const UPGRADE_COPY: Record<PlanFeature, string> = {
-  advanced_code_management:
-    'Unlock the flexibility to schedule your access code beyond the standard one-hour window.',
-  save_guest_contact: 'Unlock Save Guest Profile to quickly reuse guest details for future visits.',
+/** An estate's plan, normalised from the revenue service. */
+export type Entitlements = {
+  tierSlug: string | null;
+  subscriptionStatus: string | null;
+  /** The whole subscription is locked (e.g. lapsed); only free features remain. */
+  locked: boolean;
+  reason: string | null;
+  services: ReadonlyMap<PlanFeature, boolean>;
 };
 
-const FREE_FEATURES: Record<PlanFeature, boolean> = {
-  advanced_code_management: false,
-  save_guest_contact: false,
-};
+/** Set `EXPO_PUBLIC_PLAN_LOCKS=off` to unlock every feature in a build. */
+export const PLAN_LOCKS_ENABLED = process.env.EXPO_PUBLIC_PLAN_LOCKS !== 'off';
 
-const PLAN_KEYS = [
-  'plan',
-  'subscription_plan',
-  'tier',
-  'plan_name',
-  'estate_plan',
-  'billing_plan',
-  'current_plan',
-];
+const CATALOG_KEYS: ReadonlySet<string> = new Set(
+  SERVICE_CATALOG_LIST.map((service) => service.serviceKey)
+);
 
-/** Pull plan/tier fields out of login or `/users/profile/me`, including nested estate/subscription objects. */
-export function extractPlanFields(payload: unknown): PlanFields {
-  const found: Record<string, string> = {};
+function isPlanFeature(key: string): key is PlanFeature {
+  return CATALOG_KEYS.has(key);
+}
 
-  const walk = (value: unknown, depth: number) => {
-    if (!value || typeof value !== 'object' || depth > 4) return;
-    if (Array.isArray(value)) {
-      value.slice(0, 8).forEach((item) => walk(item, depth + 1));
-      return;
-    }
-    for (const [key, nested] of Object.entries(value as Record<string, unknown>)) {
-      const normalized = key.toLowerCase();
-      if (
-        PLAN_KEYS.includes(normalized) &&
-        (typeof nested === 'string' || typeof nested === 'number') &&
-        !found[normalized]
-      ) {
-        found[normalized] = String(nested);
-      } else if (nested && typeof nested === 'object') {
-        walk(nested, depth + 1);
-      }
-    }
-  };
+function isFreeFeature(feature: PlanFeature): boolean {
+  return getServiceByKey(feature).category === 'free';
+}
 
-  walk(payload, 0);
+/** Entries may be a bare boolean or an object with `allowed`; anything else is treated as denied. */
+function isGranted(value: unknown): boolean {
+  if (typeof value === 'boolean') return value;
+  if (value !== null && typeof value === 'object' && 'allowed' in value) {
+    return (value as { allowed: unknown }).allowed === true;
+  }
+  return false;
+}
+
+export function parseEntitlements(response: EstateEntitlementsResponse): Entitlements {
+  const services = new Map<PlanFeature, boolean>();
+  for (const [key, value] of Object.entries(response.entitlements ?? {})) {
+    if (isPlanFeature(key)) services.set(key, isGranted(value));
+  }
 
   return {
-    plan: found.plan ?? found.current_plan ?? found.estate_plan ?? found.billing_plan ?? null,
-    subscription_plan: found.subscription_plan ?? null,
-    tier: found.tier ?? null,
-    plan_name: found.plan_name ?? null,
+    tierSlug: response.tier_slug ?? null,
+    subscriptionStatus: response.subscription_status ?? null,
+    locked: response.locked ?? false,
+    reason: response.reason ?? null,
+    services,
   };
-}
-
-export function resolvePlanTier(user: PlanFields): PlanTier {
-  const raw = user.plan ?? user.subscription_plan ?? user.tier ?? user.plan_name;
-  if (!raw) return 'free';
-  const value = String(raw).toLowerCase();
-  if (value.includes('free') || value === 'starter' || value === 'basic') return 'free';
-  return 'paid';
-}
-
-export function canUsePlanFeature(tier: PlanTier, feature: PlanFeature): boolean {
-  if (!PLAN_LOCKS_ENABLED) return true;
-  if (tier === 'paid') return true;
-  return FREE_FEATURES[feature];
 }
 
 export function canManagePlan(role: UserRolesType): boolean {
   return role === 'primary_admin' || role === 'admin';
 }
 
-export function planDisplayName(user: PlanFields, tier: PlanTier): string {
-  const raw = user.plan ?? user.subscription_plan ?? user.tier ?? user.plan_name;
-  if (raw && String(raw).trim()) {
-    const value = String(raw).trim();
-    return value.charAt(0).toUpperCase() + value.slice(1);
-  }
-  return tier === 'paid' ? 'Paid' : 'Free';
+/**
+ * Whether the estate may use `feature`. Until entitlements load (or if the request fails), and for
+ * services the revenue service doesn't list, only free catalog features are allowed.
+ */
+export function hasEntitlement(
+  entitlements: Entitlements | undefined,
+  feature: PlanFeature
+): boolean {
+  if (!PLAN_LOCKS_ENABLED || isFreeFeature(feature)) return true;
+  if (!entitlements || entitlements.locked) return false;
+  return entitlements.services.get(feature) ?? false;
 }
 
-export function planLabel(tier: PlanTier): string {
-  return planDisplayName({}, tier);
+export function resolveFeatureAccess(
+  entitlements: Entitlements | undefined,
+  role: UserRolesType,
+  feature: PlanFeature
+): FeatureAccess {
+  if (hasEntitlement(entitlements, feature)) return 'granted';
+  return canManagePlan(role) ? 'upgrade' : 'contact_admin';
+}
+
+export function getFeatureLabel(feature: PlanFeature): string {
+  return getServiceByKey(feature).label;
+}
+
+/** Admin Upgrade Plan modal body for this feature. */
+export function getUpgradeCopy(feature: PlanFeature): string {
+  const service = getServiceByKey(feature);
+  return service.upgradeCopy ?? `Upgrade your plan to unlock ${service.label}.`;
+}
+
+/** Resident free-plan notice body for this feature. */
+export function getFreePlanNoticeCopy(feature: PlanFeature): string {
+  const service = getServiceByKey(feature);
+  return (
+    service.noticeCopy ??
+    `${service.label} is not available on the Free Plan. Contact Admin to upgrade.`
+  );
 }

@@ -1,18 +1,25 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  // NativeWind 4.2+ on web needs class mode so colorScheme.set doesn't crash.
+  darkMode: 'class',
   // NOTE: Update this to include the paths to all files that contain Nativewind classes.
   content: ['./app/**/*.{js,jsx,ts,tsx}', './src/**/*.{js,jsx,ts,tsx}'],
   presets: [require('nativewind/preset')],
   theme: {
     extend: {
       fontSize: {
+        // Figma micro sizes used across native screens
+        '2xs': '8.96px',
+        caption: '11.2px',
         xs: '12px',
         sm: '14px',
         base: '16px',
         md: '17px',
         lg: '18px',
         xl: '20px',
+        'heading-sm': '21.88px',
         '2xl': '24px',
+        heading: '27.34px',
         '3xl': '30px',
         '4xl': '36px',
         '5xl': '48px',
@@ -33,16 +40,16 @@ module.exports = {
         'ubuntu-italic': ['UbuntuSansItalic', 'system-ui'],
         'roboto-italic': ['RobotoItalic', 'system-ui'],
         'roboto-regular': ['Roboto', 'system-ui'],
-        'inter-extralight': ['Inter_200ExtraLight', 'system-ui'],
-        'inter-light': ['Inter_300Light', 'system-ui'],
-        'inter-regular': ['Inter_400Regular', 'system-ui'],
-        'inter-medium': ['Inter_500Medium', 'system-ui'],
-        'inter-medium-italic': ['Inter_500Medium_Italic', 'system-ui'],
-        'inter-semibold': ['Inter_600SemiBold', 'system-ui'],
+        'inter-extralight': ['Inter_18pt-ExtraLight', 'system-ui'],
+        'inter-light': ['Inter_18pt-Light', 'system-ui'],
+        'inter-regular': ['Inter_18pt-Regular', 'system-ui'],
+        'inter-medium': ['Inter_18pt-Medium', 'system-ui'],
+        'inter-medium-italic': ['Inter_18pt-mediumItalic', 'system-ui'],
+        'inter-semibold': ['Inter_18pt-SemiBold', 'system-ui'],
         roboto: ['Roboto', 'system-ui'],
         UbuntuSans: ['"UbuntuSans"', 'system-ui'],
         UbuntuSansItalic: ['"UbuntuSansItalic"', 'system-ui'],
-        Inter: ['Inter_400Regular', 'system-ui'],
+        Inter: ['"Inter"', 'system-ui'],
       },
 
       colors: {

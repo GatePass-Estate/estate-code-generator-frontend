@@ -16,9 +16,8 @@ import AccessCodeRing from './AccessCodeRing';
 import CodeActionsSheet from './CodeActionsSheet';
 import { CarbonAddFilledIcon } from '@/src/assets/svgs';
 import images from '@/src/constants/images';
-import { usePlan } from '@/src/hooks/usePlan';
+import { useFeatureGate } from '@/src/hooks/usePlan';
 import { deleteCode } from '@/src/lib/api/codes';
-import { PLAN_FEATURES } from '@/src/lib/plans';
 import { Codes } from '@/src/types/codes';
 
 const ACTION_WIDTH = 68;
@@ -76,19 +75,15 @@ export default function ActiveCodeCard({
   const [deleting, setDeleting] = useState(false);
   const [cardWidth, setCardWidth] = useState(339);
   const [openAction, setOpenAction] = useState<'none' | 'freeze' | 'delete'>('none');
-  const [showPlanLock, setShowPlanLock] = useState(false);
-  const { isAdmin, requestFeature } = usePlan();
+  const { requestAccess: requestCodeAccess } = useFeatureGate('advanced_code_management');
 
   const tryAdvanced = useCallback(
     (action: () => void) => {
-      if (requestFeature(PLAN_FEATURES.advanced_code_management)) {
-        action();
-        return true;
-      }
-      if (!isAdmin) setShowPlanLock(true);
-      return false;
+      if (!requestCodeAccess()) return false;
+      action();
+      return true;
     },
-    [isAdmin, requestFeature]
+    [requestCodeAccess]
   );
 
   const closeSwipe = useCallback(() => {
@@ -288,13 +283,10 @@ export default function ActiveCodeCard({
       deleting={deleting}
       onClose={() => {
         setSheetVisible(false);
-        setShowPlanLock(false);
       }}
-      showPlanNotice={showPlanLock}
       onFreezeToggle={() => {
         tryAdvanced(() => {
           setSheetVisible(false);
-          setShowPlanLock(false);
           closeSwipe();
           onToggleFreeze();
         });
@@ -302,7 +294,6 @@ export default function ActiveCodeCard({
       onExtend={() => {
         tryAdvanced(() => {
           setSheetVisible(false);
-          setShowPlanLock(false);
           onExtend();
         });
       }}
