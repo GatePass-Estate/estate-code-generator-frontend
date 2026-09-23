@@ -25,6 +25,7 @@ interface PickerProps {
   placeholder?: string;
   enabled?: boolean;
   variant?: 'default' | 'registration';
+  invalid?: boolean;
 }
 
 /**
@@ -39,6 +40,7 @@ export function Picker({
   placeholder = 'Select an option',
   enabled = true,
   variant = 'default',
+  invalid = false,
 }: PickerProps) {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const { bottom: safeBottom } = useSafeAreaInsets();
@@ -61,7 +63,9 @@ export function Picker({
       <Pressable
         className={
           variant === 'registration'
-            ? 'mt-2 flex-row items-center justify-between rounded-2xl border-mini border-accent bg-[#F6F7F7] px-4'
+            ? `mt-2 flex-row items-center justify-between rounded-2xl border-mini px-4 ${
+                invalid ? 'border-danger bg-[#FFF1F1]' : 'border-accent bg-[#F6F7F7]'
+              }`
             : 'input-style flex-row items-center justify-between'
         }
         onPress={() => enabled && setIsModalVisible(true)}
@@ -76,7 +80,13 @@ export function Picker({
       >
         <Text
           style={{
-            color: hasValue ? '#113E55' : variant === 'registration' ? '#878686' : '#9CA3AF',
+            color: invalid
+              ? '#ED0808'
+              : hasValue
+                ? '#113E55'
+                : variant === 'registration'
+                  ? '#878686'
+                  : '#9CA3AF',
             flex: 1,
             flexShrink: 1,
             fontFamily: variant === 'registration' ? 'Inter_18pt-Regular' : undefined,
@@ -88,7 +98,7 @@ export function Picker({
         <Ionicons
           name="chevron-down"
           size={20}
-          color={variant === 'registration' ? '#878686' : '#9CA3AF'}
+          color={invalid ? '#ED0808' : variant === 'registration' ? '#878686' : '#9CA3AF'}
         />
       </Pressable>
 

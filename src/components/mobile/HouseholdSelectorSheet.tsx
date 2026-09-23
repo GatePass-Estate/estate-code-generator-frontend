@@ -101,7 +101,12 @@ export default function HouseholdSelectorSheet({
 
   const requestSelection = (household: Household) => {
     Keyboard.dismiss();
-    setPendingHousehold(household);
+    if (confirmationTitle || confirmationActionLabel) {
+      setPendingHousehold(household);
+      return;
+    }
+
+    handleSelect(household);
   };
 
   const handleCreate = async (name: string) => {

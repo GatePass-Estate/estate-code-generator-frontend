@@ -252,7 +252,7 @@ export default function AdminUsersMobilePage() {
           >
             <Image source={icons.addUserIcon} style={{ width: 18, height: 18 }} />
             <Text
-              className="mt-[4px] h-[11px] w-[58px] text-center text-[6.83px] leading-[8px] text-[#113E55] font-inter-regular"
+              className="mt-[4px] h-[12px] w-[64px] text-center text-[9px] leading-[11px] text-[#113E55] font-inter-regular"
               numberOfLines={1}
             >
               Register User
@@ -262,7 +262,7 @@ export default function AdminUsersMobilePage() {
           <TouchableOpacity className="h-[50px] w-[50px] items-center justify-center">
             <Image source={icons.broadcastIcon} style={{ width: 18, height: 18 }} />
             <Text
-              className="mt-[4px] h-[11px] w-[58px] text-center text-[6.83px] leading-[8px] text-[#113E55] font-inter-regular"
+              className="mt-[4px] h-[12px] w-[64px] text-center text-[9px] leading-[11px] text-[#113E55] font-inter-regular"
               numberOfLines={1}
             >
               Broadcast
@@ -275,7 +275,7 @@ export default function AdminUsersMobilePage() {
           >
             <Image source={icons.editRequestIcon} style={{ width: 18, height: 18 }} />
             <Text
-              className="mt-[4px] h-[11px] w-[58px] text-center text-[6.83px] leading-[8px] text-[#113E55] font-inter-regular"
+              className="mt-[4px] h-[12px] w-[64px] text-center text-[9px] leading-[11px] text-[#113E55] font-inter-regular"
               numberOfLines={1}
             >
               Edit Requests
@@ -286,12 +286,9 @@ export default function AdminUsersMobilePage() {
             className="h-[50px] w-[50px] items-center justify-center"
             onPress={() => router.push('/user/report')}
           >
-            <View className="relative h-[18px] w-[18px] items-center justify-center">
-              <Feather name="shield" size={18} color="#113E55" />
-              <View className="absolute -right-[1px] -top-[2px] h-[6px] w-[6px] rounded-full bg-[#F04438]" />
-            </View>
+            <Feather name="shield" size={18} color="#113E55" />
             <Text
-              className="mt-[4px] h-[11px] w-[58px] text-center text-[6.83px] leading-[8px] text-[#113E55] font-inter-regular"
+              className="mt-[4px] h-[12px] w-[64px] text-center text-[9px] leading-[11px] text-[#113E55] font-inter-regular"
               numberOfLines={1}
             >
               Incident Report

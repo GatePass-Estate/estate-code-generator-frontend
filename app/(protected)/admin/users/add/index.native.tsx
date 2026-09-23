@@ -36,46 +36,6 @@ import {
   validateRegistrationPersonalDetails,
 } from '@/src/lib/registrationValidation';
 
-const STATE_OPTIONS = [
-  'Abia',
-  'Adamawa',
-  'Akwa Ibom',
-  'Anambra',
-  'Bauchi',
-  'Bayelsa',
-  'Benue',
-  'Borno',
-  'Cross River',
-  'Delta',
-  'Ebonyi',
-  'Edo',
-  'Ekiti',
-  'Enugu',
-  'FCT',
-  'Gombe',
-  'Imo',
-  'Jigawa',
-  'Kaduna',
-  'Kano',
-  'Katsina',
-  'Kebbi',
-  'Kogi',
-  'Kwara',
-  'Lagos',
-  'Nasarawa',
-  'Niger',
-  'Ogun',
-  'Ondo',
-  'Osun',
-  'Oyo',
-  'Plateau',
-  'Rivers',
-  'Sokoto',
-  'Taraba',
-  'Yobe',
-  'Zamfara',
-].map((state) => ({ label: state, value: state }));
-
 const RegisterUser = () => {
   const router = useRouter();
   const navigation = useNavigation();
@@ -120,9 +80,9 @@ const RegisterUser = () => {
         if (!active) return;
         setFormData((current) => ({
           ...current,
-          city: current.city || estate.lga || estate.location || '',
-          state: current.state || estate.state || '',
-          postalCode: current.postalCode || estate.postal_code || '',
+          city: estate.lga || estate.location || '',
+          state: estate.state || '',
+          postalCode: estate.postal_code || '',
         }));
       })
       .catch(() => undefined);
@@ -316,10 +276,17 @@ const RegisterUser = () => {
           {currentStep === 1 ? (
             <>
               <View className="mt-[43px] mb-4 min-h-[72px]">
-                <Text style={sharedStyles.registrationLabel}>First Name</Text>
+                <Text
+                  style={[
+                    sharedStyles.registrationLabel,
+                    errors.firstName ? { color: '#ED0808' } : null,
+                  ]}
+                >
+                  First Name
+                </Text>
                 <TextInput
                   placeholder="Enter first name"
-                  placeholderTextColor="#878686"
+                  placeholderTextColor={errors.firstName ? '#ED0808' : '#878686'}
                   value={formData.firstName}
                   onChangeText={(value) => updateFormData('firstName', value)}
                   style={[
@@ -361,10 +328,17 @@ const RegisterUser = () => {
               </View>
 
               <View className="mb-4">
-                <Text style={sharedStyles.registrationLabel}>Phone Number</Text>
+                <Text
+                  style={[
+                    sharedStyles.registrationLabel,
+                    errors.phoneNumber ? { color: '#ED0808' } : null,
+                  ]}
+                >
+                  Phone Number
+                </Text>
                 <TextInput
                   placeholder="Enter your phone number"
-                  placeholderTextColor="#878686"
+                  placeholderTextColor={errors.phoneNumber ? '#ED0808' : '#878686'}
                   value={formData.phoneNumber}
                   onChangeText={(value) => updateFormData('phoneNumber', value)}
                   keyboardType="phone-pad"
@@ -383,10 +357,17 @@ const RegisterUser = () => {
               </View>
 
               <View className="mb-4">
-                <Text style={sharedStyles.registrationLabel}>Email Address</Text>
+                <Text
+                  style={[
+                    sharedStyles.registrationLabel,
+                    errors.email ? { color: '#ED0808' } : null,
+                  ]}
+                >
+                  Email Address
+                </Text>
                 <TextInput
                   placeholder="Enter your email address"
-                  placeholderTextColor="#878686"
+                  placeholderTextColor={errors.email ? '#ED0808' : '#878686'}
                   value={formData.email}
                   onChangeText={(value) => updateFormData('email', value)}
                   keyboardType="email-address"
@@ -406,10 +387,18 @@ const RegisterUser = () => {
               </View>
 
               <View className="mb-4 min-h-[68px]">
-                <Text style={sharedStyles.registrationLabel}>Gender</Text>
+                <Text
+                  style={[
+                    sharedStyles.registrationLabel,
+                    errors.gender ? { color: '#ED0808' } : null,
+                  ]}
+                >
+                  Gender
+                </Text>
                 <Picker
                   label=""
                   variant="registration"
+                  invalid={Boolean(errors.gender)}
                   selectedValue={formData.gender}
                   onValueChange={(value) => {
                     setFormData((prev) => ({
@@ -431,10 +420,18 @@ const RegisterUser = () => {
               </View>
 
               <View className="mb-[68px] min-h-[68px]">
-                <Text style={sharedStyles.registrationLabel}>Save User As</Text>
+                <Text
+                  style={[
+                    sharedStyles.registrationLabel,
+                    errors.userType ? { color: '#ED0808' } : null,
+                  ]}
+                >
+                  Save User As
+                </Text>
                 <Picker
                   label=""
                   variant="registration"
+                  invalid={Boolean(errors.userType)}
                   selectedValue={formData.userType}
                   onValueChange={(value) =>
                     updateFormData('userType', value as 'resident' | 'security')
@@ -463,7 +460,14 @@ const RegisterUser = () => {
           ) : currentStep === 2 ? (
             <>
               <View className="mt-11 mb-4 min-h-[68px]">
-                <Text style={sharedStyles.registrationLabel}>Household</Text>
+                <Text
+                  style={[
+                    sharedStyles.registrationLabel,
+                    errors.householdId ? { color: '#ED0808' } : null,
+                  ]}
+                >
+                  Household
+                </Text>
                 <TouchableOpacity
                   onPress={() => setHouseholdSelectorVisible(true)}
                   className={`mt-2 flex-row items-center justify-between rounded-2xl border px-4 ${
@@ -475,12 +479,20 @@ const RegisterUser = () => {
                 >
                   <Text
                     className={`text-[14px] font-inter-regular ${
-                      formData.householdName ? 'text-primary' : 'text-[#878686]'
+                      errors.householdId
+                        ? 'text-danger'
+                        : formData.householdName
+                          ? 'text-primary'
+                          : 'text-[#878686]'
                     }`}
                   >
                     {formData.householdName || 'Select Household'}
                   </Text>
-                  <Feather name="chevron-down" size={20} color="#878686" />
+                  <Feather
+                    name="chevron-down"
+                    size={20}
+                    color={errors.householdId ? '#ED0808' : '#878686'}
+                  />
                 </TouchableOpacity>
                 {errors.householdId && (
                   <Text className="mt-1 text-xs text-danger font-inter-regular">
@@ -490,10 +502,17 @@ const RegisterUser = () => {
               </View>
 
               <View className="mb-4 min-h-[68px]">
-                <Text style={sharedStyles.registrationLabel}>Apartment Number</Text>
+                <Text
+                  style={[
+                    sharedStyles.registrationLabel,
+                    errors.apartmentNumber ? { color: '#ED0808' } : null,
+                  ]}
+                >
+                  Apartment Number
+                </Text>
                 <TextInput
                   placeholder="Enter apartment number or suite"
-                  placeholderTextColor="#878686"
+                  placeholderTextColor={errors.apartmentNumber ? '#ED0808' : '#878686'}
                   value={formData.apartmentNumber}
                   onChangeText={(value) => updateFormData('apartmentNumber', value)}
                   style={[
@@ -509,10 +528,17 @@ const RegisterUser = () => {
               </View>
 
               <View className="mb-4 min-h-[68px]">
-                <Text style={sharedStyles.registrationLabel}>Apartment Name</Text>
+                <Text
+                  style={[
+                    sharedStyles.registrationLabel,
+                    errors.apartmentName ? { color: '#ED0808' } : null,
+                  ]}
+                >
+                  Apartment Name
+                </Text>
                 <TextInput
                   placeholder="Enter apartment name"
-                  placeholderTextColor="#878686"
+                  placeholderTextColor={errors.apartmentName ? '#ED0808' : '#878686'}
                   value={formData.apartmentName}
                   onChangeText={(value) => updateFormData('apartmentName', value)}
                   style={[
@@ -528,12 +554,22 @@ const RegisterUser = () => {
               </View>
 
               <View className="mb-4 min-h-[68px]">
-                <Text style={sharedStyles.registrationLabel}>City</Text>
+                <Text
+                  style={[
+                    sharedStyles.registrationLabel,
+                    errors.city ? { color: '#ED0808' } : null,
+                  ]}
+                >
+                  City
+                </Text>
                 <TextInput
-                  placeholder="Enter your city"
-                  placeholderTextColor="#878686"
+                  placeholder="City unavailable"
+                  placeholderTextColor={errors.city ? '#ED0808' : '#878686'}
                   value={formData.city}
-                  onChangeText={(value) => updateFormData('city', value)}
+                  editable={false}
+                  selectTextOnFocus={false}
+                  accessibilityLabel="Estate city"
+                  accessibilityHint="This value comes from the estate address and cannot be changed"
                   style={[
                     sharedStyles.registrationInput,
                     errors.city && sharedStyles.registrationInputError,
@@ -545,15 +581,35 @@ const RegisterUser = () => {
               </View>
 
               <View className="mb-4 min-h-[68px]">
-                <Text style={sharedStyles.registrationLabel}>State</Text>
-                <Picker
-                  label=""
-                  variant="registration"
-                  selectedValue={formData.state}
-                  onValueChange={(value) => updateFormData('state', value)}
-                  placeholder="Select State"
-                  items={STATE_OPTIONS}
-                />
+                <Text
+                  style={[
+                    sharedStyles.registrationLabel,
+                    errors.state ? { color: '#ED0808' } : null,
+                  ]}
+                >
+                  State
+                </Text>
+                <View
+                  accessible
+                  accessibilityLabel={`Estate state: ${formData.state || 'unavailable'}`}
+                  accessibilityHint="This value comes from the estate address and cannot be changed"
+                  className={`mt-2 h-12 justify-center rounded-2xl border px-4 ${
+                    errors.state ? 'border-danger bg-[#FFF1F1]' : 'border-[#CEE5ED] bg-[#F6F7F7]'
+                  }`}
+                  style={{ borderWidth: StyleSheet.hairlineWidth }}
+                >
+                  <Text
+                    className={`text-[14px] font-inter-regular ${
+                      errors.state
+                        ? 'text-danger'
+                        : formData.state
+                          ? 'text-primary'
+                          : 'text-[#878686]'
+                    }`}
+                  >
+                    {formData.state || 'State unavailable'}
+                  </Text>
+                </View>
                 {errors.state && (
                   <Text className="mt-1 text-xs text-danger font-inter-regular">
                     {errors.state}
@@ -562,13 +618,22 @@ const RegisterUser = () => {
               </View>
 
               <View className="mb-[68px] min-h-[68px]">
-                <Text style={sharedStyles.registrationLabel}>Postal Code</Text>
+                <Text
+                  style={[
+                    sharedStyles.registrationLabel,
+                    errors.postalCode ? { color: '#ED0808' } : null,
+                  ]}
+                >
+                  Postal Code
+                </Text>
                 <TextInput
-                  placeholder="Enter your postal code"
-                  placeholderTextColor="#878686"
+                  placeholder="Postal code unavailable"
+                  placeholderTextColor={errors.postalCode ? '#ED0808' : '#878686'}
                   value={formData.postalCode}
-                  onChangeText={(value) => updateFormData('postalCode', value)}
-                  keyboardType="number-pad"
+                  editable={false}
+                  selectTextOnFocus={false}
+                  accessibilityLabel="Estate postal code"
+                  accessibilityHint="This value comes from the estate address and cannot be changed"
                   style={[
                     sharedStyles.registrationInput,
                     errors.postalCode && sharedStyles.registrationInputError,

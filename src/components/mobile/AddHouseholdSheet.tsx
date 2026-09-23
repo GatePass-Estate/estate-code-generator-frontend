@@ -9,7 +9,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type AddHouseholdSheetProps = {
   visible: boolean;
@@ -27,7 +26,6 @@ export default function AddHouseholdSheet({
   onSave,
 }: AddHouseholdSheetProps) {
   const [name, setName] = useState('');
-  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (!visible) setName('');
@@ -41,13 +39,12 @@ export default function AddHouseholdSheet({
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         className="absolute inset-0 z-20"
       >
-        <Pressable className="flex-1 justify-center bg-black/50 px-5" onPress={onCancel}>
+        <Pressable className="flex-1 justify-center bg-black/50" onPress={onCancel}>
           <Pressable
-            className="rounded-3xl bg-body px-4 pt-8"
-            style={{ paddingBottom: Math.max(insets.bottom, 20) }}
+            className="h-[322px] w-full justify-center rounded-[24px] bg-body px-5"
             onPress={(event) => event.stopPropagation()}
           >
-            <Text className="text-center text-xl text-primary font-ubuntu-semibold">
+            <Text className="text-center text-[17.5px] leading-[21px] text-primary font-ubuntu-medium">
               Add New Household
             </Text>
 
@@ -59,28 +56,28 @@ export default function AddHouseholdSheet({
               placeholderTextColor="#9B9797"
               returnKeyType="done"
               onSubmitEditing={() => trimmedName && !loading && onSave(trimmedName)}
-              className="mt-5 h-14 rounded-xl bg-light-grey px-4 text-primary font-inter-regular"
+              className="mt-5 h-12 rounded-2xl bg-light-grey px-4 text-[11.2px] text-primary font-inter-regular"
             />
 
             {!!error && (
               <Text className="mt-2 text-xs text-danger font-inter-regular">{error}</Text>
             )}
 
-            <View className="mt-8 flex-row gap-3">
+            <View className="mt-10 flex-row gap-3">
               <TouchableOpacity
                 onPress={onCancel}
                 disabled={loading}
-                className="h-12 flex-1 items-center justify-center rounded-xl bg-accent"
+                className="h-12 flex-1 items-center justify-center rounded-[24px] bg-accent"
               >
-                <Text className="text-sm text-primary font-ubuntu-medium">Cancel</Text>
+                <Text className="text-[11.2px] text-primary font-ubuntu-medium">Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => onSave(trimmedName)}
                 disabled={!trimmedName || loading}
-                className={`h-12 flex-1 flex-row items-center justify-center gap-2 rounded-xl bg-primary ${!trimmedName || loading ? 'opacity-50' : ''}`}
+                className={`h-12 flex-1 flex-row items-center justify-center gap-2 rounded-[24px] bg-primary ${!trimmedName || loading ? 'opacity-50' : ''}`}
               >
                 {loading && <ActivityIndicator size="small" color="#FFFFFF" />}
-                <Text className="text-sm text-white font-ubuntu-medium">
+                <Text className="text-[11.2px] text-white font-ubuntu-medium">
                   {loading ? 'Saving...' : 'Save'}
                 </Text>
               </TouchableOpacity>
