@@ -1,8 +1,7 @@
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { useRouter } from 'expo-router';
 import { View, Text, Pressable, Modal, Image, Platform } from 'react-native';
-import { useState, useRef, useContext } from 'react';
-import { HeaderHeightContext } from '@react-navigation/elements';
+import { useState, useRef } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/src/hooks/useAuthContext';
 import icons from '@/src/constants/icons';
@@ -20,15 +19,11 @@ export default function UserIcon({ variant = 'initials' }: { variant?: 'initials
   const buttonRef = useRef<View>(null);
   const { signOut } = useAuth();
   const insets = useSafeAreaInsets();
-  const headerHeight = useContext(HeaderHeightContext);
 
   const isMobile = Platform.OS !== 'web';
 
   /** Fallback when avatar measurement isn't ready: align with header bottom. */
-  const fallbackTop =
-    typeof headerHeight === 'number' && headerHeight > 0
-      ? headerHeight
-      : insets.top + (Platform.OS === 'web' ? 12 : APP_NATIVE_HEADER_HEIGHT);
+  const fallbackTop = insets.top + (Platform.OS === 'web' ? 12 : APP_NATIVE_HEADER_HEIGHT);
 
   const dropdownTopPadding = dropdownTop !== null ? dropdownTop : fallbackTop;
 

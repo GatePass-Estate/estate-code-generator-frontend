@@ -148,7 +148,7 @@ export default function AccessLogDetailScreen() {
             {photoUri ? (
               <Image
                 source={{ uri: photoUri }}
-                style={StyleSheet.absoluteFillObject}
+                style={StyleSheet.absoluteFill}
                 resizeMode="cover"
               />
             ) : (

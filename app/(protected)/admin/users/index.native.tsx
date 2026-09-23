@@ -1,7 +1,6 @@
 import {
   View,
   Text,
-  ScrollView,
   TouchableOpacity,
   Image,
   TextInput,
@@ -11,11 +10,10 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { Stack, router } from 'expo-router';
-import { useNavigation } from '@react-navigation/native';
+import { Stack, router, useNavigation } from 'expo-router';
 import { getAllEstateUsers } from '@/src/lib/api/user';
 import { useEffect, useState, useMemo } from 'react';
-import { AllUsers, User } from '@/src/types/user';
+import { User } from '@/src/types/user';
 import { UserRolesType } from '@/src/types/general';
 import { sharedStyles } from '@/src/theme/styles';
 import icons from '@/src/constants/icons';
@@ -146,12 +144,15 @@ const AllUsersMobile = () => {
 
       <View className="flex-1">
         <Text
-          className="text-2xl text-primary mb-5 font-ubuntu-bold mt-8"
+          className="text-2xl text-primary font-ubuntu-bold mt-8"
           style={{
             fontSize: 23,
           }}
         >
           See All Users
+        </Text>
+        <Text className="mb-5 mt-1 text-xs text-grey font-inter-regular">
+          {isLoading ? 'Loading registered users...' : `${allFetchedUsers.length} registered users`}
         </Text>
 
         {/* Search Input */}
@@ -168,6 +169,15 @@ const AllUsersMobile = () => {
 
         {/* Filter Buttons */}
         <View className="flex-row gap-2 mb-6 w-full">
+          <Pressable
+            accessibilityLabel="All users"
+            className={`flex-1 justify-center items-center py-3 rounded-2xl border ${
+              selectedRole === null ? 'bg-accent border-primary' : 'bg-white border-gray-300'
+            }`}
+            onPress={() => setSelectedRole(null)}
+          >
+            <Feather name="users" size={20} color={selectedRole === null ? '#113E55' : '#999'} />
+          </Pressable>
           <Pressable
             className={`flex-1 justify-center items-center py-3 rounded-2xl border ${selectedRole === 'resident' ? 'bg-orange/10 border-orange' : 'bg-white border-gray-300'}`}
             onPress={() => setSelectedRole(selectedRole === 'resident' ? null : 'resident')}
@@ -268,6 +278,11 @@ const AllUsersMobile = () => {
                   <Text className="text-gray-500 text-sm font-inter-regular mt-1">
                     {item.home_address}
                   </Text>
+                  {!!item.household_name && (
+                    <Text className="mt-1 text-xs text-tertiary font-inter-regular">
+                      {item.household_name}
+                    </Text>
+                  )}
                 </View>
                 <Feather name="chevron-right" size={20} color="#1B998B" />
               </TouchableOpacity>

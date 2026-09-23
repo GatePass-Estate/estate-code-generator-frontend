@@ -24,6 +24,8 @@ interface PickerProps {
   items: PickerItem[];
   placeholder?: string;
   enabled?: boolean;
+  variant?: 'default' | 'registration';
+  invalid?: boolean;
 }
 
 /**
@@ -37,6 +39,8 @@ export function Picker({
   items,
   placeholder = 'Select an option',
   enabled = true,
+  variant = 'default',
+  invalid = false,
 }: PickerProps) {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const { bottom: safeBottom } = useSafeAreaInsets();
@@ -57,21 +61,45 @@ export function Picker({
     <View>
       {label ? <Text className="input-label">{label}</Text> : null}
       <Pressable
-        className="input-style flex-row items-center justify-between"
+        className={
+          variant === 'registration'
+            ? `mt-2 flex-row items-center justify-between rounded-2xl border-mini px-4 ${
+                invalid ? 'border-danger bg-[#FFF1F1]' : 'border-accent bg-[#F6F7F7]'
+              }`
+            : 'input-style flex-row items-center justify-between'
+        }
         onPress={() => enabled && setIsModalVisible(true)}
         disabled={!enabled}
-        style={{ opacity: enabled ? 1 : 0.5 }}
+        style={{
+          opacity: enabled ? 1 : 0.5,
+          ...(variant === 'registration' && {
+            borderWidth: StyleSheet.hairlineWidth,
+            height: 48,
+          }),
+        }}
       >
         <Text
           style={{
-            color: hasValue ? '#113E55' : '#9CA3AF',
+            color: invalid
+              ? '#ED0808'
+              : hasValue
+                ? '#113E55'
+                : variant === 'registration'
+                  ? '#878686'
+                  : '#9CA3AF',
             flex: 1,
             flexShrink: 1,
+            fontFamily: variant === 'registration' ? 'Inter_18pt-Regular' : undefined,
+            fontSize: variant === 'registration' ? 14 : undefined,
           }}
         >
           {displayLabel}
         </Text>
-        <Ionicons name="chevron-down" size={20} color="#9CA3AF" />
+        <Ionicons
+          name="chevron-down"
+          size={20}
+          color={invalid ? '#ED0808' : variant === 'registration' ? '#878686' : '#9CA3AF'}
+        />
       </Pressable>
 
       <Modal
@@ -141,13 +169,13 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     color: '#113E55',
+    fontFamily: 'Inter_18pt-Medium',
     fontSize: 14,
-    fontWeight: '500',
   },
   doneButton: {
     color: '#113E55',
+    fontFamily: 'Inter_18pt-Medium',
     fontSize: 16,
-    fontWeight: '600',
   },
   scrollView: {
     maxHeight: 350,
@@ -168,6 +196,7 @@ const styles = StyleSheet.create({
   },
   itemText: {
     color: '#113E55',
+    fontFamily: 'Inter_18pt-Regular',
     fontSize: 16,
     flex: 1,
     flexShrink: 1,
@@ -175,6 +204,6 @@ const styles = StyleSheet.create({
   },
   itemTextSelected: {
     color: '#113E55',
-    fontWeight: '600',
+    fontFamily: 'Inter_18pt-Medium',
   },
 });

@@ -9,10 +9,3 @@ export type MainStackParamList = {
   Home: undefined;
   Admin: undefined;
 };
-
-// For useNavigation hook
-declare global {
-  namespace ReactNavigation {
-    interface RootParamList extends RootStackParamList {}
-  }
-}

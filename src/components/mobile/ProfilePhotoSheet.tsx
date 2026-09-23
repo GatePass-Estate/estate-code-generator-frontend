@@ -168,7 +168,7 @@ export default function ProfilePhotoSheet({
       <GestureHandlerRootView style={styles.overlay}>
         <Animated.View style={[styles.backdrop, backdropAnimatedStyle]}>
           <Pressable
-            style={StyleSheet.absoluteFillObject}
+            style={StyleSheet.absoluteFill}
             onPress={() => {
               if (!uploading) closeSheet();
             }}
@@ -205,7 +205,7 @@ export default function ProfilePhotoSheet({
                 <View
                   pointerEvents="none"
                   style={[
-                    StyleSheet.absoluteFillObject,
+                    StyleSheet.absoluteFill,
                     { alignItems: 'center', justifyContent: 'center' },
                   ]}
                 >
@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0, 0, 0, 0.35)',
   },
   sheet: {

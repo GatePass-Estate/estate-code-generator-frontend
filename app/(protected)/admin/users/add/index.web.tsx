@@ -9,33 +9,30 @@ import icons from '@/src/constants/icons';
 import Modal from '@/src/components/web/Modal';
 import { registerUser } from '@/src/lib/api/user';
 import { useUserStore } from '@/src/lib/stores/userStore';
-import { GenderType } from '@/src/types/general';
+import { FormErrors, GenderType } from '@/src/types/general';
 import { RegisterUserPayload } from '@/src/types/user';
 import { getWidthBreakpoint } from '@/src/lib/helpers';
 import RegisterUser from './index.native';
-
-const ROLES = [
-  { name: 'Resident', value: 'resident' },
-  { name: 'Security Personnel', value: 'security' },
-];
-
-const GENDERS = [
-  { name: 'Female', value: 'female' },
-  { name: 'Male', value: 'male' },
-  { name: "I'd prefer not to say", value: 'prefer_not_to_say' },
-];
-
-const ID_TYPES = [
-  { name: 'Passport', value: 'passport' },
-  { name: 'Driver License', value: 'driver_license' },
-  { name: 'National ID', value: 'national_id' },
-  { name: 'Voter Card', value: 'voter_card' },
-];
+import HouseholdSelectorSheet from '@/src/components/mobile/HouseholdSelectorSheet';
+import type { Household } from '@/src/types/household';
+import RegistrationIdPicker from '@/src/components/common/RegistrationIdPicker';
+import type { RegistrationIdDocument } from '@/src/types/registration';
+import { getEstateById } from '@/src/lib/api/estate';
+import {
+  formatRegistrationAddress,
+  REGISTRATION_GENDER_OPTIONS,
+  REGISTRATION_ROLE_OPTIONS,
+  validateRegistrationAddress,
+  validateRegistrationIdentification,
+  validateRegistrationPersonalDetails,
+} from '@/src/lib/registrationValidation';
 
 function RegisterUserWeb() {
+  const estateId = useUserStore((store) => store.estate_id) || '';
   const [step, setStep] = useState(1);
   const [error, setError] = useState('');
   const [messageType, setMessageType] = useState<'success' | 'error'>('error');
+  const [fieldErrors, setFieldErrors] = useState<FormErrors>({});
   const [running, setRunning] = useState(false);
   const [processingAction, setProcessingAction] = useState<'continue' | 'save' | null>(null);
 
@@ -44,16 +41,39 @@ function RegisterUserWeb() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [gender, setGender] = useState<GenderType>(null);
-  const [showPassword, setShowPassword] = useState(false);
   const [selectedRole, setSelectedRole] = useState<'resident' | 'security'>('resident');
 
-  const [homeAddress, setHomeAddress] = useState('');
-  const [idType, setIdType] = useState('');
-  const [idNumber, setIdNumber] = useState('');
+  const [selectedHousehold, setSelectedHousehold] = useState<Household | null>(null);
+  const [householdSelectorVisible, setHouseholdSelectorVisible] = useState(false);
+  const [apartmentNumber, setApartmentNumber] = useState('');
+  const [apartmentName, setApartmentName] = useState('');
+  const [city, setCity] = useState('');
+  const [state, setState] = useState('');
+  const [postalCode, setPostalCode] = useState('');
+  const [identificationDocument, setIdentificationDocument] =
+    useState<RegistrationIdDocument | null>(null);
 
   useEffect(() => {
     if (Platform.OS === 'web') document.title = 'Add User - Admin Access - GatePass';
   }, []);
+
+  useEffect(() => {
+    if (!estateId) return;
+
+    let active = true;
+    void getEstateById(estateId)
+      .then((estate) => {
+        if (!active) return;
+        setCity((current) => current || estate.lga || estate.location || '');
+        setState((current) => current || estate.state || '');
+        setPostalCode((current) => current || estate.postal_code || '');
+      })
+      .catch(() => undefined);
+
+    return () => {
+      active = false;
+    };
+  }, [estateId]);
 
   const pathname = usePathname();
 
@@ -62,55 +82,54 @@ function RegisterUserWeb() {
   }
 
   const validateStep1 = (): boolean => {
-    if (!firstName.trim()) {
-      setError('Please enter first name.');
-      return false;
-    }
-    if (!lastName.trim()) {
-      setError('Please enter last name.');
-      return false;
-    }
-    if (!email.trim()) {
-      setError('Please enter email address.');
-      return false;
-    }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      setError('Please enter a valid email address.');
-      return false;
-    }
-    if (!phone.trim()) {
-      setError('Please enter phone number.');
-      return false;
-    }
-    if (gender == null) {
-      setError('Please select gender.');
-      return false;
-    }
+    const errors = validateRegistrationPersonalDetails({
+      firstName,
+      lastName,
+      email,
+      phoneNumber: phone,
+      gender,
+      userType: selectedRole,
+    });
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
 
-    return true;
+  const clearFieldError = (field: keyof FormErrors) => {
+    if (fieldErrors[field]) {
+      setFieldErrors((current) => ({ ...current, [field]: undefined }));
+    }
   };
 
   const validateStep2 = (): boolean => {
-    if (!homeAddress.trim()) {
-      setError('Please enter home address.');
-      return false;
-    }
-    if (!idNumber.trim()) {
-      setError('Please enter ID number.');
-      return false;
-    }
-    return true;
+    const errors = validateRegistrationAddress({
+      householdId: selectedHousehold?.id ?? null,
+      apartmentNumber,
+      apartmentName,
+      city,
+      state,
+      postalCode,
+    });
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
   const handleNextStep = () => {
-    if (validateStep1()) {
+    if (step === 1 && validateStep1()) {
       setStep(2);
+      setFieldErrors({});
+    } else if (step === 2 && validateStep2()) {
+      setStep(3);
+      setFieldErrors({});
     }
   };
 
   const handleSaveUser = async () => {
-    if (validateStep2()) {
+    const identificationErrors = validateRegistrationIdentification(
+      identificationDocument?.uri ?? null
+    );
+    setFieldErrors(identificationErrors);
+
+    if (Object.keys(identificationErrors).length === 0) {
       setRunning(true);
       setProcessingAction('save');
       try {
@@ -124,8 +143,15 @@ function RegisterUserWeb() {
           role: selectedRole,
           gender,
           estate_id: estate_id || '',
-          home_address: homeAddress,
-          household_id: null,
+          home_address: formatRegistrationAddress({
+            householdId: selectedHousehold?.id ?? null,
+            apartmentNumber,
+            apartmentName,
+            city,
+            state,
+            postalCode,
+          }),
+          household_id: selectedHousehold?.id ?? null,
         };
 
         const registeredUser = await registerUser(payload);
@@ -139,9 +165,13 @@ function RegisterUserWeb() {
           setPhone('');
           setGender(null);
           setSelectedRole('resident');
-          setHomeAddress('');
-          setIdType('');
-          setIdNumber('');
+          setSelectedHousehold(null);
+          setApartmentNumber('');
+          setApartmentName('');
+          setCity('');
+          setState('');
+          setPostalCode('');
+          setIdentificationDocument(null);
           setStep(1);
 
           setTimeout(() => {
@@ -208,7 +238,11 @@ function RegisterUserWeb() {
               <div className="mt-6">
                 <h2 className="text-2xl font-ubuntu-medium text-primary">Register User</h2>
                 <p className="text-base text-tertiary mt-1">
-                  Add new users, either resident or security personnel
+                  {step === 1
+                    ? 'Add new users, either resident or security personnel'
+                    : step === 2
+                      ? 'Select a household and confirm the user’s address'
+                      : 'Upload a government-issued ID for this user'}
                 </p>
               </div>
 
@@ -224,11 +258,15 @@ function RegisterUserWeb() {
                           name="firstName"
                           placeholder="Enter user name"
                           value={firstName}
-                          onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                            setFirstName(e.target.value)
-                          }
-                          className="input-style-web"
+                          onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                            setFirstName(e.target.value);
+                            clearFieldError('firstName');
+                          }}
+                          className={`input-style-web border ${fieldErrors.firstName ? 'registration-input-error-web' : 'border-transparent'}`}
                         />
+                        {fieldErrors.firstName && (
+                          <p className="registration-error-web">{fieldErrors.firstName}</p>
+                        )}
                       </div>
 
                       <div className="input-group-web">
@@ -239,11 +277,15 @@ function RegisterUserWeb() {
                           name="lastName"
                           placeholder="Enter last name"
                           value={lastName}
-                          onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                            setLastName(e.target.value)
-                          }
-                          className="input-style-web"
+                          onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                            setLastName(e.target.value);
+                            clearFieldError('lastName');
+                          }}
+                          className={`input-style-web border ${fieldErrors.lastName ? 'registration-input-error-web' : 'border-transparent'}`}
                         />
+                        {fieldErrors.lastName && (
+                          <p className="registration-error-web">{fieldErrors.lastName}</p>
+                        )}
                       </div>
                     </div>
 
@@ -257,9 +299,15 @@ function RegisterUserWeb() {
                           type="email"
                           placeholder="Enter user email address"
                           value={email}
-                          onChange={(e: ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
-                          className="input-style-web"
+                          onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                            setEmail(e.target.value);
+                            clearFieldError('email');
+                          }}
+                          className={`input-style-web border ${fieldErrors.email ? 'registration-input-error-web' : 'border-transparent'}`}
                         />
+                        {fieldErrors.email && (
+                          <p className="registration-error-web">{fieldErrors.email}</p>
+                        )}
                       </div>
 
                       <div className="input-group-web">
@@ -270,9 +318,15 @@ function RegisterUserWeb() {
                           name="phone"
                           placeholder="Enter phone number"
                           value={phone}
-                          onChange={(e: ChangeEvent<HTMLInputElement>) => setPhone(e.target.value)}
-                          className="input-style-web"
+                          onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                            setPhone(e.target.value);
+                            clearFieldError('phoneNumber');
+                          }}
+                          className={`input-style-web border ${fieldErrors.phoneNumber ? 'registration-input-error-web' : 'border-transparent'}`}
                         />
+                        {fieldErrors.phoneNumber && (
+                          <p className="registration-error-web">{fieldErrors.phoneNumber}</p>
+                        )}
                       </div>
                     </div>
 
@@ -281,15 +335,18 @@ function RegisterUserWeb() {
                         Gender
                       </label>
                       <div className="flex flex-row flex-wrap gap-2 text-sm mt-1">
-                        {GENDERS.map((g, index) => {
+                        {REGISTRATION_GENDER_OPTIONS.map((g, index) => {
                           const active = gender === g.value;
                           return (
                             <div
                               key={g.value + index}
                               className={`flex flex-row items-center px-4 py-2 rounded-md bg-light-grey ${active && 'bg-[#e6f4ef] border border-[#cfe7db]'} gap-3 cursor-pointer`}
-                              onClick={() => setGender(g.value as GenderType)}
+                              onClick={() => {
+                                setGender(g.value as GenderType);
+                                clearFieldError('gender');
+                              }}
                             >
-                              <p className="text-primary">{g.name}</p>
+                              <p className="text-primary">{g.label}</p>
                               {active && (
                                 <Image
                                   source={icons.checkIcon}
@@ -301,6 +358,9 @@ function RegisterUserWeb() {
                           );
                         })}
                       </div>
+                      {fieldErrors.gender && (
+                        <p className="registration-error-web">{fieldErrors.gender}</p>
+                      )}
                     </div>
 
                     <div className="input-group-web !flex-row !items-center !gap-6">
@@ -308,15 +368,18 @@ function RegisterUserWeb() {
                         Save As
                       </label>
                       <div className="flex flex-row flex-wrap gap-2 text-sm mt-1">
-                        {ROLES.map((r, index) => {
+                        {REGISTRATION_ROLE_OPTIONS.map((r, index) => {
                           const active = selectedRole === r.value;
                           return (
                             <div
                               key={r.value + index}
                               className={`flex flex-row items-center px-4 py-2 rounded-md bg-light-grey ${active && 'bg-[#e6f4ef] border border-[#cfe7db]'} gap-3 cursor-pointer`}
-                              onClick={() => setSelectedRole(r.value as 'resident' | 'security')}
+                              onClick={() => {
+                                setSelectedRole(r.value);
+                                clearFieldError('userType');
+                              }}
                             >
-                              <p className="text-primary">{r.name}</p>
+                              <p className="text-primary">{r.label}</p>
                               {active && (
                                 <Image
                                   source={icons.checkIcon}
@@ -328,62 +391,147 @@ function RegisterUserWeb() {
                           );
                         })}
                       </div>
+                      {fieldErrors.userType && (
+                        <p className="registration-error-web">{fieldErrors.userType}</p>
+                      )}
                     </div>
                   </>
-                ) : (
+                ) : step === 2 ? (
                   <>
                     <div className="input-group-web">
-                      <label htmlFor="homeAddress" className="input-label-web">
-                        House Address
+                      <label htmlFor="household" className="input-label-web">
+                        Household
                       </label>
-                      <input
-                        name="homeAddress"
-                        placeholder="Enter House address"
-                        value={homeAddress}
-                        onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                          setHomeAddress(e.target.value)
-                        }
-                        className="input-style-web"
-                      />
+                      <button
+                        id="household"
+                        type="button"
+                        onClick={() => setHouseholdSelectorVisible(true)}
+                        className={`input-style-web border text-left ${
+                          fieldErrors.householdId
+                            ? 'registration-input-error-web'
+                            : 'border-transparent'
+                        } ${selectedHousehold ? 'text-primary' : 'text-grey'}`}
+                      >
+                        {selectedHousehold?.name || 'Select Household'}
+                      </button>
+                      {fieldErrors.householdId && (
+                        <p className="registration-error-web">{fieldErrors.householdId}</p>
+                      )}
                     </div>
 
-                    <div className="input-group-web">
-                      <label htmlFor="idType" className="input-label-web">
-                        Means of Identification
-                      </label>
-                      <div className="flex gap-4">
-                        <select
-                          value={idType}
-                          onChange={(e) => setIdType(e.target.value)}
-                          className="input-style-web"
-                        >
-                          <option value="" selected disabled>
-                            Type of ID
-                          </option>
-                          {ID_TYPES.map((type, index) => (
-                            <option key={type.value + index} value={type.value}>
-                              {type.name}
-                            </option>
-                          ))}
-                        </select>
+                    <div className="grid grid-cols-2 gap-6">
+                      <div className="input-group-web">
+                        <label htmlFor="apartmentNumber" className="input-label-web">
+                          Apartment Number
+                        </label>
                         <input
-                          name="idNumber"
-                          placeholder="Type ID Number"
-                          value={idNumber}
-                          onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                            setIdNumber(e.target.value)
-                          }
-                          className="input-style-web flex-1"
+                          id="apartmentNumber"
+                          placeholder="Enter apartment number or suite"
+                          value={apartmentNumber}
+                          onChange={(event) => {
+                            setApartmentNumber(event.target.value);
+                            clearFieldError('apartmentNumber');
+                          }}
+                          className={`input-style-web border ${fieldErrors.apartmentNumber ? 'registration-input-error-web' : 'border-transparent'}`}
                         />
+                        {fieldErrors.apartmentNumber && (
+                          <p className="registration-error-web">{fieldErrors.apartmentNumber}</p>
+                        )}
+                      </div>
+
+                      <div className="input-group-web">
+                        <label htmlFor="apartmentName" className="input-label-web">
+                          Apartment Name
+                        </label>
+                        <input
+                          id="apartmentName"
+                          placeholder="Enter your apartment name"
+                          value={apartmentName}
+                          onChange={(event) => {
+                            setApartmentName(event.target.value);
+                            clearFieldError('apartmentName');
+                          }}
+                          className={`input-style-web border ${fieldErrors.apartmentName ? 'registration-input-error-web' : 'border-transparent'}`}
+                        />
+                        {fieldErrors.apartmentName && (
+                          <p className="registration-error-web">{fieldErrors.apartmentName}</p>
+                        )}
                       </div>
                     </div>
 
-                    <div className="input-group-web"></div>
+                    <div className="grid grid-cols-3 gap-6">
+                      <div className="input-group-web">
+                        <label htmlFor="city" className="input-label-web">
+                          City
+                        </label>
+                        <input
+                          id="city"
+                          placeholder="Enter your city"
+                          value={city}
+                          onChange={(event) => {
+                            setCity(event.target.value);
+                            clearFieldError('city');
+                          }}
+                          className={`input-style-web border ${fieldErrors.city ? 'registration-input-error-web' : 'border-transparent'}`}
+                        />
+                        {fieldErrors.city && (
+                          <p className="registration-error-web">{fieldErrors.city}</p>
+                        )}
+                      </div>
+
+                      <div className="input-group-web">
+                        <label htmlFor="state" className="input-label-web">
+                          State
+                        </label>
+                        <input
+                          id="state"
+                          placeholder="Enter your state"
+                          value={state}
+                          onChange={(event) => {
+                            setState(event.target.value);
+                            clearFieldError('state');
+                          }}
+                          className={`input-style-web border ${fieldErrors.state ? 'registration-input-error-web' : 'border-transparent'}`}
+                        />
+                        {fieldErrors.state && (
+                          <p className="registration-error-web">{fieldErrors.state}</p>
+                        )}
+                      </div>
+
+                      <div className="input-group-web">
+                        <label htmlFor="postalCode" className="input-label-web">
+                          Postal Code
+                        </label>
+                        <input
+                          id="postalCode"
+                          inputMode="numeric"
+                          placeholder="Enter your postal code"
+                          value={postalCode}
+                          onChange={(event) => {
+                            setPostalCode(event.target.value);
+                            clearFieldError('postalCode');
+                          }}
+                          className={`input-style-web border ${fieldErrors.postalCode ? 'registration-input-error-web' : 'border-transparent'}`}
+                        />
+                        {fieldErrors.postalCode && (
+                          <p className="registration-error-web">{fieldErrors.postalCode}</p>
+                        )}
+                      </div>
+                    </div>
                   </>
+                ) : (
+                  <RegistrationIdPicker
+                    value={identificationDocument}
+                    error={fieldErrors.identificationUri}
+                    onChange={(document) => {
+                      setIdentificationDocument(document);
+                      clearFieldError('identificationUri');
+                    }}
+                  />
                 )}
 
                 <div className="mt-6 flex flex-row justify-end gap-3">
-                  {step == 2 && (
+                  {step > 1 && (
                     <button
                       className={`bg-dark-teal rounded-md px-24 py-3 flex items-center justify-center ${running && 'cursor-not-allowed opacity-75'}`}
                       disabled={running}
@@ -397,7 +545,7 @@ function RegisterUserWeb() {
                     </button>
                   )}
 
-                  {step === 1 ? (
+                  {step < 3 ? (
                     <button
                       className={`bg-primary rounded-md px-24 py-3 flex items-center justify-center ${running && 'cursor-not-allowed opacity-75'}`}
                       disabled={running}
@@ -436,6 +584,16 @@ function RegisterUserWeb() {
             cancelText={'Close'}
           />
         )}
+        <HouseholdSelectorSheet
+          visible={householdSelectorVisible}
+          estateId={estateId}
+          selected={selectedHousehold}
+          onClose={() => setHouseholdSelectorVisible(false)}
+          onSelect={(household) => {
+            setSelectedHousehold(household);
+            clearFieldError('householdId');
+          }}
+        />
       </div>
     </div>
   );

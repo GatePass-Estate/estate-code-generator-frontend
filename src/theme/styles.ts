@@ -75,4 +75,29 @@ export const sharedStyles = StyleSheet.create({
     height: 50,
     paddingLeft: 15,
   },
+
+  registrationLabel: {
+    color: '#113E55',
+    fontFamily: 'Inter_18pt-Medium',
+    fontSize: 8.96,
+    lineHeight: 8.96,
+  },
+
+  registrationInput: {
+    backgroundColor: '#F6F7F7',
+    borderColor: '#CEE5ED',
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    color: '#113E55',
+    fontFamily: 'Inter_18pt-Regular',
+    fontSize: 14,
+    height: 48,
+    marginTop: 8,
+    paddingHorizontal: 16,
+  },
+
+  registrationInputError: {
+    backgroundColor: '#FFF1F1',
+    borderColor: '#ED0808',
+  },
 });
