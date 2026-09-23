@@ -20,11 +20,9 @@ import {
   UpcomingValidityWindowIcon,
 } from '@/src/assets/svgs';
 import ScreenHeader from '@/src/components/mobile/ScreenHeader';
-import PlanNotice from '@/src/components/mobile/PlanNotice';
 import { generateCode } from '@/src/lib/api/codes';
 import { formatInvitePeriodDisplay } from '@/src/lib/helpers';
 import { useAndroidBottomInset } from '@/src/hooks/useAndroidBottomInset';
-import { useFeatureGate } from '@/src/hooks/usePlan';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { GenderType, RelationshipType } from '@/src/types/general';
 import { sharedStyles } from '@/src/theme/styles';
@@ -112,7 +110,6 @@ export default function SetAccessCodeDurationScreen() {
   const navigation = useNavigation();
   const { systemBottom, tabBarHeight } = useAndroidBottomInset();
   const { user_id, estate_id, home_address, estate_name } = useUserStore();
-  const { requestAccess: requestCodeAccess } = useFeatureGate('advanced_code_management');
   const params = useLocalSearchParams<{
     visitorName?: string;
     relationship?: string;
@@ -195,7 +192,6 @@ export default function SetAccessCodeDurationScreen() {
         : 'date';
 
   const openPicker = (target: Exclude<PickerTarget, null>) => {
-    if (!requestCodeAccess()) return;
     setAndroidStep('date');
     setAndroidDraft(null);
     setPickerTarget(target);
@@ -256,7 +252,6 @@ export default function SetAccessCodeDurationScreen() {
 
   const handleGenerate = useCallback(async () => {
     if (!canGenerate || !startDate || !endDate || !user_id) return;
-    if (!requestCodeAccess()) return;
 
     const now = new Date();
     if (startDate.getTime() < now.getTime() - 30_000) {
@@ -317,7 +312,6 @@ export default function SetAccessCodeDurationScreen() {
     gender,
     home_address,
     relationship,
-    requestCodeAccess,
     startDate,
     user_id,
     visitorName,
@@ -402,12 +396,7 @@ export default function SetAccessCodeDurationScreen() {
           <Switch
             value={windowEnabled}
             onValueChange={(next) => {
-              if (!next) {
-                setWindowEnabled(false);
-                return;
-              }
-              if (!requestCodeAccess()) return;
-              setWindowEnabled(true);
+              setWindowEnabled(next);
             }}
             trackColor={{ false: '#D9D9D9', true: '#1B998B' }}
             thumbColor="#FFFFFF"
@@ -449,7 +438,6 @@ export default function SetAccessCodeDurationScreen() {
         ) : null}
 
         <View className="mt-8 items-center">
-          <PlanNotice feature="advanced_code_management" className="mb-6 w-full" />
           <Pressable
             onPress={handleGenerate}
             disabled={!canGenerate || generating}

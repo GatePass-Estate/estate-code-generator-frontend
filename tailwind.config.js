@@ -1,5 +1,7 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  // NativeWind 4.2+ on web needs class mode so colorScheme.set doesn't crash.
+  darkMode: 'class',
   // NOTE: Update this to include the paths to all files that contain Nativewind classes.
   content: ['./app/**/*.{js,jsx,ts,tsx}', './src/**/*.{js,jsx,ts,tsx}'],
   presets: [require('nativewind/preset')],

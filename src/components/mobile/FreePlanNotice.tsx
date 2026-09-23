@@ -9,7 +9,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { WarningLineIcon } from '@/src/assets/svgs';
-import { PlanFeature, getFeatureLabel } from '@/src/lib/plans';
+import { PlanFeature } from '@/src/lib/plans';
 
 const FADE_IN = { duration: 360, easing: Easing.bezier(0.33, 0, 0.2, 1) };
 const FADE_OUT = { duration: 200, easing: Easing.out(Easing.cubic) };
@@ -18,7 +18,6 @@ const SPACE_IN = { duration: 360, easing: Easing.bezier(0.22, 1, 0.36, 1) };
 const NOTICE_FALLBACK_HEIGHT = 126;
 
 export default function FreePlanNotice({ feature }: { feature?: PlanFeature }) {
-  const subject = feature ? getFeatureLabel(feature) : null;
   return (
     <View
       className="items-center justify-center self-center rounded-[24px] bg-[#E5F6FF] p-2.5"
@@ -26,11 +25,10 @@ export default function FreePlanNotice({ feature }: { feature?: PlanFeature }) {
     >
       <WarningLineIcon width={24} height={24} color="#113E55" />
       <Text
-        className="text-center font-inter-medium text-[#113E55]"
-        style={{ width: 297, fontSize: 14, lineHeight: 18 }}
+        className="text-center font-inter-medium text-[#113E55] mb-0.5"
+        style={{ maxWidth: 297, fontSize: 14 }}
       >
-        {subject ? `${subject} is not` : 'Not'} available on the Free Plan. Contact Admin to
-        upgrade.
+        Not available on the Free Plan. Contact Admin to upgrade.
       </Text>
     </View>
   );

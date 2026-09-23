@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, AppState } from 'react-native';
+import { View, Text, StyleSheet, AppState, Platform } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import Animated, { useSharedValue, useAnimatedProps, withTiming } from 'react-native-reanimated';
 
@@ -17,6 +17,8 @@ type Props = {
 export default function CountdownRing({ size = 90, strokeWidth = 7, expiresAt, onExpire }: Props) {
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
+  const cx = size / 2;
+  const cy = size / 2;
 
   /** total 60 min */
   const totalSeconds = 60 * 60;
@@ -28,9 +30,6 @@ export default function CountdownRing({ size = 90, strokeWidth = 7, expiresAt, o
 
   /** stable progress shared value */
   const progress = useSharedValue(remainingSeconds / totalSeconds);
-
-  /** keep stable reference to expiration */
-  const expiresRef = useRef(expiresAt);
 
   const update = () => {
     const secs = computeRemaining();
@@ -80,6 +79,7 @@ export default function CountdownRing({ size = 90, strokeWidth = 7, expiresAt, o
   const ringColor = mins <= 15 ? '#FF3B30' : mins <= 30 ? '#FFA500' : '#46ee6a';
   const ringTextColor = ringColor;
   const bgRingColor = mins <= 15 ? '#ffd6d6' : mins <= 30 ? '#ffeac2' : '#dcfae7';
+  const strokeDashoffset = circumference * (1 - remainingSeconds / totalSeconds);
 
   return (
     <View style={{ width: size, height: size }}>
@@ -87,25 +87,40 @@ export default function CountdownRing({ size = 90, strokeWidth = 7, expiresAt, o
         <Circle
           fill="transparent"
           stroke={bgRingColor}
-          cx={size / 2}
-          cy={size / 2}
+          cx={cx}
+          cy={cy}
           r={radius}
           strokeWidth={strokeWidth}
         />
 
-        <AnimatedCircle
-          fill="transparent"
-          stroke={ringColor}
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          strokeWidth={strokeWidth}
-          strokeDasharray={circumference}
-          animatedProps={animatedProps}
-          rotation="90"
-          originX={size / 2}
-          originY={size / 2}
-        />
+        {/* Reanimated SVG animation is unreliable on web — use a static dash offset there. */}
+        {Platform.OS === 'web' ? (
+          <Circle
+            fill="transparent"
+            stroke={ringColor}
+            cx={cx}
+            cy={cy}
+            r={radius}
+            strokeWidth={strokeWidth}
+            strokeDasharray={`${circumference} ${circumference}`}
+            strokeDashoffset={strokeDashoffset}
+            transform={`rotate(-90 ${cx} ${cy})`}
+          />
+        ) : (
+          <AnimatedCircle
+            fill="transparent"
+            stroke={ringColor}
+            cx={cx}
+            cy={cy}
+            r={radius}
+            strokeWidth={strokeWidth}
+            strokeDasharray={circumference}
+            animatedProps={animatedProps}
+            rotation="-90"
+            originX={cx}
+            originY={cy}
+          />
+        )}
       </Svg>
 
       <View style={styles.centerText}>

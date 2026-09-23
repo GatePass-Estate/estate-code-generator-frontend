@@ -11,8 +11,6 @@ import { sharedStyles } from '@/src/theme/styles';
 import { useAndroidBottomInset } from '@/src/hooks/useAndroidBottomInset';
 import { timeCalc } from '@/src/lib/helpers';
 import { Picker } from '@/src/components/mobile/Picker';
-import { PlanNoticeSlot } from '@/src/components/mobile/FreePlanNotice';
-import { useFeatureGate } from '@/src/hooks/usePlan';
 
 const AddGuestMobile = () => {
   const { tabContentPadding } = useAndroidBottomInset();
@@ -21,12 +19,10 @@ const AddGuestMobile = () => {
   const [relationship, setRelationship] = useState<RelationshipType>(null);
   const [isChecked, setIsChecked] = useState(false);
   const [running, setRunning] = useState<boolean>(false);
-  const saveGuestGate = useFeatureGate('guest_management');
 
   const router = useRouter();
 
   const handleCheckboxChange = () => {
-    if (!isChecked && !saveGuestGate.requestAccess()) return;
     setIsChecked((prev) => !prev);
   };
 
@@ -58,7 +54,6 @@ const AddGuestMobile = () => {
 
   async function handleGenerateCode() {
     if (!inputChecks()) return;
-    if (isChecked && !saveGuestGate.requestAccess()) return;
 
     setRunning(true);
     try {
@@ -70,7 +65,7 @@ const AddGuestMobile = () => {
         gender: gender,
       });
 
-      if (isChecked && saveGuestGate.allowed) {
+      if (isChecked) {
         await createGuest({
           resident_id: useUserStore.getState().user_id,
           guest_name: guestName,
@@ -102,7 +97,6 @@ const AddGuestMobile = () => {
 
   async function handleSaveGuest() {
     if (!inputChecks()) return;
-    if (!saveGuestGate.requestAccess()) return;
 
     setRunning(true);
     try {
@@ -194,10 +188,7 @@ const AddGuestMobile = () => {
 
         <View>
           <View className="flex-row items-center mt-4">
-            <CheckBox
-              value={isChecked && saveGuestGate.allowed}
-              onValueChange={handleCheckboxChange}
-            />
+            <CheckBox value={isChecked} onValueChange={handleCheckboxChange} />
             <Text className="text-dark-teal p-2" onPress={handleCheckboxChange}>
               Add to My Guest List
             </Text>
@@ -206,19 +197,17 @@ const AddGuestMobile = () => {
       </View>
 
       <View className="mt-14 items-center gap-2">
-        <PlanNoticeSlot {...saveGuestGate.noticeProps}>
-          <TouchableOpacity
-            className={`px-20 bg-primary justify-center items-center py-4 font-UbuntuSans !rounded-md ${running ? 'opacity-70' : ''}`}
-            onPress={handleGenerateCode}
-            disabled={running}
-          >
-            <Text className="text-white font-ubuntu-semibold text-md">Generate Code</Text>
-          </TouchableOpacity>
+        <TouchableOpacity
+          className={`px-20 bg-primary justify-center items-center py-4 font-UbuntuSans !rounded-md ${running ? 'opacity-70' : ''}`}
+          onPress={handleGenerateCode}
+          disabled={running}
+        >
+          <Text className="text-white font-ubuntu-semibold text-md">Generate Code</Text>
+        </TouchableOpacity>
 
-          <TouchableOpacity onPress={handleSaveGuest} disabled={running} className="py-4 px-20">
-            <Text className="text-primary text-[16px] font-ubuntu-medium">Save Guest </Text>
-          </TouchableOpacity>
-        </PlanNoticeSlot>
+        <TouchableOpacity onPress={handleSaveGuest} disabled={running} className="py-4 px-20">
+          <Text className="text-primary text-[16px] font-ubuntu-medium">Save Guest </Text>
+        </TouchableOpacity>
       </View>
     </ScrollView>
   );
