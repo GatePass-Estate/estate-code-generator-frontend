@@ -1,4 +1,3 @@
-import { View } from 'react-native';
 import { useFonts } from 'expo-font';
 import * as ExpoSplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -14,6 +13,7 @@ import { queryClient } from '@/lib/queryClient';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useEffect } from 'react';
 import LoadingTransition from '@/src/components/common/LoadingTransition';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 ExpoSplashScreen.preventAutoHideAsync();
 
@@ -95,9 +95,9 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <View style={{ flex: 1 }}>
+          <GestureHandlerRootView style={{ flex: 1 }}>
             <RootLayoutContent />
-          </View>
+          </GestureHandlerRootView>
         </AuthProvider>
       </QueryClientProvider>
     </SafeAreaProvider>

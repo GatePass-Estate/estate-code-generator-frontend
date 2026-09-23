@@ -11,6 +11,8 @@ import { sharedStyles } from '@/src/theme/styles';
 import { useAndroidBottomInset } from '@/src/hooks/useAndroidBottomInset';
 import { timeCalc } from '@/src/lib/helpers';
 import { Picker } from '@/src/components/mobile/Picker';
+import { PlanNoticeSlot } from '@/src/components/mobile/FreePlanNotice';
+import { useFeatureGate } from '@/src/hooks/usePlan';
 
 const AddGuestMobile = () => {
   const { tabContentPadding } = useAndroidBottomInset();
@@ -18,13 +20,14 @@ const AddGuestMobile = () => {
   const [gender, setGender] = useState<GenderType>(null);
   const [relationship, setRelationship] = useState<RelationshipType>(null);
   const [isChecked, setIsChecked] = useState(false);
-  const [error, setError] = useState('');
   const [running, setRunning] = useState<boolean>(false);
+  const saveGuestGate = useFeatureGate('guest_management');
 
   const router = useRouter();
 
   const handleCheckboxChange = () => {
-    setIsChecked(!isChecked);
+    if (!isChecked && !saveGuestGate.requestAccess()) return;
+    setIsChecked((prev) => !prev);
   };
 
   const clearInput = () => {
@@ -35,7 +38,7 @@ const AddGuestMobile = () => {
   };
 
   const inputChecks = (): boolean => {
-    if (guestName == '') {
+    if (guestName === '') {
       Alert.alert('Error', "Please enter the guest's name.");
       return false;
     }
@@ -54,73 +57,74 @@ const AddGuestMobile = () => {
   };
 
   async function handleGenerateCode() {
-    if (inputChecks()) {
-      setRunning(true);
-      try {
-        const result = await generateCode({
-          user_id: useUserStore.getState().user_id,
-          estate_id: useUserStore.getState().estate_id ?? '',
-          visitor_fullname: guestName,
-          relationship_with_resident: relationship,
-          gender: gender,
-        });
+    if (!inputChecks()) return;
+    if (isChecked && !saveGuestGate.requestAccess()) return;
 
-        if (isChecked) {
-          await createGuest({
-            resident_id: useUserStore.getState().user_id,
-            guest_name: guestName,
-            relationship: relationship,
-            gender: gender,
-          });
-        }
-        setRunning(false);
+    setRunning(true);
+    try {
+      const result = await generateCode({
+        user_id: useUserStore.getState().user_id,
+        estate_id: useUserStore.getState().estate_id ?? '',
+        visitor_fullname: guestName,
+        relationship_with_resident: relationship,
+        gender: gender,
+      });
 
-        clearInput();
-
-        let { formattedDate, timeframe } = timeCalc(result.valid_until);
-
-        router.push({
-          pathname: `/invite`,
-          params: {
-            code: result.hashed_code,
-            name: guestName,
-            address: `${useUserStore.getState().home_address}, ${useUserStore.getState().estate_name}.`,
-            timeframe,
-            date: formattedDate,
-          },
-        });
-      } catch (error) {
-        setError('Failed to generate code. Please try again.');
-      } finally {
-        setRunning(false);
-      }
-    }
-  }
-
-  async function handleSaveGuest() {
-    if (inputChecks()) {
-      setRunning(true);
-      try {
+      if (isChecked && saveGuestGate.allowed) {
         await createGuest({
           resident_id: useUserStore.getState().user_id,
           guest_name: guestName,
           relationship: relationship,
           gender: gender,
         });
-
-        clearInput();
-
-        router.push({
-          pathname: '/user/guests',
-          params: {
-            refresh: 'true',
-          },
-        });
-      } catch (error) {
-        setError('Failed to generate code. Please try again.');
-      } finally {
-        setRunning(false);
       }
+
+      clearInput();
+
+      const { formattedDate, timeframe } = timeCalc(result.valid_until);
+
+      router.push({
+        pathname: `/invite`,
+        params: {
+          code: result.hashed_code,
+          name: guestName,
+          address: `${useUserStore.getState().home_address}, ${useUserStore.getState().estate_name}.`,
+          timeframe,
+          date: formattedDate,
+        },
+      });
+    } catch {
+      Alert.alert('Error', 'Failed to generate code. Please try again.');
+    } finally {
+      setRunning(false);
+    }
+  }
+
+  async function handleSaveGuest() {
+    if (!inputChecks()) return;
+    if (!saveGuestGate.requestAccess()) return;
+
+    setRunning(true);
+    try {
+      await createGuest({
+        resident_id: useUserStore.getState().user_id,
+        guest_name: guestName,
+        relationship: relationship,
+        gender: gender,
+      });
+
+      clearInput();
+
+      router.push({
+        pathname: '/user/guests',
+        params: {
+          refresh: 'true',
+        },
+      });
+    } catch {
+      Alert.alert('Error', 'Failed to save guest. Please try again.');
+    } finally {
+      setRunning(false);
     }
   }
 
@@ -190,7 +194,10 @@ const AddGuestMobile = () => {
 
         <View>
           <View className="flex-row items-center mt-4">
-            <CheckBox value={isChecked} onValueChange={handleCheckboxChange} />
+            <CheckBox
+              value={isChecked && saveGuestGate.allowed}
+              onValueChange={handleCheckboxChange}
+            />
             <Text className="text-dark-teal p-2" onPress={handleCheckboxChange}>
               Add to My Guest List
             </Text>
@@ -199,17 +206,19 @@ const AddGuestMobile = () => {
       </View>
 
       <View className="mt-14 items-center gap-2">
-        <TouchableOpacity
-          className={`px-20 bg-primary justify-center items-center py-4 font-UbuntuSans !rounded-md ${running ? 'opacity-70' : ''}`}
-          onPress={handleGenerateCode}
-          disabled={running}
-        >
-          <Text className="text-white font-ubuntu-semibold text-md">Generate Code</Text>
-        </TouchableOpacity>
+        <PlanNoticeSlot {...saveGuestGate.noticeProps}>
+          <TouchableOpacity
+            className={`px-20 bg-primary justify-center items-center py-4 font-UbuntuSans !rounded-md ${running ? 'opacity-70' : ''}`}
+            onPress={handleGenerateCode}
+            disabled={running}
+          >
+            <Text className="text-white font-ubuntu-semibold text-md">Generate Code</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity onPress={handleSaveGuest} disabled={running} className="py-4 px-20">
-          <Text className="text-primary text-[16px] font-ubuntu-medium">Save Guest </Text>
-        </TouchableOpacity>
+          <TouchableOpacity onPress={handleSaveGuest} disabled={running} className="py-4 px-20">
+            <Text className="text-primary text-[16px] font-ubuntu-medium">Save Guest </Text>
+          </TouchableOpacity>
+        </PlanNoticeSlot>
       </View>
     </ScrollView>
   );

@@ -663,7 +663,7 @@ const styles = StyleSheet.create({
     width: 86,
   },
   detailList: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   guestDetailNameRow: {
     left: 0,
@@ -684,7 +684,7 @@ const styles = StyleSheet.create({
     top: 129,
   },
   residentDetailList: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   residentDetailNameRow: {
     left: 0,

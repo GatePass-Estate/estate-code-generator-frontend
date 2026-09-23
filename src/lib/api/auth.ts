@@ -69,9 +69,7 @@ export async function fetchMe(token: string) {
         Authorization: `Bearer ${token}`,
       },
     });
-    const data = axiosRes.data;
-
-    return data;
+    return axiosRes.data;
   } catch (error: any) {
     throw new Error(`${getErrorMessage(error) || 'An error occured'} `);
   }

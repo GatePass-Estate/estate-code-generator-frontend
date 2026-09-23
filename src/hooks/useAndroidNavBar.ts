@@ -23,7 +23,6 @@ function resolveDeviceColorScheme(scheme: ColorSchemeName | undefined): 'light' 
 
 function applyAndroidNavBar(colorScheme: 'light' | 'dark') {
   const theme = ANDROID_NAV_BAR[colorScheme];
-  NavigationBar.setButtonStyleAsync(theme.buttons).catch(() => {});
   NavigationBar.setStyle(theme.style);
 }
 

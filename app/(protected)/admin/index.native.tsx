@@ -9,8 +9,7 @@ import {
   BackHandler,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { Stack, useRouter } from 'expo-router';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { Stack, useRouter, useFocusEffect, useNavigation } from 'expo-router';
 import { getAllEstateUsers } from '@/src/lib/api/user';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AllUsers } from '@/src/types/user';
