@@ -411,8 +411,6 @@ export function CrownIcon({ color = '#F46036', ...props }: MenuIconProps) {
   );
 }
 
-/** Figma 6667:8988 si:warning-line 24×24 */
-
 export function WarningLineIcon({ color = '#113E55', ...props }: MenuIconProps) {
   return (
     <Svg width={24} height={24} viewBox="0 0 24 24" fill="none" {...props}>
