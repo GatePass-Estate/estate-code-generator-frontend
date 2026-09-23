@@ -8,13 +8,18 @@ module.exports = {
   theme: {
     extend: {
       fontSize: {
+        // Figma micro sizes used across native screens
+        '2xs': '8.96px',
+        caption: '11.2px',
         xs: '12px',
         sm: '14px',
         base: '16px',
         md: '17px',
         lg: '18px',
         xl: '20px',
+        'heading-sm': '21.88px',
         '2xl': '24px',
+        heading: '27.34px',
         '3xl': '30px',
         '4xl': '36px',
         '5xl': '48px',
