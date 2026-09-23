@@ -14,6 +14,8 @@ export type ServiceCatalogEntry = {
   category: ServiceCategory;
   /** Shown in the admin Upgrade Plan modal. Falls back to a generic message built from `label`. */
   upgradeCopy?: string;
+  /** Shown in the resident free-plan notice. Falls back to a generic message built from `label`. */
+  noticeCopy?: string;
 };
 
 export const SERVICE_CATALOG = {
@@ -79,6 +81,7 @@ export const SERVICE_CATALOG = {
     description: 'This feature allows users to save guest for quick/repeated access management',
     category: 'paid',
     upgradeCopy: 'Unlock Save Guest Profile to quickly reuse guest details for future visits.',
+    noticeCopy: 'Guest Management is not available on the Free Plan. Contact Admin to upgrade.',
   },
   GPPF3: {
     sn: 'GPPF3',
@@ -108,6 +111,8 @@ export const SERVICE_CATALOG = {
     category: 'paid',
     upgradeCopy:
       'Unlock the flexibility to schedule your access code beyond the standard one-hour window.',
+    noticeCopy:
+      'Advanced Code Management is not available on the Free Plan. Contact Admin to upgrade.',
   },
 
   GPAIF1: {

@@ -91,7 +91,17 @@ export function getFeatureLabel(feature: PlanFeature): string {
   return getServiceByKey(feature).label;
 }
 
+/** Admin Upgrade Plan modal body for this feature. */
 export function getUpgradeCopy(feature: PlanFeature): string {
   const service = getServiceByKey(feature);
   return service.upgradeCopy ?? `Upgrade your plan to unlock ${service.label}.`;
+}
+
+/** Resident free-plan notice body for this feature. */
+export function getFreePlanNoticeCopy(feature: PlanFeature): string {
+  const service = getServiceByKey(feature);
+  return (
+    service.noticeCopy ??
+    `${service.label} is not available on the Free Plan. Contact Admin to upgrade.`
+  );
 }

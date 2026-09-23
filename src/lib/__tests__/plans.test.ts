@@ -1,5 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 import {
+  getFreePlanNoticeCopy,
   getUpgradeCopy,
   hasEntitlement,
   parseEntitlements,
@@ -111,6 +112,18 @@ describe('getUpgradeCopy', () => {
   it('falls back to the service label', () => {
     expect(getUpgradeCopy('admin_broadcast')).toBe(
       'Upgrade your plan to unlock Broadcasts and Announcements.'
+    );
+  });
+});
+
+describe('getFreePlanNoticeCopy', () => {
+  it('uses the catalog notice copy when set', () => {
+    expect(getFreePlanNoticeCopy('guest_management')).toMatch(/Guest Management is not available/);
+  });
+
+  it('falls back to the service label', () => {
+    expect(getFreePlanNoticeCopy('admin_broadcast')).toBe(
+      'Broadcasts and Announcements is not available on the Free Plan. Contact Admin to upgrade.'
     );
   });
 });
