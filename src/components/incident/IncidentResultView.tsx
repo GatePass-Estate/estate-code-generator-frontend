@@ -36,12 +36,13 @@ import {
   demographicLocation,
   formatReportCount,
   mapCategoryEdaToUi,
+  mapInhouseInsightFromTopics,
   mapListItemToRow,
   mapTrendsFromEda,
   ratioPercentage,
   resolveCategorySection,
 } from './mapIncidentApi';
-import { TRENDS, type IncidentCategoryId, type IncidentRow } from './incidentMockData';
+import { type IncidentCategoryId, type IncidentRow } from './incidentTypes';
 
 function ShareBar({
   pct,
@@ -54,7 +55,7 @@ function ShareBar({
   fill: string;
   icon: ReactNode;
 }) {
-  // Figma 6355:3000 — fill is 116px for 70%; scale other % from that
+  // Fill is 116px at 70%; scale other percentages from that.
   const fillHeight = Math.max(Math.round(116 * (pct / 70)), 72);
   return (
     <View className="h-[170px] w-12 overflow-hidden rounded-[16px] bg-white">
@@ -63,8 +64,7 @@ function ShareBar({
         className="w-full items-center justify-between rounded-b-[16px] pb-[14px]"
         style={{ height: fillHeight, backgroundColor: fill }}
       >
-        {/* Icon sits on the top edge of the fill (Figma: icon y=53, fill y=54) */}
-        <View className="h-5 w-5 items-center justify-center -mt-px">{icon}</View>
+        <View className="-mt-px h-5 w-5 items-center justify-center">{icon}</View>
         <Text allowFontScaling={false} className="text-sm font-inter-medium" style={{ color }}>
           {pct}
           <Text className="text-[11.2px] font-inter-regular">%</Text>
@@ -88,12 +88,11 @@ function TrendCard({
   icon: ReactNode;
 }) {
   return (
-    /* Figma 6531:5871 — 211×152, px-16 py-8, gap-8 */
-    <View className="h-[152px] w-[211px] gap-2 rounded-[16px] bg-[#113E55] px-4 py-2">
-      <View className="w-full h-11  flex-row items-center justify-between">
+    <View className="w-[211px] rounded-[16px] bg-[#113E55] px-4 pb-[22px] pt-2">
+      <View className="w-full flex-row items-start justify-between">
         <Text
           allowFontScaling={false}
-          className="w-[84px] text-[11.2px] font-inter-regular leading-[normal] text-[#CEE5ED]"
+          className="pt-2 text-left text-[11.2px] font-inter-regular leading-[14px] text-[#CEE5ED]"
         >
           {title}
         </Text>
@@ -102,22 +101,22 @@ function TrendCard({
         </View>
       </View>
 
-      <View className="relative w-full mt-1">
+      <View className="relative mt-3 w-full">
         <Text
           allowFontScaling={false}
-          className="text-[34.18px] font-ubuntu-medium leading-[normal] text-[#CEE5ED]"
+          className="text-left text-[34.18px] font-ubuntu-medium leading-[normal] text-[#CEE5ED]"
         >
           {pct}%
         </Text>
         <Text
           allowFontScaling={false}
-          className="absolute left-[70px] top-[21px] text-[11.2px] font-inter-regular text-[#CEE5ED]"
+          className="absolute left-[70px] top-[21px] text-left text-[11.2px] font-inter-regular text-[#CEE5ED]"
         >
           {unitLabel}
         </Text>
         <Text
           allowFontScaling={false}
-          className=" w-[181px] text-[11.2px] font-inter-regular leading-[normal] text-[#CEE5ED]"
+          className="w-[181px] text-left text-[11.2px] font-inter-regular leading-[normal] text-[#CEE5ED]"
         >
           {body}
         </Text>
@@ -129,7 +128,6 @@ function TrendCard({
 function IncidentListRow({ row }: { row: IncidentRow }) {
   return (
     <View className="w-full flex-row items-center gap-[15px] py-2">
-      {/* Figma 6586:3952 — avatar + reporter */}
       <View className="w-[126px] flex-row items-start">
         <View className="mt-[5px] h-6 w-6 items-center justify-center rounded-full bg-[#FFF8F5]">
           <IncidentReporterHomeIcon size={14} color="#F46036" />
@@ -148,7 +146,6 @@ function IncidentListRow({ row }: { row: IncidentRow }) {
         </View>
       </View>
 
-      {/* Figma 6586:3985 — category tag + title */}
       <View className="min-w-0 flex-1">
         <View className="self-start bg-[#F4FFFE] px-1 py-0.5">
           <Text allowFontScaling={false} className="text-[6.8px] font-inter-light text-[#167A6F]">
@@ -175,7 +172,6 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
   const estate_id = useUserStore((state) => state.estate_id) || '';
   const estateName = useUserStore((state) => state.estate_name) || 'Hazel Estate';
   const userHomeAddress = useUserStore((state) => state.home_address);
-  // Wider default so staging sample cohorts (Apr–May) still land in window.
   const [selectedTimeframe, setSelectedTimeframe] = useState('Custom');
   const [startDate, setStartDate] = useState<Date | null>(() => {
     const d = new Date();
@@ -273,30 +269,58 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
     return sorted;
   }, [reports?.items, sortAscending]);
 
-  const trendCards = useMemo(() => mapTrendsFromEda(overview?.eda, TRENDS, false), [overview?.eda]);
+  const trendCards = useMemo(() => mapTrendsFromEda(overview?.eda), [overview?.eda]);
+  const summaryVariant =
+    summary?.entitled_tier === 'tier1' && summary.tier1
+      ? ('in_house' as const)
+      : summary?.tier2
+        ? ('third_party' as const)
+        : summary?.tier1
+          ? ('in_house' as const)
+          : ('third_party' as const);
   const executiveSummary =
     summary?.tier2?.executive_summary || summary?.tier1?.executive_summary || undefined;
-  const detailedInsight =
-    summary?.tier1?.detailed_insight || summary?.tier2?.severity_assessment || undefined;
-  const keyPatterns = summary?.tier2?.key_patterns ?? [];
-  const recommendedActions = summary?.tier2?.recommended_actions ?? [];
-  const dataLimitations = summary?.tier2?.data_limitations;
+  const summaryReadTime =
+    summary?.read_time?.trim() ||
+    summary?.tier2?.read_time?.trim() ||
+    summary?.tier1?.read_time?.trim() ||
+    null;
+  const summarySourceLabel =
+    summary?.source_label?.trim() ||
+    (summaryVariant === 'in_house' ? 'In house' : 'Third Party');
+  const inhouseInsight = useMemo(() => {
+    const timelineFallback =
+      mapTrendsFromEda(overview?.eda)[0]?.body ||
+      summary?.tier1?.executive_summary ||
+      '';
+    return mapInhouseInsightFromTopics(
+      (summary?.tier1?.topics as Record<string, unknown> | undefined) ?? null,
+      timelineFallback
+    );
+  }, [summary?.tier1?.topics, summary?.tier1?.executive_summary, overview?.eda]);
+
+  const hasSummaryPayload = !!(summary?.tier1 || summary?.tier2);
+  const cardMode: InsightMode = hasSummaryPayload
+    ? 'generated'
+    : insightMode === 'locked'
+      ? 'locked'
+      : insightMode;
 
   const handleInsightPress = () => {
-    if (insightMode === 'locked') return;
-    if (insightMode === 'idle') {
-      if (!estate_id) {
-        setInsightMode('generated');
-        return;
-      }
-      if (overview && !overview.has_tier1_summary && !overview.has_tier2_summary) {
-        setInsightMode('locked');
-        return;
-      }
-      setFetchSummary(true);
+    if (cardMode === 'locked') return;
+    if (hasSummaryPayload || cardMode === 'generated') {
+      setSummaryOpen(true);
       return;
     }
-    setSummaryOpen(true);
+    if (cardMode === 'idle') {
+      if (!estate_id) {
+        Alert.alert('Unavailable', 'Switch to an estate to generate AI insight.');
+        return;
+      }
+      // Don't gate on overview.has_tier*_summary alone — marketplace install status can
+      // disagree. Call the summary API and lock only if it returns no tier payload.
+      setFetchSummary(true);
+    }
   };
 
   const handleUpgradePress = () => {
@@ -311,7 +335,13 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
     setInsightMode('idle');
   }, [estate_id, fromDate, toDate]);
 
+  // Restore View state from cache (e.g. after leaving Result and coming back).
   useEffect(() => {
+    if (hasSummaryPayload) {
+      setInsightMode('generated');
+      setFetchSummary(true);
+      return;
+    }
     if (!fetchSummary || summaryLoading) return;
     if (summaryError) {
       setFetchSummary(false);
@@ -319,14 +349,10 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
       Alert.alert('Unable to generate insight', 'Please try again in a moment.');
       return;
     }
-    if (summary?.tier1 || summary?.tier2) {
-      setInsightMode('generated');
-      return;
-    }
     if (summary && !summary.tier1 && !summary.tier2) {
       setInsightMode('locked');
     }
-  }, [fetchSummary, summary, summaryLoading, summaryError]);
+  }, [fetchSummary, summary, summaryLoading, summaryError, hasSummaryPayload]);
 
   useEffect(() => {
     if (!overviewError && !reportsError) return;
@@ -472,7 +498,7 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
               </Text>
             </View>
           </View>
-          <View className="min-h-[61px] flex-1 flex-row gap-[7px] items-center rounded-[16px] border border-[#EFF1F3] bg-white px-[10px] py-4">
+          <View className="min-h-[61px] flex-1 flex-row gap-[7px] items-center rounded-[16px]  bg-white px-[10px] py-4">
             <LocationSvg width={28} height={28} />
             <View className="flex-1 shrink">
               <Text
@@ -530,11 +556,13 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
         </View>
 
         <IncidentAISummaryCard
-          mode={insightMode}
+          mode={cardMode}
           onPress={handleInsightPress}
           onUpgradePress={handleUpgradePress}
           summaryText={executiveSummary}
-          isLoading={fetchSummary && summaryLoading}
+          readTimeLabel={hasSummaryPayload ? summaryReadTime : null}
+          sourceLabel={hasSummaryPayload ? summarySourceLabel : null}
+          isLoading={fetchSummary && summaryLoading && !hasSummaryPayload}
         />
 
         <CategoryDistribution
@@ -561,8 +589,7 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
         </View>
 
         <View className="mt-3 gap-2 rounded-[16px] bg-white p-4">
-          {/* Figma 6355:2658 — headers + sort */}
-          <View className="h-7 w-full flex-row items-center">
+                    <View className="h-7 w-full flex-row items-center">
             <Text
               allowFontScaling={false}
               className="text-[8.96px] font-inter-medium text-[#878686]"
@@ -616,51 +643,63 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
           >
             TRENDS DETECTED
           </Text>
-          {/* -mx-5 bleeds past page px-5 so next card peeks off-screen like Figma */}
-          <ScrollView
+                    <ScrollView
             horizontal
             decelerationRate="fast"
             snapToInterval={227}
             snapToAlignment="start"
             showsHorizontalScrollIndicator={false}
             className="-mx-5 mt-3"
-            contentContainerClassName="gap-4 pl-5 pr-5"
+            contentContainerClassName="items-stretch gap-4 pl-5 pr-5"
             onScroll={(e) => {
               const x = e.nativeEvent.contentOffset.x;
               const next = Math.round(x / 227);
-              setTrendIndex(next <= 0 ? 0 : 1);
+              const max = Math.max(trendCards.length - 1, 0);
+              setTrendIndex(Math.min(Math.max(next, 0), max));
             }}
             scrollEventThrottle={16}
           >
-            <TrendCard
-              title={trendCards[0]?.title ?? `DAY\nDISTRIBUTION`}
-              pct={trendCards[0]?.pct ?? 0}
-              unitLabel={trendCards[0]?.unitLabel ?? 'INCIDENT'}
-              body={trendCards[0]?.body ?? 'No trend data for this window.'}
-              icon={<TrendDayIcon size={20} />}
-            />
-            <TrendCard
-              title={trendCards[1]?.title ?? `TIME\nDISTRIBUTION`}
-              pct={trendCards[1]?.pct ?? 0}
-              unitLabel={trendCards[1]?.unitLabel ?? 'INCIDENTS'}
-              body={trendCards[1]?.body ?? 'No trend data for this window.'}
-              icon={
-                <MaterialCommunityIcons name="alert-circle-outline" size={28} color="#CEE5ED" />
-              }
-            />
+            {trendCards.map((card, index) => (
+              <TrendCard
+                key={`${card.title}-${index}`}
+                title={card.title}
+                pct={card.pct}
+                unitLabel={card.unitLabel}
+                body={card.body}
+                icon={
+                  index % 2 === 0 ? (
+                    <TrendDayIcon size={20} />
+                  ) : (
+                    <MaterialCommunityIcons
+                      name="alert-circle-outline"
+                      size={28}
+                      color="#CEE5ED"
+                    />
+                  )
+                }
+              />
+            ))}
           </ScrollView>
 
-          {/* Figma 6355:2919 — 6px dots, active #113E55, inactive 60%; 56px below cards */}
-          <View className="mt-[56px] h-[6px] w-[15px] flex-row self-center" style={{ gap: 3 }}>
+          {trendCards.length > 1 ? (
             <View
-              className="h-[6px] w-[6px] rounded-full"
-              style={{ backgroundColor: trendIndex === 0 ? '#113E55' : 'rgba(17, 62, 85, 0.6)' }}
-            />
-            <View
-              className="h-[6px] w-[6px] rounded-full"
-              style={{ backgroundColor: trendIndex === 1 ? '#113E55' : 'rgba(17, 62, 85, 0.6)' }}
-            />
-          </View>
+              className="mt-[56px] h-[6px] flex-row self-center"
+              style={{ gap: 3, width: trendCards.length * 6 + (trendCards.length - 1) * 3 }}
+            >
+              {trendCards.map((_, index) => (
+                <View
+                  key={`trend-dot-${index}`}
+                  className="h-[6px] w-[6px] rounded-full"
+                  style={{
+                    backgroundColor:
+                      trendIndex === index ? '#113E55' : 'rgba(17, 62, 85, 0.6)',
+                  }}
+                />
+              ))}
+            </View>
+          ) : (
+            <View className="mt-[56px]" />
+          )}
         </View>
       </ScrollView>
 
@@ -710,11 +749,12 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
       <AISummaryModal
         visible={summaryOpen}
         onClose={() => setSummaryOpen(false)}
-        executiveSummary={executiveSummary}
-        detailedInsight={detailedInsight}
-        keyPatterns={keyPatterns}
-        recommendedActions={recommendedActions}
-        dataLimitations={dataLimitations}
+        variant={summaryVariant}
+        llmSummary={summary?.tier2}
+        readTimeLabel={summaryReadTime}
+        sourceLabel={summarySourceLabel}
+        timelineSummary={inhouseInsight.timelineSummary}
+        themes={inhouseInsight.themes}
       />
     </Animated.View>
   );

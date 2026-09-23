@@ -36,5 +36,8 @@ export const useIncidentSummary = (
     queryFn: () => incidentReportsApi.getSummary({ estate_id, from_date, to_date }),
     enabled: !!estate_id && enabled,
     retry: 1,
+    // Keep prior report so remounting Result shows View instead of "Tap to generate".
+    staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
   });
 };

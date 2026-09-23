@@ -217,7 +217,6 @@ export function ReportTabIconSvg({
   );
 }
 
-/** Figma 5074:5421 — material-symbols-light:add-rounded, 32×32 with 16px glyph. */
 export function PlusTabIcon({ color = '#113E55', ...props }: MenuIconProps) {
   return (
     <Svg width={32} height={32} viewBox="0 0 32 32" fill="none" {...props}>
@@ -471,7 +470,6 @@ export function CalendarChevronRightIcon({ color = '#113E55', ...props }: MenuIc
   );
 }
 
-/** Figma hugeicons:date-time — Set Date field icon (6578:4757 / 6578:4758). */
 export function DateTimeFieldIcon({ color = '#878686', ...props }: MenuIconProps) {
   return (
     <Svg width={16} height={16} viewBox="-1 -1 15 16.3333" fill="none" {...props}>
@@ -493,7 +491,6 @@ export function DateTimeFieldIcon({ color = '#878686', ...props }: MenuIconProps
   );
 }
 
-/** Figma validity-window arrow — 14×10, stroke #878686. */
 export function ValidityWindowArrowIcon({ color = '#878686', ...props }: MenuIconProps) {
   return (
     <Svg width={14} height={10} viewBox="0 0 14 10" fill="none" {...props}>
@@ -507,7 +504,6 @@ export function ValidityWindowArrowIcon({ color = '#878686', ...props }: MenuIco
   );
 }
 
-/** Figma 6648:4368 material-symbols-light:crown-rounded 40×40 */
 export function CrownIcon({ color = '#F46036', ...props }: MenuIconProps) {
   return (
     <Svg width={40} height={40} viewBox="0 0 40 40" fill="none" {...props}>
@@ -519,7 +515,6 @@ export function CrownIcon({ color = '#F46036', ...props }: MenuIconProps) {
   );
 }
 
-/** Figma 6667:8988 si:warning-line 24×24 */
 export function WarningLineIcon({ color = '#113E55', ...props }: MenuIconProps) {
   return (
     <Svg width={24} height={24} viewBox="0 0 24 24" fill="none" {...props}>
@@ -547,7 +542,6 @@ export function FormChevronRightIcon({ color = '#878686', ...props }: MenuIconPr
   );
 }
 
-/** Marketplace "See benefits" chevron (Figma 21×20) */
 export function BenefitsChevronIcon({ color = '#113E55', ...props }: MenuIconProps) {
   return (
     <Svg width={21} height={20} viewBox="0 0 21 20" fill="none" {...props}>
@@ -887,7 +881,6 @@ export function CheckRingIcon({
   );
 }
 
-/** Category Distribution expand control (Figma 6575:3143 — 32×32, rotate 42.51° in parent) */
 export function CategoryExpandIcon({
   bg = '#EFF1F1',
   color = '#113E55',
@@ -908,7 +901,6 @@ export function CategoryExpandIcon({
   );
 }
 
-/** Narrative Snippet insight icon (Figma 16×16, #F46036) */
 export function NarrativeSnippetIcon({
   color = '#F46036',
   size = 16,
@@ -924,7 +916,6 @@ export function NarrativeSnippetIcon({
   );
 }
 
-/** Incident Reported filter control (Figma 6567:856 — mage:filter 20×20) */
 export function IncidentFilterIcon({
   color = '#F6F7F7',
   size = 20,
@@ -943,7 +934,6 @@ export function IncidentFilterIcon({
   );
 }
 
-/** Incident list — reporter house badge (Figma 6355:2657) */
 export function IncidentReporterHomeIcon({
   color = '#F46036',
   size = 14,
@@ -973,7 +963,6 @@ export function IncidentReporterHomeIcon({
   );
 }
 
-/** Incident list — sort control (Figma 6567:4216) */
 export function IncidentSortIcon({ size = 25, ...props }: MenuIconProps & { size?: number }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24.8457 24.8457" fill="none" {...props}>
@@ -991,7 +980,6 @@ export function IncidentSortIcon({ size = 25, ...props }: MenuIconProps & { size
   );
 }
 
-/** Incident list row chevron — rotate -90° in parent for right arrow (Figma expand_more) */
 export function IncidentRowChevronIcon({
   color = '#113E55',
   size = 20,
@@ -1007,7 +995,6 @@ export function IncidentRowChevronIcon({
   );
 }
 
-/** Trends day card icon (Figma 6531:5874 — sun / day) */
 export function TrendDayIcon({ size = 20, ...props }: MenuIconProps & { size?: number }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 21.5 21.5" fill="none" {...props}>
@@ -1027,7 +1014,6 @@ export function TrendDayIcon({ size = 20, ...props }: MenuIconProps & { size?: n
   );
 }
 
-/** Marketplace feature rating star (Figma preview card) */
 export function RatingStarIcon({ color = '#F46036', ...props }: MenuIconProps) {
   return (
     <Svg width={17} height={16} viewBox="0 0 24 24" fill="none" {...props}>
@@ -1043,7 +1029,6 @@ export function RatingStarIcon({ color = '#F46036', ...props }: MenuIconProps) {
   );
 }
 
-/** Marketplace download / installs count (Figma 13×13) */
 export function FeatureDownloadIcon({ color = '#1B998B', ...props }: MenuIconProps) {
   return (
     <Svg width={13} height={13} viewBox="0 0 13 13" fill="none" {...props}>
@@ -1069,7 +1054,6 @@ export function FeatureDownloadIcon({ color = '#1B998B', ...props }: MenuIconPro
   );
 }
 
-/** Marketplace users / rating count (Figma 16×16) */
 export function FeatureUsersIcon({ color = '#1B998B', ...props }: MenuIconProps) {
   return (
     <Svg width={16} height={16} viewBox="0 0 16 16" fill="none" {...props}>
@@ -1086,7 +1070,6 @@ export function FeatureUsersIcon({ color = '#1B998B', ...props }: MenuIconProps)
   );
 }
 
-/** Category Distribution — security lock (Figma 24×24) */
 export function CategorySecurityIcon({
   color = '#113E55',
   size = 24,
@@ -1110,7 +1093,6 @@ export function CategorySecurityIcon({
   );
 }
 
-/** Category Distribution — medical / emergency (Figma 13×14 filled / 16×16 outline) */
 export function CategoryMedicalIcon({
   color = '#113E55',
   size = 16,
@@ -1137,7 +1119,6 @@ export function CategoryMedicalIcon({
   );
 }
 
-/** Category Distribution — repairs / maintenance (Figma 16×16) */
 export function CategoryMaintenanceIcon({
   color = '#113E55',
   size = 16,
@@ -1164,7 +1145,6 @@ export function CategoryMaintenanceIcon({
   );
 }
 
-/** Category Distribution — access control (Figma 12×12 / active 6586:3803) */
 export function CategoryAccessIcon({
   color = '#113E55',
   size = 12,
@@ -1190,7 +1170,6 @@ export function CategoryAccessIcon({
   );
 }
 
-/** Category Distribution — property damage (Figma 12×12) */
 export function CategoryPropertyIcon({
   color = '#113E55',
   size = 12,

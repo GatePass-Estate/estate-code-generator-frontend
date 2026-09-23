@@ -1,14 +1,11 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, Pressable, ScrollView, ActivityIndicator, Alert, Image } from 'react-native';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { View, Text, Pressable, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import BiInfoSvg from '@/src/assets/icons/bi_info.svg';
 import ValidationBackSvg from '@/src/assets/icons/validation-back.svg';
 
-import Pf1Svg from '@/src/assets/icons/pf_1.svg';
-import Pf2Svg from '@/src/assets/icons/pf_2.svg';
-import Pf3Svg from '@/src/assets/icons/pf_3.svg';
 import IncidentReportSvg from '@/src/assets/images/incident-report.svg';
 import { FeatureDownloadIcon, FeatureUsersIcon, RatingStarIcon } from '@/src/assets/svgs';
 import RatingModal from '@/src/components/anomaly/modals/RatingModal';
@@ -17,13 +14,18 @@ import IncidentResultView from '@/src/components/incident/IncidentResultView';
 import SubscriptionTierCard from '@/src/components/incident/SubscriptionTierCard';
 import AnimatedPillTabs from '@/src/components/mobile/AnimatedPillTabs';
 import {
+  formatTierLabel,
+  formatTierSubtitle,
   getMarketplaceFeatureById,
-  getMarketplaceFeatures,
-  subscribeMarketplaceFeature,
-  getFeaturePictureUrl,
   rateMarketplaceFeature,
+  resolveMarketplaceFeatureId,
+  sortMarketplaceTiers,
+  splitFeatureBullets,
+  subscribeMarketplaceFeature,
 } from '@/src/lib/api/aiMarketplace';
-import { MarketplaceDetailResponse } from '@/src/types/aiMarketplace';
+import { MarketplaceDetailResponse, MarketplaceTier } from '@/src/types/aiMarketplace';
+
+const isIncidentProduct = (name: string) => name.toLowerCase().includes('incident');
 
 export default function IncidentReportPreviewScreen() {
   const params = useLocalSearchParams<{ featureId?: string; title?: string; tab?: string }>();
@@ -33,33 +35,55 @@ export default function IncidentReportPreviewScreen() {
   const [prevParamTab, setPrevParamTab] = useState(params.tab);
   if (params.tab !== prevParamTab) {
     setPrevParamTab(params.tab);
-    const newTab = params.tab === 'Result' ? 'Result' : 'Preview';
-    setActiveTab(newTab);
+    setActiveTab(params.tab === 'Result' ? 'Result' : 'Preview');
   }
-  const [expandedTier, setExpandedTier] = useState<string | null>('Tier Two');
+  const [expandedTier, setExpandedTier] = useState<string | null>(null);
   const [featureDetail, setFeatureDetail] = useState<MarketplaceDetailResponse | null>(null);
   const [, setIsSubscribing] = useState(false);
   const [subscribingTierKey, setSubscribingTierKey] = useState<string | null>(null);
   const [dataInsightVisible, setDataInsightVisible] = useState(false);
-  const [imageError, setImageError] = useState(false);
   const [isRatingModalVisible, setIsRatingModalVisible] = useState(false);
   const [cardHeight, setCardHeight] = useState<number>(120);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  const formatTierName = (tier: string) => {
-    const map: Record<string, string> = { '1': 'One', '2': 'Two', '3': 'Three' };
-    return tier
-      .split('_')
-      .map((w) => map[w] || w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-      .join(' ');
-  };
+  const loadFeature = useCallback(async (id?: string) => {
+    setIsLoading(true);
+    setLoadError(null);
+    try {
+      const targetId = await resolveMarketplaceFeatureId(id ?? params.featureId, isIncidentProduct);
+      if (!targetId) {
+        setFeatureDetail(null);
+        setLoadError('No marketplace product returned for this feature.');
+        return;
+      }
+
+      const detail = await getMarketplaceFeatureById(targetId);
+      setFeatureDetail(detail);
+      const sorted = sortMarketplaceTiers(detail.tiers ?? []);
+      setExpandedTier((prev) => {
+        if (prev && sorted.some((tier) => tier.tier === prev)) return prev;
+        return sorted[0]?.tier ?? null;
+      });
+    } catch (err: any) {
+      console.log('Error loading feature details:', err?.message || err);
+      setFeatureDetail(null);
+      setLoadError(err?.message || 'Failed to load feature details');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [params.featureId]);
+
+  useEffect(() => {
+    void loadFeature();
+  }, [loadFeature]);
 
   const handleRate = async (rating: number) => {
-    const targetId = featureDetail?.id || params.featureId;
+    const targetId = featureDetail?.id;
     if (!targetId) return;
     try {
       await rateMarketplaceFeature(targetId, { score: rating });
-      const data = await getMarketplaceFeatureById(targetId);
-      setFeatureDetail(data);
+      await loadFeature(targetId);
       Alert.alert('Success', 'Rating submitted successfully');
     } catch (err: any) {
       Alert.alert('Error', err.message || 'Failed to submit rating');
@@ -67,103 +91,34 @@ export default function IncidentReportPreviewScreen() {
     }
   };
 
-  const [isLoading, setIsLoading] = useState(true);
-
-  const loadFeature = useCallback(
-    async (id?: string) => {
-      setIsLoading(true);
-      try {
-        let targetId = id || params.featureId;
-        if (!targetId) {
-          const list = await getMarketplaceFeatures();
-          const anomalyTool = list.items?.find((item) =>
-            item.name.toLowerCase().includes('incident')
-          );
-          if (anomalyTool) {
-            targetId = anomalyTool.id;
-          }
-        }
-
-        if (targetId) {
-          const detail = await getMarketplaceFeatureById(targetId);
-          setFeatureDetail(detail);
-        }
-      } catch (err: any) {
-        console.log('Error loading feature details:', err?.message || err);
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [params.featureId]
-  );
-
-  useEffect(() => {
-    let isMounted = true;
-    async function init() {
-      setIsLoading(true);
-      try {
-        let targetId = params.featureId;
-        if (!targetId) {
-          const list = await getMarketplaceFeatures();
-          const anomalyTool = list.items?.find((item) =>
-            item.name.toLowerCase().includes('incident')
-          );
-          if (anomalyTool) {
-            targetId = anomalyTool.id;
-          }
-        }
-
-        if (targetId && isMounted) {
-          const detail = await getMarketplaceFeatureById(targetId);
-          if (isMounted) {
-            setFeatureDetail(detail);
-          }
-        }
-      } catch (err: any) {
-        console.log('Error loading feature details:', err?.message || err);
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
-    }
-    init();
-    return () => {
-      isMounted = false;
-    };
-  }, [params.featureId]);
-
-  const handleSubscribe = async (tierPayload: {
-    id?: string;
-    tier: string;
-    ai_feature_id?: string;
-    is_free?: boolean;
-    is_installed?: boolean;
-  }) => {
-    if (tierPayload.is_installed) {
-      router.push('/(protected)/(shared-screens)/ai-store/incident-report/summary');
+  const handleSubscribe = async (tier: MarketplaceTier) => {
+    if (tier.is_installed) {
+      setActiveTab('Result');
       return;
     }
 
-    if (!featureDetail?.id || !tierPayload.ai_feature_id) {
-      router.push('/(protected)/(shared-screens)/ai-store/incident-report/summary');
+    if (!featureDetail?.id || !tier.ai_feature_id) {
+      Alert.alert(
+        'Unable to activate',
+        'This tier is missing marketplace details. Pull to refresh or try again later.'
+      );
       return;
     }
 
-    setSubscribingTierKey(tierPayload.tier);
+    setSubscribingTierKey(tier.tier);
     setIsSubscribing(true);
     try {
       await subscribeMarketplaceFeature(featureDetail.id, {
-        ai_feature_id: tierPayload.ai_feature_id,
+        ai_feature_id: tier.ai_feature_id,
         period_months: 1,
       });
       Alert.alert(
         'Subscription Update',
-        tierPayload.is_free
+        tier.is_free
           ? 'Free feature tier activated successfully!'
           : 'Subscription quote created successfully.'
       );
-      loadFeature(featureDetail.id);
+      await loadFeature(featureDetail.id);
     } catch (err: any) {
       Alert.alert('Subscription Failed', err?.message || 'Failed to activate tier.');
     } finally {
@@ -172,14 +127,13 @@ export default function IncidentReportPreviewScreen() {
     }
   };
 
-  const tierOneApi = featureDetail?.tiers?.find(
-    (t) => t.tier.toLowerCase().includes('1') || t.tier.toLowerCase().includes('one')
+  const productBullets = useMemo(
+    () => splitFeatureBullets(featureDetail?.description),
+    [featureDetail?.description]
   );
-  const tierTwoApi = featureDetail?.tiers?.find(
-    (t) => t.tier.toLowerCase().includes('2') || t.tier.toLowerCase().includes('two')
-  );
-  const tierThreeApi = featureDetail?.tiers?.find(
-    (t) => t.tier.toLowerCase().includes('3') || t.tier.toLowerCase().includes('three')
+  const sortedTiers = useMemo(
+    () => sortMarketplaceTiers(featureDetail?.tiers ?? []),
+    [featureDetail?.tiers]
   );
 
   const scrollViewRef = useRef<ScrollView>(null);
@@ -193,7 +147,6 @@ export default function IncidentReportPreviewScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: activeTab === 'Result' ? '#F6F7F7' : '#FFFFFF' }}>
       <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1 }}>
-        {/* Header: matches Figma top 55px to 109px (height 54px) */}
         <View
           style={{
             height: 54,
@@ -224,9 +177,7 @@ export default function IncidentReportPreviewScreen() {
           <Pressable
             className="h-[30px] w-[30px] items-center justify-center"
             hitSlop={20}
-            onPress={() => {
-              setDataInsightVisible(true);
-            }}
+            onPress={() => setDataInsightVisible(true)}
             style={{ zIndex: 100 }}
           >
             <View pointerEvents="none">
@@ -248,6 +199,18 @@ export default function IncidentReportPreviewScreen() {
           >
             <ActivityIndicator size="large" color="#113E55" />
           </View>
+        ) : !featureDetail ? (
+          <View className="flex-1 items-center justify-center bg-[#F6F7F7] px-8">
+            <Text className="text-center text-sm font-inter-medium text-[#113E55]">
+              {loadError || 'Could not load preview.'}
+            </Text>
+            <Pressable
+              onPress={() => void loadFeature()}
+              className="mt-4 rounded-full bg-[#113E55] px-5 py-3"
+            >
+              <Text className="text-sm font-inter-medium text-white">Retry</Text>
+            </Pressable>
+          </View>
         ) : (
           <ScrollView
             ref={scrollViewRef}
@@ -256,9 +219,7 @@ export default function IncidentReportPreviewScreen() {
             contentContainerStyle={{ flexGrow: 1 }}
           >
             <Animated.View entering={FadeIn.duration(280)}>
-              {/* Top Hero Container with split background */}
               <View style={{ width: '100%', position: 'relative' }}>
-                {/* White background: spans full width of device, no border radius, extending to half of the anomaly detection card */}
                 <View
                   style={{
                     position: 'absolute',
@@ -270,7 +231,6 @@ export default function IncidentReportPreviewScreen() {
                   }}
                 />
 
-                {/* Illustration (Figma: width 302, height 274, centered) — 37px below tab */}
                 <View
                   style={{
                     width: 302,
@@ -281,40 +241,23 @@ export default function IncidentReportPreviewScreen() {
                     justifyContent: 'center',
                   }}
                 >
-                  {featureDetail?.display_picture_url && !imageError ? (
-                    <Image
-                      source={{ uri: getFeaturePictureUrl(featureDetail.display_picture_url) }}
-                      style={{ width: 302, height: 274 }}
-                      resizeMode="contain"
-                      onError={() => setImageError(true)}
-                    />
-                  ) : (
-                    <IncidentReportSvg width={302} height={274} />
-                  )}
+                  <IncidentReportSvg width={302} height={274} />
                 </View>
 
-                {/* Details Card: sitting over the split line between #FFFFFF and #F6F7F7 */}
                 <View
                   onLayout={(e) => {
                     const h = e.nativeEvent.layout.height;
-                    if (h && Math.abs(h - cardHeight) > 1) {
-                      setCardHeight(h);
-                    }
+                    if (h && Math.abs(h - cardHeight) > 1) setCardHeight(h);
                   }}
-                  className="bg-white rounded-[16px] p-4 gap-2 justify-between "
-                  style={{
-                    minHeight: 118,
-                    marginTop: 36,
-                    marginHorizontal: 20,
-                  }}
+                  className="justify-between gap-2 rounded-[16px] bg-white p-4"
+                  style={{ minHeight: 118, marginTop: 36, marginHorizontal: 20 }}
                 >
-                  {/* Title and Rating */}
-                  <View className="flex-row justify-between items-center">
+                  <View className="flex-row items-center justify-between">
                     <Text
                       allowFontScaling={false}
-                      className="text-[21.88px] font-ubuntu-semibold text-[#113E55] leading-[21.88px]"
+                      className="text-[21.88px] font-ubuntu-semibold leading-[21.88px] text-[#113E55]"
                     >
-                      {featureDetail?.name || 'Incident Report Insights'}
+                      {featureDetail.name || 'Incident Report Insights'}
                     </Text>
                     <Pressable
                       onPress={() => setIsRatingModalVisible(true)}
@@ -323,163 +266,84 @@ export default function IncidentReportPreviewScreen() {
                       <RatingStarIcon width={17} height={16} />
                       <Text
                         allowFontScaling={false}
-                        className="text-[21.88px] font-ubuntu-semibold text-[#6B7280] leading-[26px] text-center w-[39px]"
+                        className="w-[39px] text-center text-[21.88px] font-ubuntu-semibold leading-[26px] text-[#6B7280]"
                       >
-                        {featureDetail?.rating != null ? featureDetail.rating.toFixed(1) : '0.0'}
+                        {featureDetail.rating != null ? featureDetail.rating.toFixed(1) : '0.0'}
                       </Text>
                     </Pressable>
                   </View>
 
-                  {/* Description */}
                   <Text
                     allowFontScaling={false}
                     className="text-[11.2px] font-inter-regular text-[#878686]"
                   >
-                    {featureDetail?.description ||
+                    {featureDetail.description ||
                       'See which incidents dominate your estate, when they peak, and what the reports are saying.'}
                   </Text>
 
-                  {/* Stats */}
-                  <View className="flex-row items-center gap-2 mt-1">
-                    <View className="flex-row items-center ">
+                  <View className="mt-1 flex-row items-center gap-2">
+                    <View className="flex-row items-center">
                       <FeatureDownloadIcon width={13} height={13} />
                       <Text
                         allowFontScaling={false}
-                        className="text-[8.96px] font-inter-medium text-[#878686] px-1"
+                        className="px-1 text-[8.96px] font-inter-medium text-[#878686]"
                       >
-                        0
+                        {sortedTiers.filter((tier) => tier.is_installed).length}
                       </Text>
                     </View>
                     <View className="flex-row items-center">
                       <FeatureUsersIcon width={16} height={16} />
                       <Text
                         allowFontScaling={false}
-                        className="text-[8.96px] font-inter-medium text-[#878686] px-1"
+                        className="px-1 text-[8.96px] font-inter-medium text-[#878686]"
                       >
-                        {featureDetail?.rating_count ?? 0}
+                        {featureDetail.rating_count ?? 0}
                       </Text>
                     </View>
                   </View>
                 </View>
               </View>
 
-              {/* Lower Body Section on #F6F7F7 */}
-              <View className="flex-1 bg-[#F6F7F7] px-5 pt-[44px] pb-[100px]">
-                {/* Product Feature */}
-
+              <View className="flex-1 bg-[#F6F7F7] px-5 pb-[100px] pt-[44px]">
                 <View className="px-[17px]">
                   <Text
                     allowFontScaling={false}
-                    className="text-[14px] font-inter-medium text-[#113E55] mb-4 leading-[14px]"
-                  >
-                    Product Feature
-                  </Text>
-                </View>
-
-                <View className="gap-2 mb-[44px]">
-                  <View className="bg-white rounded-[16px] px-4 py-2 flex-row items-center gap-3  ">
-                    <View className="w-4 h-4 shrink-0 items-center justify-center">
-                      <Pf1Svg width={16} height={16} />
-                    </View>
-                    <Text
-                      allowFontScaling={false}
-                      className="text-[11.2px] font-inter-regular text-[#878686] flex-1 leading-[18px]"
-                    >
-                      Spot unusual activities early, so you can investigate before they become
-                      bigger issues.
-                    </Text>
-                  </View>
-
-                  <View className="bg-white rounded-[16px] px-4 py-2 flex-row items-center gap-3 ">
-                    <View className="w-4 h-4 shrink-0 items-center justify-center">
-                      <Pf2Svg width={16} height={16} />
-                    </View>
-                    <Text
-                      allowFontScaling={false}
-                      className="text-[11.2px] font-inter-regular text-[#878686] flex-1 leading-[18px]"
-                    >
-                      Instead of reviewing everything, instantly see the people or patterns that
-                      deserve your attention.
-                    </Text>
-                  </View>
-
-                  <View className="bg-white rounded-[16px] px-4 py-2 flex-row items-center gap-3">
-                    <View className="w-4 h-4 shrink-0 items-center justify-center">
-                      <Pf3Svg width={16} height={16} />
-                    </View>
-                    <Text
-                      allowFontScaling={false}
-                      className="text-[11.2px] font-inter-regular text-[#878686] flex-1 leading-[18px]"
-                    >
-                      {
-                        "No complicated reports. Get simple insights that help you understand what's happening and why."
-                      }
-                    </Text>
-                  </View>
-                </View>
-                <View className="px-[17px]">
-                  {/* Choose Subscription Plan */}
-                  <Text
-                    allowFontScaling={false}
-                    className="text-[14px] font-inter-medium text-[#113E55] mb-4 leading-[14px]"
+                    className="mb-4 text-[14px] font-inter-medium leading-[14px] text-[#113E55]"
                   >
                     Choose Subscription Plan
                   </Text>
                 </View>
 
-                {/* Tier cards */}
                 <View className="flex-col gap-6">
-                  <SubscriptionTierCard
-                    tierLabel={tierOneApi?.tier ? formatTierName(tierOneApi.tier) : 'Tier One'}
-                    subtitle="FREE"
-                    description="Instead of reviewing everything, instantly see the people or patterns that deserve your attention."
-                    expanded={expandedTier === 'Tier One'}
-                    onToggle={() =>
-                      setExpandedTier(expandedTier === 'Tier One' ? null : 'Tier One')
-                    }
-                    onActivate={() => handleSubscribe(tierOneApi || { tier: 'Tier One' })}
-                    isSubscribing={subscribingTierKey === (tierOneApi?.tier || 'Tier One')}
-                    isInstalled={!!tierOneApi?.is_installed}
-                    activeBenefitCount={3}
-                  />
-
-                  <SubscriptionTierCard
-                    tierLabel={tierTwoApi?.tier ? formatTierName(tierTwoApi.tier) : 'Tier Two'}
-                    subtitle={tierTwoApi?.name || 'Incident Insights In-house AI Review'}
-                    subtitleUppercase
-                    description={
-                      tierTwoApi?.description ||
-                      'Spot peak times and repeat locations before they become patterns.'
-                    }
-                    expanded={expandedTier === 'Tier Two'}
-                    onToggle={() =>
-                      setExpandedTier(expandedTier === 'Tier Two' ? null : 'Tier Two')
-                    }
-                    onActivate={() => handleSubscribe(tierTwoApi || { tier: 'Tier Two' })}
-                    isSubscribing={subscribingTierKey === (tierTwoApi?.tier || 'Tier Two')}
-                    isInstalled={!!tierTwoApi?.is_installed}
-                    activeBenefitCount={3}
-                  />
-
-                  <SubscriptionTierCard
-                    tierLabel={
-                      tierThreeApi?.tier ? formatTierName(tierThreeApi.tier) : 'Tier Three'
-                    }
-                    subtitle={tierThreeApi?.name || 'Incident Insights Third-Party AI Review'}
-                    subtitleUppercase
-                    description={
-                      tierThreeApi?.description ||
-                      'Spot peak times and repeat locations before they become patterns.'
-                    }
-                    expanded={expandedTier === 'Tier Three'}
-                    onToggle={() =>
-                      setExpandedTier(expandedTier === 'Tier Three' ? null : 'Tier Three')
-                    }
-                    onActivate={() => handleSubscribe(tierThreeApi || { tier: 'Tier Three' })}
-                    isSubscribing={subscribingTierKey === (tierThreeApi?.tier || 'Tier Three')}
-                    isInstalled={!!tierThreeApi?.is_installed}
-                    activeBenefitCount={5}
-                  />
+                  {sortedTiers.length === 0 ? (
+                    <Text className="text-center text-[11.2px] font-inter-regular text-[#878686]">
+                      No subscription tiers returned for this product.
+                    </Text>
+                  ) : (
+                    sortedTiers.map((tier) => {
+                      const tierKey = tier.tier;
+                      const benefits = splitFeatureBullets(tier.description);
+                      const description = tier.description?.trim() || '';
+                      const subtitle = formatTierSubtitle(tier);
+                      return (
+                        <SubscriptionTierCard
+                          key={tier.ai_feature_id || tierKey}
+                          tierLabel={formatTierLabel(tierKey)}
+                          subtitle={subtitle}
+                          subtitleUppercase={false}
+                          description={description}
+                          benefits={benefits}
+                          expanded={expandedTier === tierKey}
+                          onToggle={() =>
+                            setExpandedTier(expandedTier === tierKey ? null : tierKey)
+                          }
+                          onActivate={() => void handleSubscribe(tier)}
+                          isSubscribing={subscribingTierKey === tierKey}
+                          isInstalled={!!tier.is_installed}
+                        />
+                      );
+                    })
+                  )}
                 </View>
               </View>
             </Animated.View>
@@ -493,7 +357,12 @@ export default function IncidentReportPreviewScreen() {
         onSubmit={handleRate}
       />
 
-      <DataInsightModal visible={dataInsightVisible} onClose={() => setDataInsightVisible(false)} />
+      <DataInsightModal
+        visible={dataInsightVisible}
+        onClose={() => setDataInsightVisible(false)}
+        description={featureDetail?.description}
+        bullets={productBullets}
+      />
     </View>
   );
 }

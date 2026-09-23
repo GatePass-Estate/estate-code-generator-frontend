@@ -45,7 +45,8 @@ export type CategoryEdaSection = {
 export type IncidentOverviewEda = {
   stats?: Record<string, unknown>;
   categories?: CategoryEdaSection;
-  trends_detected?: string;
+  /** Narrative trend copy — string or list of trend blurbs from the API. */
+  trends_detected?: string | string[];
 };
 
 export type IncidentOverviewResponse = {
@@ -79,6 +80,8 @@ export type IncidentInhouseSummary = {
   category_eda?: CategoryEdaSection;
   /** TF-IDF/NMF topic-modelling payload for the date window. */
   topics?: Record<string, unknown>;
+  /** Optional UI meta from API (e.g. "2 mins Read"). */
+  read_time?: string;
 };
 
 export type IncidentLlmSummary = {
@@ -88,6 +91,10 @@ export type IncidentLlmSummary = {
   recommended_actions?: string[];
   data_limitations?: string;
   category_eda?: CategoryEdaSection;
+  /** Optional UI meta from API (e.g. "2 mins Read"). */
+  read_time?: string;
+  /** Extra LLM sections the API may return (shown in the accordion as-is). */
+  [key: string]: unknown;
 };
 
 export type IncidentSummaryResponse = {
@@ -95,6 +102,9 @@ export type IncidentSummaryResponse = {
   from_cache?: boolean;
   tier1?: IncidentInhouseSummary | null;
   tier2?: IncidentLlmSummary | null;
+  /** Optional UI meta when returned at the root. */
+  read_time?: string;
+  source_label?: string;
 };
 
 export type IncidentReportsListParams = IncidentDateParams & {

@@ -9,8 +9,6 @@ import Animated, {
 } from 'react-native-reanimated';
 import { BenefitsChevronIcon } from '@/src/assets/svgs';
 
-const DEFAULT_BENEFIT = 'Spot peak times and repeat locations before they become patterns.';
-
 const EXPAND = {
   duration: 300,
   easing: Easing.bezier(0.25, 0.1, 0.25, 1),
@@ -25,9 +23,8 @@ type SubscriptionTierCardProps = {
   onActivate: () => void;
   isSubscribing?: boolean;
   isInstalled?: boolean;
-  /** How many of the 5 benefit rows are active (highlighted). Default 3. */
-  activeBenefitCount?: number;
-  benefitText?: string;
+  /** Benefit rows from the API (tier description split). */
+  benefits?: string[];
   subtitleUppercase?: boolean;
 };
 
@@ -40,10 +37,11 @@ export default function SubscriptionTierCard({
   onActivate,
   isSubscribing = false,
   isInstalled = false,
-  activeBenefitCount = 3,
-  benefitText = DEFAULT_BENEFIT,
+  benefits,
   subtitleUppercase = false,
 }: SubscriptionTierCardProps) {
+  const benefitRows =
+    benefits && benefits.length > 0 ? benefits : description.trim() ? [description.trim()] : [];
   const chevronRotation = useSharedValue(expanded ? 90 : 0);
   const progress = useSharedValue(expanded ? 1 : 0);
   const measuredHeight = useSharedValue(0);
@@ -73,77 +71,55 @@ export default function SubscriptionTierCard({
 
   return (
     <View
-      className={`bg-white rounded-[16px] flex-col px-4 py-8 ${
+      className={`flex-col rounded-[16px] bg-white px-4 py-8 ${
         expanded ? 'border border-[#113E55]' : ''
       }`}
     >
       <View className="flex-col gap-4">
         <Text
           allowFontScaling={false}
-          className="text-[17.5px] font-inter-regular text-[#113E55] leading-[17.5px]"
+          className="text-[17.5px] font-inter-regular leading-[17.5px] text-[#113E55]"
         >
           {tierLabel}
         </Text>
 
-        <Text
-          allowFontScaling={false}
-          className={`text-sm font-inter-medium text-[#113E55] leading-[17.5px] ${
-            subtitleUppercase ? 'uppercase' : ''
-          }`}
-        >
-          {subtitle}
-        </Text>
-
-        <Text
-          allowFontScaling={false}
-          className="text-[11.2px] font-inter-normal text-[#878686] text-justify"
-        >
-          {description}
-        </Text>
-
-        <Pressable onPress={onToggle} className="flex-row items-center gap-1.5">
-          <Text allowFontScaling={false} className="text-[11.2px] font-inter-normal text-[#113E55]">
-            See benefits
+        {subtitle ? (
+          <Text
+            allowFontScaling={false}
+            className={`text-sm font-inter-medium leading-[17.5px] text-[#113E55] ${
+              subtitleUppercase ? 'uppercase' : ''
+            }`}
+          >
+            {subtitle}
           </Text>
-          <Animated.View style={chevronStyle}>
-            <BenefitsChevronIcon width={21} height={20} />
-          </Animated.View>
-        </Pressable>
-      </View>
+        ) : null}
 
-      <Animated.View style={bodyStyle}>
-        <View
-          className="gap-3 absolute left-0 right-0 top-0"
-          onLayout={onContentLayout}
-          pointerEvents={expanded ? 'auto' : 'none'}
-        >
-          {[0, 1, 2, 3, 4].map((index) => {
-            const isActive = index < activeBenefitCount;
-            return (
-              <View key={index} className="flex-row items-start gap-2">
-                <View
-                  className={`rounded-full p-[2px] mt-[2px] ${
-                    isActive ? 'bg-[#CEE5ED]' : 'bg-[#EFF1F3]'
-                  }`}
-                >
-                  <MaterialIcons name="check" size={12} color={isActive ? '#113E55' : '#A0AAB0'} />
-                </View>
-                <Text
-                  allowFontScaling={false}
-                  className={`text-[11.2px] font-inter-regular flex-1 leading-[16px] text-justify ${
-                    isActive ? 'text-[#8A9A9D]' : 'text-[#B5BFC4]'
-                  }`}
-                >
-                  {benefitText}
-                </Text>
-              </View>
-            );
-          })}
+        {description ? (
+          <Text
+            allowFontScaling={false}
+            className="text-justify text-[11.2px] font-inter-normal text-[#878686]"
+          >
+            {description}
+          </Text>
+        ) : null}
 
+        {benefitRows.length > 0 ? (
+          <Pressable onPress={onToggle} className="flex-row items-center gap-1.5">
+            <Text
+              allowFontScaling={false}
+              className="text-[11.2px] font-inter-normal text-[#113E55]"
+            >
+              See benefits
+            </Text>
+            <Animated.View style={chevronStyle}>
+              <BenefitsChevronIcon width={21} height={20} />
+            </Animated.View>
+          </Pressable>
+        ) : (
           <Pressable
-            disabled={isSubscribing || !expanded}
+            disabled={isSubscribing}
             onPress={onActivate}
-            className="w-full h-[48px] bg-[#113E55] rounded-full items-center justify-center mt-1"
+            className="mt-1 h-[48px] w-full items-center justify-center rounded-full bg-[#113E55]"
           >
             {isSubscribing ? (
               <ActivityIndicator size="small" color="white" />
@@ -153,8 +129,46 @@ export default function SubscriptionTierCard({
               </Text>
             )}
           </Pressable>
-        </View>
-      </Animated.View>
+        )}
+      </View>
+
+      {benefitRows.length > 0 ? (
+        <Animated.View style={bodyStyle}>
+          <View
+            className="absolute left-0 right-0 top-0 gap-3"
+            onLayout={onContentLayout}
+            pointerEvents={expanded ? 'auto' : 'none'}
+          >
+            {benefitRows.map((text, index) => (
+              <View key={`${index}-${text.slice(0, 24)}`} className="flex-row items-start gap-2">
+                <View className="mt-[2px] rounded-full bg-[#CEE5ED] p-[2px]">
+                  <MaterialIcons name="check" size={12} color="#113E55" />
+                </View>
+                <Text
+                  allowFontScaling={false}
+                  className="flex-1 text-justify text-[11.2px] font-inter-regular leading-[16px] text-[#8A9A9D]"
+                >
+                  {text}
+                </Text>
+              </View>
+            ))}
+
+            <Pressable
+              disabled={isSubscribing || !expanded}
+              onPress={onActivate}
+              className="mt-1 h-[48px] w-full items-center justify-center rounded-full bg-[#113E55]"
+            >
+              {isSubscribing ? (
+                <ActivityIndicator size="small" color="white" />
+              ) : (
+                <Text allowFontScaling={false} className="text-[14px] font-inter-medium text-white">
+                  {isInstalled ? 'Installed' : 'Activate'}
+                </Text>
+              )}
+            </Pressable>
+          </View>
+        </Animated.View>
+      ) : null}
     </View>
   );
 }

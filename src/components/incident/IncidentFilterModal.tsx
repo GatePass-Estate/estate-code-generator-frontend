@@ -76,10 +76,6 @@ function FilterChip({
   );
 }
 
-/**
- * Figma 6567:4222 — incident report filter sheet.
- * Shell matches CodeActionsSheet (freeze / extend / share): dark scrim + 40px top radius + 134×7 handle.
- */
 export default function IncidentFilterModal({
   visible,
   onClose,

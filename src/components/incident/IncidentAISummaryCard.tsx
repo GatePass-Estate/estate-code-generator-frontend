@@ -1,19 +1,22 @@
 import { ActivityIndicator, Image, Pressable, Text, View } from 'react-native';
 import images from '@/src/constants/images';
-import { AI_SUMMARY_PREVIEW } from './incidentMockData';
 import AiSummaryLockSvg from '@/src/assets/icons/ai-summary-lock.svg';
 import AiSummaryTimeSvg from '@/src/assets/icons/ai-summary-time.svg';
 import AiSummaryThirdPartySvg from '@/src/assets/icons/ai-summary-third-party.svg';
+import AiSummaryExpandSvg from '@/src/assets/icons/ai-summary-expand.svg';
 
 export type InsightMode = 'idle' | 'generated' | 'locked';
 
 type IncidentAISummaryCardProps = {
   mode: InsightMode;
+  /** Idle → generate; generated → expand overlay (also used by primary expand button). */
   onPress: () => void;
-  /** Figma 6603:2431 — Upgrade Plan CTA when locked. */
   onUpgradePress?: () => void;
-  /** Live executive summary when generated; falls back to mock preview. */
+  /** Live executive summary when generated. */
   summaryText?: string;
+  /** Chip labels from API — only shown when we have a report. */
+  readTimeLabel?: string | null;
+  sourceLabel?: string | null;
   isLoading?: boolean;
 };
 
@@ -21,9 +24,62 @@ function InsightLogo() {
   return <Image source={images.insightLogo} className="h-[36px] w-[33px]" resizeMode="contain" />;
 }
 
-function LockedSummaryCard({ onUpgradePress }: { onUpgradePress?: () => void }) {
+function MetaChips({
+  readTimeLabel,
+  sourceLabel,
+  onSourcePress,
+}: {
+  readTimeLabel: string;
+  sourceLabel: string;
+  onSourcePress?: () => void;
+}) {
   return (
-    /* Figma 6603:2431 — locked AI Summary paywall */
+    <View className="flex-row items-center gap-1">
+      <View className="h-5 flex-row items-center gap-1 rounded-lg bg-[#FFF8F5] p-1">
+        <AiSummaryTimeSvg width={12} height={12} />
+        <Text allowFontScaling={false} className="text-[8.96px] font-inter-medium text-[#F46036]">
+          {readTimeLabel}
+        </Text>
+      </View>
+      <Pressable
+        onPress={onSourcePress}
+        disabled={!onSourcePress}
+        className="h-5 flex-row items-center gap-1 rounded-lg bg-[#F4FFFE] p-1"
+        hitSlop={8}
+      >
+        <AiSummaryThirdPartySvg width={12} height={12} />
+        <Text allowFontScaling={false} className="text-[8.96px] font-inter-medium text-[#167A6F]">
+          {sourceLabel}
+        </Text>
+      </Pressable>
+    </View>
+  );
+}
+
+function ExpandButton({ onPress }: { onPress: () => void }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel="Expand AI Summary"
+      hitSlop={8}
+      className="p-2 bg-[#EFF1F1] rounded-full items-center justify-center"
+    >
+      <AiSummaryExpandSvg width={16} height={16} />
+    </Pressable>
+  );
+}
+
+function LockedSummaryCard({
+  onUpgradePress,
+  readTimeLabel,
+  sourceLabel,
+}: {
+  onUpgradePress?: () => void;
+  readTimeLabel: string;
+  sourceLabel: string;
+}) {
+  return (
     <View className="mt-4 w-full overflow-hidden rounded-[16px] bg-white px-5 pb-5 pt-6">
       <Text
         allowFontScaling={false}
@@ -32,22 +88,10 @@ function LockedSummaryCard({ onUpgradePress }: { onUpgradePress?: () => void }) 
         AI Summary
       </Text>
 
-      <View className="mt-2 flex-row items-center gap-1">
-        <View className="h-5 flex-row items-center gap-1 rounded-lg bg-[#FFF8F5] p-1">
-          <AiSummaryTimeSvg width={12} height={12} />
-          <Text allowFontScaling={false} className="text-[8.96px] font-inter-medium text-[#F46036]">
-            2 mins Read
-          </Text>
-        </View>
-        <View className="h-5 flex-row items-center gap-1 rounded-lg bg-[#F4FFFE] p-1">
-          <AiSummaryThirdPartySvg width={12} height={12} />
-          <Text allowFontScaling={false} className="text-[8.96px] font-inter-medium text-[#167A6F]">
-            Third Party
-          </Text>
-        </View>
+      <View className="mt-2">
+        <MetaChips readTimeLabel={readTimeLabel} sourceLabel={sourceLabel} />
       </View>
 
-      {/* Exact Figma 6603:2433 blurred copy — full card width */}
       <View className="relative mt-[17px] h-[70px] w-full overflow-hidden">
         <Image
           source={images.aiSummaryBlurredCopy}
@@ -75,52 +119,124 @@ function LockedSummaryCard({ onUpgradePress }: { onUpgradePress?: () => void }) 
   );
 }
 
+function LoadedSummaryCard({
+  summaryText,
+  onExpand,
+  readTimeLabel,
+  sourceLabel,
+}: {
+  summaryText?: string;
+  onExpand: () => void;
+  readTimeLabel: string;
+  sourceLabel: string;
+}) {
+  const preview = summaryText?.trim() || 'No summary available for this window.';
+
+  return (
+    <View className="mt-4 max-h-[199px] w-full overflow-hidden rounded-[16px] bg-white px-5 pb-5 pt-6">
+      <View className="flex-row items-center justify-between">
+        <View className="mr-3 flex-1">
+          <Text
+            allowFontScaling={false}
+            className="text-[17.5px] font-inter-regular leading-[17.5px] text-[#0A1F29]"
+          >
+            AI Summary
+          </Text>
+          <View className="mt-[7px]">
+            <MetaChips
+              readTimeLabel={readTimeLabel}
+              sourceLabel={sourceLabel}
+              onSourcePress={onExpand}
+            />
+          </View>
+        </View>
+        <ExpandButton onPress={onExpand} />
+      </View>
+
+      <Text
+        allowFontScaling={false}
+        numberOfLines={5}
+        ellipsizeMode="tail"
+        className="mt-[7px] text-[12px] font-inter-regular leading-5 text-[#8A9A9D]"
+      >
+        {preview}
+      </Text>
+    </View>
+  );
+}
+
+function EmptyGenerateCard({
+  onPress,
+  isLoading,
+}: {
+  onPress: () => void;
+  isLoading: boolean;
+}) {
+  return (
+    <Pressable
+      onPress={isLoading ? undefined : onPress}
+      disabled={isLoading}
+      accessibilityRole="button"
+      accessibilityLabel="Generate AI insight"
+      className="mt-4 h-[232px] w-full items-center justify-center overflow-hidden rounded-[16px] bg-[#F6F7F7]"
+    >
+      {isLoading ? (
+        <View className="w-[281px] items-center gap-3">
+          <ActivityIndicator size="large" color="#113E55" />
+          <Text
+            allowFontScaling={false}
+            className="text-center text-[11.2px] font-inter-regular leading-[normal] text-[#878686]"
+          >
+            Generating AI insight…
+          </Text>
+        </View>
+      ) : (
+        <View className="w-[281px] items-center">
+          <InsightLogo />
+          <Text
+            allowFontScaling={false}
+            className="mt-2.5 text-center text-[11.2px] font-inter-regular leading-[normal] text-[#878686]"
+          >
+            Tap to generate AI Insight on{'\n'}your report
+          </Text>
+        </View>
+      )}
+    </Pressable>
+  );
+}
+
 export default function IncidentAISummaryCard({
   mode,
   onPress,
   onUpgradePress,
   summaryText,
+  readTimeLabel,
+  sourceLabel,
   isLoading = false,
 }: IncidentAISummaryCardProps) {
-  const preview = summaryText?.trim() || AI_SUMMARY_PREVIEW;
+  const resolvedReadTime = readTimeLabel?.trim() || '2 mins Read';
+  const resolvedSource = sourceLabel?.trim() || 'Third Party';
 
   if (mode === 'locked' && !isLoading) {
-    return <LockedSummaryCard onUpgradePress={onUpgradePress} />;
+    return (
+      <LockedSummaryCard
+        onUpgradePress={onUpgradePress}
+        readTimeLabel={resolvedReadTime}
+        sourceLabel={resolvedSource}
+      />
+    );
   }
 
-  return (
-    <Pressable
-      onPress={isLoading ? undefined : onPress}
-      disabled={isLoading}
-      className="mx-auto mt-4 w-full items-center px-4"
-    >
-      <View className="h-[232px] w-full items-center justify-center overflow-hidden rounded-[16px] bg-[#F6F7F7]">
-        {isLoading ? (
-          <View className="w-[281px] items-center gap-3">
-            <ActivityIndicator size="large" color="#113E55" />
-            <Text className="text-center text-[11.2px] font-inter-regular leading-[16px] text-[#878686]">
-              Generating AI insight…
-            </Text>
-          </View>
-        ) : mode === 'generated' ? (
-          <View className="w-[281px] items-center">
-            <InsightLogo />
-            <Text className="mt-4 text-center text-[11.2px] font-inter-regular leading-[16px] text-[#878686]">
-              {preview}
-            </Text>
-            <Text className="mt-3 text-center text-[11.2px] font-inter-semibold text-[#113E55]">
-              Tap to expand
-            </Text>
-          </View>
-        ) : (
-          <View className="w-[281px] items-center">
-            <InsightLogo />
-            <Text className="mt-3 text-center text-[11.2px] font-inter-regular leading-[16px] text-[#878686]">
-              Tap to generate AI Insight on{'\n'}your report
-            </Text>
-          </View>
-        )}
-      </View>
-    </Pressable>
-  );
+  if (mode === 'generated' && !isLoading) {
+    return (
+      <LoadedSummaryCard
+        summaryText={summaryText}
+        onExpand={onPress}
+        readTimeLabel={resolvedReadTime}
+        sourceLabel={resolvedSource}
+      />
+    );
+  }
+
+  return <EmptyGenerateCard onPress={onPress} isLoading={isLoading} />;
 }

@@ -33,11 +33,10 @@ interface TickData {
   color: string;
 }
 
-/** Figma node 6355:2809 is 99×98 — geometry ratio-locked to that. */
-const FIGMA_SIZE = 99;
-const FIGMA_WHITE_RADIUS = 32.34; // inner body disc (6355:2868)
-const FIGMA_TICK_HEIGHT = 5.227;
-const FIGMA_TICK_WIDTH = 1.32;
+const DONUT_BASE_SIZE = 99;
+const DONUT_WHITE_RADIUS = 32.34;
+const DONUT_TICK_HEIGHT = 5.227;
+const DONUT_TICK_WIDTH = 1.32;
 /** Clear gap between white disc outer edge and tick inner tips */
 const WHITE_TO_TICK_GAP = 4;
 
@@ -93,7 +92,7 @@ const AnimatedTick = ({
 };
 
 const AnomalyDonutChart = ({
-  size = FIGMA_SIZE,
+  size = DONUT_BASE_SIZE,
   totalText = 'TOTAL USERS',
   countText = '50k',
   countColor = '#113E55',
@@ -104,11 +103,11 @@ const AnomalyDonutChart = ({
 }: AnomalyDonutChartProps) => {
   const progress = useSharedValue(0);
   const pulse = useSharedValue(1);
-  const scale = size / FIGMA_SIZE;
+  const scale = size / DONUT_BASE_SIZE;
 
-  const whiteRadius = FIGMA_WHITE_RADIUS * scale;
-  const tickHeight = FIGMA_TICK_HEIGHT * scale;
-  const tickWidth = FIGMA_TICK_WIDTH * scale;
+  const whiteRadius = DONUT_WHITE_RADIUS * scale;
+  const tickHeight = DONUT_TICK_HEIGHT * scale;
+  const tickWidth = DONUT_TICK_WIDTH * scale;
   const gap = WHITE_TO_TICK_GAP * scale;
   // Centerline so inner tip of each tick sits exactly `gap` outside the white disc
   const tickRadius = whiteRadius + gap + tickHeight / 2;
@@ -237,16 +236,19 @@ const AnomalyDonutChart = ({
         />
       ))}
 
-      <Animated.View className="items-center justify-center" style={centerTextStyle}>
+      <Animated.View
+        className="items-center justify-center"
+        style={[centerTextStyle, { transform: [{ translateY: 4 }] }]}
+      >
         <Text
-          allowFontScaling={false}
+    
           className="text-center text-[6.8px] font-inter-light leading-[6.8px] tracking-[0.3px] text-[#878686]"
         >
           {totalText}
         </Text>
         <Text
-          allowFontScaling={false}
-          className="text-center text-[21.88px] font-ubuntu-semibold leading-[21.88px]"
+     
+          className="mt-0.5 text-center text-[21.88px] font-ubuntu-semibold leading-[21.88px]"
           style={{ color: countColor }}
         >
           {countText}

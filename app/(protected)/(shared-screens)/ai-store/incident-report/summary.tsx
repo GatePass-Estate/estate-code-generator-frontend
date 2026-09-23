@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -7,9 +7,40 @@ import ValidationBackSvg from '@/src/assets/icons/validation-back.svg';
 import IncidentResultView from '@/src/components/incident/IncidentResultView';
 import DataInsightModal from '@/src/components/anomaly/modals/DataInsightModal';
 import AnimatedPillTabs from '@/src/components/mobile/AnimatedPillTabs';
+import {
+  getMarketplaceFeatureById,
+  resolveMarketplaceFeatureId,
+  splitFeatureBullets,
+} from '@/src/lib/api/aiMarketplace';
+import { MarketplaceDetailResponse } from '@/src/types/aiMarketplace';
 
 export default function IncidentReportSummaryScreen() {
-  const [dataInsightVisible, setDataInsightVisible] = React.useState(false);
+  const [dataInsightVisible, setDataInsightVisible] = useState(false);
+  const [featureDetail, setFeatureDetail] = useState<MarketplaceDetailResponse | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const id = await resolveMarketplaceFeatureId(undefined, (name) =>
+          name.toLowerCase().includes('incident')
+        );
+        if (!id || !mounted) return;
+        const detail = await getMarketplaceFeatureById(id);
+        if (mounted) setFeatureDetail(detail);
+      } catch {
+        if (mounted) setFeatureDetail(null);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const insightBullets = useMemo(
+    () => splitFeatureBullets(featureDetail?.description),
+    [featureDetail?.description]
+  );
 
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: '#F6F7F7' }}>
@@ -70,7 +101,12 @@ export default function IncidentReportSummaryScreen() {
         <IncidentResultView />
       </View>
 
-      <DataInsightModal visible={dataInsightVisible} onClose={() => setDataInsightVisible(false)} />
+      <DataInsightModal
+        visible={dataInsightVisible}
+        onClose={() => setDataInsightVisible(false)}
+        description={featureDetail?.description}
+        bullets={insightBullets}
+      />
     </SafeAreaView>
   );
 }

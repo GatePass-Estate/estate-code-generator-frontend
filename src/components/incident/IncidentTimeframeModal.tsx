@@ -9,7 +9,6 @@ type IncidentTimeframeModalProps = {
   onCustomSelect: () => void;
 };
 
-/** Figma 6578:4687 */
 const OPTIONS = ['Last Week', 'Last Month', 'Last Quarter', 'Custom'] as const;
 
 function rangeForOption(opt: string): { start: Date; end: Date } {
@@ -50,10 +49,6 @@ function TimeframeOption({
   );
 }
 
-/**
- * Figma 6578:4687 — Set Timeframe sheet.
- * Shell matches CodeActionsSheet (freeze / extend / share).
- */
 export default function IncidentTimeframeModal({
   visible,
   onClose,

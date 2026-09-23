@@ -37,10 +37,6 @@ function OrderOption({
   );
 }
 
-/**
- * Figma 6567:4258 — Select Order sheet.
- * Shell matches CodeActionsSheet (freeze / extend / share).
- */
 export default function IncidentOrderModal({
   visible,
   onClose,

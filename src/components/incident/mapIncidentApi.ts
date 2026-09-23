@@ -11,7 +11,7 @@ import type {
   IncidentCategory,
   IncidentCategoryId,
   IncidentRow,
-} from '@/src/components/incident/incidentMockData';
+} from '@/src/components/incident/incidentTypes';
 
 const PEAK_TIME_LABEL: Record<IncidentPeakTime, string> = {
   morning: 'Mornings',
@@ -19,7 +19,6 @@ const PEAK_TIME_LABEL: Record<IncidentPeakTime, string> = {
   evening_night: 'Evenings',
 };
 
-/** Fixed bubble slots on the Figma chart. */
 export const BUBBLE_CATEGORY_IDS: IncidentCategoryId[] = [
   'security',
   'medical',
@@ -143,10 +142,6 @@ type SlotAccum = {
   subcategories: { name: string; pct: number }[];
 };
 
-/**
- * Maps API category EDA into the six Figma bubble slots.
- * Dedupes by API category key, merges shared UI slots, recalculates share from counts when possible.
- */
 export function mapCategoryEdaToUi(
   section?: CategoryEdaSection | null,
   totalReports?: number
@@ -358,33 +353,54 @@ function parseWeekdayPct(text: string): number | null {
 }
 
 /**
- * Builds day/time trend cards from overview EDA.
- * When `useFallback` is false, missing stats yield 0 / empty copy (no mock text).
+ * Builds trend cards from overview EDA — day/time when present, every
+ * `trends_detected` blurb, and each category signal (not capped at 2).
  */
 export function mapTrendsFromEda(
-  eda: { stats?: Record<string, unknown>; trends_detected?: string } | null | undefined,
-  fallback: { day: { pct: number; body: string }; time: { pct: number; body: string } },
-  useFallback = true
+  eda:
+    | {
+        stats?: Record<string, unknown>;
+        categories?: CategoryEdaSection | null;
+        trends_detected?: string | string[];
+      }
+    | null
+    | undefined
 ): TrendCardModel[] {
+  const cards: TrendCardModel[] = [];
   const stats = (eda?.stats ?? {}) as Record<string, any>;
-  const narrative = eda?.trends_detected?.trim() || '';
-  const timelineRaw = findInStats(stats, 'timeline_summary');
-  const timeline =
-    typeof timelineRaw === 'string' && timelineRaw.trim() ? timelineRaw.trim() : narrative;
 
   const weekend = findInStats(stats, 'weekend_vs_weekday') ?? {};
   const weekdayCount = Number(weekend.weekday ?? weekend.weekdays ?? 0);
   const weekendCount = Number(weekend.weekend ?? weekend.weekends ?? 0);
   const dayTotal = weekdayCount + weekendCount;
-  const parsedWeekday = parseWeekdayPct(timeline) ?? parseWeekdayPct(narrative);
+
+  const trendBlurbs = normalizeTrendsDetected(eda?.trends_detected);
+  const timelineRaw = findInStats(stats, 'timeline_summary');
+  const timeline =
+    typeof timelineRaw === 'string' && timelineRaw.trim()
+      ? timelineRaw.trim()
+      : trendBlurbs[0] || '';
+
+  const parsedWeekday = parseWeekdayPct(timeline) ?? parseWeekdayPct(trendBlurbs.join(' '));
   const dayPct =
     dayTotal > 0
       ? Math.round((weekdayCount / dayTotal) * 100)
       : parsedWeekday != null
         ? parsedWeekday
-        : useFallback
-          ? fallback.day.pct
-          : 0;
+        : 0;
+
+  if (dayTotal > 0 || parsedWeekday != null) {
+    cards.push({
+      title: 'DAY\nDISTRIBUTION',
+      pct: dayPct,
+      unitLabel: 'INCIDENT',
+      body:
+        timeline ||
+        (dayTotal > 0
+          ? `${weekdayCount} weekdays · ${weekendCount} weekends`
+          : ''),
+    });
+  }
 
   const temporal = findInStats(stats, 'temporal_overview') ?? {};
   const hourBucket = temporal.hour_bucket ?? findInStats(stats, 'hour_bucket') ?? {};
@@ -393,29 +409,160 @@ export function mapTrendsFromEda(
   const night = Number(hourBucket.night ?? hourBucket.evening_night ?? 0);
   const timeTotal = morning + afternoon + night;
   const peak = Math.max(morning, afternoon, night, 0);
-  const timePct =
-    timeTotal > 0 ? Math.round((peak / timeTotal) * 100) : useFallback ? fallback.time.pct : 0;
+  const timePct = timeTotal > 0 ? Math.round((peak / timeTotal) * 100) : 0;
 
-  const emptyBody = 'No trend data for this window.';
-
-  return [
-    {
-      title: 'DAY\nDISTRIBUTION',
-      pct: dayPct,
-      unitLabel: 'INCIDENT',
-      body: timeline || (useFallback ? fallback.day.body : emptyBody),
-    },
-    {
+  if (timeTotal > 0) {
+    cards.push({
       title: 'TIME\nDISTRIBUTION',
       pct: timePct,
       unitLabel: 'INCIDENTS',
-      body:
-        narrative ||
-        (timeTotal > 0
-          ? `${morning} morning · ${afternoon} afternoon · ${night} night`
-          : useFallback
-            ? fallback.time.body
-            : emptyBody),
-    },
+      body: `${morning} morning · ${afternoon} afternoon · ${night} night`,
+    });
+  }
+
+  trendBlurbs.forEach((blurb, index) => {
+    const pctMatch = blurb.match(/(\d+(?:\.\d+)?)\s*%/);
+    cards.push({
+      title: trendBlurbs.length > 1 ? `TREND\n${index + 1}` : 'TRENDS\nDETECTED',
+      pct: pctMatch ? Math.round(Number(pctMatch[1])) : dayPct || timePct || 0,
+      unitLabel: 'INSIGHT',
+      body: blurb,
+    });
+  });
+
+  const categorySection = eda?.categories ?? null;
+  const categoryItems = [
+    ...rankedItems(categorySection),
+    ...Object.values(categorySection?.other_categories ?? {}),
   ];
+  const seenCategories = new Set<string>();
+  for (const item of categoryItems) {
+    const key = item.category.toLowerCase();
+    if (seenCategories.has(key)) continue;
+    seenCategories.add(key);
+    const label = formatCategoryLabel(item.category);
+    const sample = item.sample_reports?.find((s) => s?.trim())?.trim() || '';
+    const peakLabel = (item.peak_time || '').replace(/_/g, ' ');
+    cards.push({
+      title: formatTrendTitle(label),
+      pct: Math.round(Number(item.percentage_share) || 0),
+      unitLabel: Number(item.incident_count) === 1 ? 'INCIDENT' : 'INCIDENTS',
+      body:
+        sample ||
+        (peakLabel
+          ? `${item.incident_count} reports · peaks ${peakLabel}`
+          : `${item.incident_count} reports`),
+    });
+  }
+
+  return cards;
+}
+
+/** Keep trend titles on consistent 1–2 lines so first lines align across cards. */
+function formatTrendTitle(label: string): string {
+  const words = label.trim().toUpperCase().split(/\s+/).filter(Boolean);
+  if (words.length <= 1) return words[0] || '';
+  if (words.length === 2) return `${words[0]}\n${words[1]}`;
+  return `${words[0]}\n${words.slice(1).join(' ')}`;
+}
+
+function normalizeTrendsDetected(value: string | string[] | null | undefined): string[] {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item).trim()).filter(Boolean);
+  }
+  if (typeof value === 'string' && value.trim()) {
+    return [value.trim()];
+  }
+  return [];
+}
+
+const THEME_COLORS = ['#F46036', '#A67C52', '#C4A35A', '#1B998B', '#113E55'];
+
+export type ThemeCardModel = {
+  label: string;
+  title: string;
+  body: string;
+  pct: number;
+  color: string;
+};
+
+export type InhouseInsightModel = {
+  timelineSummary: string;
+  themes: ThemeCardModel[];
+};
+
+function asRecord(value: unknown): Record<string, any> | null {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, any>)
+    : null;
+}
+
+function themeBodyFromExamples(examples: unknown): string {
+  if (!Array.isArray(examples) || examples.length === 0) return '';
+  const titles = examples
+    .map((ex) => {
+      if (typeof ex === 'string') return ex.trim();
+      const row = asRecord(ex);
+      return (row?.title || row?.narrative_snippet || '').toString().trim();
+    })
+    .filter(Boolean)
+    .slice(0, 3);
+  if (!titles.length) return '';
+  if (titles.length === 1) return `${titles[0]} is the top event contributing to this theme`;
+  const head = titles.slice(0, -1).join(', ');
+  return `${head}, ${titles[titles.length - 1]} are the top events contributing to this theme`;
+}
+
+function normalizeThemeList(raw: unknown): any[] {
+  if (Array.isArray(raw)) return raw;
+  const obj = asRecord(raw);
+  if (!obj) return [];
+  if (Array.isArray(obj.themes)) return obj.themes;
+  if (Array.isArray(obj.items)) return obj.items;
+  return Object.values(obj).filter((v) => v && typeof v === 'object');
+}
+
+/** Maps tier1 `topics` payload into the In-house overlay (timeline + theme cards). */
+export function mapInhouseInsightFromTopics(
+  topics: Record<string, unknown> | null | undefined,
+  fallbackTimeline = ''
+): InhouseInsightModel {
+  const root = asRecord(topics) ?? {};
+  const human = asRecord(root.human_report) ?? asRecord(root.report) ?? root;
+  const timeline =
+    (typeof root.timeline_summary === 'string' && root.timeline_summary.trim()) ||
+    (typeof human.timeline_summary === 'string' && human.timeline_summary.trim()) ||
+    fallbackTimeline.trim() ||
+    '';
+
+  const list = normalizeThemeList(
+    human.themes ?? root.themes ?? root.topic_list ?? root.topics ?? human.topic_list
+  );
+
+  const themes: ThemeCardModel[] = list.slice(0, 5).map((raw, index) => {
+    const row = asRecord(raw) ?? {};
+    const pctRaw = Number(
+      row.share_percent ?? row.sharePercent ?? row.percentage ?? row.pct ?? row.weight ?? 0
+    );
+    const pct = Number.isFinite(pctRaw)
+      ? Math.round(pctRaw <= 1 && pctRaw > 0 ? pctRaw * 100 : pctRaw)
+      : 0;
+    const title =
+      (row.display_name || row.name || row.title || row.topic || `Theme ${index + 1}`)
+        .toString()
+        .trim() || `Theme ${index + 1}`;
+    const body =
+      themeBodyFromExamples(row.examples || row.example_incidents || row.sample_reports) ||
+      (row.description || row.summary || row.narrative || '').toString().trim() ||
+      'No sample events for this theme.';
+    return {
+      label: `Theme ${index + 1}`,
+      title,
+      body,
+      pct,
+      color: THEME_COLORS[index % THEME_COLORS.length],
+    };
+  });
+
+  return { timelineSummary: timeline, themes };
 }

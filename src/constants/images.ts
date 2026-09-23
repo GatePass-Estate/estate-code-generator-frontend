@@ -12,9 +12,7 @@ import logoutIcon from '../assets/images/logout.png';
 import securityBg from '../assets/images/security-bg.png';
 // @ts-ignore
 import brokenCard from '../assets/images/broken-card.png';
-// @ts-ignore — Figma 8054:6286 ice overlay (1024×683, natural alpha fade)
 import frozenIceOverlay from '../assets/images/frozen-ice-overlay-v3.png';
-// @ts-ignore — Figma 6603:2431 soft-blurred locked summary body (no hard BlurView edges)
 import aiSummaryBlurredCopy from '../assets/images/ai-summary-blurred-copy.png';
 
 const images = {

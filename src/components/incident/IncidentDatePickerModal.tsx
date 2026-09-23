@@ -20,7 +20,6 @@ function formatDisplay(date: Date | null) {
   });
 }
 
-/** Figma 6578:4758 (start) / 6578:4757 (end) */
 function DateField({
   placeholder,
   value,
@@ -51,10 +50,6 @@ function DateField({
   );
 }
 
-/**
- * Figma 6578:4753 — Set Date sheet.
- * Shell matches CodeActionsSheet; calendar matches validity CodeDateTimePicker / MonthCalendar.
- */
 export default function IncidentDatePickerModal({
   visible,
   onClose,
