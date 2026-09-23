@@ -357,7 +357,7 @@ function CategoryExpandSheet({
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable className="flex-1 justify-end bg-black/80" onPress={onClose}>
-                <Pressable className="h-[561px] rounded-t-[40px] bg-[#F6F7F7]" onPress={() => {}}>
+        <Pressable className="h-[561px] rounded-t-[40px] bg-[#F6F7F7]" onPress={() => {}}>
           <View className="h-[34px] items-center justify-center">
             <View className="h-[7px] w-[134px] rounded-[4px] bg-[#9B9797]" />
           </View>
@@ -515,7 +515,7 @@ export default function CategoryDistribution({
         </Pressable>
       </View>
 
-            <View className="relative w-full" style={{ height: chartAreaHeight }}>
+      <View className="relative w-full" style={{ height: chartAreaHeight }}>
         {BUBBLES.map((bubble) => {
           const category = catalog.find((item) => item.id === bubble.id);
           if (!category) return null;
@@ -552,11 +552,11 @@ export default function CategoryDistribution({
               )}
 
               {category.icon === 'more' ? (
-                                <View className="absolute inset-0 items-center justify-center" pointerEvents="none">
+                <View className="absolute inset-0 items-center justify-center" pointerEvents="none">
                   <MoreDotsIcon color={iconColor} size={bubble.size} />
                 </View>
               ) : showPct && bubble.size >= 54 ? (
-                                <View className="items-center gap-1">
+                <View className="items-center gap-1">
                   <CategoryIcon icon={category.icon} color={iconColor} size={iconSz} filled />
                   <Text
                     allowFontScaling={false}
@@ -567,7 +567,7 @@ export default function CategoryDistribution({
                   </Text>
                 </View>
               ) : showPct && bubble.size >= 40 ? (
-                                <View className="items-center justify-center gap-0.5 px-0.5">
+                <View className="items-center justify-center gap-0.5 px-0.5">
                   <CategoryIcon icon={category.icon} color="#F6F7F7" size={12} filled />
                   <Text
                     allowFontScaling={false}
@@ -580,7 +580,7 @@ export default function CategoryDistribution({
                   </Text>
                 </View>
               ) : showPct ? (
-                                <View className="items-center justify-center gap-0.5 px-0.5">
+                <View className="items-center justify-center gap-0.5 px-0.5">
                   <CategoryIcon icon={category.icon} color="#F6F7F7" size={iconSz} filled />
                   <Text
                     allowFontScaling={false}
@@ -605,7 +605,7 @@ export default function CategoryDistribution({
           );
         })}
 
-                <View className="absolute left-[107px] top-[77px] w-[48px] items-center">
+        <View className="absolute left-[107px] top-[77px] w-[48px] items-center">
           <Text
             allowFontScaling={false}
             className="text-center text-[8.96px] font-inter-medium text-[#878686]"

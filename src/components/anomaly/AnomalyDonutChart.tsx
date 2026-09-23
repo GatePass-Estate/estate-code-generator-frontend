@@ -240,14 +240,10 @@ const AnomalyDonutChart = ({
         className="items-center justify-center"
         style={[centerTextStyle, { transform: [{ translateY: 4 }] }]}
       >
-        <Text
-    
-          className="text-center text-[6.8px] font-inter-light leading-[6.8px] tracking-[0.3px] text-[#878686]"
-        >
+        <Text className="text-center text-[6.8px] font-inter-light leading-[6.8px] tracking-[0.3px] text-[#878686]">
           {totalText}
         </Text>
         <Text
-     
           className="mt-0.5 text-center text-[21.88px] font-ubuntu-semibold leading-[21.88px]"
           style={{ color: countColor }}
         >

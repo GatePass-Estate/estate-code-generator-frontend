@@ -47,32 +47,38 @@ export default function IncidentReportPreviewScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  const loadFeature = useCallback(async (id?: string) => {
-    setIsLoading(true);
-    setLoadError(null);
-    try {
-      const targetId = await resolveMarketplaceFeatureId(id ?? params.featureId, isIncidentProduct);
-      if (!targetId) {
-        setFeatureDetail(null);
-        setLoadError('No marketplace product returned for this feature.');
-        return;
-      }
+  const loadFeature = useCallback(
+    async (id?: string) => {
+      setIsLoading(true);
+      setLoadError(null);
+      try {
+        const targetId = await resolveMarketplaceFeatureId(
+          id ?? params.featureId,
+          isIncidentProduct
+        );
+        if (!targetId) {
+          setFeatureDetail(null);
+          setLoadError('No marketplace product returned for this feature.');
+          return;
+        }
 
-      const detail = await getMarketplaceFeatureById(targetId);
-      setFeatureDetail(detail);
-      const sorted = sortMarketplaceTiers(detail.tiers ?? []);
-      setExpandedTier((prev) => {
-        if (prev && sorted.some((tier) => tier.tier === prev)) return prev;
-        return sorted[0]?.tier ?? null;
-      });
-    } catch (err: any) {
-      console.log('Error loading feature details:', err?.message || err);
-      setFeatureDetail(null);
-      setLoadError(err?.message || 'Failed to load feature details');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [params.featureId]);
+        const detail = await getMarketplaceFeatureById(targetId);
+        setFeatureDetail(detail);
+        const sorted = sortMarketplaceTiers(detail.tiers ?? []);
+        setExpandedTier((prev) => {
+          if (prev && sorted.some((tier) => tier.tier === prev)) return prev;
+          return sorted[0]?.tier ?? null;
+        });
+      } catch (err: any) {
+        console.log('Error loading feature details:', err?.message || err);
+        setFeatureDetail(null);
+        setLoadError(err?.message || 'Failed to load feature details');
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [params.featureId]
+  );
 
   useEffect(() => {
     void loadFeature();

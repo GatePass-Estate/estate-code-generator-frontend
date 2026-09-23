@@ -165,13 +165,7 @@ function LoadedSummaryCard({
   );
 }
 
-function EmptyGenerateCard({
-  onPress,
-  isLoading,
-}: {
-  onPress: () => void;
-  isLoading: boolean;
-}) {
+function EmptyGenerateCard({ onPress, isLoading }: { onPress: () => void; isLoading: boolean }) {
   return (
     <Pressable
       onPress={isLoading ? undefined : onPress}

@@ -25,12 +25,7 @@ type AISummaryModalProps = {
 };
 
 /** Meta / nested fields that are not accordion copy. */
-const LLM_SECTION_SKIP = new Set([
-  'category_eda',
-  'read_time',
-  'source_label',
-  'detailed_insight',
-]);
+const LLM_SECTION_SKIP = new Set(['category_eda', 'read_time', 'source_label', 'detailed_insight']);
 
 function formatSectionTitle(key: string): string {
   return key.replace(/_/g, ' ').toUpperCase();
@@ -65,13 +60,7 @@ function sectionsFromLlmSummary(payload: IncidentLlmSummary | null | undefined) 
   });
 }
 
-function MetaChips({
-  readTimeLabel,
-  sourceLabel,
-}: {
-  readTimeLabel: string;
-  sourceLabel: string;
-}) {
+function MetaChips({ readTimeLabel, sourceLabel }: { readTimeLabel: string; sourceLabel: string }) {
   return (
     <View className="mb-6 flex-row items-center gap-1">
       <View className="h-5 flex-row items-center gap-1 rounded-lg bg-light-orange p-1">
@@ -144,10 +133,7 @@ function TimelineAccordion({
                       ))}
                     </View>
                   ) : (
-                    <Text
-                     
-                      className="text-caption font-inter-regular leading-4 text-[#878686]"
-                    >
+                    <Text className="text-caption font-inter-regular leading-4 text-[#878686]">
                       {section.body}
                     </Text>
                   )}
@@ -164,7 +150,10 @@ function TimelineAccordion({
 function ThemeReport({ themes }: { themes: ThemeCardModel[] }) {
   if (!themes.length) {
     return (
-      <Text allowFontScaling={false} className="text-caption font-inter-regular leading-5 text-[#878686]">
+      <Text
+        allowFontScaling={false}
+        className="text-caption font-inter-regular leading-5 text-[#878686]"
+      >
         No themes discovered for this window.
       </Text>
     );
@@ -215,10 +204,7 @@ function ThemeReport({ themes }: { themes: ThemeCardModel[] }) {
               >
                 {theme.title}
               </Text>
-              <Text
-                
-                className="text-caption font-inter-regular leading-[18px] text-[#878686]"
-              >
+              <Text className="text-caption font-inter-regular leading-[18px] text-[#878686]">
                 {theme.body}
               </Text>
             </View>
@@ -247,7 +233,10 @@ function ThirdPartyBody({ llmSummary }: { llmSummary?: IncidentLlmSummary | null
 
   if (!sections.length) {
     return (
-      <Text allowFontScaling={false} className="text-caption font-inter-regular leading-5 text-[#878686]">
+      <Text
+        allowFontScaling={false}
+        className="text-caption font-inter-regular leading-5 text-[#878686]"
+      >
         Summary is not available for this window.
       </Text>
     );
@@ -257,10 +246,7 @@ function ThirdPartyBody({ llmSummary }: { llmSummary?: IncidentLlmSummary | null
     <TimelineAccordion
       sections={sections}
       openSections={Object.fromEntries(
-        sections.map((section) => [
-          section.key,
-          openSections[section.key] ?? section.defaultOpen,
-        ])
+        sections.map((section) => [section.key, openSections[section.key] ?? section.defaultOpen])
       )}
       onToggle={(key) =>
         setOpenSections((prev) => {
@@ -288,7 +274,10 @@ function InHouseBody({
         >
           TIMELINE SUMMARY
         </Text>
-        <Text allowFontScaling={false} className="text-caption font-inter-regular leading-5 text-[#878686]">
+        <Text
+          allowFontScaling={false}
+          className="text-caption font-inter-regular leading-5 text-[#878686]"
+        >
           {timelineSummary?.trim() || 'No timeline summary for this window.'}
         </Text>
       </View>

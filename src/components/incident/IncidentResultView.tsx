@@ -286,13 +286,10 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
     summary?.tier1?.read_time?.trim() ||
     null;
   const summarySourceLabel =
-    summary?.source_label?.trim() ||
-    (summaryVariant === 'in_house' ? 'In house' : 'Third Party');
+    summary?.source_label?.trim() || (summaryVariant === 'in_house' ? 'In house' : 'Third Party');
   const inhouseInsight = useMemo(() => {
     const timelineFallback =
-      mapTrendsFromEda(overview?.eda)[0]?.body ||
-      summary?.tier1?.executive_summary ||
-      '';
+      mapTrendsFromEda(overview?.eda)[0]?.body || summary?.tier1?.executive_summary || '';
     return mapInhouseInsightFromTopics(
       (summary?.tier1?.topics as Record<string, unknown> | undefined) ?? null,
       timelineFallback
@@ -589,7 +586,7 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
         </View>
 
         <View className="mt-3 gap-2 rounded-[16px] bg-white p-4">
-                    <View className="h-7 w-full flex-row items-center">
+          <View className="h-7 w-full flex-row items-center">
             <Text
               allowFontScaling={false}
               className="text-[8.96px] font-inter-medium text-[#878686]"
@@ -643,7 +640,7 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
           >
             TRENDS DETECTED
           </Text>
-                    <ScrollView
+          <ScrollView
             horizontal
             decelerationRate="fast"
             snapToInterval={227}
@@ -670,11 +667,7 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
                   index % 2 === 0 ? (
                     <TrendDayIcon size={20} />
                   ) : (
-                    <MaterialCommunityIcons
-                      name="alert-circle-outline"
-                      size={28}
-                      color="#CEE5ED"
-                    />
+                    <MaterialCommunityIcons name="alert-circle-outline" size={28} color="#CEE5ED" />
                   )
                 }
               />
@@ -691,8 +684,7 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
                   key={`trend-dot-${index}`}
                   className="h-[6px] w-[6px] rounded-full"
                   style={{
-                    backgroundColor:
-                      trendIndex === index ? '#113E55' : 'rgba(17, 62, 85, 0.6)',
+                    backgroundColor: trendIndex === index ? '#113E55' : 'rgba(17, 62, 85, 0.6)',
                   }}
                 />
               ))}

@@ -394,11 +394,7 @@ export function mapTrendsFromEda(
       title: 'DAY\nDISTRIBUTION',
       pct: dayPct,
       unitLabel: 'INCIDENT',
-      body:
-        timeline ||
-        (dayTotal > 0
-          ? `${weekdayCount} weekdays · ${weekendCount} weekends`
-          : ''),
+      body: timeline || (dayTotal > 0 ? `${weekdayCount} weekdays · ${weekendCount} weekends` : ''),
     });
   }
 
