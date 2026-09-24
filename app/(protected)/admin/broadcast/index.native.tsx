@@ -8,13 +8,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
-  Modal,
   Platform,
   Pressable,
   ScrollView,
   Text,
   TextInput,
-  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -27,6 +25,7 @@ import {
 } from '@/src/types/broadcast';
 import { createBroadcast, isBroadcastEntitlementError } from '@/src/lib/api/broadcast';
 import { toCreateBroadcastPayload } from '@/src/lib/broadcastForm';
+import { useUpgradePromptStore } from '@/src/hooks/usePlan';
 
 type SheetName = 'userType' | 'priorityLevel' | 'duration' | null;
 
@@ -64,7 +63,7 @@ const BroadcastMobile = () => {
   const [errors, setErrors] = useState<BroadcastFormErrors>({});
   const [loading, setLoading] = useState(false);
   const [openSheet, setOpenSheet] = useState<SheetName>(null);
-  const [showUpgrade, setShowUpgrade] = useState(false);
+  const showUpgradePrompt = useUpgradePromptStore((s) => s.show);
 
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
@@ -132,7 +131,7 @@ const BroadcastMobile = () => {
 
       // The paid-plan gate is not a failure the admin can fix by retrying.
       if (isBroadcastEntitlementError(message)) {
-        setShowUpgrade(true);
+        showUpgradePrompt('admin_broadcast');
         return;
       }
 
@@ -312,26 +311,6 @@ const BroadcastMobile = () => {
           onClose={() => setOpenSheet(null)}
         />
       )}
-
-      <Modal visible={showUpgrade} transparent animationType="fade">
-        <View className="flex-1 bg-black/50 items-center justify-center px-6">
-          <View className="w-full bg-white rounded-[24px] px-5 py-7">
-            <Text className="text-primary font-ubuntu-semibold text-lg mb-3">
-              Broadcasts need an upgrade
-            </Text>
-            <Text className="text-[#3E424E] font-inter-light text-sm leading-6 mb-6">
-              Sending broadcasts is not included in your estate&apos;s current plan. Upgrade your
-              subscription to message residents, security and admins.
-            </Text>
-            <Pressable
-              onPress={() => setShowUpgrade(false)}
-              className="bg-primary rounded-[24px] h-11 items-center justify-center"
-            >
-              <Text className="text-[#F6F7F7] font-ubuntu-semibold text-sm">Got it</Text>
-            </Pressable>
-          </View>
-        </View>
-      </Modal>
     </SafeAreaView>
   );
 };
