@@ -38,13 +38,35 @@ const formatClock = (date: Date) => {
   return `${hours}:${minutes}`;
 };
 
+const HOUR_MS = 3_600_000;
+/** How far in the past a chosen start may be before it's rejected (it's then clamped to now). */
+const START_GRACE_MS = 30_000;
+
 const formatDurationHours = (start: Date | null, end: Date | null) => {
   if (!start || !end || end.getTime() <= start.getTime()) return null;
-  return Math.max(1, Math.round((end.getTime() - start.getTime()) / 3_600_000));
+  return Math.max(1, Math.round((end.getTime() - start.getTime()) / HOUR_MS));
 };
 
-/** Free-plan visitor codes (catalog GPF1) are issued by the backend with this default validity. */
-const DEFAULT_CODE_VALIDITY_MS = 3_600_000;
+type Period = { start: Date; end: Date };
+type PeriodResult = { period: Period } | { error: { title: string; message: string } };
+
+const resolveCustomPeriod = (start: Date | null, end: Date | null, now: Date): PeriodResult => {
+  if (!start || !end) {
+    return { error: { title: 'Missing duration', message: 'Select a start and end date/time.' } };
+  }
+  if (start.getTime() < now.getTime() - START_GRACE_MS) {
+    return {
+      error: { title: 'Invalid start time', message: 'Start date/time cannot be in the past.' },
+    };
+  }
+  const periodStart = start.getTime() < now.getTime() ? now : start;
+  if (end.getTime() <= periodStart.getTime()) {
+    return {
+      error: { title: 'Invalid end time', message: 'End date/time must be after the start.' },
+    };
+  }
+  return { period: { start: periodStart, end } };
+};
 
 const atCurrentClock = () => {
   const d = new Date();
@@ -130,9 +152,7 @@ export default function SetAccessCodeDurationScreen() {
 
   const durationHours = formatDurationHours(startDate, endDate);
   const windowTimesDiffer = formatClock(windowStart) !== formatClock(windowEnd);
-  const usesCustomPeriod = durationEnabled;
   const usesValidityWindow = windowEnabled && windowTimesDiffer;
-  // Without a custom period the backend issues the free 1-hour code, so any plan can generate.
   const canGenerate = Boolean(user_id && estate_id);
 
   const datePickerValue = useMemo(() => {
@@ -150,7 +170,7 @@ export default function SetAccessCodeDurationScreen() {
     setDurationEnabled(true);
     if (!startDate || !endDate) {
       const start = new Date();
-      const end = new Date(start.getTime() + 3_600_000);
+      const end = new Date(start.getTime() + HOUR_MS);
       setStartDate(start);
       setEndDate(end);
     }
@@ -166,29 +186,19 @@ export default function SetAccessCodeDurationScreen() {
   };
 
   const handleGenerate = useCallback(async () => {
-    if (!canGenerate || !user_id) return;
-    // Custom periods and daily windows are Advanced Code Management; re-check in case the plan
-    // changed after the toggles were switched on.
-    if ((usesCustomPeriod || usesValidityWindow) && !requestCodeAccess()) return;
+    if (!user_id || !estate_id) return;
+    // The plan may have changed since the toggles were switched on.
+    if ((durationEnabled || usesValidityWindow) && !requestCodeAccess()) return;
 
     const now = new Date();
-    let customPeriod: { start: Date; end: Date } | null = null;
-
-    if (usesCustomPeriod) {
-      if (!startDate || !endDate) {
-        Alert.alert('Missing duration', 'Select a start and end date/time.');
+    let customPeriod: Period | null = null;
+    if (durationEnabled) {
+      const resolved = resolveCustomPeriod(startDate, endDate, now);
+      if ('error' in resolved) {
+        Alert.alert(resolved.error.title, resolved.error.message);
         return;
       }
-      if (startDate.getTime() < now.getTime() - 30_000) {
-        Alert.alert('Invalid start time', 'Start date/time cannot be in the past.');
-        return;
-      }
-      const periodStart = startDate.getTime() < now.getTime() ? now : startDate;
-      if (endDate.getTime() <= periodStart.getTime()) {
-        Alert.alert('Invalid end time', 'End date/time must be after the start.');
-        return;
-      }
-      customPeriod = { start: periodStart, end: endDate };
+      customPeriod = resolved.period;
     }
 
     setGenerating(true);
@@ -196,7 +206,7 @@ export default function SetAccessCodeDurationScreen() {
       const result = await generateCode(
         {
           user_id,
-          estate_id: estate_id ?? '',
+          estate_id,
           visitor_fullname: visitorName,
           relationship_with_resident: relationship,
           gender,
@@ -223,16 +233,10 @@ export default function SetAccessCodeDurationScreen() {
         }
       }
 
-      const inviteStart = customPeriod?.start ?? now;
-      let inviteEnd = customPeriod?.end ?? null;
-      if (!inviteEnd) {
-        const issuedUntil = result.valid_until ? parseLogDate(result.valid_until) : null;
-        inviteEnd =
-          issuedUntil && !Number.isNaN(issuedUntil.getTime())
-            ? issuedUntil
-            : new Date(now.getTime() + DEFAULT_CODE_VALIDITY_MS);
-      }
-      const { formattedDate, timeframe } = formatInvitePeriodDisplay(inviteStart, inviteEnd);
+      const { formattedDate, timeframe } = formatInvitePeriodDisplay(
+        customPeriod?.start ?? now,
+        customPeriod?.end ?? parseLogDate(result.valid_until)
+      );
       router.push({
         pathname: '/invite',
         params: {
@@ -249,7 +253,7 @@ export default function SetAccessCodeDurationScreen() {
       setGenerating(false);
     }
   }, [
-    canGenerate,
+    durationEnabled,
     endDate,
     estate_id,
     estate_name,
@@ -260,7 +264,6 @@ export default function SetAccessCodeDurationScreen() {
     shouldSaveGuest,
     startDate,
     user_id,
-    usesCustomPeriod,
     usesValidityWindow,
     visitorName,
     windowEnd,
