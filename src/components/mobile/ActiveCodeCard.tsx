@@ -350,11 +350,7 @@ export default function ActiveCodeCard({
       <GestureDetector gesture={cardGesture}>
         <Animated.View className="h-[95px] w-full overflow-hidden rounded-2xl border border-[#CEE5ED] bg-[#F6F7F7]">
           {/* Name + code — visible at rest & on Freeze */}
-          <Animated.View
-            className="absolute top-[22px]"
-            style={identityStyle}
-            pointerEvents="none"
-          >
+          <Animated.View className="absolute top-[22px]" style={identityStyle} pointerEvents="none">
             <Text className="font-inter-regular text-[11.2px] leading-[14px] text-[#9B9797]">
               {guestName}
             </Text>
