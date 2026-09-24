@@ -20,13 +20,10 @@ import { useFeatureGate } from '@/src/hooks/usePlan';
 import { deleteCode } from '@/src/lib/api/codes';
 import { Codes } from '@/src/types/codes';
 
+/** Gesture / layout math — must stay numeric for Reanimated interpolations. */
 const ACTION_WIDTH = 68;
 const OPEN_THRESHOLD = 28;
 const VELOCITY_THRESHOLD = 480;
-const CARD_HEIGHT = 95;
-const CARD_RADIUS = 16;
-const ACTION_RADIUS = 8;
-/** Timer 71 + gap 16 + add 20 — Figma delete: timer@38, add@125 */
 const RING_WIDTH = 71;
 const CLUSTER_GAP = 16;
 const PLUS_SIZE = 20;
@@ -34,22 +31,8 @@ const TIMER_CLUSTER_WIDTH = RING_WIDTH + CLUSTER_GAP + PLUS_SIZE;
 const DELETE_TIMER_SCREEN_LEFT = 38;
 const RING_TOP = 12;
 const PLUS_TOP = RING_TOP + (RING_WIDTH - PLUS_SIZE) / 2;
-const NAME_TOP = 22;
-const NAME_FONT_SIZE = 11.2;
-const NAME_LINE_HEIGHT = 11.2;
-const CODE_FONT_SIZE = 34.18;
-const CODE_LINE_HEIGHT = 34.18;
 const SPRING = { damping: 22, stiffness: 280, mass: 0.65, overshootClamping: true };
 const FROZEN_TEXT = 'rgba(241, 248, 251, 0.6)';
-const FROZEN_BORDER = '#BEE4F5';
-const CARD_SHELL = {
-  width: '100%' as const,
-  height: CARD_HEIGHT,
-  minHeight: CARD_HEIGHT,
-  maxHeight: CARD_HEIGHT,
-  borderRadius: CARD_RADIUS,
-  overflow: 'hidden' as const,
-};
 
 type ActiveCodeCardProps = {
   item: Codes;
@@ -198,7 +181,7 @@ export default function ActiveCodeCard({
 
   const cardGesture = Gesture.Race(pan, Gesture.Exclusive(longPress, tap));
 
-  // Freeze open → name + code shift right (Figma 5123:2360)
+  // Freeze open → name + code shift right
   const identityStyle = useAnimatedStyle(() => ({
     opacity: interpolate(
       translateX.value,
@@ -209,7 +192,7 @@ export default function ActiveCodeCard({
     left: interpolate(translateX.value, [0, ACTION_WIDTH], [16, 88], Extrapolation.CLAMP),
   }));
 
-  // Delete open → timer @ 38, plus @ 125 (Figma 5165:5470). Card does not slide.
+  // Delete open → timer @ 38, plus @ 125. Card does not slide.
   const timerClusterStyle = useAnimatedStyle(() => {
     const closedLeft = Math.max(cardWidth - 16 - TIMER_CLUSTER_WIDTH, 16);
 
@@ -302,23 +285,10 @@ export default function ActiveCodeCard({
   );
 
   if (frozen) {
-    // Figma 8054:6286 / 8073:8227 —
-    // border: 1px solid #BEE4F5; radius 16;
-    // background: ice image cover + linear-gradient(106.59deg, #70B1EE 20.78%, rgba(230,242,255,.5) 51.23%, #62A5D7 89.52%)
     return (
-      <View
-        style={[
-          CARD_SHELL,
-          {
-            borderWidth: 1,
-            borderColor: FROZEN_BORDER,
-            backgroundColor: '#70B1EE',
-          },
-        ]}
-      >
+      <View className="h-[95px] max-h-[95px] min-h-[95px] w-full overflow-hidden rounded-2xl border border-[#BEE4F5] bg-[#70B1EE]">
         <GestureDetector gesture={Gesture.Exclusive(longPress, tap)}>
-          <View style={{ width: '100%', height: CARD_HEIGHT }}>
-            {/* Gradient behind — Figma first paints this, then ice on top */}
+          <View className="h-[95px] w-full">
             <LinearGradient
               colors={['#70B1EE', 'rgba(230, 242, 255, 0.5)', '#62A5D7']}
               locations={[0.2078, 0.5123, 0.8952]}
@@ -327,48 +297,31 @@ export default function ActiveCodeCard({
               pointerEvents="none"
               style={StyleSheet.absoluteFill}
             />
-            {/* Official Figma ice overlay (natural alpha fade L→R) */}
             <View pointerEvents="none" style={StyleSheet.absoluteFill}>
               <Image
                 source={images.frozenIceOverlay}
                 resizeMode="cover"
-                style={{ width: '100%', height: '100%' }}
+                className="h-full w-full"
               />
             </View>
 
-            <View style={{ position: 'absolute', left: 16, top: NAME_TOP }} pointerEvents="none">
+            <View className="absolute left-4 top-[22px]" pointerEvents="none">
               <Text
-                className="font-inter-regular"
-                style={{
-                  color: FROZEN_TEXT,
-                  fontSize: NAME_FONT_SIZE,
-                  lineHeight: NAME_LINE_HEIGHT,
-                  includeFontPadding: false,
-                }}
+                className="font-inter-regular text-[11.2px] leading-[14px]  text-[#F1F8FB]/60"
+                style={{ includeFontPadding: false }}
               >
                 {guestName}
               </Text>
               <Text
-                className="font-ubuntu-medium"
-                style={{
-                  color: FROZEN_TEXT,
-                  fontSize: CODE_FONT_SIZE,
-                  lineHeight: CODE_LINE_HEIGHT,
-                  includeFontPadding: false,
-                }}
+                className="font-ubuntu-medium text-[34.18px]  leading-[40px] text-[#F1F8FB]/60"
+                style={{ includeFontPadding: false }}
               >
                 {code.toUpperCase()}
               </Text>
             </View>
 
             <View
-              style={{
-                position: 'absolute',
-                right: 16 + PLUS_SIZE + CLUSTER_GAP,
-                top: RING_TOP,
-                flexDirection: 'row',
-                alignItems: 'center',
-              }}
+              className="absolute right-[52px] top-3 flex-row items-center"
               pointerEvents="none"
             >
               <AccessCodeRing expiresAt={expiresAt} startAt={startAt} dimmed />
@@ -378,16 +331,8 @@ export default function ActiveCodeCard({
 
         <View
           pointerEvents="none"
-          style={{
-            position: 'absolute',
-            right: 16,
-            top: PLUS_TOP,
-            zIndex: 20,
-            width: PLUS_SIZE,
-            height: PLUS_SIZE,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
+          className="absolute right-4 z-20 h-5 w-5 items-center justify-center"
+          style={{ top: PLUS_TOP }}
         >
           <CarbonAddFilledIcon color={FROZEN_TEXT} width={PLUS_SIZE} height={PLUS_SIZE} />
         </View>
@@ -398,63 +343,30 @@ export default function ActiveCodeCard({
   }
 
   return (
-    <View style={CARD_SHELL} onLayout={(e) => setCardWidth(e.nativeEvent.layout.width)}>
+    <View
+      className="h-[95px] max-h-[95px] min-h-[95px] w-full"
+      onLayout={(e) => setCardWidth(e.nativeEvent.layout.width)}
+    >
       <GestureDetector gesture={cardGesture}>
-        <Animated.View
-          style={{
-            width: '100%',
-            height: CARD_HEIGHT,
-            backgroundColor: '#F6F7F7',
-            borderRadius: CARD_RADIUS,
-            borderWidth: 1,
-            borderColor: '#CEE5ED',
-            overflow: 'hidden',
-          }}
-        >
+        <Animated.View className="h-[95px] w-full overflow-hidden rounded-2xl border border-[#CEE5ED] bg-[#F6F7F7]">
           {/* Name + code — visible at rest & on Freeze */}
           <Animated.View
-            style={[
-              {
-                position: 'absolute',
-                top: NAME_TOP,
-              },
-              identityStyle,
-            ]}
+            className="absolute top-[22px]"
+            style={identityStyle}
             pointerEvents="none"
           >
-            <Text
-              className="font-inter-regular text-[#9B9797]"
-              style={{
-                fontSize: NAME_FONT_SIZE,
-                lineHeight: NAME_LINE_HEIGHT,
-                includeFontPadding: false,
-              }}
-            >
+            <Text className="font-inter-regular text-[11.2px] leading-[14px] text-[#9B9797]">
               {guestName}
             </Text>
-            <Text
-              className="font-ubuntu-medium text-[#F46036]"
-              style={{
-                fontSize: CODE_FONT_SIZE,
-                lineHeight: CODE_LINE_HEIGHT,
-                includeFontPadding: false,
-              }}
-            >
+            <Text className="font-ubuntu-medium text-[34.18px] leading-[40px] text-[#F46036]">
               {code.toUpperCase()}
             </Text>
           </Animated.View>
 
           {/* Timer — plus sits in an overlay so it can open the drawer */}
           <Animated.View
-            style={[
-              {
-                position: 'absolute',
-                top: RING_TOP,
-                flexDirection: 'row',
-                alignItems: 'center',
-              },
-              timerClusterStyle,
-            ]}
+            className="absolute top-3 flex-row items-center"
+            style={timerClusterStyle}
             pointerEvents="none"
           >
             <AccessCodeRing expiresAt={expiresAt} startAt={startAt} />
@@ -465,24 +377,8 @@ export default function ActiveCodeCard({
       {/* Freeze overlays the left; the card’s 16px right edge stays visible */}
       <Animated.View
         pointerEvents={openAction === 'freeze' ? 'auto' : 'none'}
-        style={[
-          {
-            position: 'absolute',
-            left: 0,
-            top: 0,
-            bottom: 0,
-            width: ACTION_WIDTH,
-            zIndex: 15,
-            backgroundColor: '#1F62A6',
-            borderTopLeftRadius: ACTION_RADIUS,
-            borderTopRightRadius: 0,
-            borderBottomRightRadius: 0,
-            borderBottomLeftRadius: ACTION_RADIUS,
-            alignItems: 'center',
-            justifyContent: 'center',
-          },
-          freezeActionStyle,
-        ]}
+        className="absolute bottom-0 left-0 top-0 z-[15] w-[68px] items-center justify-center rounded-l-[8px] bg-[#1F62A6]"
+        style={freezeActionStyle}
       >
         <Pressable
           onPress={() => {
@@ -495,7 +391,7 @@ export default function ActiveCodeCard({
               openMenu();
             }
           }}
-          style={{ height: '100%', width: '100%', alignItems: 'center', justifyContent: 'center' }}
+          className="h-full w-full items-center justify-center"
         >
           <Text className="text-xs font-inter-semibold text-[#F6F7F7]">Freeze</Text>
         </Pressable>
@@ -504,28 +400,12 @@ export default function ActiveCodeCard({
       {/* Delete overlays the right; the card’s 16px left edge stays visible */}
       <Animated.View
         pointerEvents={openAction === 'delete' ? 'auto' : 'none'}
-        style={[
-          {
-            position: 'absolute',
-            right: 0,
-            top: 0,
-            bottom: 0,
-            width: ACTION_WIDTH,
-            zIndex: 15,
-            backgroundColor: '#F46036',
-            borderTopLeftRadius: 0,
-            borderTopRightRadius: ACTION_RADIUS,
-            borderBottomRightRadius: ACTION_RADIUS,
-            borderBottomLeftRadius: 0,
-            alignItems: 'center',
-            justifyContent: 'center',
-          },
-          deleteActionStyle,
-        ]}
+        className="absolute bottom-0 right-0 top-0 z-[15] w-[68px] items-center justify-center rounded-r-[8px] bg-[#F46036]"
+        style={deleteActionStyle}
       >
         <Pressable
           onPress={openDeleteConfirm}
-          style={{ height: '100%', width: '100%', alignItems: 'center', justifyContent: 'center' }}
+          className="h-full w-full items-center justify-center"
         >
           <Text className="text-xs font-inter-semibold text-[#F6F7F7]">Delete</Text>
         </Pressable>
@@ -533,18 +413,8 @@ export default function ActiveCodeCard({
 
       <Animated.View
         pointerEvents="none"
-        style={[
-          {
-            position: 'absolute',
-            top: PLUS_TOP,
-            width: PLUS_SIZE,
-            height: PLUS_SIZE,
-            zIndex: 20,
-            alignItems: 'center',
-            justifyContent: 'center',
-          },
-          plusStyle,
-        ]}
+        className="absolute z-20 h-5 w-5 items-center justify-center"
+        style={[{ top: PLUS_TOP }, plusStyle]}
       >
         <CarbonAddFilledIcon />
       </Animated.View>

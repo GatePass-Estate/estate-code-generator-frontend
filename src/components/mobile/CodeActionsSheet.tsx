@@ -94,7 +94,6 @@ export default function CodeActionsSheet({
 
           {view === 'menu' ? (
             <View className="flex-1 px-5">
-              {/* Figma 5165:6082 — icons y=84, labels y=132, History y=180 */}
               <View
                 className="flex-row items-start justify-center"
                 style={{ marginTop: 50, gap: 40 }}

@@ -71,6 +71,7 @@ export default function RootLayout() {
     [Inter.medium]: require('../src/assets/fonts/Inter_18pt-Medium.ttf'),
     [Inter.semiBold]: require('../src/assets/fonts/Inter_18pt-SemiBold.ttf'),
     [Inter.mediumItalic]: require('../src/assets/fonts/Inter_18pt-MediumItalic.ttf'),
+    [Inter.extraBold]: require('../src/assets/fonts/Inter_18pt-ExtraBold.ttf'),
   });
 
   useEffect(() => {

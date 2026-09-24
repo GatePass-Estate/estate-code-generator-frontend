@@ -46,10 +46,11 @@ module.exports = {
         'inter-medium': ['Inter_18pt-Medium', 'system-ui'],
         'inter-medium-italic': ['Inter_18pt-mediumItalic', 'system-ui'],
         'inter-semibold': ['Inter_18pt-SemiBold', 'system-ui'],
+        'inter-extrabold': ['Inter_18pt-ExtraBold', 'system-ui'],
         roboto: ['Roboto', 'system-ui'],
         UbuntuSans: ['"UbuntuSans"', 'system-ui'],
         UbuntuSansItalic: ['"UbuntuSansItalic"', 'system-ui'],
-        Inter: ['"Inter"', 'system-ui'],
+        Inter: ['Inter_18pt-Regular', 'system-ui'],
       },
 
       colors: {

@@ -315,7 +315,7 @@ const MyGuestMobile = () => {
                 )}
 
                 <View style={{ marginLeft: 10 }}>
-                  <Text className="font-Inter text-[16px] font-normal text-black">
+                  <Text className="font-inter-regular text-[16px] text-black">
                     {item.guest_name}
                   </Text>
 
