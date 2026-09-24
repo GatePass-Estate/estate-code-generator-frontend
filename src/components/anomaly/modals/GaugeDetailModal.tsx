@@ -23,6 +23,7 @@ export interface GaugeData {
   arcColor?: string;
   records: number;
   days: number;
+  description?: string;
   items: {
     title: string;
     description?: string;
@@ -139,7 +140,7 @@ export default function GaugeDetailModal({ visible, onClose, gaugeData, onNext, 
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
         <View
             style={[{
-                backgroundColor: '#FFFFFF',
+                backgroundColor: '#F9FAFA',
                 borderTopLeftRadius: 32,
                 borderTopRightRadius: 32,
                 paddingHorizontal: 24,
@@ -177,13 +178,13 @@ export default function GaugeDetailModal({ visible, onClose, gaugeData, onNext, 
               <View style={{ flexDirection: 'row', gap: 8 }}>
                 <Pressable
                   onPress={onPrev}
-                  style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#EFF1F3', alignItems: 'center', justifyContent: 'center' }}
+                  style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' }}
                 >
                   <MaterialIcons name="keyboard-arrow-left" size={20} color="#113E55" />
                 </Pressable>
                 <Pressable
                   onPress={onNext}
-                  style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#EFF1F3', alignItems: 'center', justifyContent: 'center' }}
+                  style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' }}
                 >
                   <MaterialIcons name="keyboard-arrow-right" size={20} color="#113E55" />
                 </Pressable>
@@ -195,13 +196,13 @@ export default function GaugeDetailModal({ visible, onClose, gaugeData, onNext, 
 
             {/* Stats Pills */}
             <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 12, marginBottom: 32 }}>
-              <View style={{ backgroundColor: '#EFF1F3', borderRadius: 24, paddingVertical: 8, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <View style={{ backgroundColor: '#E3EDF2', borderRadius: 24, paddingVertical: 8, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <MaterialIcons name="search" size={14} color="#1B998B" />
                 <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 13, color: '#1B998B' }}>
                   {gaugeData.records} records detected
                 </Text>
               </View>
-              <View style={{ backgroundColor: '#EFF1F3', borderRadius: 24, paddingVertical: 8, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <View style={{ backgroundColor: '#E3EDF2', borderRadius: 24, paddingVertical: 8, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <MaterialIcons name="history" size={14} color="#1B998B" />
                 <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 13, color: '#1B998B' }}>
                   Last {gaugeData.days}days
@@ -209,17 +210,31 @@ export default function GaugeDetailModal({ visible, onClose, gaugeData, onNext, 
               </View>
             </View>
 
+            {/* Description */}
+            {!!gaugeData.description && (
+              <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 13, color: '#8A9A9D', lineHeight: 18, marginBottom: 24 }}>
+                {gaugeData.description}
+              </Text>
+            )}
+
+            {/* Sub Category Title */}
+            <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-SemiBold', fontSize: 16, color: '#113E55', marginBottom: 16 }}>
+              Sub Category
+            </Text>
+
             {/* List Items */}
             <View style={{ gap: 12 }}>
               {gaugeData.items.map((item, idx) => (
                 <View key={idx} style={{ backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                  <VShapeSvg />
+                  <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#F9FAFA', alignItems: 'center', justifyContent: 'center' }}>
+                    <VShapeSvg width={24} height={24} />
+                  </View>
                   <View style={{ flex: 1 }}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                      <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 14, color: '#113E55' }}>
+                      <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 13, color: '#8A9A9D' }}>
                         {item.title}
                       </Text>
-                      <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 14, color: '#113E55' }}>
+                      <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 14, color: '#8A9A9D' }}>
                         {item.percentage}%
                       </Text>
                     </View>

@@ -50,16 +50,16 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
   });
   const [endDate, setEndDate] = useState<Date | null>(() => new Date());
   const [activeEvidenceDot, setActiveEvidenceDot] = useState(0);
-  const [sortAscending, setSortAscending] = useState(true);
+  const [sortAscending, setSortAscending] = useState(false);
   const [gaugesInView, setGaugesInView] = useState(false);
   const [gaugeSectionLayout, setGaugeSectionLayout] = useState<{ y: number; height: number } | null>(null);
   const [selectedGaugeIndex, setSelectedGaugeIndex] = React.useState<number | null>(null);
   const [paginationLimit, setPaginationLimit] = useState(5);
-  const [gaugeLimit, setGaugeLimit] = useState(4);
+  const [gaugeLimit, setGaugeLimit] = useState(3);
 
-  const [filterSeverity, setFilterSeverity] = useState<Severity>(null);
-  const [filterGender, setFilterGender] = useState<Gender>(null);
-  const [filterUserType, setFilterUserType] = useState<UserType>(null);
+  const [filterSeverity, setFilterSeverity] = useState<Severity[]>([]);
+  const [filterGender, setFilterGender] = useState<Gender[]>([]);
+  const [filterUserType, setFilterUserType] = useState<UserType[]>([]);
 
   const estate_id = useUserStore((state) => state.estate_id) || '';
   const userEstateName = useUserStore((state) => state.estate_name);
@@ -87,9 +87,9 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
     {
       from_date: startDate ? startDate.toISOString() : undefined,
       to_date: endDate ? endDate.toISOString() : undefined,
-      severity: filterSeverity ? [filterSeverity.toLowerCase()] : undefined,
-      gender: filterGender ? [filterGender] : undefined,
-      user_type: filterUserType ? [filterUserType.toLowerCase()] : undefined,
+      severity: filterSeverity.length > 0 ? filterSeverity.map(s => s.toLowerCase()) : undefined,
+      gender: filterGender.length > 0 ? filterGender : undefined,
+      user_type: filterUserType.length > 0 ? filterUserType.map(u => u.toLowerCase()) : undefined,
       sort_order: sortAscending ? 'asc' : 'desc',
       limit: paginationLimit,
       page: 1,
@@ -124,6 +124,7 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
 
       return {
         title: formattedTitle,
+        description: factor.description || 'What it does not do It does not block the gate, replace human judgment, or treat every unfamiliar',
         percentage,
         weightLabel: formattedWeight,
         color: themeColor,
@@ -193,13 +194,17 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
       >
       {/* Title & Export Row */}
       <View className="flex-row items-start justify-between mb-1.5">
-        <View>
+        <View style={{ flex: 1, alignItems: 'center' }}>
           <Text
-            className="font-ubuntu-medium text-[#113E55]"
+            allowFontScaling={false}
             style={{
-              fontSize: 27.34,
-              lineHeight: 27.34,
+              fontFamily: 'UbuntuSans-Bold',
+              fontWeight: '700',
+              fontSize: 34.18,
+              lineHeight: 34.18,
               letterSpacing: 0,
+              textAlign: 'center',
+              color: '#113E55'
             }}
           >
             Your Anomaly{'\n'}Detection{'\n'}Summary
@@ -966,7 +971,11 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
               return (
             <AnomalyRadarChart 
               size={300} 
-              labels={overview.anomaly_overview.spider_plot.map((p: any) => p.feature_name || '')}
+              labels={overview.anomaly_overview.spider_plot.map((p: any) => {
+                if (p.label) return p.label;
+                const raw = p.name || p.feature_name || 'Unknown';
+                return raw.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+              })}
               series={[
                 {
                   data: overview.anomaly_overview.spider_plot.map((p: any) => p.percentage || 0),
@@ -1010,16 +1019,25 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
             const topFactors = overview?.anomaly_overview?.top_contributing_factors;
             if (topFactors && topFactors.length > 0) {
               return topFactors.map((factor: any, index: number) => {
-                const colors = ['#F46036', '#1B998B', '#113E55', '#D97706'];
-                const bgs = ['rgba(244, 96, 54, 0.2)', 'rgba(27, 153, 139, 0.2)', 'rgba(17, 62, 85, 0.2)', 'rgba(217, 119, 6, 0.2)'];
-                const color = colors[index % colors.length];
-                const bg = bgs[index % bgs.length];
+                const PALETTE = [
+                  { text: '#F25B2A', bg: '#FFF0F0' },
+                  { text: '#113E55', bg: '#E3EDF2' },
+                  { text: '#D97706', bg: '#FEF3C7' },
+                  { text: '#1B998B', bg: '#E5F5F3' },
+                  { text: '#7C3AED', bg: '#F3E8FF' },
+                  { text: '#78350F', bg: '#F0E6E1' },
+                ];
+                const colorSet = PALETTE[index % PALETTE.length];
 
                 return (
-                  <View key={`factor-${index}`} style={{ flexDirection: 'row', alignItems: 'center', height: 34, paddingHorizontal: 14, borderRadius: 17, backgroundColor: bg, gap: 8 }}>
-                    <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: color }} />
-                    <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 11.5, color: color }}>
-                      {factor.feature_name?.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') || 'Unknown'}
+                  <View key={`factor-${index}`} style={{ flexDirection: 'row', alignItems: 'center', height: 34, paddingHorizontal: 14, borderRadius: 17, backgroundColor: colorSet.bg, gap: 8 }}>
+                    <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: colorSet.text }} />
+                    <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 11.5, color: colorSet.text }}>
+                      {(() => {
+                        if (factor.label) return factor.label;
+                        const raw = factor.name || factor.feature_name || 'Unknown';
+                        return raw.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                      })()}
                     </Text>
                   </View>
                 );
@@ -1037,19 +1055,22 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
           {gaugeList.length > 0 ? (
             <>
               {gaugeList.slice(0, gaugeLimit).map((gauge, index) => (
-                <Pressable key={`gauge-${index}`} onPress={() => setSelectedGaugeIndex(index)} style={{ width: '100%', minHeight: 136, backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, justifyContent: 'space-between', flexDirection: 'column', alignSelf: 'center', marginBottom: 12, borderWidth: 1, borderColor: '#EFF1F3' }}>
-                  {/* Top Row: Title */}
-                  <View className="flex-row items-center gap-2" style={{ marginLeft: 16 }}>
+                <Pressable key={`gauge-${index}`} onPress={() => setSelectedGaugeIndex(index)} style={{ width: '100%', minHeight: 180, backgroundColor: '#FFFFFF', borderRadius: 24, padding: 24, alignSelf: 'center', marginBottom: 12, borderWidth: 1, borderColor: '#EFF1F3' }}>
+                  {/* Gauge Centered */}
+                  <View style={{ alignItems: 'center', marginBottom: 24 }}>
+                    <SemiCircleGauge percentage={gauge.percentage} color={gauge.arcColor || gauge.color} size={150} animate={gaugesInView} />
+                  </View>
+                  
+                  {/* Title */}
+                  <View className="flex-row items-center gap-2 mb-2">
                     <View className="w-2 h-2 rounded-full" style={{ backgroundColor: gauge.color }} />
-                    <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 14, lineHeight: 14, color: '#0A1F29' }}>{gauge.title}</Text>
+                    <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 16, color: '#0A1F29' }}>{gauge.title}</Text>
                   </View>
-                  {/* Bottom Row: Percentage and Gauge */}
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', width: '100%' }}>
-                    <Text allowFontScaling={false} style={{ fontFamily: 'UbuntuSans-Medium', fontSize: 34.18, lineHeight: 34.18, letterSpacing: 0, color: '#0A1F29', marginBottom: -4, marginLeft: 16 }}>{gauge.weightLabel}</Text>
-                    <View style={{ position: 'relative', top: 4 }}>
-                      <SemiCircleGauge percentage={gauge.percentage} color={gauge.arcColor || gauge.color} size={130} animate={gaugesInView} />
-                    </View>
-                  </View>
+
+                  {/* Description */}
+                  <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 13, color: '#8A9A9D', lineHeight: 18 }}>
+                    {gauge.description}
+                  </Text>
                 </Pressable>
               ))}
               {gaugeList.length > gaugeLimit && (

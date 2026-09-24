@@ -1,36 +1,44 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Pressable, Modal, StyleSheet, Dimensions, SafeAreaView } from 'react-native';
+import { View, Text, Pressable, Modal, StyleSheet } from 'react-native';
 import { BlurView } from 'expo-blur';
 
-export type Severity = 'Low' | 'Medium' | 'High' | null;
-export type Gender = 'Female' | 'Male' | 'Prefer not to say' | null;
-export type UserType = 'Guest' | 'Resident' | null;
+export type Severity = 'Low' | 'Medium' | 'High';
+export type Gender = 'Female' | 'Male' | 'Prefer not to say';
+export type UserType = 'Guest' | 'Resident';
 
 interface FilterModalProps {
   visible: boolean;
   onClose: () => void;
-  onApply: (severity: Severity, gender: Gender, userType: UserType) => void;
-  currentSeverity: Severity;
-  currentGender: Gender;
-  currentUserType: UserType;
+  onApply: (severity: Severity[], gender: Gender[], userType: UserType[]) => void;
+  currentSeverity: Severity[];
+  currentGender: Gender[];
+  currentUserType: UserType[];
 }
 
 export default function FilterModal({ visible, onClose, onApply, currentSeverity, currentGender, currentUserType }: FilterModalProps) {
-  const [selectedSeverity, setSelectedSeverity] = useState<Severity>(currentSeverity);
-  const [selectedGender, setSelectedGender] = useState<Gender>(currentGender);
-  const [selectedUserType, setSelectedUserType] = useState<UserType>(currentUserType);
+  const [selectedSeverity, setSelectedSeverity] = useState<Severity[]>(currentSeverity || []);
+  const [selectedGender, setSelectedGender] = useState<Gender[]>(currentGender || []);
+  const [selectedUserType, setSelectedUserType] = useState<UserType[]>(currentUserType || []);
 
   useEffect(() => {
     if (visible) {
-      setSelectedSeverity(currentSeverity);
-      setSelectedGender(currentGender);
-      setSelectedUserType(currentUserType);
+      setSelectedSeverity(currentSeverity || []);
+      setSelectedGender(currentGender || []);
+      setSelectedUserType(currentUserType || []);
     }
   }, [visible, currentSeverity, currentGender, currentUserType]);
 
   const severities: Severity[] = ['Low', 'Medium', 'High'];
   const genders: Gender[] = ['Female', 'Male', 'Prefer not to say'];
   const userTypes: UserType[] = ['Guest', 'Resident'];
+
+  const toggleSelection = (item: any, selectedArray: any[], setArray: any) => {
+    if (selectedArray.includes(item)) {
+      setArray(selectedArray.filter(i => i !== item));
+    } else {
+      setArray([...selectedArray, item]);
+    }
+  };
 
   const Pill = ({ label, isSelected, onPress }: { label: string, isSelected: boolean, onPress: () => void }) => (
     <Pressable
@@ -41,6 +49,7 @@ export default function FilterModal({ visible, onClose, onApply, currentSeverity
         paddingHorizontal: 16,
         borderRadius: 24,
         marginRight: 10,
+        marginBottom: 10,
       }}
     >
       <Text
@@ -98,9 +107,9 @@ export default function FilterModal({ visible, onClose, onApply, currentSeverity
               {severities.map(s => (
                 <Pill
                   key={s}
-                  label={s!}
-                  isSelected={selectedSeverity === s}
-                  onPress={() => setSelectedSeverity(selectedSeverity === s ? null : s)}
+                  label={s}
+                  isSelected={selectedSeverity.includes(s)}
+                  onPress={() => toggleSelection(s, selectedSeverity, setSelectedSeverity)}
                 />
               ))}
             </View>
@@ -117,9 +126,9 @@ export default function FilterModal({ visible, onClose, onApply, currentSeverity
               {genders.map(g => (
                 <Pill
                   key={g}
-                  label={g!}
-                  isSelected={selectedGender === g}
-                  onPress={() => setSelectedGender(selectedGender === g ? null : g)}
+                  label={g}
+                  isSelected={selectedGender.includes(g)}
+                  onPress={() => toggleSelection(g, selectedGender, setSelectedGender)}
                 />
               ))}
             </View>
@@ -136,9 +145,9 @@ export default function FilterModal({ visible, onClose, onApply, currentSeverity
               {userTypes.map(u => (
                 <Pill
                   key={u}
-                  label={u!}
-                  isSelected={selectedUserType === u}
-                  onPress={() => setSelectedUserType(selectedUserType === u ? null : u)}
+                  label={u}
+                  isSelected={selectedUserType.includes(u)}
+                  onPress={() => toggleSelection(u, selectedUserType, setSelectedUserType)}
                 />
               ))}
             </View>

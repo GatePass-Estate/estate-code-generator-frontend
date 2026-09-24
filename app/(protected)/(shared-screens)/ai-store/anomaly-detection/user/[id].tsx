@@ -16,7 +16,7 @@ import { useUserStore } from '@/src/lib/stores/userStore';
 import { useAnomalyCaseDemographic, useAnomalyCaseHistory, useAnomalyCaseSummary, useAnomalyCaseResults } from '@/src/hooks/useAnomalyQueries';
 
 const GaugeCardsSection = React.memo(({ gaugeList }: { gaugeList: any[] }) => {
-  const [gaugeLimit, setGaugeLimit] = useState(4);
+  const [gaugeLimit, setGaugeLimit] = useState(3);
   const [selectedGaugeIndex, setSelectedGaugeIndex] = useState<number | null>(null);
 
   return (
@@ -25,23 +25,29 @@ const GaugeCardsSection = React.memo(({ gaugeList }: { gaugeList: any[] }) => {
         {gaugeList.length > 0 ? (
           <>
             {gaugeList.slice(0, gaugeLimit).map((gauge: any, index: number) => (
-              <Pressable key={`gauge-${index}`} onPress={() => setSelectedGaugeIndex(index)} style={{ width: '100%', minHeight: 136, backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, justifyContent: 'space-between', flexDirection: 'column', alignSelf: 'center', marginBottom: 12, borderWidth: 1, borderColor: '#EFF1F3' }}>
-                {/* Top Row: Title */}
-                <View className="flex-row items-center gap-2" style={{ marginLeft: 16 }}>
+              <Pressable key={`gauge-${index}`} onPress={() => setSelectedGaugeIndex(index)} style={{ width: '100%', minHeight: 200, backgroundColor: '#FFFFFF', borderRadius: 16, padding: 20, flexDirection: 'column', alignItems: 'center', marginBottom: 12, borderWidth: 1, borderColor: '#EFF1F3' }}>
+                {/* Gauge Area with Value Inside */}
+                <View style={{ position: 'relative', top: 4, marginBottom: 12 }}>
+                  <SemiCircleGauge percentage={gauge.percentage} color={gauge.arcColor || gauge.color} size={150} animate={true} />
+                  <View style={{ position: 'absolute', bottom: 10, left: 0, right: 0, alignItems: 'center' }}>
+                    <Text allowFontScaling={false} style={{ fontFamily: 'UbuntuSans-Medium', fontSize: 34.18, lineHeight: 34.18, letterSpacing: 0, color: '#0A1F29' }}>{gauge.weightLabel}</Text>
+                  </View>
+                </View>
+                {/* Title */}
+                <View className="flex-row items-center justify-center gap-2 mb-2 w-full">
                   <View className="w-2 h-2 rounded-full" style={{ backgroundColor: gauge.color }} />
                   <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 14, lineHeight: 14, color: '#0A1F29' }}>{gauge.title}</Text>
                 </View>
-                {/* Bottom Row: Percentage and Gauge */}
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', width: '100%' }}>
-                  <Text allowFontScaling={false} style={{ fontFamily: 'UbuntuSans-Medium', fontSize: 34.18, lineHeight: 34.18, letterSpacing: 0, color: '#0A1F29', marginBottom: -4, marginLeft: 16 }}>{gauge.weightLabel}</Text>
-                  <View style={{ position: 'relative', top: 4 }}>
-                    <SemiCircleGauge percentage={gauge.percentage} color={gauge.arcColor || gauge.color} size={130} animate={true} />
-                  </View>
-                </View>
+                {/* Description */}
+                {gauge.description ? (
+                  <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 12, color: '#8A9A9D', textAlign: 'center', marginTop: 4 }}>
+                    {gauge.description}
+                  </Text>
+                ) : null}
               </Pressable>
             ))}
             {gaugeList.length > gaugeLimit ? (
-              <Pressable onPress={() => setGaugeLimit(l => l + 4)} style={{ alignItems: 'center', paddingVertical: 12 }}>
+              <Pressable onPress={() => setGaugeLimit(l => l + 3)} style={{ alignItems: 'center', paddingVertical: 12 }}>
                 <Text allowFontScaling={false} style={{ fontFamily: 'UbuntuSans-SemiBold', fontSize: 14, color: '#113E55' }}>Load More</Text>
               </Pressable>
             ) : null}
@@ -132,6 +138,7 @@ export default function AnomalyDetectionUserDetailsScreen() {
 
       return {
         title: formattedTitle,
+        description: factor.description || '',
         percentage,
         weightLabel: formattedWeight,
         color: themeColor,
@@ -187,6 +194,39 @@ export default function AnomalyDetectionUserDetailsScreen() {
     ).start();
   }, [pulseAnim]);
 
+  const [profilePicUri, setProfilePicUri] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchPicture() {
+      if (!demo?.user_id) return;
+      try {
+        const { getUserDocumentViewUri } = require('@/src/lib/api/userDocuments');
+        
+        try {
+          const profilePic = await getUserDocumentViewUri(demo.user_id, 'profile_picture');
+          if (profilePic) {
+            setProfilePicUri(profilePic);
+            return;
+          }
+        } catch (e) {
+          // ignore error and try id_card
+        }
+
+        try {
+          const idCard = await getUserDocumentViewUri(demo.user_id, 'id_card');
+          if (idCard) {
+            setProfilePicUri(idCard);
+          }
+        } catch (e) {
+          // ignore
+        }
+      } catch (err) {
+        console.warn('Failed to load profile picture', err);
+      }
+    }
+    fetchPicture();
+  }, [demo?.user_id]);
+
   return (
     <SafeAreaView
       style={[sharedStyles.container, { backgroundColor: '#F6F7F7', paddingHorizontal: 16 }]}
@@ -240,9 +280,9 @@ export default function AnomalyDetectionUserDetailsScreen() {
                 </Svg>
               </Animated.View>
               <View style={{ backgroundColor: '#EEF0F2', borderRadius: 44, padding: 5 }}>
-                {demo.avatar_url ? (
+                {demo.avatar_url || profilePicUri ? (
                   <Image 
-                    source={{ uri: demo.avatar_url }} 
+                    source={{ uri: demo.avatar_url || profilePicUri! }} 
                     style={{ width: 78, height: 78, borderRadius: 39 }} 
                   />
                 ) : isFemale ? (
@@ -421,7 +461,7 @@ export default function AnomalyDetectionUserDetailsScreen() {
                </Pressable>
             </View>
             <Text allowFontScaling={false} numberOfLines={3} style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 12, color: '#8A9A9D', lineHeight: 20 }}>
-              {summaryData?.summary?.text || 'No summary available for this user.'}
+              {summaryData?.tier2?.executive_summary || summaryData?.tier1?.executive_summary || 'No summary available for this user.'}
             </Text>
           </View>
         )}
@@ -442,19 +482,23 @@ export default function AnomalyDetectionUserDetailsScreen() {
                 return (
                   <AnomalyRadarChart 
                     size={280} 
-                    labels={spider.map((p: any) => p.feature_name || '')}
+                    labels={spider.map((p: any) => {
+                      if (p.label) return p.label;
+                      const raw = p.name || p.feature_name || 'Unknown';
+                      return raw.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                    })}
                     series={[
                       {
                         data: spider.map((p: any) => p.percentage || 0),
-                        strokeColor: '#F25B2A',
-                        fillColor: 'rgba(242, 91, 42, 0.28)',
-                        dotColor: '#F25B2A',
+                        strokeColor: '#1B998B', // Normal is green
+                        fillColor: 'rgba(27, 153, 139, 0.28)',
+                        dotColor: '#1B998B',
                       },
                       {
                         data: spider.map((p: any) => p.instance_percentage || 0),
-                        strokeColor: '#1B998B',
-                        fillColor: 'rgba(27, 153, 139, 0.28)',
-                        dotColor: '#1B998B',
+                        strokeColor: '#F25B2A', // Instance is redish
+                        fillColor: 'rgba(242, 91, 42, 0.28)',
+                        dotColor: '#F25B2A',
                       }
                     ]}
                   />
@@ -477,16 +521,25 @@ export default function AnomalyDetectionUserDetailsScreen() {
               
               if (topFactors && topFactors.length > 0 && factors) {
                 return topFactors.map((factor: any, index: number) => {
-                  const colors = ['#F46036', '#1B998B', '#113E55', '#D97706'];
-                  const bgs = ['rgba(244, 96, 54, 0.2)', 'rgba(27, 153, 139, 0.2)', 'rgba(17, 62, 85, 0.2)', 'rgba(217, 119, 6, 0.2)'];
-                  const color = colors[index % colors.length];
-                  const bg = bgs[index % bgs.length];
+                  const PALETTE = [
+                    { text: '#F25B2A', bg: '#FFF0F0' },
+                    { text: '#113E55', bg: '#E3EDF2' },
+                    { text: '#D97706', bg: '#FEF3C7' },
+                    { text: '#1B998B', bg: '#E5F5F3' },
+                    { text: '#7C3AED', bg: '#F3E8FF' },
+                    { text: '#78350F', bg: '#F0E6E1' },
+                  ];
+                  const colorSet = PALETTE[index % PALETTE.length];
 
                   return (
-                    <View key={`factor-${index}`} style={{ flexDirection: 'row', alignItems: 'center', height: 34, paddingHorizontal: 14, borderRadius: 17, backgroundColor: bg, gap: 8 }}>
-                      <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: color }} />
-                      <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 11.5, color: color }}>
-                        {factor.feature_name?.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') || 'Unknown'}
+                    <View key={`factor-${index}`} style={{ flexDirection: 'row', alignItems: 'center', height: 34, paddingHorizontal: 14, borderRadius: 17, backgroundColor: colorSet.bg, gap: 8 }}>
+                      <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: colorSet.text }} />
+                      <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 11.5, color: colorSet.text }}>
+                        {(() => {
+                          if (factor.label) return factor.label;
+                          const rawName = factor.name || factor.feature_name || 'Unknown';
+                          return rawName.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                        })()}
                       </Text>
                     </View>
                   );
@@ -511,7 +564,7 @@ export default function AnomalyDetectionUserDetailsScreen() {
       </ScrollView>
       
       {/* Modals */}
-      <AISummaryModal visible={showAiSummaryModal} onClose={() => setShowAiSummaryModal(false)} />
+      <AISummaryModal visible={showAiSummaryModal} onClose={() => setShowAiSummaryModal(false)} summaryData={summaryData} />
     </SafeAreaView>
   );
 }
