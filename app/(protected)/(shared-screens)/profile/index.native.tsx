@@ -169,10 +169,11 @@ export default function ProfileScreen() {
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
+      if (user_id) void syncDocuments(user_id);
       if (showAccessCode) fetchMyCode();
     });
     return unsubscribe;
-  }, [navigation, fetchMyCode, showAccessCode]);
+  }, [navigation, fetchMyCode, showAccessCode, syncDocuments, user_id]);
 
   const formattedDate = useMemo(() => {
     if (!expiry) return null;
@@ -426,7 +427,6 @@ export default function ProfileScreen() {
               width: 87,
               height: 87,
               borderRadius: 100,
-
               backgroundColor: '#F4FFFE',
               overflow: 'hidden',
             }}

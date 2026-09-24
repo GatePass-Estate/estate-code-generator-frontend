@@ -2,6 +2,7 @@ import { View, Text } from 'react-native';
 import icons from '@/src/constants/icons';
 import NavigationContainer from '@/src/components/common/NavigationContainer';
 import { sharedStyles } from '@/src/theme/styles';
+import { Inter, UbuntuSans } from '@/src/constants/fonts';
 import { menuRouteType } from '@/src/types/general';
 import {
   GuestsTabIcon,
@@ -17,21 +18,32 @@ const INACTIVE_TAB_COLOR = '#6F91A0';
 function TabLabel({
   label,
   focused,
+  font = 'inter',
   children,
 }: {
   label: string;
   focused: boolean;
+  font?: 'inter' | 'ubuntu';
   children: React.ReactNode;
 }) {
+  const fontFamily =
+    font === 'ubuntu'
+      ? focused
+        ? UbuntuSans.semiBold
+        : UbuntuSans.regular
+      : focused
+        ? Inter.semiBold
+        : Inter.regular;
+
   return (
-    <View className="items-center mt-6 gap-1 w-full">
+    <View className="w-full items-center" style={{ gap: 4 }}>
       {children}
       <Text
-        className="font-inter-regular"
         style={{
+          fontFamily,
           fontSize: 9,
-          fontWeight: focused ? '700' : '400',
           color: focused ? ACTIVE_TAB_COLOR : INACTIVE_TAB_COLOR,
+          textTransform: 'capitalize',
         }}
       >
         {label}
@@ -43,15 +55,29 @@ function TabLabel({
 export const FloatingButton: React.FC<{
   focused?: boolean;
   isMobile?: boolean;
-}> = ({ focused = false }) => {
+}> = ({ focused = false, isMobile = true }) => {
+  const plus = (
+    <PlusTabIcon width={32} height={32} color={focused ? '#F6F7F7' : ACTIVE_TAB_COLOR} />
+  );
+
+  if (!isMobile) {
+    return (
+      <View
+        style={[sharedStyles.fabInner, focused && { backgroundColor: ACTIVE_TAB_COLOR }]}
+        className="items-center justify-center"
+      >
+        {plus}
+      </View>
+    );
+  }
+
   return (
-    <View
-      style={[
-        sharedStyles.fab,
-        !focused ? { backgroundColor: '#CEE5ED' } : { backgroundColor: '#113E55' },
-      ]}
-    >
-      <PlusTabIcon color={focused ? '#FFFFFF' : ACTIVE_TAB_COLOR} />
+    <View style={sharedStyles.fab}>
+      <View style={sharedStyles.fabOuter}>
+        <View style={[sharedStyles.fabInner, focused && { backgroundColor: ACTIVE_TAB_COLOR }]}>
+          {plus}
+        </View>
+      </View>
     </View>
   );
 };
@@ -63,7 +89,7 @@ export const HomeIcon: React.FC<{ focused?: boolean; isMobile?: boolean }> = ({
 
   return (
     <TabLabel label="Home" focused={focused}>
-      <HomeTabIcon width={20} height={20} color={color} />
+      <HomeTabIcon width={20} height={20} color={color} focused={focused} />
     </TabLabel>
   );
 };
@@ -75,7 +101,7 @@ export const GuestIcon: React.FC<{ focused?: boolean; isMobile?: boolean }> = ({
 
   return (
     <TabLabel label="Guests" focused={focused}>
-      <GuestsTabIcon width={20} height={20} color={color} />
+      <GuestsTabIcon width={20} height={20} color={color} focused={focused} />
     </TabLabel>
   );
 };
@@ -86,8 +112,8 @@ export const HistoryTabIcon: React.FC<{ focused?: boolean; isMobile?: boolean }>
   const color = focused ? ACTIVE_TAB_COLOR : INACTIVE_TAB_COLOR;
 
   return (
-    <TabLabel label="History" focused={focused}>
-      <HistoryIcon width={20} height={20} color={color} />
+    <TabLabel label="History" focused={focused} font="ubuntu">
+      <HistoryIcon width={18} height={18} color={color} />
     </TabLabel>
   );
 };
@@ -98,8 +124,8 @@ export const ReportTabIcon: React.FC<{ focused?: boolean; isMobile?: boolean }> 
   const color = focused ? ACTIVE_TAB_COLOR : INACTIVE_TAB_COLOR;
 
   return (
-    <TabLabel label="Report" focused={focused}>
-      <ReportTabIconSvg width={20} height={20} color={color} />
+    <TabLabel label="Report" focused={focused} font="ubuntu">
+      <ReportTabIconSvg width={20} height={20} color={color} focused={focused} />
     </TabLabel>
   );
 };
@@ -181,6 +207,7 @@ export const menuRoutes: menuRouteType[] = [
     name: 'admin/index',
     link: '/admin',
     title: 'Admin Access',
+    TabIcon: GuestIcon,
     for: 'web',
     activeIcon: icons.activeAdminIcon,
     inactiveIcon: icons.inactiveAdminIcon,
@@ -191,6 +218,7 @@ export const menuRoutes: menuRouteType[] = [
     name: 'admin/index',
     link: '/admin',
     title: 'Admin Access',
+    TabIcon: GuestIcon,
     for: 'web',
     activeIcon: icons.activeAdminIcon,
     inactiveIcon: icons.inactiveAdminIcon,

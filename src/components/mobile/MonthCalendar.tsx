@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Pressable, Text, useWindowDimensions, View } from 'react-native';
 import { CalendarChevronLeftIcon, CalendarChevronRightIcon } from '@/src/assets/svgs';
 
-/** Shared with CodeDateTimePicker (Figma 2245:4774 / validity calendar). */
+/** Shared with CodeDateTimePicker. */
 export const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 export const DATE_INSET = 0.1133;
 export const DAY_ROW_H = 36;
@@ -56,7 +56,7 @@ type MonthCalendarProps = {
   selectedDates?: (Date | null | undefined)[];
   onSelectDate: (date: Date) => void;
   minDate?: Date | null;
-  /** When false, out-of-month days stay visible but non-interactive (Figma). */
+  /** When false, out-of-month days stay visible but non-interactive. */
   allowOutOfMonthSelect?: boolean;
   /** Horizontal inset as fraction of width; default matches validity picker. */
   insetRatio?: number;
@@ -64,10 +64,7 @@ type MonthCalendarProps = {
   card?: boolean;
 };
 
-/**
- * Month grid used by validity (CodeDateTimePicker) and incident Set Date.
- * Visual tokens match Figma datepicker 2245:4774 / 6578:4759.
- */
+/** Month grid used by validity (CodeDateTimePicker) and incident Set Date. */
 export default function MonthCalendar({
   cursor,
   onCursorChange,

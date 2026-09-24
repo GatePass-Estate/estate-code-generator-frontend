@@ -11,10 +11,8 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 
 /* Reanimated shared values are mutated on the UI thread; Compiler immutability rules don't apply. */
 
-/** Figma 6578:4500 track */
 export const PILL_TRACK_WIDTH = 229;
 export const PILL_TRACK_HEIGHT = 40;
-/** Figma 6566:3806 active segment */
 export const PILL_ACTIVE_WIDTH = 119;
 
 const SPRING_CONFIG = {
@@ -33,7 +31,7 @@ type AnimatedPillTabsProps<T extends string> = {
   value: T;
   onChange: (value: T) => void;
   style?: StyleProp<ViewStyle>;
-  /** Total track width. Default 229 (Figma). */
+  /** Total track width. Default 229. */
   width?: number;
   /** Active indicator width. Default 119. Right segment gets the remainder. */
   activeWidth?: number;

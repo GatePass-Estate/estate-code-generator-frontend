@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/src/hooks/useAuthContext';
 import icons from '@/src/constants/icons';
 import { APP_NATIVE_HEADER_HEIGHT } from '@/src/theme/styles';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MoreDotsIcon } from '@/src/assets/svgs';
 
 const DROPDOWN_GAP_BELOW_AVATAR = 4;
 
@@ -44,6 +44,11 @@ export default function UserIcon({ variant = 'initials' }: { variant?: 'initials
   };
 
   const handleIconPress = () => {
+    if (variant === 'dots') {
+      router.push('/settings');
+      return;
+    }
+
     /** Measure the avatar circle so the menu opens just below it on every device. */
     if (buttonRef.current && buttonRef.current.measureInWindow) {
       buttonRef.current.measureInWindow((_x, y, _w, h) => {
@@ -66,7 +71,7 @@ export default function UserIcon({ variant = 'initials' }: { variant?: 'initials
         >
           {variant === 'dots' ? (
             <View className="h-[38px] w-[38px] items-center justify-center rounded-full bg-[#F6FCFF]">
-              <MaterialIcons name="more-horiz" size={22} color="#113E55" />
+              <MoreDotsIcon width={18} height={4} />
             </View>
           ) : (
             <View
