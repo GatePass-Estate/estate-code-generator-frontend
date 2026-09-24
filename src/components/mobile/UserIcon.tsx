@@ -2,7 +2,7 @@ import { useUserStore } from '@/src/lib/stores/userStore';
 import { useRouter } from 'expo-router';
 import { View, Text, Pressable, Modal, Image, Platform } from 'react-native';
 import { useState, useRef, useContext } from 'react';
-import { HeaderHeightContext } from '@react-navigation/elements';
+import { HeaderHeightContext } from 'expo-router/react-navigation';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/src/hooks/useAuthContext';
 import icons from '@/src/constants/icons';

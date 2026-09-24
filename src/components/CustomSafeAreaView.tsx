@@ -1,7 +1,7 @@
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PropsWithChildren } from 'react';
 import { Platform, KeyboardAvoidingView, StyleSheet, ViewStyle } from 'react-native';
-import { useRoute } from '@react-navigation/native';
+import { useRoute } from 'expo-router';
 export const isAndroid = Platform.OS === 'android';
 
 const CustomSafeAreaView = ({ children, ...rest }: PropsWithChildren) => {
