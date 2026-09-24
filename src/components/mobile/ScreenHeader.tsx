@@ -6,7 +6,6 @@ type ScreenHeaderProps = {
   title: string;
   subtitle?: string;
   showActions?: boolean;
-  hasUnread?: boolean;
   containerClassName?: string;
   titleClassName?: string;
   subtitleClassName?: string;
@@ -16,7 +15,6 @@ export default function ScreenHeader({
   title,
   subtitle,
   showActions = false,
-  hasUnread,
   containerClassName,
   titleClassName,
   subtitleClassName,
@@ -27,7 +25,7 @@ export default function ScreenHeader({
         <Text className={cn('text-[27px] font-ubuntu-medium text-[#113E55]', titleClassName)}>
           {title}
         </Text>
-        {showActions ? <HeaderActions hasUnread={hasUnread} /> : null}
+        {showActions ? <HeaderActions /> : null}
       </View>
       {subtitle ? (
         <Text className={cn('text-sm font-inter-light text-[#6C6C6C]', subtitleClassName)}>

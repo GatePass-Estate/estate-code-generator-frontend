@@ -1,5 +1,5 @@
-import { useCallback, useRef, useState } from 'react';
-import { Image, Pressable, Share, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useState } from 'react';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
@@ -34,9 +34,22 @@ const TIMER_CLUSTER_WIDTH = RING_WIDTH + CLUSTER_GAP + PLUS_SIZE;
 const DELETE_TIMER_SCREEN_LEFT = 38;
 const RING_TOP = 12;
 const PLUS_TOP = RING_TOP + (RING_WIDTH - PLUS_SIZE) / 2;
+const NAME_TOP = 22;
+const NAME_FONT_SIZE = 11.2;
+const NAME_LINE_HEIGHT = 11.2;
+const CODE_FONT_SIZE = 34.18;
+const CODE_LINE_HEIGHT = 34.18;
 const SPRING = { damping: 22, stiffness: 280, mass: 0.65, overshootClamping: true };
 const FROZEN_TEXT = 'rgba(241, 248, 251, 0.6)';
 const FROZEN_BORDER = '#BEE4F5';
+const CARD_SHELL = {
+  width: '100%' as const,
+  height: CARD_HEIGHT,
+  minHeight: CARD_HEIGHT,
+  maxHeight: CARD_HEIGHT,
+  borderRadius: CARD_RADIUS,
+  overflow: 'hidden' as const,
+};
 
 type ActiveCodeCardProps = {
   item: Codes;
@@ -69,7 +82,6 @@ export default function ActiveCodeCard({
 }: ActiveCodeCardProps) {
   const translateX = useSharedValue(0);
   const dragStartX = useSharedValue(0);
-  const skipCardPressRef = useRef(false);
   const [sheetVisible, setSheetVisible] = useState(false);
   const [sheetView, setSheetView] = useState<'menu' | 'confirmDelete'>('menu');
   const [deleting, setDeleting] = useState(false);
@@ -101,16 +113,6 @@ export default function ActiveCodeCard({
     onCopied();
   }, [code, onCopied]);
 
-  const handleShare = useCallback(async () => {
-    try {
-      await Share.share({
-        message: `Access code for ${guestName}: ${code}`,
-      });
-    } catch {
-      // user dismissed the share sheet
-    }
-  }, [code, guestName]);
-
   const handleDelete = useCallback(async () => {
     setDeleting(true);
     try {
@@ -127,12 +129,6 @@ export default function ActiveCodeCard({
     setSheetVisible(true);
   }, []);
 
-  const handlePlusPress = useCallback(() => {
-    skipCardPressRef.current = true;
-    closeSwipe();
-    openMenu();
-  }, [closeSwipe, openMenu]);
-
   const openDeleteConfirm = useCallback(() => {
     closeSwipe();
     setSheetView('confirmDelete');
@@ -140,16 +136,12 @@ export default function ActiveCodeCard({
   }, [closeSwipe]);
 
   const handleCardPress = useCallback(() => {
-    if (skipCardPressRef.current) {
-      skipCardPressRef.current = false;
-      return;
-    }
     if (Math.abs(translateX.value) > 4) {
       closeSwipe();
       return;
     }
-    onOpenDetails();
-  }, [closeSwipe, onOpenDetails, translateX]);
+    openMenu();
+  }, [closeSwipe, openMenu, translateX]);
 
   const pan = Gesture.Pan()
     .activeOffsetX([-8, 8])
@@ -299,7 +291,7 @@ export default function ActiveCodeCard({
       }}
       onShare={() => {
         setSheetVisible(false);
-        handleShare();
+        onOpenDetails();
       }}
       onHistory={() => {
         setSheetVisible(false);
@@ -315,17 +307,17 @@ export default function ActiveCodeCard({
     // background: ice image cover + linear-gradient(106.59deg, #70B1EE 20.78%, rgba(230,242,255,.5) 51.23%, #62A5D7 89.52%)
     return (
       <View
-        style={{
-          height: CARD_HEIGHT,
-          borderRadius: CARD_RADIUS,
-          borderWidth: 1,
-          borderColor: FROZEN_BORDER,
-          backgroundColor: '#70B1EE',
-          overflow: 'hidden',
-        }}
+        style={[
+          CARD_SHELL,
+          {
+            borderWidth: 1,
+            borderColor: FROZEN_BORDER,
+            backgroundColor: '#70B1EE',
+          },
+        ]}
       >
         <GestureDetector gesture={Gesture.Exclusive(longPress, tap)}>
-          <View style={{ flex: 1, height: CARD_HEIGHT }}>
+          <View style={{ width: '100%', height: CARD_HEIGHT }}>
             {/* Gradient behind — Figma first paints this, then ice on top */}
             <LinearGradient
               colors={['#70B1EE', 'rgba(230, 242, 255, 0.5)', '#62A5D7']}
@@ -344,13 +336,13 @@ export default function ActiveCodeCard({
               />
             </View>
 
-            <View style={{ position: 'absolute', left: 16, top: 22 }} pointerEvents="none">
+            <View style={{ position: 'absolute', left: 16, top: NAME_TOP }} pointerEvents="none">
               <Text
                 className="font-inter-regular"
                 style={{
                   color: FROZEN_TEXT,
-                  fontSize: 11.2,
-                  lineHeight: 11.2,
+                  fontSize: NAME_FONT_SIZE,
+                  lineHeight: NAME_LINE_HEIGHT,
                   includeFontPadding: false,
                 }}
               >
@@ -360,8 +352,8 @@ export default function ActiveCodeCard({
                 className="font-ubuntu-medium"
                 style={{
                   color: FROZEN_TEXT,
-                  fontSize: 34.18,
-                  lineHeight: 34.18,
+                  fontSize: CODE_FONT_SIZE,
+                  lineHeight: CODE_LINE_HEIGHT,
                   includeFontPadding: false,
                 }}
               >
@@ -384,9 +376,8 @@ export default function ActiveCodeCard({
           </View>
         </GestureDetector>
 
-        <Pressable
-          onPress={handlePlusPress}
-          hitSlop={10}
+        <View
+          pointerEvents="none"
           style={{
             position: 'absolute',
             right: 16,
@@ -399,7 +390,7 @@ export default function ActiveCodeCard({
           }}
         >
           <CarbonAddFilledIcon color={FROZEN_TEXT} width={PLUS_SIZE} height={PLUS_SIZE} />
-        </Pressable>
+        </View>
 
         {sheet}
       </View>
@@ -408,19 +399,17 @@ export default function ActiveCodeCard({
 
   return (
     <View
-      style={{
-        height: CARD_HEIGHT,
-      }}
+      style={CARD_SHELL}
       onLayout={(e) => setCardWidth(e.nativeEvent.layout.width)}
     >
       <GestureDetector gesture={cardGesture}>
         <Animated.View
           style={{
-            flex: 1,
+            width: '100%',
             height: CARD_HEIGHT,
             backgroundColor: '#F6F7F7',
             borderRadius: CARD_RADIUS,
-            borderWidth: 0.5,
+            borderWidth: 1,
             borderColor: '#CEE5ED',
             overflow: 'hidden',
           }}
@@ -430,21 +419,29 @@ export default function ActiveCodeCard({
             style={[
               {
                 position: 'absolute',
-                top: 22,
+                top: NAME_TOP,
               },
               identityStyle,
             ]}
             pointerEvents="none"
           >
             <Text
-              className="text-[11.2px] font-inter-regular text-[#9B9797]"
-              style={{ lineHeight: 16, includeFontPadding: false }}
+              className="font-inter-regular text-[#9B9797]"
+              style={{
+                fontSize: NAME_FONT_SIZE,
+                lineHeight: NAME_LINE_HEIGHT,
+                includeFontPadding: false,
+              }}
             >
               {guestName}
             </Text>
             <Text
-              className="text-[34.18px] font-ubuntu-medium text-[#F46036]"
-              style={{ lineHeight: 42, includeFontPadding: false }}
+              className="font-ubuntu-medium text-[#F46036]"
+              style={{
+                fontSize: CODE_FONT_SIZE,
+                lineHeight: CODE_LINE_HEIGHT,
+                includeFontPadding: false,
+              }}
             >
               {code.toUpperCase()}
             </Text>
@@ -538,7 +535,7 @@ export default function ActiveCodeCard({
       </Animated.View>
 
       <Animated.View
-        pointerEvents="box-none"
+        pointerEvents="none"
         style={[
           {
             position: 'absolute',
@@ -552,9 +549,7 @@ export default function ActiveCodeCard({
           plusStyle,
         ]}
       >
-        <Pressable onPress={handlePlusPress} hitSlop={10}>
-          <CarbonAddFilledIcon />
-        </Pressable>
+        <CarbonAddFilledIcon />
       </Animated.View>
 
       {sheet}
