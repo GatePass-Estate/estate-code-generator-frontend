@@ -4,7 +4,7 @@ import { Platform, StyleSheet } from 'react-native';
  *  (e.g. component rendered outside a stack header). System defaults: iOS ~88pt incl. notch, Android ~80dp incl. status bar. */
 export const APP_NATIVE_HEADER_HEIGHT = Platform.OS === 'ios' ? 88 : 56;
 
-/** Figma 5074:5421 — iOS tab bar content height (safe-area inset is added at runtime). */
+/** iOS tab bar content height (safe-area inset is added at runtime). */
 export const TAB_BAR_BASE_HEIGHT = 49;
 
 /** Plus button hangs this far above the 49px teal strip so it sits on the screen. */
@@ -51,7 +51,7 @@ export const sharedStyles = StyleSheet.create({
     overflow: 'visible',
   },
 
-  /** Figma add guest: 89×88 frame → 77 white ring → 64 teal fill. */
+  /** Add guest FAB: 89×88 frame → 77 white ring → 64 teal fill. */
   fab: {
     width: 89,
     height: 88,

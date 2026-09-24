@@ -10,7 +10,7 @@ type ToggleSwitchProps = {
   onValueChange: (next: boolean) => void;
 };
 
-/** Figma 5621:8493 — 59×24 pill. ON is #1B998B with 20% black overlay; knob 20×20 #EFF1F1. */
+/** 59×24 pill. ON is #1B998B with 20% black overlay; knob 20×20 #EFF1F1. */
 export default function ToggleSwitch({ value, onValueChange }: ToggleSwitchProps) {
   return (
     <Pressable

@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 0.5,
     borderTopColor: '#F6F7F7',
   },
-  /** Figma 5074:5421 — icon row only; safe-area is handled on `wrap`. */
+  /** Icon row only; safe-area is handled on `wrap`. */
   bar: {
     height: TAB_BAR_BASE_HEIGHT,
     paddingTop: 7,
