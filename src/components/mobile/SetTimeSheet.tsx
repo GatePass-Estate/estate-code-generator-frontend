@@ -76,7 +76,9 @@ export default function SetTimeSheet({ visible, start, end, onClose, onDone }: S
             <View className="mt-2 flex-row items-center">
               <View className="w-[84px] flex-row items-center justify-center">
                 <TimeWheelColumn value={startHours} length={24} onChange={setStartHours} />
-                <Text className="w-2 text-center text-base font-inter-medium text-[#113E55]">:</Text>
+                <Text className="w-2 text-center text-base font-inter-medium text-[#113E55]">
+                  :
+                </Text>
                 <TimeWheelColumn value={startMinutes} length={60} onChange={setStartMinutes} />
               </View>
 
@@ -86,7 +88,9 @@ export default function SetTimeSheet({ visible, start, end, onClose, onDone }: S
 
               <View className="w-[84px] flex-row items-center justify-center">
                 <TimeWheelColumn value={endHours} length={24} onChange={setEndHours} />
-                <Text className="w-2 text-center text-base font-inter-medium text-[#113E55]">:</Text>
+                <Text className="w-2 text-center text-base font-inter-medium text-[#113E55]">
+                  :
+                </Text>
                 <TimeWheelColumn value={endMinutes} length={60} onChange={setEndMinutes} />
               </View>
             </View>

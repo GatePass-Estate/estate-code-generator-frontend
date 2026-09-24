@@ -7,14 +7,17 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
 } from 'react-native-reanimated';
+
 export const WHEEL_ITEM_H = 28;
 export const WHEEL_VISIBLE = 5;
 const WHEEL_PAD = WHEEL_ITEM_H * Math.floor(WHEEL_VISIBLE / 2);
 const LOOPS = 15;
-/** Rows mounted on each side of the centre row; the rest of the track is empty space. */
-const RENDER_RADIUS = 20;
-/** Re-window once the centre drifts this many rows from the last window centre. */
-const RECENTER_AT = 8;
+/**
+ * Rows mounted on each side of the selected row. Must be >= the largest wheel length (60) so the
+ * whole middle loop is always mounted, and large enough that one fling never outruns it. The
+ * window only moves after a scroll settles, so rows never mount mid-scroll (which blinks).
+ */
+const RENDER_RADIUS = 60;
 const FONT_ACTIVE = 'Inter_600SemiBold';
 const FONT_IDLE = 'Inter_500Medium';
 
@@ -67,18 +70,10 @@ export default function TimeWheelColumn({ value, length, onChange }: TimeWheelCo
   const draggingRef = useRef(false);
   const mid = Math.floor(LOOPS / 2) * length;
   const total = length * LOOPS;
-  const initialIndex = mid + (((value % length) + length) % length);
-  const scrollY = useSharedValue(initialIndex * WHEEL_ITEM_H);
-  const windowCenter = useSharedValue(initialIndex);
-  const [renderCenter, setRenderCenter] = useState(initialIndex);
-
-  const moveWindow = useCallback(
-    (idx: number) => {
-      windowCenter.value = idx;
-      setRenderCenter(idx);
-    },
-    [windowCenter]
-  );
+  const centerIndex = mid + (((value % length) + length) % length);
+  const scrollY = useSharedValue(centerIndex * WHEEL_ITEM_H);
+  // Must stay referentially stable: a new object on re-render resets the native scroll position.
+  const [startOffset] = useState(() => ({ x: 0, y: centerIndex * WHEEL_ITEM_H }));
 
   const offsetFor = useCallback(
     (v: number) => (mid + (((v % length) + length) % length)) * WHEEL_ITEM_H,
@@ -97,10 +92,9 @@ export default function TimeWheelColumn({ value, length, onChange }: TimeWheelCo
     (v: number, animated: boolean) => {
       const y = offsetFor(v);
       scrollY.value = y;
-      moveWindow(y / WHEEL_ITEM_H);
       scrollRef.current?.scrollTo({ y, animated });
     },
-    [moveWindow, offsetFor, scrollY]
+    [offsetFor, scrollY]
   );
 
   const setDragging = useCallback((dragging: boolean) => {
@@ -116,14 +110,13 @@ export default function TimeWheelColumn({ value, length, onChange }: TimeWheelCo
   const commitOffset = useCallback(
     (y: number) => {
       const next = valueAtOffset(y);
-      onChange(next);
       const settled = offsetFor(next);
       scrollY.value = settled;
-      moveWindow(settled / WHEEL_ITEM_H);
       scrollRef.current?.scrollTo({ y: settled, animated: false });
       draggingRef.current = false;
+      onChange(next);
     },
-    [moveWindow, offsetFor, onChange, scrollY, valueAtOffset]
+    [offsetFor, onChange, scrollY, valueAtOffset]
   );
 
   const onScroll = useAnimatedScrollHandler({
@@ -132,11 +125,6 @@ export default function TimeWheelColumn({ value, length, onChange }: TimeWheelCo
     },
     onScroll: (event) => {
       scrollY.value = event.contentOffset.y;
-      const idx = Math.round(event.contentOffset.y / WHEEL_ITEM_H);
-      if (Math.abs(idx - windowCenter.value) >= RECENTER_AT) {
-        windowCenter.value = idx;
-        runOnJS(setRenderCenter)(idx);
-      }
     },
     onEndDrag: (event) => {
       const vy = event.velocity?.y ?? 0;
@@ -149,17 +137,12 @@ export default function TimeWheelColumn({ value, length, onChange }: TimeWheelCo
     },
   });
 
-  // Rows around the incoming value mount in the same commit as the value change, so a
-  // programmatic jump (presets) never lands on an empty stretch of track.
-  const rowIndexes = new Set<number>();
-  for (const center of [renderCenter, initialIndex]) {
-    const first = Math.max(0, center - RENDER_RADIUS);
-    const last = Math.min(total - 1, center + RENDER_RADIUS);
-    for (let i = first; i <= last; i += 1) rowIndexes.add(i);
+  const first = Math.max(0, centerIndex - RENDER_RADIUS);
+  const last = Math.min(total - 1, centerIndex + RENDER_RADIUS);
+  const rows = [];
+  for (let i = first; i <= last; i += 1) {
+    rows.push(<WheelItem key={i} index={i} label={pad2(i % length)} scrollY={scrollY} />);
   }
-  const rows = [...rowIndexes].map((i) => (
-    <WheelItem key={i} index={i} label={pad2(i % length)} scrollY={scrollY} />
-  ));
 
   return (
     <View style={{ height: WHEEL_ITEM_H * WHEEL_VISIBLE, width: 38, overflow: 'hidden' }}>
@@ -169,7 +152,7 @@ export default function TimeWheelColumn({ value, length, onChange }: TimeWheelCo
         snapToInterval={WHEEL_ITEM_H}
         decelerationRate="fast"
         scrollEventThrottle={16}
-        contentOffset={{ x: 0, y: initialIndex * WHEEL_ITEM_H }}
+        contentOffset={startOffset}
         onLayout={() => scrollToValue(value, false)}
         onScroll={onScroll}
         nestedScrollEnabled

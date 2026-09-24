@@ -26,24 +26,11 @@ import { sharedStyles } from '@/src/theme/styles';
 
 type DateTarget = 'start' | 'end';
 
-const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-const MONTHS = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-];
+const weekdayFormatter = new Intl.DateTimeFormat(undefined, { weekday: 'long' });
+const monthFormatter = new Intl.DateTimeFormat(undefined, { month: 'long' });
 
 const formatDatePart = (date: Date) =>
-  `${WEEKDAYS[date.getDay()]}, ${date.getDate()} ${MONTHS[date.getMonth()]}`;
+  `${weekdayFormatter.format(date)}, ${date.getDate()} ${monthFormatter.format(date)}`;
 
 const formatClock = (date: Date) => {
   const hours = String(date.getHours()).padStart(2, '0');
