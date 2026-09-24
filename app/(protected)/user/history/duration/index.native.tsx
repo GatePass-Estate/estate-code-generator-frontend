@@ -26,11 +26,24 @@ import { sharedStyles } from '@/src/theme/styles';
 
 type DateTarget = 'start' | 'end';
 
-const formatDatePart = (date: Date) => {
-  const weekday = date.toLocaleString('en-GB', { weekday: 'long' });
-  const month = date.toLocaleString('en-GB', { month: 'long' });
-  return `${weekday}, ${date.getDate()} ${month}`;
-};
+const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const MONTHS = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
+
+const formatDatePart = (date: Date) =>
+  `${WEEKDAYS[date.getDay()]}, ${date.getDate()} ${MONTHS[date.getMonth()]}`;
 
 const formatClock = (date: Date) => {
   const hours = String(date.getHours()).padStart(2, '0');
@@ -259,9 +272,12 @@ export default function SetAccessCodeDurationScreen() {
         minDate={dateTarget === 'end' ? startDate : null}
         onBack={() => setDateTarget(null)}
         onSet={(next) => {
-          if (dateTarget === 'start') setStartDate(next);
-          else setEndDate(next);
+          const target = dateTarget;
           setDateTarget(null);
+          requestAnimationFrame(() => {
+            if (target === 'start') setStartDate(next);
+            else setEndDate(next);
+          });
         }}
       />
     );
@@ -410,9 +426,11 @@ export default function SetAccessCodeDurationScreen() {
         end={windowEnd}
         onClose={() => setTimeSheetVisible(false)}
         onDone={(nextStart, nextEnd) => {
-          setWindowStart(nextStart);
-          setWindowEnd(nextEnd);
           setTimeSheetVisible(false);
+          requestAnimationFrame(() => {
+            setWindowStart(nextStart);
+            setWindowEnd(nextEnd);
+          });
         }}
       />
     </SafeAreaView>

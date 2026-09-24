@@ -250,6 +250,8 @@ export default function ActiveCodeCard({
     ),
   }));
 
+  const freezeActionLabel = frozen ? 'Unfreeze' : 'Freeze';
+
   const sheet = (
     <CodeActionsSheet
       visible={sheetVisible}
@@ -284,93 +286,68 @@ export default function ActiveCodeCard({
     />
   );
 
-  if (frozen) {
-    return (
-      <View className="h-[95px] max-h-[95px] min-h-[95px] w-full overflow-hidden rounded-2xl border border-[#BEE4F5] bg-[#70B1EE]">
-        <GestureDetector gesture={Gesture.Exclusive(longPress, tap)}>
-          <View className="h-[95px] w-full">
-            <LinearGradient
-              colors={['#70B1EE', 'rgba(230, 242, 255, 0.5)', '#62A5D7']}
-              locations={[0.2078, 0.5123, 0.8952]}
-              start={{ x: 0.021, y: 0.357 }}
-              end={{ x: 0.979, y: 0.643 }}
-              pointerEvents="none"
-              style={StyleSheet.absoluteFill}
-            />
-            <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-              <Image
-                source={images.frozenIceOverlay}
-                resizeMode="cover"
-                className="h-full w-full"
-              />
-            </View>
-
-            <View className="absolute left-4 top-[22px]" pointerEvents="none">
-              <Text
-                className="font-inter-regular text-[11.2px] leading-[14px]  text-[#F1F8FB]/60"
-                style={{ includeFontPadding: false }}
-              >
-                {guestName}
-              </Text>
-              <Text
-                className="font-ubuntu-medium text-[34.18px]  leading-[40px] text-[#F1F8FB]/60"
-                style={{ includeFontPadding: false }}
-              >
-                {code.toUpperCase()}
-              </Text>
-            </View>
-
-            <View
-              className="absolute right-[52px] top-3 flex-row items-center"
-              pointerEvents="none"
-            >
-              <AccessCodeRing expiresAt={expiresAt} startAt={startAt} dimmed />
-            </View>
-          </View>
-        </GestureDetector>
-
-        <View
-          pointerEvents="none"
-          className="absolute right-4 z-20 h-5 w-5 items-center justify-center"
-          style={{ top: PLUS_TOP }}
-        >
-          <CarbonAddFilledIcon color={FROZEN_TEXT} width={PLUS_SIZE} height={PLUS_SIZE} />
-        </View>
-
-        {sheet}
-      </View>
-    );
-  }
-
   return (
     <View
       className="h-[95px] max-h-[95px] min-h-[95px] w-full"
       onLayout={(e) => setCardWidth(e.nativeEvent.layout.width)}
     >
       <GestureDetector gesture={cardGesture}>
-        <Animated.View className="h-[95px] w-full overflow-hidden rounded-2xl border border-[#CEE5ED] bg-[#F6F7F7]">
-          {/* Name + code — visible at rest & on Freeze */}
+        <Animated.View
+          className={`h-[95px] w-full overflow-hidden rounded-2xl border ${
+            frozen ? 'border-[#BEE4F5] bg-[#70B1EE]' : 'border-[#CEE5ED] bg-[#F6F7F7]'
+          }`}
+        >
+          {frozen ? (
+            <>
+              <LinearGradient
+                colors={['#70B1EE', 'rgba(230, 242, 255, 0.5)', '#62A5D7']}
+                locations={[0.2078, 0.5123, 0.8952]}
+                start={{ x: 0.021, y: 0.357 }}
+                end={{ x: 0.979, y: 0.643 }}
+                pointerEvents="none"
+                style={StyleSheet.absoluteFill}
+              />
+              <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+                <Image
+                  source={images.frozenIceOverlay}
+                  resizeMode="cover"
+                  className="h-full w-full"
+                />
+              </View>
+            </>
+          ) : null}
+
           <Animated.View className="absolute top-[22px]" style={identityStyle} pointerEvents="none">
-            <Text className="font-inter-regular text-[11.2px] leading-[14px] text-[#9B9797]">
+            <Text
+              className={
+                frozen
+                  ? 'font-inter-regular text-[11.2px] leading-[14px] text-[#F1F8FB]/60'
+                  : 'font-inter-regular text-[11.2px] leading-[14px] text-[#9B9797]'
+              }
+            >
               {guestName}
             </Text>
-            <Text className="font-ubuntu-medium text-[34.18px] leading-[40px] text-[#F46036]">
+            <Text
+              className={
+                frozen
+                  ? 'font-ubuntu-medium text-[34.18px] leading-[40px] text-[#F1F8FB]/60'
+                  : 'font-ubuntu-medium text-[34.18px] leading-[40px] text-[#F46036]'
+              }
+            >
               {code.toUpperCase()}
             </Text>
           </Animated.View>
 
-          {/* Timer — plus sits in an overlay so it can open the drawer */}
           <Animated.View
             className="absolute top-3 flex-row items-center"
             style={timerClusterStyle}
             pointerEvents="none"
           >
-            <AccessCodeRing expiresAt={expiresAt} startAt={startAt} />
+            <AccessCodeRing expiresAt={expiresAt} startAt={startAt} dimmed={frozen} />
           </Animated.View>
         </Animated.View>
       </GestureDetector>
 
-      {/* Freeze overlays the left; the card’s 16px right edge stays visible */}
       <Animated.View
         pointerEvents={openAction === 'freeze' ? 'auto' : 'none'}
         className="absolute bottom-0 left-0 top-0 z-[15] w-[68px] items-center justify-center rounded-l-[8px] bg-[#1F62A6]"
@@ -389,11 +366,10 @@ export default function ActiveCodeCard({
           }}
           className="h-full w-full items-center justify-center"
         >
-          <Text className="text-xs font-inter-semibold text-[#F6F7F7]">Freeze</Text>
+          <Text className="text-xs font-inter-semibold text-[#F6F7F7]">{freezeActionLabel}</Text>
         </Pressable>
       </Animated.View>
 
-      {/* Delete overlays the right; the card’s 16px left edge stays visible */}
       <Animated.View
         pointerEvents={openAction === 'delete' ? 'auto' : 'none'}
         className="absolute bottom-0 right-0 top-0 z-[15] w-[68px] items-center justify-center rounded-r-[8px] bg-[#F46036]"
@@ -412,7 +388,11 @@ export default function ActiveCodeCard({
         className="absolute z-20 h-5 w-5 items-center justify-center"
         style={[{ top: PLUS_TOP }, plusStyle]}
       >
-        <CarbonAddFilledIcon />
+        <CarbonAddFilledIcon
+          color={frozen ? FROZEN_TEXT : undefined}
+          width={PLUS_SIZE}
+          height={PLUS_SIZE}
+        />
       </Animated.View>
 
       {sheet}
