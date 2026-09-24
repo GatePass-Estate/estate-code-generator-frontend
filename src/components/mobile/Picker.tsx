@@ -24,6 +24,12 @@ interface PickerProps {
   items: PickerItem[];
   placeholder?: string;
   enabled?: boolean;
+  labelClassName?: string;
+  fieldClassName?: string;
+  textClassName?: string;
+  chevronColor?: string;
+  placeholderColor?: string;
+  chevron?: React.ReactNode;
 }
 
 /**
@@ -37,6 +43,12 @@ export function Picker({
   items,
   placeholder = 'Select an option',
   enabled = true,
+  labelClassName = 'input-label',
+  fieldClassName = 'input-style',
+  textClassName = 'text-sm font-inter-light',
+  chevronColor = '#9CA3AF',
+  placeholderColor = '#9CA3AF',
+  chevron,
 }: PickerProps) {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const { bottom: safeBottom } = useSafeAreaInsets();
@@ -55,23 +67,24 @@ export function Picker({
 
   return (
     <View>
-      {label ? <Text className="input-label">{label}</Text> : null}
+      {label ? <Text className={labelClassName}>{label}</Text> : null}
       <Pressable
-        className="input-style flex-row items-center justify-between"
+        className={`${fieldClassName} flex-row items-center justify-between`}
         onPress={() => enabled && setIsModalVisible(true)}
         disabled={!enabled}
         style={{ opacity: enabled ? 1 : 0.5 }}
       >
         <Text
+          className={textClassName}
           style={{
-            color: hasValue ? '#113E55' : '#9CA3AF',
+            color: hasValue ? '#113E55' : placeholderColor,
             flex: 1,
             flexShrink: 1,
           }}
         >
           {displayLabel}
         </Text>
-        <Ionicons name="chevron-down" size={20} color="#9CA3AF" />
+        {chevron ?? <Ionicons name="chevron-down" size={20} color={chevronColor} />}
       </Pressable>
 
       <Modal

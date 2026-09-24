@@ -2,9 +2,11 @@ import { View, Text } from 'react-native';
 import { Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ScreenHeader from '@/src/components/mobile/ScreenHeader';
-import { sharedStyles, TAB_BAR_BASE_HEIGHT } from '@/src/theme/styles';
+import { sharedStyles } from '@/src/theme/styles';
+import { useAndroidBottomInset } from '@/src/hooks/useAndroidBottomInset';
 
 export default function ReportTabScreen() {
+  const { tabContentPadding } = useAndroidBottomInset();
   return (
     <SafeAreaView
       style={[sharedStyles.container, sharedStyles.modalContainer, { backgroundColor: '#F6F7F7' }]}
@@ -20,7 +22,7 @@ export default function ReportTabScreen() {
 
       <View
         className="flex-1 items-center justify-center"
-        style={{ paddingBottom: TAB_BAR_BASE_HEIGHT }}
+        style={{ paddingBottom: tabContentPadding }}
       >
         <Text className="text-center text-sm font-inter-regular text-[#6C6C6C]">
           Incident reporting is coming soon.

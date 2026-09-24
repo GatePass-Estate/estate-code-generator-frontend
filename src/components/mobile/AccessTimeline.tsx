@@ -71,9 +71,7 @@ function TimelineItem({
 
       <View>
         <Text className="text-sm font-inter-medium text-[#0A1F29]">{event.title}</Text>
-        <Text className="mt-1 text-sm font-inter-light text-[#6C6C6C] tracking-[-0.2px]">
-          {event.timestamp}
-        </Text>
+        <Text className="mt-1 text-sm font-inter-light text-[#878686]">{event.timestamp}</Text>
       </View>
     </View>
   );
