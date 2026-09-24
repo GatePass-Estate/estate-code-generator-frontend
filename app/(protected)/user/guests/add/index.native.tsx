@@ -37,7 +37,7 @@ const AddGuestMobile = () => {
   const [genderSheetVisible, setGenderSheetVisible] = useState(false);
   const [relationshipSheetVisible, setRelationshipSheetVisible] = useState(false);
   const [addToGuestList, setAddToGuestList] = useState(false);
-  const [running, setRunning] = useState<boolean>(false);
+  const [savingGuest, setSavingGuest] = useState(false);
   const saveGuestGate = useFeatureGate('guest_management');
 
   const genderLabel = GENDER_OPTIONS.find((option) => option.value === gender)?.label;
@@ -66,6 +66,7 @@ const AddGuestMobile = () => {
   };
 
   function handleContinue() {
+    if (savingGuest) return;
     if (!inputChecks()) return;
 
     router.push({
@@ -83,7 +84,7 @@ const AddGuestMobile = () => {
     if (!inputChecks()) return;
     if (!saveGuestGate.requestAccess()) return;
 
-    setRunning(true);
+    setSavingGuest(true);
     try {
       await createGuest({
         resident_id: useUserStore.getState().user_id,
@@ -106,7 +107,7 @@ const AddGuestMobile = () => {
     } catch {
       Alert.alert('Error', 'Failed to save guest. Please try again.');
     } finally {
-      setRunning(false);
+      setSavingGuest(false);
     }
   }
 
@@ -196,10 +197,10 @@ const AddGuestMobile = () => {
                 label="Save Guest"
                 variant="secondary"
                 size="md"
-                loading={running}
+                loading={savingGuest}
                 onPress={handleSaveGuest}
               />
-              <Button label="Continue" size="md" loading={running} onPress={handleContinue} />
+              <Button label="Continue" size="md" onPress={handleContinue} />
             </View>
           </PlanNoticeSlot>
         </View>

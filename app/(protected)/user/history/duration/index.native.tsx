@@ -11,13 +11,13 @@ import {
 } from '@/src/assets/svgs';
 import Button, { BUTTON_MARGIN_BOTTOM } from '@/src/components/mobile/Button';
 import CodeDateTimePicker from '@/src/components/mobile/CodeDateTimePicker';
-import PlanNotice from '@/src/components/mobile/PlanNotice';
+import { PlanNoticeSlot } from '@/src/components/mobile/FreePlanNotice';
 import ScreenHeader from '@/src/components/mobile/ScreenHeader';
 import SetTimeSheet from '@/src/components/mobile/SetTimeSheet';
 import ToggleSwitch from '@/src/components/mobile/ToggleSwitch';
 import { generateCode } from '@/src/lib/api/codes';
 import { createGuest } from '@/src/lib/api/guests';
-import { formatInvitePeriodDisplay } from '@/src/lib/helpers';
+import { formatInvitePeriodDisplay, parseLogDate } from '@/src/lib/helpers';
 import { useAndroidBottomInset } from '@/src/hooks/useAndroidBottomInset';
 import { useFeatureGate } from '@/src/hooks/usePlan';
 import { useUserStore } from '@/src/lib/stores/userStore';
@@ -42,6 +42,9 @@ const formatDurationHours = (start: Date | null, end: Date | null) => {
   if (!start || !end || end.getTime() <= start.getTime()) return null;
   return Math.max(1, Math.round((end.getTime() - start.getTime()) / 3_600_000));
 };
+
+/** Free-plan visitor codes (catalog GPF1) are issued by the backend with this default validity. */
+const DEFAULT_CODE_VALIDITY_MS = 3_600_000;
 
 const atCurrentClock = () => {
   const d = new Date();
@@ -81,7 +84,8 @@ export default function SetAccessCodeDurationScreen() {
   const insets = useSafeAreaInsets();
   const { tabBarStyle } = useAndroidBottomInset();
   const { user_id, estate_id, home_address, estate_name } = useUserStore();
-  const { requestAccess: requestCodeAccess } = useFeatureGate('advanced_code_management');
+  const { requestAccess: requestCodeAccess, noticeProps: codeNoticeProps } =
+    useFeatureGate('advanced_code_management');
   const params = useLocalSearchParams<{
     visitorName?: string;
     relationship?: string;
@@ -125,10 +129,10 @@ export default function SetAccessCodeDurationScreen() {
 
   const durationHours = formatDurationHours(startDate, endDate);
   const windowTimesDiffer = formatClock(windowStart) !== formatClock(windowEnd);
-  const customPeriodReady = Boolean(
-    startDate && endDate && endDate.getTime() > startDate.getTime()
-  );
-  const canGenerate = Boolean(user_id && estate_id && durationEnabled && customPeriodReady);
+  const usesCustomPeriod = durationEnabled;
+  const usesValidityWindow = windowEnabled && windowTimesDiffer;
+  // Without a custom period the backend issues the free 1-hour code, so any plan can generate.
+  const canGenerate = Boolean(user_id && estate_id);
 
   const datePickerValue = useMemo(() => {
     if (dateTarget === 'start') return startDate ?? new Date();
@@ -161,22 +165,29 @@ export default function SetAccessCodeDurationScreen() {
   };
 
   const handleGenerate = useCallback(async () => {
-    if (!canGenerate || !user_id || !startDate || !endDate) return;
-    if (!requestCodeAccess()) return;
+    if (!canGenerate || !user_id) return;
+    // Custom periods and daily windows are Advanced Code Management; re-check in case the plan
+    // changed after the toggles were switched on.
+    if ((usesCustomPeriod || usesValidityWindow) && !requestCodeAccess()) return;
 
     const now = new Date();
-    const start = startDate;
-    const end = endDate;
+    let customPeriod: { start: Date; end: Date } | null = null;
 
-    if (start.getTime() < now.getTime() - 30_000) {
-      Alert.alert('Invalid start time', 'Start date/time cannot be in the past.');
-      return;
-    }
-
-    const periodStart = start.getTime() < now.getTime() ? now : start;
-    if (end.getTime() <= periodStart.getTime()) {
-      Alert.alert('Invalid end time', 'End date/time must be after the start.');
-      return;
+    if (usesCustomPeriod) {
+      if (!startDate || !endDate) {
+        Alert.alert('Missing duration', 'Select a start and end date/time.');
+        return;
+      }
+      if (startDate.getTime() < now.getTime() - 30_000) {
+        Alert.alert('Invalid start time', 'Start date/time cannot be in the past.');
+        return;
+      }
+      const periodStart = startDate.getTime() < now.getTime() ? now : startDate;
+      if (endDate.getTime() <= periodStart.getTime()) {
+        Alert.alert('Invalid end time', 'End date/time must be after the start.');
+        return;
+      }
+      customPeriod = { start: periodStart, end: endDate };
     }
 
     setGenerating(true);
@@ -188,17 +199,12 @@ export default function SetAccessCodeDurationScreen() {
           visitor_fullname: visitorName,
           relationship_with_resident: relationship,
           gender,
-          validity_period: {
-            start: toBackendUtc(periodStart),
-            end: toBackendUtc(end),
-          },
-          validity_window:
-            windowEnabled && windowTimesDiffer
-              ? {
-                  start: formatClock(windowStart),
-                  end: formatClock(windowEnd),
-                }
-              : null,
+          validity_period: customPeriod
+            ? { start: toBackendUtc(customPeriod.start), end: toBackendUtc(customPeriod.end) }
+            : null,
+          validity_window: usesValidityWindow
+            ? { start: formatClock(windowStart), end: formatClock(windowEnd) }
+            : null,
         },
         'visitor'
       );
@@ -216,7 +222,16 @@ export default function SetAccessCodeDurationScreen() {
         }
       }
 
-      const { formattedDate, timeframe } = formatInvitePeriodDisplay(periodStart, end);
+      const inviteStart = customPeriod?.start ?? now;
+      let inviteEnd = customPeriod?.end ?? null;
+      if (!inviteEnd) {
+        const issuedUntil = result.valid_until ? parseLogDate(result.valid_until) : null;
+        inviteEnd =
+          issuedUntil && !Number.isNaN(issuedUntil.getTime())
+            ? issuedUntil
+            : new Date(now.getTime() + DEFAULT_CODE_VALIDITY_MS);
+      }
+      const { formattedDate, timeframe } = formatInvitePeriodDisplay(inviteStart, inviteEnd);
       router.push({
         pathname: '/invite',
         params: {
@@ -244,11 +259,11 @@ export default function SetAccessCodeDurationScreen() {
     shouldSaveGuest,
     startDate,
     user_id,
+    usesCustomPeriod,
+    usesValidityWindow,
     visitorName,
-    windowEnabled,
     windowEnd,
     windowStart,
-    windowTimesDiffer,
   ]);
 
   if (dateTarget) {
@@ -396,14 +411,17 @@ export default function SetAccessCodeDurationScreen() {
           </Pressable>
         ) : null}
 
-        <View className="mt-auto items-center pt-10">
-          <PlanNotice feature="advanced_code_management" className="mb-8 w-full" />
-          <Button
-            label="Generate Code"
-            loading={generating}
-            disabled={!canGenerate}
-            onPress={handleGenerate}
-          />
+        <View className="mt-auto w-full pt-10">
+          <PlanNoticeSlot {...codeNoticeProps}>
+            <View className="items-center">
+              <Button
+                label="Generate Code"
+                loading={generating}
+                disabled={!canGenerate}
+                onPress={handleGenerate}
+              />
+            </View>
+          </PlanNoticeSlot>
         </View>
       </ScrollView>
 
