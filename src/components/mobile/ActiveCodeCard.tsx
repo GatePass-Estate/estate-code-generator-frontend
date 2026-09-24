@@ -398,10 +398,7 @@ export default function ActiveCodeCard({
   }
 
   return (
-    <View
-      style={CARD_SHELL}
-      onLayout={(e) => setCardWidth(e.nativeEvent.layout.width)}
-    >
+    <View style={CARD_SHELL} onLayout={(e) => setCardWidth(e.nativeEvent.layout.width)}>
       <GestureDetector gesture={cardGesture}>
         <Animated.View
           style={{
