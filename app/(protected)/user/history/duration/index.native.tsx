@@ -84,8 +84,9 @@ export default function SetAccessCodeDurationScreen() {
   const insets = useSafeAreaInsets();
   const { tabBarStyle } = useAndroidBottomInset();
   const { user_id, estate_id, home_address, estate_name } = useUserStore();
-  const { requestAccess: requestCodeAccess, noticeProps: codeNoticeProps } =
-    useFeatureGate('advanced_code_management');
+  const { requestAccess: requestCodeAccess, noticeProps: codeNoticeProps } = useFeatureGate(
+    'advanced_code_management'
+  );
   const params = useLocalSearchParams<{
     visitorName?: string;
     relationship?: string;
