@@ -9,6 +9,7 @@ import {
   getSelectedInstitution,
   initAuthSync,
 } from '@/src/lib/helpers';
+import { setUnauthorizedHandler } from '@/src/lib/session';
 import { useAuthStore } from '@/src/lib/stores/authStore';
 import { useProfileDocumentsStore } from '@/src/lib/stores/profileDocumentsStore';
 import { useUserStore } from '@/src/lib/stores/userStore';
@@ -86,6 +87,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const institution = await getSelectedInstitution();
     router.replace(getPostAuthRedirectRoute(institution));
   }, [router]);
+
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      void performSignOut();
+    });
+    return () => setUnauthorizedHandler(null);
+  }, [performSignOut]);
 
   const routeForUser = useCallback(
     (user: User) => {

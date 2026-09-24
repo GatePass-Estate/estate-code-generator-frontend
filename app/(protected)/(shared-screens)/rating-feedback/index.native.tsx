@@ -22,6 +22,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import * as ImagePicker from 'expo-image-picker';
 import Back from '@/src/components/mobile/Back';
+import AnimatedPillTabs from '@/src/components/mobile/AnimatedPillTabs';
 import { sharedStyles } from '@/src/theme/styles';
 import StarRating from '@/src/components/common/StarRating';
 import { GatePassLogo } from '@/src/components/common/GatePassLogo';
@@ -115,20 +116,20 @@ export default function RatingFeedbackNative() {
   };
 
   const renderTabs = () => (
-    <View style={styles.tabsContainer}>
-      {(['Suggestion', 'Issue'] as Tab[]).map((tab) => (
-        <TouchableOpacity
-          key={tab}
-          style={[styles.tabButton, activeTab === tab && styles.tabButtonActive]}
-          onPress={() => {
-            setActiveTab(tab);
-            setSuggestionStep(1); // Reset step if they switch back to Suggestion
-          }}
-        >
-          <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>{tab}</Text>
-        </TouchableOpacity>
-      ))}
-    </View>
+    <AnimatedPillTabs
+      style={{ alignSelf: 'center', marginBottom: 32 }}
+      options={[
+        { value: 'Suggestion', label: 'Suggestion' },
+        { value: 'Issue', label: 'Issue' },
+      ]}
+      value={activeTab}
+      onChange={(tab) => {
+        setActiveTab(tab);
+        setSuggestionStep(1);
+      }}
+      width={260}
+      activeWidth={130}
+    />
   );
 
   const renderIssueForm = () => (
@@ -459,33 +460,6 @@ const styles = StyleSheet.create({
     color: '#FFF',
     textAlign: 'center',
     marginBottom: 24,
-  },
-  tabsContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#F3F4F6',
-    borderRadius: 24,
-    padding: 4,
-    marginBottom: 32,
-    alignSelf: 'center',
-    width: 260,
-  },
-  tabButton: {
-    flex: 1,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 20,
-  },
-  tabButtonActive: {
-    backgroundColor: '#D1E6EF',
-  },
-  tabText: {
-    fontSize: 14,
-    fontFamily: 'Inter-Medium',
-    color: '#9CA3AF',
-  },
-  tabTextActive: {
-    color: '#113E55',
   },
   formContainer: {
     flex: 1,
