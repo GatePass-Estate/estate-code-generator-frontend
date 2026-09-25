@@ -23,6 +23,7 @@ export interface GaugeData {
   arcColor?: string;
   records: number;
   days: number;
+  description?: string;
   items: {
     title: string;
     description?: string;
@@ -50,7 +51,7 @@ const MotionGauge = ({ percentage, color }: { percentage: number; color: string 
   const strokeWidth = 20;
   const center = radius + strokeWidth;
   const arcRadius = radius;
-
+  
   const circumference = Math.PI * arcRadius;
   const strokeDashoffset = circumference - (percentage / 100) * circumference;
 
@@ -82,32 +83,11 @@ const MotionGauge = ({ percentage, color }: { percentage: number; color: string 
             strokeDashoffset={strokeDashoffset}
           />
         </Svg>
-
+        
         {/* Percentage Label */}
-        <View
-          style={{
-            position: 'absolute',
-            bottom: 6,
-            width: '100%',
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <MaterialIcons
-            name="arrow-drop-up"
-            size={36}
-            color={color}
-            style={{ marginRight: -4, marginTop: 2 }}
-          />
-          <Text
-            allowFontScaling={false}
-            style={{
-              fontFamily: 'UbuntuSans-Medium',
-              fontSize: percentage.toString().length > 3 ? 28 : 34.18,
-              color: color,
-            }}
-          >
+        <View style={{ position: 'absolute', bottom: 6, width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+          <MaterialIcons name="arrow-drop-up" size={36} color={color} style={{ marginRight: -4, marginTop: 2 }} />
+          <Text allowFontScaling={false} style={{ fontFamily: 'UbuntuSans-Medium', fontSize: percentage.toString().length > 3 ? 28 : 34.18, color: color }}>
             {percentage}%
           </Text>
         </View>
@@ -140,17 +120,17 @@ const SegmentedProgressBar = ({ percentage }: { percentage: number }) => {
   );
 };
 
-export default function GaugeDetailModal({
-  visible,
-  onClose,
-  gaugeData,
-  onNext,
-  onPrev,
-}: GaugeDetailModalProps) {
+export default function GaugeDetailModal({ visible, onClose, gaugeData, onNext, onPrev }: GaugeDetailModalProps) {
+
   if (!gaugeData) return null;
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+    >
       <View style={{ flex: 1, justifyContent: 'flex-end' }}>
         {Platform.OS === 'ios' ? (
           <BlurView intensity={15} tint="dark" style={StyleSheet.absoluteFill} />
@@ -159,84 +139,52 @@ export default function GaugeDetailModal({
         )}
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
         <View
-          style={[
-            {
-              backgroundColor: '#FFFFFF',
-              borderTopLeftRadius: 32,
-              borderTopRightRadius: 32,
-              paddingHorizontal: 24,
-              paddingTop: 24,
-              paddingBottom: Platform.OS === 'ios' ? 40 : 24,
-              height: '85%',
-            },
-          ]}
-        >
-          {/* Draggable Handle Area */}
-          <View style={{ paddingBottom: 16 }}>
-            {/* Handle */}
-            <View
-              style={{
-                width: 100,
-                height: 6,
-                borderRadius: 3,
-                backgroundColor: '#A0A0A0',
-                alignSelf: 'center',
-              }}
-            />
-          </View>
-
-          <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
-            {/* Header */}
-            <View
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-              }}
-            >
-              <View>
-                <Text
-                  allowFontScaling={false}
+            style={[{
+                backgroundColor: '#F9FAFA',
+                borderTopLeftRadius: 32,
+                borderTopRightRadius: 32,
+                paddingHorizontal: 24,
+                paddingTop: 24,
+                paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+                height: '85%',
+              }
+            ]}
+          >
+            {/* Draggable Handle Area */}
+                          <View style={{ paddingBottom: 16 }}>
+                {/* Handle */}
+                <View
                   style={{
-                    fontFamily: 'UbuntuSans-Medium',
-                    fontSize: 22,
-                    color: '#113E55',
-                    marginBottom: 4,
+                    width: 100,
+                    height: 6,
+                    borderRadius: 3,
+                    backgroundColor: '#A0A0A0',
+                    alignSelf: 'center',
                   }}
-                >
+                />
+              </View>
+            
+            <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
+            {/* Header */}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <View>
+                <Text allowFontScaling={false} style={{ fontFamily: 'UbuntuSans-Medium', fontSize: 22, color: '#113E55', marginBottom: 4 }}>
                   {gaugeData.title}
                 </Text>
-                <Text
-                  allowFontScaling={false}
-                  style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 13, color: '#8A9A9D' }}
-                >
+                <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 13, color: '#8A9A9D' }}>
                   Contributing Percentage
                 </Text>
               </View>
               <View style={{ flexDirection: 'row', gap: 8 }}>
                 <Pressable
                   onPress={onPrev}
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 16,
-                    backgroundColor: '#EFF1F3',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
+                  style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' }}
                 >
                   <MaterialIcons name="keyboard-arrow-left" size={20} color="#113E55" />
                 </Pressable>
                 <Pressable
                   onPress={onNext}
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 16,
-                    backgroundColor: '#EFF1F3',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
+                  style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' }}
                 >
                   <MaterialIcons name="keyboard-arrow-right" size={20} color="#113E55" />
                 </Pressable>
@@ -247,83 +195,46 @@ export default function GaugeDetailModal({
             <MotionGauge percentage={gaugeData.percentage} color={gaugeData.color} />
 
             {/* Stats Pills */}
-            <View
-              style={{ flexDirection: 'row', justifyContent: 'center', gap: 12, marginBottom: 32 }}
-            >
-              <View
-                style={{
-                  backgroundColor: '#EFF1F3',
-                  borderRadius: 24,
-                  paddingVertical: 8,
-                  paddingHorizontal: 16,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 6,
-                }}
-              >
+            <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 12, marginBottom: 32 }}>
+              <View style={{ backgroundColor: '#E3EDF2', borderRadius: 24, paddingVertical: 8, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <MaterialIcons name="search" size={14} color="#1B998B" />
-                <Text
-                  allowFontScaling={false}
-                  style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 13, color: '#1B998B' }}
-                >
+                <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 13, color: '#1B998B' }}>
                   {gaugeData.records} records detected
                 </Text>
               </View>
-              <View
-                style={{
-                  backgroundColor: '#EFF1F3',
-                  borderRadius: 24,
-                  paddingVertical: 8,
-                  paddingHorizontal: 16,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 6,
-                }}
-              >
+              <View style={{ backgroundColor: '#E3EDF2', borderRadius: 24, paddingVertical: 8, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <MaterialIcons name="history" size={14} color="#1B998B" />
-                <Text
-                  allowFontScaling={false}
-                  style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 13, color: '#1B998B' }}
-                >
+                <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 13, color: '#1B998B' }}>
                   Last {gaugeData.days}days
                 </Text>
               </View>
             </View>
 
+            {/* Description */}
+            {!!gaugeData.description && (
+              <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 13, color: '#8A9A9D', lineHeight: 18, marginBottom: 24 }}>
+                {gaugeData.description}
+              </Text>
+            )}
+
+            {/* Sub Category Title */}
+            <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-SemiBold', fontSize: 16, color: '#113E55', marginBottom: 16 }}>
+              Sub Category
+            </Text>
+
             {/* List Items */}
             <View style={{ gap: 12 }}>
               {gaugeData.items.map((item, idx) => (
-                <View
-                  key={idx}
-                  style={{
-                    backgroundColor: '#FFFFFF',
-                    borderRadius: 16,
-                    padding: 16,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 12,
-                  }}
-                >
-                  <VShapeSvg />
+                <View key={idx} style={{ backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                  <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#F9FAFA', alignItems: 'center', justifyContent: 'center' }}>
+                    <VShapeSvg width={24} height={24} />
+                  </View>
                   <View style={{ flex: 1 }}>
-                    <View
-                      style={{
-                        flexDirection: 'row',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        marginBottom: 8,
-                      }}
-                    >
-                      <Text
-                        allowFontScaling={false}
-                        style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 14, color: '#113E55' }}
-                      >
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                      <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 13, color: '#8A9A9D' }}>
                         {item.title}
                       </Text>
-                      <Text
-                        allowFontScaling={false}
-                        style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 14, color: '#113E55' }}
-                      >
+                      <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 14, color: '#8A9A9D' }}>
                         {item.percentage}%
                       </Text>
                     </View>

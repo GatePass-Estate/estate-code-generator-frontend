@@ -1,6 +1,9 @@
 import React from 'react';
-import { Text, View } from 'react-native';
+import { View, Text, Dimensions } from 'react-native';
 import Svg, { Polygon, Line, Circle } from 'react-native-svg';
+import TextTicker from 'react-native-text-ticker';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export interface RadarSeries {
   data: number[];
@@ -30,18 +33,18 @@ const AnomalyRadarChart = ({
       strokeColor: '#1B998B',
       fillColor: 'rgba(27, 153, 139, 0.28)',
       dotColor: '#1B998B',
-    },
+    }
   ],
   labels = ['Data 1', 'Data 2', 'Data 3', 'Data 4', 'Data 5', 'Data 6'],
-  size = 280,
+  size = SCREEN_WIDTH,
   gridColor = '#E5E7EB',
   levels = 4,
 }: AnomalyRadarChartProps) => {
   const center = size / 2;
-  const radius = size / 2 - 55; // Leave plenty of space for labels so they don't clip
+  const radius = Math.max(50, size / 2 - 110); // Leave plenty of space for labels so they don't clip
   const dataLength = labels.length;
 
-  const maxDataValue = Math.max(...(series?.flatMap((s) => s.data) || []));
+  const maxDataValue = Math.max(...(series?.flatMap(s => s.data) || []));
   const isDecimal = maxDataValue <= 1 && maxDataValue > 0;
   const scaleMax = isDecimal ? Math.max(0.2, maxDataValue) : Math.max(20, maxDataValue);
 
@@ -58,7 +61,7 @@ const AnomalyRadarChart = ({
       .join(' ');
   };
 
-  const getLabelCoordinates = (i: number, total: number, labelRadiusOffset = 18) => {
+  const getLabelCoordinates = (i: number, total: number, labelRadiusOffset = 12) => {
     const angle = (Math.PI * 2 * i) / total - Math.PI / 2;
     const distance = radius + labelRadiusOffset;
     return {
@@ -117,57 +120,85 @@ const AnomalyRadarChart = ({
               const distance = (val / scaleMax) * radius;
               const x = center + distance * Math.cos(angle);
               const y = center + distance * Math.sin(angle);
-              return <Circle key={`point-${index}-${i}`} cx={x} cy={y} r="4" fill={s.dotColor} />;
+              return (
+                <Circle
+                  key={`point-${index}-${i}`}
+                  cx={x}
+                  cy={y}
+                  r="4"
+                  fill={s.dotColor}
+                />
+              );
             })}
           </React.Fragment>
         ))}
+
       </Svg>
 
       {/* Draw Labels as absolute positioned components outside SVG */}
       {labels.map((label, i) => {
-        const { x, y } = getLabelCoordinates(i, dataLength, 18);
+        const { x, y } = getLabelCoordinates(i, dataLength, 24); // increase offset slightly to fit pills
 
-        let positionStyle: any = { top: y - 8 }; // Center vertically
-        let maxWidth = 90;
-        let textAlign = 'center';
+        const PALETTE = [
+          { text: '#F25B2A', bg: '#FFF0F0' },
+          { text: '#113E55', bg: '#E3EDF2' },
+          { text: '#D97706', bg: '#FEF3C7' },
+          { text: '#1B998B', bg: '#E5F5F3' },
+          { text: '#7C3AED', bg: '#F3E8FF' },
+          { text: '#78350F', bg: '#F0E6E1' },
+        ];
+        const colorSet = PALETTE[i % PALETTE.length];
 
+        let positionStyle: any = { top: y - 12, justifyContent: 'center' };
+        
         if (x > center + 10) {
           positionStyle.left = x;
           positionStyle.alignItems = 'flex-start';
-          textAlign = 'left';
         } else if (x < center - 10) {
           positionStyle.right = size - x;
           positionStyle.alignItems = 'flex-end';
-          textAlign = 'right';
         } else {
-          positionStyle.left = x - maxWidth / 2;
+          positionStyle.left = 0;
+          positionStyle.right = 0;
           positionStyle.alignItems = 'center';
-          positionStyle.width = maxWidth;
         }
 
         return (
           <View
             key={`label-${i}`}
-            style={[{ position: 'absolute', width: maxWidth }, positionStyle]}
+            style={[
+              { position: 'absolute' },
+              positionStyle
+            ]}
           >
-            <Text
-              numberOfLines={1}
-              ellipsizeMode="tail"
-              style={{
-                color: '#113E55',
-                fontSize: 13,
-                fontFamily: 'Inter_18pt-Medium',
-                textAlign: textAlign as any,
-              }}
-            >
-              {label}
-            </Text>
+            <View style={{ 
+              backgroundColor: colorSet.bg, 
+              paddingHorizontal: 10, 
+              paddingVertical: 6, 
+              borderRadius: 14,
+              maxWidth: 100
+            }}>
+              <TextTicker 
+                duration={3000}
+                loop
+                bounce
+                repeatSpacer={20}
+                marqueeDelay={1000}
+                style={{
+                  color: colorSet.text,
+                  fontSize: 10.5,
+                  fontFamily: 'Inter_18pt-Medium',
+                }}
+              >
+                {label}
+              </TextTicker>
+            </View>
           </View>
         );
       })}
     </View>
   );
-};
+}
 
 export default React.memo(AnomalyRadarChart, (prevProps, nextProps) => {
   return JSON.stringify(prevProps) === JSON.stringify(nextProps);

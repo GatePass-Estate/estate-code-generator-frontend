@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text } from 'react-native';
-import Svg, { Circle } from 'react-native-svg';
+import { ProgressChart } from 'react-native-chart-kit';
 
 interface AnomalyProgressGaugeProps {
   label: string;
@@ -8,53 +8,40 @@ interface AnomalyProgressGaugeProps {
   color: string;
 }
 
-export default function AnomalyProgressGauge({
-  label,
-  percentage,
-  color,
-}: AnomalyProgressGaugeProps) {
-  const size = 40;
-  const strokeWidth = 6;
-  const radius = (size - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const progress = Math.max(0, Math.min(100, percentage)) / 100;
-  const strokeDashoffset = circumference * (1 - progress);
+export default function AnomalyProgressGauge({ label, percentage, color }: AnomalyProgressGaugeProps) {
+  const data = {
+    labels: [label], // optional
+    data: [percentage / 100],
+  };
+
+  const chartConfig = {
+    backgroundGradientFrom: '#FFFFFF',
+    backgroundGradientTo: '#FFFFFF',
+    color: (opacity = 1) => color,
+    strokeWidth: 8, // optional, default 3
+    barPercentage: 0.5,
+    useShadowColorFromDataset: false, // optional
+  };
 
   return (
     <View className="flex-row items-center justify-between mb-4">
-      <Text
-        allowFontScaling={false}
-        className="text-[14px] font-inter-regular text-[#113E55] flex-1"
-      >
+      <Text allowFontScaling={false} className="text-[14px] font-inter-regular text-[#113E55] flex-1">
         • {label}
       </Text>
       <View className="flex-row items-center gap-2">
         <Text allowFontScaling={false} className="text-[16px] font-ubuntu-medium text-[#113E55]">
           {percentage}%
         </Text>
-        <Svg width={size} height={size}>
-          <Circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            stroke="#EFF1F3"
-            strokeWidth={strokeWidth}
-            fill="none"
-          />
-          <Circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            stroke={color}
-            strokeWidth={strokeWidth}
-            fill="none"
-            strokeDasharray={`${circumference} ${circumference}`}
-            strokeDashoffset={strokeDashoffset}
-            strokeLinecap="round"
-            rotation="-90"
-            origin={`${size / 2}, ${size / 2}`}
-          />
-        </Svg>
+        <ProgressChart
+          data={data}
+          width={40}
+          height={40}
+          strokeWidth={6}
+          radius={14}
+          chartConfig={chartConfig}
+          hideLegend={true}
+          style={{ paddingRight: 0, margin: 0 }}
+        />
       </View>
     </View>
   );

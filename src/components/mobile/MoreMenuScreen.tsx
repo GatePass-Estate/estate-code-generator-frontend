@@ -13,7 +13,9 @@ import {
 } from 'react-native';
 import { router, Stack, useNavigation } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MaterialIcons, Ionicons } from '@expo/vector-icons';
+import { MaterialIcons, Feather, MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Path } from 'react-native-svg';
 import { useState, ReactNode } from 'react';
 import { useAuth } from '@/src/hooks/useAuthContext';
 import { useUserStore } from '@/src/lib/stores/userStore';
@@ -79,14 +81,104 @@ function MoreMenuRow({
   );
 }
 
-function AdminAccessButton({ onPress }: { onPress: () => void }) {
+function SparklesIcon({ size = 20, color = 'white' }) {
   return (
-    <Pressable
-      onPress={onPress}
-      className="flex-row items-center justify-between rounded-[8px] bg-[#113E55] px-4 py-[18px]"
-    >
-      <Text className="text-[13px] font-inter-regular text-[#EFF1F1]">Do More as an Admin</Text>
-      <NavigateNextIcon color="#FFFFFF" width={20} height={20} />
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M13 5L14.5 10.5L20 12L14.5 13.5L13 19L11.5 13.5L6 12L11.5 10.5L13 5Z"
+        stroke={color}
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M7 2L7.7 4.3L10 5L7.7 5.7L7 8L6.3 5.7L4 5L6.3 4.3L7 2Z"
+        stroke={color}
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+function BannerCard({
+  colors,
+  icon,
+  title,
+  subtitle,
+  onPress,
+}: {
+  colors: readonly [string, string, ...string[]];
+  icon: ReactNode;
+  title: string;
+  subtitle: string;
+  onPress?: () => void;
+}) {
+  return (
+    <Pressable onPress={onPress}>
+      <LinearGradient
+        colors={colors}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={{ borderRadius: 8, marginBottom: 8 }}
+      >
+        <View className="flex-row items-center justify-between p-4">
+          <View className="flex-row items-center gap-3 flex-1 pr-4">
+            <View>{icon}</View>
+            <View className="flex-1 flex-col">
+              <Text className="text-[17px] font-inter-medium text-white mb-1">{title}</Text>
+              <Text className="text-[12px] font-inter-regular text-white opacity-90 leading-tight">
+                {subtitle}
+              </Text>
+            </View>
+          </View>
+          <Feather name="chevron-right" size={20} color="white" />
+        </View>
+      </LinearGradient>
+    </Pressable>
+  );
+}
+
+function SquareCard({
+  colors,
+  icon,
+  title,
+  subtitle,
+  onPress,
+}: {
+  colors: readonly [string, string, ...string[]];
+  icon: ReactNode;
+  title: string;
+  subtitle: string;
+  onPress?: () => void;
+}) {
+  return (
+    <Pressable onPress={onPress} className="flex-1">
+      <LinearGradient
+        colors={colors}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{ borderRadius: 8 }}
+      >
+        <View className="px-[10px] py-3 flex-col justify-between min-h-[105px]">
+          <View className="flex-row items-start gap-[6px]">
+            <View>{icon}</View>
+            <View className="flex-1 flex-col mt-[1px]">
+              <Text className="text-[12px] font-inter-regular text-white mb-1" numberOfLines={1}>{title}</Text>
+              <Text className="text-[10px] font-inter-regular text-white opacity-90 leading-tight">
+                {subtitle}
+              </Text>
+            </View>
+          </View>
+          <View className="items-end mt-1">
+            <View
+              className="w-5 h-5 rounded-full items-center justify-center"
+              style={{ borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.6)' }}
+            >
+              <Feather name="arrow-up-right" size={12} color="white" style={{ opacity: 0.9 }} />
+            </View>
+          </View>
+        </View>
+      </LinearGradient>
     </Pressable>
   );
 }
@@ -104,6 +196,7 @@ export default function MoreMenuScreen({
   const [starRating, setStarRating] = useState(0);
 
   const isAdmin = role === 'admin' || role === 'primary_admin' || role === 'root';
+  const isPrimaryAdmin = role === 'primary_admin' || role === 'root';
 
   const confirmDelete = () => {
     Alert.alert(
@@ -161,11 +254,33 @@ export default function MoreMenuScreen({
         }}
         showsVerticalScrollIndicator={false}
       >
-        {isAdmin ? (
+        {isPrimaryAdmin && (
           <View className="mb-6">
-            <AdminAccessButton onPress={() => router.replace('/admin')} />
+            <BannerCard
+              colors={['#185A75', '#5796AB']}
+              icon={<Ionicons name="diamond-outline" size={24} color="white" />}
+              title="Current Plan"
+              subtitle="Upgrade your account plan to get exclusive features including Freeze, Scheduling and more"
+              onPress={() => {}}
+            />
+            <View className="flex-row gap-2">
+              <SquareCard
+                colors={['#F05E3E', '#F99573']}
+                icon={<MaterialCommunityIcons name="account-cog-outline" size={20} color="white" />}
+                title="ADMIN TOOLS"
+                subtitle="Control and manage access on your dashboard"
+                onPress={() => router.replace('/admin')}
+              />
+              <SquareCard
+                colors={['#129B85', '#49CCB8']}
+                icon={<SparklesIcon size={20} color="white" />}
+                title="AI STORE"
+                subtitle="Get AI assistance on your dashboard"
+                onPress={() => router.push('/ai-store')}
+              />
+            </View>
           </View>
-        ) : null}
+        )}
         <View className="flex-col gap-10">
           <View>
             <SectionTitle first>Account</SectionTitle>

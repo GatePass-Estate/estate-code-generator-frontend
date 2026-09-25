@@ -34,7 +34,7 @@ export interface AnomalyOverviewResponse {
       scale: number;
       percentage: number;
       instance_percentage?: number; // Might only appear in individual result
-      instance_value?: number; // Might only appear in individual result
+      instance_value?: number;      // Might only appear in individual result
     }[];
     top_contributing_factors: {
       feature_name: string;
@@ -161,11 +161,7 @@ export interface AnomalyCaseResultsResponse {
 
 export const anomalyApi = {
   // Get Result Page Overview (Spider plot, factor lists, demographic counts)
-  getOverview: async ({
-    estate_id,
-    from_date,
-    to_date,
-  }: BaseParams): Promise<AnomalyOverviewResponse> => {
+  getOverview: async ({ estate_id, from_date, to_date }: BaseParams): Promise<AnomalyOverviewResponse> => {
     const { data } = await Api('ai').get('/spatial-anomaly/result-page/overview', {
       params: { estate_id, from_date, to_date },
     });
@@ -211,61 +207,34 @@ export const anomalyApi = {
   },
 
   // Case Demographic
-  getCaseDemographic: async (
-    estate_id: string,
-    prediction_id: string
-  ): Promise<AnomalyCaseDemographicResponse> => {
-    const { data } = await Api('ai').get(
-      `/spatial-anomaly/result-page/cases/${prediction_id}/demographic`,
-      {
-        params: { estate_id },
-      }
-    );
+  getCaseDemographic: async (estate_id: string, prediction_id: string): Promise<AnomalyCaseDemographicResponse> => {
+    const { data } = await Api('ai').get(`/spatial-anomaly/result-page/cases/${prediction_id}/demographic`, {
+      params: { estate_id },
+    });
     return data;
   },
 
   // Case History
-  getCaseHistory: async (
-    estate_id: string,
-    prediction_id: string,
-    history_limit: number = 5
-  ): Promise<AnomalyCaseHistoryResponse> => {
-    const { data } = await Api('ai').get(
-      `/spatial-anomaly/result-page/cases/${prediction_id}/history`,
-      {
-        params: { estate_id, history_limit },
-      }
-    );
+  getCaseHistory: async (estate_id: string, prediction_id: string, history_limit: number = 5): Promise<AnomalyCaseHistoryResponse> => {
+    const { data } = await Api('ai').get(`/spatial-anomaly/result-page/cases/${prediction_id}/history`, {
+      params: { estate_id, history_limit },
+    });
     return data;
   },
 
   // Case Summary (LLM)
-  getCaseSummary: async (
-    estate_id: string,
-    prediction_id: string
-  ): Promise<AnomalyCaseSummaryResponse> => {
-    const { data } = await Api('ai').get(
-      `/spatial-anomaly/result-page/cases/${prediction_id}/summary`,
-      {
-        params: { estate_id },
-      }
-    );
+  getCaseSummary: async (estate_id: string, prediction_id: string): Promise<AnomalyCaseSummaryResponse> => {
+    const { data } = await Api('ai').get(`/spatial-anomaly/result-page/cases/${prediction_id}/summary`, {
+      params: { estate_id },
+    });
     return data;
   },
 
   // Case Results (Spider plot & contributing factors for one user)
-  getCaseResults: async (
-    estate_id: string,
-    prediction_id: string,
-    from_date?: string,
-    to_date?: string
-  ): Promise<AnomalyCaseResultsResponse> => {
-    const { data } = await Api('ai').get(
-      `/spatial-anomaly/result-page/cases/${prediction_id}/results`,
-      {
-        params: { estate_id, from_date, to_date },
-      }
-    );
+  getCaseResults: async (estate_id: string, prediction_id: string, from_date?: string, to_date?: string): Promise<AnomalyCaseResultsResponse> => {
+    const { data } = await Api('ai').get(`/spatial-anomaly/result-page/cases/${prediction_id}/results`, {
+      params: { estate_id, from_date, to_date },
+    });
     return data;
   },
 };

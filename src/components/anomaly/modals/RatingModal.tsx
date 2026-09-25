@@ -9,15 +9,7 @@ interface RatingModalProps {
   onSubmit: (rating: number) => Promise<void>;
 }
 
-const Star = ({
-  size = 32,
-  filled,
-  color = '#F46036',
-}: {
-  size?: number;
-  filled: boolean;
-  color?: string;
-}) => (
+const Star = ({ size = 32, filled, color = '#F46036' }: { size?: number, filled: boolean, color?: string }) => (
   <Svg
     width={size}
     height={size}
@@ -57,15 +49,12 @@ export default function RatingModal({ visible, onClose, onSubmit }: RatingModalP
       <View className="flex-1 justify-center items-center">
         <BlurView intensity={25} tint="dark" style={StyleSheet.absoluteFill} />
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} disabled={isSubmitting} />
-
+        
         <View className="bg-white rounded-[24px] p-6 items-center w-[320px] shadow-lg">
-          <Text
-            allowFontScaling={false}
-            className="text-[13px] font-inter-medium text-[#113E55] mb-4"
-          >
+          <Text allowFontScaling={false} className="text-[13px] font-inter-medium text-[#113E55] mb-4">
             Tap To Rate
           </Text>
-
+          
           <View className="flex-row items-center gap-1 mb-6">
             {[1, 2, 3, 4, 5].map((star) => (
               <Pressable key={star} onPress={() => setRating(star)}>
@@ -73,8 +62,8 @@ export default function RatingModal({ visible, onClose, onSubmit }: RatingModalP
               </Pressable>
             ))}
           </View>
-
-          <Pressable
+          
+          <Pressable 
             disabled={rating === 0 || isSubmitting}
             onPress={handleSubmit}
             className={`w-full py-[14px] rounded-[24px] items-center justify-center ${

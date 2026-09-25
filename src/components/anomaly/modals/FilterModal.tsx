@@ -1,37 +1,30 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Pressable, Modal, StyleSheet, Dimensions, SafeAreaView } from 'react-native';
+import { View, Text, Pressable, Modal, StyleSheet } from 'react-native';
 import { BlurView } from 'expo-blur';
 
-export type Severity = 'Low' | 'Medium' | 'High' | null;
-export type Gender = 'Female' | 'Male' | 'Prefer not to say' | null;
-export type UserType = 'Guest' | 'Resident' | null;
+export type Severity = 'Low' | 'Medium' | 'High';
+export type Gender = 'Female' | 'Male' | 'Prefer not to say';
+export type UserType = 'Guest' | 'Resident';
 
 interface FilterModalProps {
   visible: boolean;
   onClose: () => void;
-  onApply: (severity: Severity, gender: Gender, userType: UserType) => void;
-  currentSeverity: Severity;
-  currentGender: Gender;
-  currentUserType: UserType;
+  onApply: (severity: Severity[], gender: Gender[], userType: UserType[]) => void;
+  currentSeverity: Severity[];
+  currentGender: Gender[];
+  currentUserType: UserType[];
 }
 
-export default function FilterModal({
-  visible,
-  onClose,
-  onApply,
-  currentSeverity,
-  currentGender,
-  currentUserType,
-}: FilterModalProps) {
-  const [selectedSeverity, setSelectedSeverity] = useState<Severity>(currentSeverity);
-  const [selectedGender, setSelectedGender] = useState<Gender>(currentGender);
-  const [selectedUserType, setSelectedUserType] = useState<UserType>(currentUserType);
+export default function FilterModal({ visible, onClose, onApply, currentSeverity, currentGender, currentUserType }: FilterModalProps) {
+  const [selectedSeverity, setSelectedSeverity] = useState<Severity[]>(currentSeverity || []);
+  const [selectedGender, setSelectedGender] = useState<Gender[]>(currentGender || []);
+  const [selectedUserType, setSelectedUserType] = useState<UserType[]>(currentUserType || []);
 
   useEffect(() => {
     if (visible) {
-      setSelectedSeverity(currentSeverity);
-      setSelectedGender(currentGender);
-      setSelectedUserType(currentUserType);
+      setSelectedSeverity(currentSeverity || []);
+      setSelectedGender(currentGender || []);
+      setSelectedUserType(currentUserType || []);
     }
   }, [visible, currentSeverity, currentGender, currentUserType]);
 
@@ -39,15 +32,15 @@ export default function FilterModal({
   const genders: Gender[] = ['Female', 'Male', 'Prefer not to say'];
   const userTypes: UserType[] = ['Guest', 'Resident'];
 
-  const Pill = ({
-    label,
-    isSelected,
-    onPress,
-  }: {
-    label: string;
-    isSelected: boolean;
-    onPress: () => void;
-  }) => (
+  const toggleSelection = (item: any, selectedArray: any[], setArray: any) => {
+    if (selectedArray.includes(item)) {
+      setArray(selectedArray.filter(i => i !== item));
+    } else {
+      setArray([...selectedArray, item]);
+    }
+  };
+
+  const Pill = ({ label, isSelected, onPress }: { label: string, isSelected: boolean, onPress: () => void }) => (
     <Pressable
       onPress={onPress}
       style={{
@@ -56,6 +49,7 @@ export default function FilterModal({
         paddingHorizontal: 16,
         borderRadius: 24,
         marginRight: 10,
+        marginBottom: 10,
       }}
     >
       <Text
@@ -71,20 +65,24 @@ export default function FilterModal({
   );
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+    >
       <View style={{ flex: 1, justifyContent: 'flex-end' }}>
         <BlurView intensity={15} tint="dark" style={StyleSheet.absoluteFill} />
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-
+        
         <View
-          style={[
-            {
+          style={[{
               backgroundColor: '#FFFFFF',
               borderTopLeftRadius: 32,
               borderTopRightRadius: 32,
               padding: 24,
               paddingBottom: 40,
-            },
+            }
           ]}
         >
           {/* Handle */}
@@ -99,27 +97,19 @@ export default function FilterModal({
               }}
             />
           </View>
-
+          
           {/* Severity */}
           <View style={{ marginBottom: 16 }}>
-            <Text
-              allowFontScaling={false}
-              style={{
-                fontFamily: 'Inter_18pt-Regular',
-                fontSize: 16,
-                color: '#8A9A9D',
-                marginBottom: 16,
-              }}
-            >
+            <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 16, color: '#8A9A9D', marginBottom: 16 }}>
               Severity
             </Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-              {severities.map((s) => (
+              {severities.map(s => (
                 <Pill
                   key={s}
-                  label={s!}
-                  isSelected={selectedSeverity === s}
-                  onPress={() => setSelectedSeverity(selectedSeverity === s ? null : s)}
+                  label={s}
+                  isSelected={selectedSeverity.includes(s)}
+                  onPress={() => toggleSelection(s, selectedSeverity, setSelectedSeverity)}
                 />
               ))}
             </View>
@@ -129,24 +119,16 @@ export default function FilterModal({
 
           {/* Gender */}
           <View style={{ marginBottom: 16 }}>
-            <Text
-              allowFontScaling={false}
-              style={{
-                fontFamily: 'Inter_18pt-Regular',
-                fontSize: 16,
-                color: '#8A9A9D',
-                marginBottom: 16,
-              }}
-            >
+            <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 16, color: '#8A9A9D', marginBottom: 16 }}>
               Gender
             </Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-              {genders.map((g) => (
+              {genders.map(g => (
                 <Pill
                   key={g}
-                  label={g!}
-                  isSelected={selectedGender === g}
-                  onPress={() => setSelectedGender(selectedGender === g ? null : g)}
+                  label={g}
+                  isSelected={selectedGender.includes(g)}
+                  onPress={() => toggleSelection(g, selectedGender, setSelectedGender)}
                 />
               ))}
             </View>
@@ -156,24 +138,16 @@ export default function FilterModal({
 
           {/* User Type */}
           <View style={{ marginBottom: 32 }}>
-            <Text
-              allowFontScaling={false}
-              style={{
-                fontFamily: 'Inter_18pt-Regular',
-                fontSize: 16,
-                color: '#8A9A9D',
-                marginBottom: 16,
-              }}
-            >
+            <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 16, color: '#8A9A9D', marginBottom: 16 }}>
               User Type
             </Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-              {userTypes.map((u) => (
+              {userTypes.map(u => (
                 <Pill
                   key={u}
-                  label={u!}
-                  isSelected={selectedUserType === u}
-                  onPress={() => setSelectedUserType(selectedUserType === u ? null : u)}
+                  label={u}
+                  isSelected={selectedUserType.includes(u)}
+                  onPress={() => toggleSelection(u, selectedUserType, setSelectedUserType)}
                 />
               ))}
             </View>
@@ -195,10 +169,7 @@ export default function FilterModal({
               marginBottom: 10,
             }}
           >
-            <Text
-              allowFontScaling={false}
-              style={{ fontFamily: 'UbuntuSans-Medium', fontSize: 16, color: '#FFFFFF' }}
-            >
+            <Text allowFontScaling={false} style={{ fontFamily: 'UbuntuSans-Medium', fontSize: 16, color: '#FFFFFF' }}>
               Confirm
             </Text>
           </Pressable>

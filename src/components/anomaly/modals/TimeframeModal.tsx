@@ -11,16 +11,10 @@ type TimeframeModalProps = {
   onSelect: (label: string, start: Date, end: Date) => void;
 };
 
-export default function TimeframeModal({
-  visible,
-  onClose,
-  onCustomSelect,
-  selectedLabel,
-  onSelect,
-}: TimeframeModalProps) {
-  if (!visible) return null;
+export default function TimeframeModal({ visible, onClose, onCustomSelect, selectedLabel, onSelect }: TimeframeModalProps) {
+      if (!visible) return null;
 
-  const options = ['Last Week', 'Last Month', 'Last Quarter', 'Last Year', 'Custom'];
+  const options = ['Last Week', 'Last Month', 'Last Quarter', 'Custom'];
   const selected = selectedLabel;
 
   const handleSelect = (opt: string) => {
@@ -38,8 +32,6 @@ export default function TimeframeModal({
       start.setMonth(end.getMonth() - 1);
     } else if (opt === 'Last Quarter') {
       start.setMonth(end.getMonth() - 3);
-    } else if (opt === 'Last Year') {
-      start.setFullYear(end.getFullYear() - 1);
     }
 
     onSelect(opt, start, end);
@@ -54,102 +46,50 @@ export default function TimeframeModal({
         </BlurView>
 
         <View
-          style={[
-            {
-              backgroundColor: '#F6F7F7',
-              borderTopLeftRadius: 32,
-              borderTopRightRadius: 32,
-              padding: 24,
-              paddingBottom: 40,
-            },
+          style={[{ backgroundColor: '#F6F7F7', borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, paddingBottom: 40 }
           ]}
         >
-          <View style={{ paddingBottom: 24 }}>
-            <View
-              style={{
-                width: 40,
-                height: 4,
-                backgroundColor: '#E5E7EB',
-                borderRadius: 2,
-                alignSelf: 'center',
-              }}
-            />
+                  <View style={{ paddingBottom: 24 }}>
+            <View style={{ width: 40, height: 4, backgroundColor: '#E5E7EB', borderRadius: 2, alignSelf: 'center' }} />
           </View>
+                
+        <Text allowFontScaling={false} style={{ fontFamily: 'UbuntuSans-Medium', fontSize: 20, color: '#113E55', marginBottom: 24 }}>Set Timeframe</Text>
 
-          <Text
-            allowFontScaling={false}
-            style={{
-              fontFamily: 'UbuntuSans-Medium',
-              fontSize: 20,
-              color: '#113E55',
-              marginBottom: 24,
-            }}
-          >
-            Set Timeframe
-          </Text>
-
-          <View style={{ gap: 12 }}>
-            {options.map((opt) => {
-              const isSelected = opt === selected;
-              return (
-                <Pressable
-                  key={opt}
-                  onPress={() => handleSelect(opt)}
-                  style={{
-                    flexDirection: 'row',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    backgroundColor: isSelected ? '#D2E7ED' : '#F6F7F7',
-                    borderWidth: 1,
-                    borderColor: isSelected ? '#A2C0C6' : '#EFF1F3',
-                    paddingHorizontal: 20,
-                    paddingVertical: 16,
-                    borderRadius: 16,
-                  }}
-                >
-                  <Text
-                    allowFontScaling={false}
-                    style={{
-                      fontFamily: 'Inter_18pt-Medium',
-                      fontSize: 13,
-                      color: isSelected ? '#113E55' : '#8A9A9D',
-                    }}
-                  >
-                    {opt}
-                  </Text>
-                  {isSelected ? (
-                    <View
-                      style={{
-                        width: 20,
-                        height: 20,
-                        borderRadius: 10,
-                        backgroundColor: '#113E55',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <MaterialIcons name="check" size={12} color="#FFFFFF" />
-                    </View>
-                  ) : (
-                    <View
-                      style={{
-                        width: 20,
-                        height: 20,
-                        borderRadius: 10,
-                        backgroundColor: '#EFF1F3',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <MaterialIcons name="check" size={12} color="#113E55" />
-                    </View>
-                  )}
-                </Pressable>
-              );
-            })}
-          </View>
+        <View style={{ gap: 12 }}>
+          {options.map((opt) => {
+            const isSelected = opt === selected;
+            return (
+              <Pressable
+                key={opt}
+                onPress={() => handleSelect(opt)}
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  backgroundColor: isSelected ? '#D2E7ED' : '#F6F7F7',
+                  borderWidth: 1,
+                  borderColor: isSelected ? '#A2C0C6' : '#EFF1F3',
+                  paddingHorizontal: 20,
+                  paddingVertical: 16,
+                  borderRadius: 16
+                }}
+              >
+                <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 13, color: isSelected ? '#113E55' : '#8A9A9D' }}>{opt}</Text>
+                {isSelected ? (
+                  <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: '#113E55', alignItems: 'center', justifyContent: 'center' }}>
+                    <MaterialIcons name="check" size={12} color="#FFFFFF" />
+                  </View>
+                ) : (
+                  <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: '#EFF1F3', alignItems: 'center', justifyContent: 'center' }}>
+                    <MaterialIcons name="check" size={12} color="#113E55" />
+                  </View>
+                )}
+              </Pressable>
+            );
+          })}
         </View>
       </View>
-    </Modal>
+    </View>
+  </Modal>
   );
 }

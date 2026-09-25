@@ -107,7 +107,6 @@
       "expo-sharing",
       "expo-status-bar"
     ],
-    "assetBundlePatterns": ["**/*"],
     "extra": {
       "router": {},
       "eas": {
