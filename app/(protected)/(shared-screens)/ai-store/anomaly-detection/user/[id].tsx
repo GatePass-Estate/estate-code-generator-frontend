@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
-import { View, Text, Pressable, ScrollView, Image, Animated, ActivityIndicator } from 'react-native';
+import { View, Text, Pressable, ScrollView, Image, Animated, ActivityIndicator, Alert } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -134,10 +134,6 @@ export default function AnomalyDetectionUserDetailsScreen() {
     };
 
     return factors
-      .filter((factor: any) => {
-        const raw = factor.name || factor.feature_name || '';
-        return !raw.toLowerCase().includes('security');
-      })
       .map((factor: any, index: number) => {
       const percentage = factor.percentage || 0;
       const themeColor = colors[index % colors.length];
@@ -260,6 +256,7 @@ export default function AnomalyDetectionUserDetailsScreen() {
         </Pressable>
         <Text allowFontScaling={false} style={{ fontFamily: 'UbuntuSans-Medium', fontSize: 16, color: '#113E55' }}>User Overview</Text>
         <Pressable
+          onPress={() => Alert.alert('Coming Soon', 'This feature is not yet active.')}
           style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#113E55', alignItems: 'center', justifyContent: 'center' }}
         >
           <ExportSvg width={14} height={14} color="#FFFFFF" />
