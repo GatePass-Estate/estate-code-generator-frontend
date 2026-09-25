@@ -7,10 +7,7 @@ import type {
   IncidentPeakTime,
   RatioShare,
 } from '@/src/lib/api/incidentReports';
-import type {
-  IncidentCategory,
-  IncidentRow,
-} from '@/src/components/incident/incidentTypes';
+import type { IncidentCategory, IncidentRow } from '@/src/components/incident/incidentTypes';
 import {
   formatApiCategoryLabel,
   resolveApiCategory,

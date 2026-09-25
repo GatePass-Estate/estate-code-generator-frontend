@@ -13,10 +13,7 @@ import {
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { MaterialIcons } from '@expo/vector-icons';
 import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
-import {
-  CategoryExpandIcon,
-  NarrativeSnippetIcon,
-} from '@/src/assets/svgs';
+import { CategoryExpandIcon, NarrativeSnippetIcon } from '@/src/assets/svgs';
 import { IncidentCategoryIcon } from './categoryIcons';
 import { type IncidentCategory, type IncidentCategoryId } from './incidentTypes';
 import { mapCategoryEdaToUi } from './mapIncidentApi';
@@ -75,9 +72,7 @@ function CategoryIcon({
   size: number;
   filled?: boolean;
 }) {
-  return (
-    <IncidentCategoryIcon category={apiCategory} color={color} size={size} filled={filled} />
-  );
+  return <IncidentCategoryIcon category={apiCategory} color={color} size={size} filled={filled} />;
 }
 
 /** Bubble layout slots (size/position). Filled from API category order — not hardcoded ids. */
@@ -551,7 +546,12 @@ export default function CategoryDistribution({
                 </View>
               ) : showPct && layout.size >= 40 ? (
                 <View className="items-center justify-center gap-0.5 px-0.5">
-                  <CategoryIcon apiCategory={category.apiCategory} color="#F6F7F7" size={12} filled />
+                  <CategoryIcon
+                    apiCategory={category.apiCategory}
+                    color="#F6F7F7"
+                    size={12}
+                    filled
+                  />
                   <Text
                     allowFontScaling={false}
                     numberOfLines={1}

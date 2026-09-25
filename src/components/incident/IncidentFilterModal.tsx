@@ -70,7 +70,9 @@ function FilterChip({
         backgroundColor: selected ? '#CEE5ED' : '#EFF1F1',
       }}
     >
-      {categoryId ? <IncidentCategoryIcon category={categoryId} color={color} size={14} filled={selected} /> : null}
+      {categoryId ? (
+        <IncidentCategoryIcon category={categoryId} color={color} size={14} filled={selected} />
+      ) : null}
       <Text
         allowFontScaling={false}
         style={{
