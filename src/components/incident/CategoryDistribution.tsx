@@ -15,13 +15,9 @@ import { MaterialIcons } from '@expo/vector-icons';
 import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
 import {
   CategoryExpandIcon,
-  CategorySecurityIcon,
-  CategoryMedicalIcon,
-  CategoryMaintenanceIcon,
-  CategoryAccessIcon,
-  CategoryPropertyIcon,
   NarrativeSnippetIcon,
 } from '@/src/assets/svgs';
+import { IncidentCategoryIcon } from './categoryIcons';
 import { type IncidentCategory, type IncidentCategoryId } from './incidentTypes';
 import { mapCategoryEdaToUi } from './mapIncidentApi';
 
@@ -69,52 +65,29 @@ function ActiveBubbleRing({ size, id }: { size: number; id: string }) {
 }
 
 function CategoryIcon({
-  icon,
+  apiCategory,
   color,
   size,
   filled = false,
 }: {
-  icon: IncidentCategory['icon'];
+  apiCategory: string;
   color: string;
   size: number;
   filled?: boolean;
 }) {
-  if (icon === 'lock') return <CategorySecurityIcon color={color} size={size} filled={filled} />;
-  if (icon === 'medical') return <CategoryMedicalIcon color={color} size={size} filled={filled} />;
-  if (icon === 'wrench')
-    return <CategoryMaintenanceIcon color={color} size={size} filled={filled} />;
-  if (icon === 'home') return <CategoryPropertyIcon color={color} size={size} filled={filled} />;
-  if (icon === 'access') return <CategoryAccessIcon color={color} size={size} filled={filled} />;
-  return <MoreDotsIcon color={color} size={size} />;
-}
-
-/** Three dots geometrically centered in a square (avoids Text baseline offset). */
-function MoreDotsIcon({ color, size = 25 }: { color: string; size?: number }) {
-  const r = Math.max(1.1, size * 0.06);
-  const gap = size * 0.18;
-  const cy = size / 2;
-  const cx = size / 2;
   return (
-    <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      <Circle cx={cx - gap} cy={cy} r={r} fill={color} />
-      <Circle cx={cx} cy={cy} r={r} fill={color} />
-      <Circle cx={cx + gap} cy={cy} r={r} fill={color} />
-    </Svg>
+    <IncidentCategoryIcon category={apiCategory} color={color} size={size} filled={filled} />
   );
 }
 
-const BUBBLES: {
-  id: IncidentCategoryId;
-  size: number;
-  left: number;
-  top: number;
-}[] = [
-  { id: 'security', size: 62, left: 102, top: 0 },
-  { id: 'medical', size: 62, left: 165, top: 41 },
-  { id: 'maintenance', size: 54, left: 153, top: 113 },
-  { id: 'access', size: 43, left: 101, top: 137 },
-  { id: 'property', size: 28, left: 64, top: 117 },
-  { id: 'others', size: 25, left: 51, top: 80 },
+/** Bubble layout slots (size/position). Filled from API category order — not hardcoded ids. */
+const BUBBLE_LAYOUT: { size: number; left: number; top: number }[] = [
+  { size: 62, left: 102, top: 0 },
+  { size: 62, left: 165, top: 41 },
+  { size: 54, left: 153, top: 113 },
+  { size: 43, left: 101, top: 137 },
+  { size: 28, left: 64, top: 117 },
+  { size: 25, left: 51, top: 80 },
 ];
 
 /** Chart + side cards: 3×52+2×16=188; Others stack grows with taller cards */
@@ -130,13 +103,11 @@ function formatBubbleShare(share: number): string {
   return String(rounded);
 }
 
-function iconSizeForBubble(size: number, icon: IncidentCategory['icon']) {
-  if (icon === 'lock') return 24;
-  if (icon === 'medical' || icon === 'wrench') return 16;
-  if (icon === 'home' || icon === 'access') return 12;
-  if (size >= 54) return 24;
+function iconSizeForBubble(size: number) {
+  if (size >= 54) return 22;
   if (size >= 40) return 16;
-  return 12;
+  if (size >= 28) return 12;
+  return 10;
 }
 
 function ThresholdBadge({ label }: { label: string }) {
@@ -275,10 +246,12 @@ function NarrativeSnippetSlider({
 function SubcategoryCard({
   name,
   pct,
+  apiCategory,
   fullWidth = false,
 }: {
   name: string;
   pct: number;
+  apiCategory: string;
   fullWidth?: boolean;
 }) {
   const fillRatio = Math.min(1, Math.max(0, (pct / 5) * (37 / 43)));
@@ -293,8 +266,8 @@ function SubcategoryCard({
       className="justify-center rounded-lg bg-white px-2 py-2"
     >
       <View className="w-full flex-row items-start gap-1.5">
-        <View style={{ transform: [{ rotate: '42.51deg' }] }}>
-          <CategoryExpandIcon size={24} bg="#EFF1F1" color="#113E55" />
+        <View className="h-6 w-6 items-center justify-center rounded-md bg-[#EFF1F1]">
+          <IncidentCategoryIcon category={apiCategory} color="#113E55" size={14} filled />
         </View>
         <Text
           allowFontScaling={false}
@@ -482,7 +455,7 @@ export default function CategoryDistribution({
   const [expanded, setExpanded] = useState(false);
   const selected = catalog.find((item) => item.id === selectedId) ?? catalog[0];
   const selectedIndex = catalog.findIndex((c) => c.id === selectedId);
-  const showSubcategories = selectedId === 'others' && (selected.subcategories?.length ?? 0) > 0;
+  const showSubcategories = selectedId === 'other' && (selected.subcategories?.length ?? 0) > 0;
   const metricsFade = useSelectionFade(selectedId);
   const subcategoryCount = selected.subcategories?.length ?? 0;
   const othersStackHeight =
@@ -516,48 +489,58 @@ export default function CategoryDistribution({
       </View>
 
       <View className="relative w-full" style={{ height: chartAreaHeight }}>
-        {BUBBLES.map((bubble) => {
-          const category = catalog.find((item) => item.id === bubble.id);
-          if (!category) return null;
-          const isSelected = selectedId === bubble.id;
+        {catalog.slice(0, BUBBLE_LAYOUT.length).map((category, index) => {
+          const layout = BUBBLE_LAYOUT[index];
+          if (!layout) return null;
+          const isSelected = selectedId === category.id;
           const iconColor = isSelected ? '#F6F7F7' : '#113E55';
-          const showPct = isSelected && category.icon !== 'more';
-          const iconSz = iconSizeForBubble(bubble.size, category.icon);
+          const showPct = isSelected && category.apiCategory !== 'other';
+          const iconSz = iconSizeForBubble(layout.size);
 
           return (
             <Pressable
-              key={bubble.id}
-              onPress={() => onSelect(bubble.id)}
+              key={category.id}
+              onPress={() => onSelect(category.id)}
               className="absolute items-center justify-center"
               style={{
-                left: bubble.left - 2,
-                top: bubble.top - 2,
-                width: bubble.size + 4,
-                height: bubble.size + 4,
+                left: layout.left - 2,
+                top: layout.top - 2,
+                width: layout.size + 4,
+                height: layout.size + 4,
                 overflow: 'visible',
               }}
             >
               {isSelected ? (
-                <ActiveBubbleRing size={bubble.size} id={bubble.id} />
+                <ActiveBubbleRing size={layout.size} id={category.id} />
               ) : (
                 <View
                   className="absolute rounded-full bg-white"
                   style={{
-                    width: bubble.size,
-                    height: bubble.size,
+                    width: layout.size,
+                    height: layout.size,
                     left: 2,
                     top: 2,
                   }}
                 />
               )}
 
-              {category.icon === 'more' ? (
+              {category.apiCategory === 'other' ? (
                 <View className="absolute inset-0 items-center justify-center" pointerEvents="none">
-                  <MoreDotsIcon color={iconColor} size={bubble.size} />
+                  <CategoryIcon
+                    apiCategory={category.apiCategory}
+                    color={iconColor}
+                    size={Math.max(12, layout.size * 0.45)}
+                    filled
+                  />
                 </View>
-              ) : showPct && bubble.size >= 54 ? (
+              ) : showPct && layout.size >= 54 ? (
                 <View className="items-center gap-1">
-                  <CategoryIcon icon={category.icon} color={iconColor} size={iconSz} filled />
+                  <CategoryIcon
+                    apiCategory={category.apiCategory}
+                    color={iconColor}
+                    size={iconSz}
+                    filled
+                  />
                   <Text
                     allowFontScaling={false}
                     numberOfLines={1}
@@ -566,9 +549,9 @@ export default function CategoryDistribution({
                     {formatBubbleShare(category.share)}%
                   </Text>
                 </View>
-              ) : showPct && bubble.size >= 40 ? (
+              ) : showPct && layout.size >= 40 ? (
                 <View className="items-center justify-center gap-0.5 px-0.5">
-                  <CategoryIcon icon={category.icon} color="#F6F7F7" size={12} filled />
+                  <CategoryIcon apiCategory={category.apiCategory} color="#F6F7F7" size={12} filled />
                   <Text
                     allowFontScaling={false}
                     numberOfLines={1}
@@ -581,7 +564,12 @@ export default function CategoryDistribution({
                 </View>
               ) : showPct ? (
                 <View className="items-center justify-center gap-0.5 px-0.5">
-                  <CategoryIcon icon={category.icon} color="#F6F7F7" size={iconSz} filled />
+                  <CategoryIcon
+                    apiCategory={category.apiCategory}
+                    color="#F6F7F7"
+                    size={iconSz}
+                    filled
+                  />
                   <Text
                     allowFontScaling={false}
                     numberOfLines={1}
@@ -593,12 +581,11 @@ export default function CategoryDistribution({
                   </Text>
                 </View>
               ) : (
-                /* Inactive — filled icons on white (security stays outline) */
                 <CategoryIcon
-                  icon={category.icon}
+                  apiCategory={category.apiCategory}
                   color={iconColor}
                   size={iconSz}
-                  filled={category.icon !== 'lock'}
+                  filled={isSelected}
                 />
               )}
             </Pressable>
@@ -635,7 +622,12 @@ export default function CategoryDistribution({
             ]}
           >
             {selected.subcategories!.map((sub, i) => (
-              <SubcategoryCard key={`${sub.name}-${i}`} name={sub.name} pct={sub.pct} />
+              <SubcategoryCard
+                key={`${sub.name}-${i}`}
+                name={sub.name}
+                pct={sub.pct}
+                apiCategory={sub.apiCategory}
+              />
             ))}
           </Animated.View>
         ) : (

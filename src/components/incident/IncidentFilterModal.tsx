@@ -1,16 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Modal, Pressable, Text, View } from 'react-native';
+import {
+  INCIDENT_API_CATEGORIES,
+  INCIDENT_API_CATEGORY_LABELS,
+  IncidentCategoryIcon,
+  type IncidentApiCategory,
+} from '@/src/components/incident/categoryIcons';
 
 /** API category values for `/incident-reports/result-page/reports`. */
-export type IncidentFilterCategory =
-  | 'medical_emergency'
-  | 'fire_safety'
-  | 'dispute'
-  | 'maintenance'
-  | 'property_damage'
-  | 'unauthorized_access'
-  | 'harassment'
-  | 'other';
+export type IncidentFilterCategory = IncidentApiCategory;
 
 /**
  * UI user-type chips (Figma). API only accepts `resident` | `security` | `all`;
@@ -30,16 +28,9 @@ type IncidentFilterModalProps = {
   current?: IncidentFilterSelection;
 };
 
-const CATEGORIES: { id: IncidentFilterCategory; label: string }[] = [
-  { id: 'medical_emergency', label: 'Medical Emergency' },
-  { id: 'fire_safety', label: 'Fire safety' },
-  { id: 'dispute', label: 'Dispute' },
-  { id: 'maintenance', label: 'Maintenance' },
-  { id: 'property_damage', label: 'Property Damage' },
-  { id: 'unauthorized_access', label: 'Unauthorized access' },
-  { id: 'harassment', label: 'Harassment' },
-  { id: 'other', label: 'Others' },
-];
+const CATEGORIES: { id: IncidentFilterCategory; label: string }[] = INCIDENT_API_CATEGORIES.map(
+  (id) => ({ id, label: INCIDENT_API_CATEGORY_LABELS[id] })
+);
 
 const USER_TYPES: { id: IncidentFilterUserType; label: string }[] = [
   { id: 'guest', label: 'Guest' },
@@ -54,25 +45,32 @@ function toggleValue<T>(list: T[], value: T): T[] {
 /** Figma tag (6567:4229): p-12, rounded-16, inactive #EFF1F1 / #878686, active #CEE5ED / #113E55 */
 function FilterChip({
   label,
+  categoryId,
   selected,
   onPress,
 }: {
   label: string;
+  categoryId?: IncidentFilterCategory;
   selected: boolean;
   onPress: () => void;
 }) {
+  const color = selected ? '#113E55' : '#878686';
   return (
     <Pressable
       onPress={onPress}
       hitSlop={4}
       style={{
+        flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: 12,
+        gap: 6,
+        paddingVertical: 12,
+        paddingHorizontal: 12,
         borderRadius: 16,
         backgroundColor: selected ? '#CEE5ED' : '#EFF1F1',
       }}
     >
+      {categoryId ? <IncidentCategoryIcon category={categoryId} color={color} size={14} filled={selected} /> : null}
       <Text
         allowFontScaling={false}
         style={{
@@ -80,7 +78,7 @@ function FilterChip({
           fontSize: 11.2,
           lineHeight: 14,
           textAlign: 'center',
-          color: selected ? '#113E55' : '#878686',
+          color,
         }}
       >
         {label}
@@ -113,7 +111,7 @@ export default function IncidentFilterModal({
             backgroundColor: '#F6F7F7',
             borderTopLeftRadius: 40,
             borderTopRightRadius: 40,
-            height: 543,
+            height: 620,
           }}
         >
           {/* indicator */}
@@ -154,6 +152,7 @@ export default function IncidentFilterModal({
                   <FilterChip
                     key={item.id}
                     label={item.label}
+                    categoryId={item.id}
                     selected={categories.includes(item.id)}
                     onPress={() => setCategories((prev) => toggleValue(prev, item.id))}
                   />

@@ -1235,3 +1235,31 @@ export function ShareBarSecurityIcon({ color = '#1B998B', ...props }: MenuIconPr
     </Svg>
   );
 }
+
+/** Incident API category icons (Figma 6792:103*) — inline path components. */
+export {
+  IncidentAccessControlFilledIcon,
+  IncidentAccessControlOutlineIcon,
+  IncidentDisputeFilledIcon,
+  IncidentDisputeOutlineIcon,
+  IncidentFireSafetyFilledIcon,
+  IncidentFireSafetyOutlineIcon,
+  IncidentHarassmentFilledIcon,
+  IncidentHarassmentOutlineIcon,
+  IncidentMaintenanceFilledIcon,
+  IncidentMaintenanceOutlineIcon,
+  IncidentMedicalEmergencyFilledIcon,
+  IncidentMedicalEmergencyOutlineIcon,
+  IncidentNoiseDisturbanceFilledIcon,
+  IncidentNoiseDisturbanceOutlineIcon,
+  IncidentOtherFilledIcon,
+  IncidentOtherOutlineIcon,
+  IncidentPropertyDamageFilledIcon,
+  IncidentPropertyDamageOutlineIcon,
+  IncidentSecurityFilledIcon,
+  IncidentSecurityOutlineIcon,
+  IncidentTheftFilledIcon,
+  IncidentTheftOutlineIcon,
+  IncidentUnauthorizedAccessFilledIcon,
+  IncidentUnauthorizedAccessOutlineIcon,
+} from '@/src/components/incident/incidentCategorySvgIcons';

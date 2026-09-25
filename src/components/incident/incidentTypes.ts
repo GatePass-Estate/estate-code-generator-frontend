@@ -1,12 +1,7 @@
-export type IncidentCategoryId =
-  | 'security'
-  | 'medical'
-  | 'maintenance'
-  | 'property'
-  | 'access'
-  | 'others';
+export type IncidentCategoryId = string;
 
 export type IncidentCategory = {
+  /** API category slug (or `other` for the leftover bucket). */
   id: IncidentCategoryId;
   name: string;
   share: number;
@@ -16,9 +11,10 @@ export type IncidentCategory = {
   thresholdLabel: string;
   detail: string;
   narrative: string;
-  icon: 'lock' | 'medical' | 'wrench' | 'home' | 'access' | 'more';
+  /** API slug driving the Figma category icon. */
+  apiCategory: string;
   color: string;
-  subcategories?: { name: string; pct: number }[];
+  subcategories?: { name: string; pct: number; apiCategory: string }[];
 };
 
 export type IncidentRow = {
@@ -27,6 +23,8 @@ export type IncidentRow = {
   reportedAt: string;
   category: string;
   categoryId: IncidentCategoryId;
+  /** Primary API taxonomy slug for icon mapping. */
+  apiCategory: string;
   title: string;
 };
 

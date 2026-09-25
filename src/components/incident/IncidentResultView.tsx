@@ -25,6 +25,7 @@ import {
 } from '@/src/hooks/useIncidentQueries';
 import { toIncidentFromDate, toIncidentToDate } from '@/src/lib/api/incidentReports';
 import CategoryDistribution from './CategoryDistribution';
+import { IncidentCategoryIcon } from './categoryIcons';
 import IncidentAISummaryCard, { type InsightMode } from './IncidentAISummaryCard';
 import IncidentFilterModal, {
   type IncidentFilterCategory,
@@ -148,7 +149,8 @@ function IncidentListRow({ row }: { row: IncidentRow }) {
       </View>
 
       <View className="min-w-0 flex-1">
-        <View className="self-start bg-[#F4FFFE] px-1 py-0.5">
+        <View className="flex-row items-center gap-1 self-start bg-[#F4FFFE] px-1 py-0.5">
+          <IncidentCategoryIcon category={row.apiCategory} color="#167A6F" size={10} filled />
           <Text allowFontScaling={false} className="text-[6.8px] font-inter-light text-[#167A6F]">
             {row.category}
           </Text>
@@ -193,7 +195,7 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
   const [sortAscending, setSortAscending] = useState(false);
   const [insightMode, setInsightMode] = useState<InsightMode>('idle');
   const [fetchSummary, setFetchSummary] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<IncidentCategoryId>('security');
+  const [selectedCategory, setSelectedCategory] = useState<IncidentCategoryId>('');
   const [visibleCount, setVisibleCount] = useState(5);
   const [trendIndex, setTrendIndex] = useState(0);
   const [filterCategories, setFilterCategories] = useState<IncidentFilterCategory[]>([]);
@@ -270,8 +272,9 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
   );
 
   useEffect(() => {
+    if (!categories.length) return;
     if (!categories.some((c) => c.id === selectedCategory)) {
-      setSelectedCategory(categories[0]?.id ?? 'security');
+      setSelectedCategory(categories[0].id);
     }
   }, [categories, selectedCategory]);
 

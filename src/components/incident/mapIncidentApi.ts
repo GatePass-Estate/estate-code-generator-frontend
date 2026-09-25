@@ -9,92 +9,65 @@ import type {
 } from '@/src/lib/api/incidentReports';
 import type {
   IncidentCategory,
-  IncidentCategoryId,
   IncidentRow,
 } from '@/src/components/incident/incidentTypes';
+import {
+  formatApiCategoryLabel,
+  resolveApiCategory,
+} from '@/src/components/incident/categoryIcons';
 
+/** Display labels for API `peak_time` enum values. */
 const PEAK_TIME_LABEL: Record<IncidentPeakTime, string> = {
   morning: 'Mornings',
   afternoon: 'Afternoons',
   evening_night: 'Evenings',
 };
 
-export const BUBBLE_CATEGORY_IDS: IncidentCategoryId[] = [
-  'security',
-  'medical',
-  'maintenance',
-  'property',
-  'access',
-  'others',
-];
-
-const SLOT_META: Record<IncidentCategoryId, { name: string; icon: IncidentCategory['icon'] }> = {
-  security: { name: 'Security', icon: 'lock' },
-  medical: { name: 'Medical Emergency', icon: 'medical' },
-  maintenance: { name: 'Maintenance', icon: 'wrench' },
-  property: { name: 'Property Damage', icon: 'home' },
-  access: { name: 'Access Control', icon: 'access' },
-  others: { name: 'Others', icon: 'more' },
-};
-
-/**
- * API taxonomy → UI bubble id.
- * Unlisted labels roll into Others.
- */
-const CATEGORY_META: Record<
-  string,
-  { id: IncidentCategoryId; name: string; icon: IncidentCategory['icon'] }
-> = {
-  security: { id: 'security', name: 'Security', icon: 'lock' },
-  fire_safety: { id: 'security', name: 'Security', icon: 'lock' },
-  medical_emergency: { id: 'medical', name: 'Medical Emergency', icon: 'medical' },
-  medical: { id: 'medical', name: 'Medical Emergency', icon: 'medical' },
-  maintenance: { id: 'maintenance', name: 'Maintenance', icon: 'wrench' },
-  property_damage: { id: 'property', name: 'Property Damage', icon: 'home' },
-  property: { id: 'property', name: 'Property Damage', icon: 'home' },
-  access_control: { id: 'access', name: 'Access Control', icon: 'access' },
-  unauthorized_access: { id: 'access', name: 'Access Control', icon: 'access' },
-  other: { id: 'others', name: 'Others', icon: 'more' },
-  others: { id: 'others', name: 'Others', icon: 'more' },
-  theft: { id: 'others', name: 'Others', icon: 'more' },
-  dispute: { id: 'others', name: 'Others', icon: 'more' },
-  harassment: { id: 'others', name: 'Others', icon: 'more' },
-  noise_disturbance: { id: 'others', name: 'Others', icon: 'more' },
-};
-
 function formatCategoryLabel(raw: string): string {
-  return raw
-    .split('_')
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ');
-}
-
-function resolveUiId(rawCategory: string): IncidentCategoryId {
-  return CATEGORY_META[rawCategory.toLowerCase()]?.id ?? 'others';
+  return formatApiCategoryLabel(raw);
 }
 
 /** Normalize API percents that may arrive as 0–1 fractions or 0–100. */
 export function normalizePercent(value: number | null | undefined): number {
   if (value == null || Number.isNaN(value)) return 0;
   const n = Number(value);
-  if (n >= 0 && n <= 1) return Math.round(n * 1000) / 10; // 0.167 → 16.7
+  if (n >= 0 && n <= 1) return Math.round(n * 1000) / 10;
   return Math.round(n * 10) / 10;
 }
 
-function emptySlot(id: IncidentCategoryId): IncidentCategory {
-  const meta = SLOT_META[id];
+function sampleNarrative(item: CategoryEdaItem, fallbackName: string): string {
+  const sample = item.sample_reports?.[0];
+  if (!sample) return `No ${fallbackName.toLowerCase()} sample reports for this period.`;
+  const colon = sample.indexOf(':');
+  if (colon > 0 && colon < 80) return sample.slice(colon + 1).trim() || sample;
+  return sample;
+}
+
+function toUiCategory(
+  item: CategoryEdaItem,
+  total: number,
+  subcategories?: IncidentCategory['subcategories']
+): IncidentCategory {
+  const apiCategory = resolveApiCategory(item.category);
+  const name = formatCategoryLabel(item.category);
+  const share =
+    total > 0
+      ? Math.round((item.incident_count / total) * 1000) / 10
+      : normalizePercent(item.percentage_share);
+
   return {
-    id,
-    name: meta.name,
-    share: 0,
-    count: 0,
-    peakTime: '—',
+    id: apiCategory,
+    name,
+    share,
+    count: item.incident_count,
+    peakTime: PEAK_TIME_LABEL[item.peak_time] ?? item.peak_time,
     peakPct: 0,
-    thresholdLabel: '< 5%',
-    detail: `No ${meta.name.toLowerCase()} reports in this window.`,
-    narrative: `No ${meta.name.toLowerCase()} sample reports for this period.`,
-    icon: meta.icon,
+    thresholdLabel: share >= 5 ? '> 5%' : '< 5%',
+    detail: `${name} accounted for ${share}% of reports this period.`,
+    narrative: sampleNarrative(item, name),
+    apiCategory,
     color: '#113E55',
+    subcategories,
   };
 }
 
@@ -114,120 +87,97 @@ export function resolveCategorySection(
   const looksLikeSection = (value: unknown): value is CategoryEdaSection => {
     if (!value || typeof value !== 'object') return false;
     const section = value as CategoryEdaSection;
-    return !!(section.top_1 || section.top_2 || section.other_categories);
+    return !!(section.top_1 || section.top_2 || section.top_3 || section.other_categories);
   };
 
   if (looksLikeSection(eda.categories)) return eda.categories;
 
   const stats = eda.stats as Record<string, unknown> | undefined;
+  const statsRecord = (stats ?? {}) as Record<string, any>;
   const nested =
     (stats?.categories as CategoryEdaSection | undefined) ||
     (stats?.category_eda as CategoryEdaSection | undefined) ||
-    (findInStats(stats as Record<string, any> | undefined, 'categories') as
-      | CategoryEdaSection
-      | undefined) ||
-    (findInStats(stats as Record<string, any> | undefined, 'category_eda') as
-      | CategoryEdaSection
-      | undefined);
+    (findInStats(statsRecord, 'categories') as CategoryEdaSection | undefined) ||
+    (findInStats(statsRecord, 'category_eda') as CategoryEdaSection | undefined);
 
   if (looksLikeSection(nested)) return nested;
   return looksLikeSection(eda.categories) ? eda.categories : null;
 }
 
-type SlotAccum = {
-  count: number;
-  share: number;
-  peak_time: IncidentPeakTime;
-  sample_reports: string[];
-  subcategories: { name: string; pct: number }[];
-};
-
+/**
+ * Maps API category EDA (`top_1`…`top_5` + `other_categories`) into UI bubbles.
+ * Ids / names / icons come from the API taxonomy — not a hardcoded slot list.
+ */
 export function mapCategoryEdaToUi(
   section?: CategoryEdaSection | null,
   totalReports?: number
 ): IncidentCategory[] {
   const tops = rankedItems(section);
   const otherItems = Object.values(section?.other_categories ?? {});
-  const all = [...tops, ...otherItems];
+  const seen = new Set<string>();
 
-  const slots = new Map<IncidentCategoryId, SlotAccum>();
-  const seenApiKeys = new Set<string>();
-
-  for (const item of all) {
-    const apiKey = item.category.toLowerCase();
-    // Avoid double-counting the same API label if it appears in both tops + other_categories.
-    if (seenApiKeys.has(apiKey)) continue;
-    seenApiKeys.add(apiKey);
-
-    const id = resolveUiId(item.category);
-    const existing = slots.get(id);
-    const label = formatCategoryLabel(item.category);
-    const share = normalizePercent(item.percentage_share);
-    const sub = {
-      name: label.length > 10 ? `${label.slice(0, 8)}....` : label,
-      pct: share,
-    };
-
-    if (!existing) {
-      slots.set(id, {
-        count: item.incident_count,
-        share,
-        peak_time: item.peak_time,
-        sample_reports: [...(item.sample_reports ?? [])],
-        subcategories: id === 'others' ? [sub] : [],
-      });
-      continue;
-    }
-
-    existing.count += item.incident_count;
-    existing.share += share;
-    if (item.incident_count >= existing.count - item.incident_count) {
-      existing.peak_time = item.peak_time;
-    }
-    existing.sample_reports.push(...(item.sample_reports ?? []));
-    if (id === 'others' && existing.subcategories.length < 4) {
-      existing.subcategories.push(sub);
-    }
+  const uniqueTops: CategoryEdaItem[] = [];
+  for (const item of tops) {
+    const key = resolveApiCategory(item.category);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    uniqueTops.push(item);
   }
 
-  const total =
-    totalReports && totalReports > 0
-      ? totalReports
-      : Array.from(slots.values()).reduce((sum, s) => sum + s.count, 0);
+  const uniqueOthers: CategoryEdaItem[] = [];
+  for (const item of otherItems) {
+    const key = resolveApiCategory(item.category);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    uniqueOthers.push(item);
+  }
 
-  return BUBBLE_CATEGORY_IDS.map((id) => {
-    const slot = slots.get(id);
-    if (!slot) return emptySlot(id);
+  const countedTotal = [...uniqueTops, ...uniqueOthers].reduce(
+    (sum, item) => sum + (item.incident_count || 0),
+    0
+  );
+  const total = totalReports && totalReports > 0 ? totalReports : countedTotal;
 
-    const meta = SLOT_META[id];
-    // Prefer count/total so merged slots stay consistent with Incident Count /total.
-    const share =
-      total > 0 ? Math.round((slot.count / total) * 1000) / 10 : Math.round(slot.share * 10) / 10;
-    const sample = slot.sample_reports[0];
-    const narrative = sample
-      ? (() => {
-          const colon = sample.indexOf(':');
-          if (colon > 0 && colon < 80) return sample.slice(colon + 1).trim() || sample;
-          return sample;
-        })()
-      : `No ${meta.name.toLowerCase()} sample reports for this period.`;
+  const categories: IncidentCategory[] = uniqueTops.map((item) => toUiCategory(item, total));
 
-    return {
-      id,
-      name: meta.name,
-      share,
-      count: slot.count,
-      peakTime: PEAK_TIME_LABEL[slot.peak_time] ?? slot.peak_time,
-      // API has peak_time label only — don't fake this with category share.
+  if (uniqueOthers.length > 0) {
+    const otherCount = uniqueOthers.reduce((sum, item) => sum + item.incident_count, 0);
+    const otherShare =
+      total > 0
+        ? Math.round((otherCount / total) * 1000) / 10
+        : uniqueOthers.reduce((sum, item) => sum + normalizePercent(item.percentage_share), 0);
+    const peakItem = uniqueOthers.reduce((best, item) =>
+      item.incident_count >= best.incident_count ? item : best
+    );
+    const subcategories = uniqueOthers.slice(0, 4).map((item) => {
+      const label = formatCategoryLabel(item.category);
+      return {
+        name: label.length > 10 ? `${label.slice(0, 8)}....` : label,
+        pct:
+          total > 0
+            ? Math.round((item.incident_count / total) * 1000) / 10
+            : normalizePercent(item.percentage_share),
+        apiCategory: resolveApiCategory(item.category),
+      };
+    });
+
+    categories.push({
+      id: 'other',
+      name: 'Others',
+      share: otherShare,
+      count: otherCount,
+      peakTime: PEAK_TIME_LABEL[peakItem.peak_time] ?? peakItem.peak_time,
       peakPct: 0,
-      thresholdLabel: share >= 5 ? '> 5%' : '< 5%',
-      detail: `${meta.name} accounted for ${share}% of reports this period.`,
-      narrative,
-      icon: meta.icon,
+      thresholdLabel: otherShare >= 5 ? '> 5%' : '< 5%',
+      detail: `Other categories accounted for ${otherShare}% of reports this period.`,
+      narrative: sampleNarrative(peakItem, 'other'),
+      apiCategory: 'other',
       color: '#113E55',
-      subcategories: id === 'others' ? slot.subcategories.slice(0, 4) : undefined,
-    };
-  });
+      subcategories,
+    });
+  }
+
+  return categories;
 }
 
 export function formatReportCount(total?: number): string {
@@ -240,8 +190,8 @@ export function formatReportCount(total?: number): string {
 }
 
 export function mapListItemToRow(item: IncidentListItem): IncidentRow {
-  const primary = item.category?.[0]?.toLowerCase() ?? '';
-  const meta = CATEGORY_META[primary];
+  const primary = item.category?.[0] ?? '';
+  const apiCategory = resolveApiCategory(primary);
   const when = item.occurred_at || item.created_at;
   const reportedAt = new Date(when).toLocaleString('en-GB', {
     day: '2-digit',
@@ -266,7 +216,8 @@ export function mapListItemToRow(item: IncidentListItem): IncidentRow {
           : 'Reporter',
     reportedAt,
     category: categoryLabel,
-    categoryId: meta?.id ?? 'others',
+    categoryId: apiCategory,
+    apiCategory,
     title: item.title?.trim() || item.narrative.slice(0, 48) || 'Incident report',
   };
 }
