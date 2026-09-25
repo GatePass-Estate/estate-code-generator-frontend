@@ -1,6 +1,11 @@
 import axios, { type AxiosError } from 'axios';
 import { useAuthStore } from '../stores/authStore';
 import { handleUnauthorizedResponse } from '../session';
+import { attachDeviceId } from '../deviceId';
+
+// Direct `axios.post(...)` calls (2FA verify, biometric login, ToS) go through
+// the global instance, so tag those too. Installed once at module load.
+axios.interceptors.request.use(attachDeviceId);
 
 type Service = 'user' | 'code' | 'ai' | 'revenue';
 
@@ -41,6 +46,9 @@ const Api = (service: Service = 'user') => {
       Authorization: access_token ? `Bearer ${access_token}` : undefined,
     },
   });
+
+  // Instances made by axios.create do not inherit global interceptors.
+  client.interceptors.request.use(attachDeviceId);
 
   return attachUnauthorizedInterceptor(client);
 };

@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import UserIcon from '@/src/components/mobile/UserIcon';
+import NotificationBell from '@/src/components/common/NotificationBell';
 import { useEffect, useRef, useState } from 'react';
 import images from '@/src/constants/images';
 import { deleteMyGuest, getMyGuests } from '@/src/lib/api/guests';
@@ -155,7 +156,12 @@ const MyGuestMobile = () => {
             headerTitleAlign: 'left',
             headerStyle: sharedStyles.header,
             headerTitleStyle: sharedStyles.title,
-            headerRight: () => <UserIcon />,
+            headerRight: () => (
+              <View className="flex-row items-center">
+                <NotificationBell />
+                <UserIcon />
+              </View>
+            ),
           }}
         />
       ) : (

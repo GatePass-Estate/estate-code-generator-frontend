@@ -1235,3 +1235,49 @@ export function ShareBarSecurityIcon({ color = '#1B998B', ...props }: MenuIconPr
     </Svg>
   );
 }
+
+/**
+ * Siren badge used for broadcast priority. The design uses a tinted circle
+ * behind the glyph, with both colours driven by the broadcast priority.
+ */
+export function PriorityAlarmIcon({
+  color = '#113E55',
+  circleColor = '#CEE5ED',
+  size = 31,
+  ...props
+}: MenuIconProps & { circleColor?: string; size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 31 31" fill="none" {...props}>
+      <Circle cx={15.5} cy={15.5} r={15.5} fill={circleColor} />
+      <Path
+        d="M15.5 8.5a4.4 4.4 0 0 1 4.4 4.4v4.2h.6a.8.8 0 0 1 0 1.6H10.5a.8.8 0 0 1 0-1.6h.6v-4.2a4.4 4.4 0 0 1 4.4-4.4Zm0 1.6a2.8 2.8 0 0 0-2.8 2.8v4.2h5.6v-4.2a2.8 2.8 0 0 0-2.8-2.8Z"
+        fill={color}
+      />
+      <Path
+        d="M15.5 6a.7.7 0 0 1 .7.7v.8a.7.7 0 1 1-1.4 0v-.8a.7.7 0 0 1 .7-.7ZM20.9 7.6a.7.7 0 0 1 1 1l-.6.6a.7.7 0 0 1-1-1l.6-.6ZM9.1 7.6l.6.6a.7.7 0 1 1-1 1l-.6-.6a.7.7 0 0 1 1-1ZM13.4 20.4h4.2a2.1 2.1 0 0 1-4.2 0Z"
+        fill={color}
+      />
+    </Svg>
+  );
+}
+
+/** Triangular alert badge used for activity (notification) rows. */
+export function ActivityAlertIcon({
+  color = '#113E55',
+  circleColor = '#CEE5ED',
+  size = 24,
+  ...props
+}: MenuIconProps & { circleColor?: string; size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" {...props}>
+      <Path
+        d="M10.9 3.6a1.3 1.3 0 0 1 2.2 0l9 15.6a1.3 1.3 0 0 1-1.1 1.9H3a1.3 1.3 0 0 1-1.1-1.9l9-15.6Z"
+        fill={color}
+      />
+      <Path
+        d="M12 8.4a.9.9 0 0 1 .9.9v4.2a.9.9 0 1 1-1.8 0V9.3a.9.9 0 0 1 .9-.9ZM12 16.2a1 1 0 1 1 0 2 1 1 0 0 1 0-2Z"
+        fill={circleColor}
+      />
+    </Svg>
+  );
+}

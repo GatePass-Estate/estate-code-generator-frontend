@@ -14,6 +14,9 @@ import { useAuthStore } from '@/src/lib/stores/authStore';
 import { useProfileDocumentsStore } from '@/src/lib/stores/profileDocumentsStore';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { useUpgradePromptStore } from '@/src/hooks/usePlan';
+import { resetBroadcastPopupSuppression } from '@/src/components/common/BroadcastPopupHost';
+import { useNotificationStore } from '@/src/lib/stores/notificationStore';
+import { unregisterForPushNotifications } from '@/src/lib/pushNotifications';
 import { AuthContextType } from '@/src/types/auth';
 import { User } from '@/src/types/user';
 import { usePathname, useRouter } from 'expo-router';
@@ -34,6 +37,7 @@ const PUBLIC_AUTH_ROUTES = [
   '/auth/email-activation-status',
   '/auth/institution',
   '/auth/login',
+  '/auth/two-factor',
   '/auth/forgot-password',
   '/auth/reset-password',
   '/auth/tos',
@@ -69,6 +73,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       clearUserData();
       useAuthStore.getState().clearAuth();
+      resetBroadcastPopupSuppression();
+      useNotificationStore.getState().clear();
       const institution = await getSelectedInstitution();
       router.replace(getPostAuthRedirectRoute(institution));
     } finally {
@@ -76,21 +82,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [router]);
 
-  const performSignOut = useCallback(async () => {
-    setIsReady(false);
-    clearUserData();
-    useAuthStore.getState().clearAuth();
-    await clearAuthState();
-    broadcastLogout();
-    // Force full component reset by incrementing key
-    setResetKey((prev) => prev + 1);
-    const institution = await getSelectedInstitution();
-    router.replace(getPostAuthRedirectRoute(institution));
-  }, [router]);
+  const performSignOut = useCallback(
+    async (options?: { sessionExpired?: boolean }) => {
+      setIsReady(false);
+      // Done first, while the access token is still valid.
+      await unregisterForPushNotifications();
+      clearUserData();
+      useAuthStore.getState().clearAuth();
+      resetBroadcastPopupSuppression();
+      useNotificationStore.getState().clear();
+      await clearAuthState();
+      broadcastLogout();
+      // Force full component reset by incrementing key
+      setResetKey((prev) => prev + 1);
+      const institution = await getSelectedInstitution();
+      const target = getPostAuthRedirectRoute(institution);
 
+      if (options?.sessionExpired && target === '/auth/login') {
+        router.replace({ pathname: target, params: { session_expired: 'true' } });
+        return;
+      }
+      router.replace(target);
+    },
+    [router]
+  );
+
+  // A session revoked or expired elsewhere invalidates this device too, so the
+  // API layer reports any 401 here and we sign out (with the login screen's
+  // "session expired" notice) rather than leaving every request failing.
   useEffect(() => {
     setUnauthorizedHandler(() => {
-      void performSignOut();
+      void performSignOut({ sessionExpired: true });
     });
     return () => setUnauthorizedHandler(null);
   }, [performSignOut]);
