@@ -55,15 +55,15 @@ export default function IncidentOrderModal({
             <View className="h-[7px] w-[134px] rounded-[4px] bg-[#9B9797]" />
           </View>
 
-          <View className="px-5 pt-[66px]">
+          <View style={{ paddingHorizontal: 30, paddingTop: 66 }}>
             <Text
               allowFontScaling={false}
-              className="text-[27.34px] font-ubuntu-medium text-[#113E55]"
+              className="pl-3 text-[27.34px] font-ubuntu-medium text-[#113E55]"
             >
               Select Order
             </Text>
 
-            <View className="mt-6 gap-2 p-2">
+            <View className="mt-6 gap-2">
               <OrderOption
                 label="Ascending Order"
                 selected={sortAscending}

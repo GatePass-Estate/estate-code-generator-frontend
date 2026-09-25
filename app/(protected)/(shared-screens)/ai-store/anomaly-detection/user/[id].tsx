@@ -7,7 +7,7 @@ import { sharedStyles } from '@/src/theme/styles';
 import AnomalyRadarChart from '@/src/components/anomaly/AnomalyRadarChart';
 import SemiCircleGauge from '@/src/components/anomaly/SemiCircleGauge';
 import Svg, { Circle, Line } from 'react-native-svg';
-import AISummaryModal from '@/src/components/anomaly/modals/AISummaryModal';
+import AnomalyAISummaryModal from '@/src/components/anomaly/modals/AnomalyAISummaryModal';
 import GaugeDetailModal from '@/src/components/anomaly/modals/GaugeDetailModal';
 import TotalUsersSvg from '@/src/assets/icons/totalusers.svg';
 import GuestMaleSvg from '@/src/assets/images/guestmale.svg';
@@ -15,6 +15,7 @@ import GuestFemaleSvg from '@/src/assets/images/guestfemale.svg';
 import ExportSvg from '@/src/assets/images/export.svg';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { useAnomalyCaseDemographic, useAnomalyCaseHistory, useAnomalyCaseSummary, useAnomalyCaseResults } from '@/src/hooks/useAnomalyQueries';
+import images from '@/src/constants/images';
 
 const GaugeCardsSection = React.memo(({ gaugeList }: { gaugeList: any[] }) => {
   const [gaugeLimit, setGaugeLimit] = useState(2);
@@ -443,10 +444,10 @@ export default function AnomalyDetectionUserDetailsScreen() {
             onPress={handleGenerateSummary}
             style={{ alignItems: 'center', justifyContent: 'center', marginBottom: 32, paddingVertical: 16 }}
           >
-            <Image 
-              source={require('@/src/assets/images/logo.png')} 
-              style={{ width: 64, height: 64, marginBottom: 12 }} 
-              resizeMode="contain" 
+            <Image
+              source={images.logo}
+              style={{ width: 64, height: 64, marginBottom: 12 }}
+              resizeMode="contain"
             />
             <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 13, color: '#8A9A9D', textAlign: 'center', lineHeight: 20 }}>
               Tap to generate AI Insight on{'\n'}your report
@@ -617,7 +618,7 @@ export default function AnomalyDetectionUserDetailsScreen() {
       </ScrollView>
       
       {/* Modals */}
-      <AISummaryModal visible={showAiSummaryModal} onClose={() => setShowAiSummaryModal(false)} summaryData={summaryData} />
+      <AnomalyAISummaryModal visible={showAiSummaryModal} onClose={() => setShowAiSummaryModal(false)} summaryData={summaryData} />
     </SafeAreaView>
   );
 }

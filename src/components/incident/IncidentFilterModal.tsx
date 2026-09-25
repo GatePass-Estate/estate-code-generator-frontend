@@ -12,6 +12,10 @@ export type IncidentFilterCategory =
   | 'harassment'
   | 'other';
 
+/**
+ * UI user-type chips (Figma). API only accepts `resident` | `security` | `all`;
+ * `guest` is shown for design parity and omitted from the request.
+ */
 export type IncidentFilterUserType = 'guest' | 'resident' | 'security';
 
 export type IncidentFilterSelection = {
@@ -47,6 +51,7 @@ function toggleValue<T>(list: T[], value: T): T[] {
   return list.includes(value) ? list.filter((item) => item !== value) : [...list, value];
 }
 
+/** Figma tag (6567:4229): p-12, rounded-16, inactive #EFF1F1 / #878686, active #CEE5ED / #113E55 */
 function FilterChip({
   label,
   selected,
@@ -59,16 +64,24 @@ function FilterChip({
   return (
     <Pressable
       onPress={onPress}
-      className={`items-center justify-center rounded-2xl p-3 ${
-        selected ? 'bg-[#CEE5ED]' : 'bg-[#EFF1F1]'
-      }`}
       hitSlop={4}
+      style={{
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 12,
+        borderRadius: 16,
+        backgroundColor: selected ? '#CEE5ED' : '#EFF1F1',
+      }}
     >
       <Text
         allowFontScaling={false}
-        className={`text-[11.2px] font-inter-regular ${
-          selected ? 'text-[#113E55]' : 'text-[#878686]'
-        }`}
+        style={{
+          fontFamily: 'Inter_18pt-Regular',
+          fontSize: 11.2,
+          lineHeight: 14,
+          textAlign: 'center',
+          color: selected ? '#113E55' : '#878686',
+        }}
       >
         {label}
       </Text>
@@ -95,67 +108,132 @@ export default function IncidentFilterModal({
     <Modal transparent visible={visible} animationType="slide" onRequestClose={onClose}>
       <Pressable className="flex-1 justify-end bg-black/80" onPress={onClose}>
         <Pressable
-          className="rounded-t-[40px] bg-[#F6F7F7]"
           onPress={() => {}}
-          style={{ height: 543 }}
+          style={{
+            backgroundColor: '#F6F7F7',
+            borderTopLeftRadius: 40,
+            borderTopRightRadius: 40,
+            height: 543,
+          }}
         >
-          {/* Same indicator as CodeActionsSheet */}
-          <View className="h-[34px] items-center justify-center">
-            <View className="h-[7px] w-[134px] rounded-[4px] bg-[#9B9797]" />
+          {/* indicator */}
+          <View style={{ height: 34, alignItems: 'center', justifyContent: 'center' }}>
+            <View
+              style={{
+                width: 134,
+                height: 7,
+                borderRadius: 4,
+                backgroundColor: '#9B9797',
+              }}
+            />
           </View>
 
-          <View className="flex-1 px-[33.5px] pt-[46px]">
-            <Text
-              allowFontScaling={false}
-              className="mb-4 pl-3 text-sm font-inter-light text-[#878686]"
-            >
-              Category
-            </Text>
-            <View className="flex-row flex-wrap gap-2">
-              {CATEGORIES.map((item) => (
-                <FilterChip
-                  key={item.id}
-                  label={item.label}
-                  selected={categories.includes(item.id)}
-                  onPress={() => setCategories((prev) => toggleValue(prev, item.id))}
-                />
-              ))}
-            </View>
-
-            <View className="my-6 h-px w-full bg-[#D3D3D3]" />
-
-            <Text
-              allowFontScaling={false}
-              className="mb-4 pl-3 text-sm font-inter-light text-[#878686]"
-            >
-              User Type
-            </Text>
-            <View className="flex-row flex-wrap gap-2">
-              {USER_TYPES.map((item) => (
-                <FilterChip
-                  key={item.id}
-                  label={item.label}
-                  selected={userTypes.includes(item.id)}
-                  onPress={() => setUserTypes((prev) => toggleValue(prev, item.id))}
-                />
-              ))}
-            </View>
-
-            <Pressable
-              onPress={() => {
-                onConfirm({ categories, userTypes });
-                onClose();
-              }}
-              className="mt-auto mb-10 h-12 w-full max-w-[278px] self-center items-center justify-center rounded-3xl border border-[#113E55] bg-[#113E55] px-8"
-              hitSlop={8}
-            >
+          <View style={{ flex: 1, paddingTop: 46, paddingHorizontal: 34 }}>
+            {/* Titles only: +12px (pl-3). Pills flush to the 34px side inset (Figma). */}
+            <View style={{ flex: 1 }}>
               <Text
                 allowFontScaling={false}
-                className="text-center text-sm font-ubuntu-semibold tracking-[-0.24px] text-[#F6F7F7]"
+                style={{
+                  marginBottom: 16,
+                  paddingLeft: 12,
+                  fontFamily: 'Inter_18pt-Light',
+                  fontSize: 14,
+                  color: '#878686',
+                }}
               >
-                Confirm
+                Category
               </Text>
-            </Pressable>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  flexWrap: 'wrap',
+                  gap: 8,
+                }}
+              >
+                {CATEGORIES.map((item) => (
+                  <FilterChip
+                    key={item.id}
+                    label={item.label}
+                    selected={categories.includes(item.id)}
+                    onPress={() => setCategories((prev) => toggleValue(prev, item.id))}
+                  />
+                ))}
+              </View>
+
+              <View
+                style={{
+                  marginVertical: 24,
+                  height: 0.5,
+                  width: '100%',
+                  backgroundColor: '#D3D3D3',
+                }}
+              />
+
+              <Text
+                allowFontScaling={false}
+                style={{
+                  marginBottom: 16,
+                  paddingLeft: 12,
+                  fontFamily: 'Inter_18pt-Light',
+                  fontSize: 14,
+                  color: '#878686',
+                }}
+              >
+                User Type
+              </Text>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  flexWrap: 'wrap',
+                  gap: 8,
+                }}
+              >
+                {USER_TYPES.map((item) => (
+                  <FilterChip
+                    key={item.id}
+                    label={item.label}
+                    selected={userTypes.includes(item.id)}
+                    onPress={() => setUserTypes((prev) => toggleValue(prev, item.id))}
+                  />
+                ))}
+              </View>
+
+              <Pressable
+                onPress={() => {
+                  onConfirm({ categories, userTypes });
+                  onClose();
+                }}
+                hitSlop={8}
+                style={{
+                  marginTop: 'auto',
+                  marginBottom: 40,
+                  height: 48,
+                  width: '100%',
+                  maxWidth: 278,
+                  alignSelf: 'center',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: 24,
+                  borderWidth: 1,
+                  borderColor: '#113E55',
+                  backgroundColor: '#113E55',
+                  paddingHorizontal: 32,
+                }}
+              >
+                <Text
+                  allowFontScaling={false}
+                  style={{
+                    fontFamily: 'UbuntuSans-SemiBold',
+                    fontSize: 14,
+                    letterSpacing: -0.24,
+                    color: '#F6F7F7',
+                    textAlign: 'center',
+                  }}
+                >
+                  Confirm
+                </Text>
+              </Pressable>
+            </View>
           </View>
         </Pressable>
       </Pressable>

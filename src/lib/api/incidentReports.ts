@@ -3,9 +3,33 @@ import Api from './index';
 /** Shared query window for incident result-page endpoints. */
 export type IncidentDateParams = {
   estate_id: string;
+  /** ISO-8601 date-time (`format: date-time` in OpenAPI). */
   from_date?: string;
+  /** ISO-8601 date-time (`format: date-time` in OpenAPI). */
   to_date?: string;
 };
+
+/** Start of local calendar day → ISO date-time for `from_date`. */
+export function toIncidentFromDate(date: Date): string {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return d.toISOString();
+}
+
+/** End of local calendar day → ISO date-time for `to_date`. */
+export function toIncidentToDate(date: Date): string {
+  const d = new Date(date);
+  d.setHours(23, 59, 59, 999);
+  return d.toISOString();
+}
+
+function buildIncidentDateQuery({ estate_id, from_date, to_date }: IncidentDateParams) {
+  return {
+    estate_id,
+    ...(from_date ? { from_date } : {}),
+    ...(to_date ? { to_date } : {}),
+  };
+}
 
 export type IncidentPeakTime = 'morning' | 'afternoon' | 'evening_night';
 
@@ -108,11 +132,24 @@ export type IncidentSummaryResponse = {
 };
 
 export type IncidentReportsListParams = IncidentDateParams & {
+  /** Taxonomy values; omit or pass `all` for every category. Repeat = OR. */
   category?: string[];
+  /** `resident` | `security` | `all`. Repeat = OR. */
   user_type?: string[];
   page?: number;
   limit?: number;
 };
+
+/**
+ * OpenAPI: omitted / `all` = unfiltered. Repeat values OR within that filter.
+ * Never send `all` as a query value.
+ */
+function normalizeRepeatFilter(values?: string[]): string[] | undefined {
+  if (!values?.length) return undefined;
+  if (values.some((v) => v === 'all')) return undefined;
+  const cleaned = values.map((v) => v.trim()).filter(Boolean);
+  return cleaned.length ? cleaned : undefined;
+}
 
 export const incidentReportsApi = {
   getOverview: async ({
@@ -120,11 +157,13 @@ export const incidentReportsApi = {
     from_date,
     to_date,
   }: IncidentDateParams): Promise<IncidentOverviewResponse> => {
+    const params = buildIncidentDateQuery({ estate_id, from_date, to_date });
     const { data } = await Api('ai').get('/incident-reports/result-page/overview', {
-      params: { estate_id, from_date, to_date },
+      params,
       // Category EDA + trends can exceed the default 10s client timeout.
       timeout: 60_000,
     });
+    console.log('[incident-reports] overview response', { ...params, data });
     return data;
   },
 
@@ -137,21 +176,27 @@ export const incidentReportsApi = {
     page = 1,
     limit = 10,
   }: IncidentReportsListParams): Promise<IncidentListResponse> => {
+    const categoryFilter = normalizeRepeatFilter(category);
+    const userTypeFilter = normalizeRepeatFilter(user_type);
+    const params = {
+      ...buildIncidentDateQuery({ estate_id, from_date, to_date }),
+      page,
+      limit,
+      ...(categoryFilter ? { category: categoryFilter } : {}),
+      ...(userTypeFilter ? { user_type: userTypeFilter } : {}),
+    };
     const { data } = await Api('ai').get('/incident-reports/result-page/reports', {
-      params: {
-        estate_id,
-        page,
-        limit,
-        ...(from_date ? { from_date } : {}),
-        ...(to_date ? { to_date } : {}),
-        ...(category?.length ? { category } : {}),
-        ...(user_type?.length ? { user_type } : {}),
-      },
-      // Repeat params for array filters (FastAPI list query style).
+      params,
+      // Repeat category / user_type for FastAPI list query style (?category=a&category=b).
       paramsSerializer: {
         indexes: null,
       },
       timeout: 60_000,
+    });
+
+    console.log('[incident-reports] reports response', {
+      ...params,
+      data,
     });
 
     // OpenAPI returns `{ items, total, page, limit }`; tolerate a bare array.
@@ -171,11 +216,13 @@ export const incidentReportsApi = {
     from_date,
     to_date,
   }: IncidentDateParams): Promise<IncidentSummaryResponse> => {
+    const params = buildIncidentDateQuery({ estate_id, from_date, to_date });
     const { data } = await Api('ai').get('/incident-reports/result-page/summary', {
-      params: { estate_id, from_date, to_date },
+      params,
       // Topic modelling + LLM can exceed the default 10s client timeout.
       timeout: 60_000,
     });
+    console.log('[incident-reports] summary response', { ...params, data });
     return data;
   },
 };

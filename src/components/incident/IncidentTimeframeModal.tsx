@@ -11,13 +11,25 @@ type IncidentTimeframeModalProps = {
 
 const OPTIONS = ['Last Week', 'Last Month', 'Last Quarter', 'Custom'] as const;
 
+function startOfDay(date: Date): Date {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function endOfDay(date: Date): Date {
+  const d = new Date(date);
+  d.setHours(23, 59, 59, 999);
+  return d;
+}
+
 function rangeForOption(opt: string): { start: Date; end: Date } {
-  const end = new Date();
-  const start = new Date();
-  if (opt === 'Last Week') start.setDate(end.getDate() - 7);
-  else if (opt === 'Last Month') start.setMonth(end.getMonth() - 1);
-  else if (opt === 'Last Quarter') start.setMonth(end.getMonth() - 3);
-  return { start, end };
+  const end = endOfDay(new Date());
+  const start = startOfDay(new Date());
+  if (opt === 'Last Week') start.setDate(start.getDate() - 7);
+  else if (opt === 'Last Month') start.setMonth(start.getMonth() - 1);
+  else if (opt === 'Last Quarter') start.setMonth(start.getMonth() - 3);
+  return { start: startOfDay(start), end };
 }
 
 function TimeframeOption({

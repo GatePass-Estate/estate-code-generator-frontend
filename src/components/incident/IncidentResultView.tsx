@@ -23,6 +23,7 @@ import {
   useIncidentReports,
   useIncidentSummary,
 } from '@/src/hooks/useIncidentQueries';
+import { toIncidentFromDate, toIncidentToDate } from '@/src/lib/api/incidentReports';
 import CategoryDistribution from './CategoryDistribution';
 import IncidentAISummaryCard, { type InsightMode } from './IncidentAISummaryCard';
 import IncidentFilterModal, {
@@ -176,9 +177,14 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
   const [startDate, setStartDate] = useState<Date | null>(() => {
     const d = new Date();
     d.setFullYear(d.getFullYear() - 1);
+    d.setHours(0, 0, 0, 0);
     return d;
   });
-  const [endDate, setEndDate] = useState<Date | null>(() => new Date());
+  const [endDate, setEndDate] = useState<Date | null>(() => {
+    const d = new Date();
+    d.setHours(23, 59, 59, 999);
+    return d;
+  });
   const [timeframeVisible, setTimeframeVisible] = useState(false);
   const [datePickerVisible, setDatePickerVisible] = useState(false);
   const [filterModalVisible, setFilterModalVisible] = useState(false);
@@ -193,8 +199,28 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
   const [filterCategories, setFilterCategories] = useState<IncidentFilterCategory[]>([]);
   const [filterUserTypes, setFilterUserTypes] = useState<IncidentFilterUserType[]>([]);
 
-  const fromDate = startDate ? startDate.toISOString() : undefined;
-  const toDate = endDate ? endDate.toISOString() : undefined;
+  // OpenAPI: optional `from_date` / `to_date` as date-time on overview, reports, summary.
+  const fromDate = startDate ? toIncidentFromDate(startDate) : undefined;
+  const toDate = endDate ? toIncidentToDate(endDate) : undefined;
+
+  const reportsQueryParams = useMemo(
+    () => {
+      // API user_type: resident | security | all — never send guest.
+      const apiUserTypes = filterUserTypes.filter(
+        (t): t is 'resident' | 'security' => t === 'resident' || t === 'security'
+      );
+      return {
+        from_date: fromDate,
+        to_date: toDate,
+        // Empty selection = omit filter (same as category=all / user_type=all).
+        category: filterCategories.length ? [...filterCategories] : undefined,
+        user_type: apiUserTypes.length ? apiUserTypes : undefined,
+        page: 1,
+        limit: 20,
+      };
+    },
+    [fromDate, toDate, filterCategories, filterUserTypes]
+  );
 
   const {
     data: overview,
@@ -206,17 +232,12 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
   const {
     data: reports,
     isLoading: reportsLoading,
+    isFetching: reportsFetching,
     isError: reportsError,
     error: reportsErr,
     refetch: refetchReports,
-  } = useIncidentReports(estate_id, {
-    from_date: fromDate,
-    to_date: toDate,
-    category: filterCategories.length ? filterCategories : undefined,
-    user_type: filterUserTypes.length ? filterUserTypes : undefined,
-    page: 1,
-    limit: 20,
-  });
+    isPlaceholderData: reportsPlaceholder,
+  } = useIncidentReports(estate_id, reportsQueryParams);
   const {
     data: summary,
     isFetching: summaryLoading,
@@ -269,6 +290,7 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
     return sorted;
   }, [reports?.items, sortAscending]);
 
+  const reportsListLoading = reportsFetching && (reportsLoading || reportsPlaceholder);
   const trendCards = useMemo(() => mapTrendsFromEda(overview?.eda), [overview?.eda]);
   const summaryVariant =
     summary?.entitled_tier === 'tier1' && summary.tier1
@@ -516,8 +538,9 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
         </View>
 
         <View className="flex-row items-stretch gap-[9px]">
-          <View className="h-[170px] flex-1 rounded-[16px] bg-white">
-            <View className="mt-[15px] flex-row items-center px-3 gap-5">
+          {/* Figma 6355:2788 — 232×170; legend ~top 147 */}
+          <View className="h-[170px] flex-1 items-center overflow-hidden rounded-[16px] bg-white pt-[15px] pb-[14px]">
+            <View className="w-full flex-row items-center gap-5 px-3">
               <View className="h-7 w-7 items-center justify-center rounded-full bg-[#F6F7F7]">
                 <TotalUsersSvg width={13} height={13} />
               </View>
@@ -525,19 +548,50 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
                 Overview
               </Text>
             </View>
-            <View className="mt-2.5 items-center">
+
+            <View className="mt-1 flex-1 items-center justify-between">
               <AnomalyDonutChart
                 size={99}
                 totalText="TOTAL REPORT"
                 countText={formatReportCount(totalReports)}
                 countColor="#04162D"
                 isActive={isActive}
-                guestPercentage={0}
+                // Figma: Residents = #F46036, Security = #1B998B
+                guestPercentage={displayResidentPct}
                 securityPercentage={displaySecurityPct}
-                residentPercentage={displayResidentPct}
+                residentPercentage={0}
               />
+              <View className="flex-row items-center gap-[7px]">
+                <View className="flex-row items-center gap-[3px]">
+                  <View style={{ width: 4, height: 4, borderRadius: 8, backgroundColor: '#F46036' }} />
+                  <Text
+                    allowFontScaling={false}
+                    style={{
+                      fontFamily: 'Inter_18pt-Light',
+                      fontSize: 6.8,
+                      color: '#878686',
+                    }}
+                  >
+                    Residents
+                  </Text>
+                </View>
+                <View className="flex-row items-center gap-[3px]">
+                  <View style={{ width: 4, height: 4, borderRadius: 8, backgroundColor: '#1B998B' }} />
+                  <Text
+                    allowFontScaling={false}
+                    style={{
+                      fontFamily: 'Inter_18pt-Light',
+                      fontSize: 6.8,
+                      color: '#878686',
+                    }}
+                  >
+                    Security
+                  </Text>
+                </View>
+              </View>
             </View>
           </View>
+
           <ShareBar
             pct={displaySecurityPct}
             color="#167A6F"
@@ -569,7 +623,7 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
           totalReports={totalReports}
         />
 
-        <View className="mt-[65px] flex-row items-center justify-between">
+        <View className="mt-[30px] flex-row items-center justify-between">
           <Text
             allowFontScaling={false}
             className="text-[21.88px] font-ubuntu-semibold text-[#0A1F29]"
@@ -603,7 +657,17 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
               <IncidentSortIcon size={25} />
             </Pressable>
           </View>
-          {rows.length === 0 ? (
+          {reportsListLoading ? (
+            <View className="items-center justify-center py-8">
+              <ActivityIndicator size="small" color="#113E55" />
+              <Text
+                allowFontScaling={false}
+                className="mt-2 text-center text-[11.2px] font-inter-regular text-[#878686]"
+              >
+                Loading reports…
+              </Text>
+            </View>
+          ) : rows.length === 0 ? (
             <Text
               allowFontScaling={false}
               className="py-6 text-center text-[11.2px] font-inter-regular text-[#878686]"
@@ -611,14 +675,14 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
               No incident reports in this window.
             </Text>
           ) : (
-            <View className="flex-col gap-2">
+            <View className="flex-col gap-2" style={{ opacity: reportsFetching ? 0.55 : 1 }}>
               {rows.slice(0, visibleCount).map((row) => (
                 <IncidentListRow key={row.id} row={row} />
               ))}
             </View>
           )}
 
-          {visibleCount < rows.length ? (
+          {!reportsListLoading && visibleCount < rows.length ? (
             <Pressable
               onPress={() => setVisibleCount((count) => count + 3)}
               className="h-10 items-center justify-center "
@@ -719,6 +783,8 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
           setSelectedTimeframe(label);
           setStartDate(start);
           setEndDate(end);
+          setVisibleCount(5);
+          setTrendIndex(0);
         }}
         onCustomSelect={() => {
           setSelectedTimeframe('Custom');
@@ -735,6 +801,8 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
           setStartDate(start);
           setEndDate(end);
           setSelectedTimeframe('Custom');
+          setVisibleCount(5);
+          setTrendIndex(0);
           setDatePickerVisible(false);
         }}
       />

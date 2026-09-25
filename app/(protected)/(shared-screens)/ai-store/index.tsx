@@ -51,14 +51,22 @@ const RoundedStar = ({ size, color, filled }: { size: number; color: string; fil
   </Svg>
 );
 
-function StaticStarRating({ rating, size = 12, disabled }: { rating: number, size?: number, disabled?: boolean }) {
+function StaticStarRating({
+  rating,
+  size = 12,
+  disabled,
+}: {
+  rating: number;
+  size?: number;
+  disabled?: boolean;
+}) {
   return (
     <View className="flex-row items-center gap-[2px]">
       {[1, 2, 3, 4, 5].map((star) => (
         <RoundedStar
           key={star}
           size={size}
-          color={disabled ? '#E5E7EB' : (rating === 0 ? '#C4C4C4' : '#F46036')}
+          color={disabled ? '#E5E7EB' : rating === 0 ? '#C4C4C4' : '#F46036'}
           filled={star <= rating}
         />
       ))}
@@ -102,9 +110,9 @@ const toggleFilter = (currentSelection: string[], value: string, allValues: stri
   if (value === 'all') {
     return ['all'];
   }
-  let newSelection = currentSelection.filter(v => v !== 'all');
+  let newSelection = currentSelection.filter((v) => v !== 'all');
   if (newSelection.includes(value)) {
-    newSelection = newSelection.filter(v => v !== value);
+    newSelection = newSelection.filter((v) => v !== value);
   } else {
     newSelection = [...newSelection, value];
   }
@@ -114,8 +122,72 @@ const toggleFilter = (currentSelection: string[], value: string, allValues: stri
 const PURCHASE_OPTIONS = ['purchased', 'not_purchased'];
 const CATEGORY_OPTIONS = ['Access Anomaly Detection', 'Incident Report Insights'];
 
+/** Local shop cards so anomaly + incident always appear even if the API omits them. */
+const LOCAL_SHOP_TOOLS: AITool[] = [
+  {
+    id: 'local-anomaly-detection',
+    title: 'Access Anomaly Detection',
+    rating: 0,
+    icon: getToolIllustration('anomaly'),
+    category: 'Access Anomaly Detection',
+    isPurchased: true,
+    isVerified: true,
+  },
+  {
+    id: 'local-incident-report',
+    title: 'Incident Report Insights',
+    rating: 0,
+    icon: getToolIllustration('incident report'),
+    category: 'Incident Report Insights',
+    isPurchased: true,
+    isVerified: true,
+  },
+];
+
+function mapMarketplaceItem(item: MarketplaceListItem): AITool {
+  const cat = item.category || 'Access Anomaly Detection';
+  const iconUrl = (item as any).display_picture_url || item.picture_path;
+
+  return {
+    id: item.id,
+    title: item.name,
+    isVerified: item.purchased,
+    price: item.purchased
+      ? undefined
+      : item.price != null
+        ? `${item.currency_code === 'NGN' ? '₦' : '$'}${item.price}`
+        : undefined,
+    rating: item.rating != null ? Math.round(item.rating) : 0,
+    icon: iconUrl ? (
+      <Image
+        source={{ uri: getFeaturePictureUrl(iconUrl) }}
+        style={{ width: 96, height: 89 }}
+        resizeMode="cover"
+      />
+    ) : (
+      getToolIllustration(item.name)
+    ),
+    disabled: false,
+    category: cat,
+    isPurchased: item.purchased,
+  };
+}
+
+function withLocalShopFallback(liveTools: AITool[]): AITool[] {
+  const titles = liveTools.map((t) => t.title.toLowerCase());
+  const hasAnomaly = titles.some((t) => t.includes('anomaly'));
+  const hasIncident = titles.some(
+    (t) => t.includes('incident') || (t.includes('report') && !t.includes('anomaly'))
+  );
+
+  const merged = [...liveTools];
+  if (!hasAnomaly) merged.push(LOCAL_SHOP_TOOLS[0]);
+  if (!hasIncident) merged.push(LOCAL_SHOP_TOOLS[1]);
+  return merged.length > 0 ? merged : LOCAL_SHOP_TOOLS;
+}
+
 export default function AIStoreScreen() {
-  const [tools, setTools] = useState<AITool[]>([]);
+  const [tools, setTools] = useState<AITool[]>(LOCAL_SHOP_TOOLS);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -140,39 +212,15 @@ export default function AIStoreScreen() {
         console.log(JSON.stringify(data, null, 2));
         console.log('===================================================================\n');
 
-        if (isMounted && data && data.items && data.items.length > 0) {
-          const liveTools: AITool[] = data.items.map((item: MarketplaceListItem) => {
-            const cat = item.category || 'Access Anomaly Detection';
-            const iconUrl = (item as any).display_picture_url || item.picture_path;
-
-            return {
-              id: item.id,
-              title: item.name,
-              isVerified: item.purchased,
-              price: item.purchased
-                ? undefined
-                : item.price != null
-                  ? `${item.currency_code === 'NGN' ? '₦' : '$'}${item.price}`
-                  : undefined,
-              rating: item.rating != null ? Math.round(item.rating) : 0,
-              icon: iconUrl ? (
-                <Image
-                  source={{ uri: getFeaturePictureUrl(iconUrl) }}
-                  style={{ width: 96, height: 89 }}
-                  resizeMode="cover"
-                />
-              ) : (
-                getToolIllustration(item.name)
-              ),
-              disabled: false,
-              category: cat,
-              isPurchased: item.purchased,
-            };
-          });
-          setTools(liveTools);
+        if (isMounted) {
+          const liveTools = (data?.items ?? []).map(mapMarketplaceItem);
+          setTools(withLocalShopFallback(liveTools));
         }
       } catch (err: any) {
         console.log('AI Marketplace API note:', err?.message || err);
+        if (isMounted) {
+          setTools(LOCAL_SHOP_TOOLS);
+        }
       } finally {
         if (isMounted) {
           setIsLoading(false);
@@ -198,40 +246,11 @@ export default function AIStoreScreen() {
         params.category = categoryFilters;
       }
       const data = await getMarketplaceFeatures(params);
-
-      if (data && data.items && data.items.length > 0) {
-        const liveTools: AITool[] = data.items.map((item: MarketplaceListItem) => {
-          const cat = item.category || 'Access Anomaly Detection';
-          const iconUrl = (item as any).display_picture_url || item.picture_path;
-
-          return {
-            id: item.id,
-            title: item.name,
-            isVerified: item.purchased,
-            price: item.purchased
-              ? undefined
-              : item.price != null
-                ? `${item.currency_code === 'NGN' ? '₦' : '$'}${item.price}`
-                : undefined,
-            rating: item.rating != null ? Math.round(item.rating) : 0,
-            icon: iconUrl ? (
-              <Image
-                source={{ uri: getFeaturePictureUrl(iconUrl) }}
-                style={{ width: 96, height: 89 }}
-                resizeMode="cover"
-              />
-            ) : (
-              getToolIllustration(item.name)
-            ),
-            disabled: false,
-            category: cat,
-            isPurchased: item.purchased,
-          };
-        });
-        setTools(liveTools);
-      }
+      const liveTools = (data?.items ?? []).map(mapMarketplaceItem);
+      setTools(withLocalShopFallback(liveTools));
     } catch (err: any) {
       console.log('AI Marketplace API refresh note:', err?.message || err);
+      setTools(LOCAL_SHOP_TOOLS);
     } finally {
       setRefreshing(false);
     }
@@ -278,7 +297,8 @@ export default function AIStoreScreen() {
     }
     // Purchase Filter
     if (!purchaseFilters.includes('all') && purchaseFilters.length > 0) {
-      const isMatch = (tool.isPurchased && purchaseFilters.includes('purchased')) ||
+      const isMatch =
+        (tool.isPurchased && purchaseFilters.includes('purchased')) ||
         (!tool.isPurchased && purchaseFilters.includes('not_purchased'));
       if (!isMatch) return false;
     }
@@ -293,7 +313,11 @@ export default function AIStoreScreen() {
 
   return (
     <SafeAreaView
-      style={[sharedStyles.container, sharedStyles.modalContainer, { backgroundColor: '#F6F7F7', paddingHorizontal: 21 }]}
+      style={[
+        sharedStyles.container,
+        sharedStyles.modalContainer,
+        { backgroundColor: '#F6F7F7', paddingHorizontal: 21 },
+      ]}
     >
       <Stack.Screen options={{ headerShown: false }} />
 
@@ -384,17 +408,22 @@ export default function AIStoreScreen() {
               <Pressable
                 key={tool.id}
                 onPress={() => {
-                  if (tool.title.toLowerCase().includes('anomaly') || tool.id === '2') {
+                  const title = tool.title.toLowerCase();
+                  if (title.includes('incident') || title.includes('report')) {
+                    router.push({
+                      pathname: '/(protected)/(shared-screens)/ai-store/incident-report',
+                      params: { featureId: tool.id, title: tool.title },
+                    });
+                    return;
+                  }
+                  if (title.includes('anomaly') || tool.id === '2') {
                     router.push({
                       pathname: '/(protected)/(shared-screens)/ai-store/anomaly-detection',
                       params: { featureId: tool.id, title: tool.title },
                     });
                   }
                 }}
-                style={[
-                  styles.card,
-                  { width: CARD_WIDTH },
-                ]}
+                style={[styles.card, { width: CARD_WIDTH }]}
               >
                 {/* Card Header (Price/Badge) */}
                 <View style={styles.cardHeader}>
@@ -451,15 +480,8 @@ export default function AIStoreScreen() {
         onRequestClose={() => setFilterModalVisible(false)}
       >
         <View className="flex-1 justify-end">
-          <BlurView
-            intensity={25}
-            tint="light"
-            style={StyleSheet.absoluteFill}
-          />
-          <Pressable
-            style={StyleSheet.absoluteFill}
-            onPress={() => setFilterModalVisible(false)}
-          />
+          <BlurView intensity={25} tint="light" style={StyleSheet.absoluteFill} />
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setFilterModalVisible(false)} />
           <Animated.View
             {...panResponder.panHandlers}
             style={{ transform: [{ translateY: panY }], maxHeight: '90%' }}
@@ -475,42 +497,56 @@ export default function AIStoreScreen() {
             >
               {/* Purchase Section */}
               <View className="mb-6">
-                <Text className="text-[16px] font-inter-regular text-[#8A9A9D] mb-3">
-                  Purchase
-                </Text>
+                <Text className="text-[16px] font-inter-regular text-[#8A9A9D] mb-3">Purchase</Text>
                 <View className="flex-row flex-wrap gap-4">
                   <Pressable
                     onPress={() => setPurchaseFilters(['all'])}
-                    className={`px-5 py-[10px] rounded-full ${purchaseFilters.includes('all') ? 'bg-[#D2E7ED]' : 'bg-[#EFF1F1]'
-                      }`}
+                    className={`px-5 py-[10px] rounded-full ${
+                      purchaseFilters.includes('all') ? 'bg-[#D2E7ED]' : 'bg-[#EFF1F1]'
+                    }`}
                   >
                     <Text
-                      className={`text-[14px] font-inter-regular ${purchaseFilters.includes('all') ? 'text-[#113E55]' : 'text-[#8A9A9D]'
-                        }`}
+                      className={`text-[14px] font-inter-regular ${
+                        purchaseFilters.includes('all') ? 'text-[#113E55]' : 'text-[#8A9A9D]'
+                      }`}
                     >
                       All
                     </Text>
                   </Pressable>
                   <Pressable
-                    onPress={() => setPurchaseFilters(prev => toggleFilter(prev, 'purchased', PURCHASE_OPTIONS))}
-                    className={`px-5 py-[10px] rounded-full ${purchaseFilters.includes('purchased') ? 'bg-[#D2E7ED]' : 'bg-[#EFF1F1]'
-                      }`}
+                    onPress={() =>
+                      setPurchaseFilters((prev) =>
+                        toggleFilter(prev, 'purchased', PURCHASE_OPTIONS)
+                      )
+                    }
+                    className={`px-5 py-[10px] rounded-full ${
+                      purchaseFilters.includes('purchased') ? 'bg-[#D2E7ED]' : 'bg-[#EFF1F1]'
+                    }`}
                   >
                     <Text
-                      className={`text-[14px] font-inter-regular ${purchaseFilters.includes('purchased') ? 'text-[#113E55]' : 'text-[#8A9A9D]'
-                        }`}
+                      className={`text-[14px] font-inter-regular ${
+                        purchaseFilters.includes('purchased') ? 'text-[#113E55]' : 'text-[#8A9A9D]'
+                      }`}
                     >
                       Purchased
                     </Text>
                   </Pressable>
                   <Pressable
-                    onPress={() => setPurchaseFilters(prev => toggleFilter(prev, 'not_purchased', PURCHASE_OPTIONS))}
-                    className={`px-5 py-[10px] rounded-full ${purchaseFilters.includes('not_purchased') ? 'bg-[#D2E7ED]' : 'bg-[#EFF1F1]'
-                      }`}
+                    onPress={() =>
+                      setPurchaseFilters((prev) =>
+                        toggleFilter(prev, 'not_purchased', PURCHASE_OPTIONS)
+                      )
+                    }
+                    className={`px-5 py-[10px] rounded-full ${
+                      purchaseFilters.includes('not_purchased') ? 'bg-[#D2E7ED]' : 'bg-[#EFF1F1]'
+                    }`}
                   >
                     <Text
-                      className={`text-[14px] font-inter-regular ${purchaseFilters.includes('not_purchased') ? 'text-[#113E55]' : 'text-[#8A9A9D]'
-                        }`}
+                      className={`text-[14px] font-inter-regular ${
+                        purchaseFilters.includes('not_purchased')
+                          ? 'text-[#113E55]'
+                          : 'text-[#8A9A9D]'
+                      }`}
                     >
                       Not Purchased
                     </Text>
@@ -523,42 +559,62 @@ export default function AIStoreScreen() {
 
               {/* Category Section */}
               <View className="mb-6">
-                <Text className="text-[16px] font-inter-regular text-[#8A9A9D] mb-3">
-                  Category
-                </Text>
+                <Text className="text-[16px] font-inter-regular text-[#8A9A9D] mb-3">Category</Text>
                 <View className="flex-row flex-wrap gap-4">
                   <Pressable
                     onPress={() => setCategoryFilters(['all'])}
-                    className={`px-5 py-[10px] rounded-full ${categoryFilters.includes('all') ? 'bg-[#D2E7ED]' : 'bg-[#EFF1F1]'
-                      }`}
+                    className={`px-5 py-[10px] rounded-full ${
+                      categoryFilters.includes('all') ? 'bg-[#D2E7ED]' : 'bg-[#EFF1F1]'
+                    }`}
                   >
                     <Text
-                      className={`text-[14px] font-inter-regular ${categoryFilters.includes('all') ? 'text-[#113E55]' : 'text-[#8A9A9D]'
-                        }`}
+                      className={`text-[14px] font-inter-regular ${
+                        categoryFilters.includes('all') ? 'text-[#113E55]' : 'text-[#8A9A9D]'
+                      }`}
                     >
                       All
                     </Text>
                   </Pressable>
                   <Pressable
-                    onPress={() => setCategoryFilters(prev => toggleFilter(prev, 'Access Anomaly Detection', CATEGORY_OPTIONS))}
-                    className={`px-5 py-[10px] rounded-full ${categoryFilters.includes('Access Anomaly Detection') ? 'bg-[#D2E7ED]' : 'bg-[#EFF1F1]'
-                      }`}
+                    onPress={() =>
+                      setCategoryFilters((prev) =>
+                        toggleFilter(prev, 'Access Anomaly Detection', CATEGORY_OPTIONS)
+                      )
+                    }
+                    className={`px-5 py-[10px] rounded-full ${
+                      categoryFilters.includes('Access Anomaly Detection')
+                        ? 'bg-[#D2E7ED]'
+                        : 'bg-[#EFF1F1]'
+                    }`}
                   >
                     <Text
-                      className={`text-[14px] font-inter-regular ${categoryFilters.includes('Access Anomaly Detection') ? 'text-[#113E55]' : 'text-[#8A9A9D]'
-                        }`}
+                      className={`text-[14px] font-inter-regular ${
+                        categoryFilters.includes('Access Anomaly Detection')
+                          ? 'text-[#113E55]'
+                          : 'text-[#8A9A9D]'
+                      }`}
                     >
                       Access Anomaly Detection
                     </Text>
                   </Pressable>
                   <Pressable
-                    onPress={() => setCategoryFilters(prev => toggleFilter(prev, 'Incident Report Insights', CATEGORY_OPTIONS))}
-                    className={`px-5 py-[10px] rounded-full ${categoryFilters.includes('Incident Report Insights') ? 'bg-[#D2E7ED]' : 'bg-[#EFF1F1]'
-                      }`}
+                    onPress={() =>
+                      setCategoryFilters((prev) =>
+                        toggleFilter(prev, 'Incident Report Insights', CATEGORY_OPTIONS)
+                      )
+                    }
+                    className={`px-5 py-[10px] rounded-full ${
+                      categoryFilters.includes('Incident Report Insights')
+                        ? 'bg-[#D2E7ED]'
+                        : 'bg-[#EFF1F1]'
+                    }`}
                   >
                     <Text
-                      className={`text-[14px] font-inter-regular ${categoryFilters.includes('Incident Report Insights') ? 'text-[#113E55]' : 'text-[#8A9A9D]'
-                        }`}
+                      className={`text-[14px] font-inter-regular ${
+                        categoryFilters.includes('Incident Report Insights')
+                          ? 'text-[#113E55]'
+                          : 'text-[#8A9A9D]'
+                      }`}
                     >
                       Incident Report Insights
                     </Text>

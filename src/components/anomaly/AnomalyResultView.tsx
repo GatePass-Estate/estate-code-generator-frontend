@@ -446,6 +446,9 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
               residentPercentage={overview?.demographic?.ratio?.resident?.percentage || 0}
               guestPercentage={overview?.demographic?.ratio?.guest?.percentage || 0}
               securityPercentage={overview?.demographic?.ratio?.security?.percentage || 0}
+              residentCount={overview?.demographic?.ratio?.resident?.count || 0}
+              guestCount={overview?.demographic?.ratio?.guest?.count || 0}
+              securityCount={overview?.demographic?.ratio?.security?.count || 0}
             />
           </View>
 
