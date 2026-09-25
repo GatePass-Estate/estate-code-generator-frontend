@@ -4,7 +4,6 @@ import {
   Pressable,
   ScrollView,
   Alert,
-  ActivityIndicator,
   Modal,
   StyleSheet,
   Linking,
@@ -17,7 +16,7 @@ import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { useState, ReactNode } from 'react';
 import { useAuth } from '@/src/hooks/useAuthContext';
 import { useUserStore } from '@/src/lib/stores/userStore';
-import { deleteAccount } from '@/src/lib/api/user';
+import { revokeAllSessions } from '@/src/lib/api/auth';
 import { sharedStyles } from '@/src/theme/styles';
 import ScreenHeader from '@/src/components/mobile/ScreenHeader';
 import StarRating from '@/src/components/common/StarRating';
@@ -97,34 +96,29 @@ export default function MoreMenuScreen({
 }: MoreMenuScreenProps) {
   const navigation = useNavigation();
   const { signOut } = useAuth();
-  const user_id = useUserStore((s) => s.user_id);
   const role = useUserStore((s) => s.role);
-  const [deleting, setDeleting] = useState(false);
   const [feedbackPopupStep, setFeedbackPopupStep] = useState<'NONE' | 'SELECT' | 'RATE_US'>('NONE');
   const [starRating, setStarRating] = useState(0);
 
   const isAdmin = role === 'admin' || role === 'primary_admin' || role === 'root';
 
-  const confirmDelete = () => {
+  const confirmLogOutAllDevices = () => {
     Alert.alert(
-      'Delete account',
-      'This will permanently remove your account and sign you out. This cannot be undone.',
+      'Log out of all devices?',
+      'Every device signed in to this account will be signed out, including this one.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Delete',
+          text: 'Log Out',
           style: 'destructive',
           onPress: async () => {
-            if (!user_id) return;
-            setDeleting(true);
             try {
-              await deleteAccount();
-              await signOut();
-            } catch (e: any) {
-              Alert.alert('Could not delete account', e?.message ?? 'Please try again later.');
-            } finally {
-              setDeleting(false);
+              await revokeAllSessions();
+            } catch {
+              // Even if the revoke call fails we still clear this device, so the
+              // user is never left looking signed in after asking to sign out.
             }
+            await signOut();
           },
         },
       ]
@@ -197,7 +191,7 @@ export default function MoreMenuScreen({
               <MoreMenuRow
                 icon={<LinkedDevicesIcon color={iconColor} />}
                 label="Linked Devices"
-                onPress={() => Alert.alert('Coming soon', 'Linked devices is not available yet.')}
+                onPress={() => router.push('/linked-devices')}
               />
             </View>
           </View>
@@ -251,25 +245,18 @@ export default function MoreMenuScreen({
               <MoreMenuRow
                 icon={<LogOutIcon color={iconColor} />}
                 label="Log Out of All Devices"
-                onPress={signOut}
+                onPress={confirmLogOutAllDevices}
                 showNavigateNext={false}
               />
             </View>
           </View>
         </View>
         <Pressable
-          onPress={confirmDelete}
-          disabled={deleting}
+          onPress={() => router.push('/delete-account')}
           className="flex-row items-center gap-4 rounded-[8px] border border-[#E30404] bg-white px-4 py-[18px] mt-6"
         >
-          {deleting ? (
-            <ActivityIndicator color="#ED0808" />
-          ) : (
-            <>
-              <DeleteAccountIcon />
-              <Text className="text-[13px] font-inter-regular text-[#E30404]">Delete Account</Text>
-            </>
-          )}
+          <DeleteAccountIcon />
+          <Text className="text-[13px] font-inter-regular text-[#E30404]">Delete Account</Text>
         </Pressable>
       </ScrollView>
 
