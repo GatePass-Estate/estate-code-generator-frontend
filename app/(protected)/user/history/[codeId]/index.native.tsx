@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Platform } from 'react-native';
+import { Share } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, useNavigation, router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AccessHistoryDetail, {
   AccessHistoryTimelineEvent,
 } from '@/src/components/mobile/AccessHistoryDetail';
 import { getMyVisitorAccessLogByCode } from '@/src/lib/api/accessLogs';
+import { deleteCode } from '@/src/lib/api/codes';
 import { formatAccessLogTimestamp, parseLogDate } from '@/src/lib/helpers';
 import { useAndroidBottomInset } from '@/src/hooks/useAndroidBottomInset';
 import { GenderType } from '@/src/types/general';
@@ -13,20 +14,23 @@ import { sharedStyles } from '@/src/theme/styles';
 
 export default function HistoryDetailScreen() {
   const navigation = useNavigation();
-  const { systemBottom, tabBarHeight } = useAndroidBottomInset();
+  const { tabBarStyle } = useAndroidBottomInset();
   const params = useLocalSearchParams<{
     codeId: string;
     name?: string;
     category?: string;
+    isActive?: string;
   }>();
 
   const hashedCode = params.codeId ?? '';
+  const isActive = params.isActive === 'true';
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState(params.name?.trim() || '');
   const [category, setCategory] = useState(params.category?.trim() || '');
   const [gender, setGender] = useState<GenderType>('prefer_not_to_say');
   const [events, setEvents] = useState<AccessHistoryTimelineEvent[]>([]);
+  const [deleting, setDeleting] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -37,16 +41,10 @@ export default function HistoryDetailScreen() {
 
       return () => {
         parent?.setOptions({
-          tabBarStyle: [
-            sharedStyles.tabBar,
-            Platform.OS === 'android' && {
-              bottom: systemBottom,
-              height: tabBarHeight,
-            },
-          ],
+          tabBarStyle,
         });
       };
-    }, [navigation, systemBottom, tabBarHeight])
+    }, [navigation, tabBarStyle])
   );
 
   const fetchHistory = useCallback(async () => {
@@ -106,6 +104,28 @@ export default function HistoryDetailScreen() {
     });
   }, [category, gender, name]);
 
+  const handleShare = useCallback(async () => {
+    try {
+      await Share.share({
+        message: `Access code for ${name || 'your guest'}: ${hashedCode.toUpperCase()}`,
+      });
+    } catch {
+      // user dismissed the share sheet
+    }
+  }, [hashedCode, name]);
+
+  const handleDelete = useCallback(async () => {
+    setDeleting(true);
+    try {
+      await deleteCode(hashedCode);
+      navigation.goBack();
+    } catch (e) {
+      console.log('Failed to delete code:', e);
+    } finally {
+      setDeleting(false);
+    }
+  }, [hashedCode, navigation]);
+
   return (
     <SafeAreaView
       style={[sharedStyles.container, sharedStyles.modalContainer, { backgroundColor: '#F6F7F7' }]}
@@ -117,8 +137,13 @@ export default function HistoryDetailScreen() {
         loading={loading}
         error={error}
         onBack={() => navigation.goBack()}
-        showRegenerate={!loading && !error}
+        showRegenerate={!isActive && !loading && !error}
         onRegenerate={openDurationScreen}
+        activeCodeActions={
+          isActive && !loading && !error
+            ? { onShare: handleShare, onDelete: handleDelete, deleting }
+            : undefined
+        }
       />
     </SafeAreaView>
   );

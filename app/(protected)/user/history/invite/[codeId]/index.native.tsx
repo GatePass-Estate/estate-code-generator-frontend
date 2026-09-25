@@ -1,13 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  Pressable,
-  ScrollView,
-  ActivityIndicator,
-  Alert,
-  Platform,
-} from 'react-native';
+import { View, Text, Pressable, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useFocusEffect, useLocalSearchParams, useNavigation, router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -56,7 +48,7 @@ function DetailRow({
 
 export default function UpcomingInviteScreen() {
   const navigation = useNavigation();
-  const { systemBottom, tabBarHeight } = useAndroidBottomInset();
+  const { tabBarStyle } = useAndroidBottomInset();
   const { user_id } = useUserStore();
   const params = useLocalSearchParams<{
     codeId: string;
@@ -90,16 +82,10 @@ export default function UpcomingInviteScreen() {
 
       return () => {
         parent?.setOptions({
-          tabBarStyle: [
-            sharedStyles.tabBar,
-            Platform.OS === 'android' && {
-              bottom: systemBottom,
-              height: tabBarHeight,
-            },
-          ],
+          tabBarStyle,
         });
       };
-    }, [navigation, systemBottom, tabBarHeight])
+    }, [navigation, tabBarStyle])
   );
 
   const fetchInvite = useCallback(async () => {

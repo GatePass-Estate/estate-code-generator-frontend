@@ -16,4 +16,5 @@ export const Inter = {
   medium: 'Inter_18pt-Medium',
   semiBold: 'Inter_18pt-SemiBold',
   mediumItalic: 'Inter_18pt-MediumItalic',
+  extraBold: 'Inter_18pt-ExtraBold',
 };

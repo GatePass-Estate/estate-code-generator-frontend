@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { router, Stack, useNavigation } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { useState, ReactNode } from 'react';
 import { useAuth } from '@/src/hooks/useAuthContext';
 import { useUserStore } from '@/src/lib/stores/userStore';
@@ -103,7 +103,7 @@ export default function MoreMenuScreen({
   const [feedbackPopupStep, setFeedbackPopupStep] = useState<'NONE' | 'SELECT' | 'RATE_US'>('NONE');
   const [starRating, setStarRating] = useState(0);
 
-  const isAdmin = role === 'admin' || role === 'primary_admin';
+  const isAdmin = role === 'admin' || role === 'primary_admin' || role === 'root';
 
   const confirmDelete = () => {
     Alert.alert(
@@ -179,6 +179,13 @@ export default function MoreMenuScreen({
                 icon={<AccountSecurityIcon color={iconColor} />}
                 label="Account Security"
                 onPress={() => router.push('/account-security')}
+              />
+              <MoreMenuRow
+                icon={<Ionicons name="diamond-outline" size={22} color={iconColor} />}
+                label="Billing and Subscription"
+                onPress={() =>
+                  Alert.alert('Coming soon', 'Billing and subscription is not available yet.')
+                }
               />
               <MoreMenuRow
                 icon={<IncidentReportIcon color={iconColor} />}

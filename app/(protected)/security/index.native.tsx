@@ -27,6 +27,7 @@ import ScanFrame from '@/src/assets/icons/scan-frame.svg';
 import { validateCode } from '@/src/lib/api/codes';
 import { getUserById } from '@/src/lib/api/user';
 import { sharedStyles } from '@/src/theme/styles';
+import { Inter } from '@/src/constants/fonts';
 import { InputRefsStorage } from '@/src/types/general';
 
 const EMPTY_CODE = ['', '', '', '', '', ''];
@@ -643,7 +644,7 @@ const styles = StyleSheet.create({
   },
   enterCodeSegmentText: {
     color: '#113E55',
-    fontFamily: 'Inter_18pt-Regular',
+    fontFamily: Inter.regular,
     fontSize: 11.2,
     height: 14,
     left: 27,
@@ -655,7 +656,7 @@ const styles = StyleSheet.create({
   },
   scanCodeSegmentText: {
     color: '#878686',
-    fontFamily: 'Inter_18pt-Regular',
+    fontFamily: Inter.regular,
     fontSize: 11.2,
     height: 14,
     left: 23,
@@ -729,7 +730,7 @@ const styles = StyleSheet.create({
   },
   permissionBody: {
     color: '#6A7980',
-    fontFamily: 'Inter_18pt-Regular',
+    fontFamily: Inter.regular,
     fontSize: 12,
     lineHeight: 17,
     marginTop: 8,
@@ -744,7 +745,7 @@ const styles = StyleSheet.create({
   },
   permissionButtonText: {
     color: '#113E55',
-    fontFamily: 'Inter_18pt-SemiBold',
+    fontFamily: Inter.semiBold,
     fontSize: 12,
   },
   scanFrame: {
@@ -817,7 +818,7 @@ const styles = StyleSheet.create({
   },
   invalidMessageText: {
     color: '#0A1F29',
-    fontFamily: 'Inter_18pt-Regular',
+    fontFamily: Inter.regular,
     fontSize: 14,
     height: 17,
     left: 30,

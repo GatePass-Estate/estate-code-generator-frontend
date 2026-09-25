@@ -135,10 +135,9 @@ export default function PendingRequestSheet({
   const [notifying, setNotifying] = useState(false);
 
   const closeSheet = () => {
-    translateY.value = withTiming(SHEET_HEIGHT, SHEET_ANIMATION, (finished) => {
-      if (finished) {
-        runOnJS(onClose)();
-      }
+    translateY.value = withTiming(SHEET_HEIGHT, SHEET_ANIMATION, () => {
+      // Always dismiss — interrupted close must not leave a blocking invisible Modal.
+      runOnJS(onClose)();
     });
   };
 

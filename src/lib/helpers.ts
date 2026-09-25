@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthState } from './stores/authStore';
 import { isAxiosError } from 'axios';
 import { AuthBroadcastMessage, UserRolesType } from '../types/general';
+import type { Codes } from '../types/codes';
 import icons from '../constants/icons';
 import { Platform } from 'react-native';
 
@@ -392,6 +393,14 @@ export const formatUpcomingInviteCardDate = (value?: string | null): string => {
   const minutes = String(date.getUTCMinutes()).padStart(2, '0');
   return `${day} ${month} ${hours}:${minutes}`;
 };
+
+/** True when the invite's validity window has not started yet (History → Upcoming). */
+export function isUpcomingCode(code: Codes, now = Date.now()): boolean {
+  const start = code.validity_period?.start ?? code.validity_window?.start;
+  if (!start) return false;
+  const startMs = parseLogDate(start).getTime();
+  return Number.isFinite(startMs) && startMs > now;
+}
 
 /**
  * Upcoming invite detail — calendar date in UTC

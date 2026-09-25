@@ -1,5 +1,11 @@
 import Api from '.';
-import { Codes, CodesApiResponse, GenerateCodePayload } from '@/src/types/codes';
+import {
+  Codes,
+  CodesApiResponse,
+  ExtendCodeResponse,
+  FreezeCodeResponse,
+  GenerateCodePayload,
+} from '@/src/types/codes';
 import { getErrorMessage } from '../helpers';
 import { GenderType, RelationshipType } from '@/src/types/general';
 
@@ -58,6 +64,38 @@ export const deleteCode = async (code: string): Promise<boolean> => {
     return data;
   } catch (error: any) {
     throw new Error(`${getErrorMessage(error) || 'An error occured'} `);
+  }
+};
+
+export const freezeCode = async (code: string, frozen: boolean): Promise<FreezeCodeResponse> => {
+  try {
+    const api = Api('code');
+    const hashed = encodeURIComponent(String(code).replace(/\s+/g, '').trim());
+
+    const axiosRes = await api.patch(`/codeservice/${hashed}/freeze`, { frozen });
+    const data = axiosRes.data;
+
+    return data;
+  } catch (error: any) {
+    throw new Error(`${getErrorMessage(error) || 'Could not freeze code'} `);
+  }
+};
+
+export const extendCode = async (code: string): Promise<ExtendCodeResponse> => {
+  try {
+    const api = Api('code');
+    const hashed = encodeURIComponent(String(code).replace(/\s+/g, '').trim());
+
+    const axiosRes = await api.patch(`/codeservice/${hashed}/extend`);
+    const data = axiosRes.data as ExtendCodeResponse;
+
+    if (data?.success === false) {
+      throw new Error(data.message || 'Could not extend code');
+    }
+
+    return data;
+  } catch (error: any) {
+    throw new Error(`${getErrorMessage(error) || 'Could not extend code'} `);
   }
 };
 

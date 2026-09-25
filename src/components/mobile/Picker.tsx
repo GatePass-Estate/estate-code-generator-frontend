@@ -26,6 +26,12 @@ interface PickerProps {
   enabled?: boolean;
   variant?: 'default' | 'registration';
   invalid?: boolean;
+  labelClassName?: string;
+  fieldClassName?: string;
+  textClassName?: string;
+  chevronColor?: string;
+  placeholderColor?: string;
+  chevron?: React.ReactNode;
 }
 
 /**
@@ -41,6 +47,12 @@ export function Picker({
   enabled = true,
   variant = 'default',
   invalid = false,
+  labelClassName = 'input-label',
+  fieldClassName = 'input-style',
+  textClassName = 'text-sm font-inter-light',
+  chevronColor = '#9CA3AF',
+  placeholderColor = '#9CA3AF',
+  chevron,
 }: PickerProps) {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const { bottom: safeBottom } = useSafeAreaInsets();
@@ -59,14 +71,14 @@ export function Picker({
 
   return (
     <View>
-      {label ? <Text className="input-label">{label}</Text> : null}
+      {label ? <Text className={labelClassName}>{label}</Text> : null}
       <Pressable
         className={
           variant === 'registration'
             ? `mt-2 flex-row items-center justify-between rounded-2xl border-mini px-4 ${
                 invalid ? 'border-danger bg-[#FFF1F1]' : 'border-accent bg-[#F6F7F7]'
               }`
-            : 'input-style flex-row items-center justify-between'
+            : `${fieldClassName} flex-row items-center justify-between`
         }
         onPress={() => enabled && setIsModalVisible(true)}
         disabled={!enabled}
@@ -79,6 +91,7 @@ export function Picker({
         }}
       >
         <Text
+          className={textClassName}
           style={{
             color: invalid
               ? '#ED0808'
@@ -86,7 +99,7 @@ export function Picker({
                 ? '#113E55'
                 : variant === 'registration'
                   ? '#878686'
-                  : '#9CA3AF',
+                  : placeholderColor,
             flex: 1,
             flexShrink: 1,
             fontFamily: variant === 'registration' ? 'Inter_18pt-Regular' : undefined,
@@ -95,11 +108,13 @@ export function Picker({
         >
           {displayLabel}
         </Text>
-        <Ionicons
-          name="chevron-down"
-          size={20}
-          color={invalid ? '#ED0808' : variant === 'registration' ? '#878686' : '#9CA3AF'}
-        />
+        {chevron ?? (
+          <Ionicons
+            name="chevron-down"
+            size={20}
+            color={invalid ? '#ED0808' : variant === 'registration' ? '#878686' : chevronColor}
+          />
+        )}
       </Pressable>
 
       <Modal

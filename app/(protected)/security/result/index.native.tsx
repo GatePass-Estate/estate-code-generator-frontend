@@ -18,6 +18,7 @@ import ProfileOverlayClose from '@/src/assets/icons/profile-overlay-close.svg';
 import ResidentProfileHead from '@/src/assets/icons/resident-profile-head.svg';
 import ResidentProfileOutline from '@/src/assets/icons/resident-profile-outline.svg';
 import { sharedStyles } from '@/src/theme/styles';
+import { Inter } from '@/src/constants/fonts';
 import { useAuthStore } from '@/src/lib/stores/authStore';
 import { getUserDocumentViewUri } from '@/src/lib/api/userDocuments';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -540,7 +541,7 @@ const styles = StyleSheet.create({
   },
   accessCodeLabel: {
     color: '#F46036',
-    fontFamily: 'Inter_18pt-Regular',
+    fontFamily: Inter.regular,
     fontSize: 11.2,
     height: 14,
     lineHeight: 14,
@@ -641,7 +642,7 @@ const styles = StyleSheet.create({
   },
   guestDetailsTitle: {
     color: '#167A6F',
-    fontFamily: 'Inter_18pt-Regular',
+    fontFamily: Inter.regular,
     fontSize: 11.2,
     height: 14,
     lineHeight: 14,
@@ -654,7 +655,7 @@ const styles = StyleSheet.create({
   },
   residentDetailsTitle: {
     color: '#F46036',
-    fontFamily: 'Inter_18pt-Regular',
+    fontFamily: Inter.regular,
     fontSize: 11.2,
     height: 14,
     lineHeight: 14,
@@ -736,7 +737,7 @@ const styles = StyleSheet.create({
   },
   detailLabel: {
     color: '#878686',
-    fontFamily: 'Inter_18pt-Medium',
+    fontFamily: Inter.medium,
     fontSize: 14,
     height: 17,
     lineHeight: 17,
@@ -748,7 +749,7 @@ const styles = StyleSheet.create({
   },
   detailValue: {
     color: '#878686',
-    fontFamily: 'Inter_18pt-Light',
+    fontFamily: Inter.light,
     fontSize: 14,
     height: 17,
     lineHeight: 17,

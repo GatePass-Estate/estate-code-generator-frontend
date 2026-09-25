@@ -31,8 +31,10 @@
   "dependencies": {
     "@expo-google-fonts/source-sans-pro": "^0.2.3",
     "@expo-google-fonts/ubuntu": "^0.3.0",
+    "@expo/config-plugins": "~57.0.9",
     "@expo/vector-icons": "^15.0.2",
     "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native-community/checkbox": "^0.5.17",
     "@react-native-community/datetimepicker": "9.1.0",
     "@react-native-google-signin/google-signin": "^13.2.0",
     "@react-native-picker/picker": "2.11.4",
@@ -40,10 +42,11 @@
     "@react-navigation/native": "^7.0.19",
     "@react-navigation/stack": "^7.2.3",
     "@rn-primitives/slot": "^1.1.0",
+    "@roninoss/icons": "^0.0.4",
     "@tanstack/react-query": "^5.91.3",
     "axios": "^1.13.6",
     "class-variance-authority": "^0.7.1",
-    "expo": "^57.0.24",
+    "expo": "57.0.24",
     "expo-auth-session": "~57.0.12",
     "expo-blur": "~57.0.3",
     "expo-camera": "~57.0.5",
@@ -69,8 +72,8 @@
     "expo-system-ui": "~57.0.4",
     "expo-web-browser": "~57.0.3",
     "husky": "^9.1.7",
-    "metro": "^0.84.2",
-    "nativewind": "^4.1.23",
+    "metro": "^0.84.4",
+    "nativewind": "^4.2.7",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-native": "0.86.3",
@@ -87,14 +90,13 @@
     "react-native-worklets": "0.10.1",
     "react-router-dom": "^7.9.3",
     "tailwind-merge": "^3.0.2",
-    "undefined": "expo-auth-session/providers/google",
     "zustand": "^5.0.8"
   },
   "devDependencies": {
     "@babel/core": "^7.29.0",
     "@react-native-community/cli": "^18.0.0",
     "@types/jest": "^29.5.12",
-    "@types/react": "~19.2.10",
+    "@types/react": "~19.2.4",
     "@types/react-native-vector-icons": "^6.4.18",
     "@types/react-test-renderer": "^18.3.0",
     "eslint": "^9.0.0",
@@ -107,12 +109,8 @@
     "tailwindcss": "^3.4.19",
     "typescript": "~6.0.3"
   },
-  "expo": {
-    "doctor": {
-      "appConfigFieldsNotSyncedCheck": {
-        "enabled": false
-      }
-    }
+  "overrides": {
+    "@expo/vector-icons": "^15.0.2"
   },
   "private": true
 }

@@ -18,8 +18,6 @@ import images from '@/src/constants/images';
 import { deleteMyGuest, getMyGuests } from '@/src/lib/api/guests';
 import { Guest } from '@/src/types/guests';
 import { GenderType, RelationshipType } from '@/src/types/general';
-import { useUserStore } from '@/src/lib/stores/userStore';
-import { generateCode } from '@/src/lib/api/codes';
 import { sharedStyles } from '@/src/theme/styles';
 import { useAndroidBottomInset } from '@/src/hooks/useAndroidBottomInset';
 import icons from '@/src/constants/icons';
@@ -36,7 +34,6 @@ const MyGuestMobile = () => {
   const [guests, setGuests] = useState<Guest[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
-  const [running, setRunning] = useState<boolean>(false);
   const { width } = useWindowDimensions();
   const [confirmModalVisible, setConfirmModalVisible] = useState(false);
   const [pendingGuestId, setPendingGuestId] = useState<string | null>(null);
@@ -91,7 +88,7 @@ const MyGuestMobile = () => {
     }
   }, []);
 
-  async function handleGenerateCode({
+  function openDurationForGuest({
     name,
     relationship_with_resident,
     gender,
@@ -100,65 +97,15 @@ const MyGuestMobile = () => {
     gender: GenderType;
     relationship_with_resident: RelationshipType;
   }) {
-    setRunning(true);
-    try {
-      const result = await generateCode({
-        user_id: useUserStore.getState().user_id,
-        estate_id: useUserStore.getState().estate_id ?? '',
-        visitor_fullname: name,
-        relationship_with_resident,
-        gender,
-      });
-
-      const iso = String(result.valid_until ?? '')
-        .replace(' ', 'T')
-        .replace(/([+-]\d{2})(\d{2})$/, '$1:$2');
-      const parsed = new Date(iso);
-
-      let formattedDate = 'Invalid date';
-      let timeframe = 'Unknown';
-      let timeLeftMinutes = 0;
-
-      if (!isNaN(parsed.getTime())) {
-        const day = String(parsed.getDate()).padStart(2, '0');
-        const month = String(parsed.getMonth() + 1).padStart(2, '0');
-        const year = parsed.getFullYear();
-        formattedDate = `${day}/${month}/${year}`;
-
-        const diffMs = parsed.getTime() - Date.now();
-        if (diffMs <= 0) {
-          timeframe = 'Expired';
-        } else {
-          const startDate = new Date(parsed.getTime() - 60 * 60 * 1000);
-          const formatTime = (d: Date) =>
-            d
-              .toLocaleTimeString(undefined, {
-                hour: 'numeric',
-                minute: '2-digit',
-                hour12: true,
-              })
-              .replace(/\s+/g, '')
-              .toLowerCase();
-          timeLeftMinutes = Math.floor((diffMs % 3600000) / 60000);
-          timeframe = `${formatTime(startDate)} to ${formatTime(parsed)}`;
-        }
-      }
-
-      router.push({
-        pathname: '/invite',
-        params: {
-          name,
-          code: result.hashed_code,
-          address: `${useUserStore.getState().home_address}, ${useUserStore.getState().estate_name}.`,
-          timeframe,
-          date: formattedDate,
-        },
-      });
-    } catch (error) {
-      Alert.alert('Error', 'Failed to generate code. Please try again.');
-    } finally {
-      setRunning(false);
-    }
+    router.push({
+      pathname: '/user/history/duration',
+      params: {
+        visitorName: name,
+        relationship: relationship_with_resident ?? 'other',
+        gender: gender ?? 'prefer_not_to_say',
+        saveGuest: 'false',
+      },
+    });
   }
 
   const performDeleteGuest = async (id: string) => {
@@ -257,33 +204,29 @@ const MyGuestMobile = () => {
         refreshing={loading}
         onRefresh={fetchGuests}
         contentContainerStyle={{ paddingBottom: tabContentPadding }}
-        ListEmptyComponent={() =>
-          running ? (
-            <></>
-          ) : (
-            <View
+        ListEmptyComponent={() => (
+          <View
+            style={{
+              flex: 1,
+              justifyContent: 'center',
+              alignItems: 'center',
+              paddingTop: 40,
+            }}
+          >
+            <Animated.Image
+              source={images.ghostImg}
               style={{
-                flex: 1,
-                justifyContent: 'center',
-                alignItems: 'center',
-                paddingTop: 40,
+                width: 300,
+                height: 300,
+                resizeMode: 'contain',
+                transform: [{ translateY: bounceValue }],
               }}
-            >
-              <Animated.Image
-                source={images.ghostImg}
-                style={{
-                  width: 300,
-                  height: 300,
-                  resizeMode: 'contain',
-                  transform: [{ translateY: bounceValue }],
-                }}
-              />
-              <Text
-                style={{ textAlign: 'center', fontSize: 23, opacity: 0.2 }}
-              >{`Click the ‘+’ to add \nyour guest`}</Text>
-            </View>
-          )
-        }
+            />
+            <Text style={{ textAlign: 'center', fontSize: 23, opacity: 0.2 }}>
+              {"Click the '+' to add \nyour guest"}
+            </Text>
+          </View>
+        )}
         renderItem={({ item }) => {
           return (
             <View
@@ -315,7 +258,7 @@ const MyGuestMobile = () => {
                 )}
 
                 <View style={{ marginLeft: 10 }}>
-                  <Text className="font-Inter text-[16px] font-normal text-black">
+                  <Text className="font-inter-regular text-[16px] text-black">
                     {item.guest_name}
                   </Text>
 
@@ -361,7 +304,7 @@ const MyGuestMobile = () => {
 
                 <TouchableOpacity
                   onPress={() =>
-                    handleGenerateCode({
+                    openDurationForGuest({
                       name: item.guest_name,
                       relationship_with_resident: item.relationship as RelationshipType,
                       gender: item.gender as GenderType,

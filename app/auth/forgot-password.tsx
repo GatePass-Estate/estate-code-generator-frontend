@@ -275,7 +275,7 @@ export default function ForgotPassword() {
               >
                 <Text
                   className="text-primary font-ubuntu-semibold text-lg"
-                  style={{ letterSpacing: -0.24, lineHeight: 16 }}
+                  style={{ letterSpacing: -0.24 }}
                 >
                   Back to Login
                 </Text>

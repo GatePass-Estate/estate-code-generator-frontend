@@ -1,5 +1,6 @@
 import 'react-native-reanimated';
 import { Redirect, Stack } from 'expo-router';
+import PlanGuard from '@/src/components/mobile/PlanGuard';
 import { useAuth } from '@/src/hooks/useAuthContext';
 import { useUserStore } from '@/src/lib/stores/userStore';
 
@@ -21,8 +22,11 @@ export default function ProtectedLayout() {
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="user" />
-    </Stack>
+    <>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="user" />
+      </Stack>
+      <PlanGuard />
+    </>
   );
 }

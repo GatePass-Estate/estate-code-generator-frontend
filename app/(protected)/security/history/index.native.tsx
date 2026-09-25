@@ -1,17 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  Pressable,
-  TouchableOpacity,
-  ActivityIndicator,
-} from 'react-native';
+import { View, Text, ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useNavigation, useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { sharedStyles } from '@/src/theme/styles';
 import ScreenHeader from '@/src/components/mobile/ScreenHeader';
+import AnimatedPillTabs from '@/src/components/mobile/AnimatedPillTabs';
 import {
   formatAccessCodeWithSpace,
   formatPastHistoryVisitDate,
@@ -143,55 +137,17 @@ export default function AccessLogScreen() {
       <ScreenHeader title="Access Log" subtitle="View all access code you have approved" />
 
       <View style={{ flex: 1, paddingTop: 24 }}>
-        <View
-          className="self-center flex-row mb-[17px]"
-          style={{
-            borderRadius: 999,
-            backgroundColor: '#EFF1F1',
-            overflow: 'hidden',
-          }}
-        >
-          <TouchableOpacity
-            activeOpacity={0.8}
-            style={{
-              width: 148,
-              paddingVertical: 13,
-              borderRadius: 999,
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: mode === 'visitor' ? '#CEE5ED' : 'transparent',
-            }}
-            onPress={() => switchMode('visitor')}
-          >
-            <Text
-              className={`font-inter-regular text-[11px] ${
-                mode === 'visitor' ? 'text-[#113E55]' : 'text-[#6C6C6C]'
-              }`}
-            >
-              Guest History
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            activeOpacity={0.8}
-            style={{
-              width: 148,
-              paddingVertical: 13,
-              borderRadius: 999,
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: mode === 'resident' ? '#CEE5ED' : 'transparent',
-            }}
-            onPress={() => switchMode('resident')}
-          >
-            <Text
-              className={`font-inter-regular text-[11px] ${
-                mode === 'resident' ? 'text-[#113E55]' : 'text-[#6C6C6C]'
-              }`}
-            >
-              Resident History
-            </Text>
-          </TouchableOpacity>
-        </View>
+        <AnimatedPillTabs
+          style={{ alignSelf: 'center', marginBottom: 17 }}
+          options={[
+            { value: 'visitor', label: 'Guest History' },
+            { value: 'resident', label: 'Resident History' },
+          ]}
+          value={mode}
+          onChange={switchMode}
+          width={296}
+          activeWidth={148}
+        />
 
         {loading ? (
           <View className="flex-1 items-center justify-center">

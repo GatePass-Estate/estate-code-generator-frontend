@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import { fetchMe } from '@/src/lib/api/auth';
+import { clearEstateEntitlements, prefetchEstateEntitlements } from '@/src/lib/api/entitlements';
 import {
   broadcastLogout,
   clearAuthState,
@@ -8,9 +9,11 @@ import {
   getSelectedInstitution,
   initAuthSync,
 } from '@/src/lib/helpers';
+import { setUnauthorizedHandler } from '@/src/lib/session';
 import { useAuthStore } from '@/src/lib/stores/authStore';
 import { useProfileDocumentsStore } from '@/src/lib/stores/profileDocumentsStore';
 import { useUserStore } from '@/src/lib/stores/userStore';
+import { useUpgradePromptStore } from '@/src/hooks/usePlan';
 import { AuthContextType } from '@/src/types/auth';
 import { User } from '@/src/types/user';
 import { usePathname, useRouter } from 'expo-router';
@@ -37,12 +40,19 @@ const PUBLIC_AUTH_ROUTES = [
   '/auth/data-protection-policy',
 ];
 
-/** Prefetch document metadata + profile photo without blocking navigation. */
-function prefetchProfileDocuments(user: User) {
-  const userId = user.user_id || user.id;
-  if (!userId) return;
+/** Prefetch documents, profile photo and plan entitlements without blocking navigation. */
+function prefetchUserData(user: User) {
+  prefetchEstateEntitlements(user.estate_id);
 
-  void useProfileDocumentsStore.getState().syncDocuments(userId);
+  const userId = user.user_id || user.id;
+  if (userId) void useProfileDocumentsStore.getState().syncDocuments(userId);
+}
+
+function clearUserData() {
+  useUserStore.getState().clearUser();
+  useProfileDocumentsStore.getState().clear();
+  useUpgradePromptStore.getState().reset();
+  clearEstateEntitlements();
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -57,8 +67,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isProcessingRef.current = true;
 
     try {
-      useUserStore.getState().clearUser();
-      useProfileDocumentsStore.getState().clear();
+      clearUserData();
       useAuthStore.getState().clearAuth();
       const institution = await getSelectedInstitution();
       router.replace(getPostAuthRedirectRoute(institution));
@@ -69,8 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const performSignOut = useCallback(async () => {
     setIsReady(false);
-    useUserStore.getState().clearUser();
-    useProfileDocumentsStore.getState().clear();
+    clearUserData();
     useAuthStore.getState().clearAuth();
     await clearAuthState();
     broadcastLogout();
@@ -79,6 +87,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const institution = await getSelectedInstitution();
     router.replace(getPostAuthRedirectRoute(institution));
   }, [router]);
+
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      void performSignOut();
+    });
+    return () => setUnauthorizedHandler(null);
+  }, [performSignOut]);
 
   const routeForUser = useCallback(
     (user: User) => {
@@ -94,7 +109,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = async (userData: User) => {
     useUserStore.setState({ ...userData });
     setIsReady(true);
-    prefetchProfileDocuments(userData);
+    prefetchUserData(userData);
   };
 
   const signOut = async () => {
@@ -115,7 +130,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           useUserStore.setState({ ...myProfile });
           useAuthStore.setState({ access_token: token, role: myProfile.role });
           setIsReady(true);
-          prefetchProfileDocuments(myProfile);
+          prefetchUserData(myProfile);
           setTimeout(() => {
             routeForUser(myProfile);
           }, 50);
@@ -166,7 +181,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               useUserStore.setState({ ...myProfile });
               useAuthStore.setState({ access_token: localData.access_token, role: myProfile.role });
               setIsReady(true);
-              prefetchProfileDocuments(myProfile);
+              prefetchUserData(myProfile);
               try {
                 setTimeout(() => {
                   routeForUser(myProfile);

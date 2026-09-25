@@ -78,10 +78,9 @@ export default function IdentificationSheet({
   const closeSheet = () => {
     if (uploading) return;
 
-    translateY.value = withTiming(SHEET_HEIGHT, SHEET_ANIMATION, (finished) => {
-      if (finished) {
-        runOnJS(onClose)();
-      }
+    translateY.value = withTiming(SHEET_HEIGHT, SHEET_ANIMATION, () => {
+      // Always dismiss — interrupted close must not leave a blocking invisible Modal.
+      runOnJS(onClose)();
     });
   };
 

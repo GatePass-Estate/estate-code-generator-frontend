@@ -61,6 +61,8 @@ import backIcon from '../assets/icons/back-icon.png';
 // @ts-ignore
 import copyIcon from '../assets/icons/copy-icon.png';
 // @ts-ignore
+import notificationBellIcon from '../assets/icons/notification-bell.png';
+// @ts-ignore
 import searchIcon from '../assets/icons/search.png';
 // @ts-ignore
 import webHomeActiveIcon from '../assets/icons/web-home-icon-active.png';
@@ -145,6 +147,7 @@ const icons = {
   inactiveGuestIcon,
   backIcon,
   copyIcon,
+  notificationBellIcon,
   searchIcon,
   webHomeActiveIcon,
   webHomeInActiveIcon,
