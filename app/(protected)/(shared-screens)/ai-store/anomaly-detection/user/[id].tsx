@@ -111,16 +111,38 @@ export default function AnomalyDetectionUserDetailsScreen() {
   console.log('RAW HISTORY:', rawHistoryData);
   console.log('RAW RESULTS:', rawResultsData);
 
+  const userTypeStr = (typeof user_type === 'string' && user_type) ? user_type : (demographic?.user_type || demographic?.role || 'Guest');
+  const genderStr = (typeof gender === 'string' && gender) ? gender : (demographic?.gender || '');
+
   const demo = {
     ...demographic,
-    user_type: user_type || demographic.user_type,
+    user_type: userTypeStr,
     display_name: display_name ? decodeURIComponent(display_name as string) : demographic.display_name,
-    gender: gender || demographic.gender,
+    gender: genderStr,
   };
   
-  const isGuest = demo.user_type?.toLowerCase() === 'guest' || demo.user_type?.toLowerCase() === 'visitor';
-  const isFemale = demo.gender?.toLowerCase().startsWith('f');
+  const isGuest = userTypeStr.toLowerCase() === 'guest' || userTypeStr.toLowerCase() === 'visitor';
+  const isFemale = genderStr.toLowerCase().startsWith('f');
   const accentColor = isGuest ? '#113E55' : '#F25B2A';
+
+  const historyRecordsCount = useMemo(() => {
+    if (historyData?.total !== undefined) return historyData.total;
+    if (Array.isArray(historyData?.data)) return historyData.data.length;
+    if (Array.isArray(historyData)) return historyData.length;
+    if (historyData?.items) return historyData.items.length;
+    return 0;
+  }, [historyData]);
+
+  const selectedDays = useMemo(() => {
+    if (date_from && date_to) {
+      const d1 = new Date(date_from as string).getTime();
+      const d2 = new Date(date_to as string).getTime();
+      if (!isNaN(d1) && !isNaN(d2)) {
+        return Math.max(1, Math.ceil((d2 - d1) / (1000 * 60 * 60 * 24)));
+      }
+    }
+    return 7;
+  }, [date_from, date_to]);
 
   const gaugeList = useMemo(() => {
     const factors = resultsData?.anomaly_overview?.contributing_factors;
@@ -151,8 +173,8 @@ export default function AnomalyDetectionUserDetailsScreen() {
         weightLabel: formattedWeight,
         color: themeColor,
         arcColor: themeColor,
-        records: factor.records || 0,
-        days: factor.days || 0,
+        records: historyRecordsCount,
+        days: selectedDays,
         items: (factor.sub_factors || []).map((sf: any) => {
           const rawSfTitle = sf.name || sf.feature_name || 'Sub-factor';
           return {
@@ -164,7 +186,7 @@ export default function AnomalyDetectionUserDetailsScreen() {
         })
       };
     });
-  }, [resultsData]);
+  }, [resultsData, historyRecordsCount, selectedDays]);
 
   const handleGenerateSummary = async () => {
     setAiState('loading');

@@ -100,6 +100,19 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
   const isLoading = overviewLoading || predictionsLoading;
   const overview = rawOverview;
 
+  const selectedDays = React.useMemo(() => {
+    if (startDate && endDate) {
+      const d1 = startDate.getTime();
+      const d2 = endDate.getTime();
+      if (!isNaN(d1) && !isNaN(d2)) {
+        return Math.max(1, Math.ceil((d2 - d1) / (1000 * 60 * 60 * 24)));
+      }
+    }
+    return 7;
+  }, [startDate, endDate]);
+
+  const totalRecords = overview?.demographic?.total_anomalous_instances || 0;
+
   // Generate dynamic gauge data from API, safely handling null percentages
   const gaugeList: GaugeData[] = React.useMemo(() => {
     const factors = overview?.anomaly_overview?.contributing_factors || overview?.anomaly_overview?.top_contributing_factors;
@@ -130,8 +143,8 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
         weightLabel: formattedWeight,
         color: themeColor,
         arcColor: themeColor,
-        records: factor.records || 0,
-        days: factor.days || 0,
+        records: totalRecords,
+        days: selectedDays,
         items: (factor.sub_factors || []).map((sf: any) => {
           const rawSfTitle = sf.name || sf.feature_name || 'Sub-factor';
           return {
@@ -143,7 +156,7 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
         })
       };
     });
-  }, [overview]);
+  }, [overview, totalRecords, selectedDays]);
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const y = event.nativeEvent.contentOffset.y;
@@ -863,7 +876,7 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
                 <Pressable
                   key={row.prediction_id || row.id || index}
                   onPress={() =>
-                    router.push(`/(protected)/(shared-screens)/ai-store/anomaly-detection/user/${row.prediction_id || row.id}?gender=${row.gender || ''}&user_type=${row.user_type || ''}&display_name=${encodeURIComponent(row.display_name || row.name || '')}&date_from=${startDate ? startDate.toISOString() : ''}&date_to=${endDate ? endDate.toISOString() : ''}`)
+                    router.push(`/(protected)/(shared-screens)/ai-store/anomaly-detection/user/${row.prediction_id || row.id}?gender=${row.gender || ''}&user_type=${row.user_type || row.role || ''}&display_name=${encodeURIComponent(row.display_name || row.name || '')}&date_from=${startDate ? startDate.toISOString() : ''}&date_to=${endDate ? endDate.toISOString() : ''}`)
                   }
                   style={{
                     flexDirection: 'row',
