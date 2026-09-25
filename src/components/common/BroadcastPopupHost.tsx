@@ -2,7 +2,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { listBroadcasts, markBroadcastRead } from '@/src/lib/api/broadcast';
 import { useNotificationStore } from '@/src/lib/stores/notificationStore';
 import { useUserStore } from '@/src/lib/stores/userStore';
-import { addLocallyReadBroadcasts, getLocallyReadBroadcasts } from '@/src/lib/readBroadcasts';
+import {
+  addLocallyReadBroadcasts,
+  getLocallyReadBroadcasts,
+  onBroadcastOpened,
+  wasBroadcastOpened,
+} from '@/src/lib/readBroadcasts';
 import BroadcastPopup from './BroadcastPopup';
 import type { BroadcastItem } from '@/src/types/broadcast';
 
@@ -47,8 +52,10 @@ export default function BroadcastPopupHost() {
         // device has acknowledged. Without this an already-dismissed
         // announcement would pop up again on the next launch.
         const locallyRead = await getLocallyReadBroadcasts(user_id);
+        // Also skip anything already open on screen (e.g. from a notification
+        // tap), which may not have reached the persisted cache yet.
         const unread = (response?.items ?? []).filter(
-          (item) => !item.is_read && !locallyRead.has(item.id)
+          (item) => !item.is_read && !locallyRead.has(item.id) && !wasBroadcastOpened(item.id)
         );
         setPending(unread);
         setVisible(unread.length > 0);
@@ -62,6 +69,13 @@ export default function BroadcastPopupHost() {
       cancelled = true;
     };
   }, [user_id]);
+
+  // A broadcast opened on its own page must not also sit in the popup.
+  useEffect(
+    () =>
+      onBroadcastOpened((id) => setPending((current) => current.filter((item) => item.id !== id))),
+    []
+  );
 
   const handleAcknowledge = useCallback(
     async (id: string) => {

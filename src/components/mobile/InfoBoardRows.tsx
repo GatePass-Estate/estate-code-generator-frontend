@@ -1,7 +1,8 @@
 import { memo } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import SwipeableRow from './SwipeableRow';
-import { ActivityAlertIcon, PriorityAlarmIcon } from '@/src/assets/svgs';
+import { ActivityAlertIcon } from '@/src/assets/svgs';
+import PriorityBadge from '@/src/components/common/PriorityBadge';
 import { isAlertNotification, priorityStyle, relativeTime } from '@/src/lib/broadcastStyle';
 import type { BroadcastItem } from '@/src/types/broadcast';
 import type { NotificationItem } from '@/src/types/notification';
@@ -29,7 +30,7 @@ export const BroadcastRow = memo(function BroadcastRow({
         className="flex-row items-center rounded-[8px] border-[0.5px] px-4 py-3"
         style={{ backgroundColor: style.background, borderColor: style.border }}
       >
-        <PriorityAlarmIcon color={style.icon} circleColor={style.circle} />
+        <PriorityBadge priority={item.priority} />
 
         <View className="flex-1 px-3">
           <Text

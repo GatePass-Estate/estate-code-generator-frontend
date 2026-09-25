@@ -1,16 +1,18 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { Stack, router } from 'expo-router';
+import { Stack, router, useLocalSearchParams } from 'expo-router';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import Back from '@/src/components/mobile/Back';
 import InfoBoardTabs from '@/src/components/mobile/InfoBoardTabs';
 import ActivityDetailModal from '@/src/components/mobile/ActivityDetailModal';
+import ConfirmSheet from '@/src/components/mobile/ConfirmSheet';
 import { ActivityRow, BroadcastRow } from '@/src/components/mobile/InfoBoardRows';
 import { sharedStyles } from '@/src/theme/styles';
 import { useInfoBoard } from '@/src/hooks/useInfoBoard';
 import { useNotificationStore } from '@/src/lib/stores/notificationStore';
+import type { InfoBoardTab } from '@/src/hooks/useInfoBoard';
 import type { NotificationItem } from '@/src/types/notification';
 
 /** Keeps virtualisation tight so switching tabs never mounts a long list. */
@@ -28,6 +30,12 @@ function EmptyState({ text }: { text: string }) {
 }
 
 export default function InfoBoardScreen() {
+  // Set by a push-notification tap: which tab to land on, and which activity
+  // to open once the list has loaded.
+  const params = useLocalSearchParams<{ tab?: string; notificationId?: string }>();
+  const requestedTab: InfoBoardTab | undefined =
+    params.tab === 'activities' || params.tab === 'message' ? params.tab : undefined;
+
   const {
     tab,
     setTab,
@@ -44,12 +52,58 @@ export default function InfoBoardScreen() {
     removeActivity,
     clearCurrentTab,
     hasItems,
-  } = useInfoBoard();
+    activitiesLoading,
+  } = useInfoBoard(requestedTab);
 
   const broadcastUnread = useNotificationStore((state) => state.broadcastUnread);
   const activityUnread = useNotificationStore((state) => state.activityUnread);
 
   const [selectedActivity, setSelectedActivity] = useState<NotificationItem | null>(null);
+  const [confirmClear, setConfirmClear] = useState(false);
+
+  // A tap on another notification while this screen is already open changes
+  // the params in place rather than mounting a fresh screen.
+  useEffect(() => {
+    if (requestedTab) setTab(requestedTab);
+  }, [requestedTab, params.notificationId, setTab]);
+
+  const openActivity = useCallback(
+    (item: NotificationItem) => {
+      setSelectedActivity(item);
+      void readActivity(item.id);
+    },
+    [readActivity]
+  );
+
+  // Open the tapped activity's detail once, as soon as it is in the list. If
+  // the screen was already open, the list predates the push, so refetch once.
+  const pushTarget = useRef<{ id: string; refetched: boolean; done: boolean } | null>(null);
+  useEffect(() => {
+    const target = params.notificationId;
+    if (!target || activitiesLoading) return;
+
+    if (pushTarget.current?.id !== target) {
+      pushTarget.current = { id: target, refetched: false, done: false };
+    }
+    const state = pushTarget.current;
+    if (state.done) return;
+
+    const item = activities.find((activity) => activity.id === target);
+    if (item) {
+      state.done = true;
+      openActivity(item);
+    } else if (!state.refetched) {
+      state.refetched = true;
+      void refresh();
+    } else {
+      state.done = true;
+    }
+  }, [params.notificationId, activities, activitiesLoading, openActivity, refresh]);
+
+  const handleConfirmClear = useCallback(async () => {
+    await clearCurrentTab();
+    setConfirmClear(false);
+  }, [clearCurrentTab]);
 
   const openBroadcast = useCallback(
     (id: string) => {
@@ -66,14 +120,6 @@ export default function InfoBoardScreen() {
   const handleRemoveActivity = useCallback(
     (id: string) => void removeActivity(id),
     [removeActivity]
-  );
-
-  const openActivity = useCallback(
-    (item: NotificationItem) => {
-      setSelectedActivity(item);
-      void readActivity(item.id);
-    },
-    [readActivity]
   );
 
   const isMessages = tab === 'message';
@@ -152,18 +198,28 @@ export default function InfoBoardScreen() {
 
         {hasItems && (
           <Pressable
-            onPress={() => void clearCurrentTab()}
+            onPress={() => setConfirmClear(true)}
             disabled={busy}
-            className="bg-primary rounded-[24px] h-12 items-center justify-center mb-6 mt-2"
-            style={{ opacity: busy ? 0.7 : 1 }}
+            className="bg-primary rounded-[24px] h-11 items-center justify-center mb-6 mt-2"
           >
-            {busy ? (
-              <ActivityIndicator color="#F6F7F7" />
-            ) : (
-              <Text className="text-[#F6F7F7] font-ubuntu-semibold text-sm">Clear All</Text>
-            )}
+            <Text className="text-[#F6F7F7] font-ubuntu-semibold text-sm">Clear All</Text>
           </Pressable>
         )}
+
+        {/* Clearing is irreversible, so it always goes through the design's
+            "Are you sure?" sheet first. */}
+        <ConfirmSheet
+          visible={confirmClear}
+          message={
+            isMessages
+              ? 'Confirm if you want to clear all messages.\nThis action is irreversible.'
+              : 'Confirm if you want to clear all activities.\nThis action is irreversible.'
+          }
+          confirmLabel="Delete"
+          busy={busy}
+          onConfirm={() => void handleConfirmClear()}
+          onCancel={() => setConfirmClear(false)}
+        />
 
         <ActivityDetailModal
           activity={selectedActivity}

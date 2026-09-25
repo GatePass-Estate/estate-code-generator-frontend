@@ -30,8 +30,8 @@ export type InfoBoardTab = 'message' | 'activities';
  * dots are accurate without a second round-trip. Mutations update local state
  * optimistically and reconcile the shared unread counts.
  */
-export function useInfoBoard() {
-  const [tab, setTab] = useState<InfoBoardTab>('message');
+export function useInfoBoard(initialTab: InfoBoardTab = 'message') {
+  const [tab, setTab] = useState<InfoBoardTab>(initialTab);
   const [broadcasts, setBroadcasts] = useState<BroadcastItem[]>([]);
   const [activities, setActivities] = useState<NotificationItem[]>([]);
   // One flag per tab so switching is instant: the other list can still be

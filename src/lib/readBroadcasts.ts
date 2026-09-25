@@ -76,3 +76,33 @@ export async function pruneLocallyReadBroadcasts(
     // Pruning is housekeeping only.
   }
 }
+
+/**
+ * Broadcasts opened on screen during this app run.
+ *
+ * A notification tap on a cold start routes to the message page while the
+ * popup host is still fetching unread broadcasts, so the persisted cache above
+ * is written too late to stop the same message popping up over its own page.
+ * This in-memory signal is synchronous and lets the popup drop a broadcast even
+ * after it is already showing.
+ */
+const openedThisRun = new Set<string>();
+const openedListeners = new Set<(id: string) => void>();
+
+export function markBroadcastOpened(id: string): void {
+  if (openedThisRun.has(id)) return;
+  openedThisRun.add(id);
+  openedListeners.forEach((listener) => listener(id));
+}
+
+export function wasBroadcastOpened(id: string): boolean {
+  return openedThisRun.has(id);
+}
+
+/** Subscribes to broadcasts being opened. Returns an unsubscribe function. */
+export function onBroadcastOpened(listener: (id: string) => void): () => void {
+  openedListeners.add(listener);
+  return () => {
+    openedListeners.delete(listener);
+  };
+}

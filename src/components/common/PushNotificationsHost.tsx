@@ -1,10 +1,11 @@
 import { useEffect, useRef } from 'react';
-import { useRouter } from 'expo-router';
+import { usePathname, useRouter } from 'expo-router';
 import {
   addPushListeners,
   pushSupported,
   registerForPushNotifications,
 } from '@/src/lib/pushNotifications';
+import { markBroadcastOpened } from '@/src/lib/readBroadcasts';
 import { useAuthStore } from '@/src/lib/stores/authStore';
 import { useNotificationStore } from '@/src/lib/stores/notificationStore';
 import { useUserStore } from '@/src/lib/stores/userStore';
@@ -19,6 +20,10 @@ import { useUserStore } from '@/src/lib/stores/userStore';
  */
 export default function PushNotificationsHost() {
   const router = useRouter();
+  const pathname = usePathname();
+  // Read inside the listener without re-subscribing on every navigation.
+  const pathnameRef = useRef(pathname);
+  pathnameRef.current = pathname;
   const userId = useUserStore((state) => state.user_id);
   const sessionId = useAuthStore((state) => state.session_id);
   const refreshCounts = useNotificationStore((state) => state.refreshCounts);
@@ -43,10 +48,25 @@ export default function PushNotificationsHost() {
     return addPushListeners({
       // Arriving in the foreground: keep the bell badge honest.
       onReceived: () => void refreshCounts(),
-      // Tapping a notification opens the Info Board, where every alert lives.
-      onResponse: (broadcastId) => {
+      // Broadcasts open their message; everything else is an activity, so land
+      // on the Activities tab with that entry's detail open.
+      onResponse: ({ broadcast_id, notification_id }) => {
         void refreshCounts();
-        router.push(broadcastId ? `/info-board/${broadcastId}` : '/info-board');
+        if (broadcast_id) {
+          markBroadcastOpened(broadcast_id);
+          router.push(`/info-board/${broadcast_id}`);
+          return;
+        }
+        const params = notification_id
+          ? { tab: 'activities', notificationId: notification_id }
+          : { tab: 'activities' };
+        // Already on the Info Board: switch it in place instead of stacking a
+        // second copy on top.
+        if (pathnameRef.current === '/info-board') {
+          router.setParams(params);
+          return;
+        }
+        router.push({ pathname: '/info-board', params });
       },
     });
   }, [router, refreshCounts]);

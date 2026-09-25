@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -11,8 +11,7 @@ import {
   View,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { PriorityAlarmIcon } from '@/src/assets/svgs';
-import { priorityStyle } from '@/src/lib/broadcastStyle';
+import PriorityBadge from './PriorityBadge';
 import type { BroadcastItem } from '@/src/types/broadcast';
 
 type BroadcastPopupProps = {
@@ -55,6 +54,16 @@ export default function BroadcastPopup({
     },
     [pageWidth]
   );
+
+  // The list can also shrink from outside (a broadcast opened on its own page),
+  // so keep the pager on a card that still exists.
+  useEffect(() => {
+    if (broadcasts.length > 0 && index > broadcasts.length - 1) {
+      const last = broadcasts.length - 1;
+      setIndex(last);
+      scrollRef.current?.scrollTo({ x: last * pageWidth, animated: false });
+    }
+  }, [broadcasts.length, index, pageWidth]);
 
   const handleAcknowledge = useCallback(
     async (item: BroadcastItem) => {
@@ -104,7 +113,6 @@ export default function BroadcastPopup({
           style={{ maxHeight: '70%', flexGrow: 0 }}
         >
           {broadcasts.map((item) => {
-            const style = priorityStyle(item.priority);
             return (
               <View key={item.id} style={{ width: pageWidth }} className="items-center">
                 <View
@@ -112,7 +120,7 @@ export default function BroadcastPopup({
                   style={{ width: cardWidth, borderColor: '#CEE5ED' }}
                 >
                   <View className="flex-row items-center gap-4 mb-5">
-                    <PriorityAlarmIcon color={style.icon} circleColor={style.circle} />
+                    <PriorityBadge priority={item.priority} />
                     <Text
                       className="flex-1 text-[#0A1F29] font-ubuntu-semibold"
                       style={{ fontSize: 22 }}

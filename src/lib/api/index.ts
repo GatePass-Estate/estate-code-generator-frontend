@@ -1,6 +1,11 @@
 import axios, { isAxiosError } from 'axios';
 import { useAuthStore } from '../stores/authStore';
 import { isSessionInvalidDetail, notifySessionExpired } from '../sessionExpiry';
+import { attachDeviceId } from '../deviceId';
+
+// Direct `axios.post(...)` calls (2FA verify, biometric login, ToS) go through
+// the global instance, so tag those too. Installed once at module load.
+axios.interceptors.request.use(attachDeviceId);
 
 type Service = 'user' | 'code' | 'revenue';
 
@@ -20,6 +25,9 @@ const Api = (service: Service = 'user') => {
       Authorization: `Bearer ${access_token}`,
     },
   });
+
+  // Instances made by axios.create do not inherit global interceptors.
+  instance.interceptors.request.use(attachDeviceId);
 
   // A session revoked from another device keeps returning 401 for every call.
   // Surface that once so the auth provider can sign this device out instead of

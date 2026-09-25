@@ -28,6 +28,7 @@ import {
   disableBiometricLogin,
   disableTwoFactor,
   enableBiometricLogin,
+  isTwoFactorNotEnabledError,
   regenerateRecoveryCodes,
 } from '@/src/lib/api/auth';
 import { setPendingRecoveryCodes } from '@/src/lib/recoveryCodes';
@@ -175,6 +176,13 @@ export default function AccountSecurityScreen() {
       setCodePrompt(null);
       router.push('/account-security/recovery-codes');
     } catch (error: any) {
+      // The server says 2FA is already off (e.g. it was reset elsewhere). That
+      // is the truth, not a failure: correct the toggle instead of erroring.
+      if (isTwoFactorNotEnabledError(error?.message)) {
+        setTwoFactorEnabled(false);
+        setCodePrompt(null);
+        return;
+      }
       setPromptError(error?.message || 'That code was not accepted.');
     } finally {
       setPromptBusy(false);

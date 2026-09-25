@@ -37,7 +37,11 @@ export default function RecoveryCodesScreen() {
   }, [asText]);
 
   const handleDone = useCallback(() => {
-    router.replace('/account-security');
+    // Pop back to the Account Security screen already in the stack. A
+    // `replace` here pushed a second copy of it, so pressing back afterwards
+    // landed on Account Security again. `dismissTo` falls back to navigating
+    // when that screen is not in the stack (e.g. a deep link).
+    router.dismissTo('/account-security');
   }, []);
 
   return (

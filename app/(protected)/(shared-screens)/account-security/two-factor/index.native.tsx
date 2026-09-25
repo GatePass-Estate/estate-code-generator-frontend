@@ -26,6 +26,7 @@ export default function TwoFactorSetupScreen() {
     setCode,
     loading,
     activating,
+    alreadyEnabled,
     errorMessage,
     activate,
     retry,
@@ -66,6 +67,22 @@ export default function TwoFactorSetupScreen() {
         {loading ? (
           <View className="items-center py-14">
             <ActivityIndicator color="#113E55" />
+          </View>
+        ) : alreadyEnabled ? (
+          // Deliberately does not start setup: doing so while 2FA is on would
+          // reset it server-side.
+          <View className="items-center py-14">
+            <Text className="text-[#0A1F29] font-inter-light text-sm text-center mb-5 leading-5">
+              Two-factor authentication is already on for your account.
+            </Text>
+            <Pressable
+              onPress={() => router.dismissTo('/account-security')}
+              className="px-5 py-3 rounded-[24px] bg-primary"
+            >
+              <Text className="text-white font-ubuntu-semibold text-sm">
+                Back to Account Security
+              </Text>
+            </Pressable>
           </View>
         ) : !provisioningUri ? (
           <View className="items-center py-14">

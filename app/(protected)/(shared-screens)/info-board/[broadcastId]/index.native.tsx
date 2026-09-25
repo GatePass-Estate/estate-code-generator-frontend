@@ -7,7 +7,7 @@ import { sharedStyles } from '@/src/theme/styles';
 import { getBroadcast, markBroadcastRead } from '@/src/lib/api/broadcast';
 import { useNotificationStore } from '@/src/lib/stores/notificationStore';
 import { useUserStore } from '@/src/lib/stores/userStore';
-import { addLocallyReadBroadcasts } from '@/src/lib/readBroadcasts';
+import { addLocallyReadBroadcasts, markBroadcastOpened } from '@/src/lib/readBroadcasts';
 import { formatSentDate } from '@/src/lib/broadcastStyle';
 import type { BroadcastItem } from '@/src/types/broadcast';
 
@@ -48,6 +48,11 @@ export default function BroadcastDetailScreen() {
       setLoading(false);
     }
   }, [broadcastId, refreshCounts, userId]);
+
+  // Before the fetch, so the popup never shows this message over its own page.
+  useEffect(() => {
+    if (broadcastId) markBroadcastOpened(broadcastId);
+  }, [broadcastId]);
 
   useEffect(() => {
     load();

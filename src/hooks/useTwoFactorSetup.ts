@@ -1,5 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
-import { enableTwoFactor, setupTwoFactor } from '@/src/lib/api/auth';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  enableTwoFactor,
+  getTwoFactorStatus,
+  isTwoFactorAlreadyEnabledError,
+  setupTwoFactor,
+} from '@/src/lib/api/auth';
 import { writeTwoFactorFlag } from '@/src/lib/twoFactorState';
 import { useUserStore } from '@/src/lib/stores/userStore';
 
@@ -18,20 +23,46 @@ export function useTwoFactorSetup() {
   const [loading, setLoading] = useState(true);
   const [activating, setActivating] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  /** True when the account already has 2FA on, so there is nothing to set up. */
+  const [alreadyEnabled, setAlreadyEnabled] = useState(false);
+
+  // Each `/2fa/setup` call issues a *new* secret server-side. Two overlapping
+  // calls (a remount, or StrictMode double-invoking the effect) could leave the
+  // QR on screen out of step with the secret the server stores, so every code
+  // the user typed would be rejected. Only one call may be in flight.
+  const setupInFlight = useRef(false);
 
   const loadSetup = useCallback(async () => {
+    if (setupInFlight.current) return;
+    setupInFlight.current = true;
+
     setLoading(true);
     setErrorMessage('');
     try {
+      // Calling setup while 2FA is on silently turns it OFF on the backend
+      // (it overwrites the secret and resets totp_enabled). Check first.
+      const status = await getTwoFactorStatus();
+      if (status === true) {
+        setAlreadyEnabled(true);
+        await writeTwoFactorFlag(userId, true);
+        return;
+      }
+
       const response = await setupTwoFactor();
       setProvisioningUri(response.provisioning_uri);
       setSecret(response.secret);
     } catch (error: any) {
+      if (isTwoFactorAlreadyEnabledError(error?.message)) {
+        setAlreadyEnabled(true);
+        await writeTwoFactorFlag(userId, true);
+        return;
+      }
       setErrorMessage(error?.message || 'Could not start two-factor setup.');
     } finally {
       setLoading(false);
+      setupInFlight.current = false;
     }
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     loadSetup();
@@ -60,6 +91,11 @@ export function useTwoFactorSetup() {
       await writeTwoFactorFlag(userId, true);
       return response.recovery_codes ?? [];
     } catch (error: any) {
+      if (isTwoFactorAlreadyEnabledError(error?.message)) {
+        setAlreadyEnabled(true);
+        await writeTwoFactorFlag(userId, true);
+        return null;
+      }
       setErrorMessage(error?.message || 'That code was not accepted. Try again.');
       return null;
     } finally {
@@ -74,6 +110,7 @@ export function useTwoFactorSetup() {
     setCode,
     loading,
     activating,
+    alreadyEnabled,
     errorMessage,
     setErrorMessage,
     activate,

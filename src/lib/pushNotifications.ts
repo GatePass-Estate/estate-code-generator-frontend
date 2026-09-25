@@ -30,6 +30,7 @@ import {
  */
 
 type NotificationsModule = typeof import('expo-notifications');
+type NotificationResponse = import('expo-notifications').NotificationResponse;
 
 const STORED_TOKEN_KEY = 'gatepass-push-token';
 
@@ -109,8 +110,9 @@ async function requestPermission(Notifications: NotificationsModule): Promise<bo
 /**
  * Registers this device with the backend. Safe to call on every sign-in.
  *
- * Returns the token, or null when push is unavailable (Expo Go, web,
- * simulator, permission denied, or iOS without the Firebase SDK configured).
+ * Returns the token, or null when push is unavailable (Expo Go, web, the iOS
+ * simulator, an Android emulator without Google Play services, permission
+ * denied, or iOS without the Firebase SDK configured).
  */
 export async function registerForPushNotifications(
   sessionId?: string | null
@@ -119,10 +121,12 @@ export async function registerForPushNotifications(
   if (!Notifications) return null;
 
   try {
-    // Push tokens are only issued on real hardware.
+    // Android emulators with Google Play services get real FCM tokens (ones
+    // without it throw below and land in the catch). The iOS simulator is
+    // still skipped.
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const Device = require('expo-device') as typeof import('expo-device');
-    if (!Device.isDevice) return null;
+    if (Platform.OS === 'ios' && !Device.isDevice) return null;
 
     await ensureAndroidChannel(Notifications);
 
@@ -160,11 +164,24 @@ export async function unregisterForPushNotifications(): Promise<void> {
   }
 }
 
+/** The `data` block the notification service attaches to every push. */
+export type PushPayload = {
+  /** NotificationType value, e.g. `BROADCAST_HIGH` or `LOGIN_NEW_DEVICE`. */
+  type?: string;
+  /** Row id in the user's activity feed. */
+  notification_id?: string;
+  /** Present only on broadcast pushes. */
+  broadcast_id?: string;
+};
+
 export type PushListeners = {
   onReceived: () => void;
-  /** `broadcastId` is present when the payload targets a specific broadcast. */
-  onResponse: (broadcastId?: string) => void;
+  onResponse: (payload: PushPayload) => void;
 };
+
+// Identifiers of taps already routed, so a response seen both by the listener
+// and by the cold-start check below is only acted on once.
+const handledResponses = new Set<string>();
 
 /**
  * Subscribes to notification events. Returns a cleanup function, and is a
@@ -174,14 +191,33 @@ export function addPushListeners({ onReceived, onResponse }: PushListeners): () 
   const Notifications = loadNotifications();
   if (!Notifications) return () => {};
 
-  const receivedSub = Notifications.addNotificationReceivedListener(() => onReceived());
+  const handleResponse = (response: NotificationResponse) => {
+    const id = response.notification.request.identifier;
+    if (handledResponses.has(id)) return;
+    handledResponses.add(id);
 
-  const responseSub = Notifications.addNotificationResponseReceivedListener((response) => {
-    const data = response.notification.request.content.data as
-      | { broadcast_id?: string }
-      | undefined;
-    onResponse(data?.broadcast_id);
-  });
+    // The last response is kept natively until cleared; clearing it stops a
+    // later remount (e.g. signing in again) from replaying this tap.
+    try {
+      Notifications.clearLastNotificationResponse();
+    } catch {
+      // Not available on this platform — the identifier set still dedupes.
+    }
+
+    onResponse((response.notification.request.content.data ?? {}) as PushPayload);
+  };
+
+  const receivedSub = Notifications.addNotificationReceivedListener(() => onReceived());
+  const responseSub = Notifications.addNotificationResponseReceivedListener(handleResponse);
+
+  // A tap that launched the app from a killed state can land before this
+  // listener exists, so pick it up here.
+  try {
+    const initial = Notifications.getLastNotificationResponse();
+    if (initial) handleResponse(initial);
+  } catch {
+    // Unavailable on this platform.
+  }
 
   return () => {
     receivedSub.remove();
