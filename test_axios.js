@@ -1,7 +1,7 @@
 const axios = require('axios');
 const api = axios.create({
   baseURL: 'https://api.example.com',
-  paramsSerializer: { indexes: null }
+  paramsSerializer: { indexes: null },
 });
 
 const uri = api.getUri({
@@ -10,8 +10,8 @@ const uri = api.getUri({
     estate_id: '123',
     severity: ['high'],
     user_type: ['guest'],
-    gender: ['male']
-  }
+    gender: ['male'],
+  },
 });
 
 console.log(uri);

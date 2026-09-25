@@ -2,9 +2,9 @@ const fs = require('fs');
 const files = [
   'app/(protected)/(shared-screens)/ai-store/anomaly-detection/index.tsx',
   'app/(protected)/(shared-screens)/ai-store/anomaly-detection/summary.tsx',
-  'app/(protected)/(shared-screens)/ai-store/anomaly-detection/user/[id].tsx'
+  'app/(protected)/(shared-screens)/ai-store/anomaly-detection/user/[id].tsx',
 ];
-files.forEach(file => {
+files.forEach((file) => {
   let content = fs.readFileSync(file, 'utf8');
   // First clean up in case we've run this before
   content = content.replace(/allowFontScaling=\{false\} /g, '');

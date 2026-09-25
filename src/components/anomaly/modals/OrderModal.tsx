@@ -10,8 +10,21 @@ interface OrderModalProps {
   setSortAscending: (val: boolean) => void;
 }
 
-export default function OrderModal({ visible, onClose, sortAscending, setSortAscending }: OrderModalProps) {
-      const Option = ({ label, isSelected, onPress }: { label: string, isSelected: boolean, onPress: () => void }) => (
+export default function OrderModal({
+  visible,
+  onClose,
+  sortAscending,
+  setSortAscending,
+}: OrderModalProps) {
+  const Option = ({
+    label,
+    isSelected,
+    onPress,
+  }: {
+    label: string;
+    isSelected: boolean;
+    onPress: () => void;
+  }) => (
     <Pressable
       onPress={onPress}
       style={{
@@ -25,11 +38,23 @@ export default function OrderModal({ visible, onClose, sortAscending, setSortAsc
         marginBottom: 12,
       }}
     >
-      <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 15, color: '#113E55' }}>
+      <Text
+        allowFontScaling={false}
+        style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 15, color: '#113E55' }}
+      >
         {label}
       </Text>
       {isSelected && (
-        <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: '#D2E7ED', alignItems: 'center', justifyContent: 'center' }}>
+        <View
+          style={{
+            width: 18,
+            height: 18,
+            borderRadius: 9,
+            backgroundColor: '#D2E7ED',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
           <Ionicons name="checkmark-sharp" size={12} color="#113E55" />
         </View>
       )}
@@ -37,18 +62,14 @@ export default function OrderModal({ visible, onClose, sortAscending, setSortAsc
   );
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={{ flex: 1, justifyContent: 'flex-end' }}>
         <BlurView intensity={15} tint="dark" style={StyleSheet.absoluteFill} />
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-        
+
         <View
-          style={[{
+          style={[
+            {
               backgroundColor: '#F9FAFA',
               borderTopLeftRadius: 32,
               borderTopRightRadius: 32,
@@ -56,15 +77,31 @@ export default function OrderModal({ visible, onClose, sortAscending, setSortAsc
               paddingTop: 12,
               paddingBottom: 40,
               width: '100%',
-            }
+            },
           ]}
         >
           {/* Draggable Handle Area */}
-                      <View style={{ paddingVertical: 12 }}>
-              <View style={{ width: 40, height: 4, backgroundColor: '#EFF1F3', borderRadius: 2, alignSelf: 'center' }} />
-            </View>
-          
-          <Text allowFontScaling={false} style={{ fontFamily: 'UbuntuSans-Medium', fontSize: 24, color: '#113E55', marginBottom: 24 }}>
+          <View style={{ paddingVertical: 12 }}>
+            <View
+              style={{
+                width: 40,
+                height: 4,
+                backgroundColor: '#EFF1F3',
+                borderRadius: 2,
+                alignSelf: 'center',
+              }}
+            />
+          </View>
+
+          <Text
+            allowFontScaling={false}
+            style={{
+              fontFamily: 'UbuntuSans-Medium',
+              fontSize: 24,
+              color: '#113E55',
+              marginBottom: 24,
+            }}
+          >
             Select Order
           </Text>
 

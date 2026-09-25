@@ -203,24 +203,21 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
   const fromDate = startDate ? toIncidentFromDate(startDate) : undefined;
   const toDate = endDate ? toIncidentToDate(endDate) : undefined;
 
-  const reportsQueryParams = useMemo(
-    () => {
-      // API user_type: resident | security | all — never send guest.
-      const apiUserTypes = filterUserTypes.filter(
-        (t): t is 'resident' | 'security' => t === 'resident' || t === 'security'
-      );
-      return {
-        from_date: fromDate,
-        to_date: toDate,
-        // Empty selection = omit filter (same as category=all / user_type=all).
-        category: filterCategories.length ? [...filterCategories] : undefined,
-        user_type: apiUserTypes.length ? apiUserTypes : undefined,
-        page: 1,
-        limit: 20,
-      };
-    },
-    [fromDate, toDate, filterCategories, filterUserTypes]
-  );
+  const reportsQueryParams = useMemo(() => {
+    // API user_type: resident | security | all — never send guest.
+    const apiUserTypes = filterUserTypes.filter(
+      (t): t is 'resident' | 'security' => t === 'resident' || t === 'security'
+    );
+    return {
+      from_date: fromDate,
+      to_date: toDate,
+      // Empty selection = omit filter (same as category=all / user_type=all).
+      category: filterCategories.length ? [...filterCategories] : undefined,
+      user_type: apiUserTypes.length ? apiUserTypes : undefined,
+      page: 1,
+      limit: 20,
+    };
+  }, [fromDate, toDate, filterCategories, filterUserTypes]);
 
   const {
     data: overview,
@@ -563,7 +560,9 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
               />
               <View className="flex-row items-center gap-[7px]">
                 <View className="flex-row items-center gap-[3px]">
-                  <View style={{ width: 4, height: 4, borderRadius: 8, backgroundColor: '#F46036' }} />
+                  <View
+                    style={{ width: 4, height: 4, borderRadius: 8, backgroundColor: '#F46036' }}
+                  />
                   <Text
                     allowFontScaling={false}
                     style={{
@@ -576,7 +575,9 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
                   </Text>
                 </View>
                 <View className="flex-row items-center gap-[3px]">
-                  <View style={{ width: 4, height: 4, borderRadius: 8, backgroundColor: '#1B998B' }} />
+                  <View
+                    style={{ width: 4, height: 4, borderRadius: 8, backgroundColor: '#1B998B' }}
+                  />
                   <Text
                     allowFontScaling={false}
                     style={{

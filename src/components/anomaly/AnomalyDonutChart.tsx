@@ -45,17 +45,21 @@ const TICK_HEIGHT = 5.275;
 /** Design authored at 106×106 (Figma 6355:2809 scales to ~99). */
 const DESIGN_SIZE = 106;
 const TICK_RADIUS_AT_DESIGN = 41.5;
-/** Gray track band (Figma inset ~13.33%). */
-const TRACK_RADIUS_AT_DESIGN = 38.9;
-/** Solid white disc under ticks (Figma inset ~17.33%). */
-const WHITE_DISC_RADIUS_AT_DESIGN = 34.6;
+/**
+ * Figma rings (outside → in):
+ * 1. White outer — substrate the progress ticks sit on
+ * 2. Gray track — inset ~13.33% (node 6355:2810)
+ * 3. White inner — inset ~17.33% (node 6355:2868)
+ */
+const GRAY_TRACK_RADIUS_RATIO = 0.5 - 0.1333; // ~0.3667
+const WHITE_INNER_RADIUS_RATIO = 0.5 - 0.1733; // ~0.3267
 
 // Colors matching the right-side legend (Guest / Resident / Security)
 const COLOR_GUEST = '#F46036';
 const COLOR_RESIDENT = '#113E55';
 const COLOR_SECURITY = '#1B998B';
 const COLOR_COUNT_DEFAULT = '#04162D';
-const COLOR_TRACK = '#EAEFF2';
+const COLOR_TRACK = '#F8F8F8';
 const COLOR_WHITE = '#FFFFFF';
 
 function dominantLegendColor(segments: { value: number; color: string }[]): string {
@@ -161,8 +165,8 @@ const AnomalyDonutChart = ({
 
   const scale = size / DESIGN_SIZE;
   const tickRadius = TICK_RADIUS_AT_DESIGN * scale;
-  const trackRadius = TRACK_RADIUS_AT_DESIGN * scale;
-  const whiteDiscRadius = WHITE_DISC_RADIUS_AT_DESIGN * scale;
+  const grayTrackRadius = size * GRAY_TRACK_RADIUS_RATIO;
+  const whiteInnerRadius = size * WHITE_INNER_RADIUS_RATIO;
   const tickW = TICK_WIDTH * scale;
   const tickH = TICK_HEIGHT * scale;
 
@@ -170,8 +174,8 @@ const AnomalyDonutChart = ({
     const center = size / 2;
     const list: TickData[] = [];
 
-    // Calculate tick counts based on percentages (out of 59 ticks to leave 1 gap)
-    const totalTicks = 59;
+    // Calculate tick counts based on percentages (full 60-tick ring)
+    const totalTicks = 60;
     let rTicks = Math.round((residentPercentage / 100) * totalTicks);
     let gTicks = Math.round((guestPercentage / 100) * totalTicks);
     let sTicks = Math.round((securityPercentage / 100) * totalTicks);
@@ -194,16 +198,14 @@ const AnomalyDonutChart = ({
           ])
         : null);
 
-    for (let i = 0; i < 60; i++) {
+    for (let i = 0; i < totalTicks; i++) {
       let color: string | null = null;
 
       if (i < rTicks) {
         color = unified ?? COLOR_RESIDENT;
       } else if (i < rTicks + gTicks) {
         color = unified ?? COLOR_GUEST;
-      } else if (i === rTicks + gTicks && sum > 0) {
-        color = null; // 1 gap tick if there's data
-      } else if (i < rTicks + gTicks + 1 + sTicks) {
+      } else if (i < rTicks + gTicks + sTicks) {
         color = unified ?? COLOR_SECURITY;
       }
 
@@ -272,7 +274,10 @@ const AnomalyDonutChart = ({
         chartPulseStyle,
       ]}
     >
-      {/* Figma 6355:2809 — gray track ring + solid white disc under ticks */}
+      {/*
+        Figma 6355:2809 layers (outside → in):
+        white outer (gauge base) → gray track → white inner
+      */}
       <Svg
         width={size}
         height={size}
@@ -282,32 +287,17 @@ const AnomalyDonutChart = ({
           left: 0,
         }}
       >
-        <Circle
-          cx={size / 2}
-          cy={size / 2}
-          r={trackRadius}
-          stroke={COLOR_TRACK}
-          strokeWidth={7.0 * scale}
-          fill="none"
-        />
-        <Circle
-          cx={size / 2}
-          cy={size / 2}
-          r={whiteDiscRadius}
-          fill={COLOR_WHITE}
-          stroke="none"
-        />
+        {/* 1. White outer — where the progress ticks sit */}
+        <Circle cx={size / 2} cy={size / 2} r={size / 2} fill={COLOR_WHITE} />
+        {/* 2. Gray track ring disc */}
+        <Circle cx={size / 2} cy={size / 2} r={grayTrackRadius} fill={COLOR_TRACK} />
+        {/* 3. White inner disc */}
+        <Circle cx={size / 2} cy={size / 2} r={whiteInnerRadius} fill={COLOR_WHITE} />
       </Svg>
 
       {/* 59 Animated Radial Ticks */}
       {ticks.map((t) => (
-        <AnimatedTick
-          key={t.index}
-          tick={t}
-          progress={progress}
-          width={tickW}
-          height={tickH}
-        />
+        <AnimatedTick key={t.index} tick={t} progress={progress} width={tickW} height={tickH} />
       ))}
 
       {/* Center: TOTAL REPORT above count (Figma Inter Light + Ubuntu Sans SemiBold) */}

@@ -163,7 +163,9 @@ function SquareCard({
           <View className="flex-row items-start gap-[6px]">
             <View>{icon}</View>
             <View className="flex-1 flex-col mt-[1px]">
-              <Text className="text-[12px] font-inter-regular text-white mb-1" numberOfLines={1}>{title}</Text>
+              <Text className="text-[12px] font-inter-regular text-white mb-1" numberOfLines={1}>
+                {title}
+              </Text>
               <Text className="text-[10px] font-inter-regular text-white opacity-90 leading-tight">
                 {subtitle}
               </Text>

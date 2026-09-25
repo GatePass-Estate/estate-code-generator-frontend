@@ -57,14 +57,18 @@ export default function AnomalyDetectionSummaryScreen() {
             }}
             style={styles.pillTab}
           >
-            <Text allowFontScaling={false} style={[styles.pillText, { color: '#8A9A9D' }]}>Overview</Text>
+            <Text allowFontScaling={false} style={[styles.pillText, { color: '#8A9A9D' }]}>
+              Overview
+            </Text>
           </Pressable>
           <Pressable
             accessibilityRole="tab"
             accessibilityState={{ selected: true }}
             style={styles.pillTab}
           >
-            <Text allowFontScaling={false} style={[styles.pillText, { color: '#113E55' }]}>Result</Text>
+            <Text allowFontScaling={false} style={[styles.pillText, { color: '#113E55' }]}>
+              Result
+            </Text>
           </Pressable>
         </View>
 
@@ -87,10 +91,7 @@ export default function AnomalyDetectionSummaryScreen() {
         <AnomalyResultView />
       </View>
 
-      <DataInsightModal
-        visible={dataInsightVisible}
-        onClose={() => setDataInsightVisible(false)}
-      />
+      <DataInsightModal visible={dataInsightVisible} onClose={() => setDataInsightVisible(false)} />
     </SafeAreaView>
   );
 }

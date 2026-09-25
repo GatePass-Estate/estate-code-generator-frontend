@@ -2,16 +2,18 @@ const fs = require('fs');
 const axios = require('axios');
 
 async function seedAnomalies() {
-  const USER_SERVICE_URL = 'http://139.84.226.209:9034'; 
-  const CODE_SERVICE_URL = 'http://139.84.226.209:9033'; 
+  const USER_SERVICE_URL = 'http://139.84.226.209:9034';
+  const CODE_SERVICE_URL = 'http://139.84.226.209:9033';
   const AI_SERVICE_URL = 'https://staging-api.gatepassng.com/ai';
 
   const authApi = axios.create({ baseURL: `${USER_SERVICE_URL}/api/v1` });
-  
+
   console.log('Fetching estate_id for Suncity Estate...');
   let estateIdForLogin;
   try {
-    const searchRes = await authApi.get('/estates/public/search', { params: { search_query: 'Suncity Estate' } });
+    const searchRes = await authApi.get('/estates/public/search', {
+      params: { search_query: 'Suncity Estate' },
+    });
     const items = searchRes.data?.data?.items || searchRes.data?.items;
     if (items && items.length > 0) {
       estateIdForLogin = items[0].id;
@@ -31,12 +33,15 @@ async function seedAnomalies() {
     const loginRes = await authApi.post('/auth/login', {
       email: 'janedoe@example.com',
       password: 'NewPowerfulPassword',
-      estate_id: estateIdForLogin
+      estate_id: estateIdForLogin,
     });
     jwt = loginRes.data?.data?.access_token || loginRes.data?.access_token;
     console.log('✅ Login successful!');
   } catch (err) {
-    console.error('ERROR: Login failed. Make sure the credentials are correct.', err.response?.data || err.message);
+    console.error(
+      'ERROR: Login failed. Make sure the credentials are correct.',
+      err.response?.data || err.message
+    );
     process.exit(1);
   }
 
@@ -63,7 +68,7 @@ async function seedAnomalies() {
     const estateId = profileData.estate_id;
     const myUserId = profileData.user_id || profileData.id;
     console.log('Extracted myUserId:', myUserId);
-    
+
     if (!estateId) {
       console.error('ERROR: Could not determine your estate_id. Are you assigned to an estate?');
       process.exit(1);
@@ -73,14 +78,17 @@ async function seedAnomalies() {
     console.log('2. Fetching other users in the estate...');
     // Fetch users (residents, security, guests)
     const usersRes = await userApi.get('/users/', { params: { estate_id: estateId, limit: 10 } });
-    const users = usersRes.data.data?.items || usersRes.data.items || usersRes.data.data || usersRes.data || [];
-    
+    const users =
+      usersRes.data.data?.items || usersRes.data.items || usersRes.data.data || usersRes.data || [];
+
     if (!Array.isArray(users) || users.length === 0) {
       console.error('ERROR: Could not find any other users in your estate to generate codes for.');
       process.exit(1);
     }
-    
-    console.log(`✅ Found ${users.length} users. We will generate codes and validate them to create anomalies.`);
+
+    console.log(
+      `✅ Found ${users.length} users. We will generate codes and validate them to create anomalies.`
+    );
 
     // Take top 3 users to generate access logs for
     const targetUsers = users.slice(0, 3);
@@ -89,8 +97,10 @@ async function seedAnomalies() {
       const user = targetUsers[i];
       const isGuest = true;
       const type = 'visitor';
-      
-      console.log(`\n--- Processing User: ${user.first_name || user.guest_name || 'Unknown'} (${type}) ---`);
+
+      console.log(
+        `\n--- Processing User: ${user.first_name || user.guest_name || 'Unknown'} (${type}) ---`
+      );
 
       // 3. Generate a code
       const body = {
@@ -99,8 +109,11 @@ async function seedAnomalies() {
         visitor_fullname: user.first_name || user.guest_name || 'Guest',
         relationship_with_resident: 'friend',
         gender: user.gender || 'MALE',
-        validity_period: { start: new Date().toISOString(), end: new Date(Date.now() + 86400000).toISOString() },
-        validity_window: { start: '00:00:00', end: '23:59:59' }
+        validity_period: {
+          start: new Date().toISOString(),
+          end: new Date(Date.now() + 86400000).toISOString(),
+        },
+        validity_window: { start: '00:00:00', end: '23:59:59' },
       };
 
       console.log('Generating access code...', body);
@@ -110,7 +123,10 @@ async function seedAnomalies() {
         code = codeRes.data?.data?.code || codeRes.data?.code;
         console.log(`✅ Code Generated: ${code}`);
       } catch (err) {
-        console.error('Failed to generate code:', JSON.stringify(err.response?.data || err.message, null, 2));
+        console.error(
+          'Failed to generate code:',
+          JSON.stringify(err.response?.data || err.message, null, 2)
+        );
         continue;
       }
 
@@ -132,8 +148,9 @@ async function seedAnomalies() {
       console.log(`✅ Successfully validated code ${successCount} times.`);
     }
 
-    console.log('\n🎉 Done! The logs have been generated. The code service should automatically trigger AI webhooks. You can check the UI now.');
-
+    console.log(
+      '\n🎉 Done! The logs have been generated. The code service should automatically trigger AI webhooks. You can check the UI now.'
+    );
   } catch (err) {
     console.error('Script failed:', JSON.stringify(err.response?.data || err.message, null, 2));
   }
