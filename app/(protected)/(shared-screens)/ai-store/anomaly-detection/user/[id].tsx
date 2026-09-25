@@ -12,11 +12,12 @@ import GaugeDetailModal from '@/src/components/anomaly/modals/GaugeDetailModal';
 import TotalUsersSvg from '@/src/assets/icons/totalusers.svg';
 import GuestMaleSvg from '@/src/assets/images/guestmale.svg';
 import GuestFemaleSvg from '@/src/assets/images/guestfemale.svg';
+import ExportSvg from '@/src/assets/images/export.svg';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { useAnomalyCaseDemographic, useAnomalyCaseHistory, useAnomalyCaseSummary, useAnomalyCaseResults } from '@/src/hooks/useAnomalyQueries';
 
 const GaugeCardsSection = React.memo(({ gaugeList }: { gaugeList: any[] }) => {
-  const [gaugeLimit, setGaugeLimit] = useState(3);
+  const [gaugeLimit, setGaugeLimit] = useState(2);
   const [selectedGaugeIndex, setSelectedGaugeIndex] = useState<number | null>(null);
 
   return (
@@ -25,29 +26,26 @@ const GaugeCardsSection = React.memo(({ gaugeList }: { gaugeList: any[] }) => {
         {gaugeList.length > 0 ? (
           <>
             {gaugeList.slice(0, gaugeLimit).map((gauge: any, index: number) => (
-              <Pressable key={`gauge-${index}`} onPress={() => setSelectedGaugeIndex(index)} style={{ width: '100%', minHeight: 200, backgroundColor: '#FFFFFF', borderRadius: 16, padding: 20, flexDirection: 'column', alignItems: 'center', marginBottom: 12, borderWidth: 1, borderColor: '#EFF1F3' }}>
-                {/* Gauge Area with Value Inside */}
-                <View style={{ position: 'relative', top: 4, marginBottom: 12 }}>
+              <Pressable key={`gauge-${index}`} onPress={() => setSelectedGaugeIndex(index)} style={{ width: '100%', minHeight: 180, backgroundColor: '#FFFFFF', borderRadius: 24, padding: 24, alignSelf: 'center', marginBottom: 12, borderWidth: 1, borderColor: '#EFF1F3' }}>
+                {/* Gauge Centered */}
+                <View style={{ alignItems: 'center', marginBottom: 24 }}>
                   <SemiCircleGauge percentage={gauge.percentage} color={gauge.arcColor || gauge.color} size={150} animate={true} />
-                  <View style={{ position: 'absolute', bottom: 10, left: 0, right: 0, alignItems: 'center' }}>
-                    <Text allowFontScaling={false} style={{ fontFamily: 'UbuntuSans-Medium', fontSize: 34.18, lineHeight: 34.18, letterSpacing: 0, color: '#0A1F29' }}>{gauge.weightLabel}</Text>
-                  </View>
                 </View>
                 {/* Title */}
-                <View className="flex-row items-center justify-center gap-2 mb-2 w-full">
+                <View className="flex-row items-center gap-2 mb-2">
                   <View className="w-2 h-2 rounded-full" style={{ backgroundColor: gauge.color }} />
-                  <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 14, lineHeight: 14, color: '#0A1F29' }}>{gauge.title}</Text>
+                  <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 16, color: '#0A1F29' }}>{gauge.title}</Text>
                 </View>
                 {/* Description */}
                 {gauge.description ? (
-                  <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 12, color: '#8A9A9D', textAlign: 'center', marginTop: 4 }}>
+                  <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 13, color: '#8A9A9D', lineHeight: 18 }}>
                     {gauge.description}
                   </Text>
                 ) : null}
               </Pressable>
             ))}
             {gaugeList.length > gaugeLimit ? (
-              <Pressable onPress={() => setGaugeLimit(l => l + 3)} style={{ alignItems: 'center', paddingVertical: 12 }}>
+              <Pressable onPress={() => setGaugeLimit(l => l + 2)} style={{ alignItems: 'center', paddingVertical: 12 }}>
                 <Text allowFontScaling={false} style={{ fontFamily: 'UbuntuSans-SemiBold', fontSize: 14, color: '#113E55' }}>Load More</Text>
               </Pressable>
             ) : null}
@@ -77,11 +75,25 @@ const GaugeCardsSection = React.memo(({ gaugeList }: { gaugeList: any[] }) => {
 });
 
 export default function AnomalyDetectionUserDetailsScreen() {
-  const { id, gender, user_type, display_name } = useLocalSearchParams();
+  const { id, gender, user_type, display_name, date_from, date_to } = useLocalSearchParams();
   const estateId = useUserStore((state: any) => state.estate_id) || '';
   const [aiState, setAiState] = useState<'idle' | 'loading' | 'loaded' | 'forbidden' | 'error'>('idle');
   const [showAiSummaryModal, setShowAiSummaryModal] = useState(false);
   
+  const formatDateObj = (dateStr: string) => {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return '';
+    const day = d.getDate().toString().padStart(2, '0');
+    const month = (d.getMonth() + 1).toString().padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}-${month}-${year}`;
+  };
+
+  const displayDateFrom = date_from ? formatDateObj(date_from as string) : '';
+  const displayDateTo = date_to ? formatDateObj(date_to as string) : '';
+  const dateRangeText = (displayDateFrom && displayDateTo) ? `${displayDateFrom} • ${displayDateTo}` : '';
+
   const { data: rawDemographic } = useAnomalyCaseDemographic(estateId, id as string);
   const { data: rawHistoryData } = useAnomalyCaseHistory(estateId, id as string);
   const { data: rawResultsData } = useAnomalyCaseResults(estateId, id as string);
@@ -106,8 +118,8 @@ export default function AnomalyDetectionUserDetailsScreen() {
     gender: gender || demographic.gender,
   };
   
-  const isGuest = demo.user_type?.toLowerCase() === 'guest';
-  const isFemale = demo.gender?.toLowerCase() === 'female';
+  const isGuest = demo.user_type?.toLowerCase() === 'guest' || demo.user_type?.toLowerCase() === 'visitor';
+  const isFemale = demo.gender?.toLowerCase().startsWith('f');
   const accentColor = isGuest ? '#113E55' : '#F25B2A';
 
   const gaugeList = useMemo(() => {
@@ -195,10 +207,14 @@ export default function AnomalyDetectionUserDetailsScreen() {
   }, [pulseAnim]);
 
   const [profilePicUri, setProfilePicUri] = useState<string | null>(null);
+  const [isFetchingPicture, setIsFetchingPicture] = useState(true);
 
   useEffect(() => {
     async function fetchPicture() {
-      if (!demo?.user_id) return;
+      if (!demo?.user_id) {
+        setIsFetchingPicture(false);
+        return;
+      }
       try {
         const { getUserDocumentViewUri } = require('@/src/lib/api/userDocuments');
         
@@ -206,6 +222,7 @@ export default function AnomalyDetectionUserDetailsScreen() {
           const profilePic = await getUserDocumentViewUri(demo.user_id, 'profile_picture');
           if (profilePic) {
             setProfilePicUri(profilePic);
+            setIsFetchingPicture(false);
             return;
           }
         } catch (e) {
@@ -222,6 +239,8 @@ export default function AnomalyDetectionUserDetailsScreen() {
         }
       } catch (err) {
         console.warn('Failed to load profile picture', err);
+      } finally {
+        setIsFetchingPicture(false);
       }
     }
     fetchPicture();
@@ -243,7 +262,7 @@ export default function AnomalyDetectionUserDetailsScreen() {
         <Pressable
           style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#113E55', alignItems: 'center', justifyContent: 'center' }}
         >
-          <MaterialIcons name="edit" size={16} color="#FFFFFF" />
+          <ExportSvg width={14} height={14} color="#FFFFFF" />
         </Pressable>
       </View>
 
@@ -264,7 +283,7 @@ export default function AnomalyDetectionUserDetailsScreen() {
               </Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                 <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 9, lineHeight: 11, color: '#8A9A9D' }}>
-                  {demo.user_id ? 'Verified User' : 'N/A'}
+                  {dateRangeText || (demo.user_id ? 'Verified User' : 'N/A')}
                 </Text>
               </View>
             </View>
@@ -280,15 +299,27 @@ export default function AnomalyDetectionUserDetailsScreen() {
                 </Svg>
               </Animated.View>
               <View style={{ backgroundColor: '#EEF0F2', borderRadius: 44, padding: 5 }}>
-                {demo.avatar_url || profilePicUri ? (
+                {isFetchingPicture ? (
+                  !isGuest ? (
+                    <View style={{ width: 78, height: 78, borderRadius: 39, backgroundColor: '#EFF1F3' }} />
+                  ) : isFemale ? (
+                    <GuestFemaleSvg width={78} height={78} style={{ borderRadius: 39 }} />
+                  ) : (
+                    <GuestMaleSvg width={78} height={78} style={{ borderRadius: 39 }} />
+                  )
+                ) : demo.avatar_url || profilePicUri ? (
                   <Image 
                     source={{ uri: demo.avatar_url || profilePicUri! }} 
                     style={{ width: 78, height: 78, borderRadius: 39 }} 
                   />
-                ) : isFemale ? (
-                  <GuestFemaleSvg width={78} height={78} style={{ borderRadius: 39 }} />
+                ) : isGuest ? (
+                  isFemale ? (
+                    <GuestFemaleSvg width={78} height={78} style={{ borderRadius: 39 }} />
+                  ) : (
+                    <GuestMaleSvg width={78} height={78} style={{ borderRadius: 39 }} />
+                  )
                 ) : (
-                  <GuestMaleSvg width={78} height={78} style={{ borderRadius: 39 }} />
+                  <View style={{ width: 78, height: 78, borderRadius: 39, backgroundColor: '#EFF1F3' }} />
                 )}
               </View>
             </View>
@@ -351,7 +382,7 @@ export default function AnomalyDetectionUserDetailsScreen() {
                   const isHigh = record.severity?.toLowerCase() === 'high';
                   const d = new Date(record.validated_at);
                   const timeString = isNaN(d.getTime()) ? '--:--' : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                  const dateString = isNaN(d.getTime()) ? 'N/A' : d.toLocaleDateString();
+                  const dateString = isNaN(d.getTime()) ? 'N/A' : `${d.getDate().toString().padStart(2, '0')}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getFullYear()}`;
 
                   return (
                     <View key={`history-${index}`} style={{ flexDirection: 'row', alignItems: 'center', gap: 24 }}>
@@ -441,29 +472,32 @@ export default function AnomalyDetectionUserDetailsScreen() {
              </Text>
           </View>
         ) : (
-          <View style={{ backgroundColor: '#FFFFFF', borderRadius: 24, padding: 20, borderWidth: 1, borderColor: '#EFF1F3', marginBottom: 32 }}>
+          <Pressable 
+            onPress={() => setShowAiSummaryModal(true)} 
+            style={{ backgroundColor: '#FFFFFF', borderRadius: 24, padding: 20, borderWidth: 1, borderColor: '#EFF1F3', marginBottom: 32 }}
+          >
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <Text allowFontScaling={false} style={{ fontFamily: 'UbuntuSans-Medium', fontSize: 16, color: '#113E55' }}>AI Summary</Text>
-              <Pressable style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#EFF1F3', alignItems: 'center', justifyContent: 'center' }}>
+              <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#EFF1F3', alignItems: 'center', justifyContent: 'center' }}>
                 <MaterialCommunityIcons name="arrow-expand-all" size={16} color="#113E55" />
-              </Pressable>
+              </View>
             </View>
             <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
                <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
                  <MaterialIcons name="schedule" size={12} color="#F46036" />
                  <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 10, color: '#F46036' }}>
-                   {summaryData?.summary?.read_time || '2 mins Read'}
+                   2 mins Read
                  </Text>
                </View>
-               <Pressable onPress={() => setShowAiSummaryModal(true)} style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
+               <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
                  <MaterialIcons name="security" size={12} color="#1B998B" />
                  <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 10, color: '#1B998B' }}>Read Fully</Text>
-               </Pressable>
+               </View>
             </View>
             <Text allowFontScaling={false} numberOfLines={3} style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 12, color: '#8A9A9D', lineHeight: 20 }}>
-              {summaryData?.tier2?.executive_summary || summaryData?.tier1?.executive_summary || 'No summary available for this user.'}
+              {summaryData?.tier2?.executive_summary || summaryData?.tier1?.executive_summary || "This section provides a detailed summary of the anomalous behavior detected for this user. It breaks down the key factors contributing to the anomaly, including unusual entry times, late-night activity, and irregular visitor patterns over the selected timeframe."}
             </Text>
-          </View>
+          </Pressable>
         )}
 
         {/* Anomaly Overview Section */}
@@ -481,7 +515,6 @@ export default function AnomalyDetectionUserDetailsScreen() {
               if (spider && spider.length > 0) {
                 return (
                   <AnomalyRadarChart 
-                    size={280} 
                     labels={spider.map((p: any) => {
                       if (p.label) return p.label;
                       const raw = p.name || p.feature_name || 'Unknown';
@@ -504,7 +537,7 @@ export default function AnomalyDetectionUserDetailsScreen() {
                   />
                 );
               } else {
-                return <AnomalyRadarChart size={280} />;
+                return <AnomalyRadarChart />;
               }
             })()}
           </View>
@@ -516,8 +549,8 @@ export default function AnomalyDetectionUserDetailsScreen() {
           {/* Pill tags */}
           <View style={{ flexDirection: 'row', gap: 12, marginBottom: 32, flexWrap: 'wrap' }}>
             {(() => {
-              const factors = resultsData?.anomaly_overview?.contributing_factors;
-              const topFactors = factors ? [...factors].sort((a: any, b: any) => (b.percentage || 0) - (a.percentage || 0)).slice(0, 4) : [];
+              const factors = resultsData?.anomaly_overview?.spider_plot;
+              const topFactors = factors ? [...factors].sort((a: any, b: any) => (b.instance_percentage || b.percentage || 0) - (a.instance_percentage || a.percentage || 0)).slice(0, 4) : [];
               
               if (topFactors && topFactors.length > 0 && factors) {
                 return topFactors.map((factor: any, index: number) => {

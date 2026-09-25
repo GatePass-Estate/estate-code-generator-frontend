@@ -35,6 +35,7 @@ import TotalUsersSvg from '@/src/assets/icons/totalusers.svg';
 import UserWarningSvg from '@/src/assets/icons/userwarning.svg';
 import AlertSvg from '@/src/assets/icons/alert.svg';
 import UpAndDownSvg from '@/src/assets/icons/upanddown.svg';
+import ExportSvg from '@/src/assets/images/export.svg';
 
 
 export default function AnomalyResultView({ isActive = true }: { isActive?: boolean }) {
@@ -55,7 +56,7 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
   const [gaugeSectionLayout, setGaugeSectionLayout] = useState<{ y: number; height: number } | null>(null);
   const [selectedGaugeIndex, setSelectedGaugeIndex] = React.useState<number | null>(null);
   const [paginationLimit, setPaginationLimit] = useState(5);
-  const [gaugeLimit, setGaugeLimit] = useState(3);
+  const [gaugeLimit, setGaugeLimit] = useState(2);
 
   const [filterSeverity, setFilterSeverity] = useState<Severity[]>([]);
   const [filterGender, setFilterGender] = useState<Gender[]>([]);
@@ -194,17 +195,18 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
       >
       {/* Title & Export Row */}
       <View className="flex-row items-start justify-between mb-1.5">
-        <View style={{ flex: 1, alignItems: 'center' }}>
+        <View style={{ flex: 1, alignItems: 'flex-start' }}>
           <Text
             allowFontScaling={false}
             style={{
-              fontFamily: 'UbuntuSans-Bold',
-              fontWeight: '700',
-              fontSize: 34.18,
-              lineHeight: 34.18,
+              fontFamily: 'UbuntuSans-Medium',
+              fontWeight: '500',
+              fontSize: 27.34,
+              lineHeight: 27.34,
               letterSpacing: 0,
-              textAlign: 'center',
-              color: '#113E55'
+              textAlign: 'left',
+              color: '#113E55',
+              width: 259,
             }}
           >
             Your Anomaly{'\n'}Detection{'\n'}Summary
@@ -213,19 +215,23 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
         <Pressable
           onPress={handleExport}
           style={{
-            minWidth: 80,
+            minWidth: 100,
             minHeight: 44,
+            paddingHorizontal: 20,
             maxWidth: 278,
             borderRadius: 24,
             borderWidth: 1,
             borderColor: '#113E55',
             backgroundColor: '#113E55',
+            flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'center',
+            gap: 8,
             opacity: 1,
           }}
           hitSlop={8}
         >
+          <ExportSvg width={18} height={18} />
           <Text allowFontScaling={false} className="text-[13px] font-inter-medium text-white">Export</Text>
         </Pressable>
       </View>
@@ -857,7 +863,7 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
                 <Pressable
                   key={row.prediction_id || row.id || index}
                   onPress={() =>
-                    router.push(`/(protected)/(shared-screens)/ai-store/anomaly-detection/user/${row.prediction_id || row.id}?gender=${row.gender || ''}&user_type=${row.user_type || ''}&display_name=${encodeURIComponent(row.display_name || row.name || '')}`)
+                    router.push(`/(protected)/(shared-screens)/ai-store/anomaly-detection/user/${row.prediction_id || row.id}?gender=${row.gender || ''}&user_type=${row.user_type || ''}&display_name=${encodeURIComponent(row.display_name || row.name || '')}&date_from=${startDate ? startDate.toISOString() : ''}&date_to=${endDate ? endDate.toISOString() : ''}`)
                   }
                   style={{
                     flexDirection: 'row',
@@ -970,7 +976,6 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
             if (spider && spider.length > 0) {
               return (
             <AnomalyRadarChart 
-              size={300} 
               labels={overview.anomaly_overview.spider_plot.map((p: any) => {
                 if (p.label) return p.label;
                 const raw = p.name || p.feature_name || 'Unknown';
@@ -989,7 +994,7 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
             } else {
               return (
                 <View className="items-center justify-center">
-                  <AnomalyRadarChart size={300} />
+                  <AnomalyRadarChart />
                   <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }}>
                     <Text style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 13, color: '#8A9A9D' }}>No anomaly data plotted</Text>
                   </View>
@@ -1074,7 +1079,7 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
                 </Pressable>
               ))}
               {gaugeList.length > gaugeLimit && (
-                <Pressable onPress={() => setGaugeLimit(l => l + 4)} style={{ alignItems: 'center', paddingVertical: 12 }}>
+                <Pressable onPress={() => setGaugeLimit(l => l + 2)} style={{ alignItems: 'center', paddingVertical: 12 }}>
                   <Text allowFontScaling={false} style={{ fontFamily: 'UbuntuSans-SemiBold', fontSize: 14, color: '#113E55' }}>Load More</Text>
                 </Pressable>
               )}

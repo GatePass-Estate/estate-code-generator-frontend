@@ -1,7 +1,9 @@
 import React from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, Dimensions } from 'react-native';
 import Svg, { Polygon, Line, Circle } from 'react-native-svg';
 import TextTicker from 'react-native-text-ticker';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export interface RadarSeries {
   data: number[];
@@ -34,12 +36,12 @@ const AnomalyRadarChart = ({
     }
   ],
   labels = ['Data 1', 'Data 2', 'Data 3', 'Data 4', 'Data 5', 'Data 6'],
-  size = 280,
+  size = SCREEN_WIDTH,
   gridColor = '#E5E7EB',
   levels = 4,
 }: AnomalyRadarChartProps) => {
   const center = size / 2;
-  const radius = size / 2 - 55; // Leave plenty of space for labels so they don't clip
+  const radius = Math.max(50, size / 2 - 110); // Leave plenty of space for labels so they don't clip
   const dataLength = labels.length;
 
   const maxDataValue = Math.max(...(series?.flatMap(s => s.data) || []));
@@ -59,7 +61,7 @@ const AnomalyRadarChart = ({
       .join(' ');
   };
 
-  const getLabelCoordinates = (i: number, total: number, labelRadiusOffset = 18) => {
+  const getLabelCoordinates = (i: number, total: number, labelRadiusOffset = 12) => {
     const angle = (Math.PI * 2 * i) / total - Math.PI / 2;
     const distance = radius + labelRadiusOffset;
     return {
