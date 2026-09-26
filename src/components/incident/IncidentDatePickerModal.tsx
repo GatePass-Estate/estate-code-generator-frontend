@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Modal, Pressable, Text, View } from 'react-native';
 import { DateTimeFieldIcon } from '@/src/assets/svgs';
 import MonthCalendar, { startOfDay } from '@/src/components/mobile/MonthCalendar';
+import Button, { BUTTON_MARGIN_BOTTOM } from '@/src/components/mobile/Button';
 
 type IncidentDatePickerModalProps = {
   visible: boolean;
@@ -103,7 +104,13 @@ export default function IncidentDatePickerModal({
     const end = new Date(selected);
     end.setHours(23, 59, 59, 999);
     setEndDate(end);
-    onApply(startDate, end);
+  };
+
+  const canApply = !!startDate && !!endDate;
+
+  const handleApply = () => {
+    if (!startDate || !endDate) return;
+    onApply(startDate, endDate);
     onClose();
   };
 
@@ -161,6 +168,10 @@ export default function IncidentDatePickerModal({
                 onSelectDate={handleSelectDate}
                 minDate={activeField === 'end' ? startDate : null}
               />
+            </View>
+
+            <View className="mt-auto items-center" style={{ marginBottom: BUTTON_MARGIN_BOTTOM }}>
+              <Button label="Apply" disabled={!canApply} onPress={handleApply} />
             </View>
           </View>
         </Pressable>
