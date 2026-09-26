@@ -33,7 +33,7 @@ const AnomalyRadarChart = ({
       strokeColor: '#1B998B',
       fillColor: 'rgba(27, 153, 139, 0.28)',
       dotColor: '#1B998B',
-    }
+    },
   ],
   labels = ['Data 1', 'Data 2', 'Data 3', 'Data 4', 'Data 5', 'Data 6'],
   size = SCREEN_WIDTH,
@@ -44,7 +44,7 @@ const AnomalyRadarChart = ({
   const radius = Math.max(50, size / 2 - 110); // Leave plenty of space for labels so they don't clip
   const dataLength = labels.length;
 
-  const maxDataValue = Math.max(...(series?.flatMap(s => s.data) || []));
+  const maxDataValue = Math.max(...(series?.flatMap((s) => s.data) || []));
   const isDecimal = maxDataValue <= 1 && maxDataValue > 0;
   const scaleMax = isDecimal ? Math.max(0.2, maxDataValue) : Math.max(20, maxDataValue);
 
@@ -120,19 +120,10 @@ const AnomalyRadarChart = ({
               const distance = (val / scaleMax) * radius;
               const x = center + distance * Math.cos(angle);
               const y = center + distance * Math.sin(angle);
-              return (
-                <Circle
-                  key={`point-${index}-${i}`}
-                  cx={x}
-                  cy={y}
-                  r="4"
-                  fill={s.dotColor}
-                />
-              );
+              return <Circle key={`point-${index}-${i}`} cx={x} cy={y} r="4" fill={s.dotColor} />;
             })}
           </React.Fragment>
         ))}
-
       </Svg>
 
       {/* Draw Labels as absolute positioned components outside SVG */}
@@ -150,7 +141,7 @@ const AnomalyRadarChart = ({
         const colorSet = PALETTE[i % PALETTE.length];
 
         let positionStyle: any = { top: y - 12, justifyContent: 'center' };
-        
+
         if (x > center + 10) {
           positionStyle.left = x;
           positionStyle.alignItems = 'flex-start';
@@ -164,21 +155,17 @@ const AnomalyRadarChart = ({
         }
 
         return (
-          <View
-            key={`label-${i}`}
-            style={[
-              { position: 'absolute' },
-              positionStyle
-            ]}
-          >
-            <View style={{ 
-              backgroundColor: colorSet.bg, 
-              paddingHorizontal: 10, 
-              paddingVertical: 6, 
-              borderRadius: 14,
-              maxWidth: 100
-            }}>
-              <TextTicker 
+          <View key={`label-${i}`} style={[{ position: 'absolute' }, positionStyle]}>
+            <View
+              style={{
+                backgroundColor: colorSet.bg,
+                paddingHorizontal: 10,
+                paddingVertical: 6,
+                borderRadius: 14,
+                maxWidth: 100,
+              }}
+            >
+              <TextTicker
                 duration={3000}
                 loop
                 bounce
@@ -198,7 +185,7 @@ const AnomalyRadarChart = ({
       })}
     </View>
   );
-}
+};
 
 export default React.memo(AnomalyRadarChart, (prevProps, nextProps) => {
   return JSON.stringify(prevProps) === JSON.stringify(nextProps);

@@ -37,9 +37,7 @@
   },
   "/api/v1/spatial-anomaly/analyze/{anomaly_type}": {
     "post": {
-      "tags": [
-        "Spatial Anomaly"
-      ],
+      "tags": ["Spatial Anomaly"],
       "summary": "Analyze Spatial Anomalies",
       "description": "Run the spatial anomaly pipeline for the given type using validation context.\n\nRequires a bearer token. Confirms path vs payload receiver alignment\nand that the caller is admin, primary_admin, security, or root on\nthe payload estate. This route does not check catalog entitlement;\nthe gate-validate path gates ``access_anomaly_detection_tier_1`` in\ncode-service before it calls here. Loads log history from\ndb-service, runs K-means/DBSCAN/LOF per scope, and returns scores\nplus transparency. See ``explainer_docs/ANOMALY_DETECTION_EXPLAINER.md``.",
       "operationId": "analyze_spatial_anomalies_api_v1_spatial_anomaly_analyze__anomaly_type__post",
@@ -94,9 +92,7 @@
   },
   "/api/v1/spatial-anomaly/result-page/overview": {
     "get": {
-      "tags": [
-        "Spatial Anomaly Result Page"
-      ],
+      "tags": ["Spatial Anomaly Result Page"],
       "summary": "Get Result Page Overview",
       "description": "Build the spatial-anomaly result-page overview for one estate.\n\nReturns demographic counts, evidence totals, and expected-normal\nbehaviour for the spider plot and contributing-factor sections.\nRequires a bearer token. Counts and the normal-behaviour sample are\nloaded from db-service; averaging, ranking, and scale are computed\nhere.\n\nDate window (``from_date``, ``to_date``) filters prediction rows by\n``created_at``. Guest uniqueness uses visitor-log ``visit_time`` in\nthe same window. Omit both dates to include all retained data.\n\nDemographic\n    ``estate_name``, ``state``, and ``country`` come from the estate\n    record. ``total_guests`` is the count of unique\n    ``visitor_fullname`` values in the window. ``total_users`` is\n    active resident-side users (role resident, admin, or\n    primary_admin), security users, and those unique guests.\n    ``ratio`` is guest / resident / security counts and each\n    group's percentage of guest + resident + security.\n    ``total_anomalous_instances`` and\n    ``total_high_risk_instances`` are prediction *row* counts, not\n    unique people. High-risk is ``final_score >= 0.8``.\n\nEvidence summary\n    ``total_anomalous_residents_instances`` counts anomalous rows\n    with a resident log. ``total_anomalous_visitors_instances``\n    counts anomalous rows with a visitor log.\n\nAnomaly overview\n    Expected normal behaviour is the mean of a random 30% sample of\n    *non-anomalous* predictions in the window. ``spider_plot`` and\n    ``top_contributing_factors`` are the same top six features,\n    ranked by mean weight (null weights sort last, then reverse\n    feature name). ``contributing_factors`` lists analysis scopes\n    (``visitor_specific``, ``resident_specific``,\n    ``security_specific``, ``estate_wide``) with the averaged scope\n    score and nested sub-factors.\n\n    Each spider point, factor, and sub-factor includes\n    ``normal_value`` (sample mean), ``scale`` (max value of that\n    feature or scope score across *all* predictions in the window,\n    including anomalous), and ``percentage``\n    (``normal_value / scale * 100``).\n\nArguments:\n    estate_id: Estate to summarise.\n    from_date: Inclusive lower bound on prediction time.\n    to_date: Inclusive upper bound on prediction time.\n\nReturns:\n    ``demographic``, ``evidence_summary``, and ``anomaly_overview``.\n\nRaises:\n    HTTPException: 401 if unauthenticated; 403 if the caller does\n        not belong to the estate or lacks\n        ``access_anomaly_detection_tier_1``; 404 if the estate does\n        not exist; 502 if db-service is unreachable or errors.",
       "operationId": "get_result_page_overview_api_v1_spatial_anomaly_result_page_overview_get",
@@ -177,9 +173,7 @@
   },
   "/api/v1/spatial-anomaly/result-page/predictions": {
     "get": {
-      "tags": [
-        "Spatial Anomaly Result Page"
-      ],
+      "tags": ["Spatial Anomaly Result Page"],
       "summary": "List Result Page Predictions",
       "description": "List prediction rows for an estate, newest first by default.\n\nRequires a bearer token. Rows come from db-service\n``predictionresult`` joined to visitor or resident logs. Repeat\n``severity``, ``gender``, and ``user_type`` to OR multiple values\nwithin that category; omitted categories are unfiltered. Categories\nAND with each other.\n\nSeverity is derived from ``final_score``: low < 0.5, medium 0.5 to\n0.8, high >= 0.8. ``user_type=resident`` is role resident, admin, or\nprimary_admin (not security). ``gender`` matches visitor-log gender\nfor guests and user-profile gender for residents.\n\nArguments:\n    estate_id: Estate to list.\n    severity: One or more of low, medium, high.\n    gender: One or more of male, female, prefer_not_to_say.\n    user_type: One or more of guest, resident.\n    sort_order: Sort by prediction time; default desc.\n    from_date: Inclusive lower bound on prediction time.\n    to_date: Inclusive upper bound on prediction time.\n    page: 1-based page number.\n    limit: Page size.\n\nReturns:\n    Paginated ``items`` plus ``total``, ``page``, ``limit``, and\n    ``sort_order``. Each item includes id, created_at,\n    prediction_type, user_type, gender, display_name, final_score,\n    is_anomalous, severity, anomaly_type, and flags\n    ``has_tier1_summary`` / ``has_tier2_summary`` (cache present,\n    not the summary body).\n\nRaises:\n    HTTPException: 401 if unauthenticated; 403 if the caller does\n        not belong to the estate or lacks\n        ``access_anomaly_detection_tier_1``; 502 if db-service is\n        unreachable or errors.",
       "operationId": "list_result_page_predictions_api_v1_spatial_anomaly_result_page_predictions_get",
@@ -261,10 +255,7 @@
           "in": "query",
           "required": false,
           "schema": {
-            "enum": [
-              "asc",
-              "desc"
-            ],
+            "enum": ["asc", "desc"],
             "type": "string",
             "default": "desc",
             "title": "Sort Order"
@@ -353,9 +344,7 @@
   },
   "/api/v1/spatial-anomaly/result-page/cases/{prediction_id}/demographic": {
     "get": {
-      "tags": [
-        "Spatial Anomaly Result Page"
-      ],
+      "tags": ["Spatial Anomaly Result Page"],
       "summary": "Get Case Demographic",
       "description": "Person-level demographic for a selected prediction case.\n\nReturns name, user type, total log entries in the date window,\naverage entries per week, resident ``user_id`` for the display\npicture (null for guests), and cache flags for each summary tier.\n\nArguments:\n    prediction_id: Selected prediction from the list.\n    estate_id: Estate that owns the visitor or resident log.\n    display_name: Fallback only when the joined log has no name.\n    from_date: Inclusive lower bound on log timestamps.\n    to_date: Inclusive upper bound on log timestamps.\n\nReturns:\n    ``CaseDemographic`` for the selected person, including\n    ``has_tier1_summary`` / ``has_tier2_summary`` (cache present,\n    not the summary body).\n\nRaises:\n    HTTPException: 401 if unauthenticated; 403 if the caller does\n        not belong to the estate or lacks\n        ``access_anomaly_detection_tier_1``; 404 if the prediction\n        is missing; 502 if db-service is unreachable or errors.",
       "operationId": "get_case_demographic_api_v1_spatial_anomaly_result_page_cases__prediction_id__demographic_get",
@@ -462,9 +451,7 @@
   },
   "/api/v1/spatial-anomaly/result-page/cases/{prediction_id}/history": {
     "get": {
-      "tags": [
-        "Spatial Anomaly Result Page"
-      ],
+      "tags": ["Spatial Anomaly Result Page"],
       "summary": "Get Case History",
       "description": "Five most recent predictions for the same visitor or resident name.\n\nThe selected instance is the newest row. Guests are matched on\nvisitor name; residents on resident name. A client\n``display_name`` cannot replace that identity (it is only used\nwhen the joined log name is blank). Each item includes\nvalidation timestamp, validated code, and severity.\n\nArguments:\n    prediction_id: Selected prediction (most recent in the list).\n    estate_id: Estate that owns the visitor or resident log.\n    display_name: Fallback only when the joined log has no name.\n    history_limit: Max rows; default 5.\n\nReturns:\n    History items newest-first, selected case first.\n\nRaises:\n    HTTPException: 401 if unauthenticated; 403 if the caller does\n        not belong to the estate or lacks\n        ``access_anomaly_detection_tier_1``; 404 if the prediction\n        is missing; 502 if db-service is unreachable or errors.",
       "operationId": "get_case_history_api_v1_spatial_anomaly_result_page_cases__prediction_id__history_get",
@@ -549,9 +536,7 @@
   },
   "/api/v1/spatial-anomaly/result-page/cases/{prediction_id}/summary": {
     "get": {
-      "tags": [
-        "Spatial Anomaly Result Page"
-      ],
+      "tags": ["Spatial Anomaly Result Page"],
       "summary": "Get Case Summary",
       "description": "Entitlement-gated in-house and/or LLM summary for one case.\n\nAlways re-checks the estate AI grant so a downgraded subscription\nwithholds a previously generated tier. Cached ``ai_response`` rows\nkeyed by prediction id are reused when present; otherwise the\nmissing tier is generated and stored.\n\n``access_anomaly_detection_tier_2`` unlocks the in-house case\nsummary. ``access_anomaly_detection_tier_3`` adds the LLM summary\nand includes tier 2. Those grants are checked in the service layer.\n\nTier 2 includes tier 1. The list endpoint never returns the summary\nbody, only ``has_tier1_summary`` / ``has_tier2_summary`` flags.\n\nArguments:\n    prediction_id: Selected prediction row.\n    estate_id: Estate used for the AI feature check.\n\nReturns:\n    Entitled tier, cache flag, and the summaries that grant allows.\n\nRaises:\n    HTTPException: 401 if unauthenticated; 403 if the caller does\n        not belong to the estate or neither summary grant is\n        allowed; 404 if the prediction is missing; 502 on\n        downstream errors.",
       "operationId": "get_case_summary_api_v1_spatial_anomaly_result_page_cases__prediction_id__summary_get",
@@ -608,9 +593,7 @@
   },
   "/api/v1/spatial-anomaly/result-page/cases/{prediction_id}/results": {
     "get": {
-      "tags": [
-        "Spatial Anomaly Result Page"
-      ],
+      "tags": ["Spatial Anomaly Result Page"],
       "summary": "Get Case Results",
       "description": "Spider plot and contributing factors for the selected prediction.\n\nExpected-normal values reuse the first-level 30% non-anomalous\nsample. The spider plot also includes this instance's value, the\nperiod max (scale), and percentages of both versus that max.\nContributing factors include instance value, max, and percentage.\nWhich sections appear follows ``scopes_for_anomaly_type`` for this\nprediction (visitor: all four; resident: no visitor-specific).\n\nArguments:\n    prediction_id: Selected prediction row.\n    estate_id: Estate that owns the visitor or resident log.\n    from_date: Inclusive lower bound for sample and max maps.\n    to_date: Inclusive upper bound for sample and max maps.\n\nReturns:\n    Score, severity, and the case anomaly overview.\n\nRaises:\n    HTTPException: 401 if unauthenticated; 403 if the caller does\n        not belong to the estate or lacks\n        ``access_anomaly_detection_tier_1``; 404 if the prediction\n        is missing; 502 if db-service is unreachable or errors.",
       "operationId": "get_case_results_api_v1_spatial_anomaly_result_page_cases__prediction_id__results_get",
@@ -701,9 +684,7 @@
   },
   "/api/v1/temporal-anomaly/analyze/{anomaly_type}": {
     "post": {
-      "tags": [
-        "Temporal Anomaly (Matrix Profile)"
-      ],
+      "tags": ["Temporal Anomaly (Matrix Profile)"],
       "summary": "Analyze Temporal Anomalies",
       "description": "Run the temporal Matrix Profile pipeline over an estate's entire history.\n\nRequires a bearer token. Loads validation events via\n``load_validation_events``, builds a daily visit-count series for the estate\n(``visitor`` / ``resident`` / ``combined`` selects the log tables), then\nscores the most recent one-week window against the whole history as a\ndiscord. Returns 422 if history spans fewer than three windows (21 days).\nRestricted to admin, primary_admin, and root on the caller's estate.\nSee ``explainer_docs/TEMPORAL_ANOMALY_MATRIX_PROFILE_EXPLAINER.md``.",
       "operationId": "analyze_temporal_anomalies_api_v1_temporal_anomaly_analyze__anomaly_type__post",
@@ -758,9 +739,7 @@
   },
   "/api/v1/incident-reports/result-page/overview": {
     "get": {
-      "tags": [
-        "Incident Report Result Page"
-      ],
+      "tags": ["Incident Report Result Page"],
       "summary": "Get Result Page Overview",
       "description": "Build the incident result-page overview for one estate.\n\nReturns demographic counts and exploratory statistics for the\nrequested date window. Requires a bearer token. Estate identity\nand reporter-role counts come from db-service; category EDA and\nthe trends sentence are computed here.\n\nDate window (``from_date``, ``to_date``) filters incident rows by\n``created_at``. Omit both dates to include all retained reports.\n\nDemographic\n    ``estate_name``, ``state``, and ``country`` come from the estate\n    record. ``total_reports`` is the incident row count in the\n    window. ``ratio`` is resident / security counts and each\n    group's percentage of resident + security. Resident covers\n    every reporter role except security, guest, and root.\n\nEDA\n    ``stats`` is the existing cohort EDA (category distribution,\n    field quality, occurred-at range). ``categories`` ranks only\n    the fixed taxonomy labels by count: ``top_1`` … ``top_5`` are\n    separate fields; remaining labels sit under\n    ``other_categories`` ordered by count descending. Custom\n    category text is not ranked. Each category includes peak time\n    (morning, afternoon, evening/night), count, percentage of all\n    reports, and two sample snippets. ``trends_detected`` is a\n    formatted sentence from those figures.\n\nCache\n    ``has_tier1_summary`` / ``has_tier2_summary`` are true when\n    that payload is already stored for this estate and date\n    window (in-house topic modelling / LLM).\n\nArguments:\n    estate_id: Estate to summarise.\n    from_date: Inclusive lower bound on incident created_at.\n    to_date: Inclusive upper bound on incident created_at.\n\nReturns:\n    ``demographic``, ``eda``, and the two cache flags.\n\nRaises:\n    HTTPException: 401 if unauthenticated; 403 if the caller is not\n        an admin, does not belong to the estate, or lacks\n        ``incident_report_summary_tier_1``; 404 if the estate does\n        not exist; 502 if db-service is unreachable or errors.",
       "operationId": "get_result_page_overview_api_v1_incident_reports_result_page_overview_get",
@@ -841,9 +820,7 @@
   },
   "/api/v1/incident-reports/result-page/reports": {
     "get": {
-      "tags": [
-        "Incident Report Result Page"
-      ],
+      "tags": ["Incident Report Result Page"],
       "summary": "List Result Page Reports",
       "description": "List incident reports for an estate, newest first.\n\nRequires a bearer token. Repeat ``category`` and ``user_type`` to\nOR multiple values within that filter; omitted filters are\nunfiltered. ``category=all`` or ``user_type=all`` is the same as\nomitting that filter (every type). Filters AND with each other.\n\n``user_type=resident`` is every reporter role except security,\nguest, and root. ``user_type=security`` is security only.\n\nArguments:\n    estate_id: Estate to list.\n    category: Taxonomy values, or ``all`` for every category.\n    user_type: ``resident``, ``security``, or ``all``.\n    from_date: Inclusive lower bound on created_at.\n    to_date: Inclusive upper bound on created_at.\n    page: 1-based page number.\n    limit: Page size.\n\nReturns:\n    Paginated ``items`` plus ``total``, ``page``, and ``limit``.\n    Each item includes id, timestamps, title, categories,\n    narrative, and ``reporter_user_type``.\n\nRaises:\n    HTTPException: 401 if unauthenticated; 403 if the caller is not\n        an admin, does not belong to the estate, or lacks\n        ``incident_report_summary_tier_1``; 502 if db-service is\n        unreachable or errors.",
       "operationId": "list_result_page_reports_api_v1_incident_reports_result_page_reports_get",
@@ -984,9 +961,7 @@
   },
   "/api/v1/incident-reports/result-page/summary": {
     "get": {
-      "tags": [
-        "Incident Report Result Page"
-      ],
+      "tags": ["Incident Report Result Page"],
       "summary": "Get Result Page Summary",
       "description": "Entitlement-gated topic-modelling and LLM summary for one window.\n\nThe cohort is every retained incident in the selected date range\n(not a row-count cap). Always re-checks grants so a downgraded\nsubscription withholds a previously generated report. Cached\n``ai_response`` rows keyed by estate + date window are reused when\npresent; otherwise the missing entitled tier is generated and stored.\n\n``incident_report_summary_tier_2`` unlocks in-house topic\nmodelling. ``incident_report_summary_tier_3`` adds the LLM\nnarrative and includes tier 2. Those grants are checked in the\nservice layer. Both summary payloads carry the same category EDA.\n\nArguments:\n    estate_id: Estate used for the AI feature check and cache key.\n    from_date: Inclusive lower bound on created_at (part of the key).\n    to_date: Inclusive upper bound on created_at (part of the key).\n\nReturns:\n    Entitled tier, cache flag, and the granted summary payloads.\n\nRaises:\n    HTTPException: 401 if unauthenticated; 403 if the caller is not\n        an admin, does not belong to the estate, or no summary\n        grant is allowed; 502 on downstream errors.",
       "operationId": "get_result_page_summary_api_v1_incident_reports_result_page_summary_get",
@@ -1067,9 +1042,7 @@
   },
   "/api/v1/volume-forecast/predict/{target}": {
     "post": {
-      "tags": [
-        "Volume forecast (ARIMA)"
-      ],
+      "tags": ["Volume forecast (ARIMA)"],
       "summary": "Predict Validation Volume",
       "description": "Forecast daily validation volume for an estate using ARIMA.\n\n``target`` selects the stream: ``visitor``, ``resident``, or ``combined``.\nRequires a bearer token. Pulls the estate's validation history from\ndb-service, buckets it into a zero-filled daily series, and returns the\n``horizon``-day forecast with a 95% interval plus model diagnostics.\nRestricted to admin, primary_admin, and root on the caller's estate.",
       "operationId": "predict_validation_volume_api_v1_volume_forecast_predict__target__post",
@@ -1124,9 +1097,7 @@
   },
   "/api/v1/ai-marketplace": {
     "get": {
-      "tags": [
-        "AI Marketplace"
-      ],
+      "tags": ["AI Marketplace"],
       "summary": "List Features",
       "description": "List marketplace products for the caller's estate.\n\nOptional ``purchase_status`` and ``category`` are repeated query params.\nUnpurchased items include a starting price; ratings are attached per page.\nRestricted to admin, primary_admin, and root.",
       "operationId": "list_features_api_v1_ai_marketplace_get",
@@ -1145,10 +1116,7 @@
               {
                 "type": "array",
                 "items": {
-                  "enum": [
-                    "purchased",
-                    "not_purchased"
-                  ],
+                  "enum": ["purchased", "not_purchased"],
                   "type": "string"
                 }
               },
@@ -1228,9 +1196,7 @@
   },
   "/api/v1/ai-marketplace/picture": {
     "get": {
-      "tags": [
-        "AI Marketplace"
-      ],
+      "tags": ["AI Marketplace"],
       "summary": "View Feature Picture",
       "description": "Stream a display picture by GCS object path.\n\nRestricted to admin, primary_admin, and root.",
       "operationId": "view_feature_picture_api_v1_ai_marketplace_picture_get",
@@ -1277,9 +1243,7 @@
   },
   "/api/v1/ai-marketplace/{id}": {
     "get": {
-      "tags": [
-        "AI Marketplace"
-      ],
+      "tags": ["AI Marketplace"],
       "summary": "Get Feature",
       "description": "Return one marketplace product with child tiers and estate grant status.\n\nRestricted to admin, primary_admin, and root.",
       "operationId": "get_feature_api_v1_ai_marketplace__id__get",
@@ -1325,9 +1289,7 @@
   },
   "/api/v1/ai-marketplace/{id}/rating": {
     "post": {
-      "tags": [
-        "AI Marketplace"
-      ],
+      "tags": ["AI Marketplace"],
       "summary": "Rate Feature",
       "description": "Create or update the caller's rating and return it with the summary.\n\nRestricted to admin, primary_admin, and root.",
       "operationId": "rate_feature_api_v1_ai_marketplace__id__rating_post",
@@ -1383,9 +1345,7 @@
   },
   "/api/v1/ai-marketplace/{id}/subscribe": {
     "post": {
-      "tags": [
-        "AI Marketplace"
-      ],
+      "tags": ["AI Marketplace"],
       "summary": "Subscribe Feature",
       "description": "Subscribe the estate to a child ``ai_feature`` tier of this product.\n\nFree features install immediately. Paid features quote then activate via\nrevenue-service (Paystack initialize is still stubbed). Restricted to\nadmin, primary_admin, and root.",
       "operationId": "subscribe_feature_api_v1_ai_marketplace__id__subscribe_post",

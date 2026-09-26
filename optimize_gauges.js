@@ -3,7 +3,10 @@ const filePath = 'app/(protected)/(shared-screens)/ai-store/anomaly-detection/us
 let content = fs.readFileSync(filePath, 'utf8');
 
 // 1. Remove states from AnomalyDetectionUserDetailsScreen
-content = content.replace(/  const \[selectedGaugeIndex, setSelectedGaugeIndex\] = useState<number \| null>\(null\);\n  const \[gaugeLimit, setGaugeLimit\] = useState\(4\);\n/, '');
+content = content.replace(
+  /  const \[selectedGaugeIndex, setSelectedGaugeIndex\] = useState<number \| null>\(null\);\n  const \[gaugeLimit, setGaugeLimit\] = useState\(4\);\n/,
+  ''
+);
 
 // 2. Add GaugeCardsSection above export default
 const gaugeCardsSection = `
@@ -61,10 +64,16 @@ const GaugeCardsSection = React.memo(({ gaugeList }: { gaugeList: any[] }) => {
 });
 
 `;
-content = content.replace('export default function AnomalyDetectionUserDetailsScreen() {', gaugeCardsSection + 'export default function AnomalyDetectionUserDetailsScreen() {');
+content = content.replace(
+  'export default function AnomalyDetectionUserDetailsScreen() {',
+  gaugeCardsSection + 'export default function AnomalyDetectionUserDetailsScreen() {'
+);
 
 // 3. Replace the existing Gauge Cards view and Modal with GaugeCardsSection
-content = content.replace(/<View style=\{\{ gap: 16 \}\}>[\s\S]*?No gauges found.\s*<\/Text>\s*\)\}\s*<\/View>/, '<GaugeCardsSection gaugeList={gaugeList} />');
+content = content.replace(
+  /<View style=\{\{ gap: 16 \}\}>[\s\S]*?No gauges found.\s*<\/Text>\s*\)\}\s*<\/View>/,
+  '<GaugeCardsSection gaugeList={gaugeList} />'
+);
 
 // 4. Remove GaugeDetailModal from the bottom of the file
 content = content.replace(/<GaugeDetailModal[\s\S]*?\/>\s*<\/SafeAreaView>/, '</SafeAreaView>');

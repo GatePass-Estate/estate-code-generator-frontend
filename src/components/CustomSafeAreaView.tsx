@@ -5,7 +5,6 @@ import { Platform, KeyboardAvoidingView, StyleSheet, ViewStyle } from 'react-nat
 export const isAndroid = Platform.OS === 'android';
 
 const CustomSafeAreaView = ({ children, ...rest }: PropsWithChildren) => {
-
   return (
     <SafeAreaView style={[styles.container]} {...rest}>
       <KeyboardAvoidingView

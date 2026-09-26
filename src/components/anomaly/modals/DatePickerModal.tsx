@@ -12,7 +12,7 @@ type DatePickerModalProps = {
 const DAYS_OF_WEEK = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 export default function DatePickerModal({ visible, onClose, onApply }: DatePickerModalProps) {
-      const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [currentMonth, setCurrentMonth] = useState(new Date());
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
 
@@ -37,7 +37,7 @@ export default function DatePickerModal({ visible, onClose, onApply }: DatePicke
 
   const handleDatePress = (day: number) => {
     const selectedDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
-    
+
     if (!startDate || (startDate && endDate)) {
       setStartDate(selectedDate);
       setEndDate(null);
@@ -80,125 +80,215 @@ export default function DatePickerModal({ visible, onClose, onApply }: DatePicke
         </BlurView>
 
         <View
-          style={[{ backgroundColor: '#F6F7F7', borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, paddingBottom: 40 }
+          style={[
+            {
+              backgroundColor: '#F6F7F7',
+              borderTopLeftRadius: 32,
+              borderTopRightRadius: 32,
+              padding: 24,
+              paddingBottom: 40,
+            },
           ]}
         >
-                  <View style={{ paddingBottom: 24 }}>
-            <View style={{ width: 40, height: 4, backgroundColor: '#E5E7EB', borderRadius: 2, alignSelf: 'center' }} />
+          <View style={{ paddingBottom: 24 }}>
+            <View
+              style={{
+                width: 40,
+                height: 4,
+                backgroundColor: '#E5E7EB',
+                borderRadius: 2,
+                alignSelf: 'center',
+              }}
+            />
           </View>
-                
-        <View style={{ marginBottom: 24 }}>
-          <Text allowFontScaling={false} style={{ fontFamily: 'UbuntuSans-Medium', fontSize: 20, color: '#113E55' }}>Set Date</Text>
-        </View>
 
-        <View style={{ gap: 12, marginBottom: 24 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#FFFFFF', paddingHorizontal: 16, paddingVertical: 14, borderRadius: 12 }}>
-            <MaterialIcons name="calendar-today" size={18} color="#8A9A9D" />
-            <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 13, color: startDate ? '#04162D' : '#8A9A9D' }}>
-              {startDate ? formatDate(startDate) : 'Enter Start Date'}
+          <View style={{ marginBottom: 24 }}>
+            <Text
+              allowFontScaling={false}
+              style={{ fontFamily: 'UbuntuSans-Medium', fontSize: 20, color: '#113E55' }}
+            >
+              Set Date
             </Text>
           </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#FFFFFF', paddingHorizontal: 16, paddingVertical: 14, borderRadius: 12 }}>
-            <MaterialIcons name="calendar-today" size={18} color="#8A9A9D" />
-            <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 13, color: endDate ? '#04162D' : '#8A9A9D' }}>
-              {endDate ? formatDate(endDate) : 'Enter End Date'}
-            </Text>
+
+          <View style={{ gap: 12, marginBottom: 24 }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 12,
+                backgroundColor: '#FFFFFF',
+                paddingHorizontal: 16,
+                paddingVertical: 14,
+                borderRadius: 12,
+              }}
+            >
+              <MaterialIcons name="calendar-today" size={18} color="#8A9A9D" />
+              <Text
+                allowFontScaling={false}
+                style={{
+                  fontFamily: 'Inter_18pt-Regular',
+                  fontSize: 13,
+                  color: startDate ? '#04162D' : '#8A9A9D',
+                }}
+              >
+                {startDate ? formatDate(startDate) : 'Enter Start Date'}
+              </Text>
+            </View>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 12,
+                backgroundColor: '#FFFFFF',
+                paddingHorizontal: 16,
+                paddingVertical: 14,
+                borderRadius: 12,
+              }}
+            >
+              <MaterialIcons name="calendar-today" size={18} color="#8A9A9D" />
+              <Text
+                allowFontScaling={false}
+                style={{
+                  fontFamily: 'Inter_18pt-Regular',
+                  fontSize: 13,
+                  color: endDate ? '#04162D' : '#8A9A9D',
+                }}
+              >
+                {endDate ? formatDate(endDate) : 'Enter End Date'}
+              </Text>
+            </View>
           </View>
-        </View>
 
-        {/* Calendar */}
-        <View style={{ backgroundColor: '#FFFFFF', borderRadius: 24, padding: 24 }}>
-           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-             <Pressable onPress={prevMonth} hitSlop={10}>
-               <MaterialIcons name="chevron-left" size={20} color="#113E55" />
-             </Pressable>
-             <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Bold', fontSize: 12, color: '#113E55' }}>
-               {monthName.split(' ')[0]} {/* Just the month name, e.g. June */}
-             </Text>
-             <Pressable onPress={nextMonth} hitSlop={10}>
-               <MaterialIcons name="chevron-right" size={20} color="#113E55" />
-             </Pressable>
-           </View>
-           
-           {/* Grid */}
-           <View style={{ flexWrap: 'wrap', flexDirection: 'row', justifyContent: 'space-between' }}>
-             {DAYS_OF_WEEK.map((day, i) => (
-               <Text key={`h-${i}`} allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Bold', fontSize: 12, color: '#113E55', width: '14%', textAlign: 'center', marginBottom: 16 }}>
-                 {day}
-               </Text>
-             ))}
-             
-             {Array.from({ length: firstDay }).map((_, i) => (
-               <View key={`e-${i}`} style={{ width: '14%', marginBottom: 8 }} />
-             ))}
+          {/* Calendar */}
+          <View style={{ backgroundColor: '#FFFFFF', borderRadius: 24, padding: 24 }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 24,
+              }}
+            >
+              <Pressable onPress={prevMonth} hitSlop={10}>
+                <MaterialIcons name="chevron-left" size={20} color="#113E55" />
+              </Pressable>
+              <Text
+                allowFontScaling={false}
+                style={{ fontFamily: 'Inter_18pt-Bold', fontSize: 12, color: '#113E55' }}
+              >
+                {monthName.split(' ')[0]} {/* Just the month name, e.g. June */}
+              </Text>
+              <Pressable onPress={nextMonth} hitSlop={10}>
+                <MaterialIcons name="chevron-right" size={20} color="#113E55" />
+              </Pressable>
+            </View>
 
-             {Array.from({ length: daysInMonth }).map((_, i) => {
-               const day = i + 1;
-               const selected = isSelected(day);
-               const inRange = isInRange(day);
-               
-               return (
-                 <Pressable key={`d-${day}`} onPress={() => handleDatePress(day)} style={{ width: '14%', alignItems: 'center', marginBottom: 8 }}>
-                    <View style={{ 
-                      width: '100%', 
-                      height: 24, 
-                      backgroundColor: inRange ? '#D2E7ED' : 'transparent',
-                      alignItems: 'center', 
-                      justifyContent: 'center' 
-                    }}>
-                        <View style={{ 
-                        width: 28, 
-                        height: 28, 
-                        borderRadius: 14, 
-                        backgroundColor: selected ? '#D2E7ED' : 'transparent', 
-                        alignItems: 'center', 
-                        justifyContent: 'center' 
-                      }}>
-                        <Text allowFontScaling={false} style={{ 
-                          fontFamily: 'Inter_18pt-Regular', 
-                          fontSize: 12, 
-                          color: '#113E55' 
-                        }}>
+            {/* Grid */}
+            <View
+              style={{ flexWrap: 'wrap', flexDirection: 'row', justifyContent: 'space-between' }}
+            >
+              {DAYS_OF_WEEK.map((day, i) => (
+                <Text
+                  key={`h-${i}`}
+                  allowFontScaling={false}
+                  style={{
+                    fontFamily: 'Inter_18pt-Bold',
+                    fontSize: 12,
+                    color: '#113E55',
+                    width: '14%',
+                    textAlign: 'center',
+                    marginBottom: 16,
+                  }}
+                >
+                  {day}
+                </Text>
+              ))}
+
+              {Array.from({ length: firstDay }).map((_, i) => (
+                <View key={`e-${i}`} style={{ width: '14%', marginBottom: 8 }} />
+              ))}
+
+              {Array.from({ length: daysInMonth }).map((_, i) => {
+                const day = i + 1;
+                const selected = isSelected(day);
+                const inRange = isInRange(day);
+
+                return (
+                  <Pressable
+                    key={`d-${day}`}
+                    onPress={() => handleDatePress(day)}
+                    style={{ width: '14%', alignItems: 'center', marginBottom: 8 }}
+                  >
+                    <View
+                      style={{
+                        width: '100%',
+                        height: 24,
+                        backgroundColor: inRange ? '#D2E7ED' : 'transparent',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <View
+                        style={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: 14,
+                          backgroundColor: selected ? '#D2E7ED' : 'transparent',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <Text
+                          allowFontScaling={false}
+                          style={{
+                            fontFamily: 'Inter_18pt-Regular',
+                            fontSize: 12,
+                            color: '#113E55',
+                          }}
+                        >
                           {day.toString()}
                         </Text>
                       </View>
                     </View>
-                 </Pressable>
-               );
-             })}
+                  </Pressable>
+                );
+              })}
 
-             {/* Trailing empty slots to fix space-between alignment on the last row */}
-             {Array.from({ length: (7 - ((firstDay + daysInMonth) % 7)) % 7 }).map((_, i) => (
-               <View key={`trailing-${i}`} style={{ width: '14%', marginBottom: 8 }} />
-             ))}
-           </View>
+              {/* Trailing empty slots to fix space-between alignment on the last row */}
+              {Array.from({ length: (7 - ((firstDay + daysInMonth) % 7)) % 7 }).map((_, i) => (
+                <View key={`trailing-${i}`} style={{ width: '14%', marginBottom: 8 }} />
+              ))}
+            </View>
+          </View>
+
+          {/* Apply Button */}
+          <Pressable
+            onPress={() => {
+              if (onApply) {
+                onApply(startDate, endDate);
+              }
+              onClose();
+            }}
+            style={{
+              width: '100%',
+              height: 56,
+              backgroundColor: '#113E55',
+              borderRadius: 28,
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginTop: 8,
+            }}
+          >
+            <Text
+              allowFontScaling={false}
+              style={{ fontFamily: 'UbuntuSans-Medium', fontSize: 16, color: '#FFFFFF' }}
+            >
+              Apply Date Range
+            </Text>
+          </Pressable>
         </View>
-
-        {/* Apply Button */}
-        <Pressable
-          onPress={() => {
-            if (onApply) {
-              onApply(startDate, endDate);
-            }
-            onClose();
-          }}
-          style={{
-            width: '100%',
-            height: 56,
-            backgroundColor: '#113E55',
-            borderRadius: 28,
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginTop: 8,
-          }}
-        >
-          <Text allowFontScaling={false} style={{ fontFamily: 'UbuntuSans-Medium', fontSize: 16, color: '#FFFFFF' }}>
-            Apply Date Range
-          </Text>
-        </Pressable>
-
       </View>
-    </View>
-  </Modal>
+    </Modal>
   );
 }

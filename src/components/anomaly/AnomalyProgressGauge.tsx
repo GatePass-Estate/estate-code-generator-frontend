@@ -8,7 +8,11 @@ interface AnomalyProgressGaugeProps {
   color: string;
 }
 
-export default function AnomalyProgressGauge({ label, percentage, color }: AnomalyProgressGaugeProps) {
+export default function AnomalyProgressGauge({
+  label,
+  percentage,
+  color,
+}: AnomalyProgressGaugeProps) {
   const data = {
     labels: [label], // optional
     data: [percentage / 100],
@@ -25,7 +29,10 @@ export default function AnomalyProgressGauge({ label, percentage, color }: Anoma
 
   return (
     <View className="flex-row items-center justify-between mb-4">
-      <Text allowFontScaling={false} className="text-[14px] font-inter-regular text-[#113E55] flex-1">
+      <Text
+        allowFontScaling={false}
+        className="text-[14px] font-inter-regular text-[#113E55] flex-1"
+      >
         • {label}
       </Text>
       <View className="flex-row items-center gap-2">

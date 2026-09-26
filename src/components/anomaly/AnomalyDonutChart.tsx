@@ -32,8 +32,6 @@ interface TickData {
   color: string;
 }
 
-
-
 const TICK_WIDTH = 1.308;
 const TICK_HEIGHT = 5.275;
 
@@ -42,22 +40,13 @@ const COLOR_GUEST = '#F46036';
 const COLOR_RESIDENT = '#113E55';
 const COLOR_SECURITY = '#1B998B';
 
-const AnimatedTick = ({
-  tick,
-  progress,
-}: {
-  tick: TickData;
-  progress: SharedValue<number>;
-}) => {
+const AnimatedTick = ({ tick, progress }: { tick: TickData; progress: SharedValue<number> }) => {
   const animatedStyle = useAnimatedStyle(() => {
     'worklet';
     if (progress.value >= 1) {
       return {
         opacity: 1,
-        transform: [
-          { rotate: `${tick.angle}deg` },
-          { scaleY: 1 },
-        ],
+        transform: [{ rotate: `${tick.angle}deg` }, { scaleY: 1 }],
       };
     }
     // Graceful stagger: 60 ticks distributed across 78% of the timeline
@@ -67,10 +56,7 @@ const AnimatedTick = ({
     const p = interpolate(progress.value, [startFrac, endFrac], [0, 1], Extrapolation.CLAMP);
     return {
       opacity: p,
-      transform: [
-        { rotate: `${tick.angle}deg` },
-        { scaleY: p },
-      ],
+      transform: [{ rotate: `${tick.angle}deg` }, { scaleY: p }],
     };
   });
 
@@ -145,9 +131,9 @@ const AnomalyDonutChart = ({
 
     const sum = rTicks + gTicks + sTicks;
     if (sum > 0 && sum !== totalTicks) {
-      if (rTicks >= gTicks && rTicks >= sTicks) rTicks += (totalTicks - sum);
-      else if (gTicks >= rTicks && gTicks >= sTicks) gTicks += (totalTicks - sum);
-      else sTicks += (totalTicks - sum);
+      if (rTicks >= gTicks && rTicks >= sTicks) rTicks += totalTicks - sum;
+      else if (gTicks >= rTicks && gTicks >= sTicks) gTicks += totalTicks - sum;
+      else sTicks += totalTicks - sum;
     }
 
     for (let i = 0; i < 60; i++) {
@@ -278,6 +264,6 @@ const AnomalyDonutChart = ({
       </Animated.View>
     </Animated.View>
   );
-}
+};
 
 export default React.memo(AnomalyDonutChart);
