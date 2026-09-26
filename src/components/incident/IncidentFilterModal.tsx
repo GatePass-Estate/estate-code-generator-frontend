@@ -1,21 +1,17 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Modal, Pressable, Text, View } from 'react-native';
 import {
   formatApiCategoryLabel,
-  INCIDENT_API_CATEGORIES,
   IncidentCategoryIcon,
   type IncidentApiCategory,
 } from '@/src/components/incident/categoryIcons';
-import { incidentReportsApi } from '@/src/lib/api/incidentReports';
+import { useIncidentCategories } from '@/src/hooks/useIncidentQueries';
 
 /** API category values for `/incident-reports/result-page/reports`. */
 export type IncidentFilterCategory = IncidentApiCategory | string;
 
-/**
- * UI user-type chips. API only accepts `resident` | `security` | `all`;
- * `guest` is shown for design parity and omitted from the request.
- */
-export type IncidentFilterUserType = 'guest' | 'resident' | 'security';
+/** UI user-type chips. API accepts `resident` | `security` | `all`. */
+export type IncidentFilterUserType = 'resident' | 'security';
 
 export type IncidentFilterSelection = {
   categories: IncidentFilterCategory[];
@@ -29,13 +25,7 @@ type IncidentFilterModalProps = {
   current?: IncidentFilterSelection;
 };
 
-const FALLBACK_CATEGORIES: { id: string; label: string }[] = INCIDENT_API_CATEGORIES.map((id) => ({
-  id,
-  label: formatApiCategoryLabel(id),
-}));
-
 const USER_TYPES: { id: IncidentFilterUserType; label: string }[] = [
-  { id: 'guest', label: 'Guest' },
   { id: 'resident', label: 'Resident' },
   { id: 'security', label: 'Security' },
 ];
@@ -99,8 +89,16 @@ export default function IncidentFilterModal({
 }: IncidentFilterModalProps) {
   const [categories, setCategories] = useState<IncidentFilterCategory[]>(current?.categories ?? []);
   const [userTypes, setUserTypes] = useState<IncidentFilterUserType[]>(current?.userTypes ?? []);
-  const [categoryOptions, setCategoryOptions] =
-    useState<{ id: string; label: string }[]>(FALLBACK_CATEGORIES);
+  // Prefetched on Result; taxonomy placeholder so chips never wait on open.
+  const { data: categoryIds = [] } = useIncidentCategories();
+  const categoryOptions = useMemo(
+    () =>
+      categoryIds.map((id) => ({
+        id,
+        label: formatApiCategoryLabel(id),
+      })),
+    [categoryIds]
+  );
 
   const allSelected = categories.length === 0;
 
@@ -109,28 +107,6 @@ export default function IncidentFilterModal({
     setCategories(current?.categories ?? []);
     setUserTypes(current?.userTypes ?? []);
   }, [visible, current?.categories, current?.userTypes]);
-
-  useEffect(() => {
-    if (!visible) return;
-    let cancelled = false;
-    void (async () => {
-      try {
-        const list = await incidentReportsApi.getCategories();
-        if (cancelled || !list.length) return;
-        setCategoryOptions(
-          list.map((id) => ({
-            id,
-            label: formatApiCategoryLabel(id),
-          }))
-        );
-      } catch {
-        // Keep taxonomy fallback chips.
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [visible]);
 
   return (
     <Modal transparent visible={visible} animationType="slide" onRequestClose={onClose}>
@@ -177,11 +153,7 @@ export default function IncidentFilterModal({
                   gap: 8,
                 }}
               >
-                <FilterChip
-                  label="All"
-                  selected={allSelected}
-                  onPress={() => setCategories([])}
-                />
+                <FilterChip label="All" selected={allSelected} onPress={() => setCategories([])} />
                 {categoryOptions.map((item) => (
                   <FilterChip
                     key={item.id}

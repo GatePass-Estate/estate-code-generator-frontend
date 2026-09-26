@@ -39,25 +39,29 @@ function stringList(value: unknown): string[] {
     .filter(Boolean);
 }
 
-function sectionsFromLlmSummary(payload: IncidentLlmSummary | null | undefined) {
+type LlmSection =
+  | { key: string; title: string; kind: 'text'; text: string }
+  | { key: string; title: string; kind: 'list'; items: string[] };
+
+function sectionsFromLlmSummary(payload: IncidentLlmSummary | null | undefined): LlmSection[] {
   if (!payload || typeof payload !== 'object') return [];
 
-  return Object.entries(payload).flatMap(([key, value]) => {
-    if (LLM_SECTION_SKIP.has(key)) return [];
+  const sections: LlmSection[] = [];
+  for (const [key, value] of Object.entries(payload)) {
+    if (LLM_SECTION_SKIP.has(key)) continue;
 
     if (typeof value === 'string') {
       const text = value.trim();
-      if (!text) return [];
-      return [{ key, title: formatSectionTitle(key), kind: 'text' as const, text }];
+      if (text) sections.push({ key, title: formatSectionTitle(key), kind: 'text', text });
+      continue;
     }
 
     const items = stringList(value);
     if (items.length) {
-      return [{ key, title: formatSectionTitle(key), kind: 'list' as const, items }];
+      sections.push({ key, title: formatSectionTitle(key), kind: 'list', items });
     }
-
-    return [];
-  });
+  }
+  return sections;
 }
 
 function MetaChips({ readTimeLabel, sourceLabel }: { readTimeLabel: string; sourceLabel: string }) {
@@ -152,67 +156,108 @@ function TimelineAccordion({
   );
 }
 
+function ThemeCard({
+  label,
+  title,
+  body,
+}: {
+  label: string;
+  title: string;
+  body: string;
+}) {
+  return (
+    <View className="rounded-[8px] bg-white px-4 pb-4 pt-2 flex-col gap-1">
+      <Text
+        allowFontScaling={false}
+        className="text-[11.2px] font-inter-regular leading-[14px] text-[#878686]"
+      >
+        {label}
+      </Text>
+      <Text
+        allowFontScaling={false}
+        className=" text-sm font-inter-medium leading-[18px] text-[#0A1F29]"
+      >
+        {title}
+      </Text>
+      <Text
+        allowFontScaling={false}
+        className=" text-[11.2px] font-inter-regular  text-[#0A1F29]"
+      >
+        {body}
+      </Text>
+    </View>
+  );
+}
+
 function ThemeReport({ themes }: { themes: ThemeCardModel[] }) {
   if (!themes.length) {
     return (
-      <Text
-        allowFontScaling={false}
-        className="text-caption font-inter-regular leading-5 text-[#878686]"
-      >
-        No themes discovered for this window.
-      </Text>
+      <View>
+        <Text
+          allowFontScaling={false}
+          className="mb-3 text-sm font-inter-light text-[#0A1F29]"
+        >
+          THEME REPORT
+        </Text>
+        <Text
+          allowFontScaling={false}
+          className="text-caption font-inter-regular leading-5 text-[#878686]"
+        >
+          No themes discovered for this window.
+        </Text>
+      </View>
     );
   }
 
+  /** Break below a card before the next dot (line → top of next dot). */
+  const RAIL_GAP = 20;
+  /** Break between the bottom of a dot and the start of its line. */
+  const DOT_LINE_GAP = 6;
+
   return (
-    <View className="mt-2">
+    <View>
+      <Text
+        allowFontScaling={false}
+        className="mb-4 text-sm font-inter-light text-[#0A1F29]"
+      >
+        THEME REPORT
+      </Text>
+
       {themes.map((theme, index) => {
         const isLast = index === themes.length - 1;
+        const color = theme.color;
         return (
-          <View key={`${theme.label}-${theme.title}`} className="flex-row">
-            <View className="w-[52px] items-end pr-2">
-              <Text
-                allowFontScaling={false}
-                className="mt-[18px] text-xs font-inter-medium"
-                style={{ color: theme.color }}
-              >
-                {theme.pct}%
-              </Text>
+          <View key={`${theme.label}-${theme.title}`}>
+            <View className="flex-row items-stretch">
+              <View className="w-[40px] items-end pr-1.5">
+                <Text
+                  allowFontScaling={false}
+                  className="text-xs font-inter-medium leading-4"
+                  style={{ color }}
+                >
+                  {theme.pct}%
+                </Text>
+              </View>
+
+            
+              <View className="w-3 items-center">
+                <View
+                  className="z-[1] rounded-full"
+                  style={{ width: 8, height: 8, backgroundColor: color }}
+                />
+                <View style={{ height: DOT_LINE_GAP }} />
+                <View
+                  className="flex-1"
+                  style={{ width: 0.4, backgroundColor: color }}
+                />
+              </View>
+
+              <View className="ml-4 flex-1">
+                <ThemeCard label={theme.label} title={theme.title} body={theme.body} />
+              </View>
             </View>
 
-            <View className="w-4 items-center">
-              <View
-                className="z-[1] mt-[22px] h-2 w-2 rounded-full"
-                style={{ backgroundColor: theme.color }}
-              />
-              {!isLast ? (
-                <View className="mt-0.5 w-[1.5px] flex-1 bg-[#E8D9C8]" />
-              ) : (
-                <View className="h-3" />
-              )}
-            </View>
-
-            <View
-              className={`ml-2.5 flex-1 rounded-2xl border border-[#EFF1F3] bg-white px-3.5 py-3 ${
-                isLast ? 'mb-0' : 'mb-3.5'
-              }`}
-            >
-              <Text
-                allowFontScaling={false}
-                className="mb-1 text-[10px] font-inter-regular text-[#878686]"
-              >
-                {theme.label}
-              </Text>
-              <Text
-                allowFontScaling={false}
-                className="mb-1.5 text-sm font-inter-medium text-primary"
-              >
-                {theme.title}
-              </Text>
-              <Text className="text-caption font-inter-regular leading-[18px] text-[#878686]">
-                {theme.body}
-              </Text>
-            </View>
+            {!isLast ? <View style={{ height: RAIL_GAP }} /> : null}
           </View>
         );
       })}
@@ -271,8 +316,8 @@ function InHouseBody({
   themes: ThemeCardModel[];
 }) {
   return (
-    <View className="gap-7">
-      <View>
+    <View className="gap-6">
+      <View className="py-2">
         <Text
           allowFontScaling={false}
           className="mb-[8.96px] text-sm font-inter-light text-[#0A1F29]"
@@ -288,12 +333,6 @@ function InHouseBody({
       </View>
 
       <View>
-        <Text
-          allowFontScaling={false}
-          className="mb-[8.96px] text-sm font-inter-light text-[#0A1F29]"
-        >
-          THEME REPORT
-        </Text>
         <ThemeReport themes={themes} />
       </View>
     </View>
@@ -329,15 +368,16 @@ export default function AISummaryModal({
         <Animated.View
           entering={SlideInDown.duration(250)}
           exiting={SlideOutDown}
-          className="w-full max-h-[90%] rounded-t-[32px] bg-[#F6F7F7] px-6 pb-10 pt-4"
+          className="w-full max-h-[90%] rounded-t-[40px] bg-[#F6F7F7] px-6 pb-10"
         >
-          <View className="pb-4">
-            <View className="h-1.5 w-[100px] self-center rounded-[3px] bg-[#A0A0A0]" />
+          {/* Same grabber pattern as CodeActionsSheet / IncidentTimeframeModal */}
+          <View className="h-[34px] items-center justify-center">
+            <View className="h-[7px] w-[134px] rounded-[4px] bg-[#9B9797]" />
           </View>
 
           <Text
             allowFontScaling={false}
-            className={`mb-3 font-ubuntu-medium text-primary ${
+            className={`mt-6 mb-3 font-ubuntu-medium text-primary ${
               isInHouse ? 'text-[22px]' : 'text-xl uppercase'
             }`}
           >

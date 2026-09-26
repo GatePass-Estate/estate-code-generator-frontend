@@ -14,7 +14,7 @@ type IncidentAISummaryCardProps = {
   onUpgradePress?: () => void;
   /** Live executive summary when generated. */
   summaryText?: string;
-  /** Chip labels from API — only shown when we have a report. */
+  /** Chip labels from API — only shown when provided. */
   readTimeLabel?: string | null;
   sourceLabel?: string | null;
   isLoading?: boolean;
@@ -29,29 +29,37 @@ function MetaChips({
   sourceLabel,
   onSourcePress,
 }: {
-  readTimeLabel: string;
-  sourceLabel: string;
+  readTimeLabel?: string | null;
+  sourceLabel?: string | null;
   onSourcePress?: () => void;
 }) {
+  const time = readTimeLabel?.trim();
+  const source = sourceLabel?.trim();
+  if (!time && !source) return null;
+
   return (
     <View className="flex-row items-center gap-1">
-      <View className="h-5 flex-row items-center gap-1 rounded-lg bg-[#FFF8F5] p-1">
-        <AiSummaryTimeSvg width={12} height={12} />
-        <Text allowFontScaling={false} className="text-[8.96px] font-inter-medium text-[#F46036]">
-          {readTimeLabel}
-        </Text>
-      </View>
-      <Pressable
-        onPress={onSourcePress}
-        disabled={!onSourcePress}
-        className="h-5 flex-row items-center gap-1 rounded-lg bg-[#F4FFFE] p-1"
-        hitSlop={8}
-      >
-        <AiSummaryThirdPartySvg width={12} height={12} />
-        <Text allowFontScaling={false} className="text-[8.96px] font-inter-medium text-[#167A6F]">
-          {sourceLabel}
-        </Text>
-      </Pressable>
+      {!!time && (
+        <View className="h-5 flex-row items-center gap-1 rounded-lg bg-[#FFF8F5] p-1">
+          <AiSummaryTimeSvg width={12} height={12} />
+          <Text allowFontScaling={false} className="text-[8.96px] font-inter-medium text-[#F46036]">
+            {time}
+          </Text>
+        </View>
+      )}
+      {!!source && (
+        <Pressable
+          onPress={onSourcePress}
+          disabled={!onSourcePress}
+          className="h-5 flex-row items-center gap-1 rounded-lg bg-[#F4FFFE] p-1"
+          hitSlop={8}
+        >
+          <AiSummaryThirdPartySvg width={12} height={12} />
+          <Text allowFontScaling={false} className="text-[8.96px] font-inter-medium text-[#167A6F]">
+            {source}
+          </Text>
+        </Pressable>
+      )}
     </View>
   );
 }
@@ -76,8 +84,8 @@ function LockedSummaryCard({
   sourceLabel,
 }: {
   onUpgradePress?: () => void;
-  readTimeLabel: string;
-  sourceLabel: string;
+  readTimeLabel?: string | null;
+  sourceLabel?: string | null;
 }) {
   return (
     <View className="mt-4 w-full overflow-hidden rounded-[16px] bg-white px-5 pb-5 pt-6">
@@ -127,10 +135,10 @@ function LoadedSummaryCard({
 }: {
   summaryText?: string;
   onExpand: () => void;
-  readTimeLabel: string;
-  sourceLabel: string;
+  readTimeLabel?: string | null;
+  sourceLabel?: string | null;
 }) {
-  const preview = summaryText?.trim() || 'No summary available for this window.';
+  const preview = summaryText?.trim() || '';
 
   return (
     <View className="mt-4 max-h-[199px] w-full overflow-hidden rounded-[16px] bg-white px-5 pb-5 pt-6">
@@ -153,14 +161,16 @@ function LoadedSummaryCard({
         <ExpandButton onPress={onExpand} />
       </View>
 
-      <Text
-        allowFontScaling={false}
-        numberOfLines={5}
-        ellipsizeMode="tail"
-        className="mt-[7px] text-[12px] font-inter-regular leading-5 text-[#8A9A9D]"
-      >
-        {preview}
-      </Text>
+      {!!preview && (
+        <Text
+          allowFontScaling={false}
+          numberOfLines={5}
+          ellipsizeMode="tail"
+          className="mt-[7px] text-[12px] font-inter-regular leading-5 text-[#8A9A9D]"
+        >
+          {preview}
+        </Text>
+      )}
     </View>
   );
 }
@@ -208,6 +218,7 @@ export default function IncidentAISummaryCard({
   sourceLabel,
   isLoading = false,
 }: IncidentAISummaryCardProps) {
+  // Figma AI Summary meta chips (6592:7367) — use API labels when present.
   const resolvedReadTime = readTimeLabel?.trim() || '2 mins Read';
   const resolvedSource = sourceLabel?.trim() || 'Third Party';
 

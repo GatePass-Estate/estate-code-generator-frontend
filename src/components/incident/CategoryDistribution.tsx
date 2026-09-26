@@ -454,9 +454,7 @@ export default function CategoryDistribution({
   const selected = catalog.find((item) => item.id === selectedId) ?? catalog[0];
   const selectedIndex = catalog.findIndex((c) => c.id === selectedId);
   const showSubcategories =
-    !!selected &&
-    selected.id === OTHERS_BUCKET_ID &&
-    (selected.subcategories?.length ?? 0) > 0;
+    !!selected && selected.id === OTHERS_BUCKET_ID && (selected.subcategories?.length ?? 0) > 0;
   const metricsFade = useSelectionFade(selectedId);
   const subcategoryCount = selected?.subcategories?.length ?? 0;
   const othersStackHeight =
@@ -464,11 +462,7 @@ export default function CategoryDistribution({
       ? subcategoryCount * SUBCATEGORY_CARD_HEIGHT + (subcategoryCount - 1) * SUBCATEGORY_GAP
       : 0;
   /** Grow with side cards / Others stack so Narrative stays 16px below (no absolute overflow). */
-  const chartAreaHeight = Math.max(
-    CHART_AREA_HEIGHT,
-    othersStackHeight,
-    sideStackHeight
-  );
+  const chartAreaHeight = Math.max(CHART_AREA_HEIGHT, othersStackHeight, sideStackHeight);
 
   useEffect(() => {
     setSideStackHeight(0);

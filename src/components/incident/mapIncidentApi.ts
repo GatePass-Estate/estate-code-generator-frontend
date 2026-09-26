@@ -34,9 +34,9 @@ export function normalizePercent(value: number | null | undefined): number {
   return Math.round(n * 10) / 10;
 }
 
-function sampleNarrative(item: CategoryEdaItem, fallbackName: string): string {
+function sampleNarrative(item: CategoryEdaItem, _fallbackName: string): string {
   const sample = item.sample_reports?.[0];
-  if (!sample) return `No ${fallbackName.toLowerCase()} sample reports for this period.`;
+  if (!sample) return '';
   const colon = sample.indexOf(':');
   if (colon > 0 && colon < 80) return sample.slice(colon + 1).trim() || sample;
   return sample;
@@ -62,7 +62,7 @@ function toUiCategory(
     peakTime: PEAK_TIME_LABEL[item.peak_time] ?? item.peak_time,
     peakPct: 0,
     thresholdLabel: share >= 5 ? '> 5%' : '< 5%',
-    detail: `${name} accounted for ${share}% of reports this period.`,
+    detail: '',
     narrative: sampleNarrative(item, name),
     apiCategory,
     color: '#113E55',
@@ -174,7 +174,7 @@ export function mapCategoryEdaToUi(
       peakTime: PEAK_TIME_LABEL[peakItem.peak_time] ?? peakItem.peak_time,
       peakPct: 0,
       thresholdLabel: otherShare >= 5 ? '> 5%' : '< 5%',
-      detail: `Other categories accounted for ${otherShare}% of reports this period.`,
+      detail: '',
       narrative: sampleNarrative(peakItem, 'Others'),
       apiCategory: 'other',
       color: '#113E55',
@@ -209,7 +209,7 @@ export function mapListItemToRow(item: IncidentListItem): IncidentRow {
 
   const categoryLabel =
     item.custom_category ||
-    (item.category?.length ? item.category.map(formatCategoryLabel).join(', ') : 'Uncategorized');
+    (item.category?.length ? item.category.map(formatCategoryLabel).join(', ') : '');
 
   return {
     id: item.id,
@@ -218,13 +218,13 @@ export function mapListItemToRow(item: IncidentListItem): IncidentRow {
         ? 'Security'
         : item.reporter_user_type === 'resident'
           ? 'Resident'
-          : 'Reporter',
+          : '',
     reportedAt,
     reportedLabel: formatIncidentLongDate(when),
     category: categoryLabel,
     categoryId: apiCategory,
     apiCategory,
-    title: item.title?.trim() || item.narrative.slice(0, 48) || 'Incident report',
+    title: item.title?.trim() || item.narrative?.trim().slice(0, 48) || '',
     narrative: item.narrative?.trim() || '',
   };
 }
@@ -339,7 +339,7 @@ function normalizeTrendsDetected(value: string | string[] | null | undefined): s
   return [];
 }
 
-const THEME_COLORS = ['#F46036', '#A67C52', '#C4A35A', '#1B998B', '#113E55'];
+const THEME_COLORS = ['#F46036', '#B17000', '#F46036', '#B17000', '#F46036'];
 
 export type ThemeCardModel = {
   label: string;
@@ -410,14 +410,13 @@ export function mapInhouseInsightFromTopics(
     const pct = Number.isFinite(pctRaw)
       ? Math.round(pctRaw <= 1 && pctRaw > 0 ? pctRaw * 100 : pctRaw)
       : 0;
-    const title =
-      (row.display_name || row.name || row.title || row.topic || `Theme ${index + 1}`)
-        .toString()
-        .trim() || `Theme ${index + 1}`;
+    const title = (row.display_name || row.name || row.title || row.topic || '')
+      .toString()
+      .trim();
     const body =
       themeBodyFromExamples(row.examples || row.example_incidents || row.sample_reports) ||
       (row.description || row.summary || row.narrative || '').toString().trim() ||
-      'No sample events for this theme.';
+      '';
     return {
       label: `Theme ${index + 1}`,
       title,

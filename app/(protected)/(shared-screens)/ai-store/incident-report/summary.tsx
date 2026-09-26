@@ -1,47 +1,12 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React from 'react';
 import { View, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import BiInfoSvg from '@/src/assets/icons/bi_info.svg';
 import ValidationBackSvg from '@/src/assets/icons/validation-back.svg';
 import IncidentResultView from '@/src/components/incident/IncidentResultView';
-import DataInsightModal from '@/src/components/anomaly/modals/DataInsightModal';
 import AnimatedPillTabs from '@/src/components/mobile/AnimatedPillTabs';
-import {
-  getMarketplaceFeatureById,
-  resolveMarketplaceFeatureId,
-  splitFeatureBullets,
-} from '@/src/lib/api/aiMarketplace';
-import { MarketplaceDetailResponse } from '@/src/types/aiMarketplace';
 
 export default function IncidentReportSummaryScreen() {
-  const [dataInsightVisible, setDataInsightVisible] = useState(false);
-  const [featureDetail, setFeatureDetail] = useState<MarketplaceDetailResponse | null>(null);
-
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const id = await resolveMarketplaceFeatureId(undefined, (name) =>
-          name.toLowerCase().includes('incident')
-        );
-        if (!id || !mounted) return;
-        const detail = await getMarketplaceFeatureById(id);
-        if (mounted) setFeatureDetail(detail);
-      } catch {
-        if (mounted) setFeatureDetail(null);
-      }
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  const insightBullets = useMemo(
-    () => splitFeatureBullets(featureDetail?.description),
-    [featureDetail?.description]
-  );
-
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: '#F6F7F7' }}>
       <View
@@ -85,28 +50,13 @@ export default function IncidentReportSummaryScreen() {
           }}
         />
 
-        <Pressable
-          className="h-[30px] w-[30px] items-center justify-center"
-          hitSlop={20}
-          onPress={() => setDataInsightVisible(true)}
-          style={{ zIndex: 100 }}
-        >
-          <View pointerEvents="none">
-            <BiInfoSvg width={24} height={24} />
-          </View>
-        </Pressable>
+        {/* Spacer keeps pill tabs centered with the back button */}
+        <View className="h-[30px] w-[30px]" />
       </View>
 
       <View style={{ flex: 1 }}>
         <IncidentResultView />
       </View>
-
-      <DataInsightModal
-        visible={dataInsightVisible}
-        onClose={() => setDataInsightVisible(false)}
-        description={featureDetail?.description}
-        bullets={insightBullets}
-      />
     </SafeAreaView>
   );
 }

@@ -3,13 +3,11 @@ import { View, Text, Pressable, ScrollView, ActivityIndicator, Alert } from 'rea
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeIn } from 'react-native-reanimated';
-import BiInfoSvg from '@/src/assets/icons/bi_info.svg';
 import ValidationBackSvg from '@/src/assets/icons/validation-back.svg';
 
 import IncidentReportSvg from '@/src/assets/images/incident-report.svg';
 import { FeatureDownloadIcon, FeatureUsersIcon, RatingStarIcon } from '@/src/assets/svgs';
 import RatingModal from '@/src/components/anomaly/modals/RatingModal';
-import DataInsightModal from '@/src/components/anomaly/modals/DataInsightModal';
 import IncidentResultView from '@/src/components/incident/IncidentResultView';
 import SubscriptionTierCard from '@/src/components/incident/SubscriptionTierCard';
 import AnimatedPillTabs from '@/src/components/mobile/AnimatedPillTabs';
@@ -45,7 +43,6 @@ export default function IncidentReportPreviewScreen() {
   const [featureDetail, setFeatureDetail] = useState<MarketplaceDetailResponse | null>(null);
   const [, setIsSubscribing] = useState(false);
   const [subscribingTierKey, setSubscribingTierKey] = useState<string | null>(null);
-  const [dataInsightVisible, setDataInsightVisible] = useState(false);
   const [isRatingModalVisible, setIsRatingModalVisible] = useState(false);
   const [cardHeight, setCardHeight] = useState<number>(120);
   const [isLoading, setIsLoading] = useState(true);
@@ -69,10 +66,9 @@ export default function IncidentReportPreviewScreen() {
         const detail = await getMarketplaceFeatureById(targetId);
         setFeatureDetail(detail);
         const sorted = sortMarketplaceTiers(detail.tiers ?? []);
-        setExpandedTier((prev) => {
-          if (prev && sorted.some((tier) => tier.tier === prev)) return prev;
-          return sorted[0]?.tier ?? null;
-        });
+        setExpandedTier((prev) =>
+          prev && sorted.some((tier) => tier.tier === prev) ? prev : null
+        );
       } catch (err: any) {
         console.log('Error loading feature details:', err?.message || err);
         setFeatureDetail(null);
@@ -213,10 +209,6 @@ export default function IncidentReportPreviewScreen() {
     }
   };
 
-  const productBullets = useMemo(
-    () => splitFeatureBullets(featureDetail?.description),
-    [featureDetail?.description]
-  );
   const sortedTiers = useMemo(
     () => sortMarketplaceTiers(featureDetail?.tiers ?? []),
     [featureDetail?.tiers]
@@ -260,16 +252,8 @@ export default function IncidentReportPreviewScreen() {
             onChange={handleTabChange}
           />
 
-          <Pressable
-            className="h-[30px] w-[30px] items-center justify-center"
-            hitSlop={20}
-            onPress={() => setDataInsightVisible(true)}
-            style={{ zIndex: 100 }}
-          >
-            <View pointerEvents="none">
-              <BiInfoSvg width={24} height={24} />
-            </View>
-          </Pressable>
+          {/* Spacer keeps pill tabs centered with the back button */}
+          <View className="h-[30px] w-[30px]" />
         </View>
 
         {activeTab === 'Result' ? (
@@ -343,7 +327,7 @@ export default function IncidentReportPreviewScreen() {
                       allowFontScaling={false}
                       className="text-[21.88px] font-ubuntu-semibold leading-[21.88px] text-[#113E55]"
                     >
-                      {featureDetail.name || 'Incident Report Insights'}
+                      {featureDetail.name || ''}
                     </Text>
                     <Pressable
                       onPress={() => setIsRatingModalVisible(true)}
@@ -354,18 +338,19 @@ export default function IncidentReportPreviewScreen() {
                         allowFontScaling={false}
                         className="w-[39px] text-center text-[21.88px] font-ubuntu-semibold leading-[26px] text-[#6B7280]"
                       >
-                        {featureDetail.rating != null ? featureDetail.rating.toFixed(1) : '0.0'}
+                        {featureDetail.rating != null ? featureDetail.rating.toFixed(1) : ''}
                       </Text>
                     </Pressable>
                   </View>
 
-                  <Text
-                    allowFontScaling={false}
-                    className="text-[11.2px] font-inter-regular text-[#878686]"
-                  >
-                    {featureDetail.description ||
-                      'See which incidents dominate your estate, when they peak, and what the reports are saying.'}
-                  </Text>
+                  {!!featureDetail.description?.trim() && (
+                    <Text
+                      allowFontScaling={false}
+                      className="text-[11.2px] font-inter-regular text-[#878686]"
+                    >
+                      {featureDetail.description}
+                    </Text>
+                  )}
 
                   <View className="mt-1 flex-row items-center gap-2">
                     <View className="flex-row items-center">
@@ -443,13 +428,6 @@ export default function IncidentReportPreviewScreen() {
         visible={isRatingModalVisible}
         onClose={() => setIsRatingModalVisible(false)}
         onSubmit={handleRate}
-      />
-
-      <DataInsightModal
-        visible={dataInsightVisible}
-        onClose={() => setDataInsightVisible(false)}
-        description={featureDetail?.description}
-        bullets={productBullets}
       />
     </View>
   );

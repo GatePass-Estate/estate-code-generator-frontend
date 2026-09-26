@@ -22,6 +22,7 @@ import {
   useIncidentOverview,
   useIncidentReports,
   useIncidentSummary,
+  useIncidentCategories,
 } from '@/src/hooks/useIncidentQueries';
 import { toIncidentFromDate, toIncidentToDate } from '@/src/lib/api/incidentReports';
 import CategoryDistribution from './CategoryDistribution';
@@ -77,10 +78,7 @@ function ShareBar({
         className="absolute bottom-0 left-0 right-0 rounded-b-[16px]"
         style={{ height: fillHeight, backgroundColor: fill }}
       />
-      <View
-        className="absolute left-0 right-0 items-center"
-        style={{ bottom: iconBottom }}
-      >
+      <View className="absolute left-0 right-0 items-center" style={{ bottom: iconBottom }}>
         <View className="h-5 w-5 items-center justify-center">{icon}</View>
       </View>
       <View className="absolute bottom-0 left-0 right-0 items-center pb-[14px]">
@@ -198,12 +196,12 @@ function IncidentListRow({ row }: { row: IncidentRow }) {
 
 export default function IncidentResultView({ isActive = true }: { isActive?: boolean }) {
   const estate_id = useUserStore((state) => state.estate_id) || '';
-  const estateName = useUserStore((state) => state.estate_name) || 'Hazel Estate';
+  const estateName = useUserStore((state) => state.estate_name) || '';
   const userHomeAddress = useUserStore((state) => state.home_address);
-  const [selectedTimeframe, setSelectedTimeframe] = useState('Custom');
+  const [selectedTimeframe, setSelectedTimeframe] = useState('Last Week');
   const [startDate, setStartDate] = useState<Date | null>(() => {
     const d = new Date();
-    d.setFullYear(d.getFullYear() - 1);
+    d.setDate(d.getDate() - 7);
     d.setHours(0, 0, 0, 0);
     return d;
   });
@@ -231,10 +229,8 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
   const toDate = endDate ? toIncidentToDate(endDate) : undefined;
 
   const reportsQueryParams = useMemo(() => {
-    // API user_type: resident | security | all — never send guest.
-    const apiUserTypes = filterUserTypes.filter(
-      (t): t is 'resident' | 'security' => t === 'resident' || t === 'security'
-    );
+    // API user_type: resident | security | all.
+    const apiUserTypes = filterUserTypes;
     return {
       from_date: fromDate,
       to_date: toDate,
@@ -267,6 +263,8 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
     isFetching: summaryLoading,
     isError: summaryError,
   } = useIncidentSummary(estate_id, fromDate, toDate, fetchSummary);
+  // Warm categories cache so filter chips are instant when the modal opens.
+  useIncidentCategories(!!estate_id);
 
   const demographic = overview?.demographic;
   const displayEstateName = demographic?.estate_name || estateName;
@@ -331,9 +329,10 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
     summary?.read_time?.trim() ||
     summary?.tier2?.read_time?.trim() ||
     summary?.tier1?.read_time?.trim() ||
-    null;
+    '2 mins Read';
   const summarySourceLabel =
-    summary?.source_label?.trim() || (summaryVariant === 'in_house' ? 'In house' : 'Third Party');
+    summary?.source_label?.trim() ||
+    (summaryVariant === 'in_house' ? 'In house' : 'Third Party');
   const inhouseInsight = useMemo(() => {
     const timelineFallback =
       mapTrendsFromEda(overview?.eda)[0]?.body || summary?.tier1?.executive_summary || '';
@@ -638,8 +637,8 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
           onPress={handleInsightPress}
           onUpgradePress={handleUpgradePress}
           summaryText={executiveSummary}
-          readTimeLabel={hasSummaryPayload ? summaryReadTime : null}
-          sourceLabel={hasSummaryPayload ? summarySourceLabel : null}
+          readTimeLabel={hasSummaryPayload ? summaryReadTime : '2 mins Read'}
+          sourceLabel={hasSummaryPayload ? summarySourceLabel : 'Third Party'}
           isLoading={fetchSummary && summaryLoading && !hasSummaryPayload}
         />
 
@@ -715,7 +714,7 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
               No incident reports in this window.
             </Text>
           ) : (
-            <View className="flex-col gap-2" style={{ opacity: reportsFetching ? 0.55 : 1 }}>
+            <View className="flex-col gap-2">
               {rows.slice(0, visibleCount).map((row) => (
                 <IncidentListRow key={row.id} row={row} />
               ))}

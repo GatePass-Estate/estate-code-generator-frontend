@@ -14,6 +14,7 @@ const DROPDOWN_GAP_BELOW_AVATAR = 4;
 export default function UserIcon({ variant = 'initials' }: { variant?: 'initials' | 'dots' }) {
   const first_name = useUserStore((state) => state.first_name);
   const last_name = useUserStore((state) => state.last_name);
+  const role = useUserStore((state) => state.role);
   const router = useRouter();
   const [showDropdown, setShowDropdown] = useState(false);
   const [dropdownTop, setDropdownTop] = useState<number | null>(null);
@@ -36,20 +37,17 @@ export default function UserIcon({ variant = 'initials' }: { variant?: 'initials
 
   const handleNavigation = (path: string) => {
     setShowDropdown(false);
-    if (path === '/profile' || path === '/settings') {
+    if (path === '/profile' || path === '/settings' || path === '/security/more') {
       router.push(path);
     } else {
       router.replace(path);
     }
   };
 
-  const handleIconPress = () => {
-    if (variant === 'dots') {
-      router.push('/settings');
-      return;
-    }
+  const morePath = role === 'security' ? '/security/more' : '/settings';
 
-    /** Measure the avatar circle so the menu opens just below it on every device. */
+  const openDropdown = () => {
+    /** Measure the trigger so the menu opens just below it on every device. */
     if (buttonRef.current && buttonRef.current.measureInWindow) {
       buttonRef.current.measureInWindow((_x, y, _w, h) => {
         setDropdownTop(y + h + DROPDOWN_GAP_BELOW_AVATAR);
@@ -60,12 +58,17 @@ export default function UserIcon({ variant = 'initials' }: { variant?: 'initials
     }
   };
 
+  const handleLogout = () => {
+    setShowDropdown(false);
+    void signOut();
+  };
+
   return (
     <>
       <View className={`${isMobile && variant !== 'dots' ? 'mr-5' : ''}`}>
         <Pressable
           ref={buttonRef}
-          onPress={handleIconPress}
+          onPress={openDropdown}
           className="flex-row items-center gap-2"
           style={{ backgroundColor: 'transparent' }}
         >
@@ -100,7 +103,7 @@ export default function UserIcon({ variant = 'initials' }: { variant?: 'initials
           >
             <Pressable
               className="py-3 px-4 flex gap-2 flex-row bg-accent rounded-2xl"
-              onPress={() => handleNavigation('/settings')}
+              onPress={() => handleNavigation(morePath)}
             >
               <Image source={icons.activeProfileIcon} style={{ width: 18, height: 18 }} />
               <Text className="text-primary font-inter-medium">Settings</Text>
@@ -108,7 +111,7 @@ export default function UserIcon({ variant = 'initials' }: { variant?: 'initials
 
             <Pressable
               className="py-3 px-4 flex gap-2 flex-row border-t border-gray-200 pt-4 mt-1"
-              onPress={signOut}
+              onPress={handleLogout}
             >
               <Image source={icons.logoutDropdown} style={{ width: 18, height: 18 }} />
               <Text className="text-primary font-inter-medium">Logout</Text>

@@ -48,7 +48,12 @@ function ReportListCard({ row }: { row: IncidentRow }) {
 export default function IncidentReportsListScreen() {
   const estate_id = useUserStore((state) => state.estate_id) || '';
   const filters = useMemo(() => getIncidentReportsListFilters(), []);
-  const { data: reports, isLoading, isError, refetch } = useIncidentReports(estate_id, {
+  const {
+    data: reports,
+    isLoading,
+    isError,
+    refetch,
+  } = useIncidentReports(estate_id, {
     ...filters,
     page: 1,
     limit: 50,

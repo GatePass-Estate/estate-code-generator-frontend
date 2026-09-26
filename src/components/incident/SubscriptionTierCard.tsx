@@ -99,11 +99,8 @@ export default function SubscriptionTierCard({
         disabled={isSubscribing || !expanded}
         onPress={onUninstall}
         className="h-[48px] w-full items-center justify-center rounded-full bg-[#E5F6FF]"
-       
       >
-        <Text  className="text-[14px] font-ubuntu-semibold text-[#113E55]">
-          Uninstall
-        </Text>
+        <Text className="text-[14px] font-ubuntu-semibold text-[#113E55]">Uninstall</Text>
       </Pressable>
     </View>
   );
@@ -132,50 +129,45 @@ export default function SubscriptionTierCard({
         ...(expanded
           ? {
               borderWidth: isInstalled ? 0.6 : 1,
-              borderColor: '#1B998B',
+              borderColor: isInstalled ? '#1B998B' : '#113E55',
             }
           : null),
       }}
     >
       <View className="flex-col gap-4">
         <View className="flex-row items-center justify-between gap-3">
-        <View className='flex-col gap-3'>
-        <Text
-            allowFontScaling={false}
-            className={`flex-1 text-[17.5px] font-inter-regular leading-[17.5px] ${
-              isInstalled ? 'text-[#1B998B]' : 'text-[#113E55]'
-            }`}
-          >
-            {tierLabel}
-          </Text>
-          {subtitle ? (
-          <Text
-            allowFontScaling={false}
-            className={`text-sm font-inter-medium leading-[17.5px] ${
-              isInstalled ? 'text-[#1B998B]' : 'text-[#113E55]'
-            } ${isInstalled || subtitleUppercase ? 'uppercase' : ''}`}
-          >
-            {subtitle}
-          </Text>
-        ) : null}
-        </View>
-
-          {isInstalled && expanded ? (
-            <View
-              className=" py-4 items-center justify-center rounded-[16px] px-8 bg-[#1B998B1F]"
-             
+          <View className="min-w-0 flex-1 flex-col justify-center gap-3">
+            <Text
+              allowFontScaling={false}
+              className={`text-[17.5px] font-inter-regular leading-[18px] ${
+                isInstalled ? 'text-[#1B998B]' : 'text-[#113E55]'
+              }`}
             >
+              {tierLabel}
+            </Text>
+            {subtitle ? (
               <Text
                 allowFontScaling={false}
-                className="text-sm font-ubuntu-semibold uppercase tracking-[-0.24px] text-[#1B998B]"
+                className={`text-sm font-inter-medium leading-[18px] ${
+                  isInstalled ? 'text-[#1B998B]' : 'text-[#113E55]'
+                } ${isInstalled || subtitleUppercase ? 'uppercase' : ''}`}
+              >
+                {subtitle}
+              </Text>
+            ) : null}
+          </View>
+
+          {isInstalled && expanded ? (
+            <View className="shrink-0 items-center justify-center self-center rounded-[16px] bg-[#1B998B1F] px-8 py-4">
+              <Text
+                allowFontScaling={false}
+                className="text-center text-sm font-ubuntu-semibold uppercase tracking-[-0.24px] text-[#1B998B]"
               >
                 Active
               </Text>
             </View>
           ) : null}
         </View>
-
-       
 
         {description ? (
           <Text
