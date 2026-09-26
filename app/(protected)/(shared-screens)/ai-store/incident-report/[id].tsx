@@ -62,7 +62,10 @@ export default function IncidentReportDetailScreen() {
 
   const [detail, setDetail] = useState<IncidentDetailPayload | null>(() => {
     if (!id) return null;
-    return getCachedIncidentDetail(id) ?? detailFromParams(id, { title, category, narrative, reportedLabel });
+    return (
+      getCachedIncidentDetail(id) ??
+      detailFromParams(id, { title, category, narrative, reportedLabel })
+    );
   });
   const [fetching, setFetching] = useState(!!id);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -71,7 +74,8 @@ export default function IncidentReportDetailScreen() {
     if (!id) return;
 
     const cached =
-      getCachedIncidentDetail(id) ?? detailFromParams(id, { title, category, narrative, reportedLabel });
+      getCachedIncidentDetail(id) ??
+      detailFromParams(id, { title, category, narrative, reportedLabel });
     if (cached) {
       setDetail(cached);
       setLoadError(null);

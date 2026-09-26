@@ -156,15 +156,7 @@ function TimelineAccordion({
   );
 }
 
-function ThemeCard({
-  label,
-  title,
-  body,
-}: {
-  label: string;
-  title: string;
-  body: string;
-}) {
+function ThemeCard({ label, title, body }: { label: string; title: string; body: string }) {
   return (
     <View className="rounded-[8px] bg-white px-4 pb-4 pt-2 flex-col gap-1">
       <Text
@@ -179,10 +171,7 @@ function ThemeCard({
       >
         {title}
       </Text>
-      <Text
-        allowFontScaling={false}
-        className=" text-[11.2px] font-inter-regular  text-[#0A1F29]"
-      >
+      <Text allowFontScaling={false} className=" text-[11.2px] font-inter-regular  text-[#0A1F29]">
         {body}
       </Text>
     </View>
@@ -193,10 +182,7 @@ function ThemeReport({ themes }: { themes: ThemeCardModel[] }) {
   if (!themes.length) {
     return (
       <View>
-        <Text
-          allowFontScaling={false}
-          className="mb-3 text-sm font-inter-light text-[#0A1F29]"
-        >
+        <Text allowFontScaling={false} className="mb-3 text-sm font-inter-light text-[#0A1F29]">
           THEME REPORT
         </Text>
         <Text
@@ -216,10 +202,7 @@ function ThemeReport({ themes }: { themes: ThemeCardModel[] }) {
 
   return (
     <View>
-      <Text
-        allowFontScaling={false}
-        className="mb-4 text-sm font-inter-light text-[#0A1F29]"
-      >
+      <Text allowFontScaling={false} className="mb-4 text-sm font-inter-light text-[#0A1F29]">
         THEME REPORT
       </Text>
 
@@ -239,17 +222,13 @@ function ThemeReport({ themes }: { themes: ThemeCardModel[] }) {
                 </Text>
               </View>
 
-            
               <View className="w-3 items-center">
                 <View
                   className="z-[1] rounded-full"
                   style={{ width: 8, height: 8, backgroundColor: color }}
                 />
                 <View style={{ height: DOT_LINE_GAP }} />
-                <View
-                  className="flex-1"
-                  style={{ width: 0.4, backgroundColor: color }}
-                />
+                <View className="flex-1" style={{ width: 0.4, backgroundColor: color }} />
               </View>
 
               <View className="ml-4 flex-1">

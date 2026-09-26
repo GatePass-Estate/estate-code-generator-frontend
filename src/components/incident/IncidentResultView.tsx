@@ -331,8 +331,7 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
     summary?.tier1?.read_time?.trim() ||
     '2 mins Read';
   const summarySourceLabel =
-    summary?.source_label?.trim() ||
-    (summaryVariant === 'in_house' ? 'In house' : 'Third Party');
+    summary?.source_label?.trim() || (summaryVariant === 'in_house' ? 'In house' : 'Third Party');
   const inhouseInsight = useMemo(() => {
     const timelineFallback =
       mapTrendsFromEda(overview?.eda)[0]?.body || summary?.tier1?.executive_summary || '';

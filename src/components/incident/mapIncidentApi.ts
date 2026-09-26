@@ -410,9 +410,7 @@ export function mapInhouseInsightFromTopics(
     const pct = Number.isFinite(pctRaw)
       ? Math.round(pctRaw <= 1 && pctRaw > 0 ? pctRaw * 100 : pctRaw)
       : 0;
-    const title = (row.display_name || row.name || row.title || row.topic || '')
-      .toString()
-      .trim();
+    const title = (row.display_name || row.name || row.title || row.topic || '').toString().trim();
     const body =
       themeBodyFromExamples(row.examples || row.example_incidents || row.sample_reports) ||
       (row.description || row.summary || row.narrative || '').toString().trim() ||
