@@ -8,6 +8,7 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WarningLineIcon } from '@/src/assets/svgs';
 import { PlanFeature, getFreePlanNoticeCopy } from '@/src/lib/plans';
 
@@ -120,5 +121,54 @@ export function PlanNoticeSlot({
       </View>
       {children}
     </View>
+  );
+}
+
+/**
+ * The "Contact Admin" notice floating over the bottom of the screen, for gates on actions with no
+ * button to sit above. `PlanGuard` renders it for `useFeatureGate(feature, { notice: 'floating' })`;
+ * it applies the bottom safe-area inset itself, so keep it outside any `SafeAreaView`.
+ */
+export function FloatingPlanNotice({
+  visible,
+  feature,
+  bottomOffset = 24,
+}: {
+  visible: boolean;
+  feature: PlanFeature;
+  bottomOffset?: number;
+}) {
+  const insets = useSafeAreaInsets();
+  const opacity = useSharedValue(0);
+
+  useEffect(() => {
+    cancelAnimation(opacity);
+    opacity.value = withTiming(visible ? 1 : 0, visible ? FADE_IN : FADE_OUT);
+  }, [visible, opacity]);
+
+  const noticeStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ translateY: interpolate(opacity.value, [0, 1], [10, 0]) }],
+  }));
+
+  return (
+    <Animated.View
+      pointerEvents="none"
+      accessibilityLiveRegion="polite"
+      accessibilityElementsHidden={!visible}
+      importantForAccessibility={visible ? 'yes' : 'no-hide-descendants'}
+      style={[
+        {
+          position: 'absolute',
+          left: 16,
+          right: 16,
+          bottom: insets.bottom + bottomOffset,
+          alignItems: 'center',
+        },
+        noticeStyle,
+      ]}
+    >
+      <FreePlanNotice feature={feature} />
+    </Animated.View>
   );
 }

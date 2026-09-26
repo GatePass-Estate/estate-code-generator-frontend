@@ -7,8 +7,9 @@ export type PlanFeature = ServiceKey;
 
 /**
  * - `granted`: the estate's plan includes the feature.
- * - `upgrade`: an admin whose plan lacks it — prompt them to upgrade.
- * - `contact_admin`: anyone else whose plan lacks it — tell them to ask their admin.
+ * - `upgrade`: the primary admin, whose plan lacks it — prompt them to upgrade.
+ * - `contact_admin`: anyone else (including other admins) whose plan lacks it — tell them to ask
+ *   their admin.
  */
 export type FeatureAccess = 'granted' | 'upgrade' | 'contact_admin';
 
@@ -61,8 +62,9 @@ export function parseEntitlements(response: EstateEntitlementsResponse): Entitle
   };
 }
 
+/** Only the primary admin owns the estate's subscription, so only they are asked to upgrade. */
 export function canManagePlan(role: UserRolesType): boolean {
-  return role === 'primary_admin' || role === 'admin';
+  return role === 'primary_admin';
 }
 
 /**

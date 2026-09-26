@@ -25,7 +25,9 @@ import {
 } from '@/src/types/broadcast';
 import { createBroadcast, isBroadcastEntitlementError } from '@/src/lib/api/broadcast';
 import { toCreateBroadcastPayload } from '@/src/lib/broadcastForm';
-import { useUpgradePromptStore } from '@/src/hooks/usePlan';
+import { useFeatureGate } from '@/src/hooks/usePlan';
+import { refreshEstateEntitlements } from '@/src/lib/api/entitlements';
+import { PlanNoticeSlot } from '@/src/components/mobile/FreePlanNotice';
 
 type SheetName = 'userType' | 'priorityLevel' | 'duration' | null;
 
@@ -63,7 +65,7 @@ const BroadcastMobile = () => {
   const [errors, setErrors] = useState<BroadcastFormErrors>({});
   const [loading, setLoading] = useState(false);
   const [openSheet, setOpenSheet] = useState<SheetName>(null);
-  const showUpgradePrompt = useUpgradePromptStore((s) => s.show);
+  const broadcastGate = useFeatureGate('admin_broadcast');
 
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
@@ -114,6 +116,9 @@ const BroadcastMobile = () => {
     setLoading(true);
 
     try {
+      // Admin home already checks the plan, but this screen can also be reached directly.
+      if (!(await broadcastGate.requestAccessWhenReady())) return;
+
       await createBroadcast(toCreateBroadcastPayload(formData));
 
       setToastMessage('Broadcast sent successfully!');
@@ -129,9 +134,11 @@ const BroadcastMobile = () => {
       const message =
         error instanceof Error ? error.message : 'An error occurred while sending broadcast';
 
-      // The paid-plan gate is not a failure the admin can fix by retrying.
+      // The server's plan check disagreed with the cached entitlements (e.g. the plan changed
+      // since sign-in): refresh the cache and show the same message the cache would have.
       if (isBroadcastEntitlementError(message)) {
-        showUpgradePrompt('admin_broadcast');
+        refreshEstateEntitlements();
+        broadcastGate.showDenied();
         return;
       }
 
@@ -284,20 +291,22 @@ const BroadcastMobile = () => {
           )}
         </ScrollView>
 
-        <Pressable
-          onPress={handleContinue}
-          disabled={loading}
-          className="bg-primary rounded-[24px] h-11 items-center justify-center mb-6"
-          style={{ opacity: loading ? 0.7 : 1 }}
-        >
-          {loading ? (
-            <ActivityIndicator color="#F6F7F7" />
-          ) : (
-            <Text className="text-[#F6F7F7] font-ubuntu-semibold text-sm">
-              {currentStep === 1 ? 'Continue' : 'Send Broadcast'}
-            </Text>
-          )}
-        </Pressable>
+        <PlanNoticeSlot {...broadcastGate.noticeProps}>
+          <Pressable
+            onPress={handleContinue}
+            disabled={loading}
+            className="bg-primary rounded-[24px] h-11 items-center justify-center mb-6"
+            style={{ opacity: loading ? 0.7 : 1 }}
+          >
+            {loading ? (
+              <ActivityIndicator color="#F6F7F7" />
+            ) : (
+              <Text className="text-[#F6F7F7] font-ubuntu-semibold text-sm">
+                {currentStep === 1 ? 'Continue' : 'Send Broadcast'}
+              </Text>
+            )}
+          </Pressable>
+        </PlanNoticeSlot>
       </KeyboardAvoidingView>
 
       {sheetConfig && (

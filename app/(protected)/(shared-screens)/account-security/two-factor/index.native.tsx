@@ -11,7 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, router } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
-import QRCode from 'react-native-qrcode-svg';
+import BrandedQRCode from '@/src/components/common/BrandedQRCode';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Back from '@/src/components/mobile/Back';
 import { sharedStyles } from '@/src/theme/styles';
@@ -96,14 +96,12 @@ export default function TwoFactorSetupScreen() {
         ) : (
           <>
             <View className="items-center mt-8">
-              <View className="bg-white p-3 rounded-[8px]">
-                <QRCode
-                  value={provisioningUri}
-                  size={155}
-                  backgroundColor="white"
-                  color="#113E55"
-                />
-              </View>
+              <BrandedQRCode
+                value={provisioningUri}
+                size={220}
+                backgroundColor="#F6F7F7"
+                accessibilityLabel="Two-factor setup QR code"
+              />
 
               <Pressable
                 onPress={handleCopySecret}

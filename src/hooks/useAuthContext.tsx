@@ -13,7 +13,7 @@ import { setUnauthorizedHandler } from '@/src/lib/session';
 import { useAuthStore } from '@/src/lib/stores/authStore';
 import { useProfileDocumentsStore } from '@/src/lib/stores/profileDocumentsStore';
 import { useUserStore } from '@/src/lib/stores/userStore';
-import { useUpgradePromptStore } from '@/src/hooks/usePlan';
+import { useContactAdminNoticeStore, useUpgradePromptStore } from '@/src/hooks/usePlan';
 import { resetBroadcastPopupSuppression } from '@/src/components/common/BroadcastPopupHost';
 import { useNotificationStore } from '@/src/lib/stores/notificationStore';
 import { unregisterForPushNotifications } from '@/src/lib/pushNotifications';
@@ -56,6 +56,7 @@ function clearUserData() {
   useUserStore.getState().clearUser();
   useProfileDocumentsStore.getState().clear();
   useUpgradePromptStore.getState().reset();
+  useContactAdminNoticeStore.getState().reset();
   clearEstateEntitlements();
 }
 

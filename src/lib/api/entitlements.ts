@@ -33,6 +33,27 @@ export function prefetchEstateEntitlements(estateId: string | null | undefined) 
   void queryClient.prefetchQuery(estateEntitlementsQuery(estateId));
 }
 
+/**
+ * Cached entitlements, or the in-flight/fresh fetch when the cache is still empty — so a plan
+ * check made right after sign-in waits for the real answer instead of denying by default.
+ */
+export function ensureEstateEntitlements(estateId: string): Promise<Entitlements> {
+  return queryClient.ensureQueryData(estateEntitlementsQuery(estateId));
+}
+
+/** Entitlements no older than `maxAgeMs`, refetching if the cached copy is older. */
+export function fetchRecentEstateEntitlements(
+  estateId: string,
+  maxAgeMs: number
+): Promise<Entitlements> {
+  return queryClient.fetchQuery({ ...estateEntitlementsQuery(estateId), staleTime: maxAgeMs });
+}
+
+/** Call when the server rejects a feature the cache said was allowed, so the cache catches up. */
+export function refreshEstateEntitlements() {
+  void queryClient.invalidateQueries({ queryKey: entitlementKeys.all });
+}
+
 export function clearEstateEntitlements() {
   queryClient.removeQueries({ queryKey: entitlementKeys.all });
 }

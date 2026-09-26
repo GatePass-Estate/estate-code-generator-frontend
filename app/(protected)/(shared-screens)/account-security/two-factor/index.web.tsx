@@ -2,7 +2,7 @@ import { useCallback, useEffect } from 'react';
 import { Platform, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
-import QRCode from 'react-native-qrcode-svg';
+import BrandedQRCode from '@/src/components/common/BrandedQRCode';
 import Back from '@/src/components/mobile/Back';
 import WebSidebar from '@/src/components/web/WebSidebar';
 import { getWidthBreakpoint } from '@/src/lib/helpers';
@@ -77,12 +77,12 @@ export default function TwoFactorSetupWeb() {
             ) : (
               <>
                 <div className="flex flex-col items-center mt-10">
-                  <div className="bg-white p-3 rounded-lg">
-                    <QRCode
+                  <div className="rounded-[24px] bg-[#F6F7F7] p-4">
+                    <BrandedQRCode
                       value={provisioningUri}
-                      size={155}
-                      backgroundColor="white"
-                      color="#113E55"
+                      size={220}
+                      backgroundColor="#F6F7F7"
+                      accessibilityLabel="Two-factor setup QR code"
                     />
                   </div>
 

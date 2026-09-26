@@ -95,11 +95,11 @@ describe('resolveFeatureAccess', () => {
     expect(resolveFeatureAccess(paid, 'resident', 'guest_management')).toBe('granted');
   });
 
-  it.each(['admin', 'primary_admin'] as const)('asks %s to upgrade', (role) => {
-    expect(resolveFeatureAccess(free, role, 'guest_management')).toBe('upgrade');
+  it('asks the primary admin to upgrade', () => {
+    expect(resolveFeatureAccess(free, 'primary_admin', 'guest_management')).toBe('upgrade');
   });
 
-  it.each(['resident', 'security'] as const)('tells %s to contact admin', (role) => {
+  it.each(['admin', 'resident', 'security'] as const)('tells %s to contact admin', (role) => {
     expect(resolveFeatureAccess(free, role, 'guest_management')).toBe('contact_admin');
   });
 });
