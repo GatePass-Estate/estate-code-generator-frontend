@@ -1,12 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthState } from './stores/authStore';
-import axios from 'axios';
-import { Codes } from '../types/codes';
+import { isAxiosError } from 'axios';
 import { AuthBroadcastMessage, UserRolesType } from '../types/general';
+import type { Codes } from '../types/codes';
 import icons from '../constants/icons';
 import { Platform } from 'react-native';
 
-const authStorageKey = process.env.EXPO_PUBLIC_AUTH_STORAGE_KEY!;
+const authStorageKey = 'auth-key';
 
 const BROADCAST_CHANNEL_NAME = 'gatepass-auth-sync';
 
@@ -112,6 +112,14 @@ export const clearAuthState = async (): Promise<void> => {
   }
 };
 
+export const clearAccessToken = async (): Promise<void> => {
+  try {
+    await AsyncStorage.removeItem(authStorageKey);
+  } catch (error) {
+    console.log('Error clearing access token', error);
+  }
+};
+
 export const getAuthState = async (): Promise<AuthState | null> => {
   try {
     const jsonValue = await AsyncStorage.getItem(authStorageKey);
@@ -122,8 +130,150 @@ export const getAuthState = async (): Promise<AuthState | null> => {
   }
 };
 
+const INSTITUTION_STORAGE_KEY = 'selected-institution';
+const LAST_LOGIN_INSTITUTION_KEY = 'last-login-institution';
+
+export type SelectedInstitution = {
+  estate_id: string;
+  estate_name: string;
+};
+
+export const setSelectedInstitution = async (
+  institution: SelectedInstitution
+): Promise<boolean> => {
+  try {
+    await AsyncStorage.setItem(INSTITUTION_STORAGE_KEY, JSON.stringify(institution));
+    return true;
+  } catch (error) {
+    console.log('Error saving selected institution', error);
+    return false;
+  }
+};
+
+export const setLastLoginInstitution = async (
+  institution: SelectedInstitution | null
+): Promise<void> => {
+  try {
+    if (!institution) {
+      await AsyncStorage.removeItem(LAST_LOGIN_INSTITUTION_KEY);
+      return;
+    }
+    await AsyncStorage.setItem(LAST_LOGIN_INSTITUTION_KEY, JSON.stringify(institution));
+  } catch (error) {
+    console.log('Error saving last login institution', error);
+  }
+};
+
+export const getLastLoginInstitution = async (): Promise<SelectedInstitution | null> => {
+  try {
+    const value = await AsyncStorage.getItem(LAST_LOGIN_INSTITUTION_KEY);
+    return value ? (JSON.parse(value) as SelectedInstitution) : null;
+  } catch (error) {
+    console.log('Error retrieving last login institution', error);
+    return null;
+  }
+};
+
+export const getSelectedInstitution = async (): Promise<SelectedInstitution | null> => {
+  try {
+    const value = await AsyncStorage.getItem(INSTITUTION_STORAGE_KEY);
+    return value ? (JSON.parse(value) as SelectedInstitution) : null;
+  } catch (error) {
+    console.log('Error retrieving selected institution', error);
+    return null;
+  }
+};
+
+export const clearSelectedInstitution = async (): Promise<void> => {
+  try {
+    await AsyncStorage.removeItem(INSTITUTION_STORAGE_KEY);
+  } catch (error) {
+    console.log('Error clearing selected institution', error);
+  }
+};
+
+export const getPostAuthRedirectRoute = (
+  institution: SelectedInstitution | null
+): '/auth/login' | '/auth/institution' => {
+  return institution ? '/auth/login' : '/auth/institution';
+};
+
+const FORGOT_PASSWORD_COOLDOWN_KEY = 'forgot-password-cooldown';
+
+export type ForgotPasswordCooldown = {
+  attempts: number;
+  email: string;
+  lastAttemptAt: string;
+};
+
+const COOLDOWN_SECONDS = [0, 30, 60, 120, 300];
+const COOLDOWN_RESET_HOURS = 24;
+
+export const getForgotPasswordCooldown = async (): Promise<ForgotPasswordCooldown | null> => {
+  try {
+    const jsonValue = await AsyncStorage.getItem(FORGOT_PASSWORD_COOLDOWN_KEY);
+    if (!jsonValue) return null;
+    const parsed = JSON.parse(jsonValue) as ForgotPasswordCooldown;
+    const lastAttempt = new Date(parsed.lastAttemptAt).getTime();
+    const resetAfterMs = COOLDOWN_RESET_HOURS * 60 * 60 * 1000;
+    if (Number.isNaN(lastAttempt) || Date.now() - lastAttempt > resetAfterMs) {
+      return { attempts: 0, email: '', lastAttemptAt: new Date(0).toISOString() };
+    }
+    return parsed;
+  } catch (error) {
+    console.log('Error retrieving forgot-password cooldown', error);
+    return null;
+  }
+};
+
+export const recordForgotPasswordAttempt = async (email?: string): Promise<void> => {
+  try {
+    const current = await getForgotPasswordCooldown();
+    const attempts = (current?.attempts ?? 0) + 1;
+    const payload: ForgotPasswordCooldown = {
+      attempts,
+      email: email?.trim().toLowerCase() ?? '',
+      lastAttemptAt: new Date().toISOString(),
+    };
+    await AsyncStorage.setItem(FORGOT_PASSWORD_COOLDOWN_KEY, JSON.stringify(payload));
+  } catch (error) {
+    console.log('Error recording forgot-password attempt', error);
+  }
+};
+
+export const getForgotPasswordCooldownSeconds = async (email?: string): Promise<number> => {
+  const cooldown = await getForgotPasswordCooldown();
+  const normalizedEmail = email?.trim().toLowerCase();
+
+  if (!cooldown || !normalizedEmail) return 0;
+  if (cooldown.email && cooldown.email !== normalizedEmail) return 0;
+
+  const attempts = cooldown.attempts ?? 0;
+  if (attempts === 0) return 0;
+
+  const index = Math.min(attempts, COOLDOWN_SECONDS.length - 1);
+  const cooldownSeconds = COOLDOWN_SECONDS[index];
+  if (cooldownSeconds === 0) return 0;
+
+  const lastAttempt = new Date(cooldown.lastAttemptAt).getTime();
+  if (Number.isNaN(lastAttempt)) return 0;
+
+  const elapsedSeconds = Math.floor((Date.now() - lastAttempt) / 1000);
+  const remainingSeconds = cooldownSeconds - elapsedSeconds;
+
+  return remainingSeconds > 0 ? remainingSeconds : 0;
+};
+
+export const clearForgotPasswordCooldown = async (): Promise<void> => {
+  try {
+    await AsyncStorage.removeItem(FORGOT_PASSWORD_COOLDOWN_KEY);
+  } catch (error) {
+    console.log('Error clearing forgot-password cooldown', error);
+  }
+};
+
 export const getErrorMessage = (error: any): string => {
-  if (axios.isAxiosError(error) && error.response?.data) {
+  if (isAxiosError(error) && error.response?.data) {
     const data = error.response.data;
 
     if (Array.isArray(data.detail)) {
@@ -135,6 +285,10 @@ export const getErrorMessage = (error: any): string => {
 
     if (typeof data.detail === 'string') {
       return data.detail;
+    }
+
+    if (data.detail && typeof data.detail === 'object' && typeof data.detail.message === 'string') {
+      return data.detail.message;
     }
   }
 
@@ -201,6 +355,151 @@ export const formatDateWithOrdinal = (date: Date): string => {
   return `${d}${ordinalSuffix(d)} ${m} ${y}`;
 };
 
+/** Parse API datetime strings that may use a space separator or offset without a colon. */
+export const parseLogDate = (value: string): Date => {
+  // ``2026-07-25 14:00:00.000+0000`` → ``2026-07-25T14:00:00.000+00:00``
+  const iso = value
+    .trim()
+    .replace(' ', 'T')
+    .replace(/([+-]\d{2})(\d{2})$/, '$1:$2');
+  return new Date(iso);
+};
+
+/**
+ * Past history card — UTC calendar day from ``visit_time`` (date only; time is on details)
+ * e.g. ``2026-07-14T23:35:33.854563Z`` → ``14th July 2026``
+ */
+export const formatPastHistoryVisitDate = (value?: string | null): string => {
+  if (!value) return '—';
+  const date = parseLogDate(value);
+  if (Number.isNaN(date.getTime())) return value;
+  const d = date.getUTCDate();
+  const m = monthNames[date.getUTCMonth()];
+  const y = date.getUTCFullYear();
+  return `${d}${ordinalSuffix(d)} ${m} ${y}`;
+};
+
+/**
+ * Upcoming history card — UTC from ``validity_period.start``
+ * e.g. ``2026-07-25 14:00:00.000+0000`` → ``25 July 14:00``
+ */
+export const formatUpcomingInviteCardDate = (value?: string | null): string => {
+  if (!value) return 'Scheduled';
+  const date = parseLogDate(value);
+  if (Number.isNaN(date.getTime())) return value;
+  const day = date.getUTCDate();
+  const month = date.toLocaleString('en-GB', { month: 'long', timeZone: 'UTC' });
+  const hours = String(date.getUTCHours()).padStart(2, '0');
+  const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+  return `${day} ${month} ${hours}:${minutes}`;
+};
+
+/** True when the invite's validity window has not started yet (History → Upcoming). */
+export function isUpcomingCode(code: Codes, now = Date.now()): boolean {
+  const start = code.validity_period?.start ?? code.validity_window?.start;
+  if (!start) return false;
+  const startMs = parseLogDate(start).getTime();
+  return Number.isFinite(startMs) && startMs > now;
+}
+
+/**
+ * Upcoming invite detail — calendar date in UTC
+ * e.g. ``2026-07-25 14:00:00.000+0000`` → ``Saturday, 25 July 2026``
+ */
+export const formatInviteScheduleDate = (value?: string | null): string => {
+  if (!value) return '—';
+  const date = parseLogDate(value);
+  if (Number.isNaN(date.getTime())) return value;
+  const weekday = date.toLocaleString('en-GB', { weekday: 'long', timeZone: 'UTC' });
+  const day = date.getUTCDate();
+  const month = date.toLocaleString('en-GB', { month: 'long', timeZone: 'UTC' });
+  const year = date.getUTCFullYear();
+  return `${weekday}, ${day} ${month} ${year}`;
+};
+
+/**
+ * Upcoming invite clock — keep ``HH:MM`` windows as-is; datetimes in UTC
+ * e.g. ``14:00`` or ``2026-07-25 14:00:00.000+0000`` → ``14:00``
+ */
+export const formatInviteClockTime = (value?: string | null): string => {
+  if (!value) return '—';
+  const trimmed = value.trim();
+  if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(trimmed)) {
+    const [h, m] = trimmed.split(':');
+    return `${h.padStart(2, '0')}:${m.padStart(2, '0')}`;
+  }
+  const date = parseLogDate(trimmed);
+  if (Number.isNaN(date.getTime())) return trimmed;
+  return `${String(date.getUTCHours()).padStart(2, '0')}:${String(date.getUTCMinutes()).padStart(2, '0')}`;
+};
+
+export type MonthGroup<T> = {
+  label: string;
+  items: T[];
+};
+
+/** Group items by calendar month (newest month first; items newest-first within each month). */
+export function groupLogsByMonth<T>(
+  logs: T[],
+  getDate: (item: T) => string,
+  options?: { utc?: boolean }
+): MonthGroup<T>[] {
+  const useUtc = options?.utc ?? false;
+  const groups = new Map<string, T[]>();
+
+  logs.forEach((log) => {
+    const date = parseLogDate(getDate(log));
+    const key = useUtc
+      ? `${date.getUTCFullYear()}-${date.getUTCMonth()}`
+      : `${date.getFullYear()}-${date.getMonth()}`;
+    const existing = groups.get(key) ?? [];
+    existing.push(log);
+    groups.set(key, existing);
+  });
+
+  return Array.from(groups.entries())
+    .sort(([a], [b]) => b.localeCompare(a))
+    .map(([key, items]) => {
+      const [year, month] = key.split('-').map(Number);
+      const label = useUtc
+        ? new Date(Date.UTC(year, month, 1))
+            .toLocaleString('en-US', { month: 'long', timeZone: 'UTC' })
+            .toUpperCase()
+        : new Date(year, month, 1).toLocaleString('en-US', { month: 'long' }).toUpperCase();
+
+      return {
+        label,
+        items: items.sort(
+          (a, b) => parseLogDate(getDate(b)).getTime() - parseLogDate(getDate(a)).getTime()
+        ),
+      };
+    });
+}
+
+/** Access log card "Generated:" label — UTC calendar day from API ``created_at``. */
+export const formatGeneratedOnDate = (date: Date): string => {
+  const d = date.getUTCDate();
+  const m = monthNames[date.getUTCMonth()];
+  return `${d}${ordinalSuffix(d)} of ${m}`;
+};
+
+/** Format access-log timestamps in UTC so they match API `...Z` values. */
+export const formatAccessLogTimestamp = (date: Date): string => {
+  const d = date.getUTCDate();
+  const m = monthNames[date.getUTCMonth()];
+  const y = date.getUTCFullYear();
+  const hours = date.getUTCHours().toString().padStart(2, '0');
+  const minutes = date.getUTCMinutes().toString().padStart(2, '0');
+  return `${d} ${m} ${y}, ${hours}:${minutes}`;
+};
+
+export const formatAccessCodeWithSpace = (code: string): string => {
+  const cleaned = code.replace(/\s+/g, '').toUpperCase();
+  if (cleaned.length <= 3) return cleaned;
+  const mid = Math.ceil(cleaned.length / 2);
+  return `${cleaned.slice(0, mid)} ${cleaned.slice(mid)}`;
+};
+
 export const timeCalc = (
   valid_until: string | Date | undefined
 ): {
@@ -243,6 +542,37 @@ export const timeCalc = (
   }
 
   return { formattedDate, timeframe, timeLeftMinutes };
+};
+
+/**
+ * Invite details from the actual start/end the user selected (local picker values).
+ * Prefer this over ``timeCalc(valid_until)``, which invents a 1-hour window from the end only.
+ */
+export const formatInvitePeriodDisplay = (
+  start: Date,
+  end: Date
+): { formattedDate: string; timeframe: string } => {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const formatDate = (d: Date) => `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+  const formatTime = (d: Date) =>
+    d
+      .toLocaleTimeString(undefined, {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      })
+      .replace(/\s+/g, '')
+      .toLowerCase();
+
+  const sameDay =
+    start.getFullYear() === end.getFullYear() &&
+    start.getMonth() === end.getMonth() &&
+    start.getDate() === end.getDate();
+
+  return {
+    formattedDate: sameDay ? formatDate(start) : `${formatDate(start)} - ${formatDate(end)}`,
+    timeframe: `${formatTime(start)} to ${formatTime(end)}`,
+  };
 };
 
 export const getRoleIcon = (role: UserRolesType) => {

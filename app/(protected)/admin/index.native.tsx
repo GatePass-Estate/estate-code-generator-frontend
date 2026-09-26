@@ -9,8 +9,7 @@ import {
   BackHandler,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { Stack, useRouter } from 'expo-router';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { Stack, useRouter, useFocusEffect, useNavigation } from 'expo-router';
 import { getAllEstateUsers } from '@/src/lib/api/user';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AllUsers } from '@/src/types/user';
@@ -123,7 +122,7 @@ export default function AdminUsersMobilePage() {
 
       <View className="flex-row items-center justify-between pt-2">
         <Back type="short-arrow" onPress={handleBackToHome} />
-        <UserIcon type="user" />
+        <UserIcon />
       </View>
 
       <ScrollView

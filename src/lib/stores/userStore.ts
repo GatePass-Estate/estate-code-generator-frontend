@@ -20,6 +20,9 @@ const initialState: State = {
   gender: null,
   estate_name: null,
   estate_id: null,
+  household_id: null,
+  household_name: null,
+  household_primary_resident: null,
   role: null,
   status: true,
 };

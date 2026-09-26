@@ -1,32 +1,40 @@
-import { View } from 'react-native';
 import { useFonts } from 'expo-font';
-import * as SplashScreen from 'expo-splash-screen';
+import * as ExpoSplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { Stack } from 'expo-router';
 import AndroidNavBarGlobal from '@/src/components/common/AndroidNavBarGlobal';
 import { AuthProvider, useAuth } from '@/src/hooks/useAuthContext';
 import 'react-native-reanimated';
 import { Inter, UbuntuSans } from '@/src/constants/fonts';
+// @ts-ignore
 import './global.css';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { useEffect } from 'react';
+import LoadingTransition from '@/src/components/common/LoadingTransition';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
-SplashScreen.preventAutoHideAsync();
+ExpoSplashScreen.preventAutoHideAsync();
 
 function RootLayoutContent() {
-  const { resetKey } = useAuth();
+  const { resetKey, isReady } = useAuth();
+
+  if (!isReady) {
+    return <LoadingTransition />;
+  }
 
   return (
     <>
       <StatusBar style="dark" />
       <Stack
         key={resetKey}
-        initialRouteName="auth/login"
+        initialRouteName="auth/institution"
         screenOptions={{
           headerShown: false,
         }}
       >
+        <Stack.Screen name="auth/institution" options={{ animation: 'none' }} />
         <Stack.Screen name="auth/login" options={{ animation: 'none' }} />
         <Stack.Screen name="auth/tos" options={{ animation: 'none' }} />
         <Stack.Screen name="auth/set-password" />
@@ -43,7 +51,7 @@ function RootLayoutContent() {
 }
 
 export default function RootLayout() {
-  const [loaded] = useFonts({
+  const [loaded, fontError] = useFonts({
     RobotoItalic: require('../src/assets/fonts/Roboto-Italic-VariableFont_wdth,wght.ttf'),
     Roboto: require('../src/assets/fonts/Roboto-VariableFont_wdth,wght.ttf'),
     UbuntuSans: require('../src/assets/fonts/UbuntuSans-VariableFont_wdth,wght.ttf'),
@@ -63,9 +71,24 @@ export default function RootLayout() {
     [Inter.medium]: require('../src/assets/fonts/Inter_18pt-Medium.ttf'),
     [Inter.semiBold]: require('../src/assets/fonts/Inter_18pt-SemiBold.ttf'),
     [Inter.mediumItalic]: require('../src/assets/fonts/Inter_18pt-MediumItalic.ttf'),
+    [Inter.extraBold]: require('../src/assets/fonts/Inter_18pt-ExtraBold.ttf'),
   });
 
-  if (!loaded) {
+  useEffect(() => {
+    if (loaded || fontError) {
+      ExpoSplashScreen.hideAsync().catch((error) => {
+        console.log('Error hiding native splash screen', error);
+      });
+    }
+  }, [loaded, fontError]);
+
+  useEffect(() => {
+    if (fontError) {
+      console.log('Error loading fonts', fontError);
+    }
+  }, [fontError]);
+
+  if (!loaded && !fontError) {
     return null;
   }
 
@@ -73,9 +96,9 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <View style={{ flex: 1 }}>
+          <GestureHandlerRootView style={{ flex: 1 }}>
             <RootLayoutContent />
-          </View>
+          </GestureHandlerRootView>
         </AuthProvider>
       </QueryClientProvider>
     </SafeAreaProvider>

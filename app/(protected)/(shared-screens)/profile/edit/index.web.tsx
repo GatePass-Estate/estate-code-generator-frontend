@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Platform, useWindowDimensions } from 'react-native';
 import { createRequest, checkPendingRequests, updatePendingRequest } from '@/src/lib/api/requests';
+import { updateUserPhone } from '@/src/lib/api/user';
 import { RequestType, PendingRequestsResponse } from '@/src/types/requests';
 import { getWidthBreakpoint } from '@/src/lib/helpers';
 import { refreshCurrentUser } from '@/src/hooks/useRefreshUser';
@@ -93,80 +94,86 @@ export const EditProfileForm = ({ centralize = false }: { centralize?: boolean }
       pendingChecks.push(checkPendingRequests('home_address_change'));
     }
 
-    if (formData.phoneNumber !== user.phone_number) {
-      changedFields.push({
-        type: 'phone_number_change' as const,
-        old: user.phone_number || '',
-        new: formData.phoneNumber,
-        label: 'Phone Number',
-      });
-      pendingChecks.push(checkPendingRequests('phone_number_change' as RequestType));
-    }
+    const phoneChanged = formData.phoneNumber !== (user.phone_number || '');
 
-    if (changedFields.length === 0) {
+    if (changedFields.length === 0 && !phoneChanged) {
       setErrors(['No changes detected']);
       setLoading(false);
       return;
     }
 
     try {
-      const pendingResults = await Promise.allSettled(pendingChecks);
-      const createRequests: ChangedField[] = [];
-      const updateRequests: { field: ChangedField; requestId: string }[] = [];
-      const errorMessages: string[] = [];
-
-      pendingResults.forEach((result, index) => {
-        if (result.status === 'fulfilled') {
-          console.log(`Result = `, result);
-
-          if (result.value.has_pending_request && result.value.pending_request) {
-            updateRequests.push({
-              field: changedFields[index],
-              requestId: result.value.pending_request.id,
-            });
-          } else {
-            createRequests.push(changedFields[index]);
-          }
-        } else {
-          const error = result.reason;
-          const errorMessage = error?.message || '';
-          errorMessages.push(`Error checking ${changedFields[index].label}: ${errorMessage}`);
+      if (phoneChanged) {
+        if (!formData.phoneNumber.trim()) {
+          setErrors(['Phone number is required']);
+          setLoading(false);
+          return;
         }
-      });
-
-      if (errorMessages.length > 0) {
-        setErrors(errorMessages);
+        await updateUserPhone(user.user_id, formData.phoneNumber.trim());
       }
 
-      const allRequests = [...createRequests, ...updateRequests.map((r) => r.field)];
+      let allRequests: ChangedField[] = [];
 
-      if (allRequests.length > 0) {
-        try {
+      if (changedFields.length > 0) {
+        const pendingResults = await Promise.allSettled(pendingChecks);
+        const createRequests: ChangedField[] = [];
+        const updateRequests: { field: ChangedField; requestId: string }[] = [];
+        const errorMessages: string[] = [];
+
+        pendingResults.forEach((result, index) => {
+          if (result.status === 'fulfilled') {
+            if (result.value.has_pending_request && result.value.pending_request) {
+              updateRequests.push({
+                field: changedFields[index],
+                requestId: result.value.pending_request.id,
+              });
+            } else {
+              createRequests.push(changedFields[index]);
+            }
+          } else {
+            const error = result.reason;
+            const errorMessage = error?.message || '';
+            errorMessages.push(`Error checking ${changedFields[index].label}: ${errorMessage}`);
+          }
+        });
+
+        if (errorMessages.length > 0) {
+          setErrors(errorMessages);
+          setLoading(false);
+          return;
+        }
+
+        allRequests = [...createRequests, ...updateRequests.map((r) => r.field)];
+
+        if (allRequests.length > 0) {
           await Promise.all([
             ...createRequests.map((req) => createRequest(req.type as any, req.old, req.new)),
             ...updateRequests.map((req) => updatePendingRequest(req.requestId, req.field.new)),
           ]);
-
-          await refreshCurrentUser();
-
-          const successMsg =
-            allRequests.length === 1
-              ? '1 request submitted successfully. Awaiting admin approval.'
-              : `${allRequests.length} requests submitted successfully. Awaiting admin approval.`;
-          setSuccess(successMsg);
-
-          setTimeout(() => {
-            router.back();
-          }, 1500);
-        } catch (submitErr: any) {
-          const submitMessage = submitErr?.message || 'Failed to submit requests';
-          setErrors([submitMessage]);
         }
-      } else if (errorMessages.length === 0) {
-        setErrors(['No valid requests to submit']);
       }
+
+      await refreshCurrentUser();
+
+      let successMsg = 'Phone number updated successfully.';
+      if (allRequests.length > 0 && phoneChanged) {
+        successMsg =
+          allRequests.length === 1
+            ? 'Phone number updated. 1 request submitted for admin approval.'
+            : `Phone number updated. ${allRequests.length} requests submitted for admin approval.`;
+      } else if (allRequests.length > 0) {
+        successMsg =
+          allRequests.length === 1
+            ? '1 request submitted successfully. Awaiting admin approval.'
+            : `${allRequests.length} requests submitted successfully. Awaiting admin approval.`;
+      }
+      setSuccess(successMsg);
+
+      setTimeout(() => {
+        router.back();
+      }, 1500);
     } catch (err: any) {
-      const message = err?.message || 'Failed to submit edit requests';
+      const message = err?.message || 'Failed to save changes';
       setErrors([message]);
     } finally {
       setLoading(false);

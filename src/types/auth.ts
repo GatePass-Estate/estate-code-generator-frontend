@@ -13,6 +13,10 @@ export type LoginResponse = {
   access_token: string;
   role: UserRolesType;
   requires_tos_acceptance?: boolean;
+  requires_2fa?: boolean;
+  two_fa_token?: string | null;
+  token_type?: string;
+  success?: boolean;
 };
 
 export type VerifyEmailActivationResponse = {

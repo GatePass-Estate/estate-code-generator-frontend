@@ -1,42 +1,59 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, ScrollView } from 'react-native';
-import CheckBox from 'expo-checkbox';
+import { View, Text, TextInput, Pressable, Alert, ScrollView, Modal } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
-import UserIcon from '@/src/components/mobile/UserIcon';
-import { generateCode } from '@/src/lib/api/codes';
-import { useUserStore } from '@/src/lib/stores/userStore';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { createGuest } from '@/src/lib/api/guests';
+import { useUserStore } from '@/src/lib/stores/userStore';
 import { GenderType, RelationshipType } from '@/src/types/general';
 import { sharedStyles } from '@/src/theme/styles';
 import { useAndroidBottomInset } from '@/src/hooks/useAndroidBottomInset';
-import { timeCalc } from '@/src/lib/helpers';
-import { Picker } from '@/src/components/mobile/Picker';
+import { CheckIcon, CheckRingIcon, ExpandMoreIcon } from '@/src/assets/svgs';
+import Button, { BUTTON_MARGIN_BOTTOM } from '@/src/components/mobile/Button';
+import { PlanNoticeSlot } from '@/src/components/mobile/FreePlanNotice';
+import ScreenHeader from '@/src/components/mobile/ScreenHeader';
+import { useFeatureGate } from '@/src/hooks/usePlan';
+
+const GENDER_OPTIONS: { label: string; value: Exclude<GenderType, null> }[] = [
+  { label: 'Female', value: 'female' },
+  { label: 'Male', value: 'male' },
+  { label: "I'd prefer not to say", value: 'prefer_not_to_say' },
+];
+
+const RELATIONSHIP_OPTIONS: { label: string; value: Exclude<RelationshipType, null> }[] = [
+  { label: 'Partner', value: 'partner' },
+  { label: 'Friend', value: 'friend' },
+  { label: 'Family', value: 'family' },
+  { label: 'Taxi', value: 'taxi' },
+  { label: 'Delivery', value: 'delivery' },
+  { label: 'Technician', value: 'technician' },
+  { label: 'Other', value: 'other' },
+];
 
 const AddGuestMobile = () => {
   const { tabContentPadding } = useAndroidBottomInset();
   const [guestName, setGuestName] = useState('');
-  const [gender, setGender] = useState<GenderType>(null);
   const [relationship, setRelationship] = useState<RelationshipType>(null);
-  const [isChecked, setIsChecked] = useState(false);
-  const [error, setError] = useState('');
-  const [running, setRunning] = useState<boolean>(false);
+  const [gender, setGender] = useState<GenderType>(null);
+  const [genderSheetVisible, setGenderSheetVisible] = useState(false);
+  const [relationshipSheetVisible, setRelationshipSheetVisible] = useState(false);
+  const [addToGuestList, setAddToGuestList] = useState(false);
+  const [savingGuest, setSavingGuest] = useState(false);
+  const saveGuestGate = useFeatureGate('guest_management');
 
+  const genderLabel = GENDER_OPTIONS.find((option) => option.value === gender)?.label;
+  const relationshipLabel = RELATIONSHIP_OPTIONS.find(
+    (option) => option.value === relationship
+  )?.label;
   const router = useRouter();
 
-  const handleCheckboxChange = () => {
-    setIsChecked(!isChecked);
-  };
-
-  const clearInput = () => {
-    setGuestName('');
-    setGender(null);
-    setRelationship(null);
-    setIsChecked(false);
-  };
-
   const inputChecks = (): boolean => {
-    if (guestName == '') {
+    if (guestName.trim() === '') {
       Alert.alert('Error', "Please enter the guest's name.");
+      return false;
+    }
+
+    if (relationship == null) {
+      Alert.alert('Error', 'Please select your relationship with the guest.');
       return false;
     }
 
@@ -45,173 +62,248 @@ const AddGuestMobile = () => {
       return false;
     }
 
-    if (relationship == null) {
-      Alert.alert('Error', 'Please select or enter a relationship.');
-      return false;
-    }
-
     return true;
   };
 
-  async function handleGenerateCode() {
-    if (inputChecks()) {
-      setRunning(true);
-      try {
-        const result = await generateCode({
-          user_id: useUserStore.getState().user_id,
-          estate_id: useUserStore.getState().estate_id ?? '',
-          visitor_fullname: guestName,
-          relationship_with_resident: relationship,
-          gender: gender,
-        });
+  function handleContinue() {
+    if (savingGuest) return;
+    if (!inputChecks()) return;
 
-        if (isChecked) {
-          await createGuest({
-            resident_id: useUserStore.getState().user_id,
-            guest_name: guestName,
-            relationship: relationship,
-            gender: gender,
-          });
-        }
-        setRunning(false);
-
-        clearInput();
-
-        let { formattedDate, timeframe } = timeCalc(result.valid_until);
-
-        router.push({
-          pathname: `/invite`,
-          params: {
-            code: result.hashed_code,
-            name: guestName,
-            address: `${useUserStore.getState().home_address}, ${useUserStore.getState().estate_name}.`,
-            timeframe,
-            date: formattedDate,
-          },
-        });
-      } catch (error) {
-        setError('Failed to generate code. Please try again.');
-      } finally {
-        setRunning(false);
-      }
-    }
+    router.push({
+      pathname: '/user/history/duration',
+      params: {
+        visitorName: guestName.trim(),
+        relationship: relationship as string,
+        gender: gender as string,
+        saveGuest: addToGuestList && saveGuestGate.allowed ? 'true' : 'false',
+      },
+    });
   }
 
   async function handleSaveGuest() {
-    if (inputChecks()) {
-      setRunning(true);
-      try {
-        await createGuest({
-          resident_id: useUserStore.getState().user_id,
-          guest_name: guestName,
-          relationship: relationship,
-          gender: gender,
-        });
+    if (!inputChecks()) return;
+    if (!saveGuestGate.requestAccess()) return;
 
-        clearInput();
+    setSavingGuest(true);
+    try {
+      await createGuest({
+        resident_id: useUserStore.getState().user_id,
+        guest_name: guestName.trim(),
+        relationship: relationship as RelationshipType,
+        gender: gender as GenderType,
+      });
 
-        router.push({
-          pathname: '/user/guests',
-          params: {
-            refresh: 'true',
-          },
-        });
-      } catch (error) {
-        setError('Failed to generate code. Please try again.');
-      } finally {
-        setRunning(false);
-      }
+      setGuestName('');
+      setRelationship(null);
+      setGender(null);
+      setAddToGuestList(false);
+
+      router.push({
+        pathname: '/user/guests',
+        params: {
+          refresh: 'true',
+        },
+      });
+    } catch {
+      Alert.alert('Error', 'Failed to save guest. Please try again.');
+    } finally {
+      setSavingGuest(false);
     }
   }
 
   return (
-    <ScrollView
-      style={sharedStyles.container}
-      contentContainerStyle={{ paddingBottom: tabContentPadding }}
+    <SafeAreaView
+      style={[sharedStyles.container, { backgroundColor: '#F6F7F7' }]}
+      edges={['top', 'left', 'right']}
     >
-      <Stack.Screen
-        options={{
-          headerShown: true,
-          title: 'Add Guest',
-          headerShadowVisible: false,
-          headerTitleAlign: 'left',
-          headerStyle: sharedStyles.header,
-          headerTitleStyle: sharedStyles.title,
-          headerRight: () => <UserIcon />,
-        }}
-      />
+      <Stack.Screen options={{ headerShown: false }} />
 
-      <Text className="text-base text-grey mt-8 my-3">Fill in your guest information</Text>
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: tabContentPadding }}
+        showsVerticalScrollIndicator={false}
+      >
+        <ScreenHeader
+          title="Add Guest"
+          subtitle="Fill in your guest information"
+          showActions
+          titleClassName="text-[27.34px]"
+          subtitleClassName="text-[#878686]"
+          containerClassName="mb-[19px]"
+        />
 
-      <View style={{ gap: 10 }}>
-        <View>
-          <Text className="input-label">Name</Text>
-          <TextInput
-            className="input-style"
-            placeholder="Enter Guest Name..."
-            value={guestName}
-            onChangeText={setGuestName}
-          />
-        </View>
+        <View style={{ gap: 19 }}>
+          <View className="gap-2">
+            <Text className="text-[8.96px] font-inter-medium text-[#878686]">Name</Text>
+            <TextInput
+              className="rounded-[16px] bg-[#EFF1F1] px-4 py-4 font-inter-light text-[#113E55]"
+              style={{ fontSize: 14 }}
+              placeholder="Enter Guest Name..."
+              placeholderTextColor="#878686"
+              value={guestName}
+              onChangeText={setGuestName}
+            />
+          </View>
 
-        <View>
-          <Text className="input-label">Gender</Text>
-          <Picker
-            label=""
-            selectedValue={gender}
-            onValueChange={(value) => setGender(value as GenderType)}
-            placeholder="Select the gender of your guest"
-            items={[
-              { label: 'Female', value: 'female' },
-              { label: 'Male', value: 'male' },
-              { label: "I'd prefer not to say", value: 'prefer_not_to_say' },
-            ]}
-          />
-        </View>
+          <View className="gap-2">
+            <Text className="text-[8.96px] font-inter-medium text-[#878686]">Gender</Text>
+            <Pressable
+              onPress={() => setGenderSheetVisible(true)}
+              className="flex-row items-center justify-between rounded-[16px] bg-[#EFF1F1] px-4 py-4"
+            >
+              <Text
+                className={`text-sm font-inter-light ${genderLabel ? 'text-[#113E55]' : 'text-[#878686]'}`}
+              >
+                {genderLabel ?? 'Select the gender of your guest'}
+              </Text>
+              <ExpandMoreIcon width={24} height={24} color="#9B9797" />
+            </Pressable>
+          </View>
 
-        <View>
-          <Text className="input-label">Relationship</Text>
-          <Picker
-            label=""
-            selectedValue={relationship}
-            onValueChange={(value) => setRelationship(value as RelationshipType)}
-            placeholder="Select the relationship with your guest"
-            items={[
-              { label: 'Partner', value: 'partner' },
-              { label: 'Friend', value: 'friend' },
-              { label: 'Family', value: 'family' },
-              { label: 'Taxi', value: 'taxi' },
-              { label: 'Delivery', value: 'delivery' },
-              { label: 'Technician', value: 'technician' },
-              { label: 'Other', value: 'other' },
-            ]}
-          />
-        </View>
-
-        <View>
-          <View className="flex-row items-center mt-4">
-            <CheckBox value={isChecked} onValueChange={handleCheckboxChange} />
-            <Text className="text-dark-teal p-2" onPress={handleCheckboxChange}>
-              Add to My Guest List
-            </Text>
+          <View className="gap-2">
+            <Text className="text-[8.96px] font-inter-medium text-[#878686]">Relationship</Text>
+            <Pressable
+              onPress={() => setRelationshipSheetVisible(true)}
+              className="flex-row items-center justify-between rounded-[16px] bg-[#EFF1F1] px-4 py-4"
+            >
+              <Text
+                className={`text-sm font-inter-light ${relationshipLabel ? 'text-[#113E55]' : 'text-[#878686]'}`}
+              >
+                {relationshipLabel ?? 'Select the relationship with your guest'}
+              </Text>
+              <ExpandMoreIcon width={24} height={24} color="#9B9797" />
+            </Pressable>
           </View>
         </View>
-      </View>
 
-      <View className="mt-14 items-center gap-2">
-        <TouchableOpacity
-          className={`px-20 bg-primary justify-center items-center py-4 font-UbuntuSans !rounded-md ${running ? 'opacity-70' : ''}`}
-          onPress={handleGenerateCode}
-          disabled={running}
+        <Pressable
+          onPress={() => {
+            if (!saveGuestGate.requestAccess()) return;
+            setAddToGuestList((prev) => !prev);
+          }}
+          className="mt-[19px] h-10 flex-row items-center gap-1.5 self-start"
         >
-          <Text className="text-white font-ubuntu-semibold text-md">Generate Code</Text>
-        </TouchableOpacity>
+          <View className="h-4 w-4 items-center justify-center rounded-[3px] border border-[#113E55]">
+            {addToGuestList && saveGuestGate.allowed ? <CheckIcon /> : null}
+          </View>
+          <Text className="text-[11.2px] font-inter-semibold text-[#113E55]">
+            Add to Guest List
+          </Text>
+        </Pressable>
 
-        <TouchableOpacity onPress={handleSaveGuest} disabled={running} className="py-4 px-20">
-          <Text className="text-primary text-[16px] font-ubuntu-medium">Save Guest </Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+        <View className="mt-[90px]" style={{ paddingBottom: BUTTON_MARGIN_BOTTOM }}>
+          <PlanNoticeSlot {...saveGuestGate.noticeProps}>
+            <View className="flex-row items-center justify-between">
+              <Button
+                label="Save Guest"
+                variant="secondary"
+                size="md"
+                loading={savingGuest}
+                onPress={handleSaveGuest}
+              />
+              <Button label="Continue" size="md" onPress={handleContinue} />
+            </View>
+          </PlanNoticeSlot>
+        </View>
+
+        <Modal
+          transparent
+          visible={genderSheetVisible}
+          animationType="slide"
+          onRequestClose={() => setGenderSheetVisible(false)}
+        >
+          <Pressable
+            className="flex-1 justify-end bg-black/30"
+            onPress={() => setGenderSheetVisible(false)}
+          >
+            <Pressable className="rounded-t-[40px] bg-[#F6F7F7] pb-10" onPress={() => {}}>
+              <View className="h-[34px] items-center justify-center">
+                <View className="h-[7px] w-[134px] rounded-[4px] bg-[#9B9797]" />
+              </View>
+              <View className="px-5 pb-4 pt-4">
+                <Text className="mb-6 text-center text-[21.88px] font-ubuntu-semibold text-[#113E55]">
+                  Gender
+                </Text>
+                <View className="gap-2">
+                  {GENDER_OPTIONS.map((option) => {
+                    const selected = gender === option.value;
+                    return (
+                      <Pressable
+                        key={option.value}
+                        onPress={() => {
+                          setGender(option.value);
+                          setGenderSheetVisible(false);
+                        }}
+                        className="h-12 w-full flex-row items-center justify-between rounded-2xl bg-[#EFF1F1] px-4"
+                      >
+                        <Text className="text-sm font-inter-light text-[#113E55]">
+                          {option.label}
+                        </Text>
+                        {selected ? (
+                          <View className="h-6 w-6 items-center justify-center">
+                            <CheckRingIcon />
+                          </View>
+                        ) : (
+                          <View className="h-6 w-6" />
+                        )}
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+            </Pressable>
+          </Pressable>
+        </Modal>
+
+        <Modal
+          transparent
+          visible={relationshipSheetVisible}
+          animationType="slide"
+          onRequestClose={() => setRelationshipSheetVisible(false)}
+        >
+          <Pressable
+            className="flex-1 justify-end bg-black/30"
+            onPress={() => setRelationshipSheetVisible(false)}
+          >
+            <Pressable className="rounded-t-[40px] bg-[#F6F7F7] pb-10" onPress={() => {}}>
+              <View className="h-[34px] items-center justify-center">
+                <View className="h-[7px] w-[134px] rounded-[4px] bg-[#9B9797]" />
+              </View>
+              <View className="px-5 pb-4 pt-4">
+                <Text className="mb-6 text-center text-[21.88px] font-ubuntu-semibold text-[#113E55]">
+                  Relationship
+                </Text>
+                <View className="gap-2">
+                  {RELATIONSHIP_OPTIONS.map((option) => {
+                    const selected = relationship === option.value;
+                    return (
+                      <Pressable
+                        key={option.value}
+                        onPress={() => {
+                          setRelationship(option.value);
+                          setRelationshipSheetVisible(false);
+                        }}
+                        className="h-12 w-full flex-row items-center justify-between rounded-2xl bg-[#EFF1F1] px-4"
+                      >
+                        <Text className="text-sm font-inter-light text-[#113E55]">
+                          {option.label}
+                        </Text>
+                        {selected ? (
+                          <View className="h-6 w-6 items-center justify-center">
+                            <CheckRingIcon />
+                          </View>
+                        ) : (
+                          <View className="h-6 w-6" />
+                        )}
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+            </Pressable>
+          </Pressable>
+        </Modal>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 

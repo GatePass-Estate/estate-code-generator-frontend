@@ -1,33 +1,48 @@
-import { Platform } from 'react-native';
-import axios from 'axios';
+import axios, { type AxiosError } from 'axios';
 import { useAuthStore } from '../stores/authStore';
+import { handleUnauthorizedResponse } from '../session';
 
-const Api = (service: 'user' | 'code' = 'user') => {
+type Service = 'user' | 'code' | 'ai' | 'revenue';
+
+const SERVICE_URLS: Record<Service, string | undefined> = {
+  user: process.env.EXPO_PUBLIC_USER_SERVICE_API_URL,
+  code: process.env.EXPO_PUBLIC_CODE_SERVICE_API_URL,
+  ai: process.env.EXPO_PUBLIC_AI_SERVICE_API_URL,
+  revenue: process.env.EXPO_PUBLIC_REVENUE_SERVICE_API_URL,
+};
+
+function attachUnauthorizedInterceptor(
+  client: ReturnType<typeof axios.create>
+): ReturnType<typeof axios.create> {
+  client.interceptors.response.use(
+    (response) => response,
+    async (error: AxiosError) => {
+      const status = error.response?.status;
+      const hadToken = !!useAuthStore.getState().access_token;
+      const requestUrl = error.config?.url ?? '';
+
+      if (status === 401 && hadToken) {
+        await handleUnauthorizedResponse(requestUrl);
+      }
+
+      return Promise.reject(error);
+    }
+  );
+  return client;
+}
+
+const Api = (service: Service = 'user') => {
   const access_token = useAuthStore.getState().access_token;
 
-  let url =
-    service === 'user'
-      ? process.env.EXPO_PUBLIC_USER_SERVICE_API_URL
-      : process.env.EXPO_PUBLIC_CODE_SERVICE_API_URL;
-
-  // Dev only: on web, rewrite LAN/host IP to localhost so the browser hits the local backend
-  // (the env URL uses a LAN IP like 172.20.10.3 so physical mobile devices can reach the host machine)
-  if (__DEV__ && Platform.OS === 'web' && url && !url.includes('localhost')) {
-    try {
-      const u = new URL(url);
-      url = `${u.protocol}//localhost:${u.port || (u.protocol === 'https:' ? 443 : 80)}`;
-    } catch {
-      url = url.replace(/^(https?:\/\/)[\d.]+/, '$1localhost');
-    }
-  }
-
-  return axios.create({
-    baseURL: `${url}/api/v1`,
+  const client = axios.create({
+    baseURL: `${SERVICE_URLS[service]}/api/v1`,
     timeout: 10000,
     headers: {
-      Authorization: `Bearer ${access_token}`,
+      Authorization: access_token ? `Bearer ${access_token}` : undefined,
     },
   });
+
+  return attachUnauthorizedInterceptor(client);
 };
 
 export default Api;

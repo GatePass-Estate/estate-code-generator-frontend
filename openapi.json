@@ -1,0 +1,2281 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "ai-service",
+    "description": "AI service: visit anomaly detection, incident report intelligence (TF-IDF+NMF topic modelling, payment-gated LLM summaries), and ARIMA validation-volume forecasting",
+    "version": "0.1.0-draft"
+  },
+  "servers": [{ "url": "/" }],
+  "paths": {
+    "/": {
+      "get": {
+        "summary": "Root",
+        "description": "Service identity and version for shallow health checks.",
+        "operationId": "root__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": { "application/json": { "schema": {} } }
+          }
+        },
+        "security": []
+      }
+    },
+    "/healthz": {
+      "get": {
+        "summary": "Healthz",
+        "description": "Liveness probe for orchestrators and load balancers.",
+        "operationId": "healthz_healthz_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": { "application/json": { "schema": {} } }
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/v1/spatial-anomaly/analyze/{anomaly_type}": {
+      "post": {
+        "tags": ["Spatial Anomaly"],
+        "summary": "Analyze Spatial Anomalies",
+        "description": "Run the spatial anomaly pipeline for the given type using validation context.\n\nRequires a bearer token. Confirms path vs payload receiver alignment\nand that the caller is admin, primary_admin, security, or root on\nthe payload estate. This route does not check catalog entitlement;\nthe gate-validate path gates ``access_anomaly_detection_tier_1`` in\ncode-service before it calls here. Loads log history from\ndb-service, runs K-means/DBSCAN/LOF per scope, and returns scores\nplus transparency. See ``explainer_docs/ANOMALY_DETECTION_EXPLAINER.md``.",
+        "operationId": "analyze_spatial_anomalies_api_v1_spatial_anomaly_analyze__anomaly_type__post",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "anomaly_type",
+            "in": "path",
+            "required": true,
+            "schema": { "$ref": "#/components/schemas/AnomalyType" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/AnalyzeRequest" } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SpatialAnalyzeResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/spatial-anomaly/result-page/overview": {
+      "get": {
+        "tags": ["Spatial Anomaly Result Page"],
+        "summary": "Get Result Page Overview",
+        "description": "Build the spatial-anomaly result-page overview for one estate.\n\nReturns demographic counts, evidence totals, and expected-normal\nbehaviour for the spider plot and contributing-factor sections.\nRequires a bearer token. Counts and the normal-behaviour sample are\nloaded from db-service; averaging, ranking, and scale are computed\nhere.\n\nDate window (``from_date``, ``to_date``) filters prediction rows by\n``created_at``. Guest uniqueness uses visitor-log ``visit_time`` in\nthe same window. Omit both dates to include all retained data.\n\nDemographic\n    ``estate_name``, ``state``, and ``country`` come from the estate\n    record. ``total_guests`` is the count of unique\n    ``visitor_fullname`` values in the window. ``total_users`` is\n    active resident-side users (role resident, admin, or\n    primary_admin), security users, and those unique guests.\n    ``ratio`` is guest / resident / security counts and each\n    group's percentage of guest + resident + security.\n    ``total_anomalous_instances`` and\n    ``total_high_risk_instances`` are prediction *row* counts, not\n    unique people. High-risk is ``final_score >= 0.8``.\n\nEvidence summary\n    ``total_anomalous_residents_instances`` counts anomalous rows\n    with a resident log. ``total_anomalous_visitors_instances``\n    counts anomalous rows with a visitor log.\n\nAnomaly overview\n    Expected normal behaviour is the mean of a random 30% sample of\n    *non-anomalous* predictions in the window. ``spider_plot`` and\n    ``top_contributing_factors`` are the same top six features,\n    ranked by mean weight (null weights sort last, then reverse\n    feature name). ``contributing_factors`` lists analysis scopes\n    (``visitor_specific``, ``resident_specific``,\n    ``security_specific``, ``estate_wide``) with the averaged scope\n    score and nested sub-factors.\n\n    Each spider point, factor, and sub-factor includes\n    ``normal_value`` (sample mean), ``scale`` (max value of that\n    feature or scope score across *all* predictions in the window,\n    including anomalous), and ``percentage``\n    (``normal_value / scale * 100``).\n\nArguments:\n    estate_id: Estate to summarise.\n    from_date: Inclusive lower bound on prediction time.\n    to_date: Inclusive upper bound on prediction time.\n\nReturns:\n    ``demographic``, ``evidence_summary``, and ``anomaly_overview``.\n\nRaises:\n    HTTPException: 401 if unauthenticated; 403 if the caller does\n        not belong to the estate or lacks\n        ``access_anomaly_detection_tier_1``; 404 if the estate does\n        not exist; 502 if db-service is unreachable or errors.",
+        "operationId": "get_result_page_overview_api_v1_spatial_anomaly_result_page_overview_get",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "estate_id",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid", "title": "Estate Id" }
+          },
+          {
+            "name": "from_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
+              "title": "From Date"
+            }
+          },
+          {
+            "name": "to_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
+              "title": "To Date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ResultPageOverviewResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/spatial-anomaly/result-page/predictions": {
+      "get": {
+        "tags": ["Spatial Anomaly Result Page"],
+        "summary": "List Result Page Predictions",
+        "description": "List prediction rows for an estate, newest first by default.\n\nRequires a bearer token. Rows come from db-service\n``predictionresult`` joined to visitor or resident logs. Repeat\n``severity``, ``gender``, and ``user_type`` to OR multiple values\nwithin that category; omitted categories are unfiltered. Categories\nAND with each other.\n\nSeverity is derived from ``final_score``: low < 0.5, medium 0.5 to\n0.8, high >= 0.8. ``user_type=resident`` is role resident, admin, or\nprimary_admin (not security). ``gender`` matches visitor-log gender\nfor guests and user-profile gender for residents.\n\nArguments:\n    estate_id: Estate to list.\n    severity: One or more of low, medium, high.\n    gender: One or more of male, female, prefer_not_to_say.\n    user_type: One or more of guest, resident.\n    sort_order: Sort by prediction time; default desc.\n    from_date: Inclusive lower bound on prediction time.\n    to_date: Inclusive upper bound on prediction time.\n    page: 1-based page number.\n    limit: Page size.\n\nReturns:\n    Paginated ``items`` plus ``total``, ``page``, ``limit``, and\n    ``sort_order``. Each item includes id, created_at,\n    prediction_type, user_type, gender, display_name, final_score,\n    is_anomalous, severity, anomaly_type, and flags\n    ``has_tier1_summary`` / ``has_tier2_summary`` (cache present,\n    not the summary body).\n\nRaises:\n    HTTPException: 401 if unauthenticated; 403 if the caller does\n        not belong to the estate or lacks\n        ``access_anomaly_detection_tier_1``; 502 if db-service is\n        unreachable or errors.",
+        "operationId": "list_result_page_predictions_api_v1_spatial_anomaly_result_page_predictions_get",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "estate_id",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid", "title": "Estate Id" }
+          },
+          {
+            "name": "severity",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                { "type": "array", "items": { "$ref": "#/components/schemas/Severity" } },
+                { "type": "null" }
+              ],
+              "title": "Severity"
+            }
+          },
+          {
+            "name": "gender",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "array", "items": { "type": "string" } }, { "type": "null" }],
+              "title": "Gender"
+            }
+          },
+          {
+            "name": "user_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                { "type": "array", "items": { "$ref": "#/components/schemas/UserType" } },
+                { "type": "null" }
+              ],
+              "title": "User Type"
+            }
+          },
+          {
+            "name": "sort_order",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": ["asc", "desc"],
+              "type": "string",
+              "default": "desc",
+              "title": "Sort Order"
+            }
+          },
+          {
+            "name": "from_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
+              "title": "From Date"
+            }
+          },
+          {
+            "name": "to_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
+              "title": "To Date"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "minimum": 1, "default": 1, "title": "Page" }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "minimum": 1, "default": 10, "title": "Limit" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PredictionListResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/spatial-anomaly/result-page/cases/{prediction_id}/demographic": {
+      "get": {
+        "tags": ["Spatial Anomaly Result Page"],
+        "summary": "Get Case Demographic",
+        "description": "Person-level demographic for a selected prediction case.\n\nReturns name, user type, total log entries in the date window,\naverage entries per week, resident ``user_id`` for the display\npicture (null for guests), and cache flags for each summary tier.\n\nArguments:\n    prediction_id: Selected prediction from the list.\n    estate_id: Estate that owns the visitor or resident log.\n    display_name: Fallback only when the joined log has no name.\n    from_date: Inclusive lower bound on log timestamps.\n    to_date: Inclusive upper bound on log timestamps.\n\nReturns:\n    ``CaseDemographic`` for the selected person, including\n    ``has_tier1_summary`` / ``has_tier2_summary`` (cache present,\n    not the summary body).\n\nRaises:\n    HTTPException: 401 if unauthenticated; 403 if the caller does\n        not belong to the estate or lacks\n        ``access_anomaly_detection_tier_1``; 404 if the prediction\n        is missing; 502 if db-service is unreachable or errors.",
+        "operationId": "get_case_demographic_api_v1_spatial_anomaly_result_page_cases__prediction_id__demographic_get",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "prediction_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid", "title": "Prediction Id" }
+          },
+          {
+            "name": "estate_id",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid", "title": "Estate Id" }
+          },
+          {
+            "name": "display_name",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "title": "Display Name"
+            }
+          },
+          {
+            "name": "from_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
+              "title": "From Date"
+            }
+          },
+          {
+            "name": "to_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
+              "title": "To Date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/CaseDemographic" } }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/spatial-anomaly/result-page/cases/{prediction_id}/history": {
+      "get": {
+        "tags": ["Spatial Anomaly Result Page"],
+        "summary": "Get Case History",
+        "description": "Five most recent predictions for the same visitor or resident name.\n\nThe selected instance is the newest row. Guests are matched on\nvisitor name; residents on resident name. A client\n``display_name`` cannot replace that identity (it is only used\nwhen the joined log name is blank). Each item includes\nvalidation timestamp, validated code, and severity.\n\nArguments:\n    prediction_id: Selected prediction (most recent in the list).\n    estate_id: Estate that owns the visitor or resident log.\n    display_name: Fallback only when the joined log has no name.\n    history_limit: Max rows; default 5.\n\nReturns:\n    History items newest-first, selected case first.\n\nRaises:\n    HTTPException: 401 if unauthenticated; 403 if the caller does\n        not belong to the estate or lacks\n        ``access_anomaly_detection_tier_1``; 404 if the prediction\n        is missing; 502 if db-service is unreachable or errors.",
+        "operationId": "get_case_history_api_v1_spatial_anomaly_result_page_cases__prediction_id__history_get",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "prediction_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid", "title": "Prediction Id" }
+          },
+          {
+            "name": "estate_id",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid", "title": "Estate Id" }
+          },
+          {
+            "name": "display_name",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "title": "Display Name"
+            }
+          },
+          {
+            "name": "history_limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 20,
+              "minimum": 1,
+              "default": 5,
+              "title": "History Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CaseHistoryResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/spatial-anomaly/result-page/cases/{prediction_id}/summary": {
+      "get": {
+        "tags": ["Spatial Anomaly Result Page"],
+        "summary": "Get Case Summary",
+        "description": "Entitlement-gated in-house and/or LLM summary for one case.\n\nAlways re-checks the estate AI grant so a downgraded subscription\nwithholds a previously generated tier. Cached ``ai_response`` rows\nkeyed by prediction id are reused when present; otherwise the\nmissing tier is generated and stored.\n\n``access_anomaly_detection_tier_2`` unlocks the in-house case\nsummary. ``access_anomaly_detection_tier_3`` adds the LLM summary\nand includes tier 2. Those grants are checked in the service layer.\n\nTier 2 includes tier 1. The list endpoint never returns the summary\nbody, only ``has_tier1_summary`` / ``has_tier2_summary`` flags.\n\nArguments:\n    prediction_id: Selected prediction row.\n    estate_id: Estate used for the AI feature check.\n\nReturns:\n    Entitled tier, cache flag, and the summaries that grant allows.\n\nRaises:\n    HTTPException: 401 if unauthenticated; 403 if the caller does\n        not belong to the estate or neither summary grant is\n        allowed; 404 if the prediction is missing; 502 on\n        downstream errors.",
+        "operationId": "get_case_summary_api_v1_spatial_anomaly_result_page_cases__prediction_id__summary_get",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "prediction_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid", "title": "Prediction Id" }
+          },
+          {
+            "name": "estate_id",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid", "title": "Estate Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CaseSummaryResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/spatial-anomaly/result-page/cases/{prediction_id}/results": {
+      "get": {
+        "tags": ["Spatial Anomaly Result Page"],
+        "summary": "Get Case Results",
+        "description": "Spider plot and contributing factors for the selected prediction.\n\nExpected-normal values reuse the first-level 30% non-anomalous\nsample. The spider plot also includes this instance's value, the\nperiod max (scale), and percentages of both versus that max.\nContributing factors include instance value, max, and percentage.\nWhich sections appear follows ``scopes_for_anomaly_type`` for this\nprediction (visitor: all four; resident: no visitor-specific).\n\nArguments:\n    prediction_id: Selected prediction row.\n    estate_id: Estate that owns the visitor or resident log.\n    from_date: Inclusive lower bound for sample and max maps.\n    to_date: Inclusive upper bound for sample and max maps.\n\nReturns:\n    Score, severity, and the case anomaly overview.\n\nRaises:\n    HTTPException: 401 if unauthenticated; 403 if the caller does\n        not belong to the estate or lacks\n        ``access_anomaly_detection_tier_1``; 404 if the prediction\n        is missing; 502 if db-service is unreachable or errors.",
+        "operationId": "get_case_results_api_v1_spatial_anomaly_result_page_cases__prediction_id__results_get",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "prediction_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid", "title": "Prediction Id" }
+          },
+          {
+            "name": "estate_id",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid", "title": "Estate Id" }
+          },
+          {
+            "name": "from_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
+              "title": "From Date"
+            }
+          },
+          {
+            "name": "to_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
+              "title": "To Date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CaseResultsResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/temporal-anomaly/analyze/{anomaly_type}": {
+      "post": {
+        "tags": ["Temporal Anomaly (Matrix Profile)"],
+        "summary": "Analyze Temporal Anomalies",
+        "description": "Run the temporal Matrix Profile pipeline over an estate's entire history.\n\nRequires a bearer token. Loads validation events via\n``load_validation_events``, builds a daily visit-count series for the estate\n(``visitor`` / ``resident`` / ``combined`` selects the log tables), then\nscores the most recent one-week window against the whole history as a\ndiscord. Returns 422 if history spans fewer than three windows (21 days).\nRestricted to admin, primary_admin, and root on the caller's estate.\nSee ``explainer_docs/TEMPORAL_ANOMALY_MATRIX_PROFILE_EXPLAINER.md``.",
+        "operationId": "analyze_temporal_anomalies_api_v1_temporal_anomaly_analyze__anomaly_type__post",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "anomaly_type",
+            "in": "path",
+            "required": true,
+            "schema": { "$ref": "#/components/schemas/AnomalyType" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/TemporalAnalyzeRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/TemporalAnalyzeResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/incident-reports/result-page/overview": {
+      "get": {
+        "tags": ["Incident Report Result Page"],
+        "summary": "Get Result Page Overview",
+        "description": "Build the incident result-page overview for one estate.\n\nReturns demographic counts and exploratory statistics for the\nrequested date window. Requires a bearer token. Estate identity\nand reporter-role counts come from db-service; category EDA and\nthe trends sentence are computed here.\n\nDate window (``from_date``, ``to_date``) filters incident rows by\n``created_at``. Omit both dates to include all retained reports.\n\nDemographic\n    ``estate_name``, ``state``, and ``country`` come from the estate\n    record. ``total_reports`` is the incident row count in the\n    window. ``ratio`` is resident / security counts and each\n    group's percentage of resident + security. Resident covers\n    every reporter role except security, guest, and root.\n\nEDA\n    ``stats`` is the existing cohort EDA (category distribution,\n    field quality, occurred-at range). ``categories`` ranks only\n    the fixed taxonomy labels by count: ``top_1`` … ``top_5`` are\n    separate fields; remaining labels sit under\n    ``other_categories`` ordered by count descending. Custom\n    category text is not ranked. Each category includes peak time\n    (morning, afternoon, evening/night), count, percentage of all\n    reports, and two sample snippets. ``trends_detected`` is a\n    formatted sentence from those figures.\n\nCache\n    ``has_tier1_summary`` / ``has_tier2_summary`` are true when\n    that payload is already stored for this estate and date\n    window (in-house topic modelling / LLM).\n\nArguments:\n    estate_id: Estate to summarise.\n    from_date: Inclusive lower bound on incident created_at.\n    to_date: Inclusive upper bound on incident created_at.\n\nReturns:\n    ``demographic``, ``eda``, and the two cache flags.\n\nRaises:\n    HTTPException: 401 if unauthenticated; 403 if the caller is not\n        an admin, does not belong to the estate, or lacks\n        ``incident_report_summary_tier_1``; 404 if the estate does\n        not exist; 502 if db-service is unreachable or errors.",
+        "operationId": "get_result_page_overview_api_v1_incident_reports_result_page_overview_get",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "estate_id",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid", "title": "Estate Id" }
+          },
+          {
+            "name": "from_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
+              "title": "From Date"
+            }
+          },
+          {
+            "name": "to_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
+              "title": "To Date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/IncidentOverviewResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/incident-reports/result-page/reports": {
+      "get": {
+        "tags": ["Incident Report Result Page"],
+        "summary": "List Result Page Reports",
+        "description": "List incident reports for an estate, newest first.\n\nRequires a bearer token. Repeat ``category`` and ``user_type`` to\nOR multiple values within that filter; omitted filters are\nunfiltered. ``category=all`` or ``user_type=all`` is the same as\nomitting that filter (every type). Filters AND with each other.\n\n``user_type=resident`` is every reporter role except security,\nguest, and root. ``user_type=security`` is security only.\n\nArguments:\n    estate_id: Estate to list.\n    category: Taxonomy values, or ``all`` for every category.\n    user_type: ``resident``, ``security``, or ``all``.\n    from_date: Inclusive lower bound on created_at.\n    to_date: Inclusive upper bound on created_at.\n    page: 1-based page number.\n    limit: Page size.\n\nReturns:\n    Paginated ``items`` plus ``total``, ``page``, and ``limit``.\n    Each item includes id, timestamps, title, categories,\n    narrative, and ``reporter_user_type``.\n\nRaises:\n    HTTPException: 401 if unauthenticated; 403 if the caller is not\n        an admin, does not belong to the estate, or lacks\n        ``incident_report_summary_tier_1``; 502 if db-service is\n        unreachable or errors.",
+        "operationId": "list_result_page_reports_api_v1_incident_reports_result_page_reports_get",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "estate_id",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid", "title": "Estate Id" }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "array", "items": { "type": "string" } }, { "type": "null" }],
+              "title": "Category"
+            }
+          },
+          {
+            "name": "user_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "array", "items": { "type": "string" } }, { "type": "null" }],
+              "title": "User Type"
+            }
+          },
+          {
+            "name": "from_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
+              "title": "From Date"
+            }
+          },
+          {
+            "name": "to_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
+              "title": "To Date"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "minimum": 1, "default": 1, "title": "Page" }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "minimum": 1, "default": 10, "title": "Limit" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/IncidentListResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/incident-reports/result-page/summary": {
+      "get": {
+        "tags": ["Incident Report Result Page"],
+        "summary": "Get Result Page Summary",
+        "description": "Entitlement-gated topic-modelling and LLM summary for one window.\n\nThe cohort is every retained incident in the selected date range\n(not a row-count cap). Always re-checks grants so a downgraded\nsubscription withholds a previously generated report. Cached\n``ai_response`` rows keyed by estate + date window are reused when\npresent; otherwise the missing entitled tier is generated and stored.\n\n``incident_report_summary_tier_2`` unlocks in-house topic\nmodelling. ``incident_report_summary_tier_3`` adds the LLM\nnarrative and includes tier 2. Those grants are checked in the\nservice layer. Both summary payloads carry the same category EDA.\n\nArguments:\n    estate_id: Estate used for the AI feature check and cache key.\n    from_date: Inclusive lower bound on created_at (part of the key).\n    to_date: Inclusive upper bound on created_at (part of the key).\n\nReturns:\n    Entitled tier, cache flag, and the granted summary payloads.\n\nRaises:\n    HTTPException: 401 if unauthenticated; 403 if the caller is not\n        an admin, does not belong to the estate, or no summary\n        grant is allowed; 502 on downstream errors.",
+        "operationId": "get_result_page_summary_api_v1_incident_reports_result_page_summary_get",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "estate_id",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid", "title": "Estate Id" }
+          },
+          {
+            "name": "from_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
+              "title": "From Date"
+            }
+          },
+          {
+            "name": "to_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
+              "title": "To Date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/IncidentSummaryResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/volume-forecast/predict/{target}": {
+      "post": {
+        "tags": ["Volume forecast (ARIMA)"],
+        "summary": "Predict Validation Volume",
+        "description": "Forecast daily validation volume for an estate using ARIMA.\n\n``target`` selects the stream: ``visitor``, ``resident``, or ``combined``.\nRequires a bearer token. Pulls the estate's validation history from\ndb-service, buckets it into a zero-filled daily series, and returns the\n``horizon``-day forecast with a 95% interval plus model diagnostics.\nRestricted to admin, primary_admin, and root on the caller's estate.",
+        "operationId": "predict_validation_volume_api_v1_volume_forecast_predict__target__post",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "target",
+            "in": "path",
+            "required": true,
+            "schema": { "$ref": "#/components/schemas/ForecastTarget" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/VolumeForecastRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/VolumeForecastResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai-marketplace": {
+      "get": {
+        "tags": ["AI Marketplace"],
+        "summary": "List Features",
+        "description": "List marketplace products for the caller's estate.\n\nOptional ``purchase_status`` and ``category`` are repeated query params.\nUnpurchased items include a starting price; ratings are attached per page.\nRestricted to admin, primary_admin, and root.",
+        "operationId": "list_features_api_v1_ai_marketplace_get",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "purchase_status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": { "enum": ["purchased", "not_purchased"], "type": "string" }
+                },
+                { "type": "null" }
+              ],
+              "title": "Purchase Status"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "array", "items": { "type": "string" } }, { "type": "null" }],
+              "title": "Category"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "minimum": 1, "default": 1, "title": "Page" }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MarketplaceListResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai-marketplace/picture": {
+      "get": {
+        "tags": ["AI Marketplace"],
+        "summary": "View Feature Picture",
+        "description": "Stream a display picture by GCS object path.\n\nRestricted to admin, primary_admin, and root.",
+        "operationId": "view_feature_picture_api_v1_ai_marketplace_picture_get",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "path",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "GCS object path",
+              "title": "Path"
+            },
+            "description": "GCS object path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": { "application/json": { "schema": {} } }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai-marketplace/{id}": {
+      "get": {
+        "tags": ["AI Marketplace"],
+        "summary": "Get Feature",
+        "description": "Return one marketplace product with child tiers and estate grant status.\n\nRestricted to admin, primary_admin, and root.",
+        "operationId": "get_feature_api_v1_ai_marketplace__id__get",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "title": "Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MarketplaceDetailResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai-marketplace/{id}/rating": {
+      "post": {
+        "tags": ["AI Marketplace"],
+        "summary": "Rate Feature",
+        "description": "Create or update the caller's rating and return it with the summary.\n\nRestricted to admin, primary_admin, and root.",
+        "operationId": "rate_feature_api_v1_ai_marketplace__id__rating_post",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "title": "Id" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/RatingRequest" } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/RatingResponse" } }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai-marketplace/{id}/subscribe": {
+      "post": {
+        "tags": ["AI Marketplace"],
+        "summary": "Subscribe Feature",
+        "description": "Subscribe the estate to a child ``ai_feature`` tier of this product.\n\nFree features install immediately. Paid features quote then activate via\nrevenue-service (Paystack initialize is still stubbed). Restricted to\nadmin, primary_admin, and root.",
+        "operationId": "subscribe_feature_api_v1_ai_marketplace__id__subscribe_post",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "title": "Id" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/SubscribeRequest" } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/SubscribeResponse" } }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AnalysisTransparency": {
+        "properties": {
+          "scopes": {
+            "items": { "$ref": "#/components/schemas/ScopeTransparencyDetail" },
+            "type": "array",
+            "title": "Scopes"
+          },
+          "ensemble_method": { "type": "string", "title": "Ensemble Method" },
+          "ensemble_notes": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Ensemble Notes"
+          },
+          "global_model_outputs": {
+            "additionalProperties": { "type": "number" },
+            "type": "object",
+            "title": "Global Model Outputs"
+          }
+        },
+        "type": "object",
+        "required": ["scopes", "ensemble_method"],
+        "title": "AnalysisTransparency",
+        "description": "Structured transparency for audit and UI (scores, features, models)."
+      },
+      "AnalyzeRequest": {
+        "properties": {
+          "code_validation": { "$ref": "#/components/schemas/CodeValidationPayload" },
+          "trigger": { "$ref": "#/components/schemas/TriggerMode", "default": "realtime" }
+        },
+        "type": "object",
+        "required": ["code_validation"],
+        "title": "AnalyzeRequest",
+        "description": "Code validation outcome; ``trigger`` is metadata only for now."
+      },
+      "AnomalyOverview": {
+        "properties": {
+          "spider_plot": {
+            "items": { "$ref": "#/components/schemas/SpiderPlotPoint" },
+            "type": "array",
+            "title": "Spider Plot"
+          },
+          "top_contributing_factors": {
+            "items": { "$ref": "#/components/schemas/SpiderPlotPoint" },
+            "type": "array",
+            "title": "Top Contributing Factors"
+          },
+          "contributing_factors": {
+            "items": { "$ref": "#/components/schemas/ContributingFactor" },
+            "type": "array",
+            "title": "Contributing Factors"
+          }
+        },
+        "type": "object",
+        "title": "AnomalyOverview",
+        "description": "Spider plot, top six factors, and nested contributing factors."
+      },
+      "AnomalyType": {
+        "type": "string",
+        "enum": ["visitor", "resident", "combined"],
+        "title": "AnomalyType",
+        "description": "Analysis subject.\n\n``VISITOR`` and ``RESIDENT`` centre the analysis on one log stream and are\nsupported by both the spatial and temporal endpoints. ``COMBINED`` merges\nvisitor and resident history into a single series and is supported by the\ntemporal (Matrix Profile) endpoint only."
+      },
+      "ArimaModelInfo": {
+        "properties": {
+          "order": {
+            "items": { "type": "integer" },
+            "type": "array",
+            "title": "Order",
+            "description": "Selected ``(p, d, q)`` order as a 3-element list."
+          },
+          "aic": { "anyOf": [{ "type": "number" }, { "type": "null" }], "title": "Aic" },
+          "adf_statistic": {
+            "anyOf": [{ "type": "number" }, { "type": "null" }],
+            "title": "Adf Statistic"
+          },
+          "adf_pvalue": {
+            "anyOf": [{ "type": "number" }, { "type": "null" }],
+            "title": "Adf Pvalue"
+          },
+          "differencing_applied": {
+            "type": "integer",
+            "title": "Differencing Applied",
+            "default": 0
+          },
+          "is_stationary": { "type": "boolean", "title": "Is Stationary", "default": false }
+        },
+        "type": "object",
+        "required": ["order"],
+        "title": "ArimaModelInfo",
+        "description": "Fitted ARIMA order, AIC, and stationarity diagnostics."
+      },
+      "BacktestMetrics": {
+        "properties": {
+          "rmse": { "type": "number", "title": "Rmse" },
+          "train_size": { "type": "integer", "title": "Train Size" },
+          "test_size": { "type": "integer", "title": "Test Size" }
+        },
+        "type": "object",
+        "required": ["rmse", "train_size", "test_size"],
+        "title": "BacktestMetrics",
+        "description": "Retrospective 80/20 forecast accuracy (article's evaluation step)."
+      },
+      "CaseAnomalyOverview": {
+        "properties": {
+          "spider_plot": {
+            "items": { "$ref": "#/components/schemas/CaseSpiderPlotPoint" },
+            "type": "array",
+            "title": "Spider Plot"
+          },
+          "contributing_factors": {
+            "items": { "$ref": "#/components/schemas/CaseContributingFactor" },
+            "type": "array",
+            "title": "Contributing Factors"
+          }
+        },
+        "type": "object",
+        "title": "CaseAnomalyOverview",
+        "description": "Case spider plot and contributing factors for one prediction."
+      },
+      "CaseContributingFactor": {
+        "properties": {
+          "name": { "type": "string", "title": "Name" },
+          "description": { "type": "string", "title": "Description" },
+          "instance_value": {
+            "anyOf": [{ "type": "number" }, { "type": "null" }],
+            "title": "Instance Value"
+          },
+          "scale": { "anyOf": [{ "type": "number" }, { "type": "null" }], "title": "Scale" },
+          "percentage": {
+            "anyOf": [{ "type": "number" }, { "type": "null" }],
+            "title": "Percentage"
+          },
+          "sub_factors": {
+            "items": { "$ref": "#/components/schemas/CaseSubFactor" },
+            "type": "array",
+            "title": "Sub Factors"
+          }
+        },
+        "type": "object",
+        "required": ["name", "description"],
+        "title": "CaseContributingFactor",
+        "description": "Instance scope score against the period max, with sub-factors."
+      },
+      "CaseDemographic": {
+        "properties": {
+          "prediction_id": { "type": "string", "title": "Prediction Id" },
+          "display_name": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Display Name"
+          },
+          "user_type": { "$ref": "#/components/schemas/UserType" },
+          "user_id": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "User Id",
+            "description": "Resident user id for the display picture; null for guests."
+          },
+          "total_entries": { "type": "integer", "title": "Total Entries", "default": 0 },
+          "average_entry_per_week": {
+            "type": "number",
+            "title": "Average Entry Per Week",
+            "default": 0.0
+          },
+          "has_tier1_summary": {
+            "type": "boolean",
+            "title": "Has Tier1 Summary",
+            "default": false
+          },
+          "has_tier2_summary": { "type": "boolean", "title": "Has Tier2 Summary", "default": false }
+        },
+        "type": "object",
+        "required": ["prediction_id", "user_type"],
+        "title": "CaseDemographic",
+        "description": "Person-level demographic for a selected prediction case."
+      },
+      "CaseHistoryItem": {
+        "properties": {
+          "id": { "type": "string", "title": "Id" },
+          "validated_at": {
+            "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
+            "title": "Validated At"
+          },
+          "validated_code": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Validated Code"
+          },
+          "severity": {
+            "anyOf": [{ "$ref": "#/components/schemas/Severity" }, { "type": "null" }]
+          },
+          "is_anomalous": {
+            "anyOf": [{ "type": "boolean" }, { "type": "null" }],
+            "title": "Is Anomalous"
+          },
+          "final_score": {
+            "anyOf": [{ "type": "number" }, { "type": "null" }],
+            "title": "Final Score"
+          }
+        },
+        "type": "object",
+        "required": ["id"],
+        "title": "CaseHistoryItem",
+        "description": "One prior (or current) prediction for the same named person."
+      },
+      "CaseHistoryResponse": {
+        "properties": {
+          "items": {
+            "items": { "$ref": "#/components/schemas/CaseHistoryItem" },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "title": "CaseHistoryResponse",
+        "description": "Up to five predictions ending at the selected instance."
+      },
+      "CaseResultsResponse": {
+        "properties": {
+          "prediction_id": { "type": "string", "title": "Prediction Id" },
+          "final_score": {
+            "anyOf": [{ "type": "number" }, { "type": "null" }],
+            "title": "Final Score"
+          },
+          "is_anomalous": {
+            "anyOf": [{ "type": "boolean" }, { "type": "null" }],
+            "title": "Is Anomalous"
+          },
+          "severity": {
+            "anyOf": [{ "$ref": "#/components/schemas/Severity" }, { "type": "null" }]
+          },
+          "anomaly_overview": { "$ref": "#/components/schemas/CaseAnomalyOverview" }
+        },
+        "type": "object",
+        "required": ["prediction_id", "anomaly_overview"],
+        "title": "CaseResultsResponse",
+        "description": "Raw prediction overlay for the selected instance."
+      },
+      "CaseSpiderPlotPoint": {
+        "properties": {
+          "feature_name": { "type": "string", "title": "Feature Name" },
+          "description": { "type": "string", "title": "Description" },
+          "weight": { "anyOf": [{ "type": "number" }, { "type": "null" }], "title": "Weight" },
+          "normal_value": {
+            "anyOf": [{ "type": "number" }, { "type": "null" }],
+            "title": "Normal Value"
+          },
+          "instance_value": {
+            "anyOf": [{ "type": "number" }, { "type": "null" }],
+            "title": "Instance Value"
+          },
+          "scale": { "anyOf": [{ "type": "number" }, { "type": "null" }], "title": "Scale" },
+          "percentage": {
+            "anyOf": [{ "type": "number" }, { "type": "null" }],
+            "title": "Percentage",
+            "description": "normal_value / scale * 100"
+          },
+          "instance_percentage": {
+            "anyOf": [{ "type": "number" }, { "type": "null" }],
+            "title": "Instance Percentage",
+            "description": "instance_value / scale * 100"
+          }
+        },
+        "type": "object",
+        "required": ["feature_name", "description"],
+        "title": "CaseSpiderPlotPoint",
+        "description": "Spider point with expected-normal, instance, and period-max scale."
+      },
+      "CaseSubFactor": {
+        "properties": {
+          "feature_name": { "type": "string", "title": "Feature Name" },
+          "description": { "type": "string", "title": "Description" },
+          "instance_value": {
+            "anyOf": [{ "type": "number" }, { "type": "null" }],
+            "title": "Instance Value"
+          },
+          "scale": { "anyOf": [{ "type": "number" }, { "type": "null" }], "title": "Scale" },
+          "percentage": {
+            "anyOf": [{ "type": "number" }, { "type": "null" }],
+            "title": "Percentage"
+          }
+        },
+        "type": "object",
+        "required": ["feature_name", "description"],
+        "title": "CaseSubFactor",
+        "description": "Instance feature value against the period max for one sub-factor."
+      },
+      "CaseSummaryResponse": {
+        "properties": {
+          "entitled_tier": {
+            "type": "string",
+            "enum": ["tier1", "tier2"],
+            "title": "Entitled Tier"
+          },
+          "from_cache": { "type": "boolean", "title": "From Cache", "default": false },
+          "tier1": {
+            "anyOf": [{ "$ref": "#/components/schemas/InhouseSummary" }, { "type": "null" }]
+          },
+          "tier2": { "anyOf": [{ "$ref": "#/components/schemas/LlmSummary" }, { "type": "null" }] }
+        },
+        "type": "object",
+        "required": ["entitled_tier"],
+        "title": "CaseSummaryResponse",
+        "description": "Entitlement-gated summaries; withheld tiers are null."
+      },
+      "CategoryEdaItem": {
+        "properties": {
+          "category": { "type": "string", "title": "Category" },
+          "peak_time": {
+            "type": "string",
+            "enum": ["morning", "afternoon", "evening_night"],
+            "title": "Peak Time"
+          },
+          "incident_count": { "type": "integer", "title": "Incident Count" },
+          "percentage_share": { "type": "number", "title": "Percentage Share" },
+          "sample_reports": {
+            "items": { "type": "string" },
+            "type": "array",
+            "title": "Sample Reports"
+          }
+        },
+        "type": "object",
+        "required": ["category", "peak_time", "incident_count", "percentage_share"],
+        "title": "CategoryEdaItem",
+        "description": "Peak time, share, and two snippets for one category."
+      },
+      "CategoryEdaSection": {
+        "properties": {
+          "top_1": {
+            "anyOf": [{ "$ref": "#/components/schemas/CategoryEdaItem" }, { "type": "null" }]
+          },
+          "top_2": {
+            "anyOf": [{ "$ref": "#/components/schemas/CategoryEdaItem" }, { "type": "null" }]
+          },
+          "top_3": {
+            "anyOf": [{ "$ref": "#/components/schemas/CategoryEdaItem" }, { "type": "null" }]
+          },
+          "top_4": {
+            "anyOf": [{ "$ref": "#/components/schemas/CategoryEdaItem" }, { "type": "null" }]
+          },
+          "top_5": {
+            "anyOf": [{ "$ref": "#/components/schemas/CategoryEdaItem" }, { "type": "null" }]
+          },
+          "other_categories": {
+            "additionalProperties": { "$ref": "#/components/schemas/CategoryEdaItem" },
+            "type": "object",
+            "title": "Other Categories"
+          }
+        },
+        "type": "object",
+        "title": "CategoryEdaSection",
+        "description": "Top five categories as fields; the rest grouped by count desc."
+      },
+      "CodeValidationPayload": {
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "format": "uuid4",
+            "title": "User Id",
+            "description": "Resident who issued the visitor code or owns the resident access record (code-service may send this as ``validated_user_id``)."
+          },
+          "security_id": {
+            "type": "string",
+            "format": "uuid4",
+            "title": "Security Id",
+            "description": "Security user id; filters visitor/resident log search."
+          },
+          "estate_id": { "type": "string", "format": "uuid4", "title": "Estate Id" },
+          "hashed_code": { "type": "string", "title": "Hashed Code" },
+          "valid_until": { "type": "string", "title": "Valid Until" },
+          "is_expired": { "type": "boolean", "title": "Is Expired" },
+          "receiver": { "$ref": "#/components/schemas/Receiver" },
+          "visitor_log_id": {
+            "anyOf": [{ "type": "string", "format": "uuid4" }, { "type": "null" }],
+            "title": "Visitor Log Id",
+            "description": "Anchor row in visitorlog; mutually exclusive with resident_log_id."
+          },
+          "resident_log_id": {
+            "anyOf": [{ "type": "string", "format": "uuid4" }, { "type": "null" }],
+            "title": "Resident Log Id",
+            "description": "Anchor row in residentlog; mutually exclusive with visitor_log_id."
+          },
+          "visitor_fullname": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Visitor Fullname"
+          },
+          "relationship_with_resident": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Relationship With Resident"
+          },
+          "gender": { "anyOf": [{ "type": "string" }, { "type": "null" }], "title": "Gender" }
+        },
+        "type": "object",
+        "required": [
+          "user_id",
+          "security_id",
+          "estate_id",
+          "hashed_code",
+          "valid_until",
+          "is_expired",
+          "receiver"
+        ],
+        "title": "CodeValidationPayload",
+        "description": "Aligns with code-service GET ``/validate/{code}`` responses plus log-anchor\nfields.\n\n``user_id`` is the resident who issued the visitor code or owns the resident\naccess record. Upstream may label this ``validated_user_id``; either JSON\nkey is accepted on input.\n``security_id`` scopes db-service log search to that security user."
+      },
+      "ContributingFactor": {
+        "properties": {
+          "name": { "type": "string", "title": "Name" },
+          "description": { "type": "string", "title": "Description" },
+          "normal_value": {
+            "anyOf": [{ "type": "number" }, { "type": "null" }],
+            "title": "Normal Value",
+            "description": "Averaged scope score for normal behaviour."
+          },
+          "weight": { "anyOf": [{ "type": "number" }, { "type": "null" }], "title": "Weight" },
+          "scale": { "anyOf": [{ "type": "number" }, { "type": "null" }], "title": "Scale" },
+          "percentage": {
+            "anyOf": [{ "type": "number" }, { "type": "null" }],
+            "title": "Percentage"
+          },
+          "sub_factors": {
+            "items": { "$ref": "#/components/schemas/SubFactor" },
+            "type": "array",
+            "title": "Sub Factors"
+          }
+        },
+        "type": "object",
+        "required": ["name", "description"],
+        "title": "ContributingFactor",
+        "description": "One analysis scope with averaged score and nested sub-factors."
+      },
+      "Demographic": {
+        "properties": {
+          "estate_name": { "type": "string", "title": "Estate Name" },
+          "state": { "anyOf": [{ "type": "string" }, { "type": "null" }], "title": "State" },
+          "country": { "anyOf": [{ "type": "string" }, { "type": "null" }], "title": "Country" },
+          "total_users": {
+            "type": "integer",
+            "title": "Total Users",
+            "description": "Residents, admins, primary admins, security, plus unique guests."
+          },
+          "total_guests": {
+            "type": "integer",
+            "title": "Total Guests",
+            "description": "Unique visitor-log names in the timeframe."
+          },
+          "ratio": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/app__models__spatial_anomaly_resultpage__RatioShare"
+            },
+            "type": "object",
+            "title": "Ratio",
+            "description": "Guest / resident / security counts and percentages."
+          },
+          "total_anomalous_instances": {
+            "type": "integer",
+            "title": "Total Anomalous Instances",
+            "default": 0
+          },
+          "total_high_risk_instances": {
+            "type": "integer",
+            "title": "Total High Risk Instances",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": ["estate_name", "total_users", "total_guests", "ratio"],
+        "title": "Demographic",
+        "description": "Estate identity, user mix, and anomalous/high-risk instance counts."
+      },
+      "EvidenceSummary": {
+        "properties": {
+          "total_anomalous_residents_instances": {
+            "type": "integer",
+            "title": "Total Anomalous Residents Instances",
+            "default": 0
+          },
+          "total_anomalous_visitors_instances": {
+            "type": "integer",
+            "title": "Total Anomalous Visitors Instances",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "title": "EvidenceSummary",
+        "description": "Anomalous prediction rows split by resident vs visitor log."
+      },
+      "FeatureContribution": {
+        "properties": {
+          "feature_name": { "type": "string", "title": "Feature Name" },
+          "value": { "type": "number", "title": "Value" },
+          "weight": { "anyOf": [{ "type": "number" }, { "type": "null" }], "title": "Weight" },
+          "contribution": {
+            "anyOf": [{ "type": "number" }, { "type": "null" }],
+            "title": "Contribution"
+          }
+        },
+        "type": "object",
+        "required": ["feature_name", "value"],
+        "title": "FeatureContribution",
+        "description": "One engineered feature value for transparency payloads."
+      },
+      "ForecastPoint": {
+        "properties": {
+          "date": { "type": "string", "title": "Date" },
+          "predicted": { "type": "number", "title": "Predicted" },
+          "lower": { "type": "number", "title": "Lower" },
+          "upper": { "type": "number", "title": "Upper" }
+        },
+        "type": "object",
+        "required": ["date", "predicted", "lower", "upper"],
+        "title": "ForecastPoint",
+        "description": "One forecasted day: point estimate plus 95% confidence interval."
+      },
+      "ForecastTarget": {
+        "type": "string",
+        "enum": ["visitor", "resident", "combined"],
+        "title": "ForecastTarget",
+        "description": "Which validation counts feed the ARIMA volume forecast."
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": { "$ref": "#/components/schemas/ValidationError" },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "IncidentDemographic": {
+        "properties": {
+          "estate_name": { "type": "string", "title": "Estate Name" },
+          "state": { "anyOf": [{ "type": "string" }, { "type": "null" }], "title": "State" },
+          "country": { "anyOf": [{ "type": "string" }, { "type": "null" }], "title": "Country" },
+          "total_reports": { "type": "integer", "title": "Total Reports", "default": 0 },
+          "ratio": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/app__models__incident_resultpage__RatioShare"
+            },
+            "type": "object",
+            "title": "Ratio",
+            "description": "Resident / security counts and percentages."
+          }
+        },
+        "type": "object",
+        "required": ["estate_name", "ratio"],
+        "title": "IncidentDemographic",
+        "description": "Estate identity, total reports, and reporter-role mix."
+      },
+      "IncidentInhouseSummary": {
+        "properties": {
+          "executive_summary": { "type": "string", "title": "Executive Summary" },
+          "detailed_insight": { "type": "string", "title": "Detailed Insight" },
+          "category_eda": { "$ref": "#/components/schemas/CategoryEdaSection" },
+          "topics": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Topics",
+            "description": "TF-IDF/NMF topic-modelling payload for the date window."
+          }
+        },
+        "type": "object",
+        "required": ["executive_summary", "detailed_insight"],
+        "title": "IncidentInhouseSummary",
+        "description": "Topic-modelling report plus the shared category EDA."
+      },
+      "IncidentListItem": {
+        "properties": {
+          "id": { "type": "string", "title": "Id" },
+          "created_at": { "type": "string", "format": "date-time", "title": "Created At" },
+          "occurred_at": {
+            "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
+            "title": "Occurred At"
+          },
+          "title": { "anyOf": [{ "type": "string" }, { "type": "null" }], "title": "Title" },
+          "category": { "items": { "type": "string" }, "type": "array", "title": "Category" },
+          "custom_category": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Custom Category"
+          },
+          "narrative": { "type": "string", "title": "Narrative" },
+          "reporter_user_type": {
+            "anyOf": [{ "$ref": "#/components/schemas/ReporterUserType" }, { "type": "null" }]
+          }
+        },
+        "type": "object",
+        "required": ["id", "created_at", "narrative"],
+        "title": "IncidentListItem",
+        "description": "One incident row for the result-page list."
+      },
+      "IncidentListResponse": {
+        "properties": {
+          "items": {
+            "items": { "$ref": "#/components/schemas/IncidentListItem" },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": { "type": "integer", "title": "Total", "default": 0 },
+          "page": { "type": "integer", "title": "Page", "default": 1 },
+          "limit": { "type": "integer", "title": "Limit", "default": 10 }
+        },
+        "type": "object",
+        "title": "IncidentListResponse",
+        "description": "Paginated incident list for the result page."
+      },
+      "IncidentLlmSummary": {
+        "properties": {
+          "executive_summary": { "type": "string", "title": "Executive Summary", "default": "" },
+          "key_patterns": {
+            "items": { "type": "string" },
+            "type": "array",
+            "title": "Key Patterns"
+          },
+          "severity_assessment": {
+            "type": "string",
+            "title": "Severity Assessment",
+            "default": ""
+          },
+          "recommended_actions": {
+            "items": { "type": "string" },
+            "type": "array",
+            "title": "Recommended Actions"
+          },
+          "data_limitations": { "type": "string", "title": "Data Limitations", "default": "" },
+          "category_eda": { "$ref": "#/components/schemas/CategoryEdaSection" }
+        },
+        "type": "object",
+        "title": "IncidentLlmSummary",
+        "description": "LLM / heuristic narrative plus the same category EDA as tier 1."
+      },
+      "IncidentOverviewEda": {
+        "properties": {
+          "stats": { "additionalProperties": true, "type": "object", "title": "Stats" },
+          "categories": { "$ref": "#/components/schemas/CategoryEdaSection" },
+          "trends_detected": { "type": "string", "title": "Trends Detected", "default": "" }
+        },
+        "type": "object",
+        "title": "IncidentOverviewEda",
+        "description": "Existing cohort stats plus ranked category EDA and trends."
+      },
+      "IncidentOverviewResponse": {
+        "properties": {
+          "demographic": { "$ref": "#/components/schemas/IncidentDemographic" },
+          "eda": { "$ref": "#/components/schemas/IncidentOverviewEda" },
+          "has_tier1_summary": {
+            "type": "boolean",
+            "title": "Has Tier1 Summary",
+            "default": false
+          },
+          "has_tier2_summary": { "type": "boolean", "title": "Has Tier2 Summary", "default": false }
+        },
+        "type": "object",
+        "required": ["demographic", "eda"],
+        "title": "IncidentOverviewResponse",
+        "description": "Public overview payload: demographic, EDA, and cache flags."
+      },
+      "IncidentSummaryResponse": {
+        "properties": {
+          "entitled_tier": {
+            "type": "string",
+            "enum": ["tier1", "tier2"],
+            "title": "Entitled Tier"
+          },
+          "from_cache": { "type": "boolean", "title": "From Cache", "default": false },
+          "tier1": {
+            "anyOf": [{ "$ref": "#/components/schemas/IncidentInhouseSummary" }, { "type": "null" }]
+          },
+          "tier2": {
+            "anyOf": [{ "$ref": "#/components/schemas/IncidentLlmSummary" }, { "type": "null" }]
+          }
+        },
+        "type": "object",
+        "required": ["entitled_tier"],
+        "title": "IncidentSummaryResponse",
+        "description": "Entitlement-gated summaries; withheld tiers are null."
+      },
+      "InhouseSummary": {
+        "properties": {
+          "executive_summary": { "type": "string", "title": "Executive Summary" },
+          "detailed_insight": { "type": "string", "title": "Detailed Insight" }
+        },
+        "type": "object",
+        "required": ["executive_summary", "detailed_insight"],
+        "title": "InhouseSummary",
+        "description": "Formatted in-house report from the stored prediction payload."
+      },
+      "LlmSummary": {
+        "properties": {
+          "executive_summary": { "type": "string", "title": "Executive Summary" },
+          "detailed_insight": { "type": "string", "title": "Detailed Insight" },
+          "risk_drivers": {
+            "items": { "type": "string" },
+            "type": "array",
+            "title": "Risk Drivers"
+          },
+          "recommended_actions": {
+            "items": { "type": "string" },
+            "type": "array",
+            "title": "Recommended Actions"
+          },
+          "data_limitations": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Data Limitations"
+          }
+        },
+        "type": "object",
+        "required": ["executive_summary", "detailed_insight"],
+        "title": "LlmSummary",
+        "description": "Third-party LLM report with deeper operational insight."
+      },
+      "MarketplaceDetailResponse": {
+        "properties": {
+          "id": { "type": "string", "title": "Id" },
+          "name": { "type": "string", "title": "Name" },
+          "category": { "type": "string", "title": "Category" },
+          "description": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Description"
+          },
+          "rating": { "anyOf": [{ "type": "number" }, { "type": "null" }], "title": "Rating" },
+          "rating_count": { "type": "integer", "title": "Rating Count", "default": 0 },
+          "rating_samples": {
+            "additionalProperties": {
+              "items": { "$ref": "#/components/schemas/RatingSample" },
+              "type": "array"
+            },
+            "type": "object",
+            "title": "Rating Samples"
+          },
+          "tiers": {
+            "items": { "$ref": "#/components/schemas/MarketplaceTier" },
+            "type": "array",
+            "title": "Tiers"
+          },
+          "display_picture_url": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Display Picture Url"
+          },
+          "video_url": { "anyOf": [{ "type": "string" }, { "type": "null" }], "title": "Video Url" }
+        },
+        "type": "object",
+        "required": ["id", "name", "category"],
+        "title": "MarketplaceDetailResponse",
+        "description": "Parent product overview plus child tiers, rating summary, and GCS media paths."
+      },
+      "MarketplaceListItem": {
+        "properties": {
+          "id": { "type": "string", "title": "Id" },
+          "name": { "type": "string", "title": "Name" },
+          "category": { "type": "string", "title": "Category" },
+          "rating": { "anyOf": [{ "type": "number" }, { "type": "null" }], "title": "Rating" },
+          "rating_count": { "type": "integer", "title": "Rating Count", "default": 0 },
+          "rating_samples": {
+            "additionalProperties": {
+              "items": { "$ref": "#/components/schemas/RatingSample" },
+              "type": "array"
+            },
+            "type": "object",
+            "title": "Rating Samples"
+          },
+          "purchased": { "type": "boolean", "title": "Purchased", "default": false },
+          "price": { "anyOf": [{ "type": "number" }, { "type": "null" }], "title": "Price" },
+          "currency_code": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Currency Code"
+          },
+          "ai_feature_ids": {
+            "items": { "type": "string" },
+            "type": "array",
+            "title": "Ai Feature Ids"
+          }
+        },
+        "type": "object",
+        "required": ["id", "name", "category"],
+        "title": "MarketplaceListItem",
+        "description": "One parent product on the marketplace list."
+      },
+      "MarketplaceListResponse": {
+        "properties": {
+          "items": {
+            "items": { "$ref": "#/components/schemas/MarketplaceListItem" },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": { "type": "integer", "title": "Total" },
+          "page": { "type": "integer", "title": "Page" },
+          "limit": { "type": "integer", "title": "Limit" }
+        },
+        "type": "object",
+        "required": ["items", "total", "page", "limit"],
+        "title": "MarketplaceListResponse",
+        "description": "Paginated marketplace list."
+      },
+      "MarketplaceTier": {
+        "properties": {
+          "tier": { "type": "string", "title": "Tier" },
+          "ai_feature_id": { "type": "string", "title": "Ai Feature Id" },
+          "feature_key": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Feature Key"
+          },
+          "name": { "anyOf": [{ "type": "string" }, { "type": "null" }], "title": "Name" },
+          "description": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Description"
+          },
+          "is_free": { "type": "boolean", "title": "Is Free", "default": false },
+          "price": { "anyOf": [{ "type": "number" }, { "type": "null" }], "title": "Price" },
+          "currency_code": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Currency Code"
+          },
+          "status": { "type": "string", "title": "Status" },
+          "is_installed": { "type": "boolean", "title": "Is Installed", "default": false }
+        },
+        "type": "object",
+        "required": ["tier", "ai_feature_id", "status"],
+        "title": "MarketplaceTier",
+        "description": "Child ``ai_feature`` rendered as a tier on the detail page."
+      },
+      "PredictionListItem": {
+        "properties": {
+          "id": { "type": "string", "title": "Id" },
+          "created_at": { "type": "string", "format": "date-time", "title": "Created At" },
+          "prediction_type": { "type": "string", "title": "Prediction Type" },
+          "user_type": { "$ref": "#/components/schemas/UserType" },
+          "gender": { "anyOf": [{ "type": "string" }, { "type": "null" }], "title": "Gender" },
+          "display_name": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Display Name"
+          },
+          "final_score": {
+            "anyOf": [{ "type": "number" }, { "type": "null" }],
+            "title": "Final Score"
+          },
+          "is_anomalous": {
+            "anyOf": [{ "type": "boolean" }, { "type": "null" }],
+            "title": "Is Anomalous"
+          },
+          "severity": {
+            "anyOf": [{ "$ref": "#/components/schemas/Severity" }, { "type": "null" }]
+          },
+          "anomaly_type": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Anomaly Type"
+          },
+          "has_tier1_summary": {
+            "type": "boolean",
+            "title": "Has Tier1 Summary",
+            "default": false
+          },
+          "has_tier2_summary": { "type": "boolean", "title": "Has Tier2 Summary", "default": false }
+        },
+        "type": "object",
+        "required": ["id", "created_at", "prediction_type", "user_type"],
+        "title": "PredictionListItem",
+        "description": "One prediction row for the result-page list."
+      },
+      "PredictionListResponse": {
+        "properties": {
+          "items": {
+            "items": { "$ref": "#/components/schemas/PredictionListItem" },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": { "type": "integer", "title": "Total", "default": 0 },
+          "page": { "type": "integer", "title": "Page", "default": 1 },
+          "limit": { "type": "integer", "title": "Limit", "default": 10 },
+          "sort_order": {
+            "type": "string",
+            "enum": ["asc", "desc"],
+            "title": "Sort Order",
+            "default": "desc"
+          }
+        },
+        "type": "object",
+        "title": "PredictionListResponse",
+        "description": "Paginated prediction list with the requested sort order."
+      },
+      "RatingRequest": {
+        "properties": {
+          "score": { "type": "integer", "maximum": 5.0, "minimum": 1.0, "title": "Score" },
+          "comment": {
+            "anyOf": [{ "type": "string", "maxLength": 1000 }, { "type": "null" }],
+            "title": "Comment"
+          }
+        },
+        "type": "object",
+        "required": ["score"],
+        "title": "RatingRequest",
+        "description": "Body for creating or updating a user's product rating."
+      },
+      "RatingResponse": {
+        "properties": {
+          "id": { "type": "string", "title": "Id" },
+          "rating": { "anyOf": [{ "type": "number" }, { "type": "null" }], "title": "Rating" },
+          "rating_count": { "type": "integer", "title": "Rating Count", "default": 0 },
+          "rating_samples": {
+            "additionalProperties": {
+              "items": { "$ref": "#/components/schemas/RatingSample" },
+              "type": "array"
+            },
+            "type": "object",
+            "title": "Rating Samples"
+          },
+          "user_rating": { "$ref": "#/components/schemas/UserRating" }
+        },
+        "type": "object",
+        "required": ["id", "user_rating"],
+        "title": "RatingResponse",
+        "description": "Aggregate rating summary plus the caller's saved rating."
+      },
+      "RatingSample": {
+        "properties": {
+          "user_id": { "type": "string", "title": "User Id" },
+          "score": { "type": "integer", "title": "Score" },
+          "comment": {
+            "anyOf": [{ "type": "string", "maxLength": 1000 }, { "type": "null" }],
+            "title": "Comment"
+          },
+          "created_at": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": ["user_id", "score"],
+        "title": "RatingSample",
+        "description": "One bounded sample from the rating summary (up to 5 per score)."
+      },
+      "Receiver": {
+        "type": "string",
+        "enum": ["visitor", "resident"],
+        "title": "Receiver",
+        "description": "Mirrors code-service `Receiver` on validation GET responses."
+      },
+      "ReporterUserType": {
+        "type": "string",
+        "enum": ["resident", "security"],
+        "title": "ReporterUserType",
+        "description": "Reporter bucket: resident covers every role except security/guest/root."
+      },
+      "ResultPageOverviewResponse": {
+        "properties": {
+          "demographic": { "$ref": "#/components/schemas/Demographic" },
+          "evidence_summary": { "$ref": "#/components/schemas/EvidenceSummary" },
+          "anomaly_overview": { "$ref": "#/components/schemas/AnomalyOverview" }
+        },
+        "type": "object",
+        "required": ["demographic", "evidence_summary", "anomaly_overview"],
+        "title": "ResultPageOverviewResponse",
+        "description": "Public overview payload: demographic, evidence, anomaly overview."
+      },
+      "ScopeTransparencyDetail": {
+        "properties": {
+          "scope": { "type": "string", "title": "Scope" },
+          "score": { "type": "number", "title": "Score" },
+          "feature_contributions": {
+            "items": { "$ref": "#/components/schemas/FeatureContribution" },
+            "type": "array",
+            "title": "Feature Contributions"
+          },
+          "thresholds": {
+            "additionalProperties": { "type": "number" },
+            "type": "object",
+            "title": "Thresholds"
+          },
+          "model_ids": { "items": { "type": "string" }, "type": "array", "title": "Model Ids" },
+          "model_outputs": {
+            "additionalProperties": { "type": "number" },
+            "type": "object",
+            "title": "Model Outputs"
+          }
+        },
+        "type": "object",
+        "required": ["scope", "score", "feature_contributions"],
+        "title": "ScopeTransparencyDetail",
+        "description": "Per-scope score, engineered features, and per-detector outputs."
+      },
+      "Severity": {
+        "type": "string",
+        "enum": ["low", "medium", "high"],
+        "title": "Severity",
+        "description": "final_score band: low < 0.5, medium 0.5 to 0.8, high >= 0.8."
+      },
+      "SpatialAnalyzeResponse": {
+        "properties": {
+          "final_score": { "type": "number", "title": "Final Score" },
+          "per_scope_scores": {
+            "additionalProperties": { "type": "number" },
+            "type": "object",
+            "title": "Per Scope Scores"
+          },
+          "explanation": { "type": "string", "title": "Explanation" },
+          "scopes_evaluated": {
+            "items": { "type": "string" },
+            "type": "array",
+            "title": "Scopes Evaluated"
+          },
+          "anomaly_type": { "type": "string", "title": "Anomaly Type" },
+          "is_anomalous": {
+            "type": "boolean",
+            "title": "Is Anomalous",
+            "description": "True when ensemble final_score meets the configured anomaly threshold (same flag persisted on the focal feature-store row)."
+          },
+          "prediction_result_id": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Prediction Result Id",
+            "description": "Id of the persisted core.predictionresult row for this analyze."
+          },
+          "transparency": { "$ref": "#/components/schemas/AnalysisTransparency" }
+        },
+        "type": "object",
+        "required": [
+          "final_score",
+          "per_scope_scores",
+          "explanation",
+          "scopes_evaluated",
+          "anomaly_type",
+          "is_anomalous",
+          "transparency"
+        ],
+        "title": "SpatialAnalyzeResponse",
+        "description": "API response for ``POST /spatial-anomaly/analyze/{anomaly_type}``."
+      },
+      "SpiderPlotPoint": {
+        "properties": {
+          "feature_name": { "type": "string", "title": "Feature Name" },
+          "description": { "type": "string", "title": "Description" },
+          "weight": { "anyOf": [{ "type": "number" }, { "type": "null" }], "title": "Weight" },
+          "normal_value": {
+            "anyOf": [{ "type": "number" }, { "type": "null" }],
+            "title": "Normal Value"
+          },
+          "scale": { "anyOf": [{ "type": "number" }, { "type": "null" }], "title": "Scale" },
+          "percentage": {
+            "anyOf": [{ "type": "number" }, { "type": "null" }],
+            "title": "Percentage"
+          }
+        },
+        "type": "object",
+        "required": ["feature_name", "description"],
+        "title": "SpiderPlotPoint",
+        "description": "One ranked feature for the spider plot / top-factors list."
+      },
+      "SubFactor": {
+        "properties": {
+          "feature_name": { "type": "string", "title": "Feature Name" },
+          "description": { "type": "string", "title": "Description" },
+          "normal_value": {
+            "anyOf": [{ "type": "number" }, { "type": "null" }],
+            "title": "Normal Value"
+          },
+          "weight": { "anyOf": [{ "type": "number" }, { "type": "null" }], "title": "Weight" },
+          "scale": { "anyOf": [{ "type": "number" }, { "type": "null" }], "title": "Scale" },
+          "percentage": {
+            "anyOf": [{ "type": "number" }, { "type": "null" }],
+            "title": "Percentage"
+          }
+        },
+        "type": "object",
+        "required": ["feature_name", "description"],
+        "title": "SubFactor",
+        "description": "One feature inside a contributing-factor scope."
+      },
+      "SubscribeRequest": {
+        "properties": {
+          "ai_feature_id": { "type": "string", "title": "Ai Feature Id" },
+          "period_months": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Period Months",
+            "default": 1
+          }
+        },
+        "type": "object",
+        "required": ["ai_feature_id"],
+        "title": "SubscribeRequest",
+        "description": "Body for subscribing to a child ``ai_feature`` tier."
+      },
+      "SubscribeResponse": {
+        "properties": {
+          "estate_id": { "type": "string", "title": "Estate Id" },
+          "ai_feature_id": { "type": "string", "title": "Ai Feature Id" },
+          "feature_key": { "type": "string", "title": "Feature Key" },
+          "quote": {
+            "anyOf": [{ "additionalProperties": true, "type": "object" }, { "type": "null" }],
+            "title": "Quote"
+          },
+          "activation": { "additionalProperties": true, "type": "object", "title": "Activation" }
+        },
+        "type": "object",
+        "required": ["estate_id", "ai_feature_id", "feature_key", "activation"],
+        "title": "SubscribeResponse",
+        "description": "Quote (paid only) and revenue-service install or activate result."
+      },
+      "TemporalAnalyzeRequest": {
+        "properties": {
+          "estate_id": { "type": "string", "format": "uuid4", "title": "Estate Id" },
+          "trigger": { "$ref": "#/components/schemas/TriggerMode", "default": "realtime" }
+        },
+        "type": "object",
+        "required": ["estate_id"],
+        "title": "TemporalAnalyzeRequest",
+        "description": "Estate-scoped request for the temporal endpoint.\n\nNot tied to a single validation: the analysis runs over the estate's entire\nlog history. ``trigger`` is metadata only for now."
+      },
+      "TemporalAnalyzeResponse": {
+        "properties": {
+          "anomaly_type": { "type": "string", "title": "Anomaly Type" },
+          "final_score": { "type": "number", "title": "Final Score" },
+          "is_anomalous": {
+            "type": "boolean",
+            "title": "Is Anomalous",
+            "description": "True when the latest-subsequence discord score meets the configured temporal anomaly threshold."
+          },
+          "explanation": { "type": "string", "title": "Explanation" },
+          "included_logs": {
+            "items": { "type": "string" },
+            "type": "array",
+            "title": "Included Logs",
+            "description": "Which log tables fed the series (visitor_log/resident_log)."
+          },
+          "detail": { "$ref": "#/components/schemas/TemporalMatrixProfileDetail" }
+        },
+        "type": "object",
+        "required": ["anomaly_type", "final_score", "is_anomalous", "explanation", "detail"],
+        "title": "TemporalAnalyzeResponse",
+        "description": "API response for ``POST /temporal-anomaly/analyze/{anomaly_type}``."
+      },
+      "TemporalMatrixProfileDetail": {
+        "properties": {
+          "computed": {
+            "type": "boolean",
+            "title": "Computed",
+            "description": "False when history was long enough but too flat (fewer than two non-empty days); score is then 0.0 and is_anomalous is false."
+          },
+          "window_size_days": { "type": "integer", "title": "Window Size Days" },
+          "series_length_days": { "type": "integer", "title": "Series Length Days" },
+          "latest_window_index": { "type": "integer", "title": "Latest Window Index" },
+          "latest_profile_value": { "type": "number", "title": "Latest Profile Value" },
+          "profile_mean": { "type": "number", "title": "Profile Mean" },
+          "profile_max": { "type": "number", "title": "Profile Max" },
+          "discord_index": { "type": "integer", "title": "Discord Index" },
+          "note": { "anyOf": [{ "type": "string" }, { "type": "null" }], "title": "Note" }
+        },
+        "type": "object",
+        "required": [
+          "computed",
+          "window_size_days",
+          "series_length_days",
+          "latest_window_index",
+          "latest_profile_value",
+          "profile_mean",
+          "profile_max",
+          "discord_index"
+        ],
+        "title": "TemporalMatrixProfileDetail",
+        "description": "Matrix Profile diagnostics for the scored (latest) subsequence."
+      },
+      "TriggerMode": {
+        "type": "string",
+        "enum": ["realtime", "batch"],
+        "title": "TriggerMode",
+        "description": "How the pipeline was invoked."
+      },
+      "UserRating": {
+        "properties": {
+          "id": { "type": "string", "title": "Id" },
+          "user_id": { "type": "string", "title": "User Id" },
+          "score": { "type": "integer", "title": "Score" },
+          "comment": {
+            "anyOf": [{ "type": "string", "maxLength": 1000 }, { "type": "null" }],
+            "title": "Comment"
+          },
+          "created_at": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Created At"
+          },
+          "updated_at": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": ["id", "user_id", "score"],
+        "title": "UserRating",
+        "description": "The caller's just-created or updated rating row."
+      },
+      "UserType": {
+        "type": "string",
+        "enum": ["guest", "resident"],
+        "title": "UserType",
+        "description": "Guest (visitor log) vs resident-side prediction row."
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": { "anyOf": [{ "type": "string" }, { "type": "integer" }] },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": { "type": "string", "title": "Message" },
+          "type": { "type": "string", "title": "Error Type" }
+        },
+        "type": "object",
+        "required": ["loc", "msg", "type"],
+        "title": "ValidationError"
+      },
+      "VolumeForecastRequest": {
+        "properties": {
+          "estate_id": { "type": "string", "format": "uuid4", "title": "Estate Id" },
+          "history_days": {
+            "type": "integer",
+            "maximum": 730.0,
+            "minimum": 30.0,
+            "title": "History Days",
+            "description": "Look-back length (days) when from_date/to_date are omitted.",
+            "default": 120
+          },
+          "horizon": {
+            "type": "integer",
+            "maximum": 60.0,
+            "minimum": 1.0,
+            "title": "Horizon",
+            "description": "Number of future days to forecast.",
+            "default": 14
+          },
+          "from_date": {
+            "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
+            "title": "From Date",
+            "description": "Explicit lower bound on the history window (UTC)."
+          },
+          "to_date": {
+            "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
+            "title": "To Date",
+            "description": "Explicit upper bound on the history window (UTC)."
+          },
+          "max_records": {
+            "type": "integer",
+            "maximum": 50000.0,
+            "minimum": 1.0,
+            "title": "Max Records",
+            "description": "Safety cap on validation rows pulled before bucketing.",
+            "default": 5000
+          }
+        },
+        "type": "object",
+        "required": ["estate_id"],
+        "title": "VolumeForecastRequest",
+        "description": "Filter the estate's validation history that feeds the ARIMA model.\n\nCounts are bucketed **daily**. By default the look-back window is the\nlast ``history_days`` up to now; ``from_date``/``to_date`` override it."
+      },
+      "VolumeForecastResponse": {
+        "properties": {
+          "target": { "type": "string", "title": "Target" },
+          "estate_id": { "type": "string", "title": "Estate Id" },
+          "bucket": { "type": "string", "title": "Bucket", "default": "daily" },
+          "observations": { "type": "integer", "title": "Observations" },
+          "history_start": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "History Start"
+          },
+          "history_end": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "History End"
+          },
+          "model": { "$ref": "#/components/schemas/ArimaModelInfo" },
+          "backtest": {
+            "anyOf": [{ "$ref": "#/components/schemas/BacktestMetrics" }, { "type": "null" }]
+          },
+          "forecast": {
+            "items": { "$ref": "#/components/schemas/ForecastPoint" },
+            "type": "array",
+            "title": "Forecast"
+          },
+          "notes": { "anyOf": [{ "type": "string" }, { "type": "null" }], "title": "Notes" }
+        },
+        "type": "object",
+        "required": ["target", "estate_id", "observations", "model"],
+        "title": "VolumeForecastResponse",
+        "description": "API response for ``POST /volume-forecast/predict/{target}``."
+      },
+      "app__models__incident_resultpage__RatioShare": {
+        "properties": {
+          "count": { "type": "integer", "title": "Count" },
+          "percentage": {
+            "type": "number",
+            "title": "Percentage",
+            "description": "Share of resident + security reports, 0-100."
+          }
+        },
+        "type": "object",
+        "required": ["count", "percentage"],
+        "title": "RatioShare",
+        "description": "Headcount and share of resident + security reports."
+      },
+      "app__models__spatial_anomaly_resultpage__RatioShare": {
+        "properties": {
+          "count": { "type": "integer", "title": "Count" },
+          "percentage": {
+            "type": "number",
+            "title": "Percentage",
+            "description": "Share of guest + resident + security, 0-100."
+          }
+        },
+        "type": "object",
+        "required": ["count", "percentage"],
+        "title": "RatioShare",
+        "description": "Headcount and share of guest + resident + security."
+      }
+    },
+    "securitySchemes": {
+      "OAuth2PasswordBearer": { "type": "http", "scheme": "bearer", "bearerFormat": "JWT" }
+    }
+  },
+  "security": [{ "OAuth2PasswordBearer": [] }]
+}

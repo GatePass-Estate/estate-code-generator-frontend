@@ -18,6 +18,7 @@ const getFieldLabelFromType = (type: RequestType): string => {
     gender_change: 'Gender',
     vacate_residence: 'Vacate Residence',
     phone_number_change: 'Phone Number',
+    id_change: 'ID Card',
   };
   return labels[type] || 'Unknown Field';
 };

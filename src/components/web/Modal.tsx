@@ -9,6 +9,7 @@ const Modal = ({
   runningText,
   actionRunnig,
   actionBtnClassName,
+  children,
 }: {
   closeModal: () => void;
   action?: () => void;
@@ -20,6 +21,7 @@ const Modal = ({
   actionRunnig?: boolean;
   runningText?: string;
   actionBtnClassName?: string;
+  children?: React.ReactNode;
 }) => {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
@@ -32,6 +34,7 @@ const Modal = ({
         <p className="text-[#4B5563] font-inter-regular text-sm sm:text-base mb-6 sm:mb-8 leading-6">
           {message}
         </p>
+        {children}
         <div className="flex flex-row sm:justify-end gap-3 mt-4">
           <button
             className="w-full sm:w-auto px-6 py-3 bg-[#F3F4F6] hover:bg-[#E5E7EB] transition rounded-lg text-black font-ubuntu-medium text-base"

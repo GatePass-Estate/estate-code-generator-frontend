@@ -13,6 +13,8 @@ export type User = {
   role: UserRolesType;
   estate_id: string | null;
   household_id?: string | null;
+  household_name?: string | null;
+  household_primary_resident?: string | null;
   status: boolean;
   created_at?: string | null;
   updated_at?: string | null;

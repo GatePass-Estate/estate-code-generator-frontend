@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react';
 import icons from '@/src/constants/icons';
 import Modal from '@/src/components/web/Modal';
 import { getRequests, approveRequests, declineRequests } from '@/src/lib/api/requests';
-import { getUserById } from '@/src/lib/api/user';
+import { getUserByIdAdmin } from '@/src/lib/api/user';
 import { RequestItem, RequestType } from '@/src/types/requests';
 import EditRequestMobile from './index.native';
 import { getWidthBreakpoint } from '@/src/lib/helpers';
@@ -28,6 +28,7 @@ const getFieldLabelFromType = (type: RequestType): string => {
     gender_change: 'Gender',
     vacate_residence: 'Vacate Residence',
     phone_number_change: 'Phone Number',
+    id_change: 'ID Card',
   };
   return labels[type] || 'Unknown Field';
 };
@@ -60,7 +61,7 @@ function EditRequestsWeb() {
         const requestsWithUsers = await Promise.all(
           data.items.map(async (item) => {
             try {
-              const user = await getUserById(item.resident_id);
+              const user = await getUserByIdAdmin(item.resident_id);
               return {
                 ...item,
                 selected: false,

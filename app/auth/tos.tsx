@@ -17,8 +17,20 @@ import { Button } from '@/src/components/nativewindui/Button';
 import Back from '@/src/components/mobile/Back';
 import { useAuth } from '@/src/hooks/useAuthContext';
 import { acceptTos, fetchMe } from '@/src/lib/api/auth';
+import { User } from '@/src/types/user';
 import { useAuthStore } from '@/src/lib/stores/authStore';
 import { broadcastLogin, getWidthBreakpoint, storeAuthState } from '@/src/lib/helpers';
+import {
+  biometricTokenMatchesUser,
+  deleteBiometricToken,
+  isBiometricAvailable,
+  canUseBiometricLogin,
+  hasBiometricPromptBeenDismissed,
+  dismissBiometricPrompt,
+  promptBiometrics,
+  saveBiometricCredentials,
+} from '@/src/lib/biometricAuth';
+import { BiometricPromptModal } from '@/src/components/mobile/BiometricPromptModal';
 import Images from '@/src/constants/images';
 import { UserRolesType } from '@/src/types/general';
 
@@ -226,11 +238,28 @@ export default function TermsOfService() {
   const [isAccepting, setIsAccepting] = useState(false);
   const [isRejecting, setIsRejecting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [showBiometricPrompt, setShowBiometricPrompt] = useState(false);
+  const [pendingAuth, setPendingAuth] = useState<{
+    token: string;
+    user: User;
+    role: UserRolesType;
+  } | null>(null);
   const [activeSection, setActiveSection] = useState('introduction');
   const scrollViewRef = useRef<ScrollView>(null);
   const sectionRefs = useRef<Record<string, number>>({});
 
   const isLargeScreen = width > getWidthBreakpoint();
+
+  const routeForRole = useCallback(
+    (role: UserRolesType) => {
+      if (role === 'resident' || ['primary_admin', 'admin'].includes(role!)) {
+        router.replace('/user');
+      } else if (role === 'security') {
+        router.replace('/security');
+      }
+    },
+    [router]
+  );
 
   const handleBackFromTerms = useCallback(() => {
     if (isReadOnly) {
@@ -258,24 +287,76 @@ export default function TermsOfService() {
       useAuthStore.setState({ access_token: token, role });
       await storeAuthState({ access_token: token, role });
       broadcastLogin(token, role);
-      signIn(await fetchMe(token));
+      const user = await fetchMe(token);
+      signIn(user);
 
-      if (role === 'resident' || ['primary_admin', 'admin'].includes(role!)) {
-        router.replace('/user');
-      } else if (role === 'security') {
-        router.replace('/security');
+      // Accepting TOS completes a fresh login. Only clear the biometric token
+      // when the newly signed-in user/estate differs from the one stored.
+      try {
+        const matches = await biometricTokenMatchesUser(user.user_id, user.estate_id);
+        if (!matches) {
+          await deleteBiometricToken();
+        }
+      } catch {
+        // ignore cleanup errors
+      }
+
+      const shouldPrompt =
+        Platform.OS !== 'web' &&
+        (await isBiometricAvailable()) &&
+        !(await canUseBiometricLogin(user.user_id)) &&
+        !(await hasBiometricPromptBeenDismissed(user.user_id));
+
+      if (shouldPrompt) {
+        setPendingAuth({ token, user, role });
+        setShowBiometricPrompt(true);
+      } else {
+        routeForRole(role);
       }
     } catch (error: any) {
       setErrorMessage(error.message || 'Failed to accept Terms of Service');
     } finally {
       setIsAccepting(false);
     }
-  }, [params.token, params.role, signIn, router]);
+  }, [params.token, params.role, signIn, routeForRole]);
 
   const handleReject = useCallback(() => {
     setIsRejecting(true);
     router.replace({ pathname: '/auth/login', params: { tos_rejected: 'true' } });
   }, [router]);
+
+  const handleEnableBiometricPrompt = useCallback(async () => {
+    if (!pendingAuth) return;
+    const { token, user, role } = pendingAuth;
+
+    try {
+      const success = await promptBiometrics('Enable biometric login');
+      if (success) {
+        await saveBiometricCredentials(token, user.user_id, user.estate_id);
+      }
+    } catch {
+      // ignore biometric enable errors
+    }
+
+    setShowBiometricPrompt(false);
+    setPendingAuth(null);
+    routeForRole(role);
+  }, [pendingAuth, routeForRole]);
+
+  const handleDismissBiometricPrompt = useCallback(async () => {
+    if (!pendingAuth) return;
+    const { user, role } = pendingAuth;
+
+    try {
+      await dismissBiometricPrompt(user.user_id);
+    } catch {
+      // ignore storage errors
+    }
+
+    setShowBiometricPrompt(false);
+    setPendingAuth(null);
+    routeForRole(role);
+  }, [pendingAuth, routeForRole]);
 
   const handleSectionPress = (sectionId: string) => {
     setActiveSection(sectionId);
@@ -447,6 +528,12 @@ export default function TermsOfService() {
             )}
           </ScrollView>
         </View>
+
+        <BiometricPromptModal
+          visible={showBiometricPrompt}
+          onEnable={handleEnableBiometricPrompt}
+          onDismiss={handleDismissBiometricPrompt}
+        />
       </SafeAreaView>
     );
   }
@@ -454,8 +541,8 @@ export default function TermsOfService() {
   return (
     <SafeAreaView className="flex-1 bg-white">
       <View className="flex-row justify-between items-center px-5 pt-4">
-        <Back type="short-arrow" onPress={handleBackFromTerms} />
-        <Image source={Images.logo} style={{ width: 36, height: 36 }} resizeMode="contain" />
+        <Back type="short-arrow" onPress={handleBackFromTerms} showText={false} showBorder={true} />
+        <Image source={Images.logo} style={{ width: 50, height: 50 }} resizeMode="contain" />
       </View>
 
       <ScrollView
@@ -525,7 +612,7 @@ export default function TermsOfService() {
               disabled={isAccepting}
               style={{
                 backgroundColor: '#113E55',
-                borderRadius: 10,
+                borderRadius: 100,
                 height: 56,
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -536,15 +623,15 @@ export default function TermsOfService() {
               {isAccepting ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text className="text-white font-UbuntuSans font-semibold text-base">I Accept</Text>
+                <Text className="text-white font-ubuntu-semibold text-base">I Accept</Text>
               )}
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleReject}
               disabled={isRejecting}
               style={{
-                backgroundColor: '#1B998B',
-                borderRadius: 10,
+                backgroundColor: '#CEE5ED',
+                borderRadius: 100,
                 height: 56,
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -555,12 +642,18 @@ export default function TermsOfService() {
               {isRejecting ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text className="text-white font-UbuntuSans font-semibold text-base">I Reject</Text>
+                <Text className="text-primary font-ubuntu-semibold text-base">I Reject</Text>
               )}
             </TouchableOpacity>
           </View>
         )}
       </ScrollView>
+
+      <BiometricPromptModal
+        visible={showBiometricPrompt}
+        onEnable={handleEnableBiometricPrompt}
+        onDismiss={handleDismissBiometricPrompt}
+      />
     </SafeAreaView>
   );
 }
