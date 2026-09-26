@@ -2,7 +2,7 @@ import Svg, { Path, G, Rect } from 'react-native-svg';
 
 type MenuIconProps = { color?: string; size?: number };
 
-/** Incident category icons from Figma (6792:103*) — outline=inactive, filled=active. */
+/** Incident category icons — outline=inactive, filled=active. */
 export function IncidentSecurityOutlineIcon({ color = '#113E55', size = 24 }: MenuIconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
@@ -299,7 +299,7 @@ export function IncidentUnauthorizedAccessFilledIcon({
 export function IncidentOtherOutlineIcon({ color = '#113E55', size = 24 }: MenuIconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <G transform="translate(7 11)">
+      <G transform="translate(7, 11)">
         <Path
           d="M0.994318 1.98366C0.722538 1.98366 0.488873 1.88755 0.293324 1.69531C0.0977746 1.49976 0 1.26444 0 0.989347C0 0.717566 0.0977746 0.485559 0.293324 0.293324C0.488873 0.0977746 0.722538 0 0.994318 0C1.2661 0 1.49976 0.0977746 1.69531 0.293324C1.89086 0.485559 1.98864 0.717566 1.98864 0.989347C1.98864 1.17164 1.94224 1.33902 1.84943 1.49148C1.75994 1.64063 1.64062 1.75994 1.49148 1.84943C1.34233 1.93892 1.17661 1.98366 0.994318 1.98366Z"
           fill={color}
@@ -320,7 +320,7 @@ export function IncidentOtherOutlineIcon({ color = '#113E55', size = 24 }: MenuI
 export function IncidentOtherFilledIcon({ color = '#113E55', size = 24 }: MenuIconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <G transform="translate(7 11)">
+      <G transform="translate(7, 11)">
         <Path
           d="M0.994318 1.98366C0.722538 1.98366 0.488873 1.88755 0.293324 1.69531C0.0977746 1.49976 0 1.26444 0 0.989347C0 0.717566 0.0977746 0.485559 0.293324 0.293324C0.488873 0.0977746 0.722538 0 0.994318 0C1.2661 0 1.49976 0.0977746 1.69531 0.293324C1.89086 0.485559 1.98864 0.717566 1.98864 0.989347C1.98864 1.17164 1.94224 1.33902 1.84943 1.49148C1.75994 1.64063 1.64062 1.75994 1.49148 1.84943C1.34233 1.93892 1.17661 1.98366 0.994318 1.98366Z"
           fill={color}

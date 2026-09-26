@@ -8,10 +8,12 @@ import type {
   RatioShare,
 } from '@/src/lib/api/incidentReports';
 import type { IncidentCategory, IncidentRow } from '@/src/components/incident/incidentTypes';
+import { OTHERS_BUCKET_ID } from '@/src/components/incident/incidentTypes';
 import {
   formatApiCategoryLabel,
   resolveApiCategory,
 } from '@/src/components/incident/categoryIcons';
+import { formatIncidentLongDate } from '@/src/components/incident/incidentDetailCache';
 
 /** Display labels for API `peak_time` enum values. */
 const PEAK_TIME_LABEL: Record<IncidentPeakTime, string> = {
@@ -103,7 +105,10 @@ export function resolveCategorySection(
 
 /**
  * Maps API category EDA (`top_1`…`top_5` + `other_categories`) into UI bubbles.
- * Ids / names / icons come from the API taxonomy — not a hardcoded slot list.
+ *
+ * Taxonomy `other` can appear in the top ranks as its own bubble (`id: 'other'`).
+ * The leftover `other_categories` group is a separate bubble (`id: others_bucket`)
+ * and never lists taxonomy `other` again inside its subcategory stack.
  */
 export function mapCategoryEdaToUi(
   section?: CategoryEdaSection | null,
@@ -121,9 +126,12 @@ export function mapCategoryEdaToUi(
     uniqueTops.push(item);
   }
 
+  // Leftover ranks only — skip anything already in tops, and skip taxonomy `other`
+  // so we never nest "Other" inside the "Others" bucket.
   const uniqueOthers: CategoryEdaItem[] = [];
   for (const item of otherItems) {
     const key = resolveApiCategory(item.category);
+    if (key === 'other') continue;
     if (seen.has(key)) continue;
     seen.add(key);
     uniqueOthers.push(item);
@@ -159,7 +167,7 @@ export function mapCategoryEdaToUi(
     });
 
     categories.push({
-      id: 'other',
+      id: OTHERS_BUCKET_ID,
       name: 'Others',
       share: otherShare,
       count: otherCount,
@@ -167,7 +175,7 @@ export function mapCategoryEdaToUi(
       peakPct: 0,
       thresholdLabel: otherShare >= 5 ? '> 5%' : '< 5%',
       detail: `Other categories accounted for ${otherShare}% of reports this period.`,
-      narrative: sampleNarrative(peakItem, 'other'),
+      narrative: sampleNarrative(peakItem, 'Others'),
       apiCategory: 'other',
       color: '#113E55',
       subcategories,
@@ -212,10 +220,12 @@ export function mapListItemToRow(item: IncidentListItem): IncidentRow {
           ? 'Resident'
           : 'Reporter',
     reportedAt,
+    reportedLabel: formatIncidentLongDate(when),
     category: categoryLabel,
     categoryId: apiCategory,
     apiCategory,
     title: item.title?.trim() || item.narrative.slice(0, 48) || 'Incident report',
+    narrative: item.narrative?.trim() || '',
   };
 }
 
@@ -294,15 +304,8 @@ function findInStats(stats: Record<string, any>, key: string): any {
   return undefined;
 }
 
-function parseWeekdayPct(text: string): number | null {
-  const match = text.match(/(\d+(?:\.\d+)?)\s*%\s*(?:on\s+)?weekdays?/i);
-  if (!match) return null;
-  return Math.round(Number(match[1]));
-}
-
 /**
- * Builds trend cards from overview EDA — day/time when present, every
- * `trends_detected` blurb, and each category signal (not capped at 2).
+ * Trend cards come only from overview `eda.trends_detected` — never derived from stats/categories.
  */
 export function mapTrendsFromEda(
   eda:
@@ -314,100 +317,16 @@ export function mapTrendsFromEda(
     | null
     | undefined
 ): TrendCardModel[] {
-  const cards: TrendCardModel[] = [];
-  const stats = (eda?.stats ?? {}) as Record<string, any>;
-
-  const weekend = findInStats(stats, 'weekend_vs_weekday') ?? {};
-  const weekdayCount = Number(weekend.weekday ?? weekend.weekdays ?? 0);
-  const weekendCount = Number(weekend.weekend ?? weekend.weekends ?? 0);
-  const dayTotal = weekdayCount + weekendCount;
-
-  const trendBlurbs = normalizeTrendsDetected(eda?.trends_detected);
-  const timelineRaw = findInStats(stats, 'timeline_summary');
-  const timeline =
-    typeof timelineRaw === 'string' && timelineRaw.trim()
-      ? timelineRaw.trim()
-      : trendBlurbs[0] || '';
-
-  const parsedWeekday = parseWeekdayPct(timeline) ?? parseWeekdayPct(trendBlurbs.join(' '));
-  const dayPct =
-    dayTotal > 0
-      ? Math.round((weekdayCount / dayTotal) * 100)
-      : parsedWeekday != null
-        ? parsedWeekday
-        : 0;
-
-  if (dayTotal > 0 || parsedWeekday != null) {
-    cards.push({
-      title: 'DAY\nDISTRIBUTION',
-      pct: dayPct,
-      unitLabel: 'INCIDENT',
-      body: timeline || (dayTotal > 0 ? `${weekdayCount} weekdays · ${weekendCount} weekends` : ''),
-    });
-  }
-
-  const temporal = findInStats(stats, 'temporal_overview') ?? {};
-  const hourBucket = temporal.hour_bucket ?? findInStats(stats, 'hour_bucket') ?? {};
-  const morning = Number(hourBucket.morning ?? 0);
-  const afternoon = Number(hourBucket.afternoon ?? 0);
-  const night = Number(hourBucket.night ?? hourBucket.evening_night ?? 0);
-  const timeTotal = morning + afternoon + night;
-  const peak = Math.max(morning, afternoon, night, 0);
-  const timePct = timeTotal > 0 ? Math.round((peak / timeTotal) * 100) : 0;
-
-  if (timeTotal > 0) {
-    cards.push({
-      title: 'TIME\nDISTRIBUTION',
-      pct: timePct,
-      unitLabel: 'INCIDENTS',
-      body: `${morning} morning · ${afternoon} afternoon · ${night} night`,
-    });
-  }
-
-  trendBlurbs.forEach((blurb, index) => {
-    const pctMatch = blurb.match(/(\d+(?:\.\d+)?)\s*%/);
-    cards.push({
-      title: trendBlurbs.length > 1 ? `TREND\n${index + 1}` : 'TRENDS\nDETECTED',
-      pct: pctMatch ? Math.round(Number(pctMatch[1])) : dayPct || timePct || 0,
+  const blurbs = normalizeTrendsDetected(eda?.trends_detected);
+  return blurbs.map((body, index) => {
+    const pctMatch = body.match(/(\d+(?:\.\d+)?)\s*%/);
+    return {
+      title: blurbs.length > 1 ? `TREND\n${index + 1}` : 'TRENDS\nDETECTED',
+      pct: pctMatch ? Math.round(Number(pctMatch[1])) : 0,
       unitLabel: 'INSIGHT',
-      body: blurb,
-    });
+      body,
+    };
   });
-
-  const categorySection = eda?.categories ?? null;
-  const categoryItems = [
-    ...rankedItems(categorySection),
-    ...Object.values(categorySection?.other_categories ?? {}),
-  ];
-  const seenCategories = new Set<string>();
-  for (const item of categoryItems) {
-    const key = item.category.toLowerCase();
-    if (seenCategories.has(key)) continue;
-    seenCategories.add(key);
-    const label = formatCategoryLabel(item.category);
-    const sample = item.sample_reports?.find((s) => s?.trim())?.trim() || '';
-    const peakLabel = (item.peak_time || '').replace(/_/g, ' ');
-    cards.push({
-      title: formatTrendTitle(label),
-      pct: Math.round(Number(item.percentage_share) || 0),
-      unitLabel: Number(item.incident_count) === 1 ? 'INCIDENT' : 'INCIDENTS',
-      body:
-        sample ||
-        (peakLabel
-          ? `${item.incident_count} reports · peaks ${peakLabel}`
-          : `${item.incident_count} reports`),
-    });
-  }
-
-  return cards;
-}
-
-/** Keep trend titles on consistent 1–2 lines so first lines align across cards. */
-function formatTrendTitle(label: string): string {
-  const words = label.trim().toUpperCase().split(/\s+/).filter(Boolean);
-  if (words.length <= 1) return words[0] || '';
-  if (words.length === 2) return `${words[0]}\n${words[1]}`;
-  return `${words[0]}\n${words.slice(1).join(' ')}`;
 }
 
 function normalizeTrendsDetected(value: string | string[] | null | undefined): string[] {

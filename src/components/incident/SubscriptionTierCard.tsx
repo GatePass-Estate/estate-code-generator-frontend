@@ -1,18 +1,24 @@
 import React, { useEffect } from 'react';
 import { View, Text, Pressable, ActivityIndicator, LayoutChangeEvent } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withTiming,
   Easing,
 } from 'react-native-reanimated';
-import { BenefitsChevronIcon } from '@/src/assets/svgs';
+import { BenefitsChevronIcon, CheckRingIcon } from '@/src/assets/svgs';
 
 const EXPAND = {
   duration: 300,
   easing: Easing.bezier(0.25, 0.1, 0.25, 1),
 };
+
+/** Purchased card mint wash */
+const PURCHASED_CARD_BG = '#EDF3F3';
+/** ACTIVE badge fill */
+const ACTIVE_BADGE_BG = '#CEE5ED';
+/** Secondary Uninstall button */
+const UNINSTALL_BTN_BG = '#CEE5ED';
 
 type SubscriptionTierCardProps = {
   tierLabel: string;
@@ -21,6 +27,8 @@ type SubscriptionTierCardProps = {
   expanded: boolean;
   onToggle: () => void;
   onActivate: () => void;
+  onCancelSubscription?: () => void;
+  onUninstall?: () => void;
   isSubscribing?: boolean;
   isInstalled?: boolean;
   /** Benefit rows from the API (tier description split). */
@@ -35,6 +43,8 @@ export default function SubscriptionTierCard({
   expanded,
   onToggle,
   onActivate,
+  onCancelSubscription,
+  onUninstall,
   isSubscribing = false,
   isInstalled = false,
   benefits,
@@ -42,6 +52,7 @@ export default function SubscriptionTierCard({
 }: SubscriptionTierCardProps) {
   const benefitRows =
     benefits && benefits.length > 0 ? benefits : description.trim() ? [description.trim()] : [];
+  const canExpand = benefitRows.length > 0 || isInstalled;
   const chevronRotation = useSharedValue(expanded ? 90 : 0);
   const progress = useSharedValue(expanded ? 1 : 0);
   const measuredHeight = useSharedValue(0);
@@ -69,30 +80,102 @@ export default function SubscriptionTierCard({
     }
   };
 
+  const purchasedActions = (
+    <View className="gap-4">
+      <Pressable
+        disabled={isSubscribing || !expanded}
+        onPress={onCancelSubscription}
+        className="h-[48px] w-full items-center justify-center rounded-full bg-[#113E55]"
+      >
+        {isSubscribing ? (
+          <ActivityIndicator size="small" color="white" />
+        ) : (
+          <Text allowFontScaling={false} className="text-[14px] font-ubuntu-semibold text-white">
+            Cancel Subscription
+          </Text>
+        )}
+      </Pressable>
+      <Pressable
+        disabled={isSubscribing || !expanded}
+        onPress={onUninstall}
+        className="h-[48px] w-full items-center justify-center rounded-full bg-[#E5F6FF]"
+       
+      >
+        <Text  className="text-[14px] font-ubuntu-semibold text-[#113E55]">
+          Uninstall
+        </Text>
+      </Pressable>
+    </View>
+  );
+
+  const activateButton = (
+    <Pressable
+      disabled={isSubscribing || !expanded}
+      onPress={onActivate}
+      className="h-[48px] w-full items-center justify-center rounded-full bg-[#113E55]"
+    >
+      {isSubscribing ? (
+        <ActivityIndicator size="small" color="white" />
+      ) : (
+        <Text allowFontScaling={false} className="text-[14px] font-ubuntu-semibold text-white">
+          Activate
+        </Text>
+      )}
+    </Pressable>
+  );
+
   return (
     <View
-      className={`flex-col rounded-[16px] bg-white px-4 py-8 ${
-        expanded ? 'border border-[#113E55]' : ''
-      }`}
+      className="flex-col rounded-[16px] px-4 py-8"
+      style={{
+        backgroundColor: isInstalled && expanded ? PURCHASED_CARD_BG : '#FFFFFF',
+        ...(expanded
+          ? {
+              borderWidth: isInstalled ? 0.6 : 1,
+              borderColor: '#1B998B',
+            }
+          : null),
+      }}
     >
       <View className="flex-col gap-4">
+        <View className="flex-row items-center justify-between gap-3">
+        <View className='flex-col gap-3'>
         <Text
-          allowFontScaling={false}
-          className="text-[17.5px] font-inter-regular leading-[17.5px] text-[#113E55]"
-        >
-          {tierLabel}
-        </Text>
-
-        {subtitle ? (
+            allowFontScaling={false}
+            className={`flex-1 text-[17.5px] font-inter-regular leading-[17.5px] ${
+              isInstalled ? 'text-[#1B998B]' : 'text-[#113E55]'
+            }`}
+          >
+            {tierLabel}
+          </Text>
+          {subtitle ? (
           <Text
             allowFontScaling={false}
-            className={`text-sm font-inter-medium leading-[17.5px] text-[#113E55] ${
-              subtitleUppercase ? 'uppercase' : ''
-            }`}
+            className={`text-sm font-inter-medium leading-[17.5px] ${
+              isInstalled ? 'text-[#1B998B]' : 'text-[#113E55]'
+            } ${isInstalled || subtitleUppercase ? 'uppercase' : ''}`}
           >
             {subtitle}
           </Text>
         ) : null}
+        </View>
+
+          {isInstalled && expanded ? (
+            <View
+              className=" py-4 items-center justify-center rounded-[16px] px-8 bg-[#1B998B1F]"
+             
+            >
+              <Text
+                allowFontScaling={false}
+                className="text-sm font-ubuntu-semibold uppercase tracking-[-0.24px] text-[#1B998B]"
+              >
+                Active
+              </Text>
+            </View>
+          ) : null}
+        </View>
+
+       
 
         {description ? (
           <Text
@@ -103,36 +186,30 @@ export default function SubscriptionTierCard({
           </Text>
         ) : null}
 
-        {benefitRows.length > 0 ? (
+        {canExpand ? (
           <Pressable onPress={onToggle} className="flex-row items-center gap-1.5">
             <Text
               allowFontScaling={false}
-              className="text-[11.2px] font-inter-normal text-[#113E55]"
+              className={`text-[11.2px] font-inter-normal ${
+                isInstalled ? 'text-[#878686]' : 'text-[#113E55]'
+              }`}
             >
               See benefits
             </Text>
             <Animated.View style={chevronStyle}>
-              <BenefitsChevronIcon width={21} height={20} />
+              <BenefitsChevronIcon
+                width={21}
+                height={20}
+                color={isInstalled ? '#878686' : '#113E55'}
+              />
             </Animated.View>
           </Pressable>
         ) : (
-          <Pressable
-            disabled={isSubscribing}
-            onPress={onActivate}
-            className="mt-1 h-[48px] w-full items-center justify-center rounded-full bg-[#113E55]"
-          >
-            {isSubscribing ? (
-              <ActivityIndicator size="small" color="white" />
-            ) : (
-              <Text allowFontScaling={false} className="text-[14px] font-inter-medium text-white">
-                {isInstalled ? 'Installed' : 'Activate'}
-              </Text>
-            )}
-          </Pressable>
+          activateButton
         )}
       </View>
 
-      {benefitRows.length > 0 ? (
+      {canExpand ? (
         <Animated.View style={bodyStyle}>
           <View
             className="absolute left-0 right-0 top-0 gap-3"
@@ -141,31 +218,26 @@ export default function SubscriptionTierCard({
           >
             {benefitRows.map((text, index) => (
               <View key={`${index}-${text.slice(0, 24)}`} className="flex-row items-start gap-2">
-                <View className="mt-[2px] rounded-full bg-[#CEE5ED] p-[2px]">
-                  <MaterialIcons name="check" size={12} color="#113E55" />
+                <View className="mt-[2px]">
+                  <CheckRingIcon
+                    width={16}
+                    height={16}
+                    ringColor="#DFEEEA"
+                    color={isInstalled ? '#1B998B' : '#113E55'}
+                  />
                 </View>
                 <Text
                   allowFontScaling={false}
-                  className="flex-1 text-justify text-[11.2px] font-inter-regular leading-[16px] text-[#8A9A9D]"
+                  className="flex-1 text-justify text-[11.2px] font-inter-regular leading-[16px] text-[#878686]"
                 >
                   {text}
                 </Text>
               </View>
             ))}
 
-            <Pressable
-              disabled={isSubscribing || !expanded}
-              onPress={onActivate}
-              className="mt-1 h-[48px] w-full items-center justify-center rounded-full bg-[#113E55]"
-            >
-              {isSubscribing ? (
-                <ActivityIndicator size="small" color="white" />
-              ) : (
-                <Text allowFontScaling={false} className="text-[14px] font-inter-medium text-white">
-                  {isInstalled ? 'Installed' : 'Activate'}
-                </Text>
-              )}
-            </Pressable>
+            <View className={benefitRows.length > 0 ? 'mt-10 px-3' : ''}>
+              {isInstalled ? purchasedActions : activateButton}
+            </View>
           </View>
         </Animated.View>
       ) : null}

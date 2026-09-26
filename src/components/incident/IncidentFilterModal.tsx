@@ -1,17 +1,18 @@
 import { useEffect, useState } from 'react';
 import { Modal, Pressable, Text, View } from 'react-native';
 import {
+  formatApiCategoryLabel,
   INCIDENT_API_CATEGORIES,
-  INCIDENT_API_CATEGORY_LABELS,
   IncidentCategoryIcon,
   type IncidentApiCategory,
 } from '@/src/components/incident/categoryIcons';
+import { incidentReportsApi } from '@/src/lib/api/incidentReports';
 
 /** API category values for `/incident-reports/result-page/reports`. */
-export type IncidentFilterCategory = IncidentApiCategory;
+export type IncidentFilterCategory = IncidentApiCategory | string;
 
 /**
- * UI user-type chips (Figma). API only accepts `resident` | `security` | `all`;
+ * UI user-type chips. API only accepts `resident` | `security` | `all`;
  * `guest` is shown for design parity and omitted from the request.
  */
 export type IncidentFilterUserType = 'guest' | 'resident' | 'security';
@@ -28,9 +29,10 @@ type IncidentFilterModalProps = {
   current?: IncidentFilterSelection;
 };
 
-const CATEGORIES: { id: IncidentFilterCategory; label: string }[] = INCIDENT_API_CATEGORIES.map(
-  (id) => ({ id, label: INCIDENT_API_CATEGORY_LABELS[id] })
-);
+const FALLBACK_CATEGORIES: { id: string; label: string }[] = INCIDENT_API_CATEGORIES.map((id) => ({
+  id,
+  label: formatApiCategoryLabel(id),
+}));
 
 const USER_TYPES: { id: IncidentFilterUserType; label: string }[] = [
   { id: 'guest', label: 'Guest' },
@@ -42,7 +44,7 @@ function toggleValue<T>(list: T[], value: T): T[] {
   return list.includes(value) ? list.filter((item) => item !== value) : [...list, value];
 }
 
-/** Figma tag (6567:4229): p-12, rounded-16, inactive #EFF1F1 / #878686, active #CEE5ED / #113E55 */
+/** Filter chip: inactive #EFF1F1 / #878686, active #CEE5ED / #113E55 */
 function FilterChip({
   label,
   categoryId,
@@ -50,7 +52,7 @@ function FilterChip({
   onPress,
 }: {
   label: string;
-  categoryId?: IncidentFilterCategory;
+  categoryId?: string;
   selected: boolean;
   onPress: () => void;
 }) {
@@ -97,12 +99,38 @@ export default function IncidentFilterModal({
 }: IncidentFilterModalProps) {
   const [categories, setCategories] = useState<IncidentFilterCategory[]>(current?.categories ?? []);
   const [userTypes, setUserTypes] = useState<IncidentFilterUserType[]>(current?.userTypes ?? []);
+  const [categoryOptions, setCategoryOptions] =
+    useState<{ id: string; label: string }[]>(FALLBACK_CATEGORIES);
+
+  const allSelected = categories.length === 0;
 
   useEffect(() => {
     if (!visible) return;
     setCategories(current?.categories ?? []);
     setUserTypes(current?.userTypes ?? []);
   }, [visible, current?.categories, current?.userTypes]);
+
+  useEffect(() => {
+    if (!visible) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const list = await incidentReportsApi.getCategories();
+        if (cancelled || !list.length) return;
+        setCategoryOptions(
+          list.map((id) => ({
+            id,
+            label: formatApiCategoryLabel(id),
+          }))
+        );
+      } catch {
+        // Keep taxonomy fallback chips.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [visible]);
 
   return (
     <Modal transparent visible={visible} animationType="slide" onRequestClose={onClose}>
@@ -129,7 +157,6 @@ export default function IncidentFilterModal({
           </View>
 
           <View style={{ flex: 1, paddingTop: 46, paddingHorizontal: 34 }}>
-            {/* Titles only: +12px (pl-3). Pills flush to the 34px side inset (Figma). */}
             <View style={{ flex: 1 }}>
               <Text
                 allowFontScaling={false}
@@ -150,13 +177,20 @@ export default function IncidentFilterModal({
                   gap: 8,
                 }}
               >
-                {CATEGORIES.map((item) => (
+                <FilterChip
+                  label="All"
+                  selected={allSelected}
+                  onPress={() => setCategories([])}
+                />
+                {categoryOptions.map((item) => (
                   <FilterChip
                     key={item.id}
                     label={item.label}
                     categoryId={item.id}
                     selected={categories.includes(item.id)}
-                    onPress={() => setCategories((prev) => toggleValue(prev, item.id))}
+                    onPress={() =>
+                      setCategories((prev) => toggleValue(prev, item.id as IncidentFilterCategory))
+                    }
                   />
                 ))}
               </View>

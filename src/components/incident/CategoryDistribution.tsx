@@ -15,7 +15,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { CategoryExpandIcon, NarrativeSnippetIcon } from '@/src/assets/svgs';
 import { IncidentCategoryIcon } from './categoryIcons';
-import { type IncidentCategory, type IncidentCategoryId } from './incidentTypes';
+import { type IncidentCategory, type IncidentCategoryId, OTHERS_BUCKET_ID } from './incidentTypes';
 import { mapCategoryEdaToUi } from './mapIncidentApi';
 
 type CategoryDistributionProps = {
@@ -200,7 +200,7 @@ function NarrativeSnippetSlider({
 
   return (
     <View
-      className="mt-[21px]"
+      style={{ marginTop: 16 }}
       onLayout={(e) => {
         const w = Math.round(e.nativeEvent.layout.width);
         if (w > 0 && w !== pageWidth) setPageWidth(w);
@@ -307,20 +307,22 @@ function CategoryExpandSheet({
 }) {
   const index = categories.findIndex((c) => c.id === categoryId);
   const category = categories[index] ?? categories[0];
+  if (!visible || !category) return null;
+
   const thresholdCopy = category.thresholdLabel.startsWith('>')
     ? 'Category more than 5%'
     : 'Category less than 5%';
 
   const goPrev = () => {
+    if (!categories.length) return;
     const next = (index - 1 + categories.length) % categories.length;
     onChangeCategory(categories[next].id);
   };
   const goNext = () => {
+    if (!categories.length) return;
     const next = (index + 1) % categories.length;
     onChangeCategory(categories[next].id);
   };
-
-  if (!visible) return null;
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -448,22 +450,49 @@ export default function CategoryDistribution({
   const catalog = categories.length > 0 ? categories : mapCategoryEdaToUi(null);
   const total = totalReports ?? 0;
   const [expanded, setExpanded] = useState(false);
+  const [sideStackHeight, setSideStackHeight] = useState(0);
   const selected = catalog.find((item) => item.id === selectedId) ?? catalog[0];
   const selectedIndex = catalog.findIndex((c) => c.id === selectedId);
-  const showSubcategories = selectedId === 'other' && (selected.subcategories?.length ?? 0) > 0;
+  const showSubcategories =
+    !!selected &&
+    selected.id === OTHERS_BUCKET_ID &&
+    (selected.subcategories?.length ?? 0) > 0;
   const metricsFade = useSelectionFade(selectedId);
-  const subcategoryCount = selected.subcategories?.length ?? 0;
+  const subcategoryCount = selected?.subcategories?.length ?? 0;
   const othersStackHeight =
     subcategoryCount > 0
       ? subcategoryCount * SUBCATEGORY_CARD_HEIGHT + (subcategoryCount - 1) * SUBCATEGORY_GAP
       : 0;
-  const chartAreaHeight = showSubcategories
-    ? Math.max(CHART_AREA_HEIGHT, othersStackHeight)
-    : CHART_AREA_HEIGHT;
+  /** Grow with side cards / Others stack so Narrative stays 16px below (no absolute overflow). */
+  const chartAreaHeight = Math.max(
+    CHART_AREA_HEIGHT,
+    othersStackHeight,
+    sideStackHeight
+  );
+
+  useEffect(() => {
+    setSideStackHeight(0);
+  }, [selectedId, showSubcategories]);
+
+  if (!selected) {
+    return (
+      <View className="-mx-5 mt-4 px-[26px]">
+        <Text
+          allowFontScaling={false}
+          className="text-[21.88px] font-ubuntu-semibold text-[#0A1F29]"
+        >
+          Category Distribution
+        </Text>
+        <Text allowFontScaling={false} className="mt-4 text-sm font-inter-medium text-[#878686]">
+          No category data for this period.
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <View className="-mx-5 mt-4">
-      <View className="mb-[33px] flex-row items-center justify-between px-[26px]">
+      <View className="mb-[24px] flex-row items-center justify-between px-[26px]">
         <Text
           allowFontScaling={false}
           className="text-[21.88px] font-ubuntu-semibold text-[#0A1F29]"
@@ -487,9 +516,10 @@ export default function CategoryDistribution({
         {catalog.slice(0, BUBBLE_LAYOUT.length).map((category, index) => {
           const layout = BUBBLE_LAYOUT[index];
           if (!layout) return null;
+          const isOthersBucket = category.id === OTHERS_BUCKET_ID;
           const isSelected = selectedId === category.id;
           const iconColor = isSelected ? '#F6F7F7' : '#113E55';
-          const showPct = isSelected && category.apiCategory !== 'other';
+          const showPct = isSelected && !isOthersBucket;
           const iconSz = iconSizeForBubble(layout.size);
 
           return (
@@ -519,7 +549,7 @@ export default function CategoryDistribution({
                 />
               )}
 
-              {category.apiCategory === 'other' ? (
+              {isOthersBucket ? (
                 <View className="absolute inset-0 items-center justify-center" pointerEvents="none">
                   <CategoryIcon
                     apiCategory={category.apiCategory}
@@ -609,6 +639,10 @@ export default function CategoryDistribution({
 
         {showSubcategories ? (
           <Animated.View
+            onLayout={(e) => {
+              const h = Math.ceil(e.nativeEvent.layout.height);
+              if (h > 0 && h !== sideStackHeight) setSideStackHeight(h);
+            }}
             style={[
               metricsFade,
               {
@@ -633,6 +667,10 @@ export default function CategoryDistribution({
         ) : (
           /* Side metrics — same width as Others subcategory cards */
           <Animated.View
+            onLayout={(e) => {
+              const h = Math.ceil(e.nativeEvent.layout.height);
+              if (h > 0 && h !== sideStackHeight) setSideStackHeight(h);
+            }}
             style={[
               metricsFade,
               {

@@ -861,22 +861,22 @@ export function CarbonAddFilledIcon({ color = '#113E55', ...props }: MenuIconPro
   );
 }
 
+/** Benefit check circle — ring + dual-stroke check */
 export function CheckRingIcon({
-  ringColor = '#CEE5ED',
+  ringColor = '#DFEEEA',
   color = '#113E55',
   ...props
 }: MenuIconProps & { ringColor?: string }) {
+  const checkPath =
+    'M5.5 8L7.394 9.894C7.42213 9.92209 7.46025 9.93787 7.5 9.93787C7.53975 9.93787 7.57787 9.92209 7.606 9.894L11.5 6';
   return (
     <Svg width={16} height={16} viewBox="0 0 16 16" fill="none" {...props}>
       <Path
         d="M8 16C12.4183 16 16 12.4183 16 8C16 3.58172 12.4183 0 8 0C3.58172 0 0 3.58172 0 8C0 12.4183 3.58172 16 8 16Z"
         fill={ringColor}
       />
-      <Path
-        d="M5.5 8L7.394 9.894C7.42213 9.92209 7.46025 9.93787 7.5 9.93787C7.53975 9.93787 7.57787 9.92209 7.606 9.894L11.5 6"
-        stroke={color}
-        strokeWidth={1.2}
-      />
+      <Path d={checkPath} stroke={color} strokeWidth={1.2} />
+      <Path d={checkPath} stroke="#000000" strokeOpacity={0.2} strokeWidth={1.2} />
     </Svg>
   );
 }
@@ -1236,7 +1236,7 @@ export function ShareBarSecurityIcon({ color = '#1B998B', ...props }: MenuIconPr
   );
 }
 
-/** Incident API category icons (Figma 6792:103*) — inline path components. */
+/** Incident API category icons — inline path components. */
 export {
   IncidentAccessControlFilledIcon,
   IncidentAccessControlOutlineIcon,

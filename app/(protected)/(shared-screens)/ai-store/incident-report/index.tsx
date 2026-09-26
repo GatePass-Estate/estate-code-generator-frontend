@@ -22,13 +22,17 @@ import {
   sortMarketplaceTiers,
   splitFeatureBullets,
   subscribeMarketplaceFeature,
+  uninstallMarketplaceFeature,
+  cancelMarketplaceSubscription,
 } from '@/src/lib/api/aiMarketplace';
+import { useUserStore } from '@/src/lib/stores/userStore';
 import { MarketplaceDetailResponse, MarketplaceTier } from '@/src/types/aiMarketplace';
 
 const isIncidentProduct = (name: string) => name.toLowerCase().includes('incident');
 
 export default function IncidentReportPreviewScreen() {
   const params = useLocalSearchParams<{ featureId?: string; title?: string; tab?: string }>();
+  const estateId = useUserStore((s) => s.estate_id);
   const [activeTab, setActiveTab] = useState<'Preview' | 'Result'>(
     params.tab === 'Result' ? 'Result' : 'Preview'
   );
@@ -97,11 +101,87 @@ export default function IncidentReportPreviewScreen() {
     }
   };
 
-  const handleSubscribe = async (tier: MarketplaceTier) => {
-    if (tier.is_installed) {
-      setActiveTab('Result');
+  const runUninstall = async (tier: MarketplaceTier, successMessage: string, failTitle: string) => {
+    if (!estateId || !tier.feature_key) {
+      Alert.alert(
+        'Unable to continue',
+        'Missing estate or feature details. Pull to refresh and try again.'
+      );
       return;
     }
+    setSubscribingTierKey(tier.tier);
+    setIsSubscribing(true);
+    try {
+      await uninstallMarketplaceFeature(estateId, tier.feature_key);
+      Alert.alert('Done', successMessage);
+      if (featureDetail?.id) await loadFeature(featureDetail.id);
+    } catch (err: any) {
+      Alert.alert(failTitle, err?.message || `Failed to ${failTitle.toLowerCase()}.`);
+    } finally {
+      setIsSubscribing(false);
+      setSubscribingTierKey(null);
+    }
+  };
+
+  const handleCancelSubscription = (tier: MarketplaceTier) => {
+    Alert.alert(
+      'Cancel Subscription',
+      'Cancel this subscription for your estate? Access may continue until the end of the billing period.',
+      [
+        { text: 'Keep', style: 'cancel' },
+        {
+          text: 'Cancel Subscription',
+          style: 'destructive',
+          onPress: () => {
+            void (async () => {
+              if (!estateId) {
+                Alert.alert(
+                  'Unable to continue',
+                  'Missing estate details. Pull to refresh and try again.'
+                );
+                return;
+              }
+              setSubscribingTierKey(tier.tier);
+              setIsSubscribing(true);
+              try {
+                await cancelMarketplaceSubscription(estateId);
+                Alert.alert('Done', 'Subscription cancelled successfully.');
+                if (featureDetail?.id) await loadFeature(featureDetail.id);
+              } catch (err: any) {
+                Alert.alert(
+                  'Cancel Subscription',
+                  err?.message || 'Failed to cancel subscription.'
+                );
+              } finally {
+                setIsSubscribing(false);
+                setSubscribingTierKey(null);
+              }
+            })();
+          },
+        },
+      ]
+    );
+  };
+
+  const handleUninstall = (tier: MarketplaceTier) => {
+    Alert.alert(
+      'Uninstall',
+      'Remove this feature from your estate? You can activate it again later.',
+      [
+        { text: 'Keep', style: 'cancel' },
+        {
+          text: 'Uninstall',
+          style: 'destructive',
+          onPress: () => {
+            void runUninstall(tier, 'Feature uninstalled successfully.', 'Uninstall');
+          },
+        },
+      ]
+    );
+  };
+
+  const handleSubscribe = async (tier: MarketplaceTier) => {
+    if (tier.is_installed) return;
 
     if (!featureDetail?.id || !tier.ai_feature_id) {
       Alert.alert(
@@ -344,6 +424,8 @@ export default function IncidentReportPreviewScreen() {
                             setExpandedTier(expandedTier === tierKey ? null : tierKey)
                           }
                           onActivate={() => void handleSubscribe(tier)}
+                          onCancelSubscription={() => handleCancelSubscription(tier)}
+                          onUninstall={() => handleUninstall(tier)}
                           isSubscribing={subscribingTierKey === tierKey}
                           isInstalled={!!tier.is_installed}
                         />

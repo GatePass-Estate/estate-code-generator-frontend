@@ -25,7 +25,6 @@ import {
 } from '@/src/hooks/useIncidentQueries';
 import { toIncidentFromDate, toIncidentToDate } from '@/src/lib/api/incidentReports';
 import CategoryDistribution from './CategoryDistribution';
-import { IncidentCategoryIcon } from './categoryIcons';
 import IncidentAISummaryCard, { type InsightMode } from './IncidentAISummaryCard';
 import IncidentFilterModal, {
   type IncidentFilterCategory,
@@ -34,6 +33,8 @@ import IncidentFilterModal, {
 import IncidentOrderModal from './IncidentOrderModal';
 import IncidentTimeframeModal from './IncidentTimeframeModal';
 import IncidentDatePickerModal from './IncidentDatePickerModal';
+import { cacheIncidentDetailFromRow } from './incidentDetailCache';
+import { setIncidentReportsListFilters } from './incidentReportsListFilters';
 import {
   demographicLocation,
   formatReportCount,
@@ -57,16 +58,32 @@ function ShareBar({
   fill: string;
   icon: ReactNode;
 }) {
-  // Fill is 116px at 70%; scale other percentages from that.
-  const fillHeight = Math.max(Math.round(116 * (pct / 70)), 72);
+  const BAR_HEIGHT = 170;
+  const ICON_SIZE = 20;
+  const BOTTOM_PAD = 14;
+  const pctClamped = Math.min(100, Math.max(0, pct));
+  // Fluid only — 0% empties to the tank floor; 100% fills to the brim.
+  const fillHeight = Math.round((pctClamped / 100) * BAR_HEIGHT);
+  // Icon rides the top of the fluid; when empty, sit just above the bottom number.
+  const iconBottom =
+    fillHeight <= ICON_SIZE + BOTTOM_PAD + 22
+      ? BOTTOM_PAD + 22
+      : Math.max(BOTTOM_PAD + 22, fillHeight - ICON_SIZE - 4);
+
   return (
-    <View className="h-[170px] w-12 overflow-hidden rounded-[16px] bg-white">
-      <View className="flex-1" />
+    <View className="relative h-[170px] w-12 overflow-hidden rounded-[16px] bg-white">
       <View
-        className="w-full items-center justify-between rounded-b-[16px] pb-[14px]"
+        pointerEvents="none"
+        className="absolute bottom-0 left-0 right-0 rounded-b-[16px]"
         style={{ height: fillHeight, backgroundColor: fill }}
+      />
+      <View
+        className="absolute left-0 right-0 items-center"
+        style={{ bottom: iconBottom }}
       >
-        <View className="-mt-px h-5 w-5 items-center justify-center">{icon}</View>
+        <View className="h-5 w-5 items-center justify-center">{icon}</View>
+      </View>
+      <View className="absolute bottom-0 left-0 right-0 items-center pb-[14px]">
         <Text allowFontScaling={false} className="text-sm font-inter-medium" style={{ color }}>
           {pct}
           <Text className="text-[11.2px] font-inter-regular">%</Text>
@@ -129,7 +146,16 @@ function TrendCard({
 
 function IncidentListRow({ row }: { row: IncidentRow }) {
   return (
-    <View className="w-full flex-row items-center gap-[15px] py-2">
+    <Pressable
+      onPress={() => {
+        cacheIncidentDetailFromRow(row);
+        router.push({
+          pathname: '/(protected)/(shared-screens)/ai-store/incident-report/[id]',
+          params: { id: row.id },
+        });
+      }}
+      className="w-full flex-row items-center gap-[15px] py-2"
+    >
       <View className="w-[126px] flex-row items-start">
         <View className="mt-[5px] h-6 w-6 items-center justify-center rounded-full bg-[#FFF8F5]">
           <IncidentReporterHomeIcon size={14} color="#F46036" />
@@ -150,7 +176,6 @@ function IncidentListRow({ row }: { row: IncidentRow }) {
 
       <View className="min-w-0 flex-1">
         <View className="flex-row items-center gap-1 self-start bg-[#F4FFFE] px-1 py-0.5">
-          <IncidentCategoryIcon category={row.apiCategory} color="#167A6F" size={10} filled />
           <Text allowFontScaling={false} className="text-[6.8px] font-inter-light text-[#167A6F]">
             {row.category}
           </Text>
@@ -167,7 +192,7 @@ function IncidentListRow({ row }: { row: IncidentRow }) {
       <View style={{ transform: [{ rotate: '-90deg' }] }}>
         <IncidentRowChevronIcon color="#113E55" size={20} />
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -538,7 +563,6 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
         </View>
 
         <View className="flex-row items-stretch gap-[9px]">
-          {/* Figma 6355:2788 — 232×170; legend ~top 147 */}
           <View className="h-[170px] flex-1 items-center overflow-hidden rounded-[16px] bg-white pt-[15px] pb-[14px]">
             <View className="w-full flex-row items-center gap-5 px-3">
               <View className="h-7 w-7 items-center justify-center rounded-full bg-[#F6F7F7]">
@@ -556,7 +580,6 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
                 countText={formatReportCount(totalReports)}
                 countColor="#04162D"
                 isActive={isActive}
-                // Figma: Residents = #F46036, Security = #1B998B
                 guestPercentage={displayResidentPct}
                 securityPercentage={displaySecurityPct}
                 residentPercentage={0}
@@ -628,12 +651,25 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
         />
 
         <View className="mt-[30px] flex-row items-center justify-between">
-          <Text
-            allowFontScaling={false}
-            className="text-[21.88px] font-ubuntu-semibold text-[#0A1F29]"
+          <Pressable
+            onPress={() => {
+              setIncidentReportsListFilters({
+                from_date: fromDate,
+                to_date: toDate,
+                category: reportsQueryParams.category,
+                user_type: reportsQueryParams.user_type,
+              });
+              router.push('/(protected)/(shared-screens)/ai-store/incident-report/reports');
+            }}
+            hitSlop={8}
           >
-            Incident Reported
-          </Text>
+            <Text
+              allowFontScaling={false}
+              className="text-[21.88px] font-ubuntu-semibold text-[#0A1F29]"
+            >
+              Incident Reported
+            </Text>
+          </Pressable>
           <Pressable
             onPress={() => setFilterModalVisible(true)}
             className="h-[36px] w-[52px] items-center justify-center rounded-[16px] bg-[#113E55] "

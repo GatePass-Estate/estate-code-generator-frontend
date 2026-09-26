@@ -28,8 +28,8 @@ import {
 } from './incidentCategorySvgIcons';
 
 /**
- * OpenAPI `IncidentCategory` enum — maps 1:1 to Figma category icons (6792:103*).
- * Path data inlined from Figma (outline = inactive, filled = active).
+ * OpenAPI `IncidentCategory` enum — maps 1:1 to category icons.
+ * Path data inlined (outline = inactive, filled = active).
  */
 export const INCIDENT_API_CATEGORIES = [
   'security',
@@ -132,7 +132,7 @@ type IncidentCategoryIconProps = {
   filled?: boolean;
 };
 
-/** Renders Figma SVG path icons — outline inactive, filled active. */
+/** Renders category SVG path icons — outline inactive, filled active. */
 export function IncidentCategoryIcon({
   category,
   color = '#113E55',

@@ -151,6 +151,17 @@ function normalizeRepeatFilter(values?: string[]): string[] | undefined {
   return cleaned.length ? cleaned : undefined;
 }
 
+/** Metro collapses nested objects as [Object] — pretty-print so logs are readable. */
+function logJson(label: string, payload: unknown) {
+  console.log(`\n================== ${label} ==================`);
+  try {
+    console.log(JSON.stringify(payload, null, 2));
+  } catch {
+    console.log(payload);
+  }
+  console.log('===================================================================\n');
+}
+
 export const incidentReportsApi = {
   getOverview: async ({
     estate_id,
@@ -158,13 +169,24 @@ export const incidentReportsApi = {
     to_date,
   }: IncidentDateParams): Promise<IncidentOverviewResponse> => {
     const params = buildIncidentDateQuery({ estate_id, from_date, to_date });
-    const { data } = await Api('ai').get('/incident-reports/result-page/overview', {
-      params,
-      // Category EDA + trends can exceed the default 10s client timeout.
-      timeout: 60_000,
-    });
-    console.log('[incident-reports] overview response', { ...params, data });
-    return data;
+    const path = '/incident-reports/result-page/overview';
+    logJson('[incident-reports] overview request', { path, params });
+    try {
+      const { data } = await Api('ai').get(path, {
+        params,
+        // Category EDA + trends can exceed the default 10s client timeout.
+        timeout: 60_000,
+      });
+      logJson('[incident-reports] overview response', { path, params, data });
+      return data;
+    } catch (error) {
+      logJson('[incident-reports] overview error', {
+        path,
+        params,
+        message: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
+    }
   },
 
   getReports: async ({
@@ -185,30 +207,38 @@ export const incidentReportsApi = {
       ...(categoryFilter ? { category: categoryFilter } : {}),
       ...(userTypeFilter ? { user_type: userTypeFilter } : {}),
     };
-    const { data } = await Api('ai').get('/incident-reports/result-page/reports', {
-      params,
-      // Repeat category / user_type for FastAPI list query style (?category=a&category=b).
-      paramsSerializer: {
-        indexes: null,
-      },
-      timeout: 60_000,
-    });
+    const path = '/incident-reports/result-page/reports';
+    logJson('[incident-reports] reports request', { path, params });
+    try {
+      const { data } = await Api('ai').get(path, {
+        params,
+        // Repeat category / user_type for FastAPI list query style (?category=a&category=b).
+        paramsSerializer: {
+          indexes: null,
+        },
+        timeout: 60_000,
+      });
 
-    console.log('[incident-reports] reports response', {
-      ...params,
-      data,
-    });
+      logJson('[incident-reports] reports response', { path, params, data });
 
-    // OpenAPI returns `{ items, total, page, limit }`; tolerate a bare array.
-    if (Array.isArray(data)) {
-      return { items: data, total: data.length, page, limit };
+      // OpenAPI returns `{ items, total, page, limit }`; tolerate a bare array.
+      if (Array.isArray(data)) {
+        return { items: data, total: data.length, page, limit };
+      }
+      return {
+        items: Array.isArray(data?.items) ? data.items : [],
+        total: data?.total ?? 0,
+        page: data?.page ?? page,
+        limit: data?.limit ?? limit,
+      };
+    } catch (error) {
+      logJson('[incident-reports] reports error', {
+        path,
+        params,
+        message: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
     }
-    return {
-      items: Array.isArray(data?.items) ? data.items : [],
-      total: data?.total ?? 0,
-      page: data?.page ?? page,
-      limit: data?.limit ?? limit,
-    };
   },
 
   getSummary: async ({
@@ -217,12 +247,62 @@ export const incidentReportsApi = {
     to_date,
   }: IncidentDateParams): Promise<IncidentSummaryResponse> => {
     const params = buildIncidentDateQuery({ estate_id, from_date, to_date });
-    const { data } = await Api('ai').get('/incident-reports/result-page/summary', {
-      params,
-      // Topic modelling + LLM can exceed the default 10s client timeout.
-      timeout: 60_000,
-    });
-    console.log('[incident-reports] summary response', { ...params, data });
-    return data;
+    const path = '/incident-reports/result-page/summary';
+    logJson('[incident-reports] summary request', { path, params });
+    try {
+      const { data } = await Api('ai').get(path, {
+        params,
+        // Topic modelling + LLM can exceed the default 10s client timeout.
+        timeout: 60_000,
+      });
+      logJson('[incident-reports] summary response', { path, params, data });
+      return data;
+    } catch (error) {
+      logJson('[incident-reports] summary error', {
+        path,
+        params,
+        message: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
+    }
+  },
+
+  /**
+   * User-service taxonomy list for the filter chips.
+   * GET /incident-reports/categories → string[]
+   */
+  getCategories: async (): Promise<string[]> => {
+    const path = '/incident-reports/categories';
+    logJson('[incident-reports] categories request', { path });
+    try {
+      const { data } = await Api('user').get(path);
+      logJson('[incident-reports] categories response', { path, data });
+      if (!Array.isArray(data)) return [];
+      return data.map((item) => String(item).trim()).filter(Boolean);
+    } catch (error) {
+      logJson('[incident-reports] categories error', {
+        path,
+        message: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
+    }
+  },
+
+  /** User-service single report. GET /incident-reports/{incident_id} */
+  getReportById: async (incidentId: string): Promise<IncidentListItem> => {
+    const path = `/incident-reports/${encodeURIComponent(incidentId)}`;
+    logJson('[incident-reports] detail request', { path, incidentId });
+    try {
+      const { data } = await Api('user').get(path);
+      logJson('[incident-reports] detail response', { path, incidentId, data });
+      return data;
+    } catch (error) {
+      logJson('[incident-reports] detail error', {
+        path,
+        incidentId,
+        message: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
+    }
   },
 };
