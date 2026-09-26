@@ -8,8 +8,6 @@ const queryKeys = {
   verifyEmailActivationToken: (token: string) => ['verify-email-activation-token', token],
 };
 
-const DEFAULT_LOGIN_ESTATE_ID = 'e7fb4d3b-6418-4729-9454-d34c7f069968';
-
 export async function loginUser(
   email: string,
   password: string,
@@ -20,7 +18,7 @@ export async function loginUser(
     const axiosRes = await api.post(`/auth/login`, {
       email,
       password,
-      estate_id: estate_id || DEFAULT_LOGIN_ESTATE_ID,
+      ...(estate_id ? { estate_id } : {}),
     });
     const data = axiosRes.data;
 
@@ -69,9 +67,7 @@ export async function fetchMe(token: string) {
         Authorization: `Bearer ${token}`,
       },
     });
-    const data = axiosRes.data;
-
-    return data;
+    return axiosRes.data;
   } catch (error: any) {
     throw new Error(`${getErrorMessage(error) || 'An error occured'} `);
   }

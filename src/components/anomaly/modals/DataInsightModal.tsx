@@ -215,7 +215,7 @@ export default function DataInsightModal({ visible, onClose }: DataInsightModalP
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
               <Text allowFontScaling={false} style={{ fontFamily: 'UbuntuSans-Medium', fontSize: 32, color: '#113E55', marginBottom: 12 }}>Data Insight</Text>
               <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 13, color: '#8A9A9D', marginBottom: 24, lineHeight: 18 }}>
-                No complicated reports. Get simple insights that help you understand what's happening and why.
+                No complicated reports. Get simple insights that help you understand what&apos;s happening and why.
               </Text>
               
               <View style={{ gap: 16 }}>
@@ -228,7 +228,7 @@ export default function DataInsightModal({ visible, onClose }: DataInsightModalP
                       <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 15, color: '#455A64' }}>Financial Info</Text>
                     </View>
                     <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 13, color: '#8A9A9D', lineHeight: 18 }}>
-                      No complicated reports. Get simple insights that help you understand what's happening and why.
+                      No complicated reports. Get simple insights that help you understand what&apos;s happening and why.
                     </Text>
                   </View>
                 ))}

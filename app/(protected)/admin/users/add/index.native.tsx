@@ -1,6 +1,6 @@
 import Back from '@/src/components/mobile/Back';
 import { sharedStyles } from '@/src/theme/styles';
-import { Stack, useRouter , useNavigation } from 'expo-router';
+import { Stack, useRouter, useNavigation } from 'expo-router';
 import { useState, useEffect } from 'react';
 import {
   ActivityIndicator,

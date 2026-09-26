@@ -1,12 +1,32 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  // NativeWind 4.2+ on web needs class mode so colorScheme.set doesn't crash.
+  darkMode: 'class',
   // NOTE: Update this to include the paths to all files that contain Nativewind classes.
   content: ['./app/**/*.{js,jsx,ts,tsx}', './src/**/*.{js,jsx,ts,tsx}'],
   presets: [require('nativewind/preset')],
   theme: {
     extend: {
       fontSize: {
+        // Micro sizes used across native screens
+        '2xs': '8.96px',
+        caption: '11.2px',
+        xs: '12px',
+        sm: '14px',
+        base: '16px',
         md: '17px',
+        lg: '18px',
+        xl: '20px',
+        'heading-sm': '21.88px',
+        '2xl': '24px',
+        heading: '27.34px',
+        '3xl': '30px',
+        '4xl': '36px',
+        '5xl': '48px',
+        '6xl': '60px',
+        '7xl': '72px',
+        '8xl': '96px',
+        '9xl': '128px',
       },
 
       fontFamily: {
@@ -26,10 +46,11 @@ module.exports = {
         'inter-medium': ['Inter_18pt-Medium', 'system-ui'],
         'inter-medium-italic': ['Inter_18pt-mediumItalic', 'system-ui'],
         'inter-semibold': ['Inter_18pt-SemiBold', 'system-ui'],
+        'inter-extrabold': ['Inter_18pt-ExtraBold', 'system-ui'],
         roboto: ['Roboto', 'system-ui'],
         UbuntuSans: ['"UbuntuSans"', 'system-ui'],
         UbuntuSansItalic: ['"UbuntuSansItalic"', 'system-ui'],
-        Inter: ['"Inter"', 'system-ui'],
+        Inter: ['Inter_18pt-Regular', 'system-ui'],
       },
 
       colors: {

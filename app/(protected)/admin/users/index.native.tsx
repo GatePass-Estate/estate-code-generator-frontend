@@ -11,7 +11,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { Stack, router , useNavigation } from 'expo-router';
+import { Stack, router, useNavigation } from 'expo-router';
 import { getAllEstateUsers } from '@/src/lib/api/user';
 import { useEffect, useState, useMemo } from 'react';
 import { AllUsers, User } from '@/src/types/user';

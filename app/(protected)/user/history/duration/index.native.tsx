@@ -1,58 +1,36 @@
-import { useCallback, useMemo, useState } from 'react';
-import {
-  View,
-  Text,
-  Pressable,
-  ScrollView,
-  ActivityIndicator,
-  Alert,
-  Platform,
-  Switch,
-  Modal,
-} from 'react-native';
-import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import { useCallback, useMemo, useState, type ReactNode } from 'react';
+import { View, Text, Pressable, ScrollView, Alert } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router, useFocusEffect, useLocalSearchParams, useNavigation } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   FormChevronRightIcon,
   UpcomingCalendarIcon,
   UpcomingValidityWindowIcon,
+  ValidityWindowArrowIcon,
 } from '@/src/assets/svgs';
+import Button, { BUTTON_MARGIN_BOTTOM } from '@/src/components/mobile/Button';
+import CodeDateTimePicker from '@/src/components/mobile/CodeDateTimePicker';
+import { PlanNoticeSlot } from '@/src/components/mobile/FreePlanNotice';
 import ScreenHeader from '@/src/components/mobile/ScreenHeader';
+import SetTimeSheet from '@/src/components/mobile/SetTimeSheet';
+import ToggleSwitch from '@/src/components/mobile/ToggleSwitch';
 import { generateCode } from '@/src/lib/api/codes';
-import { formatInvitePeriodDisplay } from '@/src/lib/helpers';
+import { createGuest } from '@/src/lib/api/guests';
+import { formatInvitePeriodDisplay, parseLogDate } from '@/src/lib/helpers';
 import { useAndroidBottomInset } from '@/src/hooks/useAndroidBottomInset';
+import { useFeatureGate } from '@/src/hooks/usePlan';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { GenderType, RelationshipType } from '@/src/types/general';
 import { sharedStyles } from '@/src/theme/styles';
 
-type PickerTarget = 'startDate' | 'endDate' | 'windowStart' | 'windowEnd' | null;
-type AndroidStep = 'date' | 'time';
+type DateTarget = 'start' | 'end';
 
-const startOfDay = (date: Date) => {
-  const next = new Date(date);
-  next.setHours(0, 0, 0, 0);
-  return next;
-};
+const weekdayFormatter = new Intl.DateTimeFormat(undefined, { weekday: 'long' });
+const monthFormatter = new Intl.DateTimeFormat(undefined, { month: 'long' });
 
-const formatDateLabel = (date: Date | null, placeholder: string) => {
-  if (!date) return placeholder;
-  const weekday = date.toLocaleString('en-GB', { weekday: 'short' });
-  const day = date.getDate();
-  const month = date.toLocaleString('en-GB', { month: 'long' });
-  const year = date.getFullYear();
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  return `${weekday}, ${day} ${month} ${year}  ${hours}:${minutes}`;
-};
-
-const formatDayHeading = (date: Date) => {
-  const weekday = date.toLocaleString('en-GB', { weekday: 'short' });
-  const day = date.getDate();
-  const month = date.toLocaleString('en-GB', { month: 'long' });
-  return `${weekday}, ${day} ${month}`;
-};
+const formatDatePart = (date: Date) =>
+  `${weekdayFormatter.format(date)}, ${date.getDate()} ${monthFormatter.format(date)}`;
 
 const formatClock = (date: Date) => {
   const hours = String(date.getHours()).padStart(2, '0');
@@ -60,29 +38,46 @@ const formatClock = (date: Date) => {
   return `${hours}:${minutes}`;
 };
 
-const formatDuration = (start: Date | null, end: Date | null) => {
-  if (!start || !end || end.getTime() <= start.getTime()) return '--';
-  const diffMs = end.getTime() - start.getTime();
-  const totalMinutes = Math.round(diffMs / 60000);
-  const days = Math.floor(totalMinutes / (60 * 24));
-  const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
-  const minutes = totalMinutes % 60;
-  const parts: string[] = [];
-  if (days) parts.push(`${days}d`);
-  if (hours) parts.push(`${hours}h`);
-  if (minutes || parts.length === 0) parts.push(`${minutes}m`);
-  return parts.join(' ');
+const HOUR_MS = 3_600_000;
+/** How far in the past a chosen start may be before it's rejected (it's then clamped to now). */
+const START_GRACE_MS = 30_000;
+
+const formatDurationHours = (start: Date | null, end: Date | null) => {
+  if (!start || !end || end.getTime() <= start.getTime()) return null;
+  return Math.max(1, Math.round((end.getTime() - start.getTime()) / HOUR_MS));
 };
 
-const enumerateDays = (start: Date, end: Date) => {
-  const days: Date[] = [];
-  const cursor = startOfDay(start);
-  const last = startOfDay(end);
-  while (cursor.getTime() <= last.getTime()) {
-    days.push(new Date(cursor));
-    cursor.setDate(cursor.getDate() + 1);
+type Period = { start: Date; end: Date };
+type PeriodResult = { period: Period } | { error: { title: string; message: string } };
+
+const resolveCustomPeriod = (start: Date | null, end: Date | null, now: Date): PeriodResult => {
+  if (!start || !end) {
+    return { error: { title: 'Missing duration', message: 'Select a start and end date/time.' } };
   }
-  return days;
+  if (start.getTime() < now.getTime() - START_GRACE_MS) {
+    return {
+      error: { title: 'Invalid start time', message: 'Start date/time cannot be in the past.' },
+    };
+  }
+  const periodStart = start.getTime() < now.getTime() ? now : start;
+  if (end.getTime() <= periodStart.getTime()) {
+    return {
+      error: { title: 'Invalid end time', message: 'End date/time must be after the start.' },
+    };
+  }
+  return { period: { start: periodStart, end } };
+};
+
+const atCurrentClock = () => {
+  const d = new Date();
+  d.setSeconds(0, 0);
+  return d;
+};
+
+const oneHourLaterClock = () => {
+  const d = atCurrentClock();
+  d.setHours(d.getHours() + 1);
+  return d;
 };
 
 /** Cache service expects ``YYYY-MM-DD HH:MM:SS.mmm+0000`` (UTC). */
@@ -108,12 +103,17 @@ const GENDERS = new Set(['male', 'female', 'prefer_not_to_say']);
 
 export default function SetAccessCodeDurationScreen() {
   const navigation = useNavigation();
-  const { systemBottom, tabBarHeight } = useAndroidBottomInset();
+  const insets = useSafeAreaInsets();
+  const { tabBarStyle } = useAndroidBottomInset();
   const { user_id, estate_id, home_address, estate_name } = useUserStore();
+  const { requestAccess: requestCodeAccess, noticeProps: codeNoticeProps } = useFeatureGate(
+    'advanced_code_management'
+  );
   const params = useLocalSearchParams<{
     visitorName?: string;
     relationship?: string;
     gender?: string;
+    saveGuest?: string;
   }>();
 
   const visitorName = params.visitorName?.trim() || 'Guest';
@@ -123,6 +123,7 @@ export default function SetAccessCodeDurationScreen() {
     RELATIONSHIPS.has(relationshipParam) ? relationshipParam : 'other'
   ) as RelationshipType;
   const gender = (GENDERS.has(genderParam) ? genderParam : 'prefer_not_to_say') as GenderType;
+  const shouldSaveGuest = params.saveGuest === 'true';
 
   useFocusEffect(
     useCallback(() => {
@@ -133,136 +134,71 @@ export default function SetAccessCodeDurationScreen() {
 
       return () => {
         parent?.setOptions({
-          tabBarStyle: [
-            sharedStyles.tabBar,
-            Platform.OS === 'android' && {
-              bottom: systemBottom,
-              height: tabBarHeight,
-            },
-          ],
+          tabBarStyle,
         });
       };
-    }, [navigation, systemBottom, tabBarHeight])
+    }, [navigation, tabBarStyle])
   );
 
+  const [durationEnabled, setDurationEnabled] = useState(false);
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [windowEnabled, setWindowEnabled] = useState(false);
-  const [windowStart, setWindowStart] = useState(() => {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    return d;
-  });
-  const [windowEnd, setWindowEnd] = useState(() => {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    return d;
-  });
-  const [pickerTarget, setPickerTarget] = useState<PickerTarget>(null);
-  const [androidStep, setAndroidStep] = useState<AndroidStep>('date');
-  const [androidDraft, setAndroidDraft] = useState<Date | null>(null);
+  const [windowStart, setWindowStart] = useState(atCurrentClock);
+  const [windowEnd, setWindowEnd] = useState(oneHourLaterClock);
+  const [dateTarget, setDateTarget] = useState<DateTarget | null>(null);
+  const [timeSheetVisible, setTimeSheetVisible] = useState(false);
   const [generating, setGenerating] = useState(false);
 
-  const daysInRange = useMemo(() => {
-    if (!startDate || !endDate || endDate.getTime() <= startDate.getTime()) return [];
-    return enumerateDays(startDate, endDate);
-  }, [endDate, startDate]);
+  const durationHours = formatDurationHours(startDate, endDate);
+  const windowTimesDiffer = formatClock(windowStart) !== formatClock(windowEnd);
+  const usesValidityWindow = windowEnabled && windowTimesDiffer;
+  const canGenerate = Boolean(user_id && estate_id);
 
-  const canGenerate = Boolean(
-    startDate && endDate && endDate.getTime() > startDate.getTime() && user_id && estate_id
-  );
-
-  const pickerValue = useMemo(() => {
-    if (Platform.OS === 'android' && androidStep === 'time' && androidDraft) return androidDraft;
-    if (pickerTarget === 'startDate') return startDate ?? new Date();
-    if (pickerTarget === 'endDate') return endDate ?? startDate ?? new Date();
-    if (pickerTarget === 'windowStart') return windowStart;
-    if (pickerTarget === 'windowEnd') return windowEnd;
+  const datePickerValue = useMemo(() => {
+    if (dateTarget === 'start') return startDate ?? new Date();
+    if (dateTarget === 'end') return endDate ?? startDate ?? new Date();
     return new Date();
-  }, [androidDraft, androidStep, endDate, pickerTarget, startDate, windowEnd, windowStart]);
+  }, [dateTarget, endDate, startDate]);
 
-  const isWindowPicker = pickerTarget === 'windowStart' || pickerTarget === 'windowEnd';
-  const pickerMode =
-    Platform.OS === 'ios'
-      ? isWindowPicker
-        ? 'time'
-        : 'datetime'
-      : isWindowPicker || androidStep === 'time'
-        ? 'time'
-        : 'date';
-
-  const openPicker = (target: Exclude<PickerTarget, null>) => {
-    setAndroidStep('date');
-    setAndroidDraft(null);
-    setPickerTarget(target);
-  };
-
-  const closePicker = () => {
-    setPickerTarget(null);
-    setAndroidStep('date');
-    setAndroidDraft(null);
-  };
-
-  const applyPickerValue = (target: Exclude<PickerTarget, null>, selected: Date) => {
-    if (target === 'startDate') {
-      setStartDate(selected);
-      setWindowStart(selected);
-    }
-    if (target === 'endDate') {
-      setEndDate(selected);
-      setWindowEnd(selected);
-    }
-    if (target === 'windowStart') setWindowStart(selected);
-    if (target === 'windowEnd') setWindowEnd(selected);
-  };
-
-  const onPickerChange = (event: DateTimePickerEvent, selected?: Date) => {
-    if (!pickerTarget) return;
-
-    if (Platform.OS === 'android') {
-      if (event.type === 'dismissed') {
-        closePicker();
-        return;
-      }
-      if (!selected) return;
-
-      if (isWindowPicker) {
-        applyPickerValue(pickerTarget, selected);
-        closePicker();
-        return;
-      }
-
-      if (androidStep === 'date') {
-        setAndroidDraft(selected);
-        setAndroidStep('time');
-        return;
-      }
-
-      const base = androidDraft ?? selected;
-      const merged = new Date(base);
-      merged.setHours(selected.getHours(), selected.getMinutes(), 0, 0);
-      applyPickerValue(pickerTarget, merged);
-      closePicker();
+  const handleDurationToggle = (next: boolean) => {
+    if (!next) {
+      setDurationEnabled(false);
       return;
     }
+    if (!requestCodeAccess()) return;
+    setDurationEnabled(true);
+    if (!startDate || !endDate) {
+      const start = new Date();
+      const end = new Date(start.getTime() + HOUR_MS);
+      setStartDate(start);
+      setEndDate(end);
+    }
+  };
 
-    if (!selected) return;
-    applyPickerValue(pickerTarget, selected);
+  const handleWindowToggle = (next: boolean) => {
+    if (!next) {
+      setWindowEnabled(false);
+      return;
+    }
+    if (!requestCodeAccess()) return;
+    setWindowEnabled(true);
   };
 
   const handleGenerate = useCallback(async () => {
-    if (!canGenerate || !startDate || !endDate || !user_id) return;
+    if (!user_id || !estate_id) return;
+    // The plan may have changed since the toggles were switched on.
+    if ((durationEnabled || usesValidityWindow) && !requestCodeAccess()) return;
 
     const now = new Date();
-    if (startDate.getTime() < now.getTime() - 30_000) {
-      Alert.alert('Invalid start time', 'Start date/time cannot be in the past.');
-      return;
-    }
-
-    const periodStart = startDate.getTime() < now.getTime() ? now : startDate;
-    if (endDate.getTime() <= periodStart.getTime()) {
-      Alert.alert('Invalid end time', 'End date/time must be after the start.');
-      return;
+    let customPeriod: Period | null = null;
+    if (durationEnabled) {
+      const resolved = resolveCustomPeriod(startDate, endDate, now);
+      if ('error' in resolved) {
+        Alert.alert(resolved.error.title, resolved.error.message);
+        return;
+      }
+      customPeriod = resolved.period;
     }
 
     setGenerating(true);
@@ -270,25 +206,37 @@ export default function SetAccessCodeDurationScreen() {
       const result = await generateCode(
         {
           user_id,
-          estate_id: estate_id ?? '',
+          estate_id,
           visitor_fullname: visitorName,
           relationship_with_resident: relationship,
           gender,
-          validity_period: {
-            start: toBackendUtc(periodStart),
-            end: toBackendUtc(endDate),
-          },
-          validity_window: windowEnabled
-            ? {
-                start: formatClock(windowStart),
-                end: formatClock(windowEnd),
-              }
+          validity_period: customPeriod
+            ? { start: toBackendUtc(customPeriod.start), end: toBackendUtc(customPeriod.end) }
+            : null,
+          validity_window: usesValidityWindow
+            ? { start: formatClock(windowStart), end: formatClock(windowEnd) }
             : null,
         },
         'visitor'
       );
 
-      const { formattedDate, timeframe } = formatInvitePeriodDisplay(periodStart, endDate);
+      if (shouldSaveGuest) {
+        try {
+          await createGuest({
+            resident_id: user_id,
+            guest_name: visitorName,
+            relationship,
+            gender,
+          });
+        } catch (e) {
+          console.log('Failed to save guest:', e);
+        }
+      }
+
+      const { formattedDate, timeframe } = formatInvitePeriodDisplay(
+        customPeriod?.start ?? now,
+        customPeriod?.end ?? parseLogDate(result.valid_until)
+      );
       router.push({
         pathname: '/invite',
         params: {
@@ -305,20 +253,41 @@ export default function SetAccessCodeDurationScreen() {
       setGenerating(false);
     }
   }, [
-    canGenerate,
+    durationEnabled,
     endDate,
     estate_id,
     estate_name,
     gender,
     home_address,
     relationship,
+    requestCodeAccess,
+    shouldSaveGuest,
     startDate,
     user_id,
+    usesValidityWindow,
     visitorName,
-    windowEnabled,
     windowEnd,
     windowStart,
   ]);
+
+  if (dateTarget) {
+    return (
+      <CodeDateTimePicker
+        mode={dateTarget}
+        value={datePickerValue}
+        minDate={dateTarget === 'end' ? startDate : null}
+        onBack={() => setDateTarget(null)}
+        onSet={(next) => {
+          const target = dateTarget;
+          setDateTarget(null);
+          requestAnimationFrame(() => {
+            if (target === 'start') setStartDate(next);
+            else setEndDate(next);
+          });
+        }}
+      />
+    );
+  }
 
   return (
     <SafeAreaView
@@ -333,8 +302,8 @@ export default function SetAccessCodeDurationScreen() {
       </Pressable>
 
       <ScreenHeader
-        title="Set Duration of Access Code"
-        titleClassName="text-[21.88px]"
+        title="Set Duration"
+        titleClassName="text-[27.34px]"
         subtitle="Select the date and time duration of your guest access code."
         subtitleClassName="text-[#878686] mt-1"
         containerClassName="mt-[25px]"
@@ -343,146 +312,192 @@ export default function SetAccessCodeDurationScreen() {
       <ScrollView
         className="flex-1"
         contentContainerStyle={{
-          paddingTop: 17,
-          paddingBottom: 40,
+          paddingTop: 40,
+          paddingBottom: BUTTON_MARGIN_BOTTOM + insets.bottom,
+          flexGrow: 1,
         }}
         showsVerticalScrollIndicator={false}
       >
-        <Pressable
-          onPress={() => openPicker('startDate')}
-          className="flex-row items-center justify-between rounded-[8px] bg-white px-4 py-3"
-        >
-          <View className="flex-row items-center gap-4 flex-1 pr-3">
-            <UpcomingCalendarIcon width={16} height={16} />
-            <Text
-              className={`text-sm font-inter-light ${startDate ? 'text-[#0A1F29]' : 'text-[#9B9797]'}`}
-            >
-              {formatDateLabel(startDate, 'Enter Start Date')}
-            </Text>
-          </View>
-          <FormChevronRightIcon width={20} height={20} />
-        </Pressable>
-
-        <View className="flex-row items-center gap-3 px-[41px] mt-2 mb-3.5">
-          <View className="h-px flex-1 bg-[#D9D9D9]" />
-          <Text className="text-[11.2px] font-inter-regular text-[#878686]">to</Text>
-          <View className="h-px flex-1 bg-[#D9D9D9]" />
-        </View>
-
-        <Pressable
-          onPress={() => openPicker('endDate')}
-          className="flex-row items-center justify-between rounded-[8px] bg-white px-4 py-3"
-        >
-          <View className="flex-row items-center gap-4 flex-1">
-            <UpcomingCalendarIcon width={16} height={16} />
-            <Text
-              className={`text-sm font-inter-light ${endDate ? 'text-[#0A1F29]' : 'text-[#9B9797]'}`}
-            >
-              {formatDateLabel(endDate, 'Enter End Date')}
-            </Text>
-          </View>
-          <FormChevronRightIcon width={20} height={20} />
-        </Pressable>
-
-        <Text className="px-1 text-[11.2px] font-inter-regular text-[#878686] mt-[9px]">
-          Duration: {formatDuration(startDate, endDate)}
+        <PlanSwitchRow
+          icon={<UpcomingCalendarIcon width={16} height={16} />}
+          label="Set Duration"
+          value={durationEnabled}
+          onValueChange={handleDurationToggle}
+        />
+        <Text className="mt-[9px] px-[11px] text-[11.2px] font-inter-regular text-[#9B9797]">
+          Set the duration for which your guest’s access code will be active.
         </Text>
 
-        <View className="rounded-[16px] bg-white px-4 py-4 flex-row items-center justify-between mt-[30px]">
-          <View className="flex-row items-center gap-4 flex-1 ">
-            <UpcomingValidityWindowIcon width={16} height={16} />
-            <Text className="text-sm font-inter-light text-[#878686]">Set Validity Window</Text>
-          </View>
-          <Switch
-            value={windowEnabled}
-            onValueChange={setWindowEnabled}
-            trackColor={{ false: '#D9D9D9', true: '#1B998B' }}
-            thumbColor="#FFFFFF"
-          />
-        </View>
+        {durationEnabled ? (
+          <View className="mt-[30px]">
+            <DateTimeRow
+              date={startDate}
+              placeholder="Enter Start Date"
+              onPress={() => setDateTarget('start')}
+            />
 
-        {windowEnabled && daysInRange.length > 0 ? (
-          <View className="rounded-[16px] bg-white p-4 mt-6">
-            <Text className="text-[#878686] text-sm font-inter-light mb-[9px]">
-              Validity Window
-            </Text>
-            <View className="flex-col gap-[9px]">
-              {daysInRange.map((day, index) => (
-                <View
-                  key={day.toISOString()}
-                  className={`px-3 py-2  ${index < daysInRange.length - 1 ? 'border-b-[0.3px] border-[#9B9797]' : ''}`}
-                >
-                  <Text className="text-[11.2px] font-inter-regular text-[#113E55]">
-                    {formatDayHeading(day)}
-                  </Text>
-                  <View className="mt-2 flex-row items-start justify-between">
-                    <Pressable onPress={() => openPicker('windowStart')}>
-                      <Text className="text-[8.96px] font-inter-medium text-[#878686]">Start</Text>
-                      <Text className="mt-1.5 text-[21.88px] font-ubuntu-semibold text-[#113E55]">
-                        {formatClock(windowStart)}
-                      </Text>
-                    </Pressable>
-                    <Pressable onPress={() => openPicker('windowEnd')}>
-                      <Text className="text-[8.96px] font-inter-medium text-[#878686]">End</Text>
-                      <Text className="mt-1.5 text-[21.88px] font-ubuntu-semibold text-[#113E55]">
-                        {formatClock(windowEnd)}
-                      </Text>
-                    </Pressable>
-                  </View>
-                </View>
-              ))}
+            <View className="mt-2 mb-4 flex-row items-center px-[41px]">
+              <View className="h-px flex-1 bg-[#878686]/30" />
+              <Text className="w-8 text-center text-[10px] font-ubuntu-medium tracking-[-0.24px] text-[#878686]">
+                to
+              </Text>
+              <View className="h-px flex-1 bg-[#878686]/30" />
             </View>
+
+            <DateTimeRow
+              date={endDate}
+              placeholder="Enter End Date"
+              onPress={() => setDateTarget('end')}
+            />
+
+            <Text
+              className={`mt-[9px] px-1 text-[11.2px] font-inter-regular ${
+                durationHours != null ? 'text-[#F46036]' : 'text-[#878686]'
+              }`}
+            >
+              {durationHours != null
+                ? `Duration:  ${durationHours === 1 ? '1hour' : `${durationHours} hours`}`
+                : 'Duration:  --'}
+            </Text>
           </View>
         ) : null}
 
-        <Pressable
-          onPress={handleGenerate}
-          disabled={!canGenerate || generating}
-          className="mt-8 items-center justify-center rounded-full p-4"
-          style={{ backgroundColor: canGenerate && !generating ? '#113E55' : '#C8CDD0' }}
-        >
-          {generating ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text className="text-sm font-ubuntu-semibold text-white">Generate Code</Text>
-          )}
-        </Pressable>
+        <View className="mt-[30px]">
+          <PlanSwitchRow
+            icon={<UpcomingValidityWindowIcon width={16} height={16} />}
+            label="Set Validity Window"
+            value={windowEnabled}
+            onValueChange={handleWindowToggle}
+          />
+          <Text className="mt-[9px] px-[11px] text-[11.2px] font-inter-regular text-[#9B9797]">
+            Set the time frame for which your guest’s access code will be valid during the day
+          </Text>
+        </View>
+
+        {windowEnabled ? (
+          <Pressable
+            onPress={() => setTimeSheetVisible(true)}
+            className="mt-10 items-center rounded-2xl bg-white p-4"
+            style={{ gap: 9 }}
+          >
+            <Text className="w-full text-center text-sm font-inter-medium text-[#878686]">
+              Validity Window
+            </Text>
+            <View className="w-[217px] items-center px-4 py-2">
+              <View className="w-[201px] flex-row items-center justify-between">
+                <View className="w-[41px] items-center" style={{ gap: 6 }}>
+                  <Text className="h-[14px] w-[77px] text-center text-[11.2px] font-inter-regular text-[#878686]">
+                    START HOUR
+                  </Text>
+                  <Text
+                    className="w-[107px] text-center font-ubuntu-medium text-[#113E55]"
+                    style={{ fontSize: 34.18, lineHeight: 41 }}
+                  >
+                    {formatClock(windowStart)}
+                  </Text>
+                </View>
+                <View className="h-[10px] w-[14px] items-center justify-center">
+                  <ValidityWindowArrowIcon width={14} height={10} />
+                </View>
+                <View className="w-[41px] items-center" style={{ gap: 6 }}>
+                  <Text className="w-[81px] text-center text-[11.2px] font-inter-regular text-[#878686]">
+                    END HOUR
+                  </Text>
+                  <Text
+                    className="w-[101px] text-center font-ubuntu-medium text-[#113E55]"
+                    style={{ fontSize: 34.18, lineHeight: 41 }}
+                  >
+                    {formatClock(windowEnd)}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </Pressable>
+        ) : null}
+
+        <View className="mt-auto w-full pt-10">
+          <PlanNoticeSlot {...codeNoticeProps}>
+            <View className="items-center">
+              <Button
+                label="Generate Code"
+                loading={generating}
+                disabled={!canGenerate}
+                onPress={handleGenerate}
+              />
+            </View>
+          </PlanNoticeSlot>
+        </View>
       </ScrollView>
 
-      {pickerTarget && Platform.OS === 'ios' ? (
-        <Modal transparent animationType="slide" visible onRequestClose={closePicker}>
-          <Pressable className="flex-1 justify-end bg-black/30" onPress={closePicker}>
-            <Pressable className="rounded-t-[16px] bg-white px-4 pb-8 pt-3" onPress={() => {}}>
-              <View className="mb-2 flex-row items-center justify-between">
-                <Text className="text-sm font-inter-medium text-[#0A1F29]">Select</Text>
-                <Pressable onPress={closePicker}>
-                  <Text className="text-sm font-inter-medium text-[#113E55]">Done</Text>
-                </Pressable>
-              </View>
-              <View className="w-full items-center justify-center">
-                <DateTimePicker
-                  value={pickerValue}
-                  mode={pickerMode}
-                  display="spinner"
-                  themeVariant="light"
-                  textColor="#0A1F29"
-                  onChange={onPickerChange}
-                  style={{ alignSelf: 'center', width: '100%' }}
-                />
-              </View>
-            </Pressable>
-          </Pressable>
-        </Modal>
-      ) : null}
-
-      {pickerTarget && Platform.OS === 'android' ? (
-        <DateTimePicker
-          value={pickerValue}
-          mode={pickerMode}
-          display="default"
-          onChange={onPickerChange}
-        />
-      ) : null}
+      <SetTimeSheet
+        visible={timeSheetVisible}
+        start={windowStart}
+        end={windowEnd}
+        onClose={() => setTimeSheetVisible(false)}
+        onDone={(nextStart, nextEnd) => {
+          setTimeSheetVisible(false);
+          requestAnimationFrame(() => {
+            setWindowStart(nextStart);
+            setWindowEnd(nextEnd);
+          });
+        }}
+      />
     </SafeAreaView>
+  );
+}
+
+function PlanSwitchRow({
+  icon,
+  label,
+  value,
+  onValueChange,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: boolean;
+  onValueChange: (next: boolean) => void;
+}) {
+  return (
+    <View className="flex-row items-center justify-between rounded-2xl bg-white px-4 py-3">
+      <View className="flex-1 flex-row items-center gap-4">
+        {icon}
+        <Text className="text-sm font-inter-light text-[#878686]">{label}</Text>
+      </View>
+      <ToggleSwitch value={value} onValueChange={onValueChange} />
+    </View>
+  );
+}
+
+function DateTimeRow({
+  date,
+  placeholder,
+  onPress,
+}: {
+  date: Date | null;
+  placeholder: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      className="flex-row items-center justify-between rounded-[8px] bg-white px-4 py-3"
+    >
+      <View className="min-w-0 flex-1 flex-row items-center gap-4">
+        <UpcomingCalendarIcon width={16} height={16} />
+        {date ? (
+          <Text className="flex-1 text-sm font-inter-light text-[#113E55]" numberOfLines={1}>
+            {formatDatePart(date)}
+          </Text>
+        ) : (
+          <Text className="flex-1 text-sm font-inter-light text-[#878686]">{placeholder}</Text>
+        )}
+      </View>
+      <View className="ml-2 flex-row items-center">
+        {date ? (
+          <Text className="mr-1 text-sm font-inter-medium text-[#113E55]">{formatClock(date)}</Text>
+        ) : null}
+        <FormChevronRightIcon width={20} height={20} />
+      </View>
+    </Pressable>
   );
 }

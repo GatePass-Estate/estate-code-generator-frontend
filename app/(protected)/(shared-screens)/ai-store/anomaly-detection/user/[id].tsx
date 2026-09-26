@@ -16,7 +16,7 @@ import ExportSvg from '@/src/assets/images/export.svg';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { useAnomalyCaseDemographic, useAnomalyCaseHistory, useAnomalyCaseSummary, useAnomalyCaseResults } from '@/src/hooks/useAnomalyQueries';
 
-const GaugeCardsSection = React.memo(({ gaugeList }: { gaugeList: any[] }) => {
+const GaugeCardsSection = React.memo(function GaugeCardsSection({ gaugeList }: { gaugeList: any[] }) {
   const [gaugeLimit, setGaugeLimit] = useState(2);
   const [selectedGaugeIndex, setSelectedGaugeIndex] = useState<number | null>(null);
 

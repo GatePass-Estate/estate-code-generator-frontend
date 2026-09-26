@@ -1,7 +1,7 @@
 import Back from '@/src/components/mobile/Back';
 import { Toast, ToastType } from '@/src/components/mobile/Toast';
 import { sharedStyles } from '@/src/theme/styles';
-import { useNavigation , Stack } from 'expo-router';
+import { Stack, useNavigation } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,

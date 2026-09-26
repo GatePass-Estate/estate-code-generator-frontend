@@ -135,10 +135,9 @@ export default function PendingRequestSheet({
   const [notifying, setNotifying] = useState(false);
 
   const closeSheet = () => {
-    translateY.value = withTiming(SHEET_HEIGHT, SHEET_ANIMATION, (finished) => {
-      if (finished) {
-        runOnJS(onClose)();
-      }
+    translateY.value = withTiming(SHEET_HEIGHT, SHEET_ANIMATION, () => {
+      // Always dismiss — interrupted close must not leave a blocking invisible Modal.
+      runOnJS(onClose)();
     });
   };
 
@@ -232,7 +231,7 @@ export default function PendingRequestSheet({
     <Modal visible={visible} transparent animationType="none" onRequestClose={closeSheet}>
       <GestureHandlerRootView style={styles.overlay}>
         <Animated.View style={[styles.backdrop, backdropAnimatedStyle]}>
-          <Pressable style={StyleSheet.absoluteFillObject} onPress={closeSheet} />
+          <Pressable style={StyleSheet.absoluteFill} onPress={closeSheet} />
         </Animated.View>
 
         <GestureDetector gesture={panGesture}>
@@ -321,7 +320,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0, 0, 0, 0.35)',
   },
   sheet: {
