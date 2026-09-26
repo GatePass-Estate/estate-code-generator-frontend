@@ -1,9 +1,8 @@
 import { ActivityIndicator, Image, Pressable, Text, View } from 'react-native';
 import images from '@/src/constants/images';
 import AiSummaryLockSvg from '@/src/assets/icons/ai-summary-lock.svg';
-import AiSummaryTimeSvg from '@/src/assets/icons/ai-summary-time.svg';
-import AiSummaryThirdPartySvg from '@/src/assets/icons/ai-summary-third-party.svg';
 import AiSummaryExpandSvg from '@/src/assets/icons/ai-summary-expand.svg';
+import MetaChips from './AISummaryMetaChips';
 
 export type InsightMode = 'idle' | 'generated' | 'locked';
 
@@ -22,46 +21,6 @@ type IncidentAISummaryCardProps = {
 
 function InsightLogo() {
   return <Image source={images.insightLogo} className="h-[36px] w-[33px]" resizeMode="contain" />;
-}
-
-function MetaChips({
-  readTimeLabel,
-  sourceLabel,
-  onSourcePress,
-}: {
-  readTimeLabel?: string | null;
-  sourceLabel?: string | null;
-  onSourcePress?: () => void;
-}) {
-  const time = readTimeLabel?.trim();
-  const source = sourceLabel?.trim();
-  if (!time && !source) return null;
-
-  return (
-    <View className="flex-row items-center gap-1">
-      {!!time && (
-        <View className="h-5 flex-row items-center gap-1 rounded-lg bg-[#FFF8F5] p-1">
-          <AiSummaryTimeSvg width={12} height={12} />
-          <Text allowFontScaling={false} className="text-[8.96px] font-inter-medium text-[#F46036]">
-            {time}
-          </Text>
-        </View>
-      )}
-      {!!source && (
-        <Pressable
-          onPress={onSourcePress}
-          disabled={!onSourcePress}
-          className="h-5 flex-row items-center gap-1 rounded-lg bg-[#F4FFFE] p-1"
-          hitSlop={8}
-        >
-          <AiSummaryThirdPartySvg width={12} height={12} />
-          <Text allowFontScaling={false} className="text-[8.96px] font-inter-medium text-[#167A6F]">
-            {source}
-          </Text>
-        </Pressable>
-      )}
-    </View>
-  );
 }
 
 function ExpandButton({ onPress }: { onPress: () => void }) {

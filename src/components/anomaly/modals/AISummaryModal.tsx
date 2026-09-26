@@ -2,9 +2,8 @@ import React, { useMemo, useState } from 'react';
 import { View, Text, Pressable, ScrollView, Modal, StyleSheet, Platform } from 'react-native';
 import Animated, { SlideInDown, SlideOutDown } from 'react-native-reanimated';
 import { BlurView } from 'expo-blur';
-import AiSummaryTimeSvg from '@/src/assets/icons/ai-summary-time.svg';
-import AiSummaryThirdPartySvg from '@/src/assets/icons/ai-summary-third-party.svg';
 import AiSummaryCaretDownSvg from '@/src/assets/icons/ai-summary-caret-down.svg';
+import AISummaryMetaChips from '@/src/components/incident/AISummaryMetaChips';
 import type { ThemeCardModel } from '@/src/components/incident/mapIncidentApi';
 import type { IncidentLlmSummary } from '@/src/lib/api/incidentReports';
 
@@ -62,25 +61,6 @@ function sectionsFromLlmSummary(payload: IncidentLlmSummary | null | undefined):
     }
   }
   return sections;
-}
-
-function MetaChips({ readTimeLabel, sourceLabel }: { readTimeLabel: string; sourceLabel: string }) {
-  return (
-    <View className="mb-6 flex-row items-center gap-1">
-      <View className="h-5 flex-row items-center gap-1 rounded-lg bg-light-orange p-1">
-        <AiSummaryTimeSvg width={12} height={12} />
-        <Text allowFontScaling={false} className="text-2xs font-inter-medium text-orange">
-          {readTimeLabel}
-        </Text>
-      </View>
-      <View className="h-5 flex-row items-center gap-1 rounded-lg bg-light-teal p-1">
-        <AiSummaryThirdPartySvg width={12} height={12} />
-        <Text allowFontScaling={false} className="text-2xs font-inter-medium text-dark-teal">
-          {sourceLabel}
-        </Text>
-      </View>
-    </View>
-  );
 }
 
 function TimelineAccordion({
@@ -363,7 +343,11 @@ export default function AISummaryModal({
             {isInHouse ? 'AI Summary' : 'AI SUMMARY'}
           </Text>
 
-          <MetaChips readTimeLabel={resolvedReadTime} sourceLabel={resolvedSource} />
+          <AISummaryMetaChips
+            className="mb-6"
+            readTimeLabel={resolvedReadTime}
+            sourceLabel={resolvedSource}
+          />
 
           <ScrollView showsVerticalScrollIndicator={false} contentContainerClassName="pb-6">
             {isInHouse ? (

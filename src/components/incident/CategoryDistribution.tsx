@@ -10,7 +10,13 @@ import {
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import Animated, {
+  Easing,
+  interpolateColor,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import { MaterialIcons } from '@expo/vector-icons';
 import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { CategoryExpandIcon, NarrativeSnippetIcon } from '@/src/assets/svgs';
@@ -25,16 +31,43 @@ type CategoryDistributionProps = {
   totalReports?: number;
 };
 
-const FADE_MS = 180;
+const TRANSITION_MS = 280;
+const EASE_OUT = Easing.bezier(0.25, 0.1, 0.25, 1);
 
-/** Soft opacity pulse when selection changes — no layout enter/exit */
-function useSelectionFade(selectedId: string) {
-  const opacity = useSharedValue(1);
+/**
+ * Opacity-only fade when the selected category changes. No transforms, so iOS and
+ * Android render the same frames.
+ */
+function useSelectionTransition(selectedId: string) {
+  const progress = useSharedValue(1);
   useEffect(() => {
-    opacity.value = 0.4;
-    opacity.value = withTiming(1, { duration: FADE_MS });
-  }, [selectedId, opacity]);
-  return useAnimatedStyle(() => ({ opacity: opacity.value }));
+    progress.value = 0;
+    progress.value = withTiming(1, { duration: TRANSITION_MS, easing: EASE_OUT });
+  }, [selectedId, progress]);
+  return useAnimatedStyle(() => ({
+    opacity: 0.35 + progress.value * 0.65,
+  }));
+}
+
+/** 0 → 1 as `active` toggles, eased. */
+function useActiveProgress(active: boolean) {
+  const progress = useSharedValue(active ? 1 : 0);
+  useEffect(() => {
+    progress.value = withTiming(active ? 1 : 0, { duration: TRANSITION_MS, easing: EASE_OUT });
+  }, [active, progress]);
+  return progress;
+}
+
+function PageDot({ active, onPress }: { active: boolean; onPress: () => void }) {
+  const progress = useActiveProgress(active);
+  const dotStyle = useAnimatedStyle(() => ({
+    backgroundColor: interpolateColor(progress.value, [0, 1], ['#D3D3D3', '#113E55']),
+  }));
+  return (
+    <Pressable onPress={onPress} hitSlop={6}>
+      <Animated.View style={[{ width: 5, height: 5, borderRadius: 2.5 }, dotStyle]} />
+    </Pressable>
+  );
 }
 
 function ActiveBubbleRing({ size, id }: { size: number; id: string }) {
@@ -103,6 +136,180 @@ function iconSizeForBubble(size: number) {
   if (size >= 40) return 16;
   if (size >= 28) return 12;
   return 10;
+}
+
+function BubbleContent({
+  category,
+  size,
+  isSelected,
+}: {
+  category: IncidentCategory;
+  size: number;
+  isSelected: boolean;
+}) {
+  const isOthersBucket = category.id === OTHERS_BUCKET_ID;
+  const iconColor = isSelected ? '#F6F7F7' : '#113E55';
+  const showPct = isSelected && !isOthersBucket;
+  const iconSz = iconSizeForBubble(size);
+
+  if (isOthersBucket) {
+    return (
+      <View className="absolute inset-0 items-center justify-center" pointerEvents="none">
+        <CategoryIcon
+          apiCategory={category.apiCategory}
+          color={iconColor}
+          size={Math.max(12, size * 0.45)}
+          filled
+        />
+      </View>
+    );
+  }
+
+  if (showPct && size >= 54) {
+    return (
+      <View className="items-center gap-1">
+        <CategoryIcon apiCategory={category.apiCategory} color={iconColor} size={iconSz} filled />
+        <Text
+          allowFontScaling={false}
+          numberOfLines={1}
+          className="text-[11.2px] font-inter-semibold leading-[14px] text-[#F6F7F7]"
+        >
+          {formatBubbleShare(category.share)}%
+        </Text>
+      </View>
+    );
+  }
+
+  if (showPct && size >= 40) {
+    return (
+      <View className="items-center justify-center gap-0.5 px-0.5">
+        <CategoryIcon apiCategory={category.apiCategory} color="#F6F7F7" size={12} filled />
+        <Text
+          allowFontScaling={false}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.75}
+          className="text-center text-[8.96px] font-inter-medium leading-[11px] text-[#F6F7F7]"
+        >
+          {formatBubbleShare(category.share)}%
+        </Text>
+      </View>
+    );
+  }
+
+  if (showPct) {
+    return (
+      <View className="items-center justify-center gap-0.5 px-0.5">
+        <CategoryIcon apiCategory={category.apiCategory} color="#F6F7F7" size={iconSz} filled />
+        <Text
+          allowFontScaling={false}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.7}
+          className="text-center text-[6.8px] font-inter-semibold leading-[8px] text-[#F6F7F7]"
+        >
+          {formatBubbleShare(category.share)}%
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <CategoryIcon
+      apiCategory={category.apiCategory}
+      color={iconColor}
+      size={iconSz}
+      filled={isSelected}
+    />
+  );
+}
+
+function CategoryBubble({
+  category,
+  layout,
+  isSelected,
+  onPress,
+}: {
+  category: IncidentCategory;
+  layout: { size: number; left: number; top: number };
+  isSelected: boolean;
+  onPress: () => void;
+}) {
+  const progress = useActiveProgress(isSelected);
+  const contentOpacity = useSharedValue(1);
+  const didMount = useRef(false);
+  const boxSize = layout.size + 4;
+
+  useEffect(() => {
+    if (!didMount.current) {
+      didMount.current = true;
+      return;
+    }
+    contentOpacity.value = 0;
+    contentOpacity.value = withTiming(1, { duration: TRANSITION_MS, easing: EASE_OUT });
+  }, [isSelected, contentOpacity]);
+
+  const ringStyle = useAnimatedStyle(() => ({ opacity: progress.value }));
+  const whiteStyle = useAnimatedStyle(() => ({ opacity: 1 - progress.value }));
+  const contentStyle = useAnimatedStyle(() => ({ opacity: contentOpacity.value }));
+
+  return (
+    <Pressable
+      onPress={onPress}
+      style={{
+        position: 'absolute',
+        left: layout.left - 2,
+        top: layout.top - 2,
+        width: boxSize,
+        height: boxSize,
+      }}
+    >
+      <View style={{ width: boxSize, height: boxSize }}>
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            {
+              position: 'absolute',
+              width: layout.size,
+              height: layout.size,
+              left: 2,
+              top: 2,
+              borderRadius: layout.size / 2,
+              backgroundColor: '#FFFFFF',
+            },
+            whiteStyle,
+          ]}
+        />
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            { position: 'absolute', left: 0, top: 0, width: boxSize, height: boxSize },
+            ringStyle,
+          ]}
+        >
+          <ActiveBubbleRing size={layout.size} id={category.id} />
+        </Animated.View>
+
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            {
+              position: 'absolute',
+              top: 0,
+              right: 0,
+              bottom: 0,
+              left: 0,
+              alignItems: 'center',
+              justifyContent: 'center',
+            },
+            contentStyle,
+          ]}
+        >
+          <BubbleContent category={category} size={layout.size} isSelected={isSelected} />
+        </Animated.View>
+      </View>
+    </Pressable>
+  );
 }
 
 function ThresholdBadge({ label }: { label: string }) {
@@ -176,8 +383,6 @@ function NarrativeSnippetSlider({
   const [pageWidth, setPageWidth] = useState(0);
   const suppressSelect = useRef(false);
   const selectedIndex = categories.findIndex((c) => c.id === selectedId);
-  const fadeStyle = useSelectionFade(selectedId);
-
   useEffect(() => {
     if (pageWidth <= 0 || selectedIndex < 0) return;
     suppressSelect.current = true;
@@ -217,9 +422,7 @@ function NarrativeSnippetSlider({
         >
           {categories.map((cat) => (
             <View key={cat.id} style={{ width: pageWidth }} className="px-[26px]">
-              <Animated.View style={cat.id === selectedId ? fadeStyle : undefined}>
-                <NarrativeCard text={cat.narrative} />
-              </Animated.View>
+              <NarrativeCard text={cat.narrative} />
             </View>
           ))}
         </ScrollView>
@@ -307,6 +510,7 @@ function CategoryExpandSheet({
 }) {
   const index = categories.findIndex((c) => c.id === categoryId);
   const category = categories[index] ?? categories[0];
+  const contentFade = useSelectionTransition(categoryId);
   if (!visible || !category) return null;
 
   const thresholdCopy = category.thresholdLabel.startsWith('>')
@@ -333,7 +537,7 @@ function CategoryExpandSheet({
           </View>
 
           <View className="mt-[50px] flex-row items-start justify-between px-6">
-            <View className="mr-3 min-w-0 flex-1 gap-1 pr-2">
+            <Animated.View className="mr-3 min-w-0 flex-1 gap-1 pr-2" style={contentFade}>
               <Text
                 allowFontScaling={false}
                 className="text-left text-[21.88px] font-ubuntu-semibold leading-[26px] text-[#113E55]"
@@ -346,7 +550,7 @@ function CategoryExpandSheet({
               >
                 {thresholdCopy}
               </Text>
-            </View>
+            </Animated.View>
             <View className="flex-row gap-4">
               <Pressable
                 onPress={goPrev}
@@ -367,7 +571,7 @@ function CategoryExpandSheet({
             </View>
           </View>
 
-          <View className="mt-[43px] flex-row gap-1 px-6">
+          <Animated.View className="mt-[43px] flex-row gap-1 px-6" style={contentFade}>
             <View className="min-h-[52px] w-[104px] justify-center gap-1 rounded border border-[#EFF1F3] bg-white p-2">
               <View className="flex-row flex-wrap items-center gap-1">
                 <Text
@@ -425,15 +629,17 @@ function CategoryExpandSheet({
                 {category.share}%
               </Text>
             </View>
-          </View>
+          </Animated.View>
 
           <ScrollView
             className="mt-4 flex-1 px-6"
             showsVerticalScrollIndicator={false}
             contentContainerClassName="gap-4 pb-10"
           >
-            {category.narrative?.trim() ? <NarrativeCard text={category.narrative} /> : null}
-            {category.detail?.trim() ? <NarrativeCard text={category.detail} /> : null}
+            <Animated.View className="gap-4" style={contentFade}>
+              {category.narrative?.trim() ? <NarrativeCard text={category.narrative} /> : null}
+              {category.detail?.trim() ? <NarrativeCard text={category.detail} /> : null}
+            </Animated.View>
           </ScrollView>
         </Pressable>
       </Pressable>
@@ -455,7 +661,7 @@ export default function CategoryDistribution({
   const selectedIndex = catalog.findIndex((c) => c.id === selectedId);
   const showSubcategories =
     !!selected && selected.id === OTHERS_BUCKET_ID && (selected.subcategories?.length ?? 0) > 0;
-  const metricsFade = useSelectionFade(selectedId);
+  const metricsFade = useSelectionTransition(selectedId);
   const subcategoryCount = selected?.subcategories?.length ?? 0;
   const othersStackHeight =
     subcategoryCount > 0
@@ -463,10 +669,14 @@ export default function CategoryDistribution({
       : 0;
   /** Grow with side cards / Others stack so Narrative stays 16px below (no absolute overflow). */
   const chartAreaHeight = Math.max(CHART_AREA_HEIGHT, othersStackHeight, sideStackHeight);
-
+  const animatedChartHeight = useSharedValue(chartAreaHeight);
   useEffect(() => {
-    setSideStackHeight(0);
-  }, [selectedId, showSubcategories]);
+    animatedChartHeight.value = withTiming(chartAreaHeight, {
+      duration: TRANSITION_MS,
+      easing: EASE_OUT,
+    });
+  }, [chartAreaHeight, animatedChartHeight]);
+  const chartHeightStyle = useAnimatedStyle(() => ({ height: animatedChartHeight.value }));
 
   if (!selected) {
     return (
@@ -506,113 +716,18 @@ export default function CategoryDistribution({
         </Pressable>
       </View>
 
-      <View className="relative w-full" style={{ height: chartAreaHeight }}>
+      <Animated.View className="relative w-full" style={chartHeightStyle}>
         {catalog.slice(0, BUBBLE_LAYOUT.length).map((category, index) => {
           const layout = BUBBLE_LAYOUT[index];
           if (!layout) return null;
-          const isOthersBucket = category.id === OTHERS_BUCKET_ID;
-          const isSelected = selectedId === category.id;
-          const iconColor = isSelected ? '#F6F7F7' : '#113E55';
-          const showPct = isSelected && !isOthersBucket;
-          const iconSz = iconSizeForBubble(layout.size);
-
           return (
-            <Pressable
+            <CategoryBubble
               key={category.id}
+              category={category}
+              layout={layout}
+              isSelected={selectedId === category.id}
               onPress={() => onSelect(category.id)}
-              className="absolute items-center justify-center"
-              style={{
-                left: layout.left - 2,
-                top: layout.top - 2,
-                width: layout.size + 4,
-                height: layout.size + 4,
-                overflow: 'visible',
-              }}
-            >
-              {isSelected ? (
-                <ActiveBubbleRing size={layout.size} id={category.id} />
-              ) : (
-                <View
-                  className="absolute rounded-full bg-white"
-                  style={{
-                    width: layout.size,
-                    height: layout.size,
-                    left: 2,
-                    top: 2,
-                  }}
-                />
-              )}
-
-              {isOthersBucket ? (
-                <View className="absolute inset-0 items-center justify-center" pointerEvents="none">
-                  <CategoryIcon
-                    apiCategory={category.apiCategory}
-                    color={iconColor}
-                    size={Math.max(12, layout.size * 0.45)}
-                    filled
-                  />
-                </View>
-              ) : showPct && layout.size >= 54 ? (
-                <View className="items-center gap-1">
-                  <CategoryIcon
-                    apiCategory={category.apiCategory}
-                    color={iconColor}
-                    size={iconSz}
-                    filled
-                  />
-                  <Text
-                    allowFontScaling={false}
-                    numberOfLines={1}
-                    className="text-[11.2px] font-inter-semibold leading-[14px] text-[#F6F7F7]"
-                  >
-                    {formatBubbleShare(category.share)}%
-                  </Text>
-                </View>
-              ) : showPct && layout.size >= 40 ? (
-                <View className="items-center justify-center gap-0.5 px-0.5">
-                  <CategoryIcon
-                    apiCategory={category.apiCategory}
-                    color="#F6F7F7"
-                    size={12}
-                    filled
-                  />
-                  <Text
-                    allowFontScaling={false}
-                    numberOfLines={1}
-                    adjustsFontSizeToFit
-                    minimumFontScale={0.75}
-                    className="text-center text-[8.96px] font-inter-medium leading-[11px] text-[#F6F7F7]"
-                  >
-                    {formatBubbleShare(category.share)}%
-                  </Text>
-                </View>
-              ) : showPct ? (
-                <View className="items-center justify-center gap-0.5 px-0.5">
-                  <CategoryIcon
-                    apiCategory={category.apiCategory}
-                    color="#F6F7F7"
-                    size={iconSz}
-                    filled
-                  />
-                  <Text
-                    allowFontScaling={false}
-                    numberOfLines={1}
-                    adjustsFontSizeToFit
-                    minimumFontScale={0.7}
-                    className="text-center text-[6.8px] font-inter-semibold leading-[8px] text-[#F6F7F7]"
-                  >
-                    {formatBubbleShare(category.share)}%
-                  </Text>
-                </View>
-              ) : (
-                <CategoryIcon
-                  apiCategory={category.apiCategory}
-                  color={iconColor}
-                  size={iconSz}
-                  filled={isSelected}
-                />
-              )}
-            </Pressable>
+            />
           );
         })}
 
@@ -723,20 +838,13 @@ export default function CategoryDistribution({
             />
           </Animated.View>
         )}
-      </View>
+      </Animated.View>
 
       <NarrativeSnippetSlider selectedId={selectedId} onSelect={onSelect} categories={catalog} />
 
       <View className="mt-8 flex-row items-center justify-center gap-[4px]">
         {catalog.map((cat, i) => (
-          <Pressable
-            key={cat.id}
-            onPress={() => onSelect(cat.id)}
-            hitSlop={6}
-            className={`h-[5px] w-[5px] rounded-full ${
-              i === selectedIndex ? 'bg-[#113E55]' : 'bg-[#D3D3D3]'
-            }`}
-          />
+          <PageDot key={cat.id} active={i === selectedIndex} onPress={() => onSelect(cat.id)} />
         ))}
       </View>
 
