@@ -1,6 +1,6 @@
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PropsWithChildren } from 'react';
-import { Platform, KeyboardAvoidingView, StyleSheet } from 'react-native';
+import { Platform, KeyboardAvoidingView, StyleSheet, ViewStyle } from 'react-native';
 
 export const isAndroid = Platform.OS === 'android';
 

@@ -89,5 +89,9 @@ export async function fetchAuthenticatedDocumentUri(
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
   });
 
+  if (result.status !== 200) {
+    throw new Error(`Failed to download document: ${result.status}`);
+  }
+
   return result.uri;
 }

@@ -1,4 +1,5 @@
 import { Stack, router, useNavigation } from 'expo-router';
+import CountdownRing from '@/src/components/common/CountdownRing';
 import { View, Text, FlatList, Animated, Platform, Alert } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
