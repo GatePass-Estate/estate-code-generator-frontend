@@ -3,6 +3,19 @@ export type IncidentCategoryId = string;
 /** Leftover EDA bucket id (`other_categories`) — not the API taxonomy slug `other`. */
 export const OTHERS_BUCKET_ID = 'others_bucket';
 
+/** A category inside the leftover `others_bucket`, with its own detail for the expand sheet. */
+export type IncidentSubcategory = {
+  /** Truncated label for the compact side card. */
+  name: string;
+  fullName: string;
+  pct: number;
+  apiCategory: string;
+  count: number;
+  peakTime: string;
+  thresholdLabel: string;
+  narrative: string;
+};
+
 export type IncidentCategory = {
   /**
    * Bubble key: API taxonomy slug, or `others_bucket` for the leftover group.
@@ -21,7 +34,7 @@ export type IncidentCategory = {
   apiCategory: string;
   color: string;
   /** Only set on the leftover `others_bucket` — never nests taxonomy `other` inside itself. */
-  subcategories?: { name: string; pct: number; apiCategory: string }[];
+  subcategories?: IncidentSubcategory[];
 };
 
 export type IncidentRow = {

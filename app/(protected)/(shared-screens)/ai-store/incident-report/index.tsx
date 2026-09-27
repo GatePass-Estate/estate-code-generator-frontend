@@ -4,10 +4,15 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import ValidationBackSvg from '@/src/assets/icons/validation-back.svg';
+import BiInfoSvg from '@/src/assets/icons/bi_info.svg';
 
 import IncidentReportSvg from '@/src/assets/images/incident-report.svg';
+import Pf1Svg from '@/src/assets/icons/pf_1.svg';
+import Pf2Svg from '@/src/assets/icons/pf_2.svg';
+import Pf3Svg from '@/src/assets/icons/pf_3.svg';
 import { FeatureDownloadIcon, FeatureUsersIcon, RatingStarIcon } from '@/src/assets/svgs';
 import RatingModal from '@/src/components/anomaly/modals/RatingModal';
+import DataInsightModal from '@/src/components/anomaly/modals/DataInsightModal';
 import IncidentResultView from '@/src/components/incident/IncidentResultView';
 import SubscriptionTierCard from '@/src/components/incident/SubscriptionTierCard';
 import AnimatedPillTabs from '@/src/components/mobile/AnimatedPillTabs';
@@ -28,6 +33,21 @@ import { MarketplaceDetailResponse, MarketplaceTier } from '@/src/types/aiMarket
 
 const isIncidentProduct = (name: string) => name.toLowerCase().includes('incident');
 
+const PRODUCT_FEATURES = [
+  {
+    Icon: Pf1Svg,
+    text: 'Spot unusual activities early, so you can investigate before they become bigger issues.',
+  },
+  {
+    Icon: Pf2Svg,
+    text: 'Instead of reviewing everything, instantly see the people or patterns that deserve your attention.',
+  },
+  {
+    Icon: Pf3Svg,
+    text: "No complicated reports. Get simple insights that help you understand what's happening and why.",
+  },
+];
+
 export default function IncidentReportPreviewScreen() {
   const params = useLocalSearchParams<{ featureId?: string; title?: string; tab?: string }>();
   const estateId = useUserStore((s) => s.estate_id);
@@ -44,6 +64,7 @@ export default function IncidentReportPreviewScreen() {
   const [, setIsSubscribing] = useState(false);
   const [subscribingTierKey, setSubscribingTierKey] = useState<string | null>(null);
   const [isRatingModalVisible, setIsRatingModalVisible] = useState(false);
+  const [dataInsightVisible, setDataInsightVisible] = useState(false);
   const [cardHeight, setCardHeight] = useState<number>(120);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -252,8 +273,18 @@ export default function IncidentReportPreviewScreen() {
             onChange={handleTabChange}
           />
 
-          {/* Spacer keeps pill tabs centered with the back button */}
-          <View className="h-[30px] w-[30px]" />
+          <Pressable
+            onPress={() => setDataInsightVisible(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Data insight"
+            className="h-[30px] w-[30px] items-center justify-center"
+            hitSlop={20}
+            style={{ zIndex: 100 }}
+          >
+            <View pointerEvents="none">
+              <BiInfoSvg width={24} height={24} />
+            </View>
+          </Pressable>
         </View>
 
         {activeTab === 'Result' ? (
@@ -381,6 +412,34 @@ export default function IncidentReportPreviewScreen() {
                     allowFontScaling={false}
                     className="mb-4 text-[14px] font-inter-medium leading-[14px] text-[#113E55]"
                   >
+                    Product Feature
+                  </Text>
+                </View>
+
+                <View className="mb-[44px] gap-2">
+                  {PRODUCT_FEATURES.map(({ Icon, text }) => (
+                    <View
+                      key={text}
+                      className="flex-row items-center gap-3 rounded-[16px] bg-white px-4 py-2"
+                    >
+                      <View className="h-4 w-4 shrink-0 items-center justify-center">
+                        <Icon width={16} height={16} />
+                      </View>
+                      <Text
+                        allowFontScaling={false}
+                        className="flex-1 text-[11.2px] font-inter-regular leading-[18px] text-[#878686]"
+                      >
+                        {text}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+
+                <View className="px-[17px]">
+                  <Text
+                    allowFontScaling={false}
+                    className="mb-4 text-[14px] font-inter-medium leading-[14px] text-[#113E55]"
+                  >
                     Choose Subscription Plan
                   </Text>
                 </View>
@@ -412,7 +471,7 @@ export default function IncidentReportPreviewScreen() {
                           onCancelSubscription={() => handleCancelSubscription(tier)}
                           onUninstall={() => handleUninstall(tier)}
                           isSubscribing={subscribingTierKey === tierKey}
-                          isInstalled={!!tier.is_installed}
+                          isInstalled={!!tier.is_installed || tier.status === 'installed'}
                         />
                       );
                     })
@@ -429,6 +488,7 @@ export default function IncidentReportPreviewScreen() {
         onClose={() => setIsRatingModalVisible(false)}
         onSubmit={handleRate}
       />
+      <DataInsightModal visible={dataInsightVisible} onClose={() => setDataInsightVisible(false)} />
     </View>
   );
 }

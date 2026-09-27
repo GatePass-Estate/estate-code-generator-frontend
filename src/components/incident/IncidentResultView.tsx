@@ -3,9 +3,12 @@ import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from 'rea
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { router } from 'expo-router';
-import AISummaryModal from '@/src/components/anomaly/modals/AISummaryModal';
+import AISummaryModal, {
+  type AISummaryVariant,
+} from '@/src/components/incident/IncidentAISummaryModal';
 import AnomalyDonutChart from '@/src/components/anomaly/AnomalyDonutChart';
 import EstateSvg from '@/src/assets/icons/estate.svg';
+import ExportSvg from '@/src/assets/icons/incident-export.svg';
 import LocationSvg from '@/src/assets/icons/location.svg';
 import TotalUsersSvg from '@/src/assets/icons/totalusers.svg';
 import {
@@ -26,7 +29,10 @@ import {
 } from '@/src/hooks/useIncidentQueries';
 import { toIncidentFromDate, toIncidentToDate } from '@/src/lib/api/incidentReports';
 import CategoryDistribution from './CategoryDistribution';
-import IncidentAISummaryCard, { type InsightMode } from './IncidentAISummaryCard';
+import IncidentAISummaryCard, {
+  type AISummarySlide,
+  type InsightMode,
+} from './IncidentAISummaryCard';
 import IncidentFilterModal, {
   type IncidentFilterCategory,
   type IncidentFilterUserType,
@@ -214,7 +220,7 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
   const [datePickerVisible, setDatePickerVisible] = useState(false);
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [orderModalVisible, setOrderModalVisible] = useState(false);
-  const [summaryOpen, setSummaryOpen] = useState(false);
+  const [openSummaryVariant, setOpenSummaryVariant] = useState<AISummaryVariant | null>(null);
   const [sortAscending, setSortAscending] = useState(false);
   const [insightMode, setInsightMode] = useState<InsightMode>('idle');
   const [fetchSummary, setFetchSummary] = useState(false);
@@ -323,8 +329,6 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
         : summary?.tier1
           ? ('in_house' as const)
           : ('third_party' as const);
-  const executiveSummary =
-    summary?.tier2?.executive_summary || summary?.tier1?.executive_summary || undefined;
   const summaryReadTime =
     summary?.read_time?.trim() ||
     summary?.tier2?.read_time?.trim() ||
@@ -341,7 +345,31 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
     );
   }, [summary?.tier1?.topics, summary?.tier1?.executive_summary, overview?.eda]);
 
-  const hasSummaryPayload = !!(summary?.tier1 || summary?.tier2);
+  const summarySlides = useMemo<AISummarySlide[]>(
+    () => [
+      {
+        variant: 'third_party',
+        text: summary?.tier2?.executive_summary,
+        readTimeLabel: summary?.tier2?.read_time || summary?.read_time,
+        sourceLabel: 'Third Party',
+      },
+      {
+        variant: 'in_house',
+        text: summary?.tier1?.executive_summary || inhouseInsight.timelineSummary,
+        readTimeLabel: summary?.tier1?.read_time || summary?.read_time,
+        sourceLabel: 'In house',
+      },
+    ],
+    [summary, inhouseInsight.timelineSummary]
+  );
+  const openSummaryReadTime =
+    openSummaryVariant === 'in_house'
+      ? summary?.tier1?.read_time || summary?.read_time
+      : summary?.tier2?.read_time || summary?.read_time;
+
+  // Cached summaries stay hidden until the user taps "view / generate" on this visit.
+  const hasSummaryPayload = fetchSummary && !!(summary?.tier1 || summary?.tier2);
+  const summaryAlreadyGenerated = !!(overview?.has_tier1_summary || overview?.has_tier2_summary);
   const cardMode: InsightMode = hasSummaryPayload
     ? 'generated'
     : insightMode === 'locked'
@@ -351,7 +379,7 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
   const handleInsightPress = () => {
     if (cardMode === 'locked') return;
     if (hasSummaryPayload || cardMode === 'generated') {
-      setSummaryOpen(true);
+      setOpenSummaryVariant(summaryVariant);
       return;
     }
     if (cardMode === 'idle') {
@@ -377,11 +405,9 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
     setInsightMode('idle');
   }, [estate_id, fromDate, toDate]);
 
-  // Restore View state from cache (e.g. after leaving Result and coming back).
   useEffect(() => {
     if (hasSummaryPayload) {
       setInsightMode('generated');
-      setFetchSummary(true);
       return;
     }
     if (!fetchSummary || summaryLoading) return;
@@ -501,10 +527,14 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
           </Text>
           <Pressable
             onPress={() => Alert.alert('Coming Soon', 'This feature is not yet active.')}
-            className="min-w-20 min-h-11 mt-1.5 rounded-3xl border border-[#113E55] bg-[#113E55] items-center justify-center"
+            className="mt-1.5 flex-row items-center justify-center gap-1 overflow-hidden rounded-full border border-[#113E55] bg-[#113E55] p-4 min-h-11"
             hitSlop={8}
           >
-            <Text allowFontScaling={false} className="text-[13px] font-inter-medium text-white">
+            <ExportSvg width={23} height={23} />
+            <Text
+              allowFontScaling={false}
+              className="text-center text-sm font-ubuntu-semibold tracking-[-0.24px] text-[#F6F7F7]"
+            >
               Export
             </Text>
           </Pressable>
@@ -635,10 +665,12 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
           mode={cardMode}
           onPress={handleInsightPress}
           onUpgradePress={handleUpgradePress}
-          summaryText={executiveSummary}
+          slides={summarySlides}
+          onOpenSlide={setOpenSummaryVariant}
           readTimeLabel={hasSummaryPayload ? summaryReadTime : '2 mins Read'}
           sourceLabel={hasSummaryPayload ? summarySourceLabel : 'Third Party'}
           isLoading={fetchSummary && summaryLoading && !hasSummaryPayload}
+          alreadyGenerated={summaryAlreadyGenerated}
         />
 
         <CategoryDistribution
@@ -845,12 +877,12 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
         }}
       />
       <AISummaryModal
-        visible={summaryOpen}
-        onClose={() => setSummaryOpen(false)}
-        variant={summaryVariant}
+        visible={openSummaryVariant !== null}
+        onClose={() => setOpenSummaryVariant(null)}
+        variant={openSummaryVariant ?? summaryVariant}
         llmSummary={summary?.tier2}
-        readTimeLabel={summaryReadTime}
-        sourceLabel={summarySourceLabel}
+        readTimeLabel={openSummaryReadTime}
+        sourceLabel={openSummaryVariant === 'in_house' ? 'In house' : 'Third Party'}
         timelineSummary={inhouseInsight.timelineSummary}
         themes={inhouseInsight.themes}
       />

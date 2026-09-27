@@ -35,9 +35,24 @@ export function splitFeatureBullets(description?: string | null): string[] {
   return parts.length > 0 ? parts : [description.trim()];
 }
 
+const TIER_NUMBER_WORDS = [
+  'Zero',
+  'One',
+  'Two',
+  'Three',
+  'Four',
+  'Five',
+  'Six',
+  'Seven',
+  'Eight',
+  'Nine',
+  'Ten',
+];
+
+/** `tier_1` / `tier1` → "Tier One". */
 export function formatTierLabel(tier: string): string {
   const num = tier.replace(/\D/g, '');
-  if (num) return `Tier ${num}`;
+  if (num) return `Tier ${TIER_NUMBER_WORDS[Number(num)] ?? num}`;
   return tier
     .split('_')
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())

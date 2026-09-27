@@ -1,4 +1,12 @@
-import { ActivityIndicator, Image, Pressable, Text, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { ActivityIndicator, Image, Pressable, ScrollView, Text, View } from 'react-native';
+import Animated, {
+  Easing,
+  FadeIn,
+  FadeInDown,
+  LayoutAnimationConfig,
+} from 'react-native-reanimated';
+import type { AISummaryVariant } from '@/src/components/incident/IncidentAISummaryModal';
 import images from '@/src/constants/images';
 import AiSummaryLockSvg from '@/src/assets/icons/ai-summary-lock.svg';
 import AiSummaryExpandSvg from '@/src/assets/icons/ai-summary-expand.svg';
@@ -6,17 +14,31 @@ import MetaChips from './AISummaryMetaChips';
 
 export type InsightMode = 'idle' | 'generated' | 'locked';
 
+const EASE_OUT = Easing.bezier(0.25, 0.1, 0.25, 1);
+const CONTENT_FADE_IN = FadeIn.duration(260).easing(EASE_OUT);
+const CARD_RISE_IN = FadeInDown.duration(380).easing(EASE_OUT);
+
+export type AISummarySlide = {
+  variant: AISummaryVariant;
+  text?: string;
+  readTimeLabel?: string | null;
+  sourceLabel: string;
+};
+
 type IncidentAISummaryCardProps = {
   mode: InsightMode;
-  /** Idle → generate; generated → expand overlay (also used by primary expand button). */
+  /** Idle → generate / view. */
   onPress: () => void;
   onUpgradePress?: () => void;
-  /** Live executive summary when generated. */
-  summaryText?: string;
-  /** Chip labels from API — only shown when provided. */
+  /** Generated → one swipeable card per summary source. */
+  slides?: AISummarySlide[];
+  onOpenSlide?: (variant: AISummaryVariant) => void;
+  /** Chip labels for the locked card. */
   readTimeLabel?: string | null;
   sourceLabel?: string | null;
   isLoading?: boolean;
+  /** Overview says a summary already exists for this window → "Tap to view". */
+  alreadyGenerated?: boolean;
 };
 
 function InsightLogo() {
@@ -100,7 +122,12 @@ function LoadedSummaryCard({
   const preview = summaryText?.trim() || '';
 
   return (
-    <View className="mt-4 max-h-[199px] w-full overflow-hidden rounded-[16px] bg-white px-5 pb-5 pt-6">
+    <Pressable
+      onPress={onExpand}
+      accessibilityRole="button"
+      accessibilityLabel={`Open ${sourceLabel ?? ''} AI Summary`}
+      className="max-h-[199px] w-full grow overflow-hidden rounded-[16px] bg-white px-5 pb-5 pt-6"
+    >
       <View className="flex-row items-center justify-between">
         <View className="mr-3 flex-1">
           <Text
@@ -130,39 +157,121 @@ function LoadedSummaryCard({
           {preview}
         </Text>
       )}
+    </Pressable>
+  );
+}
+
+const SLIDE_GAP = 12;
+
+function SummarySlider({
+  slides,
+  onOpen,
+}: {
+  slides: AISummarySlide[];
+  onOpen: (variant: AISummaryVariant) => void;
+}) {
+  const scrollRef = useRef<ScrollView>(null);
+  const [width, setWidth] = useState(0);
+  const [index, setIndex] = useState(0);
+  const interval = width + SLIDE_GAP;
+
+  return (
+    <View
+      className="mt-4 w-full"
+      onLayout={(e) => setWidth(Math.round(e.nativeEvent.layout.width))}
+    >
+      {width > 0 ? (
+        <ScrollView
+          ref={scrollRef}
+          horizontal
+          nestedScrollEnabled
+          directionalLockEnabled
+          showsHorizontalScrollIndicator={false}
+          snapToInterval={interval}
+          decelerationRate="fast"
+          disableIntervalMomentum
+          scrollEventThrottle={16}
+          contentContainerStyle={{ gap: SLIDE_GAP }}
+          onScroll={(e) => {
+            const next = Math.round(e.nativeEvent.contentOffset.x / interval);
+            setIndex((prev) => (prev === next ? prev : next));
+          }}
+        >
+          {slides.map((slide) => (
+            <View key={slide.variant} style={{ width }}>
+              <LoadedSummaryCard
+                summaryText={slide.text}
+                onExpand={() => onOpen(slide.variant)}
+                readTimeLabel={slide.readTimeLabel?.trim() || '2 mins Read'}
+                sourceLabel={slide.sourceLabel}
+              />
+            </View>
+          ))}
+        </ScrollView>
+      ) : null}
+
+      {slides.length > 1 ? (
+        <View className="mt-3 flex-row items-center justify-center gap-1.5">
+          {slides.map((slide, i) => (
+            <Pressable
+              key={slide.variant}
+              onPress={() => {
+                setIndex(i);
+                scrollRef.current?.scrollTo({ x: i * interval, animated: true });
+              }}
+              hitSlop={8}
+              className={`h-1.5 rounded-full ${
+                i === index ? 'w-4 bg-[#113E55]' : 'w-1.5 bg-[#C4CDD0]'
+              }`}
+            />
+          ))}
+        </View>
+      ) : null}
     </View>
   );
 }
 
-function EmptyGenerateCard({ onPress, isLoading }: { onPress: () => void; isLoading: boolean }) {
+function EmptyGenerateCard({
+  onPress,
+  isLoading,
+  alreadyGenerated,
+}: {
+  onPress: () => void;
+  isLoading: boolean;
+  alreadyGenerated: boolean;
+}) {
   return (
     <Pressable
       onPress={isLoading ? undefined : onPress}
       disabled={isLoading}
       accessibilityRole="button"
-      accessibilityLabel="Generate AI insight"
+      accessibilityLabel={alreadyGenerated ? 'View AI insight' : 'Generate AI insight'}
       className="mt-4 h-[232px] w-full items-center justify-center overflow-hidden rounded-[16px] bg-[#F6F7F7]"
     >
       {isLoading ? (
-        <View className="w-[281px] items-center gap-3">
+        <Animated.View
+          key="loading"
+          entering={CONTENT_FADE_IN}
+          className="w-[281px] items-center gap-3"
+        >
           <ActivityIndicator size="large" color="#113E55" />
           <Text
             allowFontScaling={false}
             className="text-center text-[11.2px] font-inter-regular leading-[normal] text-[#878686]"
           >
-            Generating AI insight…
+            {alreadyGenerated ? 'Loading AI insight…' : 'Generating AI insight…'}
           </Text>
-        </View>
+        </Animated.View>
       ) : (
-        <View className="w-[281px] items-center">
+        <Animated.View key="idle" entering={CONTENT_FADE_IN} className="w-[281px] items-center">
           <InsightLogo />
           <Text
             allowFontScaling={false}
             className="mt-2.5 text-center text-[11.2px] font-inter-regular leading-[normal] text-[#878686]"
           >
-            Tap to generate AI Insight on{'\n'}your report
+            {alreadyGenerated ? 'Tap to view' : 'Tap to generate'} AI Insight on{'\n'}your report
           </Text>
-        </View>
+        </Animated.View>
       )}
     </Pressable>
   );
@@ -172,35 +281,44 @@ export default function IncidentAISummaryCard({
   mode,
   onPress,
   onUpgradePress,
-  summaryText,
+  slides = [],
+  onOpenSlide,
   readTimeLabel,
   sourceLabel,
   isLoading = false,
+  alreadyGenerated = false,
 }: IncidentAISummaryCardProps) {
   // Figma AI Summary meta chips (6592:7367) — use API labels when present.
   const resolvedReadTime = readTimeLabel?.trim() || '2 mins Read';
   const resolvedSource = sourceLabel?.trim() || 'Third Party';
 
-  if (mode === 'locked' && !isLoading) {
-    return (
-      <LockedSummaryCard
-        onUpgradePress={onUpgradePress}
-        readTimeLabel={resolvedReadTime}
-        sourceLabel={resolvedSource}
-      />
-    );
-  }
+  const state =
+    mode === 'locked' && !isLoading
+      ? 'locked'
+      : mode === 'generated' && !isLoading && slides.length
+        ? 'generated'
+        : 'empty';
 
-  if (mode === 'generated' && !isLoading) {
-    return (
-      <LoadedSummaryCard
-        summaryText={summaryText}
-        onExpand={onPress}
-        readTimeLabel={resolvedReadTime}
-        sourceLabel={resolvedSource}
-      />
-    );
-  }
-
-  return <EmptyGenerateCard onPress={onPress} isLoading={isLoading} />;
+  return (
+    // Skip the entrance on first paint; animate only when the card changes state.
+    <LayoutAnimationConfig skipEntering>
+      <Animated.View key={state} entering={state === 'empty' ? CONTENT_FADE_IN : CARD_RISE_IN}>
+        {state === 'locked' ? (
+          <LockedSummaryCard
+            onUpgradePress={onUpgradePress}
+            readTimeLabel={resolvedReadTime}
+            sourceLabel={resolvedSource}
+          />
+        ) : state === 'generated' ? (
+          <SummarySlider slides={slides} onOpen={onOpenSlide ?? (() => onPress())} />
+        ) : (
+          <EmptyGenerateCard
+            onPress={onPress}
+            isLoading={isLoading}
+            alreadyGenerated={alreadyGenerated}
+          />
+        )}
+      </Animated.View>
+    </LayoutAnimationConfig>
+  );
 }

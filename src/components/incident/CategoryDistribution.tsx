@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import {
   Modal,
   Pressable,
@@ -40,7 +40,8 @@ const EASE_OUT = Easing.bezier(0.25, 0.1, 0.25, 1);
  */
 function useSelectionTransition(selectedId: string) {
   const progress = useSharedValue(1);
-  useEffect(() => {
+  // Layout effect: reset before paint so a freshly swapped panel never flashes at full opacity.
+  useLayoutEffect(() => {
     progress.value = 0;
     progress.value = withTiming(1, { duration: TRANSITION_MS, easing: EASE_OUT });
   }, [selectedId, progress]);
@@ -124,6 +125,8 @@ const SIDE_METRIC_CARD_WIDTH = 120;
 const SUBCATEGORY_CARD_WIDTH = SIDE_METRIC_CARD_WIDTH;
 const SUBCATEGORY_CARD_HEIGHT = 56;
 const SUBCATEGORY_GAP = 6;
+/** Side stack shows the top few; the expand sheet lists every Others category. */
+const MAX_SIDE_SUBCATEGORIES = 4;
 
 /** Keep bubble % on one line (avoids "72.7" / "%" wrap inside small circles). */
 function formatBubbleShare(share: number): string {
@@ -381,26 +384,39 @@ function NarrativeSnippetSlider({
 }) {
   const scrollRef = useRef<ScrollView>(null);
   const [pageWidth, setPageWidth] = useState(0);
-  const suppressSelect = useRef(false);
+  /** Only a finger swipe changes the category; programmatic scrolls never feed back. */
+  const userSwiping = useRef(false);
   const selectedIndex = categories.findIndex((c) => c.id === selectedId);
+
   useEffect(() => {
-    if (pageWidth <= 0 || selectedIndex < 0) return;
-    suppressSelect.current = true;
-    scrollRef.current?.scrollTo({
-      x: selectedIndex * pageWidth,
-      animated: true,
-    });
-    const t = setTimeout(() => {
-      suppressSelect.current = false;
-    }, 350);
-    return () => clearTimeout(t);
+    if (pageWidth <= 0 || selectedIndex < 0 || userSwiping.current) return;
+    scrollRef.current?.scrollTo({ x: selectedIndex * pageWidth, animated: true });
   }, [selectedId, selectedIndex, pageWidth]);
 
-  const onMomentumScrollEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    if (suppressSelect.current || pageWidth <= 0) return;
-    const next = Math.round(e.nativeEvent.contentOffset.x / pageWidth);
+  const selectPageAt = (offsetX: number) => {
+    if (pageWidth <= 0) return;
+    const next = Math.round(offsetX / pageWidth);
     const cat = categories[next];
     if (cat && cat.id !== selectedId) onSelect(cat.id);
+  };
+
+  /**
+   * Android does not always emit momentum-end for a slow paging swipe, so also settle
+   * from onScroll once the pager lands exactly on a page.
+   */
+  const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (!userSwiping.current || pageWidth <= 0) return;
+    const x = e.nativeEvent.contentOffset.x;
+    if (Math.abs(x - Math.round(x / pageWidth) * pageWidth) < 1) {
+      selectPageAt(x);
+      userSwiping.current = false;
+    }
+  };
+
+  const onSwipeEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (!userSwiping.current) return;
+    selectPageAt(e.nativeEvent.contentOffset.x);
+    userSwiping.current = false;
   };
 
   return (
@@ -416,9 +432,16 @@ function NarrativeSnippetSlider({
           ref={scrollRef}
           horizontal
           pagingEnabled
+          nestedScrollEnabled
+          directionalLockEnabled
           decelerationRate="fast"
           showsHorizontalScrollIndicator={false}
-          onMomentumScrollEnd={onMomentumScrollEnd}
+          scrollEventThrottle={16}
+          onScrollBeginDrag={() => {
+            userSwiping.current = true;
+          }}
+          onScroll={onScroll}
+          onMomentumScrollEnd={onSwipeEnd}
         >
           {categories.map((cat) => (
             <View key={cat.id} style={{ width: pageWidth }} className="px-[26px]">
@@ -496,6 +519,7 @@ function SubcategoryCard({
 function CategoryExpandSheet({
   visible,
   categoryId,
+  initialSubKey,
   onClose,
   onChangeCategory,
   categories,
@@ -503,6 +527,8 @@ function CategoryExpandSheet({
 }: {
   visible: boolean;
   categoryId: IncidentCategoryId;
+  /** Others only: open straight onto this subcategory (`apiCategory`). */
+  initialSubKey?: string | null;
   onClose: () => void;
   onChangeCategory: (id: IncidentCategoryId) => void;
   categories: IncidentCategory[];
@@ -510,23 +536,69 @@ function CategoryExpandSheet({
 }) {
   const index = categories.findIndex((c) => c.id === categoryId);
   const category = categories[index] ?? categories[0];
-  const contentFade = useSelectionTransition(categoryId);
+  const subcategories = category?.id === OTHERS_BUCKET_ID ? (category.subcategories ?? []) : [];
+  const [subKey, setSubKey] = useState<string | null>(initialSubKey ?? null);
+  const pendingSubKey = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (visible) setSubKey(initialSubKey ?? null);
+  }, [visible, initialSubKey]);
+
+  useEffect(() => {
+    setSubKey(pendingSubKey.current);
+    pendingSubKey.current = null;
+  }, [categoryId]);
+
+  // Others has no stop of its own — its subcategories are stepped through individually.
+  const selectedSub =
+    subcategories.find((s) => s.apiCategory === subKey) ?? subcategories[0] ?? null;
+  const contentFade = useSelectionTransition(`${categoryId}:${selectedSub?.apiCategory ?? ''}`);
   if (!visible || !category) return null;
 
-  const thresholdCopy = category.thresholdLabel.startsWith('>')
+  const detail = selectedSub
+    ? {
+        name: selectedSub.fullName,
+        thresholdLabel: selectedSub.thresholdLabel,
+        peakTime: selectedSub.peakTime,
+        peakPct: 0,
+        count: selectedSub.count,
+        share: selectedSub.pct,
+        narrative: selectedSub.narrative,
+        detail: '',
+      }
+    : category;
+
+  const thresholdCopy = detail.thresholdLabel.startsWith('>')
     ? 'Category more than 5%'
     : 'Category less than 5%';
 
-  const goPrev = () => {
-    if (!categories.length) return;
-    const next = (index - 1 + categories.length) % categories.length;
-    onChangeCategory(categories[next].id);
+  const stops = categories.flatMap((c) =>
+    c.id === OTHERS_BUCKET_ID && c.subcategories?.length
+      ? c.subcategories.map((sub) => ({
+          categoryId: c.id,
+          subKey: sub.apiCategory as string | null,
+        }))
+      : [{ categoryId: c.id, subKey: null as string | null }]
+  );
+  const stopIndex = Math.max(
+    0,
+    stops.findIndex(
+      (stop) =>
+        stop.categoryId === category.id && stop.subKey === (selectedSub?.apiCategory ?? null)
+    )
+  );
+  const goToStop = (offset: number) => {
+    if (!stops.length) return;
+    const next = stops[(stopIndex + offset + stops.length) % stops.length];
+    if (next.categoryId === category.id) {
+      setSubKey(next.subKey);
+      return;
+    }
+    pendingSubKey.current = next.subKey;
+    onChangeCategory(next.categoryId);
   };
-  const goNext = () => {
-    if (!categories.length) return;
-    const next = (index + 1) % categories.length;
-    onChangeCategory(categories[next].id);
-  };
+  const goPrev = () => goToStop(-1);
+  const goNext = () => goToStop(1);
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -542,7 +614,7 @@ function CategoryExpandSheet({
                 allowFontScaling={false}
                 className="text-left text-[21.88px] font-ubuntu-semibold leading-[26px] text-[#113E55]"
               >
-                {category.name}
+                {detail.name}
               </Text>
               <Text
                 allowFontScaling={false}
@@ -580,13 +652,13 @@ function CategoryExpandSheet({
                 >
                   Peak Time
                 </Text>
-                {category.peakPct > 0 ? (
+                {detail.peakPct > 0 ? (
                   <View className="h-[15px] items-center justify-center bg-[#F4FFFE] px-1">
                     <Text
                       allowFontScaling={false}
                       className="text-[8.96px] font-inter-medium text-[#167A6F]"
                     >
-                      {category.peakPct}%
+                      {detail.peakPct}%
                     </Text>
                   </View>
                 ) : null}
@@ -595,7 +667,7 @@ function CategoryExpandSheet({
                 allowFontScaling={false}
                 className="text-left text-sm font-inter-medium leading-[18px] text-[#878686]"
               >
-                {category.peakTime}
+                {detail.peakTime}
               </Text>
             </View>
 
@@ -610,7 +682,7 @@ function CategoryExpandSheet({
                 allowFontScaling={false}
                 className="text-left text-sm font-inter-medium text-[#878686]"
               >
-                {category.count}
+                {detail.count}
                 <Text className="text-[8.96px]">/{totalReports}</Text>
               </Text>
             </View>
@@ -626,7 +698,7 @@ function CategoryExpandSheet({
                 allowFontScaling={false}
                 className="text-left text-sm font-inter-medium text-[#878686]"
               >
-                {category.share}%
+                {detail.share}%
               </Text>
             </View>
           </Animated.View>
@@ -637,8 +709,8 @@ function CategoryExpandSheet({
             contentContainerClassName="gap-4 pb-10"
           >
             <Animated.View className="gap-4" style={contentFade}>
-              {category.narrative?.trim() ? <NarrativeCard text={category.narrative} /> : null}
-              {category.detail?.trim() ? <NarrativeCard text={category.detail} /> : null}
+              {detail.narrative?.trim() ? <NarrativeCard text={detail.narrative} /> : null}
+              {detail.detail?.trim() ? <NarrativeCard text={detail.detail} /> : null}
             </Animated.View>
           </ScrollView>
         </Pressable>
@@ -657,12 +729,19 @@ export default function CategoryDistribution({
   const total = totalReports ?? 0;
   const [expanded, setExpanded] = useState(false);
   const [sideStackHeight, setSideStackHeight] = useState(0);
+  const [sheetSubKey, setSheetSubKey] = useState<string | null>(null);
   const selected = catalog.find((item) => item.id === selectedId) ?? catalog[0];
   const selectedIndex = catalog.findIndex((c) => c.id === selectedId);
   const showSubcategories =
     !!selected && selected.id === OTHERS_BUCKET_ID && (selected.subcategories?.length ?? 0) > 0;
   const metricsFade = useSelectionTransition(selectedId);
-  const subcategoryCount = selected?.subcategories?.length ?? 0;
+  const visibleSubcategories = selected?.subcategories?.slice(0, MAX_SIDE_SUBCATEGORIES) ?? [];
+  const subcategoryCount = visibleSubcategories.length;
+
+  const openSheet = (subKey: string | null = null) => {
+    setSheetSubKey(subKey);
+    setExpanded(true);
+  };
   const othersStackHeight =
     subcategoryCount > 0
       ? subcategoryCount * SUBCATEGORY_CARD_HEIGHT + (subcategoryCount - 1) * SUBCATEGORY_GAP
@@ -704,7 +783,7 @@ export default function CategoryDistribution({
           Category Distribution
         </Text>
         <Pressable
-          onPress={() => setExpanded(true)}
+          onPress={() => openSheet()}
           accessibilityRole="button"
           accessibilityLabel="Expand category details"
           hitSlop={8}
@@ -764,13 +843,15 @@ export default function CategoryDistribution({
               },
             ]}
           >
-            {selected.subcategories!.map((sub, i) => (
-              <SubcategoryCard
-                key={`${sub.name}-${i}`}
-                name={sub.name}
-                pct={sub.pct}
-                apiCategory={sub.apiCategory}
-              />
+            {visibleSubcategories.map((sub) => (
+              <Pressable
+                key={sub.apiCategory}
+                onPress={() => openSheet(sub.apiCategory)}
+                accessibilityRole="button"
+                accessibilityLabel={`${sub.fullName} details`}
+              >
+                <SubcategoryCard name={sub.name} pct={sub.pct} apiCategory={sub.apiCategory} />
+              </Pressable>
             ))}
           </Animated.View>
         ) : (
@@ -851,6 +932,7 @@ export default function CategoryDistribution({
       <CategoryExpandSheet
         visible={expanded}
         categoryId={selectedId}
+        initialSubKey={sheetSubKey}
         onClose={() => setExpanded(false)}
         onChangeCategory={onSelect}
         categories={catalog}

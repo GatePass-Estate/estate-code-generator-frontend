@@ -154,15 +154,21 @@ export function mapCategoryEdaToUi(
     const peakItem = uniqueOthers.reduce((best, item) =>
       item.incident_count >= best.incident_count ? item : best
     );
-    const subcategories = uniqueOthers.slice(0, 4).map((item) => {
+    const subcategories = uniqueOthers.map((item) => {
       const label = formatCategoryLabel(item.category);
+      const pct =
+        total > 0
+          ? Math.round((item.incident_count / total) * 1000) / 10
+          : normalizePercent(item.percentage_share);
       return {
         name: label.length > 10 ? `${label.slice(0, 8)}....` : label,
-        pct:
-          total > 0
-            ? Math.round((item.incident_count / total) * 1000) / 10
-            : normalizePercent(item.percentage_share),
+        fullName: label,
+        pct,
         apiCategory: resolveApiCategory(item.category),
+        count: item.incident_count,
+        peakTime: PEAK_TIME_LABEL[item.peak_time] ?? item.peak_time,
+        thresholdLabel: pct >= 5 ? '> 5%' : '< 5%',
+        narrative: sampleNarrative(item, label),
       };
     });
 

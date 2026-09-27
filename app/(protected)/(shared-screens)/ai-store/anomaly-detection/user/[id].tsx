@@ -16,7 +16,7 @@ import { sharedStyles } from '@/src/theme/styles';
 import AnomalyRadarChart from '@/src/components/anomaly/AnomalyRadarChart';
 import SemiCircleGauge from '@/src/components/anomaly/SemiCircleGauge';
 import Svg, { Circle, Line } from 'react-native-svg';
-import AnomalyAISummaryModal from '@/src/components/anomaly/modals/AnomalyAISummaryModal';
+import AISummaryModal from '@/src/components/anomaly/modals/AISummaryModal';
 import GaugeDetailModal from '@/src/components/anomaly/modals/GaugeDetailModal';
 import TotalUsersSvg from '@/src/assets/icons/totalusers.svg';
 import GuestMaleSvg from '@/src/assets/images/guestmale.svg';
@@ -29,9 +29,12 @@ import {
   useAnomalyCaseSummary,
   useAnomalyCaseResults,
 } from '@/src/hooks/useAnomalyQueries';
-import images from '@/src/constants/images';
 
-const GaugeCardsSection = React.memo(({ gaugeList }: { gaugeList: any[] }) => {
+const GaugeCardsSection = React.memo(function GaugeCardsSection({
+  gaugeList,
+}: {
+  gaugeList: any[];
+}) {
   const [gaugeLimit, setGaugeLimit] = useState(2);
   const [selectedGaugeIndex, setSelectedGaugeIndex] = useState<number | null>(null);
 
@@ -131,7 +134,6 @@ const GaugeCardsSection = React.memo(({ gaugeList }: { gaugeList: any[] }) => {
     </>
   );
 });
-GaugeCardsSection.displayName = 'GaugeCardsSection';
 
 export default function AnomalyDetectionUserDetailsScreen() {
   const { id, gender, user_type, display_name, date_from, date_to } = useLocalSearchParams();
@@ -387,7 +389,6 @@ export default function AnomalyDetectionUserDetailsScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 100 }}
-        delaysContentTouches={false}
       >
         {/* Profile Card */}
         <View
@@ -772,7 +773,7 @@ export default function AnomalyDetectionUserDetailsScreen() {
             }}
           >
             <Image
-              source={images.logo}
+              source={require('@/src/assets/images/logo.png')}
               style={{ width: 64, height: 64, marginBottom: 12 }}
               resizeMode="contain"
             />
@@ -1174,7 +1175,7 @@ export default function AnomalyDetectionUserDetailsScreen() {
       </ScrollView>
 
       {/* Modals */}
-      <AnomalyAISummaryModal
+      <AISummaryModal
         visible={showAiSummaryModal}
         onClose={() => setShowAiSummaryModal(false)}
         summaryData={summaryData}
