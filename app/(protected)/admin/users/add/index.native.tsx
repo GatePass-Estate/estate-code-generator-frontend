@@ -25,14 +25,11 @@ import { Feather } from '@expo/vector-icons';
 import { getEstateById } from '@/src/lib/api/estate';
 import HouseholdSelectorSheet from '@/src/components/mobile/HouseholdSelectorSheet';
 import type { Household } from '@/src/types/household';
-import RegistrationIdPicker from '@/src/components/common/RegistrationIdPicker';
-import type { RegistrationIdDocument } from '@/src/types/registration';
 import {
   formatRegistrationAddress,
   REGISTRATION_GENDER_OPTIONS,
   REGISTRATION_ROLE_OPTIONS,
   validateRegistrationAddress,
-  validateRegistrationIdentification,
   validateRegistrationPersonalDetails,
 } from '@/src/lib/registrationValidation';
 
@@ -68,8 +65,6 @@ const RegisterUser = () => {
   const [toastType, setToastType] = useState<ToastType>('success');
   const [selectedHousehold, setSelectedHousehold] = useState<Household | null>(null);
   const [householdSelectorVisible, setHouseholdSelectorVisible] = useState(false);
-  const [identificationDocument, setIdentificationDocument] =
-    useState<RegistrationIdDocument | null>(null);
 
   useEffect(() => {
     if (!estateId) return;
@@ -129,14 +124,8 @@ const RegisterUser = () => {
       }
     } else if (currentStep === 2) {
       if (validateStep2()) {
-        setCurrentStep(3);
         setErrors({});
-      }
-    } else {
-      const identificationErrors = validateRegistrationIdentification(formData.identificationUri);
-      setErrors(identificationErrors);
-      if (Object.keys(identificationErrors).length === 0) {
-        handleSaveUser();
+        void handleSaveUser();
       }
     }
   };
@@ -184,7 +173,6 @@ const RegisterUser = () => {
           identificationName: '',
         });
         setSelectedHousehold(null);
-        setIdentificationDocument(null);
         setCurrentStep(1);
         setErrors({});
         setTimeout(() => {
@@ -468,7 +456,7 @@ const RegisterUser = () => {
                 </Text>
               </TouchableOpacity>
             </>
-          ) : currentStep === 2 ? (
+          ) : (
             <>
               <View className="mt-11 mb-4 min-h-[68px]">
                 <Text
@@ -658,35 +646,9 @@ const RegisterUser = () => {
               </View>
 
               <TouchableOpacity
-                onPress={handleContinue}
-                className="h-11 w-[278px] max-w-full self-center items-center justify-center rounded-[24px] border border-primary bg-primary"
-                activeOpacity={0.8}
-              >
-                <Text className="text-[14px] leading-[14px] text-white font-ubuntu-medium">
-                  Continue
-                </Text>
-              </TouchableOpacity>
-            </>
-          ) : (
-            <>
-              <RegistrationIdPicker
-                value={identificationDocument}
-                error={errors.identificationUri}
-                onChange={(document) => {
-                  setIdentificationDocument(document);
-                  setFormData((current) => ({
-                    ...current,
-                    identificationUri: document?.uri ?? null,
-                    identificationName: document?.name ?? '',
-                  }));
-                  setErrors((current) => ({ ...current, identificationUri: undefined }));
-                }}
-              />
-
-              <TouchableOpacity
                 disabled={loading}
                 onPress={handleContinue}
-                className={`mt-8 h-11 w-[278px] max-w-full self-center flex-row items-center justify-center gap-2 rounded-[24px] bg-primary ${loading ? 'opacity-70' : ''}`}
+                className={`h-11 w-[278px] max-w-full self-center flex-row items-center justify-center gap-2 rounded-[24px] border border-primary bg-primary ${loading ? 'opacity-70' : ''}`}
                 activeOpacity={0.8}
               >
                 {loading && <ActivityIndicator color="#fff" size="small" />}
