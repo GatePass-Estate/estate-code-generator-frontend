@@ -47,6 +47,7 @@ export interface MarketplaceTier {
   currency_code?: string | null;
   status: string;
   is_installed?: boolean;
+  benefits?: string[];
 }
 
 export interface MarketplaceDetailResponse {
@@ -60,6 +61,8 @@ export interface MarketplaceDetailResponse {
   tiers: MarketplaceTier[];
   display_picture_url?: string | null;
   video_url?: string | null;
+  product_features?: string[];
+  data_insight?: { legal?: string[]; data?: string[] };
 }
 
 export interface RatingRequest {

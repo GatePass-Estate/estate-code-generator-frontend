@@ -6,6 +6,9 @@ import BiInfoSvg from '@/src/assets/icons/bi_info.svg';
 import ValidationBackSvg from '@/src/assets/icons/validation-back.svg';
 import AnomalyResultView from '@/src/components/anomaly/AnomalyResultView';
 import DataInsightModal from '@/src/components/anomaly/modals/DataInsightModal';
+import { getMarketplaceFeatures, getMarketplaceFeatureById } from '@/src/lib/api/aiMarketplace';
+import { MarketplaceDetailResponse } from '@/src/types/aiMarketplace';
+import { useLocalSearchParams } from 'expo-router';
 
 const PILL_WIDTH = 228;
 const PILL_HEIGHT = 40;
@@ -15,6 +18,38 @@ const TAB_HEIGHT = PILL_HEIGHT - PADDING * 2;
 
 export default function AnomalyDetectionSummaryScreen() {
   const [dataInsightVisible, setDataInsightVisible] = React.useState(false);
+  const [featureDetail, setFeatureDetail] = React.useState<MarketplaceDetailResponse | null>(null);
+  const params = useLocalSearchParams<{ featureId?: string }>();
+
+  React.useEffect(() => {
+    let isMounted = true;
+    async function init() {
+      try {
+        let targetId = params.featureId;
+        if (!targetId) {
+          const list = await getMarketplaceFeatures();
+          const anomalyTool = list.items?.find((item) =>
+            item.name.toLowerCase().includes('anomaly')
+          );
+          if (anomalyTool) {
+            targetId = anomalyTool.id;
+          }
+        }
+        if (targetId && isMounted) {
+          const detail = await getMarketplaceFeatureById(targetId);
+          if (isMounted) {
+            setFeatureDetail(detail);
+          }
+        }
+      } catch (err) {
+        // Silent fail
+      }
+    }
+    init();
+    return () => {
+      isMounted = false;
+    };
+  }, [params.featureId]);
 
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: '#F6F7F7' }}>
@@ -76,7 +111,6 @@ export default function AnomalyDetectionSummaryScreen() {
           className="h-[30px] w-[30px] items-center justify-center"
           hitSlop={20}
           onPress={() => {
-            console.log('INFO ICON CLICKED IN SUMMARY');
             setDataInsightVisible(true);
           }}
           style={{ zIndex: 100 }}
@@ -91,7 +125,7 @@ export default function AnomalyDetectionSummaryScreen() {
         <AnomalyResultView />
       </View>
 
-      <DataInsightModal visible={dataInsightVisible} onClose={() => setDataInsightVisible(false)} />
+      <DataInsightModal visible={dataInsightVisible} onClose={() => setDataInsightVisible(false)} dataInsight={featureDetail?.data_insight} />
     </SafeAreaView>
   );
 }

@@ -55,9 +55,7 @@ export async function getMarketplaceFeatureById(id: string): Promise<Marketplace
   try {
     const api = Api('ai');
     const response = await api.get(`/ai-marketplace/${encodeURIComponent(id)}`);
-    console.log('\n--- GET MARKETPLACE FEATURE BY ID ---');
-    console.log(JSON.stringify(response.data, null, 2));
-    console.log('-------------------------------------\n');
+
     return response.data;
   } catch (error: any) {
     throw new Error(getErrorMessage(error) || 'Failed to fetch feature details');

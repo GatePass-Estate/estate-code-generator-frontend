@@ -173,11 +173,6 @@ export default function AnomalyDetectionUserDetailsScreen() {
   let historyData: any = rawHistoryData || {};
   const resultsData: any = rawResultsData || {};
 
-  console.log('--- USER OVERVIEW MOUNTED ---');
-  console.log('ID:', id, 'ESTATE:', estateId);
-  console.log('RAW DEMOGRAPHIC:', rawDemographic);
-  console.log('RAW HISTORY:', rawHistoryData);
-  console.log('RAW RESULTS:', rawResultsData);
 
   const userTypeStr =
     typeof user_type === 'string' && user_type
@@ -196,7 +191,7 @@ export default function AnomalyDetectionUserDetailsScreen() {
 
   const isGuest = userTypeStr.toLowerCase() === 'guest' || userTypeStr.toLowerCase() === 'visitor';
   const isFemale = genderStr.toLowerCase().startsWith('f');
-  const accentColor = isGuest ? '#113E55' : '#F25B2A';
+  const accentColor = isGuest ? '#113E55' : '#F46036';
 
   const historyRecordsCount = useMemo(() => {
     if (historyData?.total !== undefined) return historyData.total;
@@ -1065,15 +1060,39 @@ export default function AnomalyDetectionUserDetailsScreen() {
                       },
                       {
                         data: spider.map((p: any) => p.instance_percentage || 0),
-                        strokeColor: '#F25B2A', // Instance is redish
-                        fillColor: 'rgba(242, 91, 42, 0.28)',
-                        dotColor: '#F25B2A',
+                        strokeColor: '#F46036', // Instance is redish
+                        fillColor: 'rgba(244, 96, 54, 0.28)',
+                        dotColor: '#F46036',
                       },
                     ]}
                   />
                 );
               } else {
-                return <AnomalyRadarChart />;
+                return (
+                  <View className="items-center justify-center">
+                    <AnomalyRadarChart 
+                      labels={['', '', '', '', '']}
+                      series={[{ data: [0, 0, 0, 0, 0], strokeColor: 'transparent', fillColor: 'transparent', dotColor: 'transparent' }]}
+                    />
+                    <View
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Text
+                        style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 13, color: '#8A9A9D' }}
+                      >
+                        No anomaly data plotted
+                      </Text>
+                    </View>
+                  </View>
+                );
               }
             })()}
           </View>
@@ -1094,20 +1113,11 @@ export default function AnomalyDetectionUserDetailsScreen() {
           <View style={{ flexDirection: 'row', gap: 12, marginBottom: 32, flexWrap: 'wrap' }}>
             {(() => {
               const factors = resultsData?.anomaly_overview?.spider_plot;
-              const topFactors = factors
-                ? [...factors]
-                    .sort(
-                      (a: any, b: any) =>
-                        (b.instance_percentage || b.percentage || 0) -
-                        (a.instance_percentage || a.percentage || 0)
-                    )
-                    .slice(0, 4)
-                : [];
-
-              if (topFactors && topFactors.length > 0 && factors) {
-                return topFactors.map((factor: any, index: number) => {
+              
+              if (factors && factors.length > 0) {
+                return factors.map((factor: any, index: number) => {
                   const PALETTE = [
-                    { text: '#F25B2A', bg: '#FFF0F0' },
+                    { text: '#F46036', bg: '#FFF0F0' },
                     { text: '#113E55', bg: '#E3EDF2' },
                     { text: '#D97706', bg: '#FEF3C7' },
                     { text: '#1B998B', bg: '#E5F5F3' },

@@ -96,7 +96,7 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
     from_date: startDate ? startDate.toISOString() : undefined,
     to_date: endDate ? endDate.toISOString() : undefined,
     severity: filterSeverity.length > 0 ? filterSeverity.map((s) => s.toLowerCase()) : undefined,
-    gender: filterGender.length > 0 ? filterGender : undefined,
+    gender: filterGender.length > 0 ? filterGender.map((g) => g.toLowerCase()) : undefined,
     user_type: filterUserType.length > 0 ? filterUserType.map((u) => u.toLowerCase()) : undefined,
     sort_order: sortAscending ? 'asc' : 'desc',
     limit: paginationLimit,
@@ -150,9 +150,7 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
 
       return {
         title: formattedTitle,
-        description:
-          factor.description ||
-          'What it does not do It does not block the gate, replace human judgment, or treat every unfamiliar',
+        description: factor.description || '',
         percentage,
         weightLabel: formattedWeight,
         color: themeColor,
@@ -481,7 +479,7 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
                     width: 2,
                     height: 23,
                     borderRadius: 1,
-                    backgroundColor: '#F25B2A',
+                    backgroundColor: '#F46036',
                     marginRight: 9,
                     opacity: 1,
                   }}
@@ -1061,7 +1059,10 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
               } else {
                 return (
                   <View className="items-center justify-center">
-                    <AnomalyRadarChart />
+                    <AnomalyRadarChart 
+                      labels={['', '', '', '', '']}
+                      series={[{ data: [0, 0, 0, 0, 0], strokeColor: 'transparent', fillColor: 'transparent', dotColor: 'transparent' }]}
+                    />
                     <View
                       style={{
                         position: 'absolute',
@@ -1102,11 +1103,11 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
           {/* Factor Chips */}
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 24 }}>
             {(() => {
-              const topFactors = overview?.anomaly_overview?.top_contributing_factors;
+              const topFactors = overview?.anomaly_overview?.spider_plot;
               if (topFactors && topFactors.length > 0) {
                 return topFactors.map((factor: any, index: number) => {
                   const PALETTE = [
-                    { text: '#F25B2A', bg: '#FFF0F0' },
+                    { text: '#F46036', bg: '#FFF0F0' },
                     { text: '#113E55', bg: '#E3EDF2' },
                     { text: '#D97706', bg: '#FEF3C7' },
                     { text: '#1B998B', bg: '#E5F5F3' },

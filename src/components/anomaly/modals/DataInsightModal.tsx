@@ -31,6 +31,7 @@ const DURATION = 6000;
 interface DataInsightModalProps {
   visible: boolean;
   onClose: () => void;
+  dataInsight?: { legal?: string[]; data?: string[] };
 }
 
 const PAGES = [
@@ -109,7 +110,7 @@ const ProgressBar = ({
   );
 };
 
-export default function DataInsightModal({ visible, onClose }: DataInsightModalProps) {
+export default function DataInsightModal({ visible, onClose, dataInsight }: DataInsightModalProps) {
   const [currentPage, setCurrentPage] = useState(0);
   const progress = useSharedValue(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -377,9 +378,9 @@ export default function DataInsightModal({ visible, onClose }: DataInsightModalP
               </Text>
 
               <View style={{ gap: 16 }}>
-                {[1, 2, 3, 4, 5].map((item, index) => (
+                {(dataInsight?.data || []).map((text: string, index: number) => (
                   <View
-                    key={index}
+                    key={`data-${index}`}
                     style={{ backgroundColor: '#FFFFFF', borderRadius: 12, padding: 20 }}
                   >
                     <View
@@ -411,7 +412,7 @@ export default function DataInsightModal({ visible, onClose }: DataInsightModalP
                         allowFontScaling={false}
                         style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 15, color: '#455A64' }}
                       >
-                        Financial Info
+                        Data Collected
                       </Text>
                     </View>
                     <Text
@@ -423,8 +424,58 @@ export default function DataInsightModal({ visible, onClose }: DataInsightModalP
                         lineHeight: 18,
                       }}
                     >
-                      No complicated reports. Get simple insights that help you understand
-                      what&apos;s happening and why.
+                      {text}
+                    </Text>
+                  </View>
+                ))}
+                
+                {(dataInsight?.legal || []).map((text: string, index: number) => (
+                  <View
+                    key={`legal-${index}`}
+                    style={{ backgroundColor: '#FFFFFF', borderRadius: 12, padding: 20 }}
+                  >
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: 12,
+                        marginBottom: 8,
+                      }}
+                    >
+                      <View
+                        style={{
+                          width: 18,
+                          height: 18,
+                          borderRadius: 9,
+                          backgroundColor: '#113E55',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <Text
+                          allowFontScaling={false}
+                          style={{ color: '#FFFFFF', fontSize: 11, fontFamily: 'UbuntuSans-Bold' }}
+                        >
+                          §
+                        </Text>
+                      </View>
+                      <Text
+                        allowFontScaling={false}
+                        style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 15, color: '#455A64' }}
+                      >
+                        Legal Context
+                      </Text>
+                    </View>
+                    <Text
+                      allowFontScaling={false}
+                      style={{
+                        fontFamily: 'Inter_18pt-Regular',
+                        fontSize: 13,
+                        color: '#8A9A9D',
+                        lineHeight: 18,
+                      }}
+                    >
+                      {text}
                     </Text>
                   </View>
                 ))}
