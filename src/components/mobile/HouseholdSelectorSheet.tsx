@@ -49,6 +49,7 @@ export default function HouseholdSelectorSheet({
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState('');
   const [pendingHousehold, setPendingHousehold] = useState<Household | null>(null);
+  const hasSearch = query.trim().length > 0;
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedQuery(query), SEARCH_DEBOUNCE_MS);
@@ -57,6 +58,13 @@ export default function HouseholdSelectorSheet({
 
   const loadHouseholds = useCallback(async () => {
     if (!visible || !estateId) return;
+
+    if (!debouncedQuery.trim()) {
+      setItems([]);
+      setError('');
+      setLoading(false);
+      return;
+    }
 
     setLoading(true);
     setError('');
@@ -138,7 +146,9 @@ export default function HouseholdSelectorSheet({
       <View className="flex-1 justify-end bg-black/50">
         <Pressable className="flex-1" onPress={onClose} />
         <View
-          className="relative h-[84.4%] rounded-t-[40px] bg-[#F6F7F7]"
+          className={`relative rounded-[40px] bg-[#F6F7F7] ${
+            hasSearch ? 'h-[85.6%]' : 'h-[42.1%]'
+          }`}
           style={{ paddingBottom: Math.max(insets.bottom, 16) }}
         >
           <View className="absolute top-4 h-1 w-16 self-center rounded-full bg-grey/60" />
@@ -157,62 +167,50 @@ export default function HouseholdSelectorSheet({
             Select Your Household
           </Text>
 
-          <View className="absolute left-0 right-0 top-[172px] h-9">
+          <View
+            className={`absolute left-0 right-0 h-9 ${hasSearch ? 'top-[172px]' : 'top-[161px]'}`}
+          >
             <View
-              className="absolute left-[7.2%] h-9 w-[69.6%] flex-row items-center rounded-2xl border bg-[#EFF1F1] px-4"
-              style={{ borderColor: '#113E55', borderWidth: 0.5 }}
+              className={`absolute h-9 flex-row items-center rounded-2xl bg-[#EFF1F1] px-4 ${
+                hasSearch
+                  ? 'left-[7.2%] w-[69.6%] border-[0.5px] border-primary'
+                  : 'left-[21px] right-[21px]'
+              }`}
             >
               <Feather name="search" size={20} color="#113E55" />
-              <View className="relative ml-2 h-full flex-1 justify-center overflow-hidden">
-                <TextInput
-                  value={query}
-                  onChangeText={setQuery}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  multiline={false}
-                  numberOfLines={1}
-                  scrollEnabled={false}
-                  caretHidden
-                  autoComplete="off"
-                  importantForAutofill="no"
-                  textContentType="none"
-                  selectionColor="transparent"
-                  cursorColor="transparent"
-                  accessibilityLabel="Search household"
-                  className="absolute inset-0"
-                  style={{
-                    includeFontPadding: false,
-                    opacity: 0,
-                    paddingHorizontal: 0,
-                    paddingVertical: 0,
-                  }}
-                />
-                <Text
-                  pointerEvents="none"
-                  numberOfLines={1}
-                  ellipsizeMode="tail"
-                  className={`text-[14px] font-inter-light ${
-                    query ? 'text-primary' : 'text-[#878686]'
-                  }`}
-                  style={{ includeFontPadding: false, lineHeight: 17 }}
-                >
-                  {query || 'Search household'}
-                </Text>
-              </View>
+              <TextInput
+                value={query}
+                onChangeText={setQuery}
+                autoCapitalize="none"
+                autoCorrect={false}
+                multiline={false}
+                numberOfLines={1}
+                autoComplete="off"
+                importantForAutofill="no"
+                textContentType="none"
+                selectionColor="#113E55"
+                cursorColor="#113E55"
+                accessibilityLabel="Search household"
+                placeholder="Search Guest List"
+                placeholderTextColor="#878686"
+                className="ml-2 h-full flex-1 text-[14px] leading-[17px] text-primary font-inter-light"
+                style={{
+                  includeFontPadding: false,
+                  paddingHorizontal: 0,
+                  paddingVertical: 0,
+                }}
+              />
             </View>
-            <TouchableOpacity
-              onPress={() => setQuery('')}
-              disabled={!query}
-              className="absolute left-[80%] top-1 h-7 w-[17.6%] items-center justify-center"
-            >
-              <Text
-                className={`text-[14px] leading-[14px] font-inter-medium ${
-                  query ? 'text-[#1B998B]' : 'text-grey'
-                }`}
+            {hasSearch && (
+              <TouchableOpacity
+                onPress={() => setQuery('')}
+                className="absolute left-[80%] top-1 h-7 w-[17.6%] items-center justify-center"
               >
-                Cancel
-              </Text>
-            </TouchableOpacity>
+                <Text className="text-[14px] leading-[14px] text-[#1B998B] font-inter-medium">
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           <TouchableOpacity
@@ -228,14 +226,14 @@ export default function HouseholdSelectorSheet({
             </Text>
           </TouchableOpacity>
 
-          {loading ? (
+          {hasSearch && loading ? (
             <View className="absolute left-[4.8%] top-[278px] h-[400px] w-[88.3%] items-center justify-center">
               <ActivityIndicator color="#113E55" />
               <Text className="mt-3 text-sm text-grey font-inter-regular">
                 Loading households...
               </Text>
             </View>
-          ) : error ? (
+          ) : hasSearch && error ? (
             <View className="absolute left-[4.8%] top-[278px] h-[400px] w-[88.3%] items-center justify-center px-6">
               <Text className="text-center text-sm text-danger font-inter-regular">{error}</Text>
               <TouchableOpacity
@@ -245,7 +243,7 @@ export default function HouseholdSelectorSheet({
                 <Text className="text-sm text-primary font-ubuntu-medium">Try Again</Text>
               </TouchableOpacity>
             </View>
-          ) : items.length === 0 ? (
+          ) : hasSearch && items.length === 0 ? (
             <View className="absolute left-[4.8%] top-[278px] h-[400px] w-[88.3%] items-center justify-center px-6">
               <Text className="text-center text-sm text-grey font-inter-regular">
                 {debouncedQuery.trim()
@@ -253,7 +251,7 @@ export default function HouseholdSelectorSheet({
                   : 'No households have been added yet.'}
               </Text>
             </View>
-          ) : (
+          ) : hasSearch ? (
             <FlatList
               className="absolute left-[4.8%] top-[278px] h-[400px] w-[88.3%] border-y-[0.5px] border-[#EFF1F1] p-2"
               data={items}
@@ -282,7 +280,7 @@ export default function HouseholdSelectorSheet({
                 );
               }}
             />
-          )}
+          ) : null}
         </View>
 
         <AddHouseholdSheet
