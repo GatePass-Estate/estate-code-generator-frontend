@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Stack, useFocusEffect, useNavigation, useRouter } from 'expo-router';
-import Svg, { G, Path } from 'react-native-svg';
+import Svg, { Circle, Ellipse, G, Path } from 'react-native-svg';
 import { getAllEstateUsers } from '@/src/lib/api/user';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AllUsers } from '@/src/types/user';
@@ -19,6 +19,7 @@ import icons from '@/src/constants/icons';
 import { getRoleIcon, isDataEqual } from '@/src/lib/helpers';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useUserStore } from '@/src/lib/stores/userStore';
+import { useEstateEntitlements } from '@/src/lib/api/entitlements';
 
 function ResidentsCardIcon() {
   return (
@@ -43,13 +44,40 @@ function ResidentsCardIcon() {
   );
 }
 
+function TotalUsersCardIcon() {
+  return (
+    <Svg width={25} height={27} viewBox="0 0 25 27">
+      <Ellipse
+        cx={12.5}
+        cy={13.5}
+        rx={11.75}
+        ry={12.75}
+        fill="none"
+        stroke="#F6F7F7"
+        strokeWidth={1.5}
+      />
+      <Circle cx={12.5} cy={8.5} r={3.75} fill="none" stroke="#F6F7F7" strokeWidth={1.5} />
+      <Path
+        d="M3.6 21.75C6.15 18.45 9.1 16.75 12.5 16.75S18.85 18.45 21.4 21.75"
+        fill="none"
+        stroke="#F6F7F7"
+        strokeWidth={1.5}
+        strokeLinecap="butt"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
 export default function AdminUsersMobilePage() {
   const [users, setUsers] = useState<AllUsers>({ total: 0, page: 1, limit: 30, items: [] });
   const [refreshing, setRefreshing] = useState(false);
+  const [activeTool, setActiveTool] = useState<string | null>(null);
   const router = useRouter();
   const navigation = useNavigation();
   const usersRef = useRef<AllUsers>(users);
   const firstName = useUserStore((state) => state.first_name);
+  const { data: estateEntitlements } = useEstateEntitlements();
 
   const handleBackToHome = useCallback(() => {
     router.replace('/user');
@@ -125,12 +153,15 @@ export default function AdminUsersMobilePage() {
   }, [navigation]);
 
   const verifiedUsers = users.items.filter((user) => user.status);
-  const securityPersonnelCount = verifiedUsers.filter((user) => user.role === 'security').length;
+  const securityPersonnelCount =
+    users.role_summary?.security ?? users.items.filter((user) => user.role === 'security').length;
   const residentsCount =
-    (users as any)?.role_summary?.resident ||
-    verifiedUsers.filter((user) => user.role === 'resident').length;
-  const totalVerifiedCount = verifiedUsers.length;
-
+    users.role_summary?.resident ?? users.items.filter((user) => user.role === 'resident').length;
+  const totalUsersCount = users.total;
+  const registeredUsersCount = users.total;
+  const estateUserCapacity = estateEntitlements?.coveredUsers ?? null;
+  const isRegistrationAtCapacity =
+    estateUserCapacity !== null && registeredUsersCount >= estateUserCapacity;
   const limitedUsers = verifiedUsers.slice(0, 3);
   const greetingName = firstName || 'Admin';
 
@@ -142,7 +173,7 @@ export default function AdminUsersMobilePage() {
         }}
       />
 
-      <View className="pt-5">
+      <View className="pt-10">
         <Back
           type="short-arrow"
           showText={false}
@@ -155,17 +186,18 @@ export default function AdminUsersMobilePage() {
       </View>
 
       <ScrollView
-        contentContainerStyle={{ paddingTop: 32, paddingBottom: 24 }}
+        style={{ marginHorizontal: -4 }}
+        contentContainerStyle={{ paddingTop: 22, paddingBottom: 24, paddingHorizontal: 4 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       >
         <Text className="mb-8 h-[33px] text-[27.34px] leading-[27.34px] text-[#113E55] font-ubuntu-medium">
           Hi {greetingName} !
         </Text>
 
-        <View className="mb-[8px] flex-row gap-[9px]">
+        <View className="mx-[-3px] mb-[8px] flex-row justify-between">
           <View
-            className="relative h-[82px] flex-1 rounded-[8px] border-[#F46036] bg-[#FFF8F5]"
-            style={{ borderWidth: 0.5 }}
+            className="relative h-[82px] rounded-[8px] border-[#F46036] bg-[#FFF8F5]"
+            style={{ width: '48.7%', borderWidth: 0.5 }}
           >
             <View className="absolute top-[26px]" style={{ left: '15.6%' }}>
               <ResidentsCardIcon />
@@ -185,8 +217,8 @@ export default function AdminUsersMobilePage() {
           </View>
 
           <View
-            className="relative h-[82px] flex-1 rounded-[8px] border-[#1B998B] bg-[#F4FFFE]"
-            style={{ borderWidth: 0.5 }}
+            className="relative h-[82px] rounded-[8px] border-[#1B998B] bg-[#F4FFFE]"
+            style={{ width: '48.7%', borderWidth: 0.5 }}
           >
             <Image
               source={icons.securityIcon}
@@ -194,7 +226,7 @@ export default function AdminUsersMobilePage() {
               style={{ left: '16.2%' }}
             />
             <Text
-              className="absolute top-[19px] h-[33px] w-[58px] text-center text-[34.18px] leading-[34.18px] text-[#1B998B] font-ubuntu-medium"
+              className="absolute top-[19px] h-[34px] w-[58px] text-center text-[34.18px] leading-[34.18px] text-[#1B998B] font-ubuntu-medium"
               style={{ left: '40.1%' }}
             >
               {securityPersonnelCount}
@@ -208,19 +240,19 @@ export default function AdminUsersMobilePage() {
           </View>
         </View>
 
-        <View className="relative mb-[40px] h-[82px] flex-row">
+        <View className="relative mx-[-3px] mb-[40px] h-[82px] flex-row">
           <View
-            className="relative h-[82px] flex-1 rounded-[8px] border-white bg-[#113E55]"
+            className="relative h-[82px] flex-1 rounded-[8px] border-[#F6F7F7] bg-[#113E55]"
             style={{ maxWidth: '48.7%', borderWidth: 0.5 }}
           >
-            <View className="absolute left-[25px] top-[28px] h-[27px] w-[25px] items-center justify-center rounded-full border border-white">
-              <Feather name="user" size={17} color="#FFFFFF" />
+            <View className="absolute left-[25px] top-[28px] h-[27px] w-[25px]">
+              <TotalUsersCardIcon />
             </View>
-            <Text className="absolute left-[67px] top-[19px] h-[33px] w-[58px] text-center text-[34.18px] leading-[34.18px] text-white font-ubuntu-medium">
-              {totalVerifiedCount}
+            <Text className="absolute left-[67px] top-[19px] h-[32px] w-[58px] text-center text-[34.18px] leading-[34.18px] text-[#F6F7F7] font-ubuntu-medium">
+              {totalUsersCount}
             </Text>
             <Text
-              className="absolute left-[61px] top-[54px] h-[12px] w-[70px] text-center text-[8.96px] leading-[10px] text-white font-inter-medium"
+              className="absolute left-[65px] top-[56px] h-[11px] w-[61px] text-center text-[8.96px] leading-[8.96px] text-[#F6F7F7] font-inter-medium"
               numberOfLines={1}
             >
               TOTAL USERS
@@ -231,38 +263,53 @@ export default function AdminUsersMobilePage() {
             className="absolute h-[82px] w-[82px] items-center justify-center"
             style={{ left: '65.1%' }}
           >
-            <TouchableOpacity
+            <View
               className="h-[60px] w-[60px] items-center justify-center rounded-full bg-[#EFF8FA]"
-              onPress={() => router.push('/admin/users/add')}
-              accessibilityRole="button"
-              accessibilityLabel="Register user"
+              accessibilityLabel="Add user"
             >
               <Feather name="plus" size={30} color="#113E55" />
-            </TouchableOpacity>
+            </View>
           </View>
         </View>
 
         <View
-          className="mb-[38px] h-[66px] flex-row items-center justify-between rounded-[16px] px-[16px] py-[8px]"
+          className="relative left-[-1px] mb-[46px] h-[66px] flex-row items-center justify-between rounded-[16px] px-[16px] py-[8px]"
           style={{ backgroundColor: 'rgba(255, 255, 255, 0.7)' }}
         >
           <TouchableOpacity
             className="h-[50px] w-[50px] items-center justify-center"
             onPress={() => router.push('/admin/users/add')}
+            onPressIn={() => !isRegistrationAtCapacity && setActiveTool('register')}
+            onPressOut={() => setActiveTool(null)}
+            disabled={isRegistrationAtCapacity}
+            accessibilityState={{ disabled: isRegistrationAtCapacity }}
+            style={{
+              opacity: isRegistrationAtCapacity ? 0.35 : 1,
+              backgroundColor: activeTool === 'register' ? '#EFF8FA' : 'transparent',
+              borderRadius: 8,
+            }}
           >
-            <Image source={icons.addUserIcon} style={{ width: 18, height: 18 }} />
+            <Image source={icons.addUserIcon} style={{ width: 19.64, height: 19.64 }} />
             <Text
-              className="mt-[4px] h-[12px] w-[64px] text-center text-[9px] leading-[11px] text-[#113E55] font-inter-regular"
+              className="mt-[4px] h-[12px] w-[64px] text-center text-[8.96px] leading-[8.96px] text-[#113E55] font-inter-medium"
               numberOfLines={1}
             >
               Register User
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity className="h-[50px] w-[50px] items-center justify-center">
-            <Image source={icons.broadcastIcon} style={{ width: 18, height: 18 }} />
+          <TouchableOpacity
+            className="h-[50px] w-[50px] items-center justify-center"
+            onPressIn={() => setActiveTool('broadcast')}
+            onPressOut={() => setActiveTool(null)}
+            style={{
+              backgroundColor: activeTool === 'broadcast' ? '#EFF8FA' : 'transparent',
+              borderRadius: 8,
+            }}
+          >
+            <Image source={icons.broadcastIcon} style={{ width: 19.64, height: 19.64 }} />
             <Text
-              className="mt-[4px] h-[12px] w-[64px] text-center text-[9px] leading-[11px] text-[#113E55] font-inter-regular"
+              className="mt-[4px] h-[12px] w-[64px] text-center text-[8.96px] leading-[8.96px] text-[#113E55] font-inter-medium"
               numberOfLines={1}
             >
               Broadcast
@@ -272,10 +319,16 @@ export default function AdminUsersMobilePage() {
           <TouchableOpacity
             className="h-[50px] w-[50px] items-center justify-center"
             onPress={() => router.push('/admin/edit-requests')}
+            onPressIn={() => setActiveTool('edit-requests')}
+            onPressOut={() => setActiveTool(null)}
+            style={{
+              backgroundColor: activeTool === 'edit-requests' ? '#EFF8FA' : 'transparent',
+              borderRadius: 8,
+            }}
           >
-            <Image source={icons.editRequestIcon} style={{ width: 18, height: 18 }} />
+            <Image source={icons.editRequestIcon} style={{ width: 24, height: 24 }} />
             <Text
-              className="mt-[4px] h-[12px] w-[64px] text-center text-[9px] leading-[11px] text-[#113E55] font-inter-regular"
+              className="mt-[4px] h-[12px] w-[64px] text-center text-[8.96px] leading-[8.96px] text-[#113E55] font-inter-medium"
               numberOfLines={1}
             >
               Edit Requests
@@ -285,10 +338,16 @@ export default function AdminUsersMobilePage() {
           <TouchableOpacity
             className="h-[50px] w-[50px] items-center justify-center"
             onPress={() => router.push('/user/report')}
+            onPressIn={() => setActiveTool('incident-report')}
+            onPressOut={() => setActiveTool(null)}
+            style={{
+              backgroundColor: activeTool === 'incident-report' ? '#EFF8FA' : 'transparent',
+              borderRadius: 8,
+            }}
           >
-            <Feather name="shield" size={18} color="#113E55" />
+            <Feather name="shield" size={24} color="#113E55" />
             <Text
-              className="mt-[4px] h-[12px] w-[64px] text-center text-[9px] leading-[11px] text-[#113E55] font-inter-regular"
+              className="mt-[4px] h-[12px] w-[70px] text-center text-[8.96px] leading-[8.96px] text-[#113E55] font-inter-medium"
               numberOfLines={1}
             >
               Incident Report
@@ -296,12 +355,18 @@ export default function AdminUsersMobilePage() {
           </TouchableOpacity>
         </View>
 
-        <View className="mb-[5px] h-[26px] flex-row items-center justify-between px-[5px]">
-          <Text className="h-[26px] w-[90px] text-[20.51px] leading-[25px] text-[#878686] font-ubuntu-medium">
+        <View className="relative mb-[22px] h-[34px]">
+          <Text
+            className="absolute left-[5px] top-[8px] h-[26px] w-[110px] text-[21.88px] leading-[21.88px] text-[#878686] font-ubuntu-semibold"
+            numberOfLines={1}
+          >
             All Users
           </Text>
-          <TouchableOpacity onPress={() => router.push('/admin/users/')}>
-            <Text className="h-[15px] w-[47px] text-right text-[8.96px] leading-[11px] text-[#113E55] font-ubuntu-medium">
+          <TouchableOpacity
+            className="absolute right-[2px] top-0 h-[34px] w-[63px] items-center justify-center"
+            onPress={() => router.push('/admin/users/')}
+          >
+            <Text className="h-[15px] w-[47px] text-center text-[12px] leading-[12px] text-[#113E55] font-inter-semibold">
               View All
             </Text>
           </TouchableOpacity>
@@ -318,7 +383,7 @@ export default function AdminUsersMobilePage() {
             limitedUsers.map((item) => (
               <TouchableOpacity
                 key={item.id}
-                className="mb-[4px] h-[52px] flex-row items-center rounded-[16px] px-[12px]"
+                className="relative left-[-1px] mb-[4px] h-[52px] rounded-[16px]"
                 style={{ backgroundColor: 'rgba(255, 255, 255, 0.7)' }}
                 onPress={() =>
                   router.push({
@@ -329,24 +394,26 @@ export default function AdminUsersMobilePage() {
               >
                 <Image
                   source={getRoleIcon(item.role)}
-                  style={{ width: 24, height: 24 }}
+                  style={{ position: 'absolute', left: 16, top: 14, width: 24, height: 24 }}
                   resizeMode="contain"
                 />
-                <View className="ml-[17px] flex-1 justify-center">
+                <View className="absolute left-[56px] top-[8px] h-[36px] right-[56px]">
                   <Text
-                    className="text-[11.96px] leading-[14px] text-[#113E55] font-inter-regular"
+                    className="h-[17px] text-[14px] leading-[14px] text-[#113E55] font-inter-light"
                     numberOfLines={1}
                   >
                     {`${item.first_name} ${item.last_name}`}
                   </Text>
                   <Text
-                    className="mt-[1px] text-[8.96px] leading-[11px] text-[#113E55] font-inter-regular"
+                    className="mt-[5px] h-[14px] text-[11.2px] leading-[11.2px] text-[#113E55] font-inter-regular"
                     numberOfLines={1}
                   >
                     {item.home_address}
                   </Text>
                 </View>
-                <Feather name="chevron-right" size={14} color="#113E55" />
+                <View className="absolute right-[16px] top-[14px] h-[24px] w-[24px] items-center justify-center">
+                  <Feather name="chevron-right" size={24} color="#113E55" />
+                </View>
               </TouchableOpacity>
             ))
           )}

@@ -26,9 +26,23 @@ describe('parseEntitlements', () => {
     expect(result).toMatchObject({
       tierSlug: 'premium',
       subscriptionStatus: 'active',
+      coveredUsers: null,
       locked: false,
       reason: null,
     });
+  });
+
+  it('uses covered users as the estate user capacity', () => {
+    expect(parseEntitlements({ estate_id: ESTATE_ID, covered_users: 100 }).coveredUsers).toBe(100);
+  });
+
+  it('falls back to the max active users entitlement', () => {
+    expect(
+      parseEntitlements({
+        estate_id: ESTATE_ID,
+        entitlements: { max_active_users: 25 },
+      }).coveredUsers
+    ).toBe(25);
   });
 
   it('accepts boolean and { allowed } entries', () => {
@@ -57,6 +71,7 @@ describe('parseEntitlements', () => {
     expect(parseEntitlements({ estate_id: ESTATE_ID })).toMatchObject({
       tierSlug: null,
       subscriptionStatus: null,
+      coveredUsers: null,
       locked: false,
       reason: null,
     });

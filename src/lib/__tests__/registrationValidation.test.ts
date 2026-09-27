@@ -50,6 +50,35 @@ describe('validateRegistrationPersonalDetails', () => {
       validateRegistrationPersonalDetails({ ...validDetails, email: 'not-an-email' })
     ).toMatchObject({ email: 'Enter a valid email address' });
   });
+
+  it('rejects numbers and symbols in name fields', () => {
+    expect(
+      validateRegistrationPersonalDetails({
+        ...validDetails,
+        firstName: 'Sandra2',
+        lastName: 'Happiness@',
+      })
+    ).toMatchObject({
+      firstName: 'First name can only contain letters',
+      lastName: 'Last name can only contain letters',
+    });
+  });
+
+  it('allows spaces, apostrophes, and hyphens in names', () => {
+    expect(
+      validateRegistrationPersonalDetails({
+        ...validDetails,
+        firstName: 'Mary-Jane',
+        lastName: "O'Connor",
+      })
+    ).toEqual({});
+  });
+
+  it('rejects letters in the phone-number field', () => {
+    expect(
+      validateRegistrationPersonalDetails({ ...validDetails, phoneNumber: '0903ABC2020' })
+    ).toMatchObject({ phoneNumber: 'Phone number can only contain numbers' });
+  });
 });
 
 describe('registration address helpers', () => {

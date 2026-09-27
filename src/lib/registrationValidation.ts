@@ -15,6 +15,8 @@ export const REGISTRATION_ROLE_OPTIONS = [
 ] as const;
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const NAME_PATTERN = /^\p{L}+(?:[ '\u2019-]\p{L}+)*$/u;
+const PHONE_PATTERN = /^\+?[0-9 ()-]+$/;
 
 type PersonalDetails = Pick<
   FormData,
@@ -25,9 +27,19 @@ export function validateRegistrationPersonalDetails(values: PersonalDetails): Fo
   const errors: FormErrors = {};
 
   if (!values.firstName.trim()) errors.firstName = 'First name is required';
+  else if (!NAME_PATTERN.test(values.firstName.trim())) {
+    errors.firstName = 'First name can only contain letters';
+  }
+
   if (!values.lastName.trim()) errors.lastName = 'Last name is required';
+  else if (!NAME_PATTERN.test(values.lastName.trim())) {
+    errors.lastName = 'Last name can only contain letters';
+  }
 
   if (!values.phoneNumber.trim()) errors.phoneNumber = 'Phone number is required';
+  else if (!PHONE_PATTERN.test(values.phoneNumber.trim())) {
+    errors.phoneNumber = 'Phone number can only contain numbers';
+  }
 
   if (!values.email.trim()) errors.email = 'Email address is required';
   else if (!EMAIL_PATTERN.test(values.email.trim())) errors.email = 'Enter a valid email address';

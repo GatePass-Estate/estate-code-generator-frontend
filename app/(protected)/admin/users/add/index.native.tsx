@@ -207,8 +207,20 @@ const RegisterUser = () => {
   };
 
   const updateFormData = <K extends keyof FormData>(key: K, value: FormData[K]) => {
-    setFormData((prev) => ({ ...prev, [key]: value }));
-    if (errors[key as keyof FormErrors]) {
+    const nextFormData = { ...formData, [key]: value };
+    setFormData(nextFormData);
+
+    const personalDetailKeys: (keyof FormErrors)[] = [
+      'firstName',
+      'lastName',
+      'phoneNumber',
+      'email',
+    ];
+
+    if (personalDetailKeys.includes(key as keyof FormErrors)) {
+      const fieldError = validateRegistrationPersonalDetails(nextFormData)[key as keyof FormErrors];
+      setErrors((prev) => ({ ...prev, [key]: fieldError }));
+    } else if (errors[key as keyof FormErrors]) {
       setErrors((prev) => ({ ...prev, [key]: undefined }));
     }
   };
@@ -247,16 +259,14 @@ const RegisterUser = () => {
       >
         Register User
       </Text>
-      <Text
-        numberOfLines={1}
-        className={`ml-[2px] mt-2 h-[17px] text-[14px] leading-[14px] text-[#878686] font-inter-light ${
-          currentStep <= 2 ? 'w-[245px]' : 'w-full'
-        }`}
-      >
-        {currentStep <= 2
-          ? 'Enter the personal details of this user'
-          : 'Upload a government-issued ID for this user'}
-      </Text>
+      {currentStep <= 2 && (
+        <Text
+          numberOfLines={1}
+          className="ml-[2px] mt-2 h-[17px] w-[245px] text-[14px] leading-[14px] text-[#878686] font-inter-light"
+        >
+          Enter the personal details of this user
+        </Text>
+      )}
 
       <Toast
         message={toastMessage}
@@ -450,6 +460,7 @@ const RegisterUser = () => {
                 disabled={loading}
                 onPress={handleContinue}
                 className={`h-11 w-[278px] max-w-full self-center items-center justify-center rounded-[24px] border border-primary bg-primary ${loading ? 'opacity-70' : ''}`}
+                style={{ transform: [{ translateX: -3.5 }] }}
                 activeOpacity={0.8}
               >
                 <Text className="text-[14px] leading-[14px] text-white font-ubuntu-medium">
