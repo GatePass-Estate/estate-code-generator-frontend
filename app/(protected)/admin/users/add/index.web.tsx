@@ -15,15 +15,12 @@ import { getWidthBreakpoint } from '@/src/lib/helpers';
 import RegisterUser from './index.native';
 import HouseholdSelectorSheet from '@/src/components/mobile/HouseholdSelectorSheet';
 import type { Household } from '@/src/types/household';
-import RegistrationIdPicker from '@/src/components/common/RegistrationIdPicker';
-import type { RegistrationIdDocument } from '@/src/types/registration';
 import { getEstateById } from '@/src/lib/api/estate';
 import {
   formatRegistrationAddress,
   REGISTRATION_GENDER_OPTIONS,
   REGISTRATION_ROLE_OPTIONS,
   validateRegistrationAddress,
-  validateRegistrationIdentification,
   validateRegistrationPersonalDetails,
 } from '@/src/lib/registrationValidation';
 
@@ -50,8 +47,6 @@ function RegisterUserWeb() {
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
   const [postalCode, setPostalCode] = useState('');
-  const [identificationDocument, setIdentificationDocument] =
-    useState<RegistrationIdDocument | null>(null);
 
   useEffect(() => {
     if (Platform.OS === 'web') document.title = 'Add User - Admin Access - GatePass';
@@ -117,19 +112,11 @@ function RegisterUserWeb() {
     if (step === 1 && validateStep1()) {
       setStep(2);
       setFieldErrors({});
-    } else if (step === 2 && validateStep2()) {
-      setStep(3);
-      setFieldErrors({});
     }
   };
 
   const handleSaveUser = async () => {
-    const identificationErrors = validateRegistrationIdentification(
-      identificationDocument?.uri ?? null
-    );
-    setFieldErrors(identificationErrors);
-
-    if (Object.keys(identificationErrors).length === 0) {
+    if (validateStep2()) {
       setRunning(true);
       setProcessingAction('save');
       try {
@@ -171,7 +158,6 @@ function RegisterUserWeb() {
           setCity('');
           setState('');
           setPostalCode('');
-          setIdentificationDocument(null);
           setStep(1);
 
           setTimeout(() => {
@@ -240,9 +226,7 @@ function RegisterUserWeb() {
                 <p className="text-base text-tertiary mt-1">
                   {step === 1
                     ? 'Add new users, either resident or security personnel'
-                    : step === 2
-                      ? 'Select a household and confirm the user’s address'
-                      : 'Upload a government-issued ID for this user'}
+                    : 'Select a household and confirm the user’s address'}
                 </p>
               </div>
 
@@ -396,7 +380,7 @@ function RegisterUserWeb() {
                       )}
                     </div>
                   </>
-                ) : step === 2 ? (
+                ) : (
                   <>
                     <div className="input-group-web">
                       <label htmlFor="household" className="input-label-web">
@@ -466,12 +450,11 @@ function RegisterUserWeb() {
                         </label>
                         <input
                           id="city"
-                          placeholder="Enter your city"
+                          placeholder="City unavailable"
                           value={city}
-                          onChange={(event) => {
-                            setCity(event.target.value);
-                            clearFieldError('city');
-                          }}
+                          readOnly
+                          aria-label="Estate city"
+                          title="This value comes from the estate address and cannot be changed"
                           className={`input-style-web border ${fieldErrors.city ? 'registration-input-error-web' : 'border-transparent'}`}
                         />
                         {fieldErrors.city && (
@@ -485,12 +468,11 @@ function RegisterUserWeb() {
                         </label>
                         <input
                           id="state"
-                          placeholder="Enter your state"
+                          placeholder="State unavailable"
                           value={state}
-                          onChange={(event) => {
-                            setState(event.target.value);
-                            clearFieldError('state');
-                          }}
+                          readOnly
+                          aria-label="Estate state"
+                          title="This value comes from the estate address and cannot be changed"
                           className={`input-style-web border ${fieldErrors.state ? 'registration-input-error-web' : 'border-transparent'}`}
                         />
                         {fieldErrors.state && (
@@ -505,12 +487,11 @@ function RegisterUserWeb() {
                         <input
                           id="postalCode"
                           inputMode="numeric"
-                          placeholder="Enter your postal code"
+                          placeholder="Postal code unavailable"
                           value={postalCode}
-                          onChange={(event) => {
-                            setPostalCode(event.target.value);
-                            clearFieldError('postalCode');
-                          }}
+                          readOnly
+                          aria-label="Estate postal code"
+                          title="This value comes from the estate address and cannot be changed"
                           className={`input-style-web border ${fieldErrors.postalCode ? 'registration-input-error-web' : 'border-transparent'}`}
                         />
                         {fieldErrors.postalCode && (
@@ -519,15 +500,6 @@ function RegisterUserWeb() {
                       </div>
                     </div>
                   </>
-                ) : (
-                  <RegistrationIdPicker
-                    value={identificationDocument}
-                    error={fieldErrors.identificationUri}
-                    onChange={(document) => {
-                      setIdentificationDocument(document);
-                      clearFieldError('identificationUri');
-                    }}
-                  />
                 )}
 
                 <div className="mt-6 flex flex-row justify-end gap-3">
@@ -545,7 +517,7 @@ function RegisterUserWeb() {
                     </button>
                   )}
 
-                  {step < 3 ? (
+                  {step === 1 ? (
                     <button
                       className={`bg-primary rounded-md px-24 py-3 flex items-center justify-center ${running && 'cursor-not-allowed opacity-75'}`}
                       disabled={running}
