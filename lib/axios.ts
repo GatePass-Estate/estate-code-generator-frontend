@@ -14,6 +14,10 @@ const Api = (service: 'user' | 'code' = 'user') => {
     url = url.replace('10.0.2.2', 'localhost');
   }
 
+  if (!url) {
+    throw new Error(`API URL for service '${service}' is missing from env variables`);
+  }
+
   return axios.create({
     baseURL: `${url}/api/v1`,
     timeout: 10000,

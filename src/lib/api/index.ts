@@ -34,8 +34,13 @@ function attachUnauthorizedInterceptor(
 const Api = (service: Service = 'user') => {
   const access_token = useAuthStore.getState().access_token;
 
+  const url = SERVICE_URLS[service];
+  if (!url) {
+    throw new Error(`API URL for service '${service}' is missing from env variables`);
+  }
+
   const client = axios.create({
-    baseURL: `${SERVICE_URLS[service]}/api/v1`,
+    baseURL: `${url}/api/v1`,
     timeout: 10000,
     headers: {
       Authorization: access_token ? `Bearer ${access_token}` : undefined,

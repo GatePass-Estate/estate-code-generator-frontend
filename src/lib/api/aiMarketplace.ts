@@ -100,7 +100,9 @@ export async function rateMarketplaceFeature(
  * Helper to build display picture URL from GCS object path.
  */
 export function getFeaturePictureUrl(path: string): string {
-  const baseUrl =
-    process.env.EXPO_PUBLIC_AI_SERVICE_API_URL || 'https://staging-api.gatepassng.com/ai';
+  const baseUrl = process.env.EXPO_PUBLIC_AI_SERVICE_API_URL;
+  if (!baseUrl) {
+    throw new Error('EXPO_PUBLIC_AI_SERVICE_API_URL is missing');
+  }
   return `${baseUrl}/api/v1/ai-marketplace/picture?path=${encodeURIComponent(path)}`;
 }

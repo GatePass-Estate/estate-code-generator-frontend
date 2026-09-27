@@ -808,11 +808,11 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
             </Pressable>
           </View>
 
-          {/* Table: width 100%, minHeight 350, border-radius 16, padding-top/bottom 16, gap 14 */}
+          {/* Table: width 100%, border-radius 16, padding-top/bottom 16, gap 14 */}
           <View
             style={{
               width: '100%',
-              minHeight: predictions.length === 0 ? 150 : 350,
+              minHeight: predictions.length === 0 ? 150 : undefined,
               alignSelf: 'center',
               borderRadius: 16,
               backgroundColor: '#FFFFFF',
@@ -823,7 +823,6 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
               paddingHorizontal: 16,
               gap: 14,
               opacity: 1,
-              justifyContent: 'space-between',
             }}
           >
             {/* Header Row */}

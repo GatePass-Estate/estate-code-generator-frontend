@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Pressable, ScrollView, Modal, StyleSheet } from 'react-native';
+import { View, Text, Pressable, ScrollView, Modal, StyleSheet, Dimensions } from 'react-native';
 import Animated, { SlideInDown, SlideOutDown, FadeIn, FadeOut } from 'react-native-reanimated';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
@@ -136,61 +136,264 @@ export default function AISummaryModal({ visible, onClose, summaryData }: AISumm
             />
           </View>
 
-          <Text
-            allowFontScaling={false}
-            style={{
-              fontFamily: 'UbuntuSans-Medium',
-              fontSize: 20,
-              color: '#113E55',
-              marginBottom: 16,
-            }}
-          >
-            AI SUMMARY
-          </Text>
-          <View style={{ flexDirection: 'row', gap: 12, marginBottom: 24 }}>
-            <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
-              <MaterialIcons name="schedule" size={12} color="#F46036" />
-              <Text
-                allowFontScaling={false}
-                style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 10, color: '#F46036' }}
-              >
-                2 mins Read
-              </Text>
-            </View>
-            <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
-              <MaterialIcons name="security" size={12} color="#1B998B" />
-              <Text
-                allowFontScaling={false}
-                style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 10, color: '#1B998B' }}
-              >
-                Read Fully
-              </Text>
-            </View>
-          </View>
-
           <ScrollView
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ gap: 16, paddingBottom: 40 }}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: 40 }}
           >
-            {data ? (
-              <>
-                <AccordionItem title="EXECUTIVE SUMMARY" content={data.executive_summary} />
-                <AccordionItem title="DETAILED INSIGHT" content={data.detailed_insight} />
-                <AccordionItem title="RISK DRIVERS" content={data.risk_drivers} isList={true} />
-                <AccordionItem
-                  title="RECOMMENDED ACTIONS"
-                  content={data.recommended_actions}
-                  isList={true}
-                />
-                <AccordionItem title="DATA LIMITATIONS" content={data.data_limitations} />
-              </>
-            ) : (
+            {/* Slide 1: Tier 1 */}
+            <View
+              style={{
+                width: Dimensions.get('window').width - 48,
+                paddingRight: summaryData?.tier2 ? 24 : 0,
+              }}
+            >
               <Text
                 allowFontScaling={false}
-                style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 13, color: '#8A9A9D' }}
+                style={{
+                  fontFamily: 'UbuntuSans-Medium',
+                  fontSize: 20,
+                  color: '#113E55',
+                  marginBottom: 16,
+                }}
               >
-                No summary data available.
+                AI SUMMARY
               </Text>
+              <View style={{ flexDirection: 'row', gap: 12, marginBottom: 24 }}>
+                <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
+                  <MaterialIcons name="schedule" size={12} color="#F46036" />
+                  <Text
+                    allowFontScaling={false}
+                    style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 10, color: '#F46036' }}
+                  >
+                    2 mins Read
+                  </Text>
+                </View>
+                <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
+                  <MaterialIcons name="security" size={12} color="#1B998B" />
+                  <Text
+                    allowFontScaling={false}
+                    style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 10, color: '#1B998B' }}
+                  >
+                    Third Party
+                  </Text>
+                </View>
+              </View>
+
+              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 16 }}>
+                {summaryData?.tier1 ? (
+                  <>
+                    <AccordionItem
+                      title="EXECUTIVE SUMMARY"
+                      content={summaryData.tier1.executive_summary}
+                    />
+                    <AccordionItem
+                      title="KEY PATTERNS"
+                      content={summaryData.tier1.detailed_insight || summaryData.tier1.key_patterns}
+                    />
+                    <AccordionItem
+                      title="RISK DRIVERS"
+                      content={summaryData.tier1.risk_drivers}
+                      isList={true}
+                    />
+                    <AccordionItem
+                      title="RECOMMENDED ACTIONS"
+                      content={summaryData.tier1.recommended_actions}
+                      isList={true}
+                    />
+                    <AccordionItem
+                      title="DATA LIMITATIONS"
+                      content={summaryData.tier1.data_limitations}
+                    />
+                  </>
+                ) : (
+                  <Text
+                    allowFontScaling={false}
+                    style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 13, color: '#8A9A9D' }}
+                  >
+                    No Tier 1 summary data available.
+                  </Text>
+                )}
+              </ScrollView>
+            </View>
+
+            {/* Slide 2: Tier 2 */}
+            {summaryData?.tier2 && (
+              <View style={{ width: Dimensions.get('window').width - 48, paddingLeft: 24 }}>
+                <Text
+                  allowFontScaling={false}
+                  style={{
+                    fontFamily: 'UbuntuSans-Medium',
+                    fontSize: 20,
+                    color: '#113E55',
+                    marginBottom: 16,
+                  }}
+                >
+                  AI SUMMARY
+                </Text>
+                <View style={{ flexDirection: 'row', gap: 12, marginBottom: 24 }}>
+                  <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
+                    <MaterialIcons name="schedule" size={12} color="#F46036" />
+                    <Text
+                      allowFontScaling={false}
+                      style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 10, color: '#F46036' }}
+                    >
+                      2 mins Read
+                    </Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
+                    <MaterialIcons name="security" size={12} color="#1B998B" />
+                    <Text
+                      allowFontScaling={false}
+                      style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 10, color: '#1B998B' }}
+                    >
+                      In house
+                    </Text>
+                  </View>
+                </View>
+
+                <ScrollView
+                  showsVerticalScrollIndicator={false}
+                  contentContainerStyle={{ gap: 16 }}
+                >
+                  <View style={{ marginBottom: 16 }}>
+                    <Text
+                      allowFontScaling={false}
+                      style={{
+                        fontFamily: 'Inter_18pt-Medium',
+                        fontSize: 12,
+                        color: '#113E55',
+                        marginBottom: 8,
+                      }}
+                    >
+                      TIMELINE SUMMARY
+                    </Text>
+                    <Text
+                      allowFontScaling={false}
+                      style={{
+                        fontFamily: 'Inter_18pt-Regular',
+                        fontSize: 12,
+                        color: '#8A9A9D',
+                        lineHeight: 20,
+                      }}
+                    >
+                      {summaryData.tier2.timeline_summary || 'No timeline summary available.'}
+                    </Text>
+                  </View>
+
+                  <View>
+                    <Text
+                      allowFontScaling={false}
+                      style={{
+                        fontFamily: 'Inter_18pt-Medium',
+                        fontSize: 12,
+                        color: '#113E55',
+                        marginBottom: 12,
+                      }}
+                    >
+                      THEME REPORT
+                    </Text>
+                    {summaryData.tier2.theme_report &&
+                    Array.isArray(summaryData.tier2.theme_report) ? (
+                      summaryData.tier2.theme_report.map((theme: any, index: number) => (
+                        <View
+                          key={index}
+                          style={{ flexDirection: 'row', gap: 12, marginBottom: 12 }}
+                        >
+                          <View style={{ width: 45, alignItems: 'flex-end', paddingTop: 2 }}>
+                            <Text
+                              allowFontScaling={false}
+                              style={{
+                                fontFamily: 'Inter_18pt-Medium',
+                                fontSize: 12,
+                                color: '#F46036',
+                              }}
+                            >
+                              {theme.percentage || theme.weight || '0'}%
+                            </Text>
+                          </View>
+                          <View style={{ alignItems: 'center', marginTop: 6, width: 8 }}>
+                            <View
+                              style={{
+                                width: 8,
+                                height: 8,
+                                borderRadius: 4,
+                                backgroundColor: '#F46036',
+                              }}
+                            />
+                            {index !== summaryData.tier2.theme_report.length - 1 && (
+                              <View
+                                style={{
+                                  width: 1,
+                                  flex: 1,
+                                  backgroundColor: '#F46036',
+                                  opacity: 0.3,
+                                  marginTop: 4,
+                                  marginBottom: -10,
+                                }}
+                              />
+                            )}
+                          </View>
+                          <View
+                            style={{
+                              flex: 1,
+                              backgroundColor: '#FFFFFF',
+                              borderRadius: 8,
+                              padding: 12,
+                              borderWidth: 1,
+                              borderColor: '#EFF1F3',
+                            }}
+                          >
+                            <Text
+                              allowFontScaling={false}
+                              style={{
+                                fontFamily: 'Inter_18pt-Regular',
+                                fontSize: 10,
+                                color: '#8A9A9D',
+                                marginBottom: 4,
+                              }}
+                            >
+                              Theme {index + 1}
+                            </Text>
+                            <Text
+                              allowFontScaling={false}
+                              style={{
+                                fontFamily: 'Inter_18pt-Medium',
+                                fontSize: 13,
+                                color: '#113E55',
+                                marginBottom: 6,
+                              }}
+                            >
+                              {theme.title || theme.name || 'Unknown Theme'}
+                            </Text>
+                            <Text
+                              allowFontScaling={false}
+                              style={{
+                                fontFamily: 'Inter_18pt-Regular',
+                                fontSize: 11,
+                                color: '#8A9A9D',
+                                lineHeight: 16,
+                              }}
+                            >
+                              {theme.description ||
+                                theme.events ||
+                                'No events available for this theme.'}
+                            </Text>
+                          </View>
+                        </View>
+                      ))
+                    ) : (
+                      <Text
+                        allowFontScaling={false}
+                        style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 13, color: '#8A9A9D' }}
+                      >
+                        No theme reports available.
+                      </Text>
+                    )}
+                  </View>
+                </ScrollView>
+              </View>
             )}
           </ScrollView>
         </View>

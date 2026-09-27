@@ -787,7 +787,9 @@ export default function AnomalyDetectionUserDetailsScreen() {
                 lineHeight: 20,
               }}
             >
-              Tap to generate AI Insight on{'\n'}your report
+              {demographic?.has_tier1_summary || demographic?.has_tier2_summary
+                ? `Tap to view AI Insight on\nyour report`
+                : `Tap to generate AI Insight on\nyour report`}
             </Text>
           </Pressable>
         ) : aiState === 'loading' ? (

@@ -42,6 +42,7 @@ export async function loginUser(
 export async function acceptTos(token: string): Promise<LoginResponse> {
   try {
     const baseUrl = process.env.EXPO_PUBLIC_USER_SERVICE_API_URL;
+    if (!baseUrl) throw new Error('EXPO_PUBLIC_USER_SERVICE_API_URL is missing');
     const axiosRes = await axios.post(
       `${baseUrl}/api/v1/auth/accept-tos`,
       { tos_token: token },
@@ -79,6 +80,7 @@ export async function enableBiometricLogin(
 ): Promise<{ biometric_token: string }> {
   try {
     const baseUrl = process.env.EXPO_PUBLIC_USER_SERVICE_API_URL;
+    if (!baseUrl) throw new Error('EXPO_PUBLIC_USER_SERVICE_API_URL is missing');
     const axiosRes = await axios.post(
       `${baseUrl}/api/v1/auth/biometric/enable`,
       estate_id ? { estate_id } : {},
@@ -112,6 +114,7 @@ export async function loginBiometric(
 }> {
   try {
     const baseUrl = process.env.EXPO_PUBLIC_USER_SERVICE_API_URL;
+    if (!baseUrl) throw new Error('EXPO_PUBLIC_USER_SERVICE_API_URL is missing');
     const axiosRes = await axios.post(
       `${baseUrl}/api/v1/auth/biometric/login`,
       { biometric_token: biometricToken, estate_id },
@@ -133,6 +136,7 @@ export async function loginBiometric(
 export async function disableBiometricLogin(accessToken: string): Promise<{ message?: string }> {
   try {
     const baseUrl = process.env.EXPO_PUBLIC_USER_SERVICE_API_URL;
+    if (!baseUrl) throw new Error('EXPO_PUBLIC_USER_SERVICE_API_URL is missing');
     const axiosRes = await axios.delete(`${baseUrl}/api/v1/auth/biometric`, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
