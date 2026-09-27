@@ -47,7 +47,7 @@ function BrandedQRCode({
   color = '#5B5E61',
   backgroundColor = '#F6F7F7',
   logo = images.logo,
-  logoRatio = 0.24,
+  logoRatio = 0.28,
   logoBackgroundColor = '#FFFFFF',
   logoScale,
   showFrame = true,

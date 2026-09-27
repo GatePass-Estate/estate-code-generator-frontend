@@ -3,7 +3,7 @@ import { create } from 'zustand';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import {
   ensureEstateEntitlements,
-  fetchRecentEstateEntitlements,
+  refreshEstateEntitlementsIfOlderThan,
   useEstateEntitlements,
 } from '@/src/lib/api/entitlements';
 import {
@@ -15,7 +15,7 @@ import {
 } from '@/src/lib/plans';
 
 const CONTACT_ADMIN_NOTICE_MS = 3000;
-/** A cached "no" older than this is re-checked before it's shown, in case the plan was upgraded. */
+/** A cached "no" older than this is refreshed in the background, in case the plan was upgraded. */
 const DENIAL_MAX_AGE_MS = 30_000;
 
 type UpgradePromptStore = {
@@ -106,10 +106,11 @@ type FeatureGateOptions = {
  * and shows the right message: the Upgrade Plan modal for the primary admin, or the "Contact Admin"
  * notice for everyone else (see `FeatureGateOptions.notice`).
  *
- * `requestAccessWhenReady()` does the same but waits for entitlements if they haven't loaded yet
- * (e.g. a tap right after sign-in), and re-checks a cached denial that's more than a few seconds
- * old, so a paid or just-upgraded estate isn't treated as free. Pass `isStillRelevant` to skip the
- * message if the user has moved on while it was checking.
+ * `requestAccessWhenReady()` does the same but, if entitlements haven't loaded yet (e.g. a tap right
+ * after sign-in), waits for them instead of treating the estate as free. Once cached it answers
+ * instantly; a cached "no" that's more than a few seconds old is also refreshed in the background
+ * so the next tap reflects a recent upgrade. Pass `isStillRelevant` to skip the message if the
+ * user has moved on while it was waiting.
  *
  * `showDenied()` shows the message without checking the cache — for when the server rejects the
  * action even though the cache allowed it.
@@ -151,9 +152,10 @@ export function useFeatureGate(
       let entitlements: Entitlements | undefined;
       if (estateId) {
         try {
+          // Instant when cached; only waits on the network if nothing is cached yet.
           entitlements = await ensureEstateEntitlements(estateId);
           if (resolveFeatureAccess(entitlements, role, feature) !== 'granted') {
-            entitlements = await fetchRecentEstateEntitlements(estateId, DENIAL_MAX_AGE_MS);
+            refreshEstateEntitlementsIfOlderThan(estateId, DENIAL_MAX_AGE_MS);
           }
         } catch {
           // Unreachable plan service: keep what we have, else the free-features-only default.

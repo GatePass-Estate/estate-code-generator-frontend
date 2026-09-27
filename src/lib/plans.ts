@@ -38,9 +38,14 @@ function isFreeFeature(feature: PlanFeature): boolean {
   return getServiceByKey(feature).category === 'free';
 }
 
-/** Entries may be a bare boolean or an object with `allowed`; anything else is treated as denied. */
+/**
+ * Mirrors the revenue service's `check_service_entitlement`: entries may be a bare boolean, a
+ * numeric limit (e.g. `extended_historical_record: 90` days — allowed when above 0), or an object
+ * with `allowed`; anything else is treated as denied.
+ */
 function isGranted(value: unknown): boolean {
   if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return value > 0;
   if (value !== null && typeof value === 'object' && 'allowed' in value) {
     return (value as { allowed: unknown }).allowed === true;
   }

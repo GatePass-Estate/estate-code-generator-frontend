@@ -63,6 +63,23 @@ describe('parseEntitlements', () => {
   });
 });
 
+describe('numeric entitlements', () => {
+  it('treats a positive limit as granted and zero as denied, like the revenue service', () => {
+    expect(
+      hasEntitlement(
+        entitlementsWith({ extended_historical_record: 90 }),
+        'extended_historical_record'
+      )
+    ).toBe(true);
+    expect(
+      hasEntitlement(
+        entitlementsWith({ extended_historical_record: 0 }),
+        'extended_historical_record'
+      )
+    ).toBe(false);
+  });
+});
+
 describe('hasEntitlement', () => {
   it('always allows free catalog features', () => {
     expect(hasEntitlement(undefined, 'visitor_access_code')).toBe(true);

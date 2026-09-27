@@ -41,12 +41,9 @@ export function ensureEstateEntitlements(estateId: string): Promise<Entitlements
   return queryClient.ensureQueryData(estateEntitlementsQuery(estateId));
 }
 
-/** Entitlements no older than `maxAgeMs`, refetching if the cached copy is older. */
-export function fetchRecentEstateEntitlements(
-  estateId: string,
-  maxAgeMs: number
-): Promise<Entitlements> {
-  return queryClient.fetchQuery({ ...estateEntitlementsQuery(estateId), staleTime: maxAgeMs });
+/** Refetches in the background if the cached copy is older than `maxAgeMs`; never blocks. */
+export function refreshEstateEntitlementsIfOlderThan(estateId: string, maxAgeMs: number) {
+  void queryClient.prefetchQuery({ ...estateEntitlementsQuery(estateId), staleTime: maxAgeMs });
 }
 
 /** Call when the server rejects a feature the cache said was allowed, so the cache catches up. */

@@ -36,7 +36,18 @@ function attachUnauthorizedInterceptor(
   return client;
 }
 
+const warnedMissingUrls = new Set<Service>();
+
 const Api = (service: Service = 'user') => {
+  // A missing URL makes every request to this service fail (e.g. plan checks then treat every
+  // estate as free), so make the misconfiguration obvious in development.
+  if (__DEV__ && !SERVICE_URLS[service] && !warnedMissingUrls.has(service)) {
+    warnedMissingUrls.add(service);
+    console.warn(
+      `No API URL for the ${service} service: set EXPO_PUBLIC_${service.toUpperCase()}_SERVICE_API_URL and restart Metro.`
+    );
+  }
+
   const access_token = useAuthStore.getState().access_token;
 
   const client = axios.create({
