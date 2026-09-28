@@ -20,6 +20,7 @@ import icons from '@/src/constants/icons';
 import { getRoleIcon, getRoleIconHeight, getRoleIconWidth, isDataEqual } from '@/src/lib/helpers';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useUserStore } from '@/src/lib/stores/userStore';
+import { useFeatureGate } from '@/src/hooks/usePlan';
 
 export default function AdminUsersMobilePage() {
   const [users, setUsers] = useState<AllUsers>({ total: 0, page: 1, limit: 30, items: [] });
@@ -28,6 +29,23 @@ export default function AdminUsersMobilePage() {
   const navigation = useNavigation();
   const usersRef = useRef<AllUsers>(users);
   const firstName = useUserStore((state) => state.first_name);
+  const { requestAccessWhenReady: requestBroadcastAccess } = useFeatureGate('admin_broadcast', {
+    notice: 'floating',
+  });
+  const openingBroadcastRef = useRef(false);
+
+  // Check the plan before opening the form, so admins on a plan without broadcasts see the
+  // Upgrade Plan modal / Contact Admin notice here rather than after filling it in.
+  const handleOpenBroadcast = useCallback(async () => {
+    if (openingBroadcastRef.current) return;
+    openingBroadcastRef.current = true;
+    try {
+      const allowed = await requestBroadcastAccess(() => navigation.isFocused());
+      if (allowed && navigation.isFocused()) router.push('/admin/broadcast');
+    } finally {
+      openingBroadcastRef.current = false;
+    }
+  }, [navigation, requestBroadcastAccess, router]);
 
   const handleBackToHome = useCallback(() => {
     router.replace('/user');
@@ -189,7 +207,7 @@ export default function AdminUsersMobilePage() {
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity className="flex-1 items-center py-5 px-2 opacity-40" disabled={true}>
+          <TouchableOpacity className="flex-1 items-center py-5 px-2" onPress={handleOpenBroadcast}>
             <Image source={icons.broadcastIcon} style={{ width: 30, height: 30 }} />
             <Text className="text-primary text-sm font-inter-regular mt-1.5 text-center">
               Broadcast

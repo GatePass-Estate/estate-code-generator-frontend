@@ -36,6 +36,7 @@ function RootLayoutContent() {
       >
         <Stack.Screen name="auth/institution" options={{ animation: 'none' }} />
         <Stack.Screen name="auth/login" options={{ animation: 'none' }} />
+        <Stack.Screen name="auth/two-factor" options={{ animation: 'none' }} />
         <Stack.Screen name="auth/tos" options={{ animation: 'none' }} />
         <Stack.Screen name="auth/set-password" />
         <Stack.Screen name="auth/forgot-password" options={{ animation: 'none' }} />
