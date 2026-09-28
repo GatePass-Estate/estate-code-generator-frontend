@@ -1,6 +1,5 @@
 import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
-import { ActivityAlertIcon } from '@/src/assets/svgs';
-import { isAlertNotification } from '@/src/lib/broadcastStyle';
+import ActivityIcon from '@/src/components/common/ActivityIcon';
 import { formatFullTimestamp, metadataRows } from '@/src/lib/notificationDetail';
 import type { NotificationItem } from '@/src/types/notification';
 
@@ -20,7 +19,6 @@ export default function ActivityDetailModal({
 }) {
   if (!activity) return null;
 
-  const alert = isAlertNotification(activity.type);
   const rows = metadataRows(activity.metadata);
 
   return (
@@ -29,11 +27,7 @@ export default function ActivityDetailModal({
         {/* Swallow taps inside the card so only the backdrop closes it. */}
         <Pressable className="w-full rounded-[24px] bg-white px-5 py-6" onPress={() => {}}>
           <View className="flex-row items-center gap-3">
-            <ActivityAlertIcon
-              color={alert ? '#E30404' : '#113E55'}
-              circleColor={alert ? '#FFF0EC' : '#CEE5ED'}
-              size={28}
-            />
+            <ActivityIcon type={activity.type} size={22} />
             <Text className="flex-1 text-[#0A1F29] font-ubuntu-semibold text-lg">
               {activity.title}
             </Text>

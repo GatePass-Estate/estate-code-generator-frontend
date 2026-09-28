@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import SwipeableRow from './SwipeableRow';
-import { ActivityAlertIcon } from '@/src/assets/svgs';
+import ActivityIcon from '@/src/components/common/ActivityIcon';
 import PriorityBadge from '@/src/components/common/PriorityBadge';
 import { isAlertNotification, priorityStyle, relativeTime } from '@/src/lib/broadcastStyle';
 import type { BroadcastItem } from '@/src/types/broadcast';
@@ -80,10 +80,7 @@ export const ActivityRow = memo(function ActivityRow({
           borderColor: '#E30404',
         }}
       >
-        <ActivityAlertIcon
-          color={alert ? '#E30404' : '#113E55'}
-          circleColor={alert ? '#FFF0EC' : '#CEE5ED'}
-        />
+        <ActivityIcon type={item.type} />
 
         <View className="flex-1 px-3">
           <Text

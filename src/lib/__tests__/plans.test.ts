@@ -119,6 +119,24 @@ describe('resolveFeatureAccess', () => {
   it.each(['admin', 'resident', 'security'] as const)('tells %s to contact admin', (role) => {
     expect(resolveFeatureAccess(free, role, 'guest_management')).toBe('contact_admin');
   });
+
+  it.each(['primary_admin', 'admin', 'resident'] as const)(
+    'reports a refused entitlements request as blocked for %s',
+    (role) => {
+      const reason = 'Please upload and have your ID card approved before accessing this feature.';
+      expect(resolveFeatureAccess(undefined, role, 'admin_broadcast', reason)).toBe('blocked');
+    }
+  );
+
+  it('still grants free features when the entitlements request was refused', () => {
+    expect(resolveFeatureAccess(undefined, 'admin', 'visitor_access_code', 'Refused')).toBe(
+      'granted'
+    );
+  });
+
+  it('still grants entitled features from cache when a refetch was refused', () => {
+    expect(resolveFeatureAccess(paid, 'admin', 'guest_management', 'Refused')).toBe('granted');
+  });
 });
 
 describe('getUpgradeCopy', () => {

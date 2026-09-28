@@ -1261,23 +1261,39 @@ export function PriorityAlarmIcon({
   );
 }
 
-/** Triangular alert badge used for activity (notification) rows. */
-export function ActivityAlertIcon({
+/** Filled circle with an exclamation mark, used for regular activity rows. */
+export function ActivityInfoIcon({
   color = '#113E55',
-  circleColor = '#CEE5ED',
-  size = 24,
+  glyphColor = '#FFFFFF',
+  size = 16,
   ...props
-}: MenuIconProps & { circleColor?: string; size?: number }) {
+}: MenuIconProps & { glyphColor?: string; size?: number }) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" {...props}>
+    <Svg width={size} height={size} viewBox="0 0 16 16" fill="none" {...props}>
+      <Circle cx={8} cy={8} r={7} fill={color} />
+      <Rect x={7.45} y={3.9} width={1.1} height={5.7} rx={0.55} fill={glyphColor} />
+      <Circle cx={8} cy={11.4} r={0.75} fill={glyphColor} />
+    </Svg>
+  );
+}
+
+/** Warning triangle on a tinted circle, used for alert activity rows. */
+export function ActivityAlertIcon({
+  color = '#E30404',
+  circleColor = '#FFF0EC',
+  glyphColor = '#FFFFFF',
+  size = 16,
+  ...props
+}: MenuIconProps & { circleColor?: string; glyphColor?: string; size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 16 16" fill="none" {...props}>
+      <Circle cx={8} cy={8} r={8} fill={circleColor} />
       <Path
-        d="M10.9 3.6a1.3 1.3 0 0 1 2.2 0l9 15.6a1.3 1.3 0 0 1-1.1 1.9H3a1.3 1.3 0 0 1-1.1-1.9l9-15.6Z"
+        d="M7.36 2.05a.76.76 0 0 1 1.28 0l5.26 9.11a.76.76 0 0 1-.64 1.11H2.74a.76.76 0 0 1-.64-1.11l5.26-9.11Z"
         fill={color}
       />
-      <Path
-        d="M12 8.4a.9.9 0 0 1 .9.9v4.2a.9.9 0 1 1-1.8 0V9.3a.9.9 0 0 1 .9-.9ZM12 16.2a1 1 0 1 1 0 2 1 1 0 0 1 0-2Z"
-        fill={circleColor}
-      />
+      <Rect x={7.25} y={5.4} width={1.5} height={3.5} rx={0.75} fill={glyphColor} />
+      <Circle cx={8} cy={10.15} r={0.75} fill={glyphColor} />
     </Svg>
   );
 }

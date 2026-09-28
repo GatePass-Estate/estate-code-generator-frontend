@@ -4,7 +4,8 @@ import { useRouter } from 'expo-router';
 import Back from '@/src/components/mobile/Back';
 import WebSidebar from '@/src/components/web/WebSidebar';
 import { getWidthBreakpoint } from '@/src/lib/helpers';
-import { ActivityAlertIcon, PriorityAlarmIcon } from '@/src/assets/svgs';
+import { PriorityAlarmIcon } from '@/src/assets/svgs';
+import ActivityIcon from '@/src/components/common/ActivityIcon';
 import { useInfoBoard, type InfoBoardTab } from '@/src/hooks/useInfoBoard';
 import { useNotificationStore } from '@/src/lib/stores/notificationStore';
 import { isAlertNotification, priorityStyle, relativeTime } from '@/src/lib/broadcastStyle';
@@ -150,10 +151,7 @@ export default function InfoBoardWeb() {
                           border: alert ? '1px solid #E30404' : '1px solid transparent',
                         }}
                       >
-                        <ActivityAlertIcon
-                          color={alert ? '#E30404' : '#113E55'}
-                          circleColor={alert ? '#FFF0EC' : '#CEE5ED'}
-                        />
+                        <ActivityIcon type={item.type} />
 
                         <button
                           onClick={() => void readActivity(item.id)}

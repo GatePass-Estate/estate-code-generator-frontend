@@ -18,7 +18,14 @@ const SPACE = { duration: 320, easing: Easing.bezier(0.22, 1, 0.36, 1) };
 const SPACE_IN = { duration: 360, easing: Easing.bezier(0.22, 1, 0.36, 1) };
 const NOTICE_FALLBACK_HEIGHT = 126;
 
-export default function FreePlanNotice({ feature }: { feature: PlanFeature }) {
+/** `message` replaces the feature's copy — the server's reason when a plan check was refused. */
+export default function FreePlanNotice({
+  feature,
+  message,
+}: {
+  feature: PlanFeature;
+  message?: string | null;
+}) {
   return (
     <View
       className="items-center justify-center self-center rounded-[24px] bg-[#E5F6FF] p-2.5"
@@ -29,16 +36,16 @@ export default function FreePlanNotice({ feature }: { feature: PlanFeature }) {
         className="text-center font-inter-medium text-[#113E55] mb-0.5"
         style={{ maxWidth: 297, fontSize: 14, lineHeight: 18 }}
       >
-        {getFreePlanNoticeCopy(feature)}
+        {message || getFreePlanNoticeCopy(feature)}
       </Text>
     </View>
   );
 }
 
-function NoticeCard({ feature }: { feature: PlanFeature }) {
+function NoticeCard({ feature, message }: { feature: PlanFeature; message?: string | null }) {
   return (
     <View className="mb-6 items-center">
-      <FreePlanNotice feature={feature} />
+      <FreePlanNotice feature={feature} message={message} />
     </View>
   );
 }
@@ -47,10 +54,12 @@ function NoticeCard({ feature }: { feature: PlanFeature }) {
 export function PlanNoticeSlot({
   visible,
   feature,
+  message,
   children,
 }: {
   visible: boolean;
   feature: PlanFeature;
+  message?: string | null;
   children: ReactNode;
 }) {
   const opacity = useSharedValue(0);
@@ -107,7 +116,7 @@ export function PlanNoticeSlot({
           }}
           style={{ position: 'absolute', opacity: 0, left: 0, right: 0 }}
         >
-          <NoticeCard feature={feature} />
+          <NoticeCard feature={feature} message={message} />
         </View>
         <Animated.View style={spacerStyle} />
         <Animated.View
@@ -116,7 +125,7 @@ export function PlanNoticeSlot({
           importantForAccessibility={visible ? 'yes' : 'no-hide-descendants'}
           style={[{ position: 'absolute', left: 0, right: 0, top: 0 }, noticeStyle]}
         >
-          <NoticeCard feature={feature} />
+          <NoticeCard feature={feature} message={message} />
         </Animated.View>
       </View>
       {children}
@@ -132,10 +141,12 @@ export function PlanNoticeSlot({
 export function FloatingPlanNotice({
   visible,
   feature,
+  message,
   bottomOffset = 24,
 }: {
   visible: boolean;
   feature: PlanFeature;
+  message?: string | null;
   bottomOffset?: number;
 }) {
   const insets = useSafeAreaInsets();
@@ -168,7 +179,7 @@ export function FloatingPlanNotice({
         noticeStyle,
       ]}
     >
-      <FreePlanNotice feature={feature} />
+      <FreePlanNotice feature={feature} message={message} />
     </Animated.View>
   );
 }

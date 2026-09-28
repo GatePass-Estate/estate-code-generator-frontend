@@ -11,12 +11,19 @@ export default function PlanGuard() {
   const visible = useUpgradePromptStore((s) => s.visible);
   const dismiss = useUpgradePromptStore((s) => s.dismiss);
   const noticeFeature = useContactAdminNoticeStore((s) => s.feature);
+  const noticeMessage = useContactAdminNoticeStore((s) => s.message);
   const noticeVisible = useContactAdminNoticeStore((s) => s.visible);
 
   return (
     <>
       {feature && <UpgradePlanModal visible={visible} feature={feature} onClose={dismiss} />}
-      {noticeFeature && <FloatingPlanNotice visible={noticeVisible} feature={noticeFeature} />}
+      {noticeFeature && (
+        <FloatingPlanNotice
+          visible={noticeVisible}
+          feature={noticeFeature}
+          message={noticeMessage}
+        />
+      )}
     </>
   );
 }

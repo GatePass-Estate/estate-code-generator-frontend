@@ -10,8 +10,10 @@ export type PlanFeature = ServiceKey;
  * - `upgrade`: the primary admin, whose plan lacks it — prompt them to upgrade.
  * - `contact_admin`: anyone else (including other admins) whose plan lacks it — tell them to ask
  *   their admin.
+ * - `blocked`: the server refused to share the estate's plan with this user (e.g. their ID isn't
+ *   approved yet), so the plan isn't the problem — show the server's reason instead.
  */
-export type FeatureAccess = 'granted' | 'upgrade' | 'contact_admin';
+export type FeatureAccess = 'granted' | 'upgrade' | 'contact_admin' | 'blocked';
 
 /** An estate's plan, normalised from the revenue service. */
 export type Entitlements = {
@@ -85,12 +87,18 @@ export function hasEntitlement(
   return entitlements.services.get(feature) ?? false;
 }
 
+/**
+ * `blockedReason` is the server's message when it refused the entitlements request; a denial is
+ * then reported as `blocked` rather than blamed on the plan.
+ */
 export function resolveFeatureAccess(
   entitlements: Entitlements | undefined,
   role: UserRolesType,
-  feature: PlanFeature
+  feature: PlanFeature,
+  blockedReason?: string | null
 ): FeatureAccess {
   if (hasEntitlement(entitlements, feature)) return 'granted';
+  if (blockedReason) return 'blocked';
   return canManagePlan(role) ? 'upgrade' : 'contact_admin';
 }
 

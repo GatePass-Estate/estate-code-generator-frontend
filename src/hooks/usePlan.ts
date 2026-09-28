@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { create } from 'zustand';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import {
+  EntitlementsDeniedError,
   ensureEstateEntitlements,
   refreshEstateEntitlementsIfOlderThan,
   useEstateEntitlements,
@@ -38,8 +39,10 @@ export const useUpgradePromptStore = create<UpgradePromptStore>((set) => ({
 
 type ContactAdminNoticeStore = {
   feature: PlanFeature | null;
+  /** Replaces the feature's "Contact Admin" copy — the server's reason for a `blocked` check. */
+  message: string | null;
   visible: boolean;
-  show: (feature: PlanFeature) => void;
+  show: (feature: PlanFeature, message?: string | null) => void;
   reset: () => void;
 };
 
@@ -48,25 +51,36 @@ let contactAdminNoticeTimer: ReturnType<typeof setTimeout> | null = null;
 /** Drives the app-wide floating "Contact Admin" notice rendered by `PlanGuard`. */
 export const useContactAdminNoticeStore = create<ContactAdminNoticeStore>((set) => ({
   feature: null,
+  message: null,
   visible: false,
-  show: (feature) => {
+  show: (feature, message = null) => {
     if (contactAdminNoticeTimer) clearTimeout(contactAdminNoticeTimer);
-    set({ feature, visible: true });
-    // Keeps `feature` so the copy doesn't blank out while it fades away.
+    set({ feature, message, visible: true });
+    // Keeps `feature` and `message` so the copy doesn't blank out while it fades away.
     contactAdminNoticeTimer = setTimeout(() => set({ visible: false }), CONTACT_ADMIN_NOTICE_MS);
   },
   reset: () => {
     if (contactAdminNoticeTimer) clearTimeout(contactAdminNoticeTimer);
     contactAdminNoticeTimer = null;
-    set({ feature: null, visible: false });
+    set({ feature: null, message: null, visible: false });
   },
 }));
 
+/** The server's reason when it refused to share the estate's plan with this user. */
+function deniedReason(error: unknown): string | null {
+  return error instanceof EntitlementsDeniedError ? error.message : null;
+}
+
+function useFeatureAccessWithReason(feature: PlanFeature) {
+  const { data: entitlements, error } = useEstateEntitlements();
+  const role = useUserStore((s) => s.role);
+  const reason = deniedReason(error);
+  return { access: resolveFeatureAccess(entitlements, role, feature, reason), reason };
+}
+
 /** Read-only plan decision for a feature, for conditional rendering. */
 export function useFeatureAccess(feature: PlanFeature): FeatureAccess {
-  const { data: entitlements } = useEstateEntitlements();
-  const role = useUserStore((s) => s.role);
-  return resolveFeatureAccess(entitlements, role, feature);
+  return useFeatureAccessWithReason(feature).access;
 }
 
 function useTimedFlag(durationMs: number) {
@@ -104,7 +118,9 @@ type FeatureGateOptions = {
  *
  * `requestAccess()` returns `true` when the plan allows the feature. Otherwise it returns `false`
  * and shows the right message: the Upgrade Plan modal for the primary admin, or the "Contact Admin"
- * notice for everyone else (see `FeatureGateOptions.notice`).
+ * notice for everyone else (see `FeatureGateOptions.notice`). If the server refused to share the
+ * plan at all (e.g. the user's ID isn't approved yet), that notice shows the server's reason
+ * instead, for every role.
  *
  * `requestAccessWhenReady()` does the same but, if entitlements haven't loaded yet (e.g. a tap right
  * after sign-in), waits for them instead of treating the estate as free. Once cached it answers
@@ -119,12 +135,13 @@ export function useFeatureGate(
   feature: PlanFeature,
   { notice = 'inline' }: FeatureGateOptions = {}
 ) {
-  const access = useFeatureAccess(feature);
+  const { access, reason } = useFeatureAccessWithReason(feature);
   const role = useUserStore((s) => s.role);
   const estateId = useUserStore((s) => s.estate_id);
   const showUpgradePrompt = useUpgradePromptStore((s) => s.show);
   const showFloatingNotice = useContactAdminNoticeStore((s) => s.show);
   const [noticeVisible, flashInlineNotice] = useTimedFlag(CONTACT_ADMIN_NOTICE_MS);
+  const [noticeMessage, setNoticeMessage] = useState<string | null>(null);
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -135,21 +152,34 @@ export function useFeatureGate(
   }, []);
 
   const promptFor = useCallback(
-    (next: FeatureAccess): boolean => {
+    (next: FeatureAccess, blockedReason: string | null = null): boolean => {
       if (next === 'granted') return true;
-      if (next === 'upgrade') showUpgradePrompt(feature);
-      else if (notice === 'floating') showFloatingNotice(feature);
-      else flashInlineNotice();
+      if (next === 'upgrade') {
+        showUpgradePrompt(feature);
+        return false;
+      }
+      // `contact_admin` shows the feature's copy; `blocked` shows the server's reason instead.
+      const message = next === 'blocked' ? blockedReason : null;
+      if (notice === 'floating') {
+        showFloatingNotice(feature, message);
+      } else {
+        setNoticeMessage(message);
+        flashInlineNotice();
+      }
       return false;
     },
     [feature, flashInlineNotice, notice, showFloatingNotice, showUpgradePrompt]
   );
 
-  const requestAccess = useCallback((): boolean => promptFor(access), [access, promptFor]);
+  const requestAccess = useCallback(
+    (): boolean => promptFor(access, reason),
+    [access, promptFor, reason]
+  );
 
   const requestAccessWhenReady = useCallback(
     async (isStillRelevant?: () => boolean): Promise<boolean> => {
       let entitlements: Entitlements | undefined;
+      let blockedReason: string | null = null;
       if (estateId) {
         try {
           // Instant when cached; only waits on the network if nothing is cached yet.
@@ -157,15 +187,17 @@ export function useFeatureGate(
           if (resolveFeatureAccess(entitlements, role, feature) !== 'granted') {
             refreshEstateEntitlementsIfOlderThan(estateId, DENIAL_MAX_AGE_MS);
           }
-        } catch {
-          // Unreachable plan service: keep what we have, else the free-features-only default.
+        } catch (error) {
+          // A refusal (e.g. ID not approved) is reported as-is. Otherwise the plan service is
+          // unreachable: keep what we have, else the free-features-only default.
+          blockedReason = deniedReason(error);
         }
       }
 
-      const next = resolveFeatureAccess(entitlements, role, feature);
+      const next = resolveFeatureAccess(entitlements, role, feature, blockedReason);
       if (next === 'granted') return true;
       if (!mountedRef.current || (isStillRelevant && !isStillRelevant())) return false;
-      return promptFor(next);
+      return promptFor(next, blockedReason);
     },
     [estateId, feature, promptFor, role]
   );
@@ -175,8 +207,8 @@ export function useFeatureGate(
   }, [promptFor, role]);
 
   const noticeProps = useMemo(
-    () => ({ visible: noticeVisible, feature }),
-    [noticeVisible, feature]
+    () => ({ visible: noticeVisible, feature, message: noticeMessage }),
+    [noticeVisible, feature, noticeMessage]
   );
 
   return {
