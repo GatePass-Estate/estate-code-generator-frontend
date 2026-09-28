@@ -291,7 +291,8 @@ export function ratioPercentage(
 
 export type TrendCardModel = {
   title: string;
-  pct: number;
+  /** Headline figure pulled from the detail ("45%", "11"); empty when the trend has none. */
+  valueLabel: string;
   unitLabel: string;
   body: string;
 };
@@ -318,31 +319,42 @@ export function mapTrendsFromEda(
     | {
         stats?: Record<string, unknown>;
         categories?: CategoryEdaSection | null;
-        trends_detected?: string | string[];
+        trends_detected?: IncidentOverviewEda['trends_detected'];
       }
     | null
     | undefined
 ): TrendCardModel[] {
-  const blurbs = normalizeTrendsDetected(eda?.trends_detected);
-  return blurbs.map((body, index) => {
-    const pctMatch = body.match(/(\d+(?:\.\d+)?)\s*%/);
+  const trends = normalizeTrendsDetected(eda?.trends_detected);
+  return trends.map(({ title, detail }, index) => {
+    const pctMatch = detail.match(/(\d+(?:\.\d+)?)\s*%/);
+    const numberMatch = detail.match(/\d+(?:\.\d+)?/);
+    const valueLabel = pctMatch
+      ? `${Math.round(Number(pctMatch[1]))}%`
+      : numberMatch
+        ? numberMatch[0]
+        : '';
+    const fallbackTitle = trends.length > 1 ? `TREND\n${index + 1}` : 'TRENDS\nDETECTED';
     return {
-      title: blurbs.length > 1 ? `TREND\n${index + 1}` : 'TRENDS\nDETECTED',
-      pct: pctMatch ? Math.round(Number(pctMatch[1])) : 0,
-      unitLabel: 'INSIGHT',
-      body,
+      title: title ? title.toUpperCase() : fallbackTitle,
+      valueLabel,
+      unitLabel: pctMatch ? 'INSIGHT' : '',
+      body: detail,
     };
   });
 }
 
-function normalizeTrendsDetected(value: string | string[] | null | undefined): string[] {
-  if (Array.isArray(value)) {
-    return value.map((item) => String(item).trim()).filter(Boolean);
-  }
-  if (typeof value === 'string' && value.trim()) {
-    return [value.trim()];
-  }
-  return [];
+function normalizeTrendsDetected(
+  value: IncidentOverviewEda['trends_detected']
+): { title: string; detail: string }[] {
+  const list = Array.isArray(value) ? value : value ? [value] : [];
+  return list
+    .map((item) => {
+      if (typeof item === 'string') return { title: '', detail: item.trim() };
+      const row = asRecord(item) ?? {};
+      const detail = (row.detail ?? row.description ?? row.body ?? '').toString().trim();
+      return { title: (row.title ?? '').toString().trim(), detail };
+    })
+    .filter((trend) => trend.detail || trend.title);
 }
 
 const THEME_COLORS = ['#F46036', '#B17000', '#F46036', '#B17000', '#F46036'];
@@ -392,6 +404,35 @@ function normalizeThemeList(raw: unknown): any[] {
 }
 
 /** Maps tier1 `topics` payload into the In-house overlay (timeline + theme cards). */
+const INHOUSE_SUMMARY_KEYS = [
+  'executive_summary',
+  'timeline_summary',
+  'summary',
+  'detailed_insight',
+] as const;
+
+/**
+ * In-house (tier1) headline copy — the executive/timeline summary may sit at the root
+ * or nested inside `topics` / `human_report`, so search breadth-first by key priority.
+ */
+export function findInhouseSummaryText(tier1: unknown): string {
+  for (const key of INHOUSE_SUMMARY_KEYS) {
+    const queue: unknown[] = [tier1];
+    for (let depth = 0; depth < 4 && queue.length; depth += 1) {
+      const next: unknown[] = [];
+      for (const node of queue) {
+        const record = asRecord(node);
+        if (!record) continue;
+        const value = record[key];
+        if (typeof value === 'string' && value.trim()) return value.trim();
+        next.push(...Object.values(record).filter((v) => v && typeof v === 'object'));
+      }
+      queue.splice(0, queue.length, ...next);
+    }
+  }
+  return '';
+}
+
 export function mapInhouseInsightFromTopics(
   topics: Record<string, unknown> | null | undefined,
   fallbackTimeline = ''

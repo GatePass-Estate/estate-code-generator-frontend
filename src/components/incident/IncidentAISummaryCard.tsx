@@ -126,7 +126,7 @@ function LoadedSummaryCard({
       onPress={onExpand}
       accessibilityRole="button"
       accessibilityLabel={`Open ${sourceLabel ?? ''} AI Summary`}
-      className="max-h-[199px] w-full grow overflow-hidden rounded-[16px] bg-white px-5 pb-5 pt-6"
+      className="w-full grow overflow-hidden rounded-[16px] bg-white px-5 pb-5 pt-6"
     >
       <View className="flex-row items-center justify-between">
         <View className="mr-3 flex-1">

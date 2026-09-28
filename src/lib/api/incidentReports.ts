@@ -66,11 +66,17 @@ export type CategoryEdaSection = {
   other_categories?: Record<string, CategoryEdaItem>;
 };
 
+export type IncidentTrendDetected = {
+  kind?: string;
+  title?: string;
+  detail?: string;
+};
+
 export type IncidentOverviewEda = {
   stats?: Record<string, unknown>;
   categories?: CategoryEdaSection;
-  /** Narrative trend copy — string or list of trend blurbs from the API. */
-  trends_detected?: string | string[];
+  /** Trend cards — `{ kind, title, detail }` objects (older payloads sent plain strings). */
+  trends_detected?: string | (string | IncidentTrendDetected)[];
 };
 
 export type IncidentOverviewResponse = {

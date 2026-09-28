@@ -25,16 +25,6 @@ export async function resolveMarketplaceFeatureId(
   return list.items?.find((item) => nameMatch(item.name))?.id;
 }
 
-/** Turn API description into Product Feature bullets (newlines / bullets / sentences). */
-export function splitFeatureBullets(description?: string | null): string[] {
-  if (!description?.trim()) return [];
-  const parts = description
-    .split(/\n+|•|\u2022|(?<=[.!?])\s+(?=[A-Z])/)
-    .map((part) => part.trim())
-    .filter(Boolean);
-  return parts.length > 0 ? parts : [description.trim()];
-}
-
 const TIER_NUMBER_WORDS = [
   'Zero',
   'One',

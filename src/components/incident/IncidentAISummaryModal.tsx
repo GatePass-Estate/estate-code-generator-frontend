@@ -19,6 +19,8 @@ type AISummaryModalProps = {
   readTimeLabel?: string | null;
   sourceLabel?: string | null;
   /** In-house / tier1 */
+  executiveSummary?: string;
+  detailedInsight?: string;
   timelineSummary?: string;
   themes?: ThemeCardModel[];
 };
@@ -267,29 +269,52 @@ function ThirdPartyBody({ llmSummary }: { llmSummary?: IncidentLlmSummary | null
   );
 }
 
+function SummarySection({ title, body }: { title: string; body: string }) {
+  return (
+    <View className="py-2">
+      <Text
+        allowFontScaling={false}
+        className="mb-[8.96px] text-sm font-inter-light text-[#0A1F29]"
+      >
+        {title}
+      </Text>
+      <Text
+        allowFontScaling={false}
+        className="text-caption font-inter-regular leading-5 text-[#878686]"
+      >
+        {body}
+      </Text>
+    </View>
+  );
+}
+
 function InHouseBody({
+  executiveSummary,
+  detailedInsight,
   timelineSummary,
   themes,
 }: {
+  executiveSummary?: string;
+  detailedInsight?: string;
   timelineSummary?: string;
   themes: ThemeCardModel[];
 }) {
+  const executive = executiveSummary?.trim() || '';
+  const detailed = detailedInsight?.trim() || '';
+  const timeline = timelineSummary?.trim() || '';
+
   return (
     <View className="gap-6">
-      <View className="py-2">
-        <Text
-          allowFontScaling={false}
-          className="mb-[8.96px] text-sm font-inter-light text-[#0A1F29]"
-        >
-          TIMELINE SUMMARY
-        </Text>
-        <Text
-          allowFontScaling={false}
-          className="text-caption font-inter-regular leading-5 text-[#878686]"
-        >
-          {timelineSummary?.trim() || 'No timeline summary for this window.'}
-        </Text>
-      </View>
+      {executive ? <SummarySection title="EXECUTIVE SUMMARY" body={executive} /> : null}
+      {detailed && detailed !== executive ? (
+        <SummarySection title="DETAILED INSIGHT" body={detailed} />
+      ) : null}
+      {timeline && timeline !== executive ? (
+        <SummarySection title="TIMELINE SUMMARY" body={timeline} />
+      ) : null}
+      {!executive && !timeline ? (
+        <SummarySection title="EXECUTIVE SUMMARY" body="No summary for this window." />
+      ) : null}
 
       <View>
         <ThemeReport themes={themes} />
@@ -305,6 +330,8 @@ export default function AISummaryModal({
   llmSummary,
   readTimeLabel,
   sourceLabel,
+  executiveSummary,
+  detailedInsight,
   timelineSummary,
   themes = [],
 }: AISummaryModalProps) {
@@ -351,7 +378,12 @@ export default function AISummaryModal({
 
           <ScrollView showsVerticalScrollIndicator={false} contentContainerClassName="pb-6">
             {isInHouse ? (
-              <InHouseBody timelineSummary={timelineSummary} themes={themes} />
+              <InHouseBody
+                executiveSummary={executiveSummary}
+                detailedInsight={detailedInsight}
+                timelineSummary={timelineSummary}
+                themes={themes}
+              />
             ) : (
               <ThirdPartyBody llmSummary={llmSummary} />
             )}

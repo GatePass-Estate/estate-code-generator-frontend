@@ -31,7 +31,7 @@ type SubscriptionTierCardProps = {
   onUninstall?: () => void;
   isSubscribing?: boolean;
   isInstalled?: boolean;
-  /** Benefit rows from the API (tier description split). */
+  /** Benefit rows from the API (`tier.benefits` / `tier_benefits`). */
   benefits?: string[];
   subtitleUppercase?: boolean;
 };
@@ -50,8 +50,7 @@ export default function SubscriptionTierCard({
   benefits,
   subtitleUppercase = false,
 }: SubscriptionTierCardProps) {
-  const benefitRows =
-    benefits && benefits.length > 0 ? benefits : description.trim() ? [description.trim()] : [];
+  const benefitRows = (benefits ?? []).map((text) => text.trim()).filter(Boolean);
   const canExpand = benefitRows.length > 0 || isInstalled;
   const chevronRotation = useSharedValue(expanded ? 90 : 0);
   const progress = useSharedValue(expanded ? 1 : 0);

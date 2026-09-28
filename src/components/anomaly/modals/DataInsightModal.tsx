@@ -24,6 +24,7 @@ import Info2Svg from '@/src/assets/images/info2.svg';
 import Info3Svg from '@/src/assets/images/info3.svg';
 import Info4Svg from '@/src/assets/images/info4.svg';
 import Info5Svg from '@/src/assets/images/info5.svg';
+import type { MarketplaceDataInsight } from '@/src/types/aiMarketplace';
 
 const { width } = Dimensions.get('window');
 const DURATION = 6000;
@@ -31,6 +32,63 @@ const DURATION = 6000;
 interface DataInsightModalProps {
   visible: boolean;
   onClose: () => void;
+  /** Marketplace `data_insight`; when set, the list after the story shows it instead of the static cards. */
+  dataInsight?: MarketplaceDataInsight | null;
+}
+
+type InsightCard = { title: string; body: string };
+
+/** "Title: body" → split card; otherwise the whole line is the body. */
+function toInsightCards(lines?: string[]): InsightCard[] {
+  return (lines ?? [])
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const colon = line.indexOf(':');
+      return colon > 0 && colon < 48
+        ? { title: line.slice(0, colon).trim(), body: line.slice(colon + 1).trim() }
+        : { title: '', body: line };
+    });
+}
+
+function InsightCardView({ title, body }: InsightCard) {
+  return (
+    <View style={{ backgroundColor: '#FFFFFF', borderRadius: 12, padding: 20 }}>
+      {title ? (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+          <View
+            style={{
+              width: 18,
+              height: 18,
+              borderRadius: 9,
+              backgroundColor: '#113E55',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Text
+              allowFontScaling={false}
+              style={{ color: '#FFFFFF', fontSize: 11, fontFamily: 'UbuntuSans-Bold' }}
+            >
+              ?
+            </Text>
+          </View>
+          <Text
+            allowFontScaling={false}
+            style={{ flex: 1, fontFamily: 'Inter_18pt-Medium', fontSize: 15, color: '#455A64' }}
+          >
+            {title}
+          </Text>
+        </View>
+      ) : null}
+      <Text
+        allowFontScaling={false}
+        style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 13, color: '#8A9A9D', lineHeight: 18 }}
+      >
+        {body}
+      </Text>
+    </View>
+  );
 }
 
 const PAGES = [
@@ -109,7 +167,7 @@ const ProgressBar = ({
   );
 };
 
-export default function DataInsightModal({ visible, onClose }: DataInsightModalProps) {
+export default function DataInsightModal({ visible, onClose, dataInsight }: DataInsightModalProps) {
   const [currentPage, setCurrentPage] = useState(0);
   const progress = useSharedValue(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -362,73 +420,107 @@ export default function DataInsightModal({ visible, onClose }: DataInsightModalP
               >
                 Data Insight
               </Text>
-              <Text
-                allowFontScaling={false}
-                style={{
-                  fontFamily: 'Inter_18pt-Regular',
-                  fontSize: 13,
-                  color: '#8A9A9D',
-                  marginBottom: 24,
-                  lineHeight: 18,
-                }}
-              >
-                No complicated reports. Get simple insights that help you understand what&apos;s
-                happening and why.
-              </Text>
-
-              <View style={{ gap: 16 }}>
-                {[1, 2, 3, 4, 5].map((item, index) => (
-                  <View
-                    key={index}
-                    style={{ backgroundColor: '#FFFFFF', borderRadius: 12, padding: 20 }}
-                  >
-                    <View
-                      style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        gap: 12,
-                        marginBottom: 8,
-                      }}
-                    >
-                      <View
-                        style={{
-                          width: 18,
-                          height: 18,
-                          borderRadius: 9,
-                          backgroundColor: '#113E55',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        <Text
-                          allowFontScaling={false}
-                          style={{ color: '#FFFFFF', fontSize: 11, fontFamily: 'UbuntuSans-Bold' }}
-                        >
-                          ?
-                        </Text>
-                      </View>
-                      <Text
-                        allowFontScaling={false}
-                        style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 15, color: '#455A64' }}
-                      >
-                        Financial Info
-                      </Text>
-                    </View>
+              {dataInsight ? (
+                <View style={{ gap: 16 }}>
+                  {toInsightCards(dataInsight.data).map((card, index) => (
+                    <InsightCardView key={`data-${index}`} {...card} />
+                  ))}
+                  {toInsightCards(dataInsight.legal).length ? (
                     <Text
                       allowFontScaling={false}
                       style={{
-                        fontFamily: 'Inter_18pt-Regular',
-                        fontSize: 13,
-                        color: '#8A9A9D',
-                        lineHeight: 18,
+                        fontFamily: 'Inter_18pt-Medium',
+                        fontSize: 15,
+                        color: '#113E55',
+                        marginTop: 8,
                       }}
                     >
-                      No complicated reports. Get simple insights that help you understand
-                      what&apos;s happening and why.
+                      Legal
                     </Text>
+                  ) : null}
+                  {toInsightCards(dataInsight.legal).map((card, index) => (
+                    <InsightCardView key={`legal-${index}`} {...card} />
+                  ))}
+                </View>
+              ) : (
+                <>
+                  <Text
+                    allowFontScaling={false}
+                    style={{
+                      fontFamily: 'Inter_18pt-Regular',
+                      fontSize: 13,
+                      color: '#8A9A9D',
+                      marginBottom: 24,
+                      lineHeight: 18,
+                    }}
+                  >
+                    No complicated reports. Get simple insights that help you understand what&apos;s
+                    happening and why.
+                  </Text>
+
+                  <View style={{ gap: 16 }}>
+                    {[1, 2, 3, 4, 5].map((item, index) => (
+                      <View
+                        key={index}
+                        style={{ backgroundColor: '#FFFFFF', borderRadius: 12, padding: 20 }}
+                      >
+                        <View
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            gap: 12,
+                            marginBottom: 8,
+                          }}
+                        >
+                          <View
+                            style={{
+                              width: 18,
+                              height: 18,
+                              borderRadius: 9,
+                              backgroundColor: '#113E55',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                          >
+                            <Text
+                              allowFontScaling={false}
+                              style={{
+                                color: '#FFFFFF',
+                                fontSize: 11,
+                                fontFamily: 'UbuntuSans-Bold',
+                              }}
+                            >
+                              ?
+                            </Text>
+                          </View>
+                          <Text
+                            allowFontScaling={false}
+                            style={{
+                              fontFamily: 'Inter_18pt-Medium',
+                              fontSize: 15,
+                              color: '#455A64',
+                            }}
+                          >
+                            Financial Info
+                          </Text>
+                        </View>
+                        <Text
+                          allowFontScaling={false}
+                          style={{
+                            fontFamily: 'Inter_18pt-Regular',
+                            fontSize: 13,
+                            color: '#8A9A9D',
+                            lineHeight: 18,
+                          }}
+                        >
+                          No complicated reports. Get simple insights that help you understand
+                          what&apos;s happening and why.
+                        </Text>
+                      </View>
+                    ))}
                   </View>
-                ))}
-              </View>
+                </>
+              )}
             </ScrollView>
 
             <Pressable

@@ -46,6 +46,7 @@ import {
   demographicLocation,
   formatReportCount,
   mapCategoryEdaToUi,
+  findInhouseSummaryText,
   mapInhouseInsightFromTopics,
   mapListItemToRow,
   mapTrendsFromEda,
@@ -99,13 +100,13 @@ function ShareBar({
 
 function TrendCard({
   title,
-  pct,
+  valueLabel,
   unitLabel,
   body,
   icon,
 }: {
   title: string;
-  pct: number;
+  valueLabel: string;
   unitLabel: string;
   body: string;
   icon: ReactNode;
@@ -124,19 +125,25 @@ function TrendCard({
         </View>
       </View>
 
-      <View className="relative mt-3 w-full">
-        <Text
-          allowFontScaling={false}
-          className="text-left text-[34.18px] font-ubuntu-medium leading-[normal] text-[#CEE5ED]"
-        >
-          {pct}%
-        </Text>
-        <Text
-          allowFontScaling={false}
-          className="absolute left-[70px] top-[21px] text-left text-[11.2px] font-inter-regular text-[#CEE5ED]"
-        >
-          {unitLabel}
-        </Text>
+      <View className="mt-3 w-full">
+        {valueLabel ? (
+          <View className="flex-row items-end gap-1.5">
+            <Text
+              allowFontScaling={false}
+              className="text-left text-[34.18px] font-ubuntu-medium leading-[normal] text-[#CEE5ED]"
+            >
+              {valueLabel}
+            </Text>
+            {unitLabel ? (
+              <Text
+                allowFontScaling={false}
+                className="mb-2 text-left text-[11.2px] font-inter-regular text-[#CEE5ED]"
+              >
+                {unitLabel}
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
         <Text
           allowFontScaling={false}
           className="w-[181px] text-left text-[11.2px] font-inter-regular leading-[normal] text-[#CEE5ED]"
@@ -336,32 +343,39 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
     '2 mins Read';
   const summarySourceLabel =
     summary?.source_label?.trim() || (summaryVariant === 'in_house' ? 'In house' : 'Third Party');
-  const inhouseInsight = useMemo(() => {
-    const timelineFallback =
-      mapTrendsFromEda(overview?.eda)[0]?.body || summary?.tier1?.executive_summary || '';
-    return mapInhouseInsightFromTopics(
-      (summary?.tier1?.topics as Record<string, unknown> | undefined) ?? null,
-      timelineFallback
-    );
-  }, [summary?.tier1?.topics, summary?.tier1?.executive_summary, overview?.eda]);
-
-  const summarySlides = useMemo<AISummarySlide[]>(
-    () => [
-      {
-        variant: 'third_party',
-        text: summary?.tier2?.executive_summary,
-        readTimeLabel: summary?.tier2?.read_time || summary?.read_time,
-        sourceLabel: 'Third Party',
-      },
-      {
-        variant: 'in_house',
-        text: summary?.tier1?.executive_summary || inhouseInsight.timelineSummary,
-        readTimeLabel: summary?.tier1?.read_time || summary?.read_time,
-        sourceLabel: 'In house',
-      },
-    ],
-    [summary, inhouseInsight.timelineSummary]
+  const inhouseExecutiveSummary = useMemo(
+    () => findInhouseSummaryText(summary?.tier1),
+    [summary?.tier1]
   );
+  const inhouseInsight = useMemo(
+    () =>
+      mapInhouseInsightFromTopics(
+        (summary?.tier1?.topics as Record<string, unknown> | undefined) ?? null,
+        inhouseExecutiveSummary
+      ),
+    [summary?.tier1?.topics, inhouseExecutiveSummary]
+  );
+
+  const summarySlides = useMemo<AISummarySlide[]>(() => {
+    const slides: AISummarySlide[] = [];
+    if (summary?.tier1) {
+      slides.push({
+        variant: 'in_house',
+        text: inhouseExecutiveSummary || inhouseInsight.timelineSummary,
+        readTimeLabel: summary.tier1.read_time || summary.read_time,
+        sourceLabel: 'In house',
+      });
+    }
+    if (summary?.tier2) {
+      slides.push({
+        variant: 'third_party',
+        text: summary.tier2.executive_summary,
+        readTimeLabel: summary.tier2.read_time || summary.read_time,
+        sourceLabel: 'Third Party',
+      });
+    }
+    return slides;
+  }, [summary, inhouseExecutiveSummary, inhouseInsight.timelineSummary]);
   const openSummaryReadTime =
     openSummaryVariant === 'in_house'
       ? summary?.tier1?.read_time || summary?.read_time
@@ -421,6 +435,40 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
       setInsightMode('locked');
     }
   }, [fetchSummary, summary, summaryLoading, summaryError, hasSummaryPayload]);
+
+  useEffect(() => {
+    if (!fetchSummary || !summary) return;
+    const pretty = (payload: unknown) => {
+      try {
+        return JSON.stringify(payload, null, 2);
+      } catch {
+        return String(payload);
+      }
+    };
+    console.log('\n================== [incident-reports] AI summary details ==================');
+    console.log(
+      pretty({
+        entitled_tier: summary.entitled_tier,
+        from_cache: summary.from_cache,
+        read_time: summary.read_time,
+        source_label: summary.source_label,
+      })
+    );
+    console.log('--- tier1 (In house) ---');
+    console.log(pretty(summary.tier1 ?? null));
+    console.log('--- tier2 (Third party) ---');
+    console.log(pretty(summary.tier2 ?? null));
+    console.log('--- resolved for UI ---');
+    console.log(
+      pretty({
+        inhouseExecutiveSummary,
+        inhouseTimelineSummary: inhouseInsight.timelineSummary,
+        inhouseThemes: inhouseInsight.themes,
+        thirdPartyExecutiveSummary: summary.tier2?.executive_summary ?? null,
+      })
+    );
+    console.log('===========================================================================\n');
+  }, [fetchSummary, summary, inhouseExecutiveSummary, inhouseInsight]);
 
   useEffect(() => {
     if (!overviewError && !reportsError) return;
@@ -794,7 +842,7 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
               <TrendCard
                 key={`${card.title}-${index}`}
                 title={card.title}
-                pct={card.pct}
+                valueLabel={card.valueLabel}
                 unitLabel={card.unitLabel}
                 body={card.body}
                 icon={
@@ -883,6 +931,8 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
         llmSummary={summary?.tier2}
         readTimeLabel={openSummaryReadTime}
         sourceLabel={openSummaryVariant === 'in_house' ? 'In house' : 'Third Party'}
+        executiveSummary={summary?.tier1?.executive_summary}
+        detailedInsight={summary?.tier1?.detailed_insight}
         timelineSummary={inhouseInsight.timelineSummary}
         themes={inhouseInsight.themes}
       />

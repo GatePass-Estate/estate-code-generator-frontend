@@ -23,7 +23,6 @@ import {
   rateMarketplaceFeature,
   resolveMarketplaceFeatureId,
   sortMarketplaceTiers,
-  splitFeatureBullets,
   subscribeMarketplaceFeature,
   uninstallMarketplaceFeature,
   cancelMarketplaceSubscription,
@@ -33,20 +32,9 @@ import { MarketplaceDetailResponse, MarketplaceTier } from '@/src/types/aiMarket
 
 const isIncidentProduct = (name: string) => name.toLowerCase().includes('incident');
 
-const PRODUCT_FEATURES = [
-  {
-    Icon: Pf1Svg,
-    text: 'Spot unusual activities early, so you can investigate before they become bigger issues.',
-  },
-  {
-    Icon: Pf2Svg,
-    text: 'Instead of reviewing everything, instantly see the people or patterns that deserve your attention.',
-  },
-  {
-    Icon: Pf3Svg,
-    text: "No complicated reports. Get simple insights that help you understand what's happening and why.",
-  },
-];
+const PRODUCT_FEATURE_ICONS = [Pf1Svg, Pf2Svg, Pf3Svg];
+
+const tierNumber = (tier: string) => tier.replace(/\D/g, '') || tier;
 
 export default function IncidentReportPreviewScreen() {
   const params = useLocalSearchParams<{ featureId?: string; title?: string; tab?: string }>();
@@ -234,6 +222,9 @@ export default function IncidentReportPreviewScreen() {
     () => sortMarketplaceTiers(featureDetail?.tiers ?? []),
     [featureDetail?.tiers]
   );
+  const productFeatures = (featureDetail?.product_features ?? [])
+    .map((text) => text.trim())
+    .filter(Boolean);
 
   const scrollViewRef = useRef<ScrollView>(null);
 
@@ -407,33 +398,40 @@ export default function IncidentReportPreviewScreen() {
               </View>
 
               <View className="flex-1 bg-[#F6F7F7] px-5 pb-[100px] pt-[44px]">
-                <View className="px-[17px]">
-                  <Text
-                    allowFontScaling={false}
-                    className="mb-4 text-[14px] font-inter-medium leading-[14px] text-[#113E55]"
-                  >
-                    Product Feature
-                  </Text>
-                </View>
-
-                <View className="mb-[44px] gap-2">
-                  {PRODUCT_FEATURES.map(({ Icon, text }) => (
-                    <View
-                      key={text}
-                      className="flex-row items-center gap-3 rounded-[16px] bg-white px-4 py-2"
-                    >
-                      <View className="h-4 w-4 shrink-0 items-center justify-center">
-                        <Icon width={16} height={16} />
-                      </View>
+                {productFeatures.length > 0 ? (
+                  <>
+                    <View className="px-[17px]">
                       <Text
                         allowFontScaling={false}
-                        className="flex-1 text-[11.2px] font-inter-regular leading-[18px] text-[#878686]"
+                        className="mb-4 text-[14px] font-inter-medium leading-[14px] text-[#113E55]"
                       >
-                        {text}
+                        Product Feature
                       </Text>
                     </View>
-                  ))}
-                </View>
+
+                    <View className="mb-[44px] gap-2">
+                      {productFeatures.map((text, index) => {
+                        const Icon = PRODUCT_FEATURE_ICONS[index % PRODUCT_FEATURE_ICONS.length];
+                        return (
+                          <View
+                            key={`${index}-${text.slice(0, 24)}`}
+                            className="flex-row items-center gap-3 rounded-[16px] bg-white px-4 py-2"
+                          >
+                            <View className="h-4 w-4 shrink-0 items-center justify-center">
+                              <Icon width={16} height={16} />
+                            </View>
+                            <Text
+                              allowFontScaling={false}
+                              className="flex-1 text-[11.2px] font-inter-regular leading-[18px] text-[#878686]"
+                            >
+                              {text}
+                            </Text>
+                          </View>
+                        );
+                      })}
+                    </View>
+                  </>
+                ) : null}
 
                 <View className="px-[17px]">
                   <Text
@@ -452,7 +450,11 @@ export default function IncidentReportPreviewScreen() {
                   ) : (
                     sortedTiers.map((tier) => {
                       const tierKey = tier.tier;
-                      const benefits = splitFeatureBullets(tier.description);
+                      const benefits = tier.benefits?.length
+                        ? tier.benefits
+                        : (featureDetail.tier_benefits?.find(
+                            (group) => tierNumber(group.tier) === tierNumber(tierKey)
+                          )?.benefits ?? []);
                       const description = tier.description?.trim() || '';
                       const subtitle = formatTierSubtitle(tier);
                       return (
@@ -488,7 +490,11 @@ export default function IncidentReportPreviewScreen() {
         onClose={() => setIsRatingModalVisible(false)}
         onSubmit={handleRate}
       />
-      <DataInsightModal visible={dataInsightVisible} onClose={() => setDataInsightVisible(false)} />
+      <DataInsightModal
+        visible={dataInsightVisible}
+        onClose={() => setDataInsightVisible(false)}
+        dataInsight={featureDetail?.data_insight}
+      />
     </View>
   );
 }
