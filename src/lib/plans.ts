@@ -7,10 +7,13 @@ export type PlanFeature = ServiceKey;
 
 /**
  * - `granted`: the estate's plan includes the feature.
- * - `upgrade`: an admin whose plan lacks it — prompt them to upgrade.
- * - `contact_admin`: anyone else whose plan lacks it — tell them to ask their admin.
+ * - `upgrade`: the primary admin, whose plan lacks it — prompt them to upgrade.
+ * - `contact_admin`: anyone else (including other admins) whose plan lacks it — tell them to ask
+ *   their admin.
+ * - `blocked`: the server refused to share the estate's plan with this user (e.g. their ID isn't
+ *   approved yet), so the plan isn't the problem — show the server's reason instead.
  */
-export type FeatureAccess = 'granted' | 'upgrade' | 'contact_admin';
+export type FeatureAccess = 'granted' | 'upgrade' | 'contact_admin' | 'blocked';
 
 /** An estate's plan, normalised from the revenue service. */
 export type Entitlements = {
@@ -37,9 +40,14 @@ function isFreeFeature(feature: PlanFeature): boolean {
   return getServiceByKey(feature).category === 'free';
 }
 
-/** Entries may be a bare boolean or an object with `allowed`; anything else is treated as denied. */
+/**
+ * Mirrors the revenue service's `check_service_entitlement`: entries may be a bare boolean, a
+ * numeric limit (e.g. `extended_historical_record: 90` days — allowed when above 0), or an object
+ * with `allowed`; anything else is treated as denied.
+ */
 function isGranted(value: unknown): boolean {
   if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return value > 0;
   if (value !== null && typeof value === 'object' && 'allowed' in value) {
     return (value as { allowed: unknown }).allowed === true;
   }
@@ -61,8 +69,9 @@ export function parseEntitlements(response: EstateEntitlementsResponse): Entitle
   };
 }
 
+/** Only the primary admin owns the estate's subscription, so only they are asked to upgrade. */
 export function canManagePlan(role: UserRolesType): boolean {
-  return role === 'primary_admin' || role === 'admin';
+  return role === 'primary_admin';
 }
 
 /**
@@ -78,12 +87,18 @@ export function hasEntitlement(
   return entitlements.services.get(feature) ?? false;
 }
 
+/**
+ * `blockedReason` is the server's message when it refused the entitlements request; a denial is
+ * then reported as `blocked` rather than blamed on the plan.
+ */
 export function resolveFeatureAccess(
   entitlements: Entitlements | undefined,
   role: UserRolesType,
-  feature: PlanFeature
+  feature: PlanFeature,
+  blockedReason?: string | null
 ): FeatureAccess {
   if (hasEntitlement(entitlements, feature)) return 'granted';
+  if (blockedReason) return 'blocked';
   return canManagePlan(role) ? 'upgrade' : 'contact_admin';
 }
 

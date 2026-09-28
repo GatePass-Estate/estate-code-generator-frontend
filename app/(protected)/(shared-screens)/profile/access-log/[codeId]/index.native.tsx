@@ -28,7 +28,9 @@ export default function UsageLogScreen() {
   const navigation = useNavigation();
   const { codeId } = useLocalSearchParams<{ codeId: string }>();
   const { user_id, estate_id } = useUserStore();
-  const { requestAccess: requestCodeAccess } = useFeatureGate('advanced_code_management');
+  const { requestAccess: requestCodeAccess } = useFeatureGate('advanced_code_management', {
+    notice: 'floating',
+  });
   const [loading, setLoading] = useState(true);
   const [regenerating, setRegenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);

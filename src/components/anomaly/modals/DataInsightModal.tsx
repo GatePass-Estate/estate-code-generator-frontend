@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,8 @@ import Animated, {
   runOnJS,
   cancelAnimation,
   SharedValue,
+  FadeIn,
+  FadeOut,
 } from 'react-native-reanimated';
 import { MaterialIcons } from '@expo/vector-icons';
 import Info1Svg from '@/src/assets/images/info1.svg';
@@ -36,57 +38,108 @@ interface DataInsightModalProps {
   dataInsight?: MarketplaceDataInsight | null;
 }
 
-type InsightCard = { title: string; body: string };
+const cleanLines = (lines?: string[]) => (lines ?? []).map((l) => l.trim()).filter(Boolean);
 
-/** "Title: body" → split card; otherwise the whole line is the body. */
-function toInsightCards(lines?: string[]): InsightCard[] {
-  return (lines ?? [])
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => {
-      const colon = line.indexOf(':');
-      return colon > 0 && colon < 48
-        ? { title: line.slice(0, colon).trim(), body: line.slice(colon + 1).trim() }
-        : { title: '', body: line };
-    });
-}
+const BUBBLE_MS = 2000;
 
-function InsightCardView({ title, body }: InsightCard) {
+function InsightRow({ text, label, symbol }: { text: string; label: string; symbol: string }) {
+  const [showBubble, setShowBubble] = useState(false);
+  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (hideTimer.current) clearTimeout(hideTimer.current);
+    },
+    []
+  );
+
+  const flashBubble = () => {
+    if (hideTimer.current) clearTimeout(hideTimer.current);
+    setShowBubble(true);
+    hideTimer.current = setTimeout(() => setShowBubble(false), BUBBLE_MS);
+  };
+
   return (
     <View style={{ backgroundColor: '#FFFFFF', borderRadius: 12, padding: 20 }}>
-      {title ? (
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-          <View
+      <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
+        {showBubble ? (
+          <Animated.View
+            entering={FadeIn.duration(180)}
+            exiting={FadeOut.duration(180)}
+            pointerEvents="none"
             style={{
-              width: 18,
-              height: 18,
-              borderRadius: 9,
-              backgroundColor: '#113E55',
-              alignItems: 'center',
-              justifyContent: 'center',
+              position: 'absolute',
+              right: -12,
+              bottom: '100%',
+              marginBottom: 4,
+              maxWidth: '85%',
+              alignItems: 'flex-end',
+              zIndex: 10,
+              elevation: 4,
             }}
           >
-            <Text
-              allowFontScaling={false}
-              style={{ color: '#FFFFFF', fontSize: 11, fontFamily: 'UbuntuSans-Bold' }}
+            <View
+              style={{
+                backgroundColor: '#113E55',
+                borderRadius: 8,
+                paddingHorizontal: 10,
+                paddingVertical: 6,
+              }}
             >
-              ?
-            </Text>
-          </View>
+              <Text
+                allowFontScaling={false}
+                style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 12, color: '#FFFFFF' }}
+              >
+                {label}
+              </Text>
+            </View>
+            <View
+              style={{
+                width: 10,
+                height: 10,
+                marginTop: -5,
+                marginRight: 16,
+                borderBottomRightRadius: 2,
+                backgroundColor: '#113E55',
+                transform: [{ rotate: '45deg' }],
+              }}
+            />
+          </Animated.View>
+        ) : null}
+        <Text
+          allowFontScaling={false}
+          style={{
+            flex: 1,
+            fontFamily: 'Inter_18pt-Regular',
+            fontSize: 13,
+            color: '#8A9A9D',
+            lineHeight: 18,
+          }}
+        >
+          {text}
+        </Text>
+        <Pressable
+          onPress={flashBubble}
+          hitSlop={12}
+          accessibilityRole="button"
+          accessibilityLabel={label}
+          style={{
+            width: 18,
+            height: 18,
+            borderRadius: 9,
+            backgroundColor: '#113E55',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
           <Text
             allowFontScaling={false}
-            style={{ flex: 1, fontFamily: 'Inter_18pt-Medium', fontSize: 15, color: '#455A64' }}
+            style={{ color: '#FFFFFF', fontSize: 11, fontFamily: 'UbuntuSans-Bold' }}
           >
-            {title}
+            {symbol}
           </Text>
-        </View>
-      ) : null}
-      <Text
-        allowFontScaling={false}
-        style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 13, color: '#8A9A9D', lineHeight: 18 }}
-      >
-        {body}
-      </Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -420,107 +473,28 @@ export default function DataInsightModal({ visible, onClose, dataInsight }: Data
               >
                 Data Insight
               </Text>
-              {dataInsight ? (
-                <View style={{ gap: 16 }}>
-                  {toInsightCards(dataInsight.data).map((card, index) => (
-                    <InsightCardView key={`data-${index}`} {...card} />
-                  ))}
-                  {toInsightCards(dataInsight.legal).length ? (
-                    <Text
-                      allowFontScaling={false}
-                      style={{
-                        fontFamily: 'Inter_18pt-Medium',
-                        fontSize: 15,
-                        color: '#113E55',
-                        marginTop: 8,
-                      }}
-                    >
-                      Legal
-                    </Text>
-                  ) : null}
-                  {toInsightCards(dataInsight.legal).map((card, index) => (
-                    <InsightCardView key={`legal-${index}`} {...card} />
-                  ))}
-                </View>
-              ) : (
-                <>
-                  <Text
-                    allowFontScaling={false}
-                    style={{
-                      fontFamily: 'Inter_18pt-Regular',
-                      fontSize: 13,
-                      color: '#8A9A9D',
-                      marginBottom: 24,
-                      lineHeight: 18,
-                    }}
-                  >
-                    No complicated reports. Get simple insights that help you understand what&apos;s
-                    happening and why.
-                  </Text>
+              <Text
+                allowFontScaling={false}
+                style={{
+                  fontFamily: 'Inter_18pt-Regular',
+                  fontSize: 13,
+                  color: '#8A9A9D',
+                  marginBottom: 24,
+                  lineHeight: 18,
+                }}
+              >
+                No complicated reports. Get simple insights that help you understand what&apos;s
+                happening and why.
+              </Text>
 
-                  <View style={{ gap: 16 }}>
-                    {[1, 2, 3, 4, 5].map((item, index) => (
-                      <View
-                        key={index}
-                        style={{ backgroundColor: '#FFFFFF', borderRadius: 12, padding: 20 }}
-                      >
-                        <View
-                          style={{
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            gap: 12,
-                            marginBottom: 8,
-                          }}
-                        >
-                          <View
-                            style={{
-                              width: 18,
-                              height: 18,
-                              borderRadius: 9,
-                              backgroundColor: '#113E55',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                            }}
-                          >
-                            <Text
-                              allowFontScaling={false}
-                              style={{
-                                color: '#FFFFFF',
-                                fontSize: 11,
-                                fontFamily: 'UbuntuSans-Bold',
-                              }}
-                            >
-                              ?
-                            </Text>
-                          </View>
-                          <Text
-                            allowFontScaling={false}
-                            style={{
-                              fontFamily: 'Inter_18pt-Medium',
-                              fontSize: 15,
-                              color: '#455A64',
-                            }}
-                          >
-                            Financial Info
-                          </Text>
-                        </View>
-                        <Text
-                          allowFontScaling={false}
-                          style={{
-                            fontFamily: 'Inter_18pt-Regular',
-                            fontSize: 13,
-                            color: '#8A9A9D',
-                            lineHeight: 18,
-                          }}
-                        >
-                          No complicated reports. Get simple insights that help you understand
-                          what&apos;s happening and why.
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                </>
-              )}
+              <View style={{ gap: 16 }}>
+                {cleanLines(dataInsight?.data).map((text, index) => (
+                  <InsightRow key={`data-${index}`} text={text} label="Data Collected" symbol="?" />
+                ))}
+                {cleanLines(dataInsight?.legal).map((text, index) => (
+                  <InsightRow key={`legal-${index}`} text={text} label="Legal Context" symbol="§" />
+                ))}
+              </View>
             </ScrollView>
 
             <Pressable

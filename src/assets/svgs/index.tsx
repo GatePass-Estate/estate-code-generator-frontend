@@ -1263,3 +1263,65 @@ export {
   IncidentUnauthorizedAccessFilledIcon,
   IncidentUnauthorizedAccessOutlineIcon,
 } from '@/src/components/incident/incidentCategorySvgIcons';
+
+/**
+ * Siren badge used for broadcast priority. The design uses a tinted circle
+ * behind the glyph, with both colours driven by the broadcast priority.
+ */
+export function PriorityAlarmIcon({
+  color = '#113E55',
+  circleColor = '#CEE5ED',
+  size = 31,
+  ...props
+}: MenuIconProps & { circleColor?: string; size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 31 31" fill="none" {...props}>
+      <Circle cx={15.5} cy={15.5} r={15.5} fill={circleColor} />
+      <Path
+        d="M15.5 8.5a4.4 4.4 0 0 1 4.4 4.4v4.2h.6a.8.8 0 0 1 0 1.6H10.5a.8.8 0 0 1 0-1.6h.6v-4.2a4.4 4.4 0 0 1 4.4-4.4Zm0 1.6a2.8 2.8 0 0 0-2.8 2.8v4.2h5.6v-4.2a2.8 2.8 0 0 0-2.8-2.8Z"
+        fill={color}
+      />
+      <Path
+        d="M15.5 6a.7.7 0 0 1 .7.7v.8a.7.7 0 1 1-1.4 0v-.8a.7.7 0 0 1 .7-.7ZM20.9 7.6a.7.7 0 0 1 1 1l-.6.6a.7.7 0 0 1-1-1l.6-.6ZM9.1 7.6l.6.6a.7.7 0 1 1-1 1l-.6-.6a.7.7 0 0 1 1-1ZM13.4 20.4h4.2a2.1 2.1 0 0 1-4.2 0Z"
+        fill={color}
+      />
+    </Svg>
+  );
+}
+
+/** Filled circle with an exclamation mark, used for regular activity rows. */
+export function ActivityInfoIcon({
+  color = '#113E55',
+  glyphColor = '#FFFFFF',
+  size = 16,
+  ...props
+}: MenuIconProps & { glyphColor?: string; size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 16 16" fill="none" {...props}>
+      <Circle cx={8} cy={8} r={7} fill={color} />
+      <Rect x={7.45} y={3.9} width={1.1} height={5.7} rx={0.55} fill={glyphColor} />
+      <Circle cx={8} cy={11.4} r={0.75} fill={glyphColor} />
+    </Svg>
+  );
+}
+
+/** Warning triangle on a tinted circle, used for alert activity rows. */
+export function ActivityAlertIcon({
+  color = '#E30404',
+  circleColor = '#FFF0EC',
+  glyphColor = '#FFFFFF',
+  size = 16,
+  ...props
+}: MenuIconProps & { circleColor?: string; glyphColor?: string; size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 16 16" fill="none" {...props}>
+      <Circle cx={8} cy={8} r={8} fill={circleColor} />
+      <Path
+        d="M7.36 2.05a.76.76 0 0 1 1.28 0l5.26 9.11a.76.76 0 0 1-.64 1.11H2.74a.76.76 0 0 1-.64-1.11l5.26-9.11Z"
+        fill={color}
+      />
+      <Rect x={7.25} y={5.4} width={1.5} height={3.5} rx={0.75} fill={glyphColor} />
+      <Circle cx={8} cy={10.15} r={0.75} fill={glyphColor} />
+    </Svg>
+  );
+}

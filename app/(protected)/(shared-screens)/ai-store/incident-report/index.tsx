@@ -93,6 +93,14 @@ export default function IncidentReportPreviewScreen() {
     void loadFeature();
   }, [loadFeature]);
 
+  useEffect(() => {
+    if (!featureDetail) return;
+    console.log(
+      '[incident-reports] data_insight from API:',
+      JSON.stringify(featureDetail.data_insight ?? null, null, 2)
+    );
+  }, [featureDetail]);
+
   const handleRate = async (rating: number) => {
     const targetId = featureDetail?.id;
     if (!targetId) return;
