@@ -50,8 +50,15 @@ export interface FormData {
   gender: GenderType;
   userType: UserRolesType;
   homeAddress: string;
-  meansOfIdentification: MeansOfIdType;
-  idNumber: string;
+  householdId: string | null;
+  householdName: string;
+  apartmentNumber: string;
+  apartmentName: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  identificationUri: string | null;
+  identificationName: string;
 }
 
 export interface FormErrors {
@@ -60,17 +67,17 @@ export interface FormErrors {
   email?: string;
   phoneNumber?: string;
   gender?: string;
+  userType?: string;
   password?: string;
   homeAddress?: string;
-  meansOfIdentification?: string;
-  idNumber?: string;
+  householdId?: string;
+  apartmentNumber?: string;
+  apartmentName?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  identificationUri?: string;
 }
-
-export type MeansOfIdType =
-  | 'drivers_license'
-  | 'international_passport'
-  | 'national_id'
-  | 'voters_card';
 
 export type AuthBroadcastMessage =
   | { type: 'LOGIN'; payload: { token: string; role: UserRolesType; timestamp: number } }
