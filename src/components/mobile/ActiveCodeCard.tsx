@@ -27,6 +27,8 @@ const VELOCITY_THRESHOLD = 480;
 const RING_WIDTH = 71;
 const CLUSTER_GAP = 16;
 const PLUS_SIZE = 20;
+/** Roughly the actions sheet's slide-out; plan prompts wait for it, as they can't show over it. */
+const SHEET_CLOSE_MS = 350;
 const TIMER_CLUSTER_WIDTH = RING_WIDTH + CLUSTER_GAP + PLUS_SIZE;
 const DELETE_TIMER_SCREEN_LEFT = 38;
 const RING_TOP = 12;
@@ -70,15 +72,28 @@ export default function ActiveCodeCard({
   const [deleting, setDeleting] = useState(false);
   const [cardWidth, setCardWidth] = useState(339);
   const [openAction, setOpenAction] = useState<'none' | 'freeze' | 'delete'>('none');
-  const { requestAccess: requestCodeAccess } = useFeatureGate('advanced_code_management');
+  const { allowed: codeAccessAllowed, requestAccess: requestCodeAccess } = useFeatureGate(
+    'advanced_code_management',
+    { notice: 'floating' }
+  );
 
   const tryAdvanced = useCallback(
     (action: () => void) => {
-      if (!requestCodeAccess()) return false;
-      action();
-      return true;
+      if (codeAccessAllowed) {
+        action();
+        return true;
+      }
+      // The Upgrade Plan modal and the floating notice can't appear over the actions sheet (a
+      // native Modal), so close it first and prompt once it has slid away.
+      if (sheetVisible) {
+        setSheetVisible(false);
+        setTimeout(requestCodeAccess, SHEET_CLOSE_MS);
+      } else {
+        requestCodeAccess();
+      }
+      return false;
     },
-    [requestCodeAccess]
+    [codeAccessAllowed, requestCodeAccess, sheetVisible]
   );
 
   const closeSwipe = useCallback(() => {
@@ -359,10 +374,7 @@ export default function ActiveCodeCard({
               closeSwipe();
               onToggleFreeze();
             });
-            if (!allowed) {
-              closeSwipe();
-              openMenu();
-            }
+            if (!allowed) closeSwipe();
           }}
           className="h-full w-full items-center justify-center"
         >

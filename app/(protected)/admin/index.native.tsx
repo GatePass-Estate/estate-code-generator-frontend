@@ -20,6 +20,7 @@ import { getRoleIcon, isDataEqual } from '@/src/lib/helpers';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { useEstateEntitlements } from '@/src/lib/api/entitlements';
+import { useFeatureGate } from '@/src/hooks/usePlan';
 
 function ResidentsCardIcon() {
   return (
@@ -68,7 +69,6 @@ function TotalUsersCardIcon() {
     </Svg>
   );
 }
-
 export default function AdminUsersMobilePage() {
   const [users, setUsers] = useState<AllUsers>({ total: 0, page: 1, limit: 30, items: [] });
   const [refreshing, setRefreshing] = useState(false);
@@ -78,6 +78,23 @@ export default function AdminUsersMobilePage() {
   const usersRef = useRef<AllUsers>(users);
   const firstName = useUserStore((state) => state.first_name);
   const { data: estateEntitlements } = useEstateEntitlements();
+  const { requestAccessWhenReady: requestBroadcastAccess } = useFeatureGate('admin_broadcast', {
+    notice: 'floating',
+  });
+  const openingBroadcastRef = useRef(false);
+
+  // Check the plan before opening the form, so admins on a plan without broadcasts see the
+  // Upgrade Plan modal / Contact Admin notice here rather than after filling it in.
+  const handleOpenBroadcast = useCallback(async () => {
+    if (openingBroadcastRef.current) return;
+    openingBroadcastRef.current = true;
+    try {
+      const allowed = await requestBroadcastAccess(() => navigation.isFocused());
+      if (allowed && navigation.isFocused()) router.push('/admin/broadcast');
+    } finally {
+      openingBroadcastRef.current = false;
+    }
+  }, [navigation, requestBroadcastAccess, router]);
 
   const handleBackToHome = useCallback(() => {
     router.replace('/user');
@@ -300,6 +317,7 @@ export default function AdminUsersMobilePage() {
 
           <TouchableOpacity
             className="h-[50px] w-[50px] items-center justify-center"
+            onPress={handleOpenBroadcast}
             onPressIn={() => setActiveTool('broadcast')}
             onPressOut={() => setActiveTool(null)}
             style={{

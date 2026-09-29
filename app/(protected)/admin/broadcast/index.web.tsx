@@ -9,6 +9,8 @@ import icons from '@/src/constants/icons';
 import Modal from '@/src/components/web/Modal';
 import BroadcastMobile from './index.native';
 import { getWidthBreakpoint } from '@/src/lib/helpers';
+import { createBroadcast } from '@/src/lib/api/broadcast';
+import { audienceForUserType, expiryForDuration, priorityForLevel } from '@/src/lib/broadcastForm';
 
 type RecipientType = 'resident' | 'security' | 'admin' | 'all';
 type PriorityType = 'low' | 'medium' | 'high';
@@ -121,6 +123,15 @@ function BroadcastWeb() {
     if (validateStep3()) {
       setRunning(true);
       try {
+        await createBroadcast({
+          title: subjectLine.trim(),
+          message: message.trim(),
+          audience: audienceForUserType(recipientType),
+          category: 'BROADCAST',
+          priority: priorityForLevel(priority),
+          expires_at: expiryForDuration(duration),
+        });
+
         setMessageType('success');
         setError('Broadcast sent successfully!');
 
