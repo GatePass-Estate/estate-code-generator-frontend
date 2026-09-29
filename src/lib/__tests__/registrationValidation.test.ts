@@ -2,6 +2,7 @@ import {
   formatRegistrationAddress,
   validateRegistrationAddress,
   validateRegistrationIdentification,
+  validateRegistrationPersonalField,
   validateRegistrationPersonalDetails,
 } from '@/src/lib/registrationValidation';
 
@@ -78,6 +79,28 @@ describe('validateRegistrationPersonalDetails', () => {
     expect(
       validateRegistrationPersonalDetails({ ...validDetails, phoneNumber: '0903ABC2020' })
     ).toMatchObject({ phoneNumber: 'Phone number can only contain numbers' });
+  });
+});
+
+describe('validateRegistrationPersonalField', () => {
+  it('reports invalid name characters while the field is being edited', () => {
+    expect(validateRegistrationPersonalField('firstName', 'Sandra2')).toBe(
+      'First name can only contain letters'
+    );
+    expect(validateRegistrationPersonalField('lastName', 'Happiness@')).toBe(
+      'Last name can only contain letters'
+    );
+  });
+
+  it('clears the character error as soon as the field becomes valid', () => {
+    expect(validateRegistrationPersonalField('firstName', 'Sandra')).toBeUndefined();
+  });
+
+  it('reports a required error when an edited field is cleared', () => {
+    expect(validateRegistrationPersonalField('firstName', '')).toBe('First name is required');
+    expect(validateRegistrationPersonalField('lastName', '   ')).toBe('Last name is required');
+    expect(validateRegistrationPersonalField('phoneNumber', '')).toBe('Phone number is required');
+    expect(validateRegistrationPersonalField('email', '')).toBe('Email address is required');
   });
 });
 

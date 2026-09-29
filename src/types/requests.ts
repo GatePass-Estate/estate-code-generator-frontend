@@ -22,9 +22,10 @@ export type GetRequestsResponse = {
 
 export interface EditRequestView {
   id: string;
-  userName: string;
-  location: string;
-  selected: boolean;
+  requestType: RequestType;
+  oldValue: string;
+  newValue: string | null;
+  createdAt: string;
 }
 
 export type RequestType =

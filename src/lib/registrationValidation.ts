@@ -18,6 +18,37 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const NAME_PATTERN = /^\p{L}+(?:[ '\u2019-]\p{L}+)*$/u;
 const PHONE_PATTERN = /^\+?[0-9 ()-]+$/;
 
+type PersonalTextField = 'firstName' | 'lastName' | 'email' | 'phoneNumber';
+
+export function validateRegistrationPersonalField(
+  field: PersonalTextField,
+  value: string
+): string | undefined {
+  const trimmedValue = value.trim();
+
+  if (field === 'firstName') {
+    if (!trimmedValue) return 'First name is required';
+    if (!NAME_PATTERN.test(trimmedValue)) return 'First name can only contain letters';
+  }
+
+  if (field === 'lastName') {
+    if (!trimmedValue) return 'Last name is required';
+    if (!NAME_PATTERN.test(trimmedValue)) return 'Last name can only contain letters';
+  }
+
+  if (field === 'phoneNumber') {
+    if (!trimmedValue) return 'Phone number is required';
+    if (!PHONE_PATTERN.test(trimmedValue)) return 'Phone number can only contain numbers';
+  }
+
+  if (field === 'email') {
+    if (!trimmedValue) return 'Email address is required';
+    if (!EMAIL_PATTERN.test(trimmedValue)) return 'Enter a valid email address';
+  }
+
+  return undefined;
+}
+
 type PersonalDetails = Pick<
   FormData,
   'firstName' | 'lastName' | 'email' | 'phoneNumber' | 'gender' | 'userType'
@@ -26,23 +57,15 @@ type PersonalDetails = Pick<
 export function validateRegistrationPersonalDetails(values: PersonalDetails): FormErrors {
   const errors: FormErrors = {};
 
-  if (!values.firstName.trim()) errors.firstName = 'First name is required';
-  else if (!NAME_PATTERN.test(values.firstName.trim())) {
-    errors.firstName = 'First name can only contain letters';
-  }
+  const firstNameError = validateRegistrationPersonalField('firstName', values.firstName);
+  const lastNameError = validateRegistrationPersonalField('lastName', values.lastName);
+  const phoneNumberError = validateRegistrationPersonalField('phoneNumber', values.phoneNumber);
+  const emailError = validateRegistrationPersonalField('email', values.email);
 
-  if (!values.lastName.trim()) errors.lastName = 'Last name is required';
-  else if (!NAME_PATTERN.test(values.lastName.trim())) {
-    errors.lastName = 'Last name can only contain letters';
-  }
-
-  if (!values.phoneNumber.trim()) errors.phoneNumber = 'Phone number is required';
-  else if (!PHONE_PATTERN.test(values.phoneNumber.trim())) {
-    errors.phoneNumber = 'Phone number can only contain numbers';
-  }
-
-  if (!values.email.trim()) errors.email = 'Email address is required';
-  else if (!EMAIL_PATTERN.test(values.email.trim())) errors.email = 'Enter a valid email address';
+  if (firstNameError) errors.firstName = firstNameError;
+  if (lastNameError) errors.lastName = lastNameError;
+  if (phoneNumberError) errors.phoneNumber = phoneNumberError;
+  if (emailError) errors.email = emailError;
 
   if (values.gender == null) errors.gender = 'Gender is required';
   if (values.userType !== 'resident' && values.userType !== 'security') {

@@ -187,6 +187,16 @@ export const deleteUser = async (user_id: string): Promise<any> => {
   }
 };
 
+export const deactivateUser = async (user_id: string): Promise<any> => {
+  try {
+    const api = Api();
+    const axiosRes = await api.post(`/users/${user_id}/close`, { close_at: null });
+    return axiosRes.data;
+  } catch (error: any) {
+    throw new Error(`${getErrorMessage(error) || 'An error occured'} `);
+  }
+};
+
 export const deleteAccount = async (): Promise<any> => {
   try {
     const api = Api();

@@ -83,7 +83,12 @@ export async function fetchAuthenticatedDocumentUri(
   const token = useAuthStore.getState().access_token;
   const url = resolveDocumentApiUrl(apiPath);
   const extension = inferCacheFileExtension(apiPath, options?.contentType);
-  const fileUri = `${FileSystem.cacheDirectory}document-${Date.now()}.${extension}`;
+  const documentKey = apiPath
+    .replace(/^\/+|\/+$/g, '')
+    .replace(/[^a-z0-9]+/gi, '-')
+    .toLowerCase();
+  const uniqueSuffix = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  const fileUri = `${FileSystem.cacheDirectory}document-${documentKey}-${uniqueSuffix}.${extension}`;
 
   const result = await FileSystem.downloadAsync(url, fileUri, {
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
