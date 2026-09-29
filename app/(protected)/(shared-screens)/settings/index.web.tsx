@@ -1,15 +1,12 @@
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { Image, Platform, Pressable, Text, useWindowDimensions, View } from 'react-native';
+import { useEffect } from 'react';
+import { Image, Platform, Pressable, Text, useWindowDimensions } from 'react-native';
 import WebSidebar from '@/src/components/web/WebSidebar';
 import { menuRoutes } from '../../user/_layout';
 import Back from '@/src/components/mobile/Back';
 import { getWidthBreakpoint } from '@/src/lib/helpers';
 import { useAuth } from '@/src/hooks/useAuthContext';
-import { useUserStore } from '@/src/lib/stores/userStore';
-import { deleteAccount } from '@/src/lib/api/user';
 import icons from '@/src/constants/icons';
-import Modal from '@/src/components/web/Modal';
 
 function SettingsRowWeb({
   label,
@@ -44,32 +41,12 @@ function SectionTitleWeb({ children }: { children: string }) {
 export default function SettingsWeb() {
   const router = useRouter();
   const { signOut } = useAuth();
-  const user_id = useUserStore((s) => s.user_id);
   const { width } = useWindowDimensions();
   const isLargeScreen = width > getWidthBreakpoint();
-  const [deleting, setDeleting] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [deleteError, setDeleteError] = useState('');
 
   useEffect(() => {
     if (Platform.OS === 'web') document.title = 'Settings - GatePass';
   }, []);
-
-  const handleDeleteAccount = () => {
-    void (async () => {
-      if (!user_id) return;
-      setDeleting(true);
-      try {
-        await deleteAccount();
-        await signOut();
-      } catch (e: any) {
-        setDeleteError(e?.message ?? 'Could not delete account.');
-      } finally {
-        setDeleting(false);
-        setShowDeleteModal(false);
-      }
-    })();
-  };
 
   return (
     <div className="flex h-full w-screen overflow-y-scroll bg-body">
@@ -122,41 +99,13 @@ export default function SettingsWeb() {
           </Pressable>
 
           <Pressable
-            onPress={() => setShowDeleteModal(true)}
-            disabled={deleting}
+            onPress={() => router.push('/delete-account')}
             className="mt-8 items-center py-2 cursor-pointer"
           >
-            <Text className="text-base font-inter-medium text-tertiary">
-              {deleting ? 'Deleting…' : 'Delete Account'}
-            </Text>
+            <Text className="text-base font-inter-medium text-tertiary">Delete Account</Text>
           </Pressable>
         </div>
       </div>
-
-      {showDeleteModal && (
-        <Modal
-          heading="Delete Account"
-          message="This will permanently remove your account and sign you out. This action cannot be undone."
-          cancelText="Cancel"
-          actionText="Delete"
-          runningText="Deleting..."
-          actionRunnig={deleting}
-          btnDisabled={deleting}
-          closeModal={() => {
-            if (!deleting) setShowDeleteModal(false);
-          }}
-          action={handleDeleteAccount}
-        />
-      )}
-
-      {deleteError ? (
-        <Modal
-          heading="Delete failed"
-          message={deleteError}
-          cancelText="Close"
-          closeModal={() => setDeleteError('')}
-        />
-      ) : null}
     </div>
   );
 }

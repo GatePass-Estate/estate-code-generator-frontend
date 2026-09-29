@@ -8,13 +8,6 @@
     "orientation": "portrait",
     "icon": "./src/assets/gatepass_ng_Gp.png",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
-    "splash": {
-      "image": "./src/assets/images/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#113E55",
-      "enableFullScreenImage_legacy": true
-    },
     "android": {
       "package": "com.gatepassng.gms",
       "adaptiveIcon": {
@@ -46,7 +39,9 @@
           ],
           "category": ["BROWSABLE", "DEFAULT"]
         }
-      ]
+      ],
+      "googleServicesFile": "./google-services.json",
+      "permissions": ["NOTIFICATIONS", "POST_NOTIFICATIONS"]
     },
     "ios": {
       "supportsTablet": true,
@@ -57,7 +52,12 @@
         "NSFaceIDUsageDescription": "Use Face ID to securely sign in to GatePass.",
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": true
-        }
+        },
+        "UIBackgroundModes": ["remote-notification"]
+      },
+      "googleServicesFile": "./GoogleService-Info.plist",
+      "entitlements": {
+        "aps-environment": "production"
       }
     },
     "web": {
@@ -105,7 +105,15 @@
       "expo-secure-store",
       "@react-native-community/datetimepicker",
       "expo-sharing",
-      "expo-status-bar"
+      "expo-status-bar",
+      [
+        "expo-notifications",
+        {
+          "icon": "./src/assets/gatepass_ng_Gp.png",
+          "color": "#113E55",
+          "defaultChannel": "default"
+        }
+      ]
     ],
     "assetBundlePatterns": ["**/*"],
     "extra": {

@@ -1,5 +1,14 @@
 import React from 'react';
-import { View, Text, Pressable, ScrollView, Modal, StyleSheet, Dimensions, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  Pressable,
+  ScrollView,
+  Modal,
+  StyleSheet,
+  Dimensions,
+  Platform,
+} from 'react-native';
 import Animated, { SlideInDown, SlideOutDown, FadeIn, FadeOut } from 'react-native-reanimated';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
@@ -261,7 +270,10 @@ export default function AISummaryModal({ visible, onClose, summaryData }: AISumm
                   </View>
                 </View>
 
-                <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 16 }}>
+                <ScrollView
+                  showsVerticalScrollIndicator={false}
+                  contentContainerStyle={{ gap: 16 }}
+                >
                   <>
                     <AccordionItem
                       title="EXECUTIVE SUMMARY"

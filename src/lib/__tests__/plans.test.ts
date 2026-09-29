@@ -26,9 +26,23 @@ describe('parseEntitlements', () => {
     expect(result).toMatchObject({
       tierSlug: 'premium',
       subscriptionStatus: 'active',
+      coveredUsers: null,
       locked: false,
       reason: null,
     });
+  });
+
+  it('uses covered users as the estate user capacity', () => {
+    expect(parseEntitlements({ estate_id: ESTATE_ID, covered_users: 100 }).coveredUsers).toBe(100);
+  });
+
+  it('falls back to the max active users entitlement', () => {
+    expect(
+      parseEntitlements({
+        estate_id: ESTATE_ID,
+        entitlements: { max_active_users: 25 },
+      }).coveredUsers
+    ).toBe(25);
   });
 
   it('accepts boolean and { allowed } entries', () => {
@@ -57,9 +71,27 @@ describe('parseEntitlements', () => {
     expect(parseEntitlements({ estate_id: ESTATE_ID })).toMatchObject({
       tierSlug: null,
       subscriptionStatus: null,
+      coveredUsers: null,
       locked: false,
       reason: null,
     });
+  });
+});
+
+describe('numeric entitlements', () => {
+  it('treats a positive limit as granted and zero as denied, like the revenue service', () => {
+    expect(
+      hasEntitlement(
+        entitlementsWith({ extended_historical_record: 90 }),
+        'extended_historical_record'
+      )
+    ).toBe(true);
+    expect(
+      hasEntitlement(
+        entitlementsWith({ extended_historical_record: 0 }),
+        'extended_historical_record'
+      )
+    ).toBe(false);
   });
 });
 
@@ -95,12 +127,30 @@ describe('resolveFeatureAccess', () => {
     expect(resolveFeatureAccess(paid, 'resident', 'guest_management')).toBe('granted');
   });
 
-  it.each(['admin', 'primary_admin'] as const)('asks %s to upgrade', (role) => {
-    expect(resolveFeatureAccess(free, role, 'guest_management')).toBe('upgrade');
+  it('asks the primary admin to upgrade', () => {
+    expect(resolveFeatureAccess(free, 'primary_admin', 'guest_management')).toBe('upgrade');
   });
 
-  it.each(['resident', 'security'] as const)('tells %s to contact admin', (role) => {
+  it.each(['admin', 'resident', 'security'] as const)('tells %s to contact admin', (role) => {
     expect(resolveFeatureAccess(free, role, 'guest_management')).toBe('contact_admin');
+  });
+
+  it.each(['primary_admin', 'admin', 'resident'] as const)(
+    'reports a refused entitlements request as blocked for %s',
+    (role) => {
+      const reason = 'Please upload and have your ID card approved before accessing this feature.';
+      expect(resolveFeatureAccess(undefined, role, 'admin_broadcast', reason)).toBe('blocked');
+    }
+  );
+
+  it('still grants free features when the entitlements request was refused', () => {
+    expect(resolveFeatureAccess(undefined, 'admin', 'visitor_access_code', 'Refused')).toBe(
+      'granted'
+    );
+  });
+
+  it('still grants entitled features from cache when a refetch was refused', () => {
+    expect(resolveFeatureAccess(paid, 'admin', 'guest_management', 'Refused')).toBe('granted');
   });
 });
 

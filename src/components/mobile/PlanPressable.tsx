@@ -9,7 +9,7 @@ type PlanPressableProps = Omit<PressableProps, 'onPress'> & {
 
 /** Pressable that checks a catalogue feature and lets PlanGuard show the right lock UI. */
 export default function PlanPressable({ feature, onPress, ...props }: PlanPressableProps) {
-  const { requestAccess } = useFeatureGate(feature);
+  const { requestAccess } = useFeatureGate(feature, { notice: 'floating' });
 
   return (
     <Pressable

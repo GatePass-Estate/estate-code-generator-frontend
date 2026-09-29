@@ -43,6 +43,14 @@
   @apply flex flex-col gap-2;
 }
 
+.registration-input-error-web {
+  @apply border-danger bg-red-50;
+}
+
+.registration-error-web {
+  @apply mt-1 text-xs text-danger font-inter-regular;
+}
+
 .share-detail-style {
   @apply text-xl text-black font-normal font-UbuntuSans;
 }

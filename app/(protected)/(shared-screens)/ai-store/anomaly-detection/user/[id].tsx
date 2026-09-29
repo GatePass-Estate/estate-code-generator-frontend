@@ -1115,12 +1115,18 @@ export default function AnomalyDetectionUserDetailsScreen() {
                 </View>
               )}
             </ScrollView>
-            
+
             {/* Carousel dots indicator */}
             {summaryData?.tier1 && summaryData?.tier2 && (
-              <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 12, gap: 6 }}>
-                <View style={{ width: 16, height: 6, borderRadius: 3, backgroundColor: '#113E55' }} />
-                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#C4CDD0' }} />
+              <View
+                style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 12, gap: 6 }}
+              >
+                <View
+                  style={{ width: 16, height: 6, borderRadius: 3, backgroundColor: '#113E55' }}
+                />
+                <View
+                  style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#C4CDD0' }}
+                />
               </View>
             )}
           </View>
