@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Pressable, ScrollView, Text, StyleSheet } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import BiInfoSvg from '@/src/assets/icons/bi_info.svg';
 import ValidationBackSvg from '@/src/assets/icons/validation-back.svg';
@@ -8,7 +8,6 @@ import AnomalyResultView from '@/src/components/anomaly/AnomalyResultView';
 import DataInsightModal from '@/src/components/anomaly/modals/DataInsightModal';
 import { getMarketplaceFeatures, getMarketplaceFeatureById } from '@/src/lib/api/aiMarketplace';
 import { MarketplaceDetailResponse } from '@/src/types/aiMarketplace';
-import { useLocalSearchParams } from 'expo-router';
 
 const PILL_WIDTH = 228;
 const PILL_HEIGHT = 40;
@@ -125,7 +124,11 @@ export default function AnomalyDetectionSummaryScreen() {
         <AnomalyResultView />
       </View>
 
-      <DataInsightModal visible={dataInsightVisible} onClose={() => setDataInsightVisible(false)} dataInsight={featureDetail?.data_insight} />
+      <DataInsightModal
+        visible={dataInsightVisible}
+        onClose={() => setDataInsightVisible(false)}
+        dataInsight={featureDetail?.data_insight}
+      />
     </SafeAreaView>
   );
 }

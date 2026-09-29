@@ -536,9 +536,18 @@ export default function AnomalyDetectionPreviewScreen() {
                 {featureDetail?.product_features && featureDetail.product_features.length > 0 && (
                   <View className="mb-5">
                     {featureDetail.product_features.map((feature, idx) => (
-                      <View key={idx} className="bg-white rounded-[16px] px-[16px] py-[8px] mb-3 flex-row items-center gap-[12px] min-h-[44px] border border-[#EFF1F3]">
+                      <View
+                        key={idx}
+                        className="bg-white rounded-[16px] px-[16px] py-[8px] mb-3 flex-row items-center gap-[12px] min-h-[44px] border border-[#EFF1F3]"
+                      >
                         <View className="w-[16px] h-[16px] items-center justify-center">
-                          {idx % 3 === 0 ? <Pf1Svg width={16} height={16} /> : idx % 3 === 1 ? <Pf2Svg width={16} height={16} /> : <Pf3Svg width={16} height={16} />}
+                          {idx % 3 === 0 ? (
+                            <Pf1Svg width={16} height={16} />
+                          ) : idx % 3 === 1 ? (
+                            <Pf2Svg width={16} height={16} />
+                          ) : (
+                            <Pf3Svg width={16} height={16} />
+                          )}
                         </View>
                         <Text
                           allowFontScaling={false}
@@ -811,7 +820,11 @@ export default function AnomalyDetectionPreviewScreen() {
         onSubmit={handleRate}
       />
 
-      <DataInsightModal visible={dataInsightVisible} onClose={() => setDataInsightVisible(false)} dataInsight={featureDetail?.data_insight} />
+      <DataInsightModal
+        visible={dataInsightVisible}
+        onClose={() => setDataInsightVisible(false)}
+        dataInsight={featureDetail?.data_insight}
+      />
     </Animated.View>
   );
 }

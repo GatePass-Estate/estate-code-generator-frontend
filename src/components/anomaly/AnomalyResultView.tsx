@@ -1059,9 +1059,16 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
               } else {
                 return (
                   <View className="items-center justify-center">
-                    <AnomalyRadarChart 
+                    <AnomalyRadarChart
                       labels={['', '', '', '', '']}
-                      series={[{ data: [0, 0, 0, 0, 0], strokeColor: 'transparent', fillColor: 'transparent', dotColor: 'transparent' }]}
+                      series={[
+                        {
+                          data: [0, 0, 0, 0, 0],
+                          strokeColor: 'transparent',
+                          fillColor: 'transparent',
+                          dotColor: 'transparent',
+                        },
+                      ]}
                     />
                     <View
                       style={{

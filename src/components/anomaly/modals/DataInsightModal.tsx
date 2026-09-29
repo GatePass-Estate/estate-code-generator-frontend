@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,8 @@ import Animated, {
   runOnJS,
   cancelAnimation,
   SharedValue,
+  FadeIn,
+  FadeOut,
 } from 'react-native-reanimated';
 import { MaterialIcons } from '@expo/vector-icons';
 import Info1Svg from '@/src/assets/images/info1.svg';
@@ -31,7 +33,114 @@ const DURATION = 6000;
 interface DataInsightModalProps {
   visible: boolean;
   onClose: () => void;
-  dataInsight?: { legal?: string[]; data?: string[] };
+  /** Marketplace `data_insight`; when set, the list after the story shows it instead of the static cards. */
+  dataInsight?: { legal?: string[]; data?: string[] } | null;
+}
+
+const cleanLines = (lines?: string[]) => (lines ?? []).map((l) => l.trim()).filter(Boolean);
+
+const BUBBLE_MS = 2000;
+
+function InsightRow({ text, label, symbol }: { text: string; label: string; symbol: string }) {
+  const [showBubble, setShowBubble] = useState(false);
+  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (hideTimer.current) clearTimeout(hideTimer.current);
+    },
+    []
+  );
+
+  const flashBubble = () => {
+    if (hideTimer.current) clearTimeout(hideTimer.current);
+    setShowBubble(true);
+    hideTimer.current = setTimeout(() => setShowBubble(false), BUBBLE_MS);
+  };
+
+  return (
+    <View style={{ backgroundColor: '#FFFFFF', borderRadius: 12, padding: 20 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
+        {showBubble ? (
+          <Animated.View
+            entering={FadeIn.duration(180)}
+            exiting={FadeOut.duration(180)}
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              right: -12,
+              bottom: '100%',
+              marginBottom: 4,
+              maxWidth: '85%',
+              alignItems: 'flex-end',
+              zIndex: 10,
+              elevation: 4,
+            }}
+          >
+            <View
+              style={{
+                backgroundColor: '#113E55',
+                borderRadius: 8,
+                paddingHorizontal: 10,
+                paddingVertical: 6,
+              }}
+            >
+              <Text
+                allowFontScaling={false}
+                style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 12, color: '#FFFFFF' }}
+              >
+                {label}
+              </Text>
+            </View>
+            <View
+              style={{
+                width: 10,
+                height: 10,
+                marginTop: -5,
+                marginRight: 16,
+                borderBottomRightRadius: 2,
+                backgroundColor: '#113E55',
+                transform: [{ rotate: '45deg' }],
+              }}
+            />
+          </Animated.View>
+        ) : null}
+        <Text
+          allowFontScaling={false}
+          style={{
+            flex: 1,
+            fontFamily: 'Inter_18pt-Regular',
+            fontSize: 13,
+            color: '#8A9A9D',
+            lineHeight: 18,
+          }}
+        >
+          {text}
+        </Text>
+        <Pressable
+          onPress={flashBubble}
+          hitSlop={12}
+          accessibilityRole="button"
+          accessibilityLabel={label}
+          style={{
+            width: 18,
+            height: 18,
+            borderRadius: 9,
+            backgroundColor: '#113E55',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Text
+            allowFontScaling={false}
+            style={{ color: '#FFFFFF', fontSize: 11, fontFamily: 'UbuntuSans-Bold' }}
+          >
+            {symbol}
+          </Text>
+        </Pressable>
+      </View>
+    </View>
+  );
 }
 
 const PAGES = [
@@ -378,106 +487,11 @@ export default function DataInsightModal({ visible, onClose, dataInsight }: Data
               </Text>
 
               <View style={{ gap: 16 }}>
-                {(dataInsight?.data || []).map((text: string, index: number) => (
-                  <View
-                    key={`data-${index}`}
-                    style={{ backgroundColor: '#FFFFFF', borderRadius: 12, padding: 20 }}
-                  >
-                    <View
-                      style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        gap: 12,
-                        marginBottom: 8,
-                      }}
-                    >
-                      <View
-                        style={{
-                          width: 18,
-                          height: 18,
-                          borderRadius: 9,
-                          backgroundColor: '#113E55',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        <Text
-                          allowFontScaling={false}
-                          style={{ color: '#FFFFFF', fontSize: 11, fontFamily: 'UbuntuSans-Bold' }}
-                        >
-                          ?
-                        </Text>
-                      </View>
-                      <Text
-                        allowFontScaling={false}
-                        style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 15, color: '#455A64' }}
-                      >
-                        Data Collected
-                      </Text>
-                    </View>
-                    <Text
-                      allowFontScaling={false}
-                      style={{
-                        fontFamily: 'Inter_18pt-Regular',
-                        fontSize: 13,
-                        color: '#8A9A9D',
-                        lineHeight: 18,
-                      }}
-                    >
-                      {text}
-                    </Text>
-                  </View>
+                {cleanLines(dataInsight?.data).map((text, index) => (
+                  <InsightRow key={`data-${index}`} text={text} label="Data Collected" symbol="?" />
                 ))}
-                
-                {(dataInsight?.legal || []).map((text: string, index: number) => (
-                  <View
-                    key={`legal-${index}`}
-                    style={{ backgroundColor: '#FFFFFF', borderRadius: 12, padding: 20 }}
-                  >
-                    <View
-                      style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        gap: 12,
-                        marginBottom: 8,
-                      }}
-                    >
-                      <View
-                        style={{
-                          width: 18,
-                          height: 18,
-                          borderRadius: 9,
-                          backgroundColor: '#113E55',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        <Text
-                          allowFontScaling={false}
-                          style={{ color: '#FFFFFF', fontSize: 11, fontFamily: 'UbuntuSans-Bold' }}
-                        >
-                          §
-                        </Text>
-                      </View>
-                      <Text
-                        allowFontScaling={false}
-                        style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 15, color: '#455A64' }}
-                      >
-                        Legal Context
-                      </Text>
-                    </View>
-                    <Text
-                      allowFontScaling={false}
-                      style={{
-                        fontFamily: 'Inter_18pt-Regular',
-                        fontSize: 13,
-                        color: '#8A9A9D',
-                        lineHeight: 18,
-                      }}
-                    >
-                      {text}
-                    </Text>
-                  </View>
+                {cleanLines(dataInsight?.legal).map((text, index) => (
+                  <InsightRow key={`legal-${index}`} text={text} label="Legal Context" symbol="§" />
                 ))}
               </View>
             </ScrollView>

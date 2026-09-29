@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Pressable, ScrollView, Modal, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, Pressable, ScrollView, Modal, StyleSheet, Dimensions, Platform } from 'react-native';
 import Animated, { SlideInDown, SlideOutDown, FadeIn, FadeOut } from 'react-native-reanimated';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
@@ -107,31 +107,37 @@ export default function AISummaryModal({ visible, onClose, summaryData }: AISumm
           justifyContent: 'flex-end',
         }}
       >
-        <BlurView intensity={20} style={StyleSheet.absoluteFill}>
-          <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-        </BlurView>
+        {Platform.OS === 'ios' ? (
+          <BlurView intensity={15} tint="dark" style={StyleSheet.absoluteFill}>
+            <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+          </BlurView>
+        ) : (
+          <BlurView intensity={25} tint="dark" style={StyleSheet.absoluteFill}>
+            <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+          </BlurView>
+        )}
 
-        <View
-          style={[
-            {
-              backgroundColor: '#F6F7F7',
-              borderTopLeftRadius: 32,
-              borderTopRightRadius: 32,
-              maxHeight: '90%',
-              padding: 24,
-            },
-          ]}
+        <Animated.View
+          entering={SlideInDown.duration(250)}
+          exiting={SlideOutDown}
+          style={{
+            backgroundColor: '#F6F7F7',
+            borderTopLeftRadius: 40,
+            borderTopRightRadius: 40,
+            maxHeight: '90%',
+            paddingHorizontal: 24,
+            paddingBottom: 40,
+          }}
         >
           {/* Draggable Handle Area */}
-          <View style={{ paddingBottom: 16 }}>
+          <View style={{ height: 34, alignItems: 'center', justifyContent: 'center' }}>
             {/* Handle */}
             <View
               style={{
-                width: 100,
-                height: 6,
-                borderRadius: 3,
-                backgroundColor: '#A0A0A0',
-                alignSelf: 'center',
+                width: 134,
+                height: 7,
+                borderRadius: 4,
+                backgroundColor: '#9B9797',
               }}
             />
           </View>
@@ -155,7 +161,9 @@ export default function AISummaryModal({ visible, onClose, summaryData }: AISumm
                   fontFamily: 'UbuntuSans-Medium',
                   fontSize: 20,
                   color: '#113E55',
-                  marginBottom: 16,
+                  marginTop: 24,
+                  marginBottom: 12,
+                  textTransform: 'uppercase',
                 }}
               >
                 AI SUMMARY
@@ -253,150 +261,36 @@ export default function AISummaryModal({ visible, onClose, summaryData }: AISumm
                   </View>
                 </View>
 
-                <ScrollView
-                  showsVerticalScrollIndicator={false}
-                  contentContainerStyle={{ gap: 16 }}
-                >
-                  <View style={{ marginBottom: 16 }}>
-                    <Text
-                      allowFontScaling={false}
-                      style={{
-                        fontFamily: 'Inter_18pt-Medium',
-                        fontSize: 12,
-                        color: '#113E55',
-                        marginBottom: 8,
-                      }}
-                    >
-                      TIMELINE SUMMARY
-                    </Text>
-                    <Text
-                      allowFontScaling={false}
-                      style={{
-                        fontFamily: 'Inter_18pt-Regular',
-                        fontSize: 12,
-                        color: '#8A9A9D',
-                        lineHeight: 20,
-                      }}
-                    >
-                      {summaryData.tier2.timeline_summary || 'No timeline summary available.'}
-                    </Text>
-                  </View>
-
-                  <View>
-                    <Text
-                      allowFontScaling={false}
-                      style={{
-                        fontFamily: 'Inter_18pt-Medium',
-                        fontSize: 12,
-                        color: '#113E55',
-                        marginBottom: 12,
-                      }}
-                    >
-                      THEME REPORT
-                    </Text>
-                    {summaryData.tier2.theme_report &&
-                    Array.isArray(summaryData.tier2.theme_report) ? (
-                      summaryData.tier2.theme_report.map((theme: any, index: number) => (
-                        <View
-                          key={index}
-                          style={{ flexDirection: 'row', gap: 12, marginBottom: 12 }}
-                        >
-                          <View style={{ width: 45, alignItems: 'flex-end', paddingTop: 2 }}>
-                            <Text
-                              allowFontScaling={false}
-                              style={{
-                                fontFamily: 'Inter_18pt-Medium',
-                                fontSize: 12,
-                                color: '#F46036',
-                              }}
-                            >
-                              {theme.percentage || theme.weight || '0'}%
-                            </Text>
-                          </View>
-                          <View style={{ alignItems: 'center', marginTop: 6, width: 8 }}>
-                            <View
-                              style={{
-                                width: 8,
-                                height: 8,
-                                borderRadius: 4,
-                                backgroundColor: '#F46036',
-                              }}
-                            />
-                            {index !== summaryData.tier2.theme_report.length - 1 && (
-                              <View
-                                style={{
-                                  width: 1,
-                                  flex: 1,
-                                  backgroundColor: '#F46036',
-                                  opacity: 0.3,
-                                  marginTop: 4,
-                                  marginBottom: -10,
-                                }}
-                              />
-                            )}
-                          </View>
-                          <View
-                            style={{
-                              flex: 1,
-                              backgroundColor: '#FFFFFF',
-                              borderRadius: 8,
-                              padding: 12,
-                              borderWidth: 1,
-                              borderColor: '#EFF1F3',
-                            }}
-                          >
-                            <Text
-                              allowFontScaling={false}
-                              style={{
-                                fontFamily: 'Inter_18pt-Regular',
-                                fontSize: 10,
-                                color: '#8A9A9D',
-                                marginBottom: 4,
-                              }}
-                            >
-                              Theme {index + 1}
-                            </Text>
-                            <Text
-                              allowFontScaling={false}
-                              style={{
-                                fontFamily: 'Inter_18pt-Medium',
-                                fontSize: 13,
-                                color: '#113E55',
-                                marginBottom: 6,
-                              }}
-                            >
-                              {theme.title || theme.name || 'Unknown Theme'}
-                            </Text>
-                            <Text
-                              allowFontScaling={false}
-                              style={{
-                                fontFamily: 'Inter_18pt-Regular',
-                                fontSize: 11,
-                                color: '#8A9A9D',
-                                lineHeight: 16,
-                              }}
-                            >
-                              {theme.description ||
-                                theme.events ||
-                                'No events available for this theme.'}
-                            </Text>
-                          </View>
-                        </View>
-                      ))
-                    ) : (
-                      <Text
-                        allowFontScaling={false}
-                        style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 13, color: '#8A9A9D' }}
-                      >
-                        No theme reports available.
-                      </Text>
-                    )}
-                  </View>
+                <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 16 }}>
+                  <>
+                    <AccordionItem
+                      title="EXECUTIVE SUMMARY"
+                      content={summaryData.tier2.executive_summary}
+                    />
+                    <AccordionItem
+                      title="KEY PATTERNS"
+                      content={summaryData.tier2.detailed_insight || summaryData.tier2.key_patterns}
+                    />
+                    <AccordionItem
+                      title="RISK DRIVERS"
+                      content={summaryData.tier2.risk_drivers}
+                      isList={true}
+                    />
+                    <AccordionItem
+                      title="RECOMMENDED ACTIONS"
+                      content={summaryData.tier2.recommended_actions}
+                      isList={true}
+                    />
+                    <AccordionItem
+                      title="DATA LIMITATIONS"
+                      content={summaryData.tier2.data_limitations}
+                    />
+                  </>
                 </ScrollView>
               </View>
             )}
           </ScrollView>
-        </View>
+        </Animated.View>
       </View>
     </Modal>
   );
