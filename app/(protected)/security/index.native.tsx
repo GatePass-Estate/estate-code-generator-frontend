@@ -18,7 +18,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Icon from 'react-native-vector-icons/Ionicons';
+import { Ionicons as Icon } from '@expo/vector-icons';
 import HistoryRounded from '@/src/assets/icons/history-rounded.svg';
 import InvalidCodeClose from '@/src/assets/icons/invalid-code-close.svg';
 import MoreFill from '@/src/assets/icons/more-fill.svg';

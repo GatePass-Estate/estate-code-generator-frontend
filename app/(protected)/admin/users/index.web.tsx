@@ -8,7 +8,7 @@ import {
   StyleSheet,
   useWindowDimensions,
 } from 'react-native';
-import Icon from 'react-native-vector-icons/Feather';
+import { Feather as Icon } from '@expo/vector-icons';
 import AllUsersMobile from './index.native';
 import { getWidthBreakpoint } from '@/src/lib/helpers';
 

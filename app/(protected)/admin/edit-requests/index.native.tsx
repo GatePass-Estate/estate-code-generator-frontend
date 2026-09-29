@@ -7,7 +7,7 @@ import { router, Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import Feather from 'react-native-vector-icons/Feather';
+import { Feather } from '@expo/vector-icons';
 
 export const fetchEditRequests = async (): Promise<EditRequestView[]> => {
   const data = await getRequests({ page: 1, limit: 50, status: 'pending' });

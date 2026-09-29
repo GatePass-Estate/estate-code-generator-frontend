@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useRouter } from 'expo-router';
-import Icon from 'react-native-vector-icons/Ionicons';
+import { Ionicons as Icon } from '@expo/vector-icons';
 import Back from '@/src/components/mobile/Back';
 import StarRating from '@/src/components/common/StarRating';
 import Modal from '@/src/components/web/Modal';
