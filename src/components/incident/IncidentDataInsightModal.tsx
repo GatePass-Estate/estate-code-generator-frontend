@@ -121,7 +121,8 @@ function ProgressBar({
   progress: SharedValue<number>;
 }) {
   const fillStyle = useAnimatedStyle(() => ({
-    width: index === currentIndex ? `${progress.value * 100}%` : '0%',
+    width:
+      index < currentIndex ? '100%' : index === currentIndex ? `${progress.value * 100}%` : '0%',
   }));
 
   return (
@@ -322,7 +323,7 @@ function InsightListSheet({
 }) {
   return (
     <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
-      <Pressable style={{ flex: 1 }} onPress={onClose} />
+      <View style={{ flex: 1 }} />
       <View
         style={{
           backgroundColor: '#F6F7F7',
@@ -474,7 +475,8 @@ export default function IncidentDataInsightModal({
       transparent
       statusBarTranslucent
       animationType="fade"
-      onRequestClose={onClose}
+      // Only "I understand" dismisses; Android back is ignored.
+      onRequestClose={() => {}}
     >
       {showList ? (
         <InsightListSheet dataLines={dataLines} legalLines={legalLines} onClose={onClose} />
