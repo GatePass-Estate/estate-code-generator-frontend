@@ -208,7 +208,14 @@ function IncidentListRow({ row }: { row: IncidentRow }) {
   );
 }
 
-export default function IncidentResultView({ isActive = true }: { isActive?: boolean }) {
+export default function IncidentResultView({
+  isActive = true,
+  hasAiReviewTier,
+}: {
+  isActive?: boolean;
+  /** False when neither tier 2 nor tier 3 is installed → show the Upgrade Plan card. */
+  hasAiReviewTier?: boolean;
+}) {
   const estate_id = useUserStore((state) => state.estate_id) || '';
   const estateName = useUserStore((state) => state.estate_name) || '';
   const userHomeAddress = useUserStore((state) => state.home_address);
@@ -385,11 +392,14 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
   // Cached summaries stay hidden until the user taps "view / generate" on this visit.
   const hasSummaryPayload = fetchSummary && !!(summary?.tier1 || summary?.tier2);
   const summaryAlreadyGenerated = !!(overview?.has_tier1_summary || overview?.has_tier2_summary);
-  const cardMode: InsightMode = hasSummaryPayload
-    ? 'generated'
-    : insightMode === 'locked'
+  const cardMode: InsightMode =
+    hasAiReviewTier === false
       ? 'locked'
-      : insightMode;
+      : hasSummaryPayload
+        ? 'generated'
+        : insightMode === 'locked'
+          ? 'locked'
+          : insightMode;
 
   const handleInsightPress = () => {
     if (cardMode === 'locked') return;

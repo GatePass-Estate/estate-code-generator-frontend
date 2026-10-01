@@ -230,6 +230,14 @@ export default function IncidentReportPreviewScreen() {
     () => sortMarketplaceTiers(featureDetail?.tiers ?? []),
     [featureDetail?.tiers]
   );
+  /** Tier 2 (In-house) and tier 3 (Third-party) unlock AI summaries; undefined until loaded. */
+  const hasAiReviewTier = featureDetail
+    ? sortedTiers.some(
+        (tier) =>
+          (tier.is_installed || tier.status === 'installed') &&
+          (Number.parseInt(tier.tier.replace(/\D/g, ''), 10) || 0) >= 2
+      )
+    : undefined;
   const productFeatures = (featureDetail?.product_features ?? [])
     .map((text) => text.trim())
     .filter(Boolean);
@@ -287,7 +295,7 @@ export default function IncidentReportPreviewScreen() {
         </View>
 
         {activeTab === 'Result' ? (
-          <IncidentResultView isActive={activeTab === 'Result'} />
+          <IncidentResultView isActive={activeTab === 'Result'} hasAiReviewTier={hasAiReviewTier} />
         ) : isLoading ? (
           <View
             style={{
