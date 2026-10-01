@@ -1,5 +1,6 @@
-import { Modal, Pressable, Text, View } from 'react-native';
-import { CheckRingIcon } from '@/src/assets/svgs';
+import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
 
 type IncidentTimeframeModalProps = {
   visible: boolean;
@@ -44,18 +45,44 @@ function TimeframeOption({
   return (
     <Pressable
       onPress={onPress}
-      className="h-12 w-full flex-row items-center justify-between overflow-visible rounded-2xl bg-[#EFF1F1] px-4"
-      hitSlop={4}
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
+      style={{
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        backgroundColor: selected ? '#D2E7ED' : '#F6F7F7',
+        borderWidth: 1,
+        borderColor: selected ? '#A2C0C6' : '#EFF1F3',
+        paddingHorizontal: 20,
+        paddingVertical: 16,
+        borderRadius: 16,
+      }}
     >
       <Text
         allowFontScaling={false}
         numberOfLines={1}
-        className="shrink text-sm font-inter-light leading-[normal] text-[#113E55]"
+        style={{
+          flexShrink: 1,
+          fontFamily: 'Inter_18pt-Medium',
+          fontSize: 13,
+          color: selected ? '#113E55' : '#8A9A9D',
+        }}
       >
         {label}
       </Text>
-      <View className="ml-2 h-6 w-6 shrink-0 items-center justify-center">
-        {selected ? <CheckRingIcon width={24} height={24} /> : null}
+      <View
+        style={{
+          width: 20,
+          height: 20,
+          marginLeft: 8,
+          borderRadius: 10,
+          backgroundColor: selected ? '#113E55' : '#EFF1F3',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <MaterialIcons name="check" size={12} color={selected ? '#FFFFFF' : '#113E55'} />
       </View>
     </Pressable>
   );
@@ -80,37 +107,56 @@ export default function IncidentTimeframeModal({
 
   return (
     <Modal transparent visible={visible} animationType="slide" onRequestClose={onClose}>
-      <Pressable className="flex-1 justify-end bg-black/80" onPress={onClose}>
-        <Pressable
-          className="rounded-t-[40px] bg-[#F6F7F7]"
-          onPress={() => {}}
-          style={{ height: 588 }}
+      <View style={{ flex: 1, justifyContent: 'flex-end' }}>
+        <BlurView intensity={20} style={StyleSheet.absoluteFill}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+        </BlurView>
+
+        <View
+          style={{
+            backgroundColor: '#F6F7F7',
+            borderTopLeftRadius: 32,
+            borderTopRightRadius: 32,
+            padding: 24,
+            paddingBottom: 40,
+          }}
         >
-          <View className="h-[34px] items-center justify-center">
-            <View className="h-[7px] w-[134px] rounded-[4px] bg-[#9B9797]" />
+          <View style={{ paddingBottom: 24 }}>
+            <View
+              style={{
+                width: 40,
+                height: 4,
+                backgroundColor: '#E5E7EB',
+                borderRadius: 2,
+                alignSelf: 'center',
+              }}
+            />
           </View>
 
-          <View className="px-5 pt-[66px]">
-            <Text
-              allowFontScaling={false}
-              className="text-[27.34px] font-ubuntu-medium text-[#113E55]"
-            >
-              Set Timeframe
-            </Text>
+          <Text
+            allowFontScaling={false}
+            style={{
+              fontFamily: 'UbuntuSans-Medium',
+              fontSize: 20,
+              color: '#113E55',
+              marginBottom: 24,
+            }}
+          >
+            Set Timeframe
+          </Text>
 
-            <View className="mt-6 gap-2 p-2">
-              {OPTIONS.map((opt) => (
-                <TimeframeOption
-                  key={opt}
-                  label={opt}
-                  selected={selectedLabel === opt}
-                  onPress={() => handleSelect(opt)}
-                />
-              ))}
-            </View>
+          <View style={{ gap: 12 }}>
+            {OPTIONS.map((opt) => (
+              <TimeframeOption
+                key={opt}
+                label={opt}
+                selected={selectedLabel === opt}
+                onPress={() => handleSelect(opt)}
+              />
+            ))}
           </View>
-        </Pressable>
-      </Pressable>
+        </View>
+      </View>
     </Modal>
   );
 }

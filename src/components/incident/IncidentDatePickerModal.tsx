@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Modal, Pressable, Text, View } from 'react-native';
-import { DateTimeFieldIcon } from '@/src/assets/svgs';
-import MonthCalendar, { startOfDay } from '@/src/components/mobile/MonthCalendar';
-import Button, { BUTTON_MARGIN_BOTTOM } from '@/src/components/mobile/Button';
+import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
 
 type IncidentDatePickerModalProps = {
   visible: boolean;
@@ -12,42 +11,45 @@ type IncidentDatePickerModalProps = {
   initialEnd?: Date | null;
 };
 
-function formatDisplay(date: Date | null) {
-  if (!date) return null;
-  return date.toLocaleDateString('en-GB', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
+const DAYS_OF_WEEK = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+function startOfDay(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
-function DateField({
-  placeholder,
-  value,
-  onPress,
-}: {
-  placeholder: string;
-  value: string | null;
-  onPress: () => void;
-}) {
+function firstOfMonth(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
+function formatDate(date: Date): string {
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function DateRow({ value, placeholder }: { value: Date | null; placeholder: string }) {
   return (
-    <Pressable
-      onPress={onPress}
-      className="w-full max-w-[328px] flex-row items-center justify-between rounded-lg bg-white px-4 py-3"
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        backgroundColor: '#FFFFFF',
+        paddingHorizontal: 16,
+        paddingVertical: 14,
+        borderRadius: 12,
+      }}
     >
-      <View className="flex-row items-center gap-4">
-        <DateTimeFieldIcon width={16} height={16} color="#878686" />
-        <Text
-          allowFontScaling={false}
-          numberOfLines={1}
-          className={`text-sm font-inter-light leading-[normal] ${
-            value ? 'text-[#0A1F29]' : 'text-[#878686]'
-          }`}
-        >
-          {value ?? placeholder}
-        </Text>
-      </View>
-    </Pressable>
+      <MaterialIcons name="calendar-today" size={18} color="#8A9A9D" />
+      <Text
+        allowFontScaling={false}
+        style={{
+          fontFamily: 'Inter_18pt-Regular',
+          fontSize: 13,
+          color: value ? '#04162D' : '#8A9A9D',
+        }}
+      >
+        {value ? formatDate(value) : placeholder}
+      </Text>
+    </View>
   );
 }
 
@@ -58,124 +60,227 @@ export default function IncidentDatePickerModal({
   initialStart = null,
   initialEnd = null,
 }: IncidentDatePickerModalProps) {
-  const [cursor, setCursor] = useState(
-    () =>
-      new Date(
-        (initialStart ?? new Date()).getFullYear(),
-        (initialStart ?? new Date()).getMonth(),
-        1
-      )
+  const [currentMonth, setCurrentMonth] = useState(() => firstOfMonth(initialStart ?? new Date()));
+  // Held as start-of-day so day comparisons are exact; the end is widened on apply.
+  const [startDate, setStartDate] = useState<Date | null>(
+    initialStart ? startOfDay(initialStart) : null
   );
-  const [startDate, setStartDate] = useState<Date | null>(initialStart);
-  const [endDate, setEndDate] = useState<Date | null>(initialEnd);
-  const [activeField, setActiveField] = useState<'start' | 'end'>('start');
+  const [endDate, setEndDate] = useState<Date | null>(initialEnd ? startOfDay(initialEnd) : null);
 
   useEffect(() => {
     if (!visible) return;
-    const seed = initialStart ?? new Date();
-    setStartDate(initialStart);
-    setEndDate(initialEnd);
-    setCursor(new Date(seed.getFullYear(), seed.getMonth(), 1));
-    setActiveField('start');
+    setStartDate(initialStart ? startOfDay(initialStart) : null);
+    setEndDate(initialEnd ? startOfDay(initialEnd) : null);
+    setCurrentMonth(firstOfMonth(initialStart ?? new Date()));
   }, [visible, initialStart, initialEnd]);
 
-  const handleSelectDate = (date: Date) => {
-    const selected = startOfDay(date);
+  const year = currentMonth.getFullYear();
+  const month = currentMonth.getMonth();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const firstDay = new Date(year, month, 1).getDay();
+  const trailingSlots = (7 - ((firstDay + daysInMonth) % 7)) % 7;
+  const monthLabel = currentMonth.toLocaleDateString('en-US', { month: 'long' });
 
-    if (activeField === 'start') {
-      setStartDate(selected);
-      if (endDate && selected.getTime() > startOfDay(endDate).getTime()) {
-        setEndDate(null);
-      }
-      setActiveField('end');
-      setCursor(new Date(selected.getFullYear(), selected.getMonth(), 1));
-      return;
-    }
-
-    if (!startDate || selected.getTime() < startOfDay(startDate).getTime()) {
+  const handleDatePress = (day: number) => {
+    const selected = new Date(year, month, day);
+    if (!startDate || endDate) {
       setStartDate(selected);
       setEndDate(null);
-      setActiveField('end');
-      setCursor(new Date(selected.getFullYear(), selected.getMonth(), 1));
-      return;
+    } else if (selected < startDate) {
+      setStartDate(selected);
+    } else {
+      setEndDate(selected);
     }
+  };
 
-    // Same-day range is valid for a single-day custom window.
-    const end = new Date(selected);
-    end.setHours(23, 59, 59, 999);
-    setEndDate(end);
+  const isSelected = (day: number) => {
+    const t = new Date(year, month, day).getTime();
+    return t === startDate?.getTime() || t === endDate?.getTime();
+  };
+
+  const isInRange = (day: number) => {
+    if (!startDate || !endDate) return false;
+    const d = new Date(year, month, day);
+    return d > startDate && d < endDate;
   };
 
   const canApply = !!startDate && !!endDate;
 
   const handleApply = () => {
     if (!startDate || !endDate) return;
-    onApply(startDate, endDate);
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
+    onApply(startDate, end);
     onClose();
   };
 
   return (
-    <Modal transparent visible={visible} animationType="slide" onRequestClose={onClose}>
-      <Pressable className="flex-1 justify-end bg-black/80" onPress={onClose}>
-        <Pressable
-          className="rounded-t-[40px] bg-[#F6F7F7]"
-          onPress={() => {}}
-          style={{ height: 731 }}
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <View style={{ flex: 1, justifyContent: 'flex-end' }}>
+        <BlurView intensity={20} style={StyleSheet.absoluteFill}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+        </BlurView>
+
+        <View
+          style={{
+            backgroundColor: '#F6F7F7',
+            borderTopLeftRadius: 32,
+            borderTopRightRadius: 32,
+            padding: 24,
+            paddingBottom: 40,
+          }}
         >
-          <View className="h-[34px] items-center justify-center">
-            <View className="h-[7px] w-[134px] rounded-[4px] bg-[#9B9797]" />
+          <View style={{ paddingBottom: 24 }}>
+            <View
+              style={{
+                width: 40,
+                height: 4,
+                backgroundColor: '#E5E7EB',
+                borderRadius: 2,
+                alignSelf: 'center',
+              }}
+            />
           </View>
 
-          <View className="flex-1 pt-[66px]">
+          <Text
+            allowFontScaling={false}
+            style={{
+              fontFamily: 'UbuntuSans-Medium',
+              fontSize: 20,
+              color: '#113E55',
+              marginBottom: 24,
+            }}
+          >
+            Set Date
+          </Text>
+
+          <View style={{ gap: 12, marginBottom: 24 }}>
+            <DateRow value={startDate} placeholder="Enter Start Date" />
+            <DateRow value={endDate} placeholder="Enter End Date" />
+          </View>
+
+          <View style={{ backgroundColor: '#FFFFFF', borderRadius: 24, padding: 24 }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 24,
+              }}
+            >
+              <Pressable onPress={() => setCurrentMonth(new Date(year, month - 1, 1))} hitSlop={10}>
+                <MaterialIcons name="chevron-left" size={20} color="#113E55" />
+              </Pressable>
+              <Text
+                allowFontScaling={false}
+                style={{ fontFamily: 'Inter_18pt-Bold', fontSize: 12, color: '#113E55' }}
+              >
+                {monthLabel}
+              </Text>
+              <Pressable onPress={() => setCurrentMonth(new Date(year, month + 1, 1))} hitSlop={10}>
+                <MaterialIcons name="chevron-right" size={20} color="#113E55" />
+              </Pressable>
+            </View>
+
+            <View
+              style={{ flexWrap: 'wrap', flexDirection: 'row', justifyContent: 'space-between' }}
+            >
+              {DAYS_OF_WEEK.map((day, i) => (
+                <Text
+                  key={`h-${i}`}
+                  allowFontScaling={false}
+                  style={{
+                    fontFamily: 'Inter_18pt-Bold',
+                    fontSize: 12,
+                    color: '#113E55',
+                    width: '14%',
+                    textAlign: 'center',
+                    marginBottom: 16,
+                  }}
+                >
+                  {day}
+                </Text>
+              ))}
+
+              {Array.from({ length: firstDay }).map((_, i) => (
+                <View key={`e-${i}`} style={{ width: '14%', marginBottom: 8 }} />
+              ))}
+
+              {Array.from({ length: daysInMonth }).map((_, i) => {
+                const day = i + 1;
+                const selected = isSelected(day);
+                const inRange = isInRange(day);
+
+                return (
+                  <Pressable
+                    key={`d-${day}`}
+                    onPress={() => handleDatePress(day)}
+                    style={{ width: '14%', alignItems: 'center', marginBottom: 8 }}
+                  >
+                    <View
+                      style={{
+                        width: '100%',
+                        height: 24,
+                        backgroundColor: inRange ? '#D2E7ED' : 'transparent',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <View
+                        style={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: 14,
+                          backgroundColor: selected ? '#D2E7ED' : 'transparent',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <Text
+                          allowFontScaling={false}
+                          style={{
+                            fontFamily: 'Inter_18pt-Regular',
+                            fontSize: 12,
+                            color: '#113E55',
+                          }}
+                        >
+                          {day}
+                        </Text>
+                      </View>
+                    </View>
+                  </Pressable>
+                );
+              })}
+
+              {Array.from({ length: trailingSlots }).map((_, i) => (
+                <View key={`t-${i}`} style={{ width: '14%', marginBottom: 8 }} />
+              ))}
+            </View>
+          </View>
+
+          <Pressable
+            onPress={handleApply}
+            disabled={!canApply}
+            style={{
+              width: '100%',
+              height: 56,
+              backgroundColor: '#113E55',
+              borderRadius: 28,
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginTop: 8,
+              opacity: canApply ? 1 : 0.5,
+            }}
+          >
             <Text
               allowFontScaling={false}
-              className="px-[23.5px] text-[27.34px] font-ubuntu-medium text-[#113E55]"
+              style={{ fontFamily: 'UbuntuSans-Medium', fontSize: 16, color: '#FFFFFF' }}
             >
-              Set Date
+              Apply Date Range
             </Text>
-
-            <View className="mt-[47px] items-center gap-[11px] px-[23.5px]">
-              <DateField
-                placeholder="Enter Start Date"
-                value={formatDisplay(startDate)}
-                onPress={() => {
-                  setActiveField('start');
-                  if (startDate) {
-                    setCursor(new Date(startDate.getFullYear(), startDate.getMonth(), 1));
-                  }
-                }}
-              />
-              <DateField
-                placeholder="Enter End Date"
-                value={formatDisplay(endDate)}
-                onPress={() => {
-                  setActiveField('end');
-                  if (endDate) {
-                    setCursor(new Date(endDate.getFullYear(), endDate.getMonth(), 1));
-                  } else if (startDate) {
-                    setCursor(new Date(startDate.getFullYear(), startDate.getMonth(), 1));
-                  }
-                }}
-              />
-            </View>
-
-            <View className="mt-[31px] items-center">
-              <MonthCalendar
-                card
-                cursor={cursor}
-                onCursorChange={setCursor}
-                selectedDates={[startDate, endDate]}
-                onSelectDate={handleSelectDate}
-                minDate={activeField === 'end' ? startDate : null}
-              />
-            </View>
-
-            <View className="mt-auto items-center" style={{ marginBottom: BUTTON_MARGIN_BOTTOM }}>
-              <Button label="Apply" disabled={!canApply} onPress={handleApply} />
-            </View>
-          </View>
-        </Pressable>
-      </Pressable>
+          </Pressable>
+        </View>
+      </View>
     </Modal>
   );
 }

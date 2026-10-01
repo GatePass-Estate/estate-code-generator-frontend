@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from 'react-native';
-import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { router } from 'expo-router';
 import AISummaryModal, {
@@ -9,6 +9,7 @@ import AISummaryModal, {
 import AnomalyDonutChart from '@/src/components/anomaly/AnomalyDonutChart';
 import EstateSvg from '@/src/assets/icons/estate.svg';
 import ExportSvg from '@/src/assets/icons/incident-export.svg';
+import DurationExpandSvg from '@/src/assets/icons/incident-duration-expand.svg';
 import LocationSvg from '@/src/assets/icons/location.svg';
 import TotalUsersSvg from '@/src/assets/icons/totalusers.svg';
 import {
@@ -590,13 +591,19 @@ export default function IncidentResultView({ isActive = true }: { isActive?: boo
 
         <Pressable
           onPress={() => setTimeframeVisible(true)}
-          className=" min-h-7  py-1 px-2 gap-1 flex-row items-center mb-[34px] self-start"
+          accessibilityRole="button"
+          accessibilityLabel={`Duration: ${selectedRangeText}`}
+          className="mb-[34px] min-w-[93px] flex-row items-center justify-between gap-1 self-start rounded-2xl bg-[#167A6F] px-2 py-1"
           hitSlop={8}
         >
-          <Text allowFontScaling={false} className="text-[12px] font-inter-medium text-[#167A6F]">
+          <Text
+            allowFontScaling={false}
+            numberOfLines={1}
+            className="text-[11.2px] font-inter-medium leading-[normal] text-[#F6F7F7]"
+          >
             {selectedRangeText}
           </Text>
-          <MaterialIcons name="keyboard-arrow-down" size={16} color="#167A6F" />
+          <DurationExpandSvg width={20} height={20} />
         </Pressable>
 
         <View className="flex-row gap-[13px] mb-[7px]">

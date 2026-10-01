@@ -52,6 +52,8 @@ export default function SubscriptionTierCard({
 }: SubscriptionTierCardProps) {
   const benefitRows = (benefits ?? []).map((text) => text.trim()).filter(Boolean);
   const canExpand = benefitRows.length > 0 || isInstalled;
+  /** Green text and mint wash while the card is open, paid or not. */
+  const highlighted = expanded;
   const chevronRotation = useSharedValue(expanded ? 90 : 0);
   const progress = useSharedValue(expanded ? 1 : 0);
   const measuredHeight = useSharedValue(0);
@@ -124,13 +126,8 @@ export default function SubscriptionTierCard({
     <View
       className="flex-col rounded-[16px] px-4 py-8"
       style={{
-        backgroundColor: isInstalled && expanded ? PURCHASED_CARD_BG : '#FFFFFF',
-        ...(expanded
-          ? {
-              borderWidth: isInstalled ? 0.6 : 1,
-              borderColor: isInstalled ? '#1B998B' : '#113E55',
-            }
-          : null),
+        backgroundColor: highlighted ? PURCHASED_CARD_BG : '#FFFFFF',
+        ...(highlighted ? { borderWidth: 0.6, borderColor: '#1B998B' } : null),
       }}
     >
       <View className="flex-col gap-4">
@@ -139,7 +136,7 @@ export default function SubscriptionTierCard({
             <Text
               allowFontScaling={false}
               className={`text-[17.5px] font-inter-regular leading-[18px] ${
-                isInstalled ? 'text-[#1B998B]' : 'text-[#113E55]'
+                highlighted ? 'text-[#1B998B]' : 'text-[#113E55]'
               }`}
             >
               {tierLabel}
@@ -148,8 +145,8 @@ export default function SubscriptionTierCard({
               <Text
                 allowFontScaling={false}
                 className={`text-sm font-inter-medium leading-[18px] ${
-                  isInstalled ? 'text-[#1B998B]' : 'text-[#113E55]'
-                } ${isInstalled || subtitleUppercase ? 'uppercase' : ''}`}
+                  highlighted ? 'text-[#1B998B]' : 'text-[#113E55]'
+                } ${subtitleUppercase ? 'uppercase' : ''}`}
               >
                 {subtitle}
               </Text>
@@ -182,7 +179,7 @@ export default function SubscriptionTierCard({
             <Text
               allowFontScaling={false}
               className={`text-[11.2px] font-inter-normal ${
-                isInstalled ? 'text-[#878686]' : 'text-[#113E55]'
+                highlighted ? 'text-[#878686]' : 'text-[#113E55]'
               }`}
             >
               See benefits
@@ -191,7 +188,7 @@ export default function SubscriptionTierCard({
               <BenefitsChevronIcon
                 width={21}
                 height={20}
-                color={isInstalled ? '#878686' : '#113E55'}
+                color={highlighted ? '#878686' : '#113E55'}
               />
             </Animated.View>
           </Pressable>
@@ -214,7 +211,7 @@ export default function SubscriptionTierCard({
                     width={16}
                     height={16}
                     ringColor="#DFEEEA"
-                    color={isInstalled ? '#1B998B' : '#113E55'}
+                    color={highlighted ? '#1B998B' : '#113E55'}
                   />
                 </View>
                 <Text

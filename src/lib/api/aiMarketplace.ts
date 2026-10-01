@@ -50,7 +50,7 @@ export function formatTierLabel(tier: string): string {
 }
 
 export function formatTierSubtitle(tier: MarketplaceTier): string {
-  if (tier.is_installed || tier.status === 'installed') return 'PURCHASED';
+  if (tier.is_installed || tier.status === 'installed') return tier.name?.trim() || 'PURCHASED';
   if (tier.is_free) return 'FREE';
   if (tier.price != null) {
     const prefix =

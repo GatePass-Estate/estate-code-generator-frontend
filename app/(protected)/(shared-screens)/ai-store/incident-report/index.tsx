@@ -12,7 +12,7 @@ import Pf2Svg from '@/src/assets/icons/pf_2.svg';
 import Pf3Svg from '@/src/assets/icons/pf_3.svg';
 import { FeatureDownloadIcon, FeatureUsersIcon, RatingStarIcon } from '@/src/assets/svgs';
 import RatingModal from '@/src/components/anomaly/modals/RatingModal';
-import DataInsightModal from '@/src/components/anomaly/modals/DataInsightModal';
+import IncidentDataInsightModal from '@/src/components/incident/IncidentDataInsightModal';
 import IncidentResultView from '@/src/components/incident/IncidentResultView';
 import SubscriptionTierCard from '@/src/components/incident/SubscriptionTierCard';
 import AnimatedPillTabs from '@/src/components/mobile/AnimatedPillTabs';
@@ -368,7 +368,7 @@ export default function IncidentReportPreviewScreen() {
                         allowFontScaling={false}
                         className="w-[39px] text-center text-[21.88px] font-ubuntu-semibold leading-[26px] text-[#6B7280]"
                       >
-                        {featureDetail.rating != null ? featureDetail.rating.toFixed(1) : ''}
+                        {(featureDetail.rating ?? 0).toFixed(1)}
                       </Text>
                     </Pressable>
                   </View>
@@ -498,7 +498,7 @@ export default function IncidentReportPreviewScreen() {
         onClose={() => setIsRatingModalVisible(false)}
         onSubmit={handleRate}
       />
-      <DataInsightModal
+      <IncidentDataInsightModal
         visible={dataInsightVisible}
         onClose={() => setDataInsightVisible(false)}
         dataInsight={featureDetail?.data_insight}
