@@ -1,5 +1,14 @@
 import React from 'react';
-import { View, Text, Pressable, ScrollView, Modal, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  Pressable,
+  ScrollView,
+  Modal,
+  StyleSheet,
+  Dimensions,
+  Platform,
+} from 'react-native';
 import Animated, { SlideInDown, SlideOutDown, FadeIn, FadeOut } from 'react-native-reanimated';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
@@ -107,93 +116,193 @@ export default function AISummaryModal({ visible, onClose, summaryData }: AISumm
           justifyContent: 'flex-end',
         }}
       >
-        <BlurView intensity={20} style={StyleSheet.absoluteFill}>
-          <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-        </BlurView>
+        {Platform.OS === 'ios' ? (
+          <BlurView intensity={15} tint="dark" style={StyleSheet.absoluteFill}>
+            <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+          </BlurView>
+        ) : (
+          <BlurView intensity={25} tint="dark" style={StyleSheet.absoluteFill}>
+            <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+          </BlurView>
+        )}
 
-        <View
-          style={[
-            {
-              backgroundColor: '#F6F7F7',
-              borderTopLeftRadius: 32,
-              borderTopRightRadius: 32,
-              maxHeight: '90%',
-              padding: 24,
-            },
-          ]}
+        <Animated.View
+          entering={SlideInDown.duration(250)}
+          exiting={SlideOutDown}
+          style={{
+            backgroundColor: '#F6F7F7',
+            borderTopLeftRadius: 40,
+            borderTopRightRadius: 40,
+            maxHeight: '90%',
+            paddingHorizontal: 24,
+            paddingBottom: 40,
+          }}
         >
           {/* Draggable Handle Area */}
-          <View style={{ paddingBottom: 16 }}>
+          <View style={{ height: 34, alignItems: 'center', justifyContent: 'center' }}>
             {/* Handle */}
             <View
               style={{
-                width: 100,
-                height: 6,
-                borderRadius: 3,
-                backgroundColor: '#A0A0A0',
-                alignSelf: 'center',
+                width: 134,
+                height: 7,
+                borderRadius: 4,
+                backgroundColor: '#9B9797',
               }}
             />
           </View>
 
-          <Text
-            allowFontScaling={false}
-            style={{
-              fontFamily: 'UbuntuSans-Medium',
-              fontSize: 20,
-              color: '#113E55',
-              marginBottom: 16,
-            }}
-          >
-            AI SUMMARY
-          </Text>
-          <View style={{ flexDirection: 'row', gap: 12, marginBottom: 24 }}>
-            <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
-              <MaterialIcons name="schedule" size={12} color="#F46036" />
-              <Text
-                allowFontScaling={false}
-                style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 10, color: '#F46036' }}
-              >
-                2 mins Read
-              </Text>
-            </View>
-            <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
-              <MaterialIcons name="security" size={12} color="#1B998B" />
-              <Text
-                allowFontScaling={false}
-                style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 10, color: '#1B998B' }}
-              >
-                Read Fully
-              </Text>
-            </View>
-          </View>
-
           <ScrollView
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ gap: 16, paddingBottom: 40 }}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: 40 }}
           >
-            {data ? (
-              <>
-                <AccordionItem title="EXECUTIVE SUMMARY" content={data.executive_summary} />
-                <AccordionItem title="DETAILED INSIGHT" content={data.detailed_insight} />
-                <AccordionItem title="RISK DRIVERS" content={data.risk_drivers} isList={true} />
-                <AccordionItem
-                  title="RECOMMENDED ACTIONS"
-                  content={data.recommended_actions}
-                  isList={true}
-                />
-                <AccordionItem title="DATA LIMITATIONS" content={data.data_limitations} />
-              </>
-            ) : (
+            {/* Slide 1: Tier 1 */}
+            <View
+              style={{
+                width: Dimensions.get('window').width - 48,
+                paddingRight: summaryData?.tier2 ? 24 : 0,
+              }}
+            >
               <Text
                 allowFontScaling={false}
-                style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 13, color: '#8A9A9D' }}
+                style={{
+                  fontFamily: 'UbuntuSans-Medium',
+                  fontSize: 20,
+                  color: '#113E55',
+                  marginTop: 24,
+                  marginBottom: 12,
+                  textTransform: 'uppercase',
+                }}
               >
-                No summary data available.
+                AI SUMMARY
               </Text>
+              <View style={{ flexDirection: 'row', gap: 12, marginBottom: 24 }}>
+                <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
+                  <MaterialIcons name="schedule" size={12} color="#F46036" />
+                  <Text
+                    allowFontScaling={false}
+                    style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 10, color: '#F46036' }}
+                  >
+                    2 mins Read
+                  </Text>
+                </View>
+                <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
+                  <MaterialIcons name="security" size={12} color="#1B998B" />
+                  <Text
+                    allowFontScaling={false}
+                    style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 10, color: '#1B998B' }}
+                  >
+                    Third Party
+                  </Text>
+                </View>
+              </View>
+
+              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 16 }}>
+                {summaryData?.tier1 ? (
+                  <>
+                    <AccordionItem
+                      title="EXECUTIVE SUMMARY"
+                      content={summaryData.tier1.executive_summary}
+                    />
+                    <AccordionItem
+                      title="KEY PATTERNS"
+                      content={summaryData.tier1.detailed_insight || summaryData.tier1.key_patterns}
+                    />
+                    <AccordionItem
+                      title="RISK DRIVERS"
+                      content={summaryData.tier1.risk_drivers}
+                      isList={true}
+                    />
+                    <AccordionItem
+                      title="RECOMMENDED ACTIONS"
+                      content={summaryData.tier1.recommended_actions}
+                      isList={true}
+                    />
+                    <AccordionItem
+                      title="DATA LIMITATIONS"
+                      content={summaryData.tier1.data_limitations}
+                    />
+                  </>
+                ) : (
+                  <Text
+                    allowFontScaling={false}
+                    style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 13, color: '#8A9A9D' }}
+                  >
+                    No Tier 1 summary data available.
+                  </Text>
+                )}
+              </ScrollView>
+            </View>
+
+            {/* Slide 2: Tier 2 */}
+            {summaryData?.tier2 && (
+              <View style={{ width: Dimensions.get('window').width - 48, paddingLeft: 24 }}>
+                <Text
+                  allowFontScaling={false}
+                  style={{
+                    fontFamily: 'UbuntuSans-Medium',
+                    fontSize: 20,
+                    color: '#113E55',
+                    marginBottom: 16,
+                  }}
+                >
+                  AI SUMMARY
+                </Text>
+                <View style={{ flexDirection: 'row', gap: 12, marginBottom: 24 }}>
+                  <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
+                    <MaterialIcons name="schedule" size={12} color="#F46036" />
+                    <Text
+                      allowFontScaling={false}
+                      style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 10, color: '#F46036' }}
+                    >
+                      2 mins Read
+                    </Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
+                    <MaterialIcons name="security" size={12} color="#1B998B" />
+                    <Text
+                      allowFontScaling={false}
+                      style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 10, color: '#1B998B' }}
+                    >
+                      In house
+                    </Text>
+                  </View>
+                </View>
+
+                <ScrollView
+                  showsVerticalScrollIndicator={false}
+                  contentContainerStyle={{ gap: 16 }}
+                >
+                  <>
+                    <AccordionItem
+                      title="EXECUTIVE SUMMARY"
+                      content={summaryData.tier2.executive_summary}
+                    />
+                    <AccordionItem
+                      title="KEY PATTERNS"
+                      content={summaryData.tier2.detailed_insight || summaryData.tier2.key_patterns}
+                    />
+                    <AccordionItem
+                      title="RISK DRIVERS"
+                      content={summaryData.tier2.risk_drivers}
+                      isList={true}
+                    />
+                    <AccordionItem
+                      title="RECOMMENDED ACTIONS"
+                      content={summaryData.tier2.recommended_actions}
+                      isList={true}
+                    />
+                    <AccordionItem
+                      title="DATA LIMITATIONS"
+                      content={summaryData.tier2.data_limitations}
+                    />
+                  </>
+                </ScrollView>
+              </View>
             )}
           </ScrollView>
-        </View>
+        </Animated.View>
       </View>
     </Modal>
   );

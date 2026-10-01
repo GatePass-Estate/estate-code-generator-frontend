@@ -19,6 +19,8 @@ export type FeatureAccess = 'granted' | 'upgrade' | 'contact_admin' | 'blocked';
 export type Entitlements = {
   tierSlug: string | null;
   subscriptionStatus: string | null;
+  /** Maximum registered users covered by the estate's current plan. */
+  coveredUsers: number | null;
   /** The whole subscription is locked (e.g. lapsed); only free features remain. */
   locked: boolean;
   reason: string | null;
@@ -60,9 +62,21 @@ export function parseEntitlements(response: EstateEntitlementsResponse): Entitle
     if (isPlanFeature(key)) services.set(key, isGranted(value));
   }
 
+  const maxActiveUsers = response.entitlements?.max_active_users;
+  const entitlementUserLimit =
+    typeof maxActiveUsers === 'number'
+      ? maxActiveUsers
+      : maxActiveUsers !== null &&
+          typeof maxActiveUsers === 'object' &&
+          'limit' in maxActiveUsers &&
+          typeof (maxActiveUsers as { limit?: unknown }).limit === 'number'
+        ? (maxActiveUsers as { limit: number }).limit
+        : null;
+
   return {
     tierSlug: response.tier_slug ?? null,
     subscriptionStatus: response.subscription_status ?? null,
+    coveredUsers: response.covered_users ?? entitlementUserLimit,
     locked: response.locked ?? false,
     reason: response.reason ?? null,
     services,

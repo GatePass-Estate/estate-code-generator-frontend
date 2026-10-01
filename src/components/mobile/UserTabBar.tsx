@@ -1,5 +1,5 @@
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
-import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import { Platform, Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
+import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { APP_TAB_BAR_COLOR, TAB_BAR_BASE_HEIGHT, TAB_BAR_FAB_OVERHANG } from '@/src/theme/styles';
 
@@ -12,11 +12,13 @@ function isAddRoute(name: string) {
 
 function isTabBarHidden(style: unknown) {
   if (!style) return false;
-  const flattened = StyleSheet.flatten(style as object);
+  const flattened = StyleSheet.flatten(style as ViewStyle);
   return flattened?.display === 'none';
 }
 
-export default function UserTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+type UserTabBarProps = Parameters<NonNullable<React.ComponentProps<typeof Tabs>['tabBar']>>[0];
+
+export default function UserTabBar({ state, descriptors, navigation }: UserTabBarProps) {
   const insets = useSafeAreaInsets();
   const focusedOptions = descriptors[state.routes[state.index].key].options;
 

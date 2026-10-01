@@ -26,7 +26,6 @@ import Info2Svg from '@/src/assets/images/info2.svg';
 import Info3Svg from '@/src/assets/images/info3.svg';
 import Info4Svg from '@/src/assets/images/info4.svg';
 import Info5Svg from '@/src/assets/images/info5.svg';
-import type { MarketplaceDataInsight } from '@/src/types/aiMarketplace';
 
 const { width } = Dimensions.get('window');
 const DURATION = 6000;
@@ -35,7 +34,7 @@ interface DataInsightModalProps {
   visible: boolean;
   onClose: () => void;
   /** Marketplace `data_insight`; when set, the list after the story shows it instead of the static cards. */
-  dataInsight?: MarketplaceDataInsight | null;
+  dataInsight?: { legal?: string[]; data?: string[] } | null;
 }
 
 const cleanLines = (lines?: string[]) => (lines ?? []).map((l) => l.trim()).filter(Boolean);

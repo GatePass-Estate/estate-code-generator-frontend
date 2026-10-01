@@ -12,6 +12,7 @@ import logoutIcon from '../assets/images/logout.png';
 import securityBg from '../assets/images/security-bg.png';
 // @ts-ignore
 import brokenCard from '../assets/images/broken-card.png';
+// @ts-ignore
 import frozenIceOverlay from '../assets/images/frozen-ice-overlay-v3.png';
 import aiSummaryBlurredCopy from '../assets/images/ai-summary-blurred-copy.png';
 

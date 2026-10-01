@@ -33,7 +33,9 @@ export function getMimeTypeFromUri(uri: string, documentType: DocumentType) {
 }
 
 export function resolveDocumentApiUrl(path: string) {
-  const baseUrl = process.env.EXPO_PUBLIC_USER_SERVICE_API_URL?.replace(/\/$/, '') ?? '';
+  const rawBaseUrl = process.env.EXPO_PUBLIC_USER_SERVICE_API_URL;
+  if (!rawBaseUrl) throw new Error('EXPO_PUBLIC_USER_SERVICE_API_URL is missing');
+  const baseUrl = rawBaseUrl.replace(/\/$/, '');
 
   if (path.startsWith('http')) {
     return path;

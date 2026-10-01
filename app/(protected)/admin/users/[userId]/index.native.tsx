@@ -22,6 +22,12 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { User } from '@/src/types/user';
+import HouseholdSelectorSheet from '@/src/components/mobile/HouseholdSelectorSheet';
+import { transferUserHousehold } from '@/src/lib/api/households';
+import type { Household } from '@/src/types/household';
+import { Feather } from '@expo/vector-icons';
+import { getUserDocumentViewUri } from '@/src/lib/api/userDocuments';
+import { downloadFile } from '@/src/lib/pendingRequestHelpers';
 
 // Dummy API function for deactivating user
 const deactivateUser = async (userId: string): Promise<boolean> => {
@@ -48,6 +54,10 @@ export default function SingleUserMobile() {
   const [dialogVisible, setDialogVisible] = useState(false);
   const [dialogType, setDialogType] = useState<'success' | 'error'>('success');
   const [promoteActionType, setPromoteActionType] = useState<'promote' | 'demote' | null>(null);
+  const [showHouseholdSelector, setShowHouseholdSelector] = useState(false);
+  const [transferringHousehold, setTransferringHousehold] = useState(false);
+  const [identificationExpanded, setIdentificationExpanded] = useState(false);
+  const [openingIdentification, setOpeningIdentification] = useState(false);
   const myId = useUserStore.getState().user_id;
   const panY = new Animated.Value(0);
   const [userData, setUserData] = useState<User>({
@@ -126,7 +136,7 @@ export default function SingleUserMobile() {
     };
 
     fetchUserData();
-  }, []);
+  }, [userId, userParam]);
 
   const handleDeactivate = async () => {
     setDeactivating(true);
@@ -261,6 +271,55 @@ export default function SingleUserMobile() {
     }
   };
 
+  const handleHouseholdTransfer = async (household: Household) => {
+    if (household.id === userData.household_id) {
+      setShowHouseholdSelector(false);
+      setDialogType('error');
+      setDialogMessage(`${userData.first_name || 'This user'} is already in ${household.name}.`);
+      setDialogVisible(true);
+      return;
+    }
+
+    setTransferringHousehold(true);
+    try {
+      const response = await transferUserHousehold({
+        user_id: userId as string,
+        household_id: household.id,
+      });
+      setUserData((current) => ({
+        ...current,
+        household_id: household.id,
+        household_name: household.name,
+      }));
+      setShowHouseholdSelector(false);
+      setDialogType('success');
+      setDialogMessage(response.message || `${userData.first_name} was transferred successfully.`);
+      setDialogVisible(true);
+    } catch (err) {
+      setDialogType('error');
+      setDialogMessage(err instanceof Error ? err.message : 'Failed to transfer household.');
+      setDialogVisible(true);
+    } finally {
+      setTransferringHousehold(false);
+    }
+  };
+
+  const handleOpenIdentification = async () => {
+    setOpeningIdentification(true);
+    try {
+      const uri = await getUserDocumentViewUri(userId as string, 'id_card');
+      await downloadFile(uri);
+    } catch (err) {
+      setDialogType('error');
+      setDialogMessage(
+        err instanceof Error ? err.message : 'No identification document is available.'
+      );
+      setDialogVisible(true);
+    } finally {
+      setOpeningIdentification(false);
+    }
+  };
+
   return (
     <>
       <SafeAreaView
@@ -297,7 +356,7 @@ export default function SingleUserMobile() {
                       if (userParam) {
                         try {
                           resident = JSON.parse(userParam as string);
-                        } catch (e) {}
+                        } catch {}
                       }
                       if (!resident) {
                         resident = await getUserByIdAdmin(userId as string);
@@ -340,8 +399,69 @@ export default function SingleUserMobile() {
                 />
                 <SingleDetail label="Email Address" value={userData.email} />
                 <SingleDetail label="Phone Number" value={userData.phone_number} />
+                <SingleDetail
+                  label="Household"
+                  value={userData.household_name || 'No household assigned'}
+                />
+              </View>
+
+              <View className="mt-4 overflow-hidden rounded-xl border border-input-border bg-white">
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded: identificationExpanded }}
+                  onPress={() => setIdentificationExpanded((current) => !current)}
+                  className="flex-row items-center justify-between px-4 py-4"
+                >
+                  <View className="flex-row items-center gap-3">
+                    <Feather name="file-text" size={19} color="#113E55" />
+                    <Text className="text-sm text-primary font-inter-medium">
+                      Government-issued ID
+                    </Text>
+                  </View>
+                  <Feather
+                    name={identificationExpanded ? 'chevron-up' : 'chevron-down'}
+                    size={20}
+                    color="#6F91A0"
+                  />
+                </TouchableOpacity>
+                {identificationExpanded && (
+                  <View className="border-t border-input-border bg-light-grey px-4 py-4">
+                    <Text className="text-xs leading-5 text-grey font-inter-regular">
+                      View or download the identification document attached to this profile.
+                    </Text>
+                    <TouchableOpacity
+                      disabled={openingIdentification}
+                      onPress={handleOpenIdentification}
+                      className={`mt-3 h-11 flex-row items-center justify-center gap-2 rounded-xl bg-primary ${
+                        openingIdentification ? 'opacity-60' : ''
+                      }`}
+                    >
+                      {openingIdentification ? (
+                        <ActivityIndicator size="small" color="#FFFFFF" />
+                      ) : (
+                        <Feather name="download" size={17} color="#FFFFFF" />
+                      )}
+                      <Text className="text-sm text-white font-ubuntu-medium">
+                        {openingIdentification ? 'Opening...' : 'Open Document'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
               </View>
             </View>
+
+            {userData.role !== 'security' && (
+              <TouchableOpacity
+                onPress={() => setShowHouseholdSelector(true)}
+                disabled={processing || transferringHousehold}
+                className={`mb-4 flex-row items-center justify-center rounded-xl border border-primary bg-accent py-4 ${
+                  processing || transferringHousehold ? 'opacity-60' : ''
+                }`}
+              >
+                {transferringHousehold && <ActivityIndicator color="#113E55" size="small" />}
+                <Text className="ml-2 text-primary font-ubuntu-semibold">Transfer Household</Text>
+              </TouchableOpacity>
+            )}
 
             <View className="mt-auto flex-row gap-5">
               {userData.status ? (
@@ -667,6 +787,26 @@ export default function SingleUserMobile() {
                 </View>
               </View>
             </Modal>
+
+            <HouseholdSelectorSheet
+              visible={showHouseholdSelector}
+              estateId={userData.estate_id || ''}
+              selected={
+                userData.household_id
+                  ? {
+                      id: userData.household_id,
+                      name: userData.household_name || 'Current household',
+                      estate_id: userData.estate_id || '',
+                      head_user_id: null,
+                      created_at: '',
+                    }
+                  : null
+              }
+              confirmationTitle="Transfer User?"
+              confirmationActionLabel="Transfer"
+              onClose={() => !transferringHousehold && setShowHouseholdSelector(false)}
+              onSelect={handleHouseholdTransfer}
+            />
           </>
         )}
       </SafeAreaView>

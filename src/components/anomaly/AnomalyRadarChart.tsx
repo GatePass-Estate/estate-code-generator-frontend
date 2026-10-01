@@ -24,9 +24,9 @@ const AnomalyRadarChart = ({
   series = [
     {
       data: [90, 80, 60, 60, 60, 90], // Expected (Orange)
-      strokeColor: '#F25B2A',
-      fillColor: 'rgba(242, 91, 42, 0.28)',
-      dotColor: '#F25B2A',
+      strokeColor: '#F46036',
+      fillColor: 'rgba(244, 96, 54, 0.28)',
+      dotColor: '#F46036',
     },
     {
       data: [90, 60, 80, 90, 80, 90], // Actual (Teal)
@@ -131,7 +131,7 @@ const AnomalyRadarChart = ({
         const { x, y } = getLabelCoordinates(i, dataLength, 24); // increase offset slightly to fit pills
 
         const PALETTE = [
-          { text: '#F25B2A', bg: '#FFF0F0' },
+          { text: '#F46036', bg: '#FFF0F0' },
           { text: '#113E55', bg: '#E3EDF2' },
           { text: '#D97706', bg: '#FEF3C7' },
           { text: '#1B998B', bg: '#E5F5F3' },

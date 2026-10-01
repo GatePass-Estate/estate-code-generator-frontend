@@ -173,12 +173,6 @@ export default function AnomalyDetectionUserDetailsScreen() {
   let historyData: any = rawHistoryData || {};
   const resultsData: any = rawResultsData || {};
 
-  console.log('--- USER OVERVIEW MOUNTED ---');
-  console.log('ID:', id, 'ESTATE:', estateId);
-  console.log('RAW DEMOGRAPHIC:', rawDemographic);
-  console.log('RAW HISTORY:', rawHistoryData);
-  console.log('RAW RESULTS:', rawResultsData);
-
   const userTypeStr =
     typeof user_type === 'string' && user_type
       ? user_type
@@ -196,7 +190,7 @@ export default function AnomalyDetectionUserDetailsScreen() {
 
   const isGuest = userTypeStr.toLowerCase() === 'guest' || userTypeStr.toLowerCase() === 'visitor';
   const isFemale = genderStr.toLowerCase().startsWith('f');
-  const accentColor = isGuest ? '#113E55' : '#F25B2A';
+  const accentColor = isGuest ? '#113E55' : '#F46036';
 
   const historyRecordsCount = useMemo(() => {
     if (historyData?.total !== undefined) return historyData.total;
@@ -787,7 +781,9 @@ export default function AnomalyDetectionUserDetailsScreen() {
                 lineHeight: 20,
               }}
             >
-              Tap to generate AI Insight on{'\n'}your report
+              {demographic?.has_tier1_summary || demographic?.has_tier2_summary
+                ? `Tap to view AI Insight on\nyour report`
+                : `Tap to generate AI Insight on\nyour report`}
             </Text>
           </Pressable>
         ) : aiState === 'loading' ? (
@@ -940,79 +936,200 @@ export default function AnomalyDetectionUserDetailsScreen() {
             </Text>
           </View>
         ) : (
-          <Pressable
-            onPress={() => setShowAiSummaryModal(true)}
-            style={{
-              backgroundColor: '#FFFFFF',
-              borderRadius: 24,
-              padding: 20,
-              borderWidth: 1,
-              borderColor: '#EFF1F3',
-              marginBottom: 32,
-            }}
-          >
-            <View
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: 12,
-              }}
+          <View style={{ marginBottom: 32 }}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              snapToInterval={330}
+              decelerationRate="fast"
+              disableIntervalMomentum
+              contentContainerStyle={{ gap: 16 }}
             >
-              <Text
-                allowFontScaling={false}
-                style={{ fontFamily: 'UbuntuSans-Medium', fontSize: 16, color: '#113E55' }}
-              >
-                AI Summary
-              </Text>
+              {summaryData?.tier1 && (
+                <Pressable
+                  onPress={() => setShowAiSummaryModal(true)}
+                  style={{
+                    width: 314, // Fixed width for carousel items
+                    backgroundColor: '#FFFFFF',
+                    borderRadius: 24,
+                    padding: 20,
+                    borderWidth: 1,
+                    borderColor: '#EFF1F3',
+                  }}
+                >
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: 12,
+                    }}
+                  >
+                    <Text
+                      allowFontScaling={false}
+                      style={{ fontFamily: 'UbuntuSans-Medium', fontSize: 16, color: '#113E55' }}
+                    >
+                      AI Summary
+                    </Text>
+                    <View
+                      style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 16,
+                        backgroundColor: '#EFF1F3',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <MaterialCommunityIcons name="arrow-expand-all" size={16} color="#113E55" />
+                    </View>
+                  </View>
+                  <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
+                    <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
+                      <MaterialIcons name="schedule" size={12} color="#F46036" />
+                      <Text
+                        allowFontScaling={false}
+                        style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 10, color: '#F46036' }}
+                      >
+                        2 mins Read
+                      </Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
+                      <MaterialIcons name="security" size={12} color="#1B998B" />
+                      <Text
+                        allowFontScaling={false}
+                        style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 10, color: '#1B998B' }}
+                      >
+                        Third Party
+                      </Text>
+                    </View>
+                  </View>
+                  <Text
+                    allowFontScaling={false}
+                    numberOfLines={3}
+                    style={{
+                      fontFamily: 'Inter_18pt-Regular',
+                      fontSize: 12,
+                      color: '#8A9A9D',
+                      lineHeight: 20,
+                    }}
+                  >
+                    {summaryData?.tier1?.executive_summary ||
+                      'This section provides a detailed summary of the anomalous behavior detected for this user. It breaks down the key factors contributing to the anomaly, including unusual entry times, late-night activity, and irregular visitor patterns over the selected timeframe.'}
+                  </Text>
+                </Pressable>
+              )}
+
+              {summaryData?.tier2 && (
+                <Pressable
+                  onPress={() => setShowAiSummaryModal(true)}
+                  style={{
+                    width: 314, // Fixed width for carousel items
+                    backgroundColor: '#FFFFFF',
+                    borderRadius: 24,
+                    padding: 20,
+                    borderWidth: 1,
+                    borderColor: '#EFF1F3',
+                  }}
+                >
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: 12,
+                    }}
+                  >
+                    <Text
+                      allowFontScaling={false}
+                      style={{ fontFamily: 'UbuntuSans-Medium', fontSize: 16, color: '#113E55' }}
+                    >
+                      AI Summary
+                    </Text>
+                    <View
+                      style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 16,
+                        backgroundColor: '#EFF1F3',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <MaterialCommunityIcons name="arrow-expand-all" size={16} color="#113E55" />
+                    </View>
+                  </View>
+                  <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
+                    <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
+                      <MaterialIcons name="schedule" size={12} color="#F46036" />
+                      <Text
+                        allowFontScaling={false}
+                        style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 10, color: '#F46036' }}
+                      >
+                        2 mins Read
+                      </Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
+                      <MaterialIcons name="security" size={12} color="#1B998B" />
+                      <Text
+                        allowFontScaling={false}
+                        style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 10, color: '#1B998B' }}
+                      >
+                        In house
+                      </Text>
+                    </View>
+                  </View>
+                  <Text
+                    allowFontScaling={false}
+                    numberOfLines={3}
+                    style={{
+                      fontFamily: 'Inter_18pt-Regular',
+                      fontSize: 12,
+                      color: '#8A9A9D',
+                      lineHeight: 20,
+                    }}
+                  >
+                    {summaryData?.tier2?.executive_summary ||
+                      'This section provides a detailed summary of the anomalous behavior detected for this user. It breaks down the key factors contributing to the anomaly, including unusual entry times, late-night activity, and irregular visitor patterns over the selected timeframe.'}
+                  </Text>
+                </Pressable>
+              )}
+
+              {!summaryData?.tier1 && !summaryData?.tier2 && (
+                <View
+                  style={{
+                    width: 314,
+                    backgroundColor: '#FFFFFF',
+                    borderRadius: 24,
+                    padding: 20,
+                    borderWidth: 1,
+                    borderColor: '#EFF1F3',
+                  }}
+                >
+                  <Text
+                    allowFontScaling={false}
+                    style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 13, color: '#8A9A9D' }}
+                  >
+                    No AI summaries available for this case.
+                  </Text>
+                </View>
+              )}
+            </ScrollView>
+
+            {/* Carousel dots indicator */}
+            {summaryData?.tier1 && summaryData?.tier2 && (
               <View
-                style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 16,
-                  backgroundColor: '#EFF1F3',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
+                style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 12, gap: 6 }}
               >
-                <MaterialCommunityIcons name="arrow-expand-all" size={16} color="#113E55" />
+                <View
+                  style={{ width: 16, height: 6, borderRadius: 3, backgroundColor: '#113E55' }}
+                />
+                <View
+                  style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#C4CDD0' }}
+                />
               </View>
-            </View>
-            <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
-              <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
-                <MaterialIcons name="schedule" size={12} color="#F46036" />
-                <Text
-                  allowFontScaling={false}
-                  style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 10, color: '#F46036' }}
-                >
-                  2 mins Read
-                </Text>
-              </View>
-              <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
-                <MaterialIcons name="security" size={12} color="#1B998B" />
-                <Text
-                  allowFontScaling={false}
-                  style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 10, color: '#1B998B' }}
-                >
-                  Read Fully
-                </Text>
-              </View>
-            </View>
-            <Text
-              allowFontScaling={false}
-              numberOfLines={3}
-              style={{
-                fontFamily: 'Inter_18pt-Regular',
-                fontSize: 12,
-                color: '#8A9A9D',
-                lineHeight: 20,
-              }}
-            >
-              {summaryData?.tier2?.executive_summary ||
-                summaryData?.tier1?.executive_summary ||
-                'This section provides a detailed summary of the anomalous behavior detected for this user. It breaks down the key factors contributing to the anomaly, including unusual entry times, late-night activity, and irregular visitor patterns over the selected timeframe.'}
-            </Text>
-          </Pressable>
+            )}
+          </View>
         )}
 
         {/* Anomaly Overview Section */}
@@ -1063,15 +1180,46 @@ export default function AnomalyDetectionUserDetailsScreen() {
                       },
                       {
                         data: spider.map((p: any) => p.instance_percentage || 0),
-                        strokeColor: '#F25B2A', // Instance is redish
-                        fillColor: 'rgba(242, 91, 42, 0.28)',
-                        dotColor: '#F25B2A',
+                        strokeColor: '#F46036', // Instance is redish
+                        fillColor: 'rgba(244, 96, 54, 0.28)',
+                        dotColor: '#F46036',
                       },
                     ]}
                   />
                 );
               } else {
-                return <AnomalyRadarChart />;
+                return (
+                  <View className="items-center justify-center">
+                    <AnomalyRadarChart
+                      labels={['', '', '', '', '']}
+                      series={[
+                        {
+                          data: [0, 0, 0, 0, 0],
+                          strokeColor: 'transparent',
+                          fillColor: 'transparent',
+                          dotColor: 'transparent',
+                        },
+                      ]}
+                    />
+                    <View
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Text
+                        style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 13, color: '#8A9A9D' }}
+                      >
+                        No anomaly data plotted
+                      </Text>
+                    </View>
+                  </View>
+                );
               }
             })()}
           </View>
@@ -1092,20 +1240,11 @@ export default function AnomalyDetectionUserDetailsScreen() {
           <View style={{ flexDirection: 'row', gap: 12, marginBottom: 32, flexWrap: 'wrap' }}>
             {(() => {
               const factors = resultsData?.anomaly_overview?.spider_plot;
-              const topFactors = factors
-                ? [...factors]
-                    .sort(
-                      (a: any, b: any) =>
-                        (b.instance_percentage || b.percentage || 0) -
-                        (a.instance_percentage || a.percentage || 0)
-                    )
-                    .slice(0, 4)
-                : [];
 
-              if (topFactors && topFactors.length > 0 && factors) {
-                return topFactors.map((factor: any, index: number) => {
+              if (factors && factors.length > 0) {
+                return factors.map((factor: any, index: number) => {
                   const PALETTE = [
-                    { text: '#F25B2A', bg: '#FFF0F0' },
+                    { text: '#F46036', bg: '#FFF0F0' },
                     { text: '#113E55', bg: '#E3EDF2' },
                     { text: '#D97706', bg: '#FEF3C7' },
                     { text: '#1B998B', bg: '#E5F5F3' },

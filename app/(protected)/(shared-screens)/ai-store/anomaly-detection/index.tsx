@@ -366,7 +366,6 @@ export default function AnomalyDetectionPreviewScreen() {
             className="h-[30px] w-[30px] items-center justify-center"
             hitSlop={20}
             onPress={() => {
-              console.log('INFO ICON CLICKED');
               setDataInsightVisible(true);
             }}
             style={{ zIndex: 100 }}
@@ -489,8 +488,7 @@ export default function AnomalyDetectionPreviewScreen() {
                     allowFontScaling={false}
                     className="text-[11.2px] font-inter-regular text-[#8A9A9D] leading-[16px]"
                   >
-                    {featureDetail?.description ||
-                      'See unusual patterns, understand user behavior, and uncover hidden insights all from your dashboard.'}
+                    {featureDetail?.description}
                   </Text>
 
                   {/* Stats */}
@@ -535,44 +533,32 @@ export default function AnomalyDetectionPreviewScreen() {
                   Product Feature
                 </Text>
 
-                <View className="bg-white rounded-[16px] px-[16px] py-[8px] mb-3 flex-row items-center gap-[12px] min-h-[44px] border border-[#EFF1F3]">
-                  <View className="w-[16px] h-[16px] items-center justify-center">
-                    <Pf1Svg width={16} height={16} />
+                {featureDetail?.product_features && featureDetail.product_features.length > 0 && (
+                  <View className="mb-5">
+                    {featureDetail.product_features.map((feature, idx) => (
+                      <View
+                        key={idx}
+                        className="bg-white rounded-[16px] px-[16px] py-[8px] mb-3 flex-row items-center gap-[12px] min-h-[44px] border border-[#EFF1F3]"
+                      >
+                        <View className="w-[16px] h-[16px] items-center justify-center">
+                          {idx % 3 === 0 ? (
+                            <Pf1Svg width={16} height={16} />
+                          ) : idx % 3 === 1 ? (
+                            <Pf2Svg width={16} height={16} />
+                          ) : (
+                            <Pf3Svg width={16} height={16} />
+                          )}
+                        </View>
+                        <Text
+                          allowFontScaling={false}
+                          className="text-[12px] font-inter-regular text-[#8A9A9D] flex-1 leading-[18px]"
+                        >
+                          {feature}
+                        </Text>
+                      </View>
+                    ))}
                   </View>
-                  <Text
-                    allowFontScaling={false}
-                    className="text-[12px] font-inter-regular text-[#8A9A9D] flex-1 leading-[18px]"
-                  >
-                    Spot unusual activities early, so you can investigate before they become bigger
-                    issues.
-                  </Text>
-                </View>
-
-                <View className="bg-white rounded-[16px] px-[16px] py-[8px] mb-3 flex-row items-center gap-[12px] min-h-[44px] border border-[#EFF1F3]">
-                  <View className="w-[16px] h-[16px] items-center justify-center">
-                    <Pf2Svg width={16} height={16} />
-                  </View>
-                  <Text
-                    allowFontScaling={false}
-                    className="text-[12px] font-inter-regular text-[#8A9A9D] flex-1 leading-[18px]"
-                  >
-                    Instead of reviewing everything, instantly see the people or patterns that
-                    deserve your attention.
-                  </Text>
-                </View>
-
-                <View className="bg-white rounded-[16px] px-[16px] py-[8px] mb-8 flex-row items-center gap-[12px] min-h-[44px] border border-[#EFF1F3]">
-                  <View className="w-[16px] h-[16px] items-center justify-center">
-                    <Pf3Svg width={16} height={16} />
-                  </View>
-                  <Text
-                    allowFontScaling={false}
-                    className="text-[12px] font-inter-regular text-[#8A9A9D] flex-1 leading-[18px]"
-                  >
-                    No complicated reports. Get simple insights that help you understand what&apos;s
-                    happening and why.
-                  </Text>
-                </View>
+                )}
 
                 {/* Choose Subscription Plan */}
                 <Text
@@ -592,18 +578,19 @@ export default function AnomalyDetectionPreviewScreen() {
                   >
                     {tierOneApi?.tier ? formatTierName(tierOneApi.tier) : 'Tier One'}
                   </Text>
-                  <Text
-                    allowFontScaling={false}
-                    className="text-[15px] font-inter-medium text-[#113E55] leading-[22px] mb-2.5"
-                  >
-                    {tierOneApi?.name || 'Access Code Anomaly Scan'}
-                  </Text>
+                  {tierOneApi?.name && (
+                    <Text
+                      allowFontScaling={false}
+                      className="text-[15px] font-inter-medium text-[#113E55] leading-[22px] mb-2.5"
+                    >
+                      {tierOneApi.name}
+                    </Text>
+                  )}
                   <Text
                     allowFontScaling={false}
                     className="text-[11.2px] font-inter-regular text-[#8A9A9D] leading-[16px] text-justify"
                   >
-                    {tierOneApi?.description ||
-                      'Instead of reviewing everything, instantly see the people or patterns that deserve your attention.'}
+                    {tierOneApi?.description}
                   </Text>
 
                   <Pressable
@@ -627,29 +614,19 @@ export default function AnomalyDetectionPreviewScreen() {
 
                   {expandedTier === 'Tier One' && (
                     <View className="space-y-3">
-                      {[0, 1, 2, 3, 4].map((index) => {
-                        const isActive = index < 3;
-                        return (
-                          <View key={index} className="flex-row items-start gap-2 mb-3">
-                            <View
-                              className={`rounded-full p-[2px] mt-[2px] ${isActive ? 'bg-[#CEE5ED]' : 'bg-[#EFF1F3]'}`}
-                            >
-                              <MaterialIcons
-                                name="check"
-                                size={12}
-                                color={isActive ? '#113E55' : '#A0AAB0'}
-                              />
-                            </View>
-                            <Text
-                              allowFontScaling={false}
-                              className={`text-[11.2px] font-inter-regular flex-1 leading-[16px] text-justify ${isActive ? 'text-[#8A9A9D]' : 'text-[#B5BFC4]'}`}
-                            >
-                              Instead of reviewing everything, instantly see the people or patterns
-                              that deserve your attention.
-                            </Text>
+                      {(tierOneApi?.benefits || []).map((benefit, index) => (
+                        <View key={index} className="flex-row items-start gap-2 mb-3">
+                          <View className="bg-[#CEE5ED] rounded-full p-[2px] mt-[2px]">
+                            <MaterialIcons name="check" size={12} color="#113E55" />
                           </View>
-                        );
-                      })}
+                          <Text
+                            allowFontScaling={false}
+                            className="text-[11.2px] font-inter-regular text-[#8A9A9D] flex-1 leading-[16px] text-justify"
+                          >
+                            {benefit}
+                          </Text>
+                        </View>
+                      ))}
                       <Pressable
                         disabled={isSubscribing}
                         onPress={() => handleSubscribe(tierOneApi || { tier: 'Tier One' })}
@@ -680,18 +657,19 @@ export default function AnomalyDetectionPreviewScreen() {
                   >
                     {tierTwoApi?.tier ? formatTierName(tierTwoApi.tier) : 'Tier Two'}
                   </Text>
-                  <Text
-                    allowFontScaling={false}
-                    className="text-[15px] font-inter-medium text-[#113E55] leading-[22px] mb-2.5"
-                  >
-                    {tierTwoApi?.name || 'Anomaly Scan Results In-house AI Review'}
-                  </Text>
+                  {tierTwoApi?.name && (
+                    <Text
+                      allowFontScaling={false}
+                      className="text-[15px] font-inter-medium text-[#113E55] leading-[22px] mb-2.5"
+                    >
+                      {tierTwoApi.name}
+                    </Text>
+                  )}
                   <Text
                     allowFontScaling={false}
                     className="text-[11.2px] font-inter-regular text-[#8A9A9D] leading-[16px] text-justify"
                   >
-                    {tierTwoApi?.description ||
-                      'Instead of reviewing everything, instantly see the people or patterns that deserve your attention.'}
+                    {tierTwoApi?.description}
                   </Text>
 
                   <Pressable
@@ -715,29 +693,19 @@ export default function AnomalyDetectionPreviewScreen() {
 
                   {expandedTier === 'Tier Two' && (
                     <View className="space-y-3">
-                      {[0, 1, 2, 3, 4].map((index) => {
-                        const isActive = index < 3;
-                        return (
-                          <View key={index} className="flex-row items-start gap-2 mb-3">
-                            <View
-                              className={`rounded-full p-[2px] mt-[2px] ${isActive ? 'bg-[#CEE5ED]' : 'bg-[#EFF1F3]'}`}
-                            >
-                              <MaterialIcons
-                                name="check"
-                                size={12}
-                                color={isActive ? '#113E55' : '#A0AAB0'}
-                              />
-                            </View>
-                            <Text
-                              allowFontScaling={false}
-                              className={`text-[11.2px] font-inter-regular flex-1 leading-[16px] text-justify ${isActive ? 'text-[#8A9A9D]' : 'text-[#B5BFC4]'}`}
-                            >
-                              Instead of reviewing everything, instantly see the people or patterns
-                              that deserve your attention.
-                            </Text>
+                      {(tierTwoApi?.benefits || []).map((benefit, index) => (
+                        <View key={index} className="flex-row items-start gap-2 mb-3">
+                          <View className="bg-[#CEE5ED] rounded-full p-[2px] mt-[2px]">
+                            <MaterialIcons name="check" size={12} color="#113E55" />
                           </View>
-                        );
-                      })}
+                          <Text
+                            allowFontScaling={false}
+                            className="text-[11.2px] font-inter-regular text-[#8A9A9D] flex-1 leading-[16px] text-justify"
+                          >
+                            {benefit}
+                          </Text>
+                        </View>
+                      ))}
                       <Pressable
                         disabled={isSubscribing}
                         onPress={() => handleSubscribe(tierTwoApi || { tier: 'Tier Two' })}
@@ -768,18 +736,19 @@ export default function AnomalyDetectionPreviewScreen() {
                   >
                     {tierThreeApi?.tier ? formatTierName(tierThreeApi.tier) : 'Tier Three'}
                   </Text>
-                  <Text
-                    allowFontScaling={false}
-                    className="text-[15px] font-inter-medium text-[#113E55] leading-[22px] mb-2.5"
-                  >
-                    {tierThreeApi?.name || 'Anomaly Scan Results Third-Party AI Review'}
-                  </Text>
+                  {tierThreeApi?.name && (
+                    <Text
+                      allowFontScaling={false}
+                      className="text-[15px] font-inter-medium text-[#113E55] leading-[22px] mb-2.5"
+                    >
+                      {tierThreeApi.name}
+                    </Text>
+                  )}
                   <Text
                     allowFontScaling={false}
                     className="text-[11.2px] font-inter-regular text-[#8A9A9D] leading-[16px] text-justify"
                   >
-                    {tierThreeApi?.description ||
-                      'Instead of reviewing everything, instantly see the people or patterns that deserve your attention.'}
+                    {tierThreeApi?.description}
                   </Text>
 
                   <Pressable
@@ -807,7 +776,7 @@ export default function AnomalyDetectionPreviewScreen() {
 
                   {expandedTier === 'Tier Three' && (
                     <View className="space-y-3">
-                      {[0, 1, 2, 3, 4].map((index) => (
+                      {(tierThreeApi?.benefits || []).map((benefit, index) => (
                         <View key={index} className="flex-row items-start gap-2 mb-3">
                           <View className="bg-[#CEE5ED] rounded-full p-[2px] mt-[2px]">
                             <MaterialIcons name="check" size={12} color="#113E55" />
@@ -816,8 +785,7 @@ export default function AnomalyDetectionPreviewScreen() {
                             allowFontScaling={false}
                             className="text-[11.2px] font-inter-regular text-[#8A9A9D] flex-1 leading-[16px] text-justify"
                           >
-                            Instead of reviewing everything, instantly see the people or patterns
-                            that deserve your attention.
+                            {benefit}
                           </Text>
                         </View>
                       ))}
@@ -852,7 +820,11 @@ export default function AnomalyDetectionPreviewScreen() {
         onSubmit={handleRate}
       />
 
-      <DataInsightModal visible={dataInsightVisible} onClose={() => setDataInsightVisible(false)} />
+      <DataInsightModal
+        visible={dataInsightVisible}
+        onClose={() => setDataInsightVisible(false)}
+        dataInsight={featureDetail?.data_insight}
+      />
     </Animated.View>
   );
 }
