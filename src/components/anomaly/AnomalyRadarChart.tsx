@@ -36,12 +36,15 @@ const AnomalyRadarChart = ({
     },
   ],
   labels = ['Data 1', 'Data 2', 'Data 3', 'Data 4', 'Data 5', 'Data 6'],
-  size = SCREEN_WIDTH,
+  size = SCREEN_WIDTH - 32,
   gridColor = '#E5E7EB',
   levels = 4,
 }: AnomalyRadarChartProps) => {
-  const center = size / 2;
-  const radius = Math.max(50, size / 2 - 110); // Leave plenty of space for labels so they don't clip
+  const width = size;
+  const height = 320;
+  const centerX = width / 2;
+  const centerY = height / 2;
+  const radius = Math.max(45, Math.min(centerX - 95, centerY - 45)); // Ensure wide enough margins for pills
   const dataLength = labels.length;
 
   const maxDataValue = Math.max(...(series?.flatMap((s) => s.data) || []));
@@ -54,8 +57,8 @@ const AnomalyRadarChart = ({
       .map((val, i) => {
         const angle = (Math.PI * 2 * i) / dataLength - Math.PI / 2;
         const distance = (val / scale) * radius;
-        const x = center + distance * Math.cos(angle);
-        const y = center + distance * Math.sin(angle);
+        const x = centerX + distance * Math.cos(angle);
+        const y = centerY + distance * Math.sin(angle);
         return `${x},${y}`;
       })
       .join(' ');
@@ -65,14 +68,14 @@ const AnomalyRadarChart = ({
     const angle = (Math.PI * 2 * i) / total - Math.PI / 2;
     const distance = radius + labelRadiusOffset;
     return {
-      x: center + distance * Math.cos(angle),
-      y: center + distance * Math.sin(angle),
+      x: centerX + distance * Math.cos(angle),
+      y: centerY + distance * Math.sin(angle),
     };
   };
 
   return (
-    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
-      <Svg width={size} height={size}>
+    <View style={{ width: width, height: height, alignItems: 'center', justifyContent: 'center' }}>
+      <Svg width={width} height={height}>
         {/* Draw background grid (concentric polygons) */}
         {[...Array(levels)].map((_, i) => {
           const levelRatio = (i + 1) / levels;
@@ -91,13 +94,13 @@ const AnomalyRadarChart = ({
         {/* Draw axes (lines from center to corners) */}
         {labels.map((_, i) => {
           const angle = (Math.PI * 2 * i) / dataLength - Math.PI / 2;
-          const x = center + radius * Math.cos(angle);
-          const y = center + radius * Math.sin(angle);
+          const x = centerX + radius * Math.cos(angle);
+          const y = centerY + radius * Math.sin(angle);
           return (
             <Line
               key={`axis-${i}`}
-              x1={center}
-              y1={center}
+              x1={centerX}
+              y1={centerY}
               x2={x}
               y2={y}
               stroke={gridColor}
@@ -118,8 +121,8 @@ const AnomalyRadarChart = ({
             {s.data.map((val, i) => {
               const angle = (Math.PI * 2 * i) / dataLength - Math.PI / 2;
               const distance = (val / scaleMax) * radius;
-              const x = center + distance * Math.cos(angle);
-              const y = center + distance * Math.sin(angle);
+              const x = centerX + distance * Math.cos(angle);
+              const y = centerY + distance * Math.sin(angle);
               return <Circle key={`point-${index}-${i}`} cx={x} cy={y} r="4" fill={s.dotColor} />;
             })}
           </React.Fragment>
@@ -128,7 +131,7 @@ const AnomalyRadarChart = ({
 
       {/* Draw Labels as absolute positioned components outside SVG */}
       {labels.map((label, i) => {
-        const { x, y } = getLabelCoordinates(i, dataLength, 24); // increase offset slightly to fit pills
+        const { x, y } = getLabelCoordinates(i, dataLength, 20); // increase offset slightly to fit pills
 
         const PALETTE = [
           { text: '#F46036', bg: '#FFF0F0' },
@@ -142,11 +145,11 @@ const AnomalyRadarChart = ({
 
         let positionStyle: any = { top: y - 12, justifyContent: 'center' };
 
-        if (x > center + 10) {
+        if (x > centerX + 10) {
           positionStyle.left = x;
           positionStyle.alignItems = 'flex-start';
-        } else if (x < center - 10) {
-          positionStyle.right = size - x;
+        } else if (x < centerX - 10) {
+          positionStyle.right = width - x;
           positionStyle.alignItems = 'flex-end';
         } else {
           positionStyle.left = 0;
@@ -159,10 +162,11 @@ const AnomalyRadarChart = ({
             <View
               style={{
                 backgroundColor: colorSet.bg,
-                paddingHorizontal: 10,
-                paddingVertical: 6,
-                borderRadius: 14,
-                maxWidth: 100,
+                paddingHorizontal: 8,
+                height: 26,
+                justifyContent: 'center',
+                borderRadius: 16,
+                maxWidth: 80,
               }}
             >
               <TextTicker

@@ -8,9 +8,14 @@ import {
   Animated,
   ActivityIndicator,
   Alert,
+  Modal,
+  Platform,
+  StyleSheet
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { BlurView } from 'expo-blur';
+import Reanimated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { MaterialIcons, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { sharedStyles } from '@/src/theme/styles';
 import AnomalyRadarChart from '@/src/components/anomaly/AnomalyRadarChart';
@@ -22,6 +27,9 @@ import TotalUsersSvg from '@/src/assets/icons/totalusers.svg';
 import GuestMaleSvg from '@/src/assets/images/guestmale.svg';
 import GuestFemaleSvg from '@/src/assets/images/guestfemale.svg';
 import ExportSvg from '@/src/assets/images/export.svg';
+import AiSummaryExpandSvg from '@/src/assets/images/aisummaryexpand.svg';
+import TimeIconSvg from '@/src/assets/images/timeicon.svg';
+import ThirdPartySvg from '@/src/assets/images/thirdparty.svg';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import {
   useAnomalyCaseDemographic,
@@ -139,9 +147,12 @@ export default function AnomalyDetectionUserDetailsScreen() {
   const { id, gender, user_type, display_name, date_from, date_to } = useLocalSearchParams();
   const estateId = useUserStore((state: any) => state.estate_id) || '';
   const [aiState, setAiState] = useState<'idle' | 'loading' | 'loaded' | 'forbidden' | 'error'>(
-    'idle'
+    'loaded'
   );
   const [showAiSummaryModal, setShowAiSummaryModal] = useState(false);
+  const [activeCarouselIndex, setActiveCarouselIndex] = useState(0);
+  const [modalInitialIndex, setModalInitialIndex] = useState(0);
+  const [showComingSoon, setShowComingSoon] = useState(false);
 
   const formatDateObj = (dateStr: string) => {
     if (!dateStr) return '';
@@ -158,20 +169,15 @@ export default function AnomalyDetectionUserDetailsScreen() {
   const dateRangeText =
     displayDateFrom && displayDateTo ? `${displayDateFrom} • ${displayDateTo}` : '';
 
-  const { data: rawDemographic } = useAnomalyCaseDemographic(estateId, id as string);
-  const { data: rawHistoryData } = useAnomalyCaseHistory(estateId, id as string);
-  const { data: rawResultsData } = useAnomalyCaseResults(estateId, id as string);
+  const { data: demographic } = useAnomalyCaseDemographic(estateId, id as string);
+  const { data: historyData } = useAnomalyCaseHistory(estateId, id as string);
+  const { data: resultsData } = useAnomalyCaseResults(estateId, id as string);
 
-  const { refetch: fetchSummary, data: rawSummaryData } = useAnomalyCaseSummary(
+  const { refetch: fetchSummary, data: summaryData } = useAnomalyCaseSummary(
     estateId,
     id as string,
     false
   );
-  const summaryData: any = rawSummaryData;
-
-  const demographic: any = rawDemographic || {};
-  let historyData: any = rawHistoryData || {};
-  const resultsData: any = rawResultsData || {};
 
   const userTypeStr =
     typeof user_type === 'string' && user_type
@@ -365,7 +371,7 @@ export default function AnomalyDetectionUserDetailsScreen() {
           User Overview
         </Text>
         <Pressable
-          onPress={() => Alert.alert('Coming Soon', 'This feature is not yet active.')}
+          onPress={() => setShowComingSoon(true)}
           style={{
             width: 32,
             height: 32,
@@ -641,7 +647,16 @@ export default function AnomalyDetectionUserDetailsScreen() {
                 {(Array.isArray(historyData) ? historyData : historyData?.items)?.length > 0 ? (
                   (Array.isArray(historyData) ? historyData : historyData?.items).map(
                     (record: any, index: number) => {
-                      const isHigh = record.severity?.toLowerCase() === 'high';
+                      const sev = (record.severity || 'low').toLowerCase();
+                      let bgColor = '#1B998B1F';
+                      let textColor = '#1B998B';
+                      if (sev === 'high') {
+                        bgColor = '#F61C1C1F';
+                        textColor = '#E30404';
+                      } else if (sev === 'medium') {
+                        bgColor = '#FBFBEE';
+                        textColor = '#D97706';
+                      }
                       const d = new Date(record.validated_at);
                       const timeString = isNaN(d.getTime())
                         ? '--:--'
@@ -718,23 +733,26 @@ export default function AnomalyDetectionUserDetailsScreen() {
                               </Text>
                               <View
                                 style={{
-                                  backgroundColor: isHigh ? '#FEE2E2' : '#E0F2F1',
+                                  backgroundColor: bgColor,
                                   paddingHorizontal: 16,
-                                  paddingVertical: 6,
+                                  height: 28,
+                                  justifyContent: 'center',
+                                  alignItems: 'center',
                                   borderRadius: 16,
                                 }}
                               >
-                                <Text
-                                  allowFontScaling={false}
-                                  style={{
-                                    fontFamily: 'Inter_18pt-Regular',
-                                    fontSize: 12,
-                                    color: isHigh ? '#ED0808' : '#1B998B',
-                                    textTransform: 'capitalize',
-                                  }}
-                                >
-                                  {record.severity || 'Normal'}
-                                </Text>
+                                  <Text
+                                    allowFontScaling={false}
+                                    style={{
+                                      fontFamily: 'Inter_18pt-Regular',
+                                      fontSize: 11.2,
+                                      lineHeight: 11.2,
+                                      color: textColor,
+                                      textTransform: 'uppercase',
+                                    }}
+                                  >
+                                    {sev === 'medium' ? 'MED' : record.severity || 'Normal'}
+                                  </Text>
                               </View>
                             </View>
                           </View>
@@ -944,156 +962,80 @@ export default function AnomalyDetectionUserDetailsScreen() {
               decelerationRate="fast"
               disableIntervalMomentum
               contentContainerStyle={{ gap: 16 }}
+              onScroll={(e) => {
+                const offset = e.nativeEvent.contentOffset.x;
+                const index = Math.round(offset / 330);
+                if (index !== activeCarouselIndex) setActiveCarouselIndex(index);
+              }}
+              scrollEventThrottle={16}
             >
-              {summaryData?.tier1 && (
-                <Pressable
-                  onPress={() => setShowAiSummaryModal(true)}
-                  style={{
-                    width: 314, // Fixed width for carousel items
-                    backgroundColor: '#FFFFFF',
-                    borderRadius: 24,
-                    padding: 20,
-                    borderWidth: 1,
-                    borderColor: '#EFF1F3',
-                  }}
-                >
-                  <View
+              {['tier1', 'tier2'].map((tierKey, idx) => {
+                const tierData = summaryData?.[tierKey];
+                if (!tierData) return null;
+                const isTier1 = tierKey === 'tier1';
+                
+                return (
+                  <Pressable
+                    key={tierKey}
+                    onPress={() => {
+                      setModalInitialIndex(idx);
+                      setShowAiSummaryModal(true);
+                    }}
                     style={{
-                      flexDirection: 'row',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      marginBottom: 12,
+                      width: 314, // Fixed width for carousel items
+                      backgroundColor: '#FFFFFF',
+                      borderRadius: 24,
+                      padding: 20,
+                      borderWidth: 1,
+                      borderColor: '#EFF1F3',
                     }}
                   >
-                    <Text
-                      allowFontScaling={false}
-                      style={{ fontFamily: 'UbuntuSans-Medium', fontSize: 16, color: '#113E55' }}
-                    >
-                      AI Summary
-                    </Text>
                     <View
                       style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: 16,
-                        backgroundColor: '#EFF1F3',
+                        flexDirection: 'row',
+                        justifyContent: 'space-between',
                         alignItems: 'center',
-                        justifyContent: 'center',
+                        marginBottom: 12,
                       }}
                     >
-                      <MaterialCommunityIcons name="arrow-expand-all" size={16} color="#113E55" />
-                    </View>
-                  </View>
-                  <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
-                    <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
-                      <MaterialIcons name="schedule" size={12} color="#F46036" />
                       <Text
                         allowFontScaling={false}
-                        style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 10, color: '#F46036' }}
+                        style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 17.5, color: '#0A1F29' }}
                       >
-                        2 mins Read
+                        AI Summary
                       </Text>
+                      <AiSummaryExpandSvg width={32} height={32} />
                     </View>
-                    <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
-                      <MaterialIcons name="security" size={12} color="#1B998B" />
-                      <Text
-                        allowFontScaling={false}
-                        style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 10, color: '#1B998B' }}
-                      >
-                        Third Party
-                      </Text>
+                    <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
+                      <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center', paddingHorizontal: 8, paddingVertical: 4, backgroundColor: '#FFF0F0', borderRadius: 10 }}>
+                        <TimeIconSvg width={12} height={12} color="#F46036" />
+                        <Text
+                          allowFontScaling={false}
+                          style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 10, color: '#F46036' }}
+                        >
+                          2 mins Read
+                        </Text>
+                      </View>
+                      <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center', paddingHorizontal: 8, paddingVertical: 4, backgroundColor: '#E5F5F3', borderRadius: 10 }}>
+                        <ThirdPartySvg width={12} height={12} color="#1B998B" />
+                        <Text
+                          allowFontScaling={false}
+                          style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 10, color: "#1B998B" }}
+                        >
+                          {isTier1 ? 'Third Party' : 'In house'}
+                        </Text>
+                      </View>
                     </View>
-                  </View>
-                  <Text
-                    allowFontScaling={false}
-                    numberOfLines={3}
-                    style={{
-                      fontFamily: 'Inter_18pt-Regular',
-                      fontSize: 12,
-                      color: '#8A9A9D',
-                      lineHeight: 20,
-                    }}
-                  >
-                    {summaryData?.tier1?.executive_summary ||
-                      'This section provides a detailed summary of the anomalous behavior detected for this user. It breaks down the key factors contributing to the anomaly, including unusual entry times, late-night activity, and irregular visitor patterns over the selected timeframe.'}
-                  </Text>
-                </Pressable>
-              )}
-
-              {summaryData?.tier2 && (
-                <Pressable
-                  onPress={() => setShowAiSummaryModal(true)}
-                  style={{
-                    width: 314, // Fixed width for carousel items
-                    backgroundColor: '#FFFFFF',
-                    borderRadius: 24,
-                    padding: 20,
-                    borderWidth: 1,
-                    borderColor: '#EFF1F3',
-                  }}
-                >
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      marginBottom: 12,
-                    }}
-                  >
                     <Text
                       allowFontScaling={false}
-                      style={{ fontFamily: 'UbuntuSans-Medium', fontSize: 16, color: '#113E55' }}
+                      numberOfLines={6}
+                      style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 11.2, color: '#878686', lineHeight: 18 }}
                     >
-                      AI Summary
+                      {tierData.executive_summary}
                     </Text>
-                    <View
-                      style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: 16,
-                        backgroundColor: '#EFF1F3',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <MaterialCommunityIcons name="arrow-expand-all" size={16} color="#113E55" />
-                    </View>
-                  </View>
-                  <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
-                    <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
-                      <MaterialIcons name="schedule" size={12} color="#F46036" />
-                      <Text
-                        allowFontScaling={false}
-                        style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 10, color: '#F46036' }}
-                      >
-                        2 mins Read
-                      </Text>
-                    </View>
-                    <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
-                      <MaterialIcons name="security" size={12} color="#1B998B" />
-                      <Text
-                        allowFontScaling={false}
-                        style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 10, color: '#1B998B' }}
-                      >
-                        In house
-                      </Text>
-                    </View>
-                  </View>
-                  <Text
-                    allowFontScaling={false}
-                    numberOfLines={3}
-                    style={{
-                      fontFamily: 'Inter_18pt-Regular',
-                      fontSize: 12,
-                      color: '#8A9A9D',
-                      lineHeight: 20,
-                    }}
-                  >
-                    {summaryData?.tier2?.executive_summary ||
-                      'This section provides a detailed summary of the anomalous behavior detected for this user. It breaks down the key factors contributing to the anomaly, including unusual entry times, late-night activity, and irregular visitor patterns over the selected timeframe.'}
-                  </Text>
-                </Pressable>
-              )}
+                  </Pressable>
+                );
+              })}
 
               {!summaryData?.tier1 && !summaryData?.tier2 && (
                 <View
@@ -1121,12 +1063,17 @@ export default function AnomalyDetectionUserDetailsScreen() {
               <View
                 style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 12, gap: 6 }}
               >
-                <View
-                  style={{ width: 16, height: 6, borderRadius: 3, backgroundColor: '#113E55' }}
-                />
-                <View
-                  style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#C4CDD0' }}
-                />
+                {[0, 1].map((dotIndex) => (
+                  <View
+                    key={dotIndex}
+                    style={{
+                      width: activeCarouselIndex === dotIndex ? 16 : 6,
+                      height: 6,
+                      borderRadius: 3,
+                      backgroundColor: activeCarouselIndex === dotIndex ? '#113E55' : '#C4CDD0'
+                    }}
+                  />
+                ))}
               </View>
             )}
           </View>
@@ -1318,7 +1265,53 @@ export default function AnomalyDetectionUserDetailsScreen() {
         visible={showAiSummaryModal}
         onClose={() => setShowAiSummaryModal(false)}
         summaryData={summaryData}
+        initialIndex={modalInitialIndex}
       />
+
+      <Modal visible={showComingSoon} transparent animationType="fade" onRequestClose={() => setShowComingSoon(false)}>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          {Platform.OS === 'ios' ? (
+            <BlurView intensity={15} tint="dark" style={StyleSheet.absoluteFill}>
+              <Pressable style={StyleSheet.absoluteFill} onPress={() => setShowComingSoon(false)} />
+            </BlurView>
+          ) : (
+            <BlurView intensity={25} tint="dark" style={StyleSheet.absoluteFill}>
+              <Pressable style={StyleSheet.absoluteFill} onPress={() => setShowComingSoon(false)} />
+            </BlurView>
+          )}
+
+          <Reanimated.View
+            entering={FadeIn.duration(250)}
+            exiting={FadeOut.duration(250)}
+            style={{
+              backgroundColor: '#F6F7F7',
+              width: 320,
+              borderRadius: 32,
+              padding: 24,
+              alignItems: 'center',
+              zIndex: 10,
+            }}
+          >
+            <View style={{ alignItems: 'center', paddingTop: 8, paddingBottom: 8, width: '100%' }}>
+              <Text allowFontScaling={false} style={{ fontFamily: 'UbuntuSans-Medium', fontSize: 22, color: '#0A1F29', marginBottom: 12 }}>
+                Coming Soon
+              </Text>
+              <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 15, color: '#8A9A9D', marginBottom: 32, textAlign: 'center', lineHeight: 22 }}>
+                This feature is not yet active. We are working hard to bring it to you soon!
+              </Text>
+              
+              <Pressable
+                onPress={() => setShowComingSoon(false)}
+                style={{ backgroundColor: '#113E55', width: '100%', paddingVertical: 16, borderRadius: 24, alignItems: 'center' }}
+              >
+                <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 16, color: '#FFFFFF' }}>
+                  Got it
+                </Text>
+              </Pressable>
+            </View>
+          </Reanimated.View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }

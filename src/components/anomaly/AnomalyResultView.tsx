@@ -10,8 +10,12 @@ import {
   NativeScrollEvent,
   ActivityIndicator,
   Image,
+  Modal,
+  Platform,
+  StyleSheet,
 } from 'react-native';
-import Animated, { FadeIn } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
+import { BlurView } from 'expo-blur';
 
 import { router } from 'expo-router';
 import { MaterialIcons, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -39,6 +43,7 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
   const [timeframeVisible, setTimeframeVisible] = useState(false);
   const [selectedTimeframe, setSelectedTimeframe] = useState('Last Week');
   const [datePickerVisible, setDatePickerVisible] = useState(false);
+  const [showComingSoon, setShowComingSoon] = useState(false);
   const [startDate, setStartDate] = useState<Date | null>(() => {
     const d = new Date();
     d.setDate(d.getDate() - 7);
@@ -186,7 +191,7 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
   };
 
   const handleExport = () => {
-    Alert.alert('Coming Soon', 'This feature is not yet active.');
+    setShowComingSoon(true);
   };
 
   const handleCycleRange = () => {
@@ -272,27 +277,26 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
         <Pressable
           onPress={handleCycleRange}
           style={{
-            minWidth: 93,
-            minHeight: 28,
-            borderRadius: 8,
+            width: 93,
+            height: 28,
+            borderRadius: 16,
+            backgroundColor: '#167A6F', // #1B998B + 20% black overlay
             paddingTop: 4,
             paddingRight: 8,
             paddingBottom: 4,
             paddingLeft: 8,
-            gap: 4,
             flexDirection: 'row',
             alignItems: 'center',
-            justifyContent: 'center',
-            opacity: 1,
+            justifyContent: 'space-between',
             marginBottom: 20,
             alignSelf: 'flex-start',
           }}
           hitSlop={8}
         >
-          <Text allowFontScaling={false} className="text-[12px] font-inter-medium text-[#113E55]">
+          <Text allowFontScaling={false} className="text-[12px] font-inter-medium text-white">
             {selectedRangeText}
           </Text>
-          <MaterialIcons name="keyboard-arrow-down" size={16} color="#113E55" />
+          <MaterialIcons name="keyboard-arrow-down" size={16} color="white" />
         </Pressable>
 
         {/* Name & Location Chips */}
@@ -900,15 +904,16 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
               </View>
             ) : (
               predictions.map((row: any, index: number) => {
-                const severityStr = (row.severity || 'LOW').toUpperCase();
-                let badgeBg = 'bg-[#E4F4F0]';
-                let badgeText = 'text-[#2B9B84]';
+                const severityRaw = (row.severity || 'LOW').toUpperCase();
+                const severityStr = severityRaw === 'MEDIUM' ? 'MED' : severityRaw;
+                let badgeBg = 'bg-[#1B998B1F]';
+                let badgeText = '#1B998B';
                 if (severityStr === 'HIGH') {
-                  badgeBg = 'bg-[#FDECEC]';
-                  badgeText = 'text-[#E12828]';
-                } else if (severityStr === 'MEDIUM' || severityStr === 'MED') {
-                  badgeBg = 'bg-[#FCF6E3]';
-                  badgeText = 'text-[#B68A13]';
+                  badgeBg = 'bg-[#F61C1C1F]';
+                  badgeText = '#E30404';
+                } else if (severityStr === 'MED') {
+                  badgeBg = 'bg-[#FBFBEE]';
+                  badgeText = '#D97706';
                 }
 
                 return (
@@ -961,10 +966,16 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
                       </Text>
                     </View>
                     <View style={{ width: 90, alignItems: 'center' }}>
-                      <View className={`px-4 py-1.5 rounded-full ${badgeBg}`}>
+                      <View className={`px-4 h-[28px] items-center justify-center rounded-full ${badgeBg}`}>
                         <Text
                           allowFontScaling={false}
-                          className={`text-[12px] font-inter-semibold ${badgeText}`}
+                          style={{
+                            fontFamily: 'Inter_18pt-Regular',
+                            fontSize: 11.2,
+                            lineHeight: 11.2,
+                            color: badgeText,
+                            textTransform: 'uppercase',
+                          }}
                         >
                           {severityStr}
                         </Text>
@@ -1515,6 +1526,51 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
           setSelectedGaugeIndex((selectedGaugeIndex - 1 + gaugeList.length) % gaugeList.length)
         }
       />
+
+      <Modal visible={showComingSoon} transparent animationType="fade" onRequestClose={() => setShowComingSoon(false)}>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          {Platform.OS === 'ios' ? (
+            <BlurView intensity={15} tint="dark" style={StyleSheet.absoluteFill}>
+              <Pressable style={StyleSheet.absoluteFill} onPress={() => setShowComingSoon(false)} />
+            </BlurView>
+          ) : (
+            <BlurView intensity={25} tint="dark" style={StyleSheet.absoluteFill}>
+              <Pressable style={StyleSheet.absoluteFill} onPress={() => setShowComingSoon(false)} />
+            </BlurView>
+          )}
+
+          <Animated.View
+            entering={FadeIn.duration(250)}
+            exiting={FadeOut.duration(250)}
+            style={{
+              backgroundColor: '#F6F7F7',
+              width: 320,
+              borderRadius: 32,
+              padding: 24,
+              alignItems: 'center',
+              zIndex: 10,
+            }}
+          >
+            <View style={{ alignItems: 'center', paddingTop: 8, paddingBottom: 8, width: '100%' }}>
+              <Text allowFontScaling={false} style={{ fontFamily: 'UbuntuSans-Medium', fontSize: 22, color: '#0A1F29', marginBottom: 12 }}>
+                Coming Soon
+              </Text>
+              <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 15, color: '#8A9A9D', marginBottom: 32, textAlign: 'center', lineHeight: 22 }}>
+                This feature is not yet active. We are working hard to bring it to you soon!
+              </Text>
+              
+              <Pressable
+                onPress={() => setShowComingSoon(false)}
+                style={{ backgroundColor: '#113E55', width: '100%', paddingVertical: 16, borderRadius: 24, alignItems: 'center' }}
+              >
+                <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 16, color: '#FFFFFF' }}>
+                  Got it
+                </Text>
+              </Pressable>
+            </View>
+          </Animated.View>
+        </View>
+      </Modal>
     </Animated.View>
   );
 }

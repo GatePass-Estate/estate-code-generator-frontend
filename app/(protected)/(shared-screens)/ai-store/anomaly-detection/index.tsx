@@ -627,22 +627,43 @@ export default function AnomalyDetectionPreviewScreen() {
                           </Text>
                         </View>
                       ))}
-                      <Pressable
-                        disabled={isSubscribing}
-                        onPress={() => handleSubscribe(tierOneApi || { tier: 'Tier One' })}
-                        className="w-full h-[48px] bg-[#113E55] rounded-full items-center justify-center mt-4"
-                      >
-                        {subscribingTierKey === (tierOneApi?.tier || 'Tier One') ? (
-                          <ActivityIndicator size="small" color="white" />
-                        ) : (
-                          <Text
-                            allowFontScaling={false}
-                            className="text-[14px] font-inter-medium text-white"
+                      {tierOneApi?.is_installed ? (
+                        <View className="gap-3 mt-4">
+                          <Pressable
+                            className="w-full h-[48px] bg-[#113E55] rounded-full items-center justify-center"
+                            onPress={() => {}}
                           >
-                            {tierOneApi?.is_installed ? 'Installed' : 'Activate'}
-                          </Text>
-                        )}
-                      </Pressable>
+                            <Text allowFontScaling={false} className="text-[14px] font-inter-medium text-white">
+                              Cancel Subscription
+                            </Text>
+                          </Pressable>
+                          <Pressable
+                            className="w-full h-[48px] bg-[#E3F5FC] rounded-full items-center justify-center"
+                            onPress={() => {}}
+                          >
+                            <Text allowFontScaling={false} className="text-[14px] font-inter-medium text-[#113E55]">
+                              Uninstall
+                            </Text>
+                          </Pressable>
+                        </View>
+                      ) : (
+                        <Pressable
+                          disabled={isSubscribing}
+                          onPress={() => handleSubscribe(tierOneApi || { tier: 'Tier One' })}
+                          className="w-full h-[48px] bg-[#113E55] rounded-full items-center justify-center mt-4"
+                        >
+                          {subscribingTierKey === (tierOneApi?.tier || 'Tier One') ? (
+                            <ActivityIndicator size="small" color="white" />
+                          ) : (
+                            <Text
+                              allowFontScaling={false}
+                              className="text-[14px] font-inter-medium text-white"
+                            >
+                              Activate
+                            </Text>
+                          )}
+                        </Pressable>
+                      )}
                     </View>
                   )}
                 </View>
@@ -706,22 +727,43 @@ export default function AnomalyDetectionPreviewScreen() {
                           </Text>
                         </View>
                       ))}
-                      <Pressable
-                        disabled={isSubscribing}
-                        onPress={() => handleSubscribe(tierTwoApi || { tier: 'Tier Two' })}
-                        className="w-full h-[48px] bg-[#113E55] rounded-full items-center justify-center mt-4"
-                      >
-                        {subscribingTierKey === (tierTwoApi?.tier || 'Tier Two') ? (
-                          <ActivityIndicator size="small" color="white" />
-                        ) : (
-                          <Text
-                            allowFontScaling={false}
-                            className="text-[14px] font-inter-medium text-white"
+                      {tierTwoApi?.is_installed ? (
+                        <View className="gap-3 mt-4">
+                          <Pressable
+                            className="w-full h-[48px] bg-[#113E55] rounded-full items-center justify-center"
+                            onPress={() => {}}
                           >
-                            {tierTwoApi?.is_installed ? 'Installed' : 'Activate'}
-                          </Text>
-                        )}
-                      </Pressable>
+                            <Text allowFontScaling={false} className="text-[14px] font-inter-medium text-white">
+                              Cancel Subscription
+                            </Text>
+                          </Pressable>
+                          <Pressable
+                            className="w-full h-[48px] bg-[#E3F5FC] rounded-full items-center justify-center"
+                            onPress={() => {}}
+                          >
+                            <Text allowFontScaling={false} className="text-[14px] font-inter-medium text-[#113E55]">
+                              Uninstall
+                            </Text>
+                          </Pressable>
+                        </View>
+                      ) : (
+                        <Pressable
+                          disabled={isSubscribing}
+                          onPress={() => handleSubscribe(tierTwoApi || { tier: 'Tier Two' })}
+                          className="w-full h-[48px] bg-[#113E55] rounded-full items-center justify-center mt-4"
+                        >
+                          {subscribingTierKey === (tierTwoApi?.tier || 'Tier Two') ? (
+                            <ActivityIndicator size="small" color="white" />
+                          ) : (
+                            <Text
+                              allowFontScaling={false}
+                              className="text-[14px] font-inter-medium text-white"
+                            >
+                              Activate
+                            </Text>
+                          )}
+                        </Pressable>
+                      )}
                     </View>
                   )}
                 </View>
@@ -789,22 +831,43 @@ export default function AnomalyDetectionPreviewScreen() {
                           </Text>
                         </View>
                       ))}
-                      <Pressable
-                        disabled={isSubscribing}
-                        onPress={() => handleSubscribe(tierThreeApi || { tier: 'Tier Three' })}
-                        className="w-full h-[48px] bg-[#113E55] rounded-full items-center justify-center mt-4"
-                      >
-                        {subscribingTierKey === (tierThreeApi?.tier || 'Tier Three') ? (
-                          <ActivityIndicator size="small" color="white" />
-                        ) : (
-                          <Text
-                            allowFontScaling={false}
-                            className="text-[14px] font-inter-medium text-white"
+                      {tierThreeApi?.is_installed ? (
+                        <View className="gap-3 mt-4">
+                          <Pressable
+                            className="w-full h-[48px] bg-[#113E55] rounded-full items-center justify-center"
+                            onPress={() => {}}
                           >
-                            {tierThreeApi?.is_installed ? 'Installed' : 'Activate'}
-                          </Text>
-                        )}
-                      </Pressable>
+                            <Text allowFontScaling={false} className="text-[14px] font-inter-medium text-white">
+                              Cancel Subscription
+                            </Text>
+                          </Pressable>
+                          <Pressable
+                            className="w-full h-[48px] bg-[#E3F5FC] rounded-full items-center justify-center"
+                            onPress={() => {}}
+                          >
+                            <Text allowFontScaling={false} className="text-[14px] font-inter-medium text-[#113E55]">
+                              Uninstall
+                            </Text>
+                          </Pressable>
+                        </View>
+                      ) : (
+                        <Pressable
+                          disabled={isSubscribing}
+                          onPress={() => handleSubscribe(tierThreeApi || { tier: 'Tier Three' })}
+                          className="w-full h-[48px] bg-[#113E55] rounded-full items-center justify-center mt-4"
+                        >
+                          {subscribingTierKey === (tierThreeApi?.tier || 'Tier Three') ? (
+                            <ActivityIndicator size="small" color="white" />
+                          ) : (
+                            <Text
+                              allowFontScaling={false}
+                              className="text-[14px] font-inter-medium text-white"
+                            >
+                              Activate
+                            </Text>
+                          )}
+                        </Pressable>
+                      )}
                     </View>
                   )}
                 </View>

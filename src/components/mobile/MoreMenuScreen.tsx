@@ -18,6 +18,7 @@ import Svg, { Path } from 'react-native-svg';
 import { useState, ReactNode } from 'react';
 import { useAuth } from '@/src/hooks/useAuthContext';
 import { useUserStore } from '@/src/lib/stores/userStore';
+import { useEstateEntitlements } from '@/src/lib/api/entitlements';
 import { revokeAllSessions } from '@/src/lib/api/auth';
 import { sharedStyles } from '@/src/theme/styles';
 import ScreenHeader from '@/src/components/mobile/ScreenHeader';
@@ -196,6 +197,11 @@ export default function MoreMenuScreen({
 
   const isAdmin = role === 'admin' || role === 'primary_admin' || role === 'root';
   const isPrimaryAdmin = role === 'primary_admin' || role === 'root';
+  
+  const { data: entitlements } = useEstateEntitlements();
+  const planName = entitlements?.tierSlug 
+    ? entitlements.tierSlug.charAt(0).toUpperCase() + entitlements.tierSlug.slice(1) 
+    : 'Free';
 
   const confirmLogOutAllDevices = () => {
     Alert.alert(
@@ -255,7 +261,7 @@ export default function MoreMenuScreen({
             <BannerCard
               colors={['#185A75', '#5796AB']}
               icon={<Ionicons name="diamond-outline" size={24} color="white" />}
-              title="Current Plan"
+              title={`${planName} Plan`}
               subtitle="Upgrade your account plan to get exclusive features including Freeze, Scheduling and more"
               onPress={() => {}}
             />
