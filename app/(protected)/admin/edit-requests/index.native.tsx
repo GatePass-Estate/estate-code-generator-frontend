@@ -6,7 +6,7 @@ import {
   getRequests,
   getRequestById,
 } from '@/src/lib/api/requests';
-import { getUserById } from '@/src/lib/api/user';
+import { getUserByIdAdmin } from '@/src/lib/api/user';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { sharedStyles } from '@/src/theme/styles';
 import { EditRequestView } from '@/src/types/requests';
@@ -33,7 +33,7 @@ export const fetchEditRequests = async (): Promise<EditRequestView[]> => {
       data.items.map(async (item) => {
         const address = `${home_address}, ${estate_name}.`;
         try {
-          const user = await getUserById(item.resident_id);
+          const user = await getUserByIdAdmin(item.resident_id);
           const fullName = `${user.first_name || ''} ${user.last_name || ''}`.trim();
           return {
             id: item.id,
