@@ -32,6 +32,7 @@ const AccordionItem = ({
 }: {
   title: string;
   content: string | string[];
+  isList?: boolean;
   isLast?: boolean;
 }) => {
   const [expanded, setExpanded] = React.useState(true);

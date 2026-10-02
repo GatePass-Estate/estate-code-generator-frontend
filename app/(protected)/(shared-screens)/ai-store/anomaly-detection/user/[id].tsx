@@ -186,7 +186,8 @@ export default function AnomalyDetectionUserDetailsScreen() {
     typeof user_type === 'string' && user_type
       ? user_type
       : demographic?.user_type || (demographic as any)?.role || 'Guest';
-  const genderStr = typeof gender === 'string' && gender ? gender : (demographic as any)?.gender || '';
+  const genderStr =
+    typeof gender === 'string' && gender ? gender : (demographic as any)?.gender || '';
 
   const demo = {
     ...demographic,
@@ -653,121 +654,119 @@ export default function AnomalyDetectionUserDetailsScreen() {
 
               <View style={{ gap: 12 }}>
                 {historyRecords.length > 0 ? (
-                  historyRecords.map(
-                    (record: any, index: number) => {
-                      const sev = (record.severity || 'low').toLowerCase();
-                      let bgColor = '#1B998B1F';
-                      let textColor = '#1B998B';
-                      if (sev === 'high') {
-                        bgColor = '#F61C1C1F';
-                        textColor = '#E30404';
-                      } else if (sev === 'medium') {
-                        bgColor = '#FBFBEE';
-                        textColor = '#D97706';
-                      }
-                      const d = new Date(record.validated_at);
-                      const timeString = isNaN(d.getTime())
-                        ? '--:--'
-                        : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                      const dateString = isNaN(d.getTime())
-                        ? 'N/A'
-                        : `${d.getDate().toString().padStart(2, '0')}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getFullYear()}`;
+                  historyRecords.map((record: any, index: number) => {
+                    const sev = (record.severity || 'low').toLowerCase();
+                    let bgColor = '#1B998B1F';
+                    let textColor = '#1B998B';
+                    if (sev === 'high') {
+                      bgColor = '#F61C1C1F';
+                      textColor = '#E30404';
+                    } else if (sev === 'medium') {
+                      bgColor = '#FBFBEE';
+                      textColor = '#D97706';
+                    }
+                    const d = new Date(record.validated_at);
+                    const timeString = isNaN(d.getTime())
+                      ? '--:--'
+                      : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    const dateString = isNaN(d.getTime())
+                      ? 'N/A'
+                      : `${d.getDate().toString().padStart(2, '0')}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getFullYear()}`;
 
-                      return (
+                    return (
+                      <View
+                        key={`history-${index}`}
+                        style={{ flexDirection: 'row', alignItems: 'center', gap: 24 }}
+                      >
                         <View
-                          key={`history-${index}`}
-                          style={{ flexDirection: 'row', alignItems: 'center', gap: 24 }}
+                          style={{
+                            width: 26,
+                            height: 26,
+                            borderRadius: 13,
+                            borderWidth: 1.4,
+                            borderColor: '#8A9A9D',
+                            backgroundColor: '#F6F7F7',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            zIndex: 10,
+                          }}
                         >
                           <View
                             style={{
-                              width: 26,
-                              height: 26,
-                              borderRadius: 13,
-                              borderWidth: 1.4,
-                              borderColor: '#8A9A9D',
-                              backgroundColor: '#F6F7F7',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              zIndex: 10,
+                              width: 14,
+                              height: 14,
+                              borderRadius: 7,
+                              backgroundColor: '#8A9A9D',
+                            }}
+                          />
+                        </View>
+                        <View
+                          style={{
+                            flex: 1,
+                            height: 78,
+                            backgroundColor: '#FFFFFF',
+                            borderRadius: 16,
+                            paddingHorizontal: 16,
+                            paddingVertical: 12,
+                            justifyContent: 'space-between',
+                          }}
+                        >
+                          <Text
+                            allowFontScaling={false}
+                            style={{
+                              fontFamily: 'Inter_18pt-Regular',
+                              fontSize: 13,
+                              color: '#8A9A9D',
                             }}
                           >
-                            <View
-                              style={{
-                                width: 14,
-                                height: 14,
-                                borderRadius: 7,
-                                backgroundColor: '#8A9A9D',
-                              }}
-                            />
-                          </View>
+                            {timeString} • {dateString}
+                          </Text>
                           <View
                             style={{
-                              flex: 1,
-                              height: 78,
-                              backgroundColor: '#FFFFFF',
-                              borderRadius: 16,
-                              paddingHorizontal: 16,
-                              paddingVertical: 12,
+                              flexDirection: 'row',
                               justifyContent: 'space-between',
+                              alignItems: 'center',
                             }}
                           >
                             <Text
                               allowFontScaling={false}
                               style={{
-                                fontFamily: 'Inter_18pt-Regular',
-                                fontSize: 13,
-                                color: '#8A9A9D',
+                                fontFamily: 'UbuntuSans-SemiBold',
+                                fontSize: 22,
+                                lineHeight: 22,
+                                color: '#113E55',
                               }}
                             >
-                              {timeString} • {dateString}
+                              {record.validated_code || 'N/A'}
                             </Text>
                             <View
                               style={{
-                                flexDirection: 'row',
-                                justifyContent: 'space-between',
+                                backgroundColor: bgColor,
+                                paddingHorizontal: 16,
+                                height: 28,
+                                justifyContent: 'center',
                                 alignItems: 'center',
+                                borderRadius: 16,
                               }}
                             >
                               <Text
                                 allowFontScaling={false}
                                 style={{
-                                  fontFamily: 'UbuntuSans-SemiBold',
-                                  fontSize: 22,
-                                  lineHeight: 22,
-                                  color: '#113E55',
+                                  fontFamily: 'Inter_18pt-Regular',
+                                  fontSize: 11.2,
+                                  lineHeight: 11.2,
+                                  color: textColor,
+                                  textTransform: 'uppercase',
                                 }}
                               >
-                                {record.validated_code || 'N/A'}
+                                {sev === 'medium' ? 'MED' : record.severity || 'Normal'}
                               </Text>
-                              <View
-                                style={{
-                                  backgroundColor: bgColor,
-                                  paddingHorizontal: 16,
-                                  height: 28,
-                                  justifyContent: 'center',
-                                  alignItems: 'center',
-                                  borderRadius: 16,
-                                }}
-                              >
-                                <Text
-                                  allowFontScaling={false}
-                                  style={{
-                                    fontFamily: 'Inter_18pt-Regular',
-                                    fontSize: 11.2,
-                                    lineHeight: 11.2,
-                                    color: textColor,
-                                    textTransform: 'uppercase',
-                                  }}
-                                >
-                                  {sev === 'medium' ? 'MED' : record.severity || 'Normal'}
-                                </Text>
-                              </View>
                             </View>
                           </View>
                         </View>
-                      );
-                    }
-                  )
+                      </View>
+                    );
+                  })
                 ) : (
                   <Text
                     allowFontScaling={false}
