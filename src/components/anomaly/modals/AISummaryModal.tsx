@@ -42,7 +42,9 @@ const AccordionItem = ({
     <View style={{ flexDirection: 'row', minHeight: 40 }}>
       {/* Timeline Column */}
       <View style={{ width: 24, alignItems: 'center', marginRight: 12 }}>
-        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#D1D5DB', marginTop: 8 }} />
+        <View
+          style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#D1D5DB', marginTop: 8 }}
+        />
         {!isLast && (
           <View style={{ flex: 1, width: 1, backgroundColor: '#E5E7EB', marginVertical: 4 }} />
         )}
@@ -62,7 +64,12 @@ const AccordionItem = ({
         >
           <Text
             allowFontScaling={false}
-            style={{ fontFamily: 'Inter_18pt-Light', fontSize: 14, color: '#0A1F29', textTransform: 'uppercase' }}
+            style={{
+              fontFamily: 'Inter_18pt-Light',
+              fontSize: 14,
+              color: '#0A1F29',
+              textTransform: 'uppercase',
+            }}
           >
             {title}
           </Text>
@@ -120,7 +127,12 @@ const AccordionItem = ({
   );
 };
 
-export default function AISummaryModal({ visible, onClose, summaryData, initialIndex }: AISummaryModalProps) {
+export default function AISummaryModal({
+  visible,
+  onClose,
+  summaryData,
+  initialIndex,
+}: AISummaryModalProps) {
   const panY = React.useRef(new RNAnimated.Value(0)).current;
   const scrollViewRef = React.useRef<ScrollView>(null);
   const screenWidth = Dimensions.get('window').width;
@@ -196,93 +208,130 @@ export default function AISummaryModal({ visible, onClose, summaryData, initialI
             }}
           >
             {/* Draggable Handle Area */}
-            <View {...panResponder.panHandlers} style={{ height: 34, alignItems: 'center', justifyContent: 'center' }}>
             <View
-              style={{
-                width: 134,
-                height: 7,
-                borderRadius: 4,
-                backgroundColor: '#9B9797',
-              }}
-            />
-          </View>
+              {...panResponder.panHandlers}
+              style={{ height: 34, alignItems: 'center', justifyContent: 'center' }}
+            >
+              <View
+                style={{
+                  width: 134,
+                  height: 7,
+                  borderRadius: 4,
+                  backgroundColor: '#9B9797',
+                }}
+              />
+            </View>
 
-          <ScrollView
-            ref={scrollViewRef}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingBottom: 40 }}
-          >
-            {['tier1', 'tier2'].map((tierKey, idx) => {
-              const tierData = summaryData?.[tierKey];
-              if (!tierData) return null;
-              const isTier1 = tierKey === 'tier1';
-              
-              const sections = [
-                { title: "EXECUTIVE SUMMARY", content: tierData.executive_summary },
-                { title: "KEY PATTERNS", content: tierData.detailed_insight || tierData.key_patterns },
-                { title: "RISK DRIVERS", content: tierData.risk_drivers },
-                { title: "RECOMMENDED ACTIONS", content: tierData.recommended_actions },
-                { title: "DATA LIMITATIONS", content: tierData.data_limitations }
-              ].filter(sec => sec.content && (Array.isArray(sec.content) ? sec.content.length > 0 : true));
+            <ScrollView
+              ref={scrollViewRef}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: 40 }}
+            >
+              {['tier1', 'tier2'].map((tierKey, idx) => {
+                const tierData = summaryData?.[tierKey];
+                if (!tierData) return null;
+                const isTier1 = tierKey === 'tier1';
 
-              return (
-                <View
-                  key={tierKey}
-                  style={{
-                    width: Dimensions.get('window').width - 48,
-                    paddingRight: (idx === 0 && summaryData?.tier2) ? 24 : 0,
-                    paddingLeft: (idx === 1) ? 24 : 0,
-                  }}
-                >
-                  <Text
-                    allowFontScaling={false}
+                const sections = [
+                  { title: 'EXECUTIVE SUMMARY', content: tierData.executive_summary },
+                  {
+                    title: 'KEY PATTERNS',
+                    content: tierData.detailed_insight || tierData.key_patterns,
+                  },
+                  { title: 'RISK DRIVERS', content: tierData.risk_drivers },
+                  { title: 'RECOMMENDED ACTIONS', content: tierData.recommended_actions },
+                  { title: 'DATA LIMITATIONS', content: tierData.data_limitations },
+                ].filter(
+                  (sec) =>
+                    sec.content && (Array.isArray(sec.content) ? sec.content.length > 0 : true)
+                );
+
+                return (
+                  <View
+                    key={tierKey}
                     style={{
-                      fontFamily: 'UbuntuSans-Medium',
-                      fontSize: 24,
-                      color: '#0A1F29',
-                      marginTop: 24,
-                      marginBottom: 12,
+                      width: Dimensions.get('window').width - 48,
+                      paddingRight: idx === 0 && summaryData?.tier2 ? 24 : 0,
+                      paddingLeft: idx === 1 ? 24 : 0,
                     }}
                   >
-                    AI SUMMARY
-                  </Text>
-                  <View style={{ flexDirection: 'row', gap: 12, marginBottom: 32 }}>
-                    <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center', paddingHorizontal: 10, paddingVertical: 4, backgroundColor: '#FFF0F0', borderRadius: 12 }}>
-                      <TimeIconSvg width={12} height={12} color="#F46036" />
-                      <Text
-                        allowFontScaling={false}
-                        style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 10, color: '#F46036' }}
+                    <Text
+                      allowFontScaling={false}
+                      style={{
+                        fontFamily: 'UbuntuSans-Medium',
+                        fontSize: 24,
+                        color: '#0A1F29',
+                        marginTop: 24,
+                        marginBottom: 12,
+                      }}
+                    >
+                      AI SUMMARY
+                    </Text>
+                    <View style={{ flexDirection: 'row', gap: 12, marginBottom: 32 }}>
+                      <View
+                        style={{
+                          flexDirection: 'row',
+                          gap: 4,
+                          alignItems: 'center',
+                          paddingHorizontal: 10,
+                          paddingVertical: 4,
+                          backgroundColor: '#FFF0F0',
+                          borderRadius: 12,
+                        }}
                       >
-                        2 mins Read
-                      </Text>
-                    </View>
-                    <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center', paddingHorizontal: 10, paddingVertical: 4, backgroundColor: '#E5F5F3', borderRadius: 12 }}>
-                      <ThirdPartySvg width={12} height={12} color="#1B998B" />
-                      <Text
-                        allowFontScaling={false}
-                        style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 10, color: "#1B998B" }}
+                        <TimeIconSvg width={12} height={12} color="#F46036" />
+                        <Text
+                          allowFontScaling={false}
+                          style={{
+                            fontFamily: 'Inter_18pt-Regular',
+                            fontSize: 10,
+                            color: '#F46036',
+                          }}
+                        >
+                          2 mins Read
+                        </Text>
+                      </View>
+                      <View
+                        style={{
+                          flexDirection: 'row',
+                          gap: 4,
+                          alignItems: 'center',
+                          paddingHorizontal: 10,
+                          paddingVertical: 4,
+                          backgroundColor: '#E5F5F3',
+                          borderRadius: 12,
+                        }}
                       >
-                        {isTier1 ? 'Third Party' : 'In house'}
-                      </Text>
+                        <ThirdPartySvg width={12} height={12} color="#1B998B" />
+                        <Text
+                          allowFontScaling={false}
+                          style={{
+                            fontFamily: 'Inter_18pt-Regular',
+                            fontSize: 10,
+                            color: '#1B998B',
+                          }}
+                        >
+                          {isTier1 ? 'Third Party' : 'In house'}
+                        </Text>
+                      </View>
                     </View>
-                  </View>
 
-                  <ScrollView showsVerticalScrollIndicator={false}>
-                    {sections.map((sec, index) => (
-                      <AccordionItem
-                        key={sec.title}
-                        title={sec.title}
-                        content={sec.content}
-                        isLast={index === sections.length - 1}
-                      />
-                    ))}
-                  </ScrollView>
-                </View>
-              );
-            })}
-          </ScrollView>
+                    <ScrollView showsVerticalScrollIndicator={false}>
+                      {sections.map((sec, index) => (
+                        <AccordionItem
+                          key={sec.title}
+                          title={sec.title}
+                          content={sec.content}
+                          isLast={index === sections.length - 1}
+                        />
+                      ))}
+                    </ScrollView>
+                  </View>
+                );
+              })}
+            </ScrollView>
           </RNAnimated.View>
         </Animated.View>
       </View>

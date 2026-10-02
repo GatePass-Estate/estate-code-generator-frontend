@@ -966,7 +966,9 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
                       </Text>
                     </View>
                     <View style={{ width: 90, alignItems: 'center' }}>
-                      <View className={`px-4 h-[28px] items-center justify-center rounded-full ${badgeBg}`}>
+                      <View
+                        className={`px-4 h-[28px] items-center justify-center rounded-full ${badgeBg}`}
+                      >
                         <Text
                           allowFontScaling={false}
                           style={{
@@ -1527,7 +1529,12 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
         }
       />
 
-      <Modal visible={showComingSoon} transparent animationType="fade" onRequestClose={() => setShowComingSoon(false)}>
+      <Modal
+        visible={showComingSoon}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowComingSoon(false)}
+      >
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           {Platform.OS === 'ios' ? (
             <BlurView intensity={15} tint="dark" style={StyleSheet.absoluteFill}>
@@ -1552,18 +1559,45 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
             }}
           >
             <View style={{ alignItems: 'center', paddingTop: 8, paddingBottom: 8, width: '100%' }}>
-              <Text allowFontScaling={false} style={{ fontFamily: 'UbuntuSans-Medium', fontSize: 22, color: '#0A1F29', marginBottom: 12 }}>
+              <Text
+                allowFontScaling={false}
+                style={{
+                  fontFamily: 'UbuntuSans-Medium',
+                  fontSize: 22,
+                  color: '#0A1F29',
+                  marginBottom: 12,
+                }}
+              >
                 Coming Soon
               </Text>
-              <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 15, color: '#8A9A9D', marginBottom: 32, textAlign: 'center', lineHeight: 22 }}>
+              <Text
+                allowFontScaling={false}
+                style={{
+                  fontFamily: 'Inter_18pt-Regular',
+                  fontSize: 15,
+                  color: '#8A9A9D',
+                  marginBottom: 32,
+                  textAlign: 'center',
+                  lineHeight: 22,
+                }}
+              >
                 This feature is not yet active. We are working hard to bring it to you soon!
               </Text>
-              
+
               <Pressable
                 onPress={() => setShowComingSoon(false)}
-                style={{ backgroundColor: '#113E55', width: '100%', paddingVertical: 16, borderRadius: 24, alignItems: 'center' }}
+                style={{
+                  backgroundColor: '#113E55',
+                  width: '100%',
+                  paddingVertical: 16,
+                  borderRadius: 24,
+                  alignItems: 'center',
+                }}
               >
-                <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 16, color: '#FFFFFF' }}>
+                <Text
+                  allowFontScaling={false}
+                  style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 16, color: '#FFFFFF' }}
+                >
                   Got it
                 </Text>
               </Pressable>

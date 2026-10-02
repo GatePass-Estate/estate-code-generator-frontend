@@ -633,7 +633,10 @@ export default function AnomalyDetectionPreviewScreen() {
                             className="w-full h-[48px] bg-[#113E55] rounded-full items-center justify-center"
                             onPress={() => {}}
                           >
-                            <Text allowFontScaling={false} className="text-[14px] font-inter-medium text-white">
+                            <Text
+                              allowFontScaling={false}
+                              className="text-[14px] font-inter-medium text-white"
+                            >
                               Cancel Subscription
                             </Text>
                           </Pressable>
@@ -641,7 +644,10 @@ export default function AnomalyDetectionPreviewScreen() {
                             className="w-full h-[48px] bg-[#E3F5FC] rounded-full items-center justify-center"
                             onPress={() => {}}
                           >
-                            <Text allowFontScaling={false} className="text-[14px] font-inter-medium text-[#113E55]">
+                            <Text
+                              allowFontScaling={false}
+                              className="text-[14px] font-inter-medium text-[#113E55]"
+                            >
                               Uninstall
                             </Text>
                           </Pressable>
@@ -733,7 +739,10 @@ export default function AnomalyDetectionPreviewScreen() {
                             className="w-full h-[48px] bg-[#113E55] rounded-full items-center justify-center"
                             onPress={() => {}}
                           >
-                            <Text allowFontScaling={false} className="text-[14px] font-inter-medium text-white">
+                            <Text
+                              allowFontScaling={false}
+                              className="text-[14px] font-inter-medium text-white"
+                            >
                               Cancel Subscription
                             </Text>
                           </Pressable>
@@ -741,7 +750,10 @@ export default function AnomalyDetectionPreviewScreen() {
                             className="w-full h-[48px] bg-[#E3F5FC] rounded-full items-center justify-center"
                             onPress={() => {}}
                           >
-                            <Text allowFontScaling={false} className="text-[14px] font-inter-medium text-[#113E55]">
+                            <Text
+                              allowFontScaling={false}
+                              className="text-[14px] font-inter-medium text-[#113E55]"
+                            >
                               Uninstall
                             </Text>
                           </Pressable>
@@ -837,7 +849,10 @@ export default function AnomalyDetectionPreviewScreen() {
                             className="w-full h-[48px] bg-[#113E55] rounded-full items-center justify-center"
                             onPress={() => {}}
                           >
-                            <Text allowFontScaling={false} className="text-[14px] font-inter-medium text-white">
+                            <Text
+                              allowFontScaling={false}
+                              className="text-[14px] font-inter-medium text-white"
+                            >
                               Cancel Subscription
                             </Text>
                           </Pressable>
@@ -845,7 +860,10 @@ export default function AnomalyDetectionPreviewScreen() {
                             className="w-full h-[48px] bg-[#E3F5FC] rounded-full items-center justify-center"
                             onPress={() => {}}
                           >
-                            <Text allowFontScaling={false} className="text-[14px] font-inter-medium text-[#113E55]">
+                            <Text
+                              allowFontScaling={false}
+                              className="text-[14px] font-inter-medium text-[#113E55]"
+                            >
                               Uninstall
                             </Text>
                           </Pressable>
