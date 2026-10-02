@@ -38,13 +38,17 @@ const EASE_OUT = Easing.bezier(0.25, 0.1, 0.25, 1);
  * Opacity-only fade when the selected category changes. No transforms, so iOS and
  * Android render the same frames.
  */
-function useSelectionTransition(selectedId: string) {
+function useSelectionTransition(selectedId: string, enabled = true) {
   const progress = useSharedValue(1);
   // Layout effect: reset before paint so a freshly swapped panel never flashes at full opacity.
   useLayoutEffect(() => {
+    if (!enabled) {
+      progress.value = 1;
+      return;
+    }
     progress.value = 0;
     progress.value = withTiming(1, { duration: TRANSITION_MS, easing: EASE_OUT });
-  }, [selectedId, progress]);
+  }, [selectedId, enabled, progress]);
   return useAnimatedStyle(() => ({
     opacity: 0.35 + progress.value * 0.65,
   }));
@@ -554,7 +558,10 @@ function CategoryExpandSheet({
   // Others has no stop of its own — its subcategories are stepped through individually.
   const selectedSub =
     subcategories.find((s) => s.apiCategory === subKey) ?? subcategories[0] ?? null;
-  const contentFade = useSelectionTransition(`${categoryId}:${selectedSub?.apiCategory ?? ''}`);
+  const contentFade = useSelectionTransition(
+    `${categoryId}:${selectedSub?.apiCategory ?? ''}`,
+    category?.id !== OTHERS_BUCKET_ID
+  );
   if (!visible || !category) return null;
 
   const detail = selectedSub
@@ -758,7 +765,7 @@ export default function CategoryDistribution({
   const selectedIndex = catalog.findIndex((c) => c.id === selectedId);
   const showSubcategories =
     !!selected && selected.id === OTHERS_BUCKET_ID && (selected.subcategories?.length ?? 0) > 0;
-  const metricsFade = useSelectionTransition(selectedId);
+  const metricsFade = useSelectionTransition(selectedId, selectedId !== OTHERS_BUCKET_ID);
   const visibleSubcategories = selected?.subcategories?.slice(0, MAX_SIDE_SUBCATEGORIES) ?? [];
   const subcategoryCount = visibleSubcategories.length;
 
