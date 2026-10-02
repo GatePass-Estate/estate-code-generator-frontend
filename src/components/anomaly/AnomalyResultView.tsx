@@ -221,7 +221,7 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
   const unwrappedPredictions = (rawPredictions as any)?.data || rawPredictions;
   let predictionsArray: any[] = [];
   let totalPredictionsCount = 0;
-  
+
   if (Array.isArray(unwrappedPredictions)) {
     predictionsArray = unwrappedPredictions;
   } else if (Array.isArray(unwrappedPredictions?.items)) {
@@ -234,11 +234,11 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
     predictionsArray = unwrappedPredictions.data.items;
     totalPredictionsCount = unwrappedPredictions?.data?.total || predictionsArray.length;
   }
-  
+
   if (totalPredictionsCount === 0 && predictionsArray.length > 0) {
     totalPredictionsCount = predictionsArray.length;
   }
-  
+
   const predictions = predictionsArray.slice(0, paginationLimit);
 
   return (
@@ -951,7 +951,7 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
                           display_name: row.display_name || row.name || '',
                           date_from: startDate ? startDate.toISOString() : '',
                           date_to: endDate ? endDate.toISOString() : '',
-                        }
+                        },
                       });
                     }}
                     style={{

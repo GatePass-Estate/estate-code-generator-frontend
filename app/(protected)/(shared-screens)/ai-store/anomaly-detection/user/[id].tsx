@@ -11,6 +11,7 @@ import {
   Modal,
   Platform,
   StyleSheet,
+  Dimensions,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -185,6 +186,7 @@ export default function AnomalyDetectionUserDetailsScreen() {
   );
 
   const [localSummaryData, setLocalSummaryData] = useState<any>(null);
+  
   const rawSummaryData = localSummaryData || summaryData;
   const currentSummaryData = rawSummaryData?.data || rawSummaryData;
 
@@ -982,10 +984,11 @@ export default function AnomalyDetectionUserDetailsScreen() {
               }}
               scrollEventThrottle={16}
             >
-              {['tier1', 'tier2'].map((tierKey, idx) => {
+              {['tier1', 'tier2'].map((tierKey, idx, arr) => {
                 const tierData = (currentSummaryData as any)?.[tierKey];
                 if (!tierData) return null;
                 const isTier1 = tierKey === 'tier1';
+                const activeTiers = arr.filter((k) => !!(currentSummaryData as any)?.[k]);
 
                 return (
                   <Pressable
@@ -995,7 +998,7 @@ export default function AnomalyDetectionUserDetailsScreen() {
                       setShowAiSummaryModal(true);
                     }}
                     style={{
-                      width: 314, // Fixed width for carousel items
+                      width: activeTiers.length === 1 ? Dimensions.get('window').width - 40 : 314, // Fixed width for carousel if multiple
                       backgroundColor: '#FFFFFF',
                       borderRadius: 24,
                       padding: 20,
@@ -1067,7 +1070,7 @@ export default function AnomalyDetectionUserDetailsScreen() {
                             color: '#1B998B',
                           }}
                         >
-                          {isTier1 ? 'Third Party' : 'In house'}
+                          {isTier1 ? 'In house' : 'Third Party'}
                         </Text>
                       </View>
                     </View>
@@ -1094,7 +1097,7 @@ export default function AnomalyDetectionUserDetailsScreen() {
                     setShowAiSummaryModal(true);
                   }}
                   style={{
-                    width: 314, // Fixed width for carousel items
+                    width: Dimensions.get('window').width - 40,
                     backgroundColor: '#FFFFFF',
                     borderRadius: 24,
                     padding: 20,
@@ -1180,7 +1183,10 @@ export default function AnomalyDetectionUserDetailsScreen() {
                       lineHeight: 18,
                     }}
                   >
-                    This section provides a detailed summary of the anomalous behavior detected for this user. It breaks down the key factors contributing to the anomaly, including unusual entry times, late-night activity, and irregular visitor patterns over the selected timeframe.
+                    This section provides a detailed summary of the anomalous behavior detected for
+                    this user. It breaks down the key factors contributing to the anomaly, including
+                    unusual entry times, late-night activity, and irregular visitor patterns over
+                    the selected timeframe.
                   </Text>
                 </Pressable>
               )}

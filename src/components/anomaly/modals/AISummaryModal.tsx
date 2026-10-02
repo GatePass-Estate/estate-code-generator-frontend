@@ -314,7 +314,7 @@ export default function AISummaryModal({
                             color: '#1B998B',
                           }}
                         >
-                          {isTier1 ? 'Third Party' : 'In house'}
+                          {isTier1 ? 'In house' : 'Third Party'}
                         </Text>
                       </View>
                     </View>

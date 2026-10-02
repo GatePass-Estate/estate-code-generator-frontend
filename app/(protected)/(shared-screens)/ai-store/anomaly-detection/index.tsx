@@ -629,8 +629,14 @@ export default function AnomalyDetectionPreviewScreen() {
                     <View className="space-y-3">
                       {(tierOneApi?.benefits || []).map((benefit, index) => (
                         <View key={index} className="flex-row items-start gap-2 mb-3">
-                          <View className={`${tierOneApi?.is_installed ? 'bg-[#D9EAE8]' : 'bg-[#CEE5ED]'} rounded-full p-[2px] mt-[2px]`}>
-                            <MaterialIcons name="check" size={12} color={tierOneApi?.is_installed ? '#1B998B' : '#113E55'} />
+                          <View
+                            className={`${tierOneApi?.is_installed ? 'bg-[#D9EAE8]' : 'bg-[#CEE5ED]'} rounded-full p-[2px] mt-[2px]`}
+                          >
+                            <MaterialIcons
+                              name="check"
+                              size={12}
+                              color={tierOneApi?.is_installed ? '#1B998B' : '#113E55'}
+                            />
                           </View>
                           <Text
                             allowFontScaling={false}
@@ -748,8 +754,14 @@ export default function AnomalyDetectionPreviewScreen() {
                     <View className="space-y-3">
                       {(tierTwoApi?.benefits || []).map((benefit, index) => (
                         <View key={index} className="flex-row items-start gap-2 mb-3">
-                          <View className={`${tierTwoApi?.is_installed ? 'bg-[#D9EAE8]' : 'bg-[#CEE5ED]'} rounded-full p-[2px] mt-[2px]`}>
-                            <MaterialIcons name="check" size={12} color={tierTwoApi?.is_installed ? '#1B998B' : '#113E55'} />
+                          <View
+                            className={`${tierTwoApi?.is_installed ? 'bg-[#D9EAE8]' : 'bg-[#CEE5ED]'} rounded-full p-[2px] mt-[2px]`}
+                          >
+                            <MaterialIcons
+                              name="check"
+                              size={12}
+                              color={tierTwoApi?.is_installed ? '#1B998B' : '#113E55'}
+                            />
                           </View>
                           <Text
                             allowFontScaling={false}
@@ -871,8 +883,14 @@ export default function AnomalyDetectionPreviewScreen() {
                     <View className="space-y-3">
                       {(tierThreeApi?.benefits || []).map((benefit, index) => (
                         <View key={index} className="flex-row items-start gap-2 mb-3">
-                          <View className={`${tierThreeApi?.is_installed ? 'bg-[#D9EAE8]' : 'bg-[#CEE5ED]'} rounded-full p-[2px] mt-[2px]`}>
-                            <MaterialIcons name="check" size={12} color={tierThreeApi?.is_installed ? '#1B998B' : '#113E55'} />
+                          <View
+                            className={`${tierThreeApi?.is_installed ? 'bg-[#D9EAE8]' : 'bg-[#CEE5ED]'} rounded-full p-[2px] mt-[2px]`}
+                          >
+                            <MaterialIcons
+                              name="check"
+                              size={12}
+                              color={tierThreeApi?.is_installed ? '#1B998B' : '#113E55'}
+                            />
                           </View>
                           <Text
                             allowFontScaling={false}
