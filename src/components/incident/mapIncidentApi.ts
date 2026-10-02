@@ -34,12 +34,27 @@ export function normalizePercent(value: number | null | undefined): number {
   return Math.round(n * 10) / 10;
 }
 
-function sampleNarrative(item: CategoryEdaItem, _fallbackName: string): string {
-  const sample = item.sample_reports?.[0];
-  if (!sample) return '';
+function cleanSample(sample: string): string {
   const colon = sample.indexOf(':');
   if (colon > 0 && colon < 80) return sample.slice(colon + 1).trim() || sample;
   return sample;
+}
+
+/** Every non-empty `sample_reports` entry, de-duplicated, for the expand sheet. */
+function sampleNarratives(item: CategoryEdaItem): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of item.sample_reports ?? []) {
+    const text = cleanSample(raw?.trim() ?? '');
+    if (!text || seen.has(text)) continue;
+    seen.add(text);
+    out.push(text);
+  }
+  return out;
+}
+
+function sampleNarrative(item: CategoryEdaItem): string {
+  return sampleNarratives(item)[0] ?? '';
 }
 
 function toUiCategory(
@@ -63,7 +78,8 @@ function toUiCategory(
     peakPct: 0,
     thresholdLabel: share >= 5 ? '> 5%' : '< 5%',
     detail: '',
-    narrative: sampleNarrative(item, name),
+    narrative: sampleNarrative(item),
+    narratives: sampleNarratives(item),
     apiCategory,
     color: '#113E55',
     subcategories,
@@ -168,7 +184,8 @@ export function mapCategoryEdaToUi(
         count: item.incident_count,
         peakTime: PEAK_TIME_LABEL[item.peak_time] ?? item.peak_time,
         thresholdLabel: pct >= 5 ? '> 5%' : '< 5%',
-        narrative: sampleNarrative(item, label),
+        narrative: sampleNarrative(item),
+        narratives: sampleNarratives(item),
       };
     });
 
@@ -181,7 +198,8 @@ export function mapCategoryEdaToUi(
       peakPct: 0,
       thresholdLabel: otherShare >= 5 ? '> 5%' : '< 5%',
       detail: '',
-      narrative: sampleNarrative(peakItem, 'Others'),
+      narrative: sampleNarrative(peakItem),
+      narratives: sampleNarratives(peakItem),
       apiCategory: 'other',
       color: '#113E55',
       subcategories,

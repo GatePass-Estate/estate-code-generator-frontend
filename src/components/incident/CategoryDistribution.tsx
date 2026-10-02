@@ -564,6 +564,7 @@ function CategoryExpandSheet({
         count: selectedSub.count,
         share: selectedSub.pct,
         narrative: selectedSub.narrative,
+        narratives: selectedSub.narratives,
         detail: '',
       }
     : category;
@@ -602,7 +603,11 @@ function CategoryExpandSheet({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable className="flex-1 justify-end bg-black/80" onPress={onClose}>
+      <Pressable
+        className="flex-1 justify-end"
+        style={{ backgroundColor: 'rgba(0, 0, 0, 0.88)' }}
+        onPress={onClose}
+      >
         <Pressable className="h-[561px] rounded-t-[40px] bg-[#F6F7F7]" onPress={() => {}}>
           <View className="h-[34px] items-center justify-center">
             <View className="h-[7px] w-[134px] rounded-[4px] bg-[#9B9797]" />
@@ -709,7 +714,14 @@ function CategoryExpandSheet({
             contentContainerClassName="gap-4 pb-10"
           >
             <Animated.View className="gap-4" style={contentFade}>
-              {detail.narrative?.trim() ? <NarrativeCard text={detail.narrative} /> : null}
+              {(detail.narratives?.length
+                ? detail.narratives
+                : detail.narrative?.trim()
+                  ? [detail.narrative]
+                  : []
+              ).map((text, i) => (
+                <NarrativeCard key={`narrative-${i}`} text={text} />
+              ))}
               {detail.detail?.trim() ? <NarrativeCard text={detail.detail} /> : null}
             </Animated.View>
           </ScrollView>

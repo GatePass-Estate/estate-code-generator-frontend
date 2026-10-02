@@ -14,6 +14,8 @@ export type IncidentSubcategory = {
   peakTime: string;
   thresholdLabel: string;
   narrative: string;
+  /** All snippets from `sample_reports`; the expand sheet lists every one. */
+  narratives: string[];
 };
 
 export type IncidentCategory = {
@@ -30,6 +32,8 @@ export type IncidentCategory = {
   thresholdLabel: string;
   detail: string;
   narrative: string;
+  /** All snippets from `sample_reports`; the expand sheet lists every one. */
+  narratives: string[];
   /** API slug driving the category icon (`other` for the leftover bucket too). */
   apiCategory: string;
   color: string;
