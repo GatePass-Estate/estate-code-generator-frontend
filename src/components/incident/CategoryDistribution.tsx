@@ -129,8 +129,6 @@ const SIDE_METRIC_CARD_WIDTH = 120;
 const SUBCATEGORY_CARD_WIDTH = SIDE_METRIC_CARD_WIDTH;
 const SUBCATEGORY_CARD_HEIGHT = 56;
 const SUBCATEGORY_GAP = 6;
-/** Expand-sheet metric cards: zero basis so all three split the row equally regardless of text. */
-const METRIC_CARD_STYLE = { flexGrow: 1, flexShrink: 1, flexBasis: 0, minWidth: 0 } as const;
 /** Side stack shows the top few; the expand sheet lists every Others category. */
 const MAX_SIDE_SUBCATEGORIES = 4;
 
@@ -362,17 +360,19 @@ function MetricCard({
 
 function NarrativeCard({ text }: { text: string }) {
   return (
-    <View className="w-full gap-1 rounded border border-[#EFF1F3] bg-white p-2">
-      <View className="flex-row items-center gap-1">
+    <View className="w-full gap-[4px] rounded-[4px] bg-white p-[8px]">
+      <View className="flex-row items-start gap-[4px]">
         <NarrativeSnippetIcon size={16} color="#F46036" />
-        <Text allowFontScaling={false} className="text-[8.96px] font-inter-medium text-[#878686]">
-          Narrative Snippet
-        </Text>
+        <View className="h-[15px] justify-center">
+          <Text
+            allowFontScaling={false}
+            className="text-[8.96px] font-inter-medium text-[#878686] leading-[15px]"
+          >
+            Narrative Snippet
+          </Text>
+        </View>
       </View>
-      <Text
-        allowFontScaling={false}
-        className="text-[11.2px] font-inter-regular leading-[14px] text-[#878686]"
-      >
+      <Text allowFontScaling={false} className="text-[11.2px] font-inter-regular text-[#878686]">
         {text}
       </Text>
     </View>
@@ -612,21 +612,17 @@ function CategoryExpandSheet({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable
-        className="flex-1 justify-end"
-        style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
-        onPress={onClose}
-      >
+      <Pressable className="flex-1 justify-end bg-[#00000080]" onPress={onClose}>
         <Pressable className="h-[561px] rounded-t-[40px] bg-[#F6F7F7]" onPress={() => {}}>
           <View className="h-[34px] items-center justify-center">
             <View className="h-[7px] w-[134px] rounded-[4px] bg-[#9B9797]" />
           </View>
 
-          <View className="mt-[50px] flex-row items-start justify-between px-6">
-            <Animated.View className="mr-3 min-w-0 flex-1 gap-1 pr-2" style={contentFade}>
+          <View className="mt-[50px] flex-row items-start justify-between px-[24px]">
+            <Animated.View className="mr-3 min-w-0 flex-1 gap-[4px] pr-2" style={contentFade}>
               <Text
                 allowFontScaling={false}
-                className="text-left text-[21.88px] font-ubuntu-semibold leading-[26px] text-[#113E55]"
+                className="text-left text-[21.88px] font-ubuntu-semibold leading-[23px] text-[#113E55]"
               >
                 {detail.name}
               </Text>
@@ -637,7 +633,7 @@ function CategoryExpandSheet({
                 {thresholdCopy}
               </Text>
             </Animated.View>
-            <View className="flex-row gap-4">
+            <View className="flex-row gap-[16px]">
               <Pressable
                 onPress={goPrev}
                 accessibilityLabel="Previous category"
@@ -657,20 +653,18 @@ function CategoryExpandSheet({
             </View>
           </View>
 
-          <Animated.View className="mt-[43px] flex-row gap-1 px-6" style={contentFade}>
-            <View
-              style={METRIC_CARD_STYLE}
-              className="min-h-[52px] gap-1 rounded border border-[#EFF1F3] bg-white p-2"
-            >
-              <View className="flex-row flex-wrap items-center gap-1">
+          <Animated.View className="mt-[43px] flex-row gap-[4px] px-[24px]" style={contentFade}>
+            <View className=" min-w-0 shrink grow basis-0 justify-center gap-[4px] rounded-[4px] bg-white p-[8px]">
+              <View className="h-[15px] flex-row items-center gap-[4px]">
                 <Text
                   allowFontScaling={false}
-                  className="text-[8.96px] font-inter-medium text-[#878686]"
+                  numberOfLines={1}
+                  className="text-[8.96px] leading-[15px]   font-inter-medium text-[#878686]"
                 >
                   Peak Time
                 </Text>
                 {detail.peakPct > 0 ? (
-                  <View className="h-[15px] items-center justify-center bg-[#F4FFFE] px-1">
+                  <View className="h-[15px] min-w-[24px] items-center justify-center bg-[#F4FFFE] px-[2.5px]">
                     <Text
                       allowFontScaling={false}
                       className="text-[8.96px] font-inter-medium text-[#167A6F]"
@@ -683,44 +677,46 @@ function CategoryExpandSheet({
               <Text
                 allowFontScaling={false}
                 numberOfLines={1}
-                className="text-left text-sm font-inter-medium text-[#878686]"
+                className="text-left text-[14px] font-inter-medium text-[#878686] leading-[17px]"
               >
                 {detail.peakTime}
               </Text>
             </View>
 
-            <View
-              style={METRIC_CARD_STYLE}
-              className="min-h-[52px] gap-1 rounded border border-[#EFF1F3] bg-white p-2"
-            >
+            <View className=" min-w-0 shrink grow basis-0 justify-center gap-[4px] rounded-[4px] bg-white p-[8px]">
+              <View className="h-[15px] justify-center">
+                <Text
+                  allowFontScaling={false}
+                  numberOfLines={1}
+                  className="text-[8.96px] leading-[15px]  font-inter-medium text-[#878686]"
+                >
+                  Incident Count
+                </Text>
+              </View>
               <Text
                 allowFontScaling={false}
-                className="text-[8.96px] font-inter-medium text-[#878686]"
-              >
-                Incident Count
-              </Text>
-              <Text
-                allowFontScaling={false}
-                className="text-left text-sm font-inter-medium text-[#878686]"
+                numberOfLines={1}
+                className="text-left text-[14px] font-inter-medium text-[#878686] leading-[17px]"
               >
                 {detail.count}
                 <Text className="text-[8.96px]">/{totalReports}</Text>
               </Text>
             </View>
 
-            <View
-              style={METRIC_CARD_STYLE}
-              className="min-h-[52px] gap-1 rounded border border-[#EFF1F3] bg-white p-2"
-            >
+            <View className=" min-w-0 shrink grow basis-0 justify-center gap-[4px] rounded-[4px] bg-white p-[8px]">
+              <View className="h-[15px] justify-center">
+                <Text
+                  allowFontScaling={false}
+                  numberOfLines={1}
+                  className="text-[8.96px] leading-[15px] font-inter-medium text-[#878686]"
+                >
+                  Incident Share
+                </Text>
+              </View>
               <Text
                 allowFontScaling={false}
-                className="text-[8.96px] font-inter-medium text-[#878686]"
-              >
-                Incident Share
-              </Text>
-              <Text
-                allowFontScaling={false}
-                className="text-left text-sm font-inter-medium text-[#878686]"
+                numberOfLines={1}
+                className="text-left text-[14px] font-inter-medium text-[#878686] leading-[17px]"
               >
                 {detail.share}%
               </Text>
@@ -728,11 +724,11 @@ function CategoryExpandSheet({
           </Animated.View>
 
           <ScrollView
-            className="mt-4 flex-1 px-6"
+            className="mt-[16px] flex-1 px-[24px]"
             showsVerticalScrollIndicator={false}
-            contentContainerClassName="gap-4 pb-10"
+            contentContainerClassName="pb-10"
           >
-            <Animated.View className="gap-4" style={contentFade}>
+            <Animated.View className="gap-[16px]" style={contentFade}>
               {(detail.narratives?.length
                 ? detail.narratives
                 : detail.narrative?.trim()
