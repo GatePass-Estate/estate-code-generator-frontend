@@ -93,7 +93,8 @@ export const getUserProfilePictureUrl = async (userId: string): Promise<string |
       return profilePicture.view_url;
     }
 
-    const baseUrl = process.env.EXPO_PUBLIC_USER_SERVICE_API_URL || '';
+    const baseUrl = process.env.EXPO_PUBLIC_USER_SERVICE_API_URL;
+    if (!baseUrl) throw new Error('EXPO_PUBLIC_USER_SERVICE_API_URL is missing');
     return `${baseUrl}${profilePicture.view_url.startsWith('/') ? '' : '/'}${profilePicture.view_url}`;
   } catch {
     return null;

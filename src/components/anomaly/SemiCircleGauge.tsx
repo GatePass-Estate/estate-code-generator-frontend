@@ -1,0 +1,104 @@
+import React, { useEffect } from 'react';
+import { View, Text } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
+import Animated, {
+  useSharedValue,
+  useAnimatedProps,
+  withTiming,
+  withSequence,
+  Easing,
+  withDelay,
+} from 'react-native-reanimated';
+
+const AnimatedPath = Animated.createAnimatedComponent(Path);
+
+interface SemiCircleGaugeProps {
+  percentage: number;
+  color: string;
+  size?: number;
+  animate?: boolean;
+}
+
+const SemiCircleGauge = ({
+  percentage,
+  color,
+  size = 130,
+  animate = true,
+}: SemiCircleGaugeProps) => {
+  const strokeWidth = 15;
+  const radius = size / 2 - strokeWidth;
+  const cx = size / 2;
+  const cy = size / 2 + 5;
+  const startX = cx - radius;
+  const endX = cx + radius;
+
+  // Arch path: 180 degrees opening downwards
+  const pathD = `M ${startX} ${cy} A ${radius} ${radius} 0 0 1 ${endX} ${cy}`;
+  const arcLength = Math.PI * radius; // ~119.38
+  const clampedPercent = Math.min(Math.max(percentage, 0), 100);
+
+  // Animation value starts at 0
+  const animatedPercent = useSharedValue(0);
+
+  useEffect(() => {
+    if (!animate) return;
+
+    // Animate to 100 first, then back down to the target percentage for a fluid "load full and settle" effect
+    // We add an initial 400ms delay so the user has time to settle their scroll and actually witness the animation start.
+    animatedPercent.value = withSequence(
+      withDelay(400, withTiming(100, { duration: 600, easing: Easing.out(Easing.cubic) })),
+      withDelay(
+        100,
+        withTiming(clampedPercent, { duration: 800, easing: Easing.inOut(Easing.cubic) })
+      )
+    );
+  }, [clampedPercent, animate, animatedPercent]);
+
+  const animatedProps = useAnimatedProps(() => {
+    const fillOffset = arcLength * (1 - animatedPercent.value / 100);
+    return {
+      strokeDashoffset: fillOffset,
+    };
+  });
+
+  return (
+    <View style={{ width: size, alignItems: 'center' }}>
+      <Svg width={size} height={cy + strokeWidth}>
+        {/* Background Track */}
+        <Path
+          d={pathD}
+          fill="none"
+          stroke="#F2F4F7"
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+        />
+
+        {/* Colored Progress */}
+        <AnimatedPath
+          d={pathD}
+          fill="none"
+          stroke={color}
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          strokeDasharray={`${arcLength} ${arcLength}`}
+          animatedProps={animatedProps}
+        />
+      </Svg>
+
+      {/* Center percentage indicator with triangle */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: -20, gap: 4 }}>
+        <Text allowFontScaling={false} style={{ fontSize: 12, color: '#878686' }}>
+          ▲
+        </Text>
+        <Text
+          allowFontScaling={false}
+          style={{ fontSize: 14, fontFamily: 'Inter_18pt-Medium', color: '#878686' }}
+        >
+          {percentage}%
+        </Text>
+      </View>
+    </View>
+  );
+};
+
+export default React.memo(SemiCircleGauge);

@@ -1,11 +1,12 @@
 import { useEffect } from 'react';
 import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import Animated, {
+  Easing,
   interpolateColor,
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
+  withTiming,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 
@@ -15,10 +16,9 @@ export const PILL_TRACK_WIDTH = 229;
 export const PILL_TRACK_HEIGHT = 40;
 export const PILL_ACTIVE_WIDTH = 119;
 
-const SPRING_CONFIG = {
-  damping: 15,
-  stiffness: 150,
-  mass: 0.7,
+const GLIDE_CONFIG = {
+  duration: 280,
+  easing: Easing.bezier(0.25, 0.1, 0.25, 1),
 };
 
 export type AnimatedPillTabOption<T extends string> = {
@@ -55,7 +55,7 @@ export default function AnimatedPillTabs<T extends string>({
   const startX = useSharedValue(0);
 
   useEffect(() => {
-    translateX.value = withSpring(value === right.value ? resultX : 0, SPRING_CONFIG);
+    translateX.value = withTiming(value === right.value ? resultX : 0, GLIDE_CONFIG);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only sync when tab value changes
   }, [value, resultX, right.value]);
 
@@ -92,10 +92,7 @@ export default function AnimatedPillTabs<T extends string>({
       }
 
       const targetX = nextRight ? resultX : 0;
-      translateX.value = withSpring(targetX, {
-        ...SPRING_CONFIG,
-        velocity: e.velocityX,
-      });
+      translateX.value = withTiming(targetX, GLIDE_CONFIG);
       runOnJS(setValue)(nextRight ? right.value : left.value);
     });
 
@@ -105,7 +102,7 @@ export default function AnimatedPillTabs<T extends string>({
       'worklet';
       const nextRight = e.x >= activeWidth;
       const targetX = nextRight ? resultX : 0;
-      translateX.value = withSpring(targetX, SPRING_CONFIG);
+      translateX.value = withTiming(targetX, GLIDE_CONFIG);
       runOnJS(setValue)(nextRight ? right.value : left.value);
     });
 
@@ -141,7 +138,7 @@ export default function AnimatedPillTabs<T extends string>({
           accessibilityRole="tab"
           accessibilityState={{ selected: value === left.value }}
           onPress={() => {
-            translateX.value = withSpring(0, SPRING_CONFIG);
+            translateX.value = withTiming(0, GLIDE_CONFIG);
             setValue(left.value);
           }}
           style={[styles.tab, { width: activeWidth, height }]}
@@ -154,7 +151,7 @@ export default function AnimatedPillTabs<T extends string>({
           accessibilityRole="tab"
           accessibilityState={{ selected: value === right.value }}
           onPress={() => {
-            translateX.value = withSpring(resultX, SPRING_CONFIG);
+            translateX.value = withTiming(resultX, GLIDE_CONFIG);
             setValue(right.value);
           }}
           style={[styles.tab, { width: resultX, height }]}
@@ -189,7 +186,7 @@ const styles = StyleSheet.create({
   label: {
     fontFamily: 'Inter_18pt-Regular',
     fontSize: 11.2,
-    lineHeight: 11.2,
+    lineHeight: 14,
     textAlign: 'center',
   },
 });

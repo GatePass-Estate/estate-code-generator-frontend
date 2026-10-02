@@ -26,7 +26,7 @@ function applyAndroidNavBar(colorScheme: 'light' | 'dark') {
   NavigationBar.setStyle(theme.style);
 }
 
-export function getAndroidNavBarBackground(scheme: ColorSchemeName | undefined): string {
+export function getAndroidNavBarBackground(scheme: ColorSchemeName | null | undefined): string {
   return ANDROID_NAV_BAR[resolveDeviceColorScheme(scheme)].background;
 }
 
