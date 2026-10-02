@@ -125,6 +125,8 @@ const SIDE_METRIC_CARD_WIDTH = 120;
 const SUBCATEGORY_CARD_WIDTH = SIDE_METRIC_CARD_WIDTH;
 const SUBCATEGORY_CARD_HEIGHT = 56;
 const SUBCATEGORY_GAP = 6;
+/** Expand-sheet metric cards: zero basis so all three split the row equally regardless of text. */
+const METRIC_CARD_STYLE = { flexGrow: 1, flexShrink: 1, flexBasis: 0, minWidth: 0 } as const;
 /** Side stack shows the top few; the expand sheet lists every Others category. */
 const MAX_SIDE_SUBCATEGORIES = 4;
 
@@ -605,7 +607,7 @@ function CategoryExpandSheet({
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable
         className="flex-1 justify-end"
-        style={{ backgroundColor: 'rgba(0, 0, 0, 0.88)' }}
+        style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
         onPress={onClose}
       >
         <Pressable className="h-[561px] rounded-t-[40px] bg-[#F6F7F7]" onPress={() => {}}>
@@ -649,7 +651,10 @@ function CategoryExpandSheet({
           </View>
 
           <Animated.View className="mt-[43px] flex-row gap-1 px-6" style={contentFade}>
-            <View className="min-h-[52px] w-[104px] justify-center gap-1 rounded border border-[#EFF1F3] bg-white p-2">
+            <View
+              style={METRIC_CARD_STYLE}
+              className="min-h-[52px] gap-1 rounded border border-[#EFF1F3] bg-white p-2"
+            >
               <View className="flex-row flex-wrap items-center gap-1">
                 <Text
                   allowFontScaling={false}
@@ -670,13 +675,17 @@ function CategoryExpandSheet({
               </View>
               <Text
                 allowFontScaling={false}
-                className="text-left text-sm font-inter-medium leading-[18px] text-[#878686]"
+                numberOfLines={1}
+                className="text-left text-sm font-inter-medium text-[#878686]"
               >
                 {detail.peakTime}
               </Text>
             </View>
 
-            <View className="min-h-[52px] w-[104px] gap-1 rounded border border-[#EFF1F3] bg-white p-2">
+            <View
+              style={METRIC_CARD_STYLE}
+              className="min-h-[52px] gap-1 rounded border border-[#EFF1F3] bg-white p-2"
+            >
               <Text
                 allowFontScaling={false}
                 className="text-[8.96px] font-inter-medium text-[#878686]"
@@ -692,7 +701,10 @@ function CategoryExpandSheet({
               </Text>
             </View>
 
-            <View className="min-h-[52px] w-[104px] gap-1 rounded border border-[#EFF1F3] bg-white p-2">
+            <View
+              style={METRIC_CARD_STYLE}
+              className="min-h-[52px] gap-1 rounded border border-[#EFF1F3] bg-white p-2"
+            >
               <Text
                 allowFontScaling={false}
                 className="text-[8.96px] font-inter-medium text-[#878686]"
