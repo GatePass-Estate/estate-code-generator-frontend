@@ -568,24 +568,37 @@ export default function AnomalyDetectionPreviewScreen() {
                   Choose Subscription Plan
                 </Text>
 
-                {/* Tier One */}
                 <View
-                  className={`bg-white rounded-[16px] p-5 mb-4 ${expandedTier === 'Tier One' ? 'border border-[#113E55]' : ''}`}
+                  className={`rounded-[16px] p-5 mb-4 ${tierOneApi?.is_installed ? 'bg-[#F2FAF9] border border-[#1B998B]' : expandedTier === 'Tier One' ? 'bg-white border border-[#113E55]' : 'bg-white'}`}
                 >
-                  <Text
-                    allowFontScaling={false}
-                    className="text-[17.5px] font-inter-regular text-[#113E55] leading-[17.5px] mb-1.5"
-                  >
-                    {tierOneApi?.tier ? formatTierName(tierOneApi.tier) : 'Tier One'}
-                  </Text>
-                  {tierOneApi?.name && (
-                    <Text
-                      allowFontScaling={false}
-                      className="text-[15px] font-inter-medium text-[#113E55] leading-[22px] mb-2.5"
-                    >
-                      {tierOneApi.name}
-                    </Text>
-                  )}
+                  <View className="flex-row justify-between items-start mb-1.5">
+                    <View className="flex-1 pr-2">
+                      <Text
+                        allowFontScaling={false}
+                        className={`text-[17.5px] font-inter-regular leading-[17.5px] mb-1.5 ${tierOneApi?.is_installed ? 'text-[#1B998B]' : 'text-[#113E55]'}`}
+                      >
+                        {tierOneApi?.tier ? formatTierName(tierOneApi.tier) : 'Tier One'}
+                      </Text>
+                      {(tierOneApi?.is_installed ? 'PURCHASED' : tierOneApi?.name) && (
+                        <Text
+                          allowFontScaling={false}
+                          className={`text-[15px] font-inter-medium leading-[22px] mb-2.5 ${tierOneApi?.is_installed ? 'text-[#1B998B]' : 'text-[#113E55]'}`}
+                        >
+                          {tierOneApi?.is_installed ? 'PURCHASED' : tierOneApi?.name}
+                        </Text>
+                      )}
+                    </View>
+                    {tierOneApi?.is_installed && (
+                      <View className="bg-[#D9EAE8] px-[22px] py-[10px] rounded-[14px]">
+                        <Text
+                          allowFontScaling={false}
+                          className="text-[#1B998B] font-inter-medium text-[13px]"
+                        >
+                          ACTIVE
+                        </Text>
+                      </View>
+                    )}
+                  </View>
                   <Text
                     allowFontScaling={false}
                     className="text-[11.2px] font-inter-regular text-[#8A9A9D] leading-[16px] text-justify"
@@ -599,7 +612,7 @@ export default function AnomalyDetectionPreviewScreen() {
                   >
                     <Text
                       allowFontScaling={false}
-                      className="text-[13px] font-inter-medium text-[#113E55]"
+                      className="text-[13px] font-inter-medium text-[#8A9A9D]"
                     >
                       See benefits
                     </Text>
@@ -608,7 +621,7 @@ export default function AnomalyDetectionPreviewScreen() {
                         expandedTier === 'Tier One' ? 'keyboard-arrow-down' : 'keyboard-arrow-right'
                       }
                       size={18}
-                      color="#113E55"
+                      color="#8A9A9D"
                     />
                   </Pressable>
 
@@ -616,8 +629,8 @@ export default function AnomalyDetectionPreviewScreen() {
                     <View className="space-y-3">
                       {(tierOneApi?.benefits || []).map((benefit, index) => (
                         <View key={index} className="flex-row items-start gap-2 mb-3">
-                          <View className="bg-[#CEE5ED] rounded-full p-[2px] mt-[2px]">
-                            <MaterialIcons name="check" size={12} color="#113E55" />
+                          <View className={`${tierOneApi?.is_installed ? 'bg-[#D9EAE8]' : 'bg-[#CEE5ED]'} rounded-full p-[2px] mt-[2px]`}>
+                            <MaterialIcons name="check" size={12} color={tierOneApi?.is_installed ? '#1B998B' : '#113E55'} />
                           </View>
                           <Text
                             allowFontScaling={false}
@@ -674,24 +687,37 @@ export default function AnomalyDetectionPreviewScreen() {
                   )}
                 </View>
 
-                {/* Tier Two */}
                 <View
-                  className={`bg-white rounded-[16px] p-5 mb-4 ${expandedTier === 'Tier Two' ? 'border border-[#113E55]' : ''}`}
+                  className={`rounded-[16px] p-5 mb-4 ${tierTwoApi?.is_installed ? 'bg-[#F2FAF9] border border-[#1B998B]' : expandedTier === 'Tier Two' ? 'bg-white border border-[#113E55]' : 'bg-white'}`}
                 >
-                  <Text
-                    allowFontScaling={false}
-                    className="text-[17.5px] font-inter-regular text-[#113E55] leading-[17.5px] mb-1.5"
-                  >
-                    {tierTwoApi?.tier ? formatTierName(tierTwoApi.tier) : 'Tier Two'}
-                  </Text>
-                  {tierTwoApi?.name && (
-                    <Text
-                      allowFontScaling={false}
-                      className="text-[15px] font-inter-medium text-[#113E55] leading-[22px] mb-2.5"
-                    >
-                      {tierTwoApi.name}
-                    </Text>
-                  )}
+                  <View className="flex-row justify-between items-start mb-1.5">
+                    <View className="flex-1 pr-2">
+                      <Text
+                        allowFontScaling={false}
+                        className={`text-[17.5px] font-inter-regular leading-[17.5px] mb-1.5 ${tierTwoApi?.is_installed ? 'text-[#1B998B]' : 'text-[#113E55]'}`}
+                      >
+                        {tierTwoApi?.tier ? formatTierName(tierTwoApi.tier) : 'Tier Two'}
+                      </Text>
+                      {(tierTwoApi?.is_installed ? 'PURCHASED' : tierTwoApi?.name) && (
+                        <Text
+                          allowFontScaling={false}
+                          className={`text-[15px] font-inter-medium leading-[22px] mb-2.5 ${tierTwoApi?.is_installed ? 'text-[#1B998B]' : 'text-[#113E55]'}`}
+                        >
+                          {tierTwoApi?.is_installed ? 'PURCHASED' : tierTwoApi?.name}
+                        </Text>
+                      )}
+                    </View>
+                    {tierTwoApi?.is_installed && (
+                      <View className="bg-[#D9EAE8] px-[22px] py-[10px] rounded-[14px]">
+                        <Text
+                          allowFontScaling={false}
+                          className="text-[#1B998B] font-inter-medium text-[13px]"
+                        >
+                          ACTIVE
+                        </Text>
+                      </View>
+                    )}
+                  </View>
                   <Text
                     allowFontScaling={false}
                     className="text-[11.2px] font-inter-regular text-[#8A9A9D] leading-[16px] text-justify"
@@ -705,7 +731,7 @@ export default function AnomalyDetectionPreviewScreen() {
                   >
                     <Text
                       allowFontScaling={false}
-                      className="text-[13px] font-inter-medium text-[#113E55]"
+                      className="text-[13px] font-inter-medium text-[#8A9A9D]"
                     >
                       See benefits
                     </Text>
@@ -714,7 +740,7 @@ export default function AnomalyDetectionPreviewScreen() {
                         expandedTier === 'Tier Two' ? 'keyboard-arrow-down' : 'keyboard-arrow-right'
                       }
                       size={18}
-                      color="#113E55"
+                      color="#8A9A9D"
                     />
                   </Pressable>
 
@@ -722,8 +748,8 @@ export default function AnomalyDetectionPreviewScreen() {
                     <View className="space-y-3">
                       {(tierTwoApi?.benefits || []).map((benefit, index) => (
                         <View key={index} className="flex-row items-start gap-2 mb-3">
-                          <View className="bg-[#CEE5ED] rounded-full p-[2px] mt-[2px]">
-                            <MaterialIcons name="check" size={12} color="#113E55" />
+                          <View className={`${tierTwoApi?.is_installed ? 'bg-[#D9EAE8]' : 'bg-[#CEE5ED]'} rounded-full p-[2px] mt-[2px]`}>
+                            <MaterialIcons name="check" size={12} color={tierTwoApi?.is_installed ? '#1B998B' : '#113E55'} />
                           </View>
                           <Text
                             allowFontScaling={false}
@@ -780,24 +806,37 @@ export default function AnomalyDetectionPreviewScreen() {
                   )}
                 </View>
 
-                {/* Tier Three */}
                 <View
-                  className={`bg-white rounded-[16px] p-5 mb-4 ${expandedTier === 'Tier Three' ? 'border border-[#113E55]' : ''}`}
+                  className={`rounded-[16px] p-5 mb-4 ${tierThreeApi?.is_installed ? 'bg-[#F2FAF9] border border-[#1B998B]' : expandedTier === 'Tier Three' ? 'bg-white border border-[#113E55]' : 'bg-white'}`}
                 >
-                  <Text
-                    allowFontScaling={false}
-                    className="text-[17.5px] font-inter-regular text-[#113E55] leading-[17.5px] mb-1.5"
-                  >
-                    {tierThreeApi?.tier ? formatTierName(tierThreeApi.tier) : 'Tier Three'}
-                  </Text>
-                  {tierThreeApi?.name && (
-                    <Text
-                      allowFontScaling={false}
-                      className="text-[15px] font-inter-medium text-[#113E55] leading-[22px] mb-2.5"
-                    >
-                      {tierThreeApi.name}
-                    </Text>
-                  )}
+                  <View className="flex-row justify-between items-start mb-1.5">
+                    <View className="flex-1 pr-2">
+                      <Text
+                        allowFontScaling={false}
+                        className={`text-[17.5px] font-inter-regular leading-[17.5px] mb-1.5 ${tierThreeApi?.is_installed ? 'text-[#1B998B]' : 'text-[#113E55]'}`}
+                      >
+                        {tierThreeApi?.tier ? formatTierName(tierThreeApi.tier) : 'Tier Three'}
+                      </Text>
+                      {(tierThreeApi?.is_installed ? 'PURCHASED' : tierThreeApi?.name) && (
+                        <Text
+                          allowFontScaling={false}
+                          className={`text-[15px] font-inter-medium leading-[22px] mb-2.5 ${tierThreeApi?.is_installed ? 'text-[#1B998B]' : 'text-[#113E55]'}`}
+                        >
+                          {tierThreeApi?.is_installed ? 'PURCHASED' : tierThreeApi?.name}
+                        </Text>
+                      )}
+                    </View>
+                    {tierThreeApi?.is_installed && (
+                      <View className="bg-[#D9EAE8] px-[22px] py-[10px] rounded-[14px]">
+                        <Text
+                          allowFontScaling={false}
+                          className="text-[#1B998B] font-inter-medium text-[13px]"
+                        >
+                          ACTIVE
+                        </Text>
+                      </View>
+                    )}
+                  </View>
                   <Text
                     allowFontScaling={false}
                     className="text-[11.2px] font-inter-regular text-[#8A9A9D] leading-[16px] text-justify"
@@ -813,7 +852,7 @@ export default function AnomalyDetectionPreviewScreen() {
                   >
                     <Text
                       allowFontScaling={false}
-                      className="text-[13px] font-inter-medium text-[#113E55]"
+                      className="text-[13px] font-inter-medium text-[#8A9A9D]"
                     >
                       See benefits
                     </Text>
@@ -824,7 +863,7 @@ export default function AnomalyDetectionPreviewScreen() {
                           : 'keyboard-arrow-right'
                       }
                       size={18}
-                      color="#113E55"
+                      color="#8A9A9D"
                     />
                   </Pressable>
 
@@ -832,8 +871,8 @@ export default function AnomalyDetectionPreviewScreen() {
                     <View className="space-y-3">
                       {(tierThreeApi?.benefits || []).map((benefit, index) => (
                         <View key={index} className="flex-row items-start gap-2 mb-3">
-                          <View className="bg-[#CEE5ED] rounded-full p-[2px] mt-[2px]">
-                            <MaterialIcons name="check" size={12} color="#113E55" />
+                          <View className={`${tierThreeApi?.is_installed ? 'bg-[#D9EAE8]' : 'bg-[#CEE5ED]'} rounded-full p-[2px] mt-[2px]`}>
+                            <MaterialIcons name="check" size={12} color={tierThreeApi?.is_installed ? '#1B998B' : '#113E55'} />
                           </View>
                           <Text
                             allowFontScaling={false}

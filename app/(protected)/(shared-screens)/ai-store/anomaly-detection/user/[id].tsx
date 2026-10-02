@@ -169,9 +169,14 @@ export default function AnomalyDetectionUserDetailsScreen() {
   const dateRangeText =
     displayDateFrom && displayDateTo ? `${displayDateFrom} • ${displayDateTo}` : '';
 
-  const { data: demographic } = useAnomalyCaseDemographic(estateId, id as string);
-  const { data: historyData } = useAnomalyCaseHistory(estateId, id as string);
-  const { data: resultsData } = useAnomalyCaseResults(estateId, id as string);
+  const { data: rawDemographic } = useAnomalyCaseDemographic(estateId, id as string);
+  const demographic = (rawDemographic as any)?.data || rawDemographic || {};
+
+  const { data: rawHistoryData } = useAnomalyCaseHistory(estateId, id as string);
+  const historyData = (rawHistoryData as any)?.data || rawHistoryData || {};
+
+  const { data: rawResultsData } = useAnomalyCaseResults(estateId, id as string);
+  const resultsData = (rawResultsData as any)?.data || rawResultsData || {};
 
   const { refetch: fetchSummary, data: summaryData } = useAnomalyCaseSummary(
     estateId,
@@ -180,7 +185,8 @@ export default function AnomalyDetectionUserDetailsScreen() {
   );
 
   const [localSummaryData, setLocalSummaryData] = useState<any>(null);
-  const currentSummaryData = localSummaryData || summaryData;
+  const rawSummaryData = localSummaryData || summaryData;
+  const currentSummaryData = rawSummaryData?.data || rawSummaryData;
 
   const userTypeStr =
     typeof user_type === 'string' && user_type
@@ -1082,9 +1088,13 @@ export default function AnomalyDetectionUserDetailsScreen() {
               })}
 
               {!currentSummaryData?.tier1 && !currentSummaryData?.tier2 && (
-                <View
+                <Pressable
+                  onPress={() => {
+                    setModalInitialIndex(0);
+                    setShowAiSummaryModal(true);
+                  }}
                   style={{
-                    width: 314,
+                    width: 314, // Fixed width for carousel items
                     backgroundColor: '#FFFFFF',
                     borderRadius: 24,
                     padding: 20,
@@ -1092,13 +1102,87 @@ export default function AnomalyDetectionUserDetailsScreen() {
                     borderColor: '#EFF1F3',
                   }}
                 >
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: 12,
+                    }}
+                  >
+                    <Text
+                      allowFontScaling={false}
+                      style={{
+                        fontFamily: 'Inter_18pt-Regular',
+                        fontSize: 17.5,
+                        color: '#0A1F29',
+                      }}
+                    >
+                      AI Summary
+                    </Text>
+                    <AiSummaryExpandSvg width={32} height={32} />
+                  </View>
+                  <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        gap: 4,
+                        alignItems: 'center',
+                        paddingHorizontal: 8,
+                        paddingVertical: 4,
+                        backgroundColor: '#FFF0F0',
+                        borderRadius: 10,
+                      }}
+                    >
+                      <TimeIconSvg width={12} height={12} color="#F46036" />
+                      <Text
+                        allowFontScaling={false}
+                        style={{
+                          fontFamily: 'Inter_18pt-Regular',
+                          fontSize: 10,
+                          color: '#F46036',
+                        }}
+                      >
+                        2 mins Read
+                      </Text>
+                    </View>
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        gap: 4,
+                        alignItems: 'center',
+                        paddingHorizontal: 8,
+                        paddingVertical: 4,
+                        backgroundColor: '#E5F5F3',
+                        borderRadius: 10,
+                      }}
+                    >
+                      <ThirdPartySvg width={12} height={12} color="#1B998B" />
+                      <Text
+                        allowFontScaling={false}
+                        style={{
+                          fontFamily: 'Inter_18pt-Regular',
+                          fontSize: 10,
+                          color: '#1B998B',
+                        }}
+                      >
+                        In house
+                      </Text>
+                    </View>
+                  </View>
                   <Text
                     allowFontScaling={false}
-                    style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 13, color: '#8A9A9D' }}
+                    numberOfLines={6}
+                    style={{
+                      fontFamily: 'Inter_18pt-Regular',
+                      fontSize: 11.2,
+                      color: '#878686',
+                      lineHeight: 18,
+                    }}
                   >
-                    No AI summaries available for this case.
+                    This section provides a detailed summary of the anomalous behavior detected for this user. It breaks down the key factors contributing to the anomaly, including unusual entry times, late-night activity, and irregular visitor patterns over the selected timeframe.
                   </Text>
-                </View>
+                </Pressable>
               )}
             </ScrollView>
 

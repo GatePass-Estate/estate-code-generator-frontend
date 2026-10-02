@@ -17,7 +17,7 @@ import {
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { BlurView } from 'expo-blur';
 
-import { router } from 'expo-router';
+import { router, Link } from 'expo-router';
 import { MaterialIcons, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import AnomalyRadarChart from './AnomalyRadarChart';
 import AnomalyDonutChart from './AnomalyDonutChart';
@@ -109,7 +109,7 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
   });
 
   const isLoading = overviewLoading || predictionsLoading;
-  const overview = rawOverview;
+  const overview = (rawOverview as any)?.data || rawOverview;
 
   const selectedDays = React.useMemo(() => {
     if (startDate && endDate) {
@@ -218,7 +218,28 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
     );
   }
 
-  const predictions = (rawPredictions?.items || []).slice(0, paginationLimit);
+  const unwrappedPredictions = (rawPredictions as any)?.data || rawPredictions;
+  let predictionsArray: any[] = [];
+  let totalPredictionsCount = 0;
+  
+  if (Array.isArray(unwrappedPredictions)) {
+    predictionsArray = unwrappedPredictions;
+  } else if (Array.isArray(unwrappedPredictions?.items)) {
+    predictionsArray = unwrappedPredictions.items;
+    totalPredictionsCount = unwrappedPredictions?.total || predictionsArray.length;
+  } else if (Array.isArray(unwrappedPredictions?.data)) {
+    predictionsArray = unwrappedPredictions.data;
+    totalPredictionsCount = unwrappedPredictions?.total || predictionsArray.length;
+  } else if (Array.isArray(unwrappedPredictions?.data?.items)) {
+    predictionsArray = unwrappedPredictions.data.items;
+    totalPredictionsCount = unwrappedPredictions?.data?.total || predictionsArray.length;
+  }
+  
+  if (totalPredictionsCount === 0 && predictionsArray.length > 0) {
+    totalPredictionsCount = predictionsArray.length;
+  }
+  
+  const predictions = predictionsArray.slice(0, paginationLimit);
 
   return (
     <Animated.View entering={FadeIn.duration(260)} style={{ flex: 1, backgroundColor: '#F6F7F7' }}>
@@ -918,12 +939,21 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
 
                 return (
                   <Pressable
-                    key={row.prediction_id || row.id || index}
-                    onPress={() =>
-                      router.push(
-                        `/(protected)/(shared-screens)/ai-store/anomaly-detection/user/${row.prediction_id || row.id}?gender=${row.gender || ''}&user_type=${row.user_type || row.role || ''}&display_name=${encodeURIComponent(row.display_name || row.name || '')}&date_from=${startDate ? startDate.toISOString() : ''}&date_to=${endDate ? endDate.toISOString() : ''}`
-                      )
-                    }
+                    key={row.prediction_id || row.id || row.user_id || index}
+                    onPress={() => {
+                      const idToUse = row.prediction_id || row.id || row.user_id;
+                      if (!idToUse) return;
+                      router.push({
+                        pathname: `/(protected)/(shared-screens)/ai-store/anomaly-detection/user/${idToUse}`,
+                        params: {
+                          gender: row.gender || '',
+                          user_type: row.user_type || row.role || '',
+                          display_name: row.display_name || row.name || '',
+                          date_from: startDate ? startDate.toISOString() : '',
+                          date_to: endDate ? endDate.toISOString() : '',
+                        }
+                      });
+                    }}
                     style={{
                       flexDirection: 'row',
                       alignItems: 'center',
@@ -992,7 +1022,7 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
             )}
 
             {/* Load More */}
-            {predictions.length > 0 && predictions.length < (rawPredictions?.total || 0) && (
+            {predictions.length > 0 && predictions.length < totalPredictionsCount && (
               <Pressable
                 onPress={() => setPaginationLimit((l) => l + 5)}
                 style={{ alignItems: 'center', paddingTop: 24, paddingBottom: 16 }}
