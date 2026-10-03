@@ -13,7 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FormData, FormErrors, GenderType } from '@/src/types/general';
 import { registerUser } from '@/src/lib/api/user';
 import { useUserStore } from '@/src/lib/stores/userStore';
@@ -30,10 +30,12 @@ import {
   REGISTRATION_GENDER_OPTIONS,
   REGISTRATION_ROLE_OPTIONS,
   validateRegistrationAddress,
+  validateRegistrationPersonalField,
   validateRegistrationPersonalDetails,
 } from '@/src/lib/registrationValidation';
 
 const RegisterUser = () => {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const navigation = useNavigation();
   const { systemBottom } = useAndroidBottomInset();
@@ -195,18 +197,13 @@ const RegisterUser = () => {
   };
 
   const updateFormData = <K extends keyof FormData>(key: K, value: FormData[K]) => {
-    const nextFormData = { ...formData, [key]: value };
-    setFormData(nextFormData);
+    setFormData((prev) => ({ ...prev, [key]: value }));
 
-    const personalDetailKeys: (keyof FormErrors)[] = [
-      'firstName',
-      'lastName',
-      'phoneNumber',
-      'email',
-    ];
-
-    if (personalDetailKeys.includes(key as keyof FormErrors)) {
-      const fieldError = validateRegistrationPersonalDetails(nextFormData)[key as keyof FormErrors];
+    if (
+      typeof value === 'string' &&
+      (key === 'firstName' || key === 'lastName' || key === 'email' || key === 'phoneNumber')
+    ) {
+      const fieldError = validateRegistrationPersonalField(key, value);
       setErrors((prev) => ({ ...prev, [key]: fieldError }));
     } else if (errors[key as keyof FormErrors]) {
       setErrors((prev) => ({ ...prev, [key]: undefined }));
@@ -217,8 +214,12 @@ const RegisterUser = () => {
     <SafeAreaView
       style={[
         sharedStyles.container,
-        sharedStyles.modalContainer,
-        { backgroundColor: '#FFFFFF', paddingBottom: 50, flex: 1 },
+        {
+          backgroundColor: '#FFFFFF',
+          paddingBottom: 50,
+          paddingTop: Math.max(0, 88 - insets.top),
+          flex: 1,
+        },
       ]}
     >
       <Stack.Screen

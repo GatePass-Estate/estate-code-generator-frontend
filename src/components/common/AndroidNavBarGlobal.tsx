@@ -1,4 +1,5 @@
 import { Platform, useColorScheme as useDeviceColorScheme, View } from 'react-native';
+import { usePathname } from 'expo-router';
 
 import { useAndroidBottomInset } from '@/src/hooks/useAndroidBottomInset';
 import { getAndroidNavBarBackground, useInitialAndroidBarSync } from '@/src/hooks/useAndroidNavBar';
@@ -6,7 +7,9 @@ import { getAndroidNavBarBackground, useInitialAndroidBarSync } from '@/src/hook
 /** Global Android 3-button nav: black/white strip + icon style on every screen. */
 export default function AndroidNavBarGlobal() {
   const deviceColorScheme = useDeviceColorScheme();
+  const pathname = usePathname();
   const { systemBottom } = useAndroidBottomInset();
+  const isUserProfile = /^\/admin\/users\/[^/]+$/.test(pathname);
 
   useInitialAndroidBarSync();
 
@@ -23,7 +26,7 @@ export default function AndroidNavBarGlobal() {
         left: 0,
         right: 0,
         height: systemBottom,
-        backgroundColor: getAndroidNavBarBackground(deviceColorScheme),
+        backgroundColor: isUserProfile ? '#F6F7F7' : getAndroidNavBarBackground(deviceColorScheme),
         zIndex: 9999,
         elevation: 9999,
       }}

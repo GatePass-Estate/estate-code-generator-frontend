@@ -1,53 +1,49 @@
 import Back from '@/src/components/mobile/Back';
-import { SingleDetail } from '@/src/components/mobile/SIngleDetail';
 import {
   getUserByIdAdmin,
   promoteToAdmin,
   demoteToResident,
   resendEmailVerification,
   deleteUser,
+  deactivateUser,
 } from '@/src/lib/api/user';
 import { sharedStyles } from '@/src/theme/styles';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   Modal,
   Animated,
   PanResponder,
+  Platform,
+  ScrollView,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useUserStore } from '@/src/lib/stores/userStore';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { User } from '@/src/types/user';
 import HouseholdSelectorSheet from '@/src/components/mobile/HouseholdSelectorSheet';
 import { transferUserHousehold } from '@/src/lib/api/households';
 import type { Household } from '@/src/types/household';
+import { getUserDocuments, getUserDocumentViewUri } from '@/src/lib/api/userDocuments';
 import { Feather } from '@expo/vector-icons';
-import { getUserDocumentViewUri } from '@/src/lib/api/userDocuments';
-import { downloadFile } from '@/src/lib/pendingRequestHelpers';
+import Pdf from 'react-native-pdf';
+import ResidentProfileFallback from '@/src/assets/icons/user-profile-placeholder.svg';
 
-// Dummy API function for deactivating user
-const deactivateUser = async (userId: string): Promise<boolean> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      console.log('Deactivating user:', userId);
-      resolve(true);
-    }, 1500);
-  });
-};
+type DocumentLoadState = 'loading' | 'loaded' | 'missing' | 'pending' | 'error';
 
 export default function SingleUserMobile() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const { width: screenWidth } = useWindowDimensions();
   const { userId, userParam } = useLocalSearchParams();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showDeactivateModal, setShowDeactivateModal] = useState(false);
   const [showPromoteModal, setShowPromoteModal] = useState(false);
-  const [showResendModal, setShowResendModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deactivating, setDeactivating] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [dialogMessage, setDialogMessage] = useState('');
@@ -56,9 +52,12 @@ export default function SingleUserMobile() {
   const [promoteActionType, setPromoteActionType] = useState<'promote' | 'demote' | null>(null);
   const [showHouseholdSelector, setShowHouseholdSelector] = useState(false);
   const [transferringHousehold, setTransferringHousehold] = useState(false);
-  const [identificationExpanded, setIdentificationExpanded] = useState(false);
-  const [openingIdentification, setOpeningIdentification] = useState(false);
-  const myId = useUserStore.getState().user_id;
+  const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null);
+  const [profilePictureState, setProfilePictureState] = useState<DocumentLoadState>('loading');
+  const [identificationExpanded, setIdentificationExpanded] = useState(true);
+  const [identificationUri, setIdentificationUri] = useState<string | null>(null);
+  const [identificationContentType, setIdentificationContentType] = useState<string | null>(null);
+  const [identificationState, setIdentificationState] = useState<DocumentLoadState>('loading');
   const panY = new Animated.Value(0);
   const [userData, setUserData] = useState<User>({
     first_name: '',
@@ -73,6 +72,14 @@ export default function SingleUserMobile() {
     gender: null,
     status: false,
   });
+  const isVerifiedProfile =
+    userData.status && (userData.role === 'resident' || userData.role === 'security');
+  const verifiedRoleLabel = userData.role === 'security' ? 'Security' : 'Resident';
+  const profileContentWidth = screenWidth - 40;
+  const identificationPreviewWidth = profileContentWidth * (211 / 335);
+  const identificationPreviewHeight = identificationPreviewWidth * (138.18 / 211);
+  const identificationExpandedHeight = 52 + identificationPreviewHeight + 11.82;
+  const residentActionScale = profileContentWidth / 335;
 
   const panResponder = PanResponder.create({
     onStartShouldSetPanResponder: () => true,
@@ -100,9 +107,7 @@ export default function SingleUserMobile() {
         if (userParam) {
           try {
             resident = JSON.parse(userParam as string);
-          } catch (e) {
-            console.log('Error parsing user param:', e);
-          }
+          } catch {}
         }
 
         if (!resident) {
@@ -126,9 +131,9 @@ export default function SingleUserMobile() {
           });
         } else {
           setUserData(resident);
+          setIdentificationExpanded(resident.role === 'resident');
         }
       } catch (error) {
-        console.log('Error fetching user data:', error);
         setError(error instanceof Error ? error.message : 'Failed to load user data');
       } finally {
         setLoading(false);
@@ -138,21 +143,113 @@ export default function SingleUserMobile() {
     fetchUserData();
   }, [userId, userParam]);
 
+  useEffect(() => {
+    if (!isVerifiedProfile || !userId) {
+      setProfilePictureUrl(null);
+      setProfilePictureState('missing');
+      return;
+    }
+
+    let active = true;
+    setProfilePictureState('loading');
+
+    void getUserDocuments(userId as string, 'profile_picture', ['active', 'pending'])
+      .then(async ({ documents }) => {
+        const profilePicture = documents.find(
+          (document) =>
+            document.document_type === 'profile_picture' && document.document_status === 'active'
+        );
+        const pendingPicture = documents.find(
+          (document) =>
+            document.document_type === 'profile_picture' && document.document_status === 'pending'
+        );
+
+        if (!profilePicture) {
+          if (active) {
+            setProfilePictureUrl(null);
+            setProfilePictureState(pendingPicture ? 'pending' : 'missing');
+          }
+          return;
+        }
+
+        const uri = await getUserDocumentViewUri(
+          userId as string,
+          'profile_picture',
+          profilePicture.content_type
+        );
+        if (active) {
+          setProfilePictureUrl(uri);
+          setProfilePictureState('loaded');
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setProfilePictureUrl(null);
+          setProfilePictureState('error');
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [isVerifiedProfile, userId]);
+
+  useEffect(() => {
+    if (!isVerifiedProfile || !identificationExpanded || !userId || identificationUri) return;
+
+    let active = true;
+    setIdentificationState('loading');
+
+    void getUserDocuments(userId as string, 'id_card', ['active', 'pending'])
+      .then(async ({ documents }) => {
+        const identification = documents.find(
+          (document) =>
+            document.document_type === 'id_card' && document.document_status === 'active'
+        );
+        const pendingIdentification = documents.find(
+          (document) =>
+            document.document_type === 'id_card' && document.document_status === 'pending'
+        );
+
+        if (!identification) {
+          if (active) {
+            setIdentificationContentType(null);
+            setIdentificationUri(null);
+            setIdentificationState(pendingIdentification ? 'pending' : 'missing');
+          }
+          return;
+        }
+
+        const contentType = identification?.content_type ?? null;
+        const uri = await getUserDocumentViewUri(userId as string, 'id_card', contentType);
+
+        if (active) {
+          setIdentificationContentType(contentType);
+          setIdentificationUri(uri);
+          setIdentificationState('loaded');
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setIdentificationUri(null);
+          setIdentificationState('error');
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [identificationExpanded, identificationUri, isVerifiedProfile, userId]);
+
   const handleDeactivate = async () => {
     setDeactivating(true);
 
     try {
-      const success = await deactivateUser(userId as string);
-
-      if (success) {
-        setShowDeactivateModal(false);
-        panY.setValue(0);
-        setDialogType('success');
-        setDialogMessage('User has been deactivated successfully!');
-        setDialogVisible(true);
-      }
-    } catch (err) {
-      console.log('Error deactivating user:', err);
+      await deactivateUser(userId as string);
+      setShowDeactivateModal(false);
+      panY.setValue(0);
+      router.back();
+    } catch {
       setDialogType('error');
       setDialogMessage('Failed to deactivate user. Please try again.');
       setDialogVisible(true);
@@ -165,13 +262,7 @@ export default function SingleUserMobile() {
     setProcessing(true);
     try {
       await resendEmailVerification(userId as string);
-      setShowResendModal(false);
-      setDialogType('success');
-      setDialogMessage(`Verification email has been resent to ${userData.first_name}.`);
-      setDialogVisible(true);
     } catch (err) {
-      console.log('Error resending email:', err);
-      setShowResendModal(false);
       setDialogType('error');
       setDialogMessage(err instanceof Error ? err.message : 'Failed to resend email.');
       setDialogVisible(true);
@@ -184,51 +275,14 @@ export default function SingleUserMobile() {
     setProcessing(true);
     try {
       await deleteUser(userId as string);
-      setShowDeleteModal(false);
-      setDialogType('success');
-      setDialogMessage(`${userData.first_name} has been successfully deleted.`);
-      setDialogVisible(true);
-
-      setTimeout(() => {
-        router.back();
-      }, 1500);
+      router.back();
     } catch (err) {
-      console.log('Error deleting user:', err);
-      setShowDeleteModal(false);
       setDialogType('error');
       setDialogMessage(err instanceof Error ? err.message : 'Failed to delete user.');
       setDialogVisible(true);
     } finally {
       setProcessing(false);
     }
-  };
-
-  const promptPromote = () => {
-    if (userData.role === 'admin' || userData.role === 'primary_admin') {
-      if (userId === myId) {
-        setDialogType('error');
-        setDialogMessage('You cannot demote yourself from admin.');
-        setDialogVisible(true);
-        return;
-      }
-
-      if (userData.role === 'primary_admin') {
-        setDialogType('error');
-        setDialogMessage('You cannot demote the primary admin.');
-        setDialogVisible(true);
-        return;
-      }
-      setPromoteActionType('demote');
-    } else {
-      if (userId === myId) {
-        setDialogType('error');
-        setDialogMessage('You cannot promote yourself to admin.');
-        setDialogVisible(true);
-        return;
-      }
-      setPromoteActionType('promote');
-    }
-    setShowPromoteModal(true);
   };
 
   const handlePromoteOrDemote = async () => {
@@ -260,7 +314,6 @@ export default function SingleUserMobile() {
         }
       }, 1500);
     } catch (err) {
-      console.log('Error processing action:', err);
       setShowPromoteModal(false);
       setPromoteActionType(null);
       setDialogType('error');
@@ -269,6 +322,11 @@ export default function SingleUserMobile() {
     } finally {
       setProcessing(false);
     }
+  };
+
+  const promptPromote = () => {
+    setPromoteActionType('promote');
+    setShowPromoteModal(true);
   };
 
   const handleHouseholdTransfer = async (household: Household) => {
@@ -304,35 +362,55 @@ export default function SingleUserMobile() {
     }
   };
 
-  const handleOpenIdentification = async () => {
-    setOpeningIdentification(true);
-    try {
-      const uri = await getUserDocumentViewUri(userId as string, 'id_card');
-      await downloadFile(uri);
-    } catch (err) {
-      setDialogType('error');
-      setDialogMessage(
-        err instanceof Error ? err.message : 'No identification document is available.'
-      );
-      setDialogVisible(true);
-    } finally {
-      setOpeningIdentification(false);
-    }
-  };
-
   return (
     <>
       <SafeAreaView
-        style={[sharedStyles.container, sharedStyles.modalContainer, { paddingBottom: 50 }]}
+        style={[
+          sharedStyles.container,
+          {
+            backgroundColor: '#F6F7F7',
+            paddingTop: Math.max(0, 88 - insets.top),
+            paddingBottom: isVerifiedProfile ? 0 : Math.max(0, 110 - insets.bottom),
+          },
+        ]}
       >
         <Stack.Screen
           options={{
             headerShown: false,
             headerShadowVisible: false,
+            contentStyle: { backgroundColor: '#F6F7F7' },
           }}
         />
 
-        <Back type="short-arrow" />
+        <View
+          className={`w-full flex-row items-center justify-between ${isVerifiedProfile ? 'h-10' : 'h-[30px]'}`}
+        >
+          <Back
+            type="short-arrow"
+            showText={false}
+            showBorder
+            borderSize={30}
+            leftOffset={-3}
+            iconStyle={{ width: 8.56, height: 12, top: 0 }}
+          />
+
+          {!loading && !error && isVerifiedProfile && (
+            <TouchableOpacity
+              onPress={() => setShowHouseholdSelector(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Transfer User"
+              hitSlop={12}
+              className="mr-[10px] h-10 w-[74px] items-center justify-center"
+            >
+              <Text
+                className="font-inter-semibold text-primary"
+                style={{ fontSize: 11.2, lineHeight: 11.2 }}
+              >
+                Transfer User
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
 
         {loading ? (
           <View className="flex-1 justify-center items-center">
@@ -363,6 +441,7 @@ export default function SingleUserMobile() {
                       }
                       if (resident) {
                         setUserData(resident);
+                        setIdentificationExpanded(resident.role === 'resident');
                       } else {
                         setError('User not found');
                       }
@@ -381,145 +460,296 @@ export default function SingleUserMobile() {
           </View>
         ) : (
           <>
-            <View className="flex-1">
-              <Text
-                className="text-2xl text-primary mb-5 font-ubuntu-bold mt-8"
-                style={{
-                  fontSize: 23,
-                }}
-              >
-                User Profile
-              </Text>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={isVerifiedProfile ? { paddingBottom: 110 } : { flexGrow: 1 }}
+            >
+              {isVerifiedProfile && (
+                <View className="mt-[19px] items-center">
+                  <View className="h-[87px] w-[87px] items-center justify-center overflow-hidden rounded-full bg-[#F6F7F7]">
+                    {profilePictureState === 'loading' ? (
+                      <ActivityIndicator size="small" color="#113E55" />
+                    ) : profilePictureUrl ? (
+                      <Image
+                        source={{ uri: profilePictureUrl }}
+                        className="h-full w-full"
+                        resizeMode="cover"
+                        onError={() => {
+                          setProfilePictureUrl(null);
+                          setProfilePictureState('error');
+                        }}
+                      />
+                    ) : (
+                      <ResidentProfileFallback width={87} height={87} />
+                    )}
+                  </View>
 
-              <View className=" bg-transparent p-4 rounded-lg border-micro py-4 overflow-hidden">
-                <SingleDetail label="Name" value={`${userData.first_name} ${userData.last_name}`} />
-                <SingleDetail
-                  label="Address"
-                  value={`${userData.estate_name ? userData.estate_name + ', ' : ''}${userData.home_address && userData.home_address + '.'}`}
-                />
-                <SingleDetail label="Email Address" value={userData.email} />
-                <SingleDetail label="Phone Number" value={userData.phone_number} />
-                <SingleDetail
-                  label="Household"
-                  value={userData.household_name || 'No household assigned'}
-                />
-              </View>
-
-              <View className="mt-4 overflow-hidden rounded-xl border border-input-border bg-white">
-                <TouchableOpacity
-                  accessibilityRole="button"
-                  accessibilityState={{ expanded: identificationExpanded }}
-                  onPress={() => setIdentificationExpanded((current) => !current)}
-                  className="flex-row items-center justify-between px-4 py-4"
-                >
-                  <View className="flex-row items-center gap-3">
-                    <Feather name="file-text" size={19} color="#113E55" />
-                    <Text className="text-sm text-primary font-inter-medium">
-                      Government-issued ID
+                  <View
+                    className="mt-[13px] h-[33px] items-center"
+                    style={{ width: Platform.OS === 'android' ? 160 : 111 }}
+                  >
+                    <Text
+                      allowFontScaling={false}
+                      numberOfLines={1}
+                      className="text-center font-ubuntu-medium text-primary"
+                      style={{
+                        fontSize: 27.34,
+                        lineHeight: 27.34,
+                        width: Platform.OS === 'android' ? 160 : undefined,
+                      }}
+                    >
+                      {verifiedRoleLabel}
                     </Text>
                   </View>
-                  <Feather
-                    name={identificationExpanded ? 'chevron-up' : 'chevron-down'}
-                    size={20}
-                    color="#6F91A0"
-                  />
-                </TouchableOpacity>
-                {identificationExpanded && (
-                  <View className="border-t border-input-border bg-light-grey px-4 py-4">
-                    <Text className="text-xs leading-5 text-grey font-inter-regular">
-                      View or download the identification document attached to this profile.
-                    </Text>
+                </View>
+              )}
+
+              <View
+                className={`${isVerifiedProfile ? 'mt-8' : 'mt-14'} ${isVerifiedProfile ? '' : 'flex-1'}`}
+              >
+                <View className="h-[41px] w-full flex-row items-center justify-between rounded-2xl bg-white px-4">
+                  <Text
+                    className="font-inter-medium text-[#878686]"
+                    style={{ fontSize: 14, lineHeight: 14 }}
+                  >
+                    Name
+                  </Text>
+                  <Text
+                    className="font-inter-light text-[#878686]"
+                    numberOfLines={1}
+                    style={{ fontSize: 14, lineHeight: 14 }}
+                  >
+                    {`${userData.first_name} ${userData.last_name}`.trim()}
+                  </Text>
+                </View>
+
+                <View className="mt-2 h-[41px] w-full flex-row items-center justify-between rounded-2xl bg-white px-4">
+                  <Text
+                    className="font-inter-medium text-[#878686]"
+                    style={{ fontSize: 14, lineHeight: 14 }}
+                  >
+                    Phone Number
+                  </Text>
+                  <Text
+                    className="max-w-[55%] font-inter-light text-[#878686]"
+                    numberOfLines={1}
+                    style={{ fontSize: 14, lineHeight: 14 }}
+                  >
+                    {userData.phone_number}
+                  </Text>
+                </View>
+
+                <View className="mt-2 h-[41px] w-full flex-row items-center justify-between rounded-2xl bg-white px-4">
+                  <Text
+                    className="font-inter-medium text-[#878686]"
+                    style={{ fontSize: 14, lineHeight: 14 }}
+                  >
+                    Email Address
+                  </Text>
+                  <Text
+                    className="max-w-[55%] font-inter-light text-[#878686]"
+                    numberOfLines={1}
+                    style={{ fontSize: 14, lineHeight: 14 }}
+                  >
+                    {userData.email}
+                  </Text>
+                </View>
+
+                <View className="mt-2 h-[41px] w-full flex-row items-center justify-between rounded-2xl bg-white px-4">
+                  <Text
+                    className="font-inter-medium text-[#878686]"
+                    style={{ fontSize: 14, lineHeight: 14 }}
+                  >
+                    House Hold
+                  </Text>
+                  <Text
+                    className="max-w-[55%] font-inter-light text-[#878686]"
+                    numberOfLines={1}
+                    style={{ fontSize: 14, lineHeight: 14 }}
+                  >
+                    {userData.household_name || 'No household assigned'}
+                  </Text>
+                </View>
+
+                <View className="mt-2 h-[41px] w-full flex-row items-center justify-between rounded-2xl bg-white px-4">
+                  <Text
+                    className="font-inter-medium text-[#878686]"
+                    style={{ fontSize: 14, lineHeight: 14 }}
+                  >
+                    Address
+                  </Text>
+                  <Text
+                    className="max-w-[65%] font-inter-light text-[#878686]"
+                    numberOfLines={1}
+                    style={{ fontSize: 14, lineHeight: 14 }}
+                  >
+                    {userData.home_address}
+                  </Text>
+                </View>
+
+                {isVerifiedProfile && (
+                  <View
+                    className="mt-2 w-full overflow-hidden rounded-2xl bg-white"
+                    style={{ height: identificationExpanded ? identificationExpandedHeight : 41 }}
+                  >
                     <TouchableOpacity
-                      disabled={openingIdentification}
-                      onPress={handleOpenIdentification}
-                      className={`mt-3 h-11 flex-row items-center justify-center gap-2 rounded-xl bg-primary ${
-                        openingIdentification ? 'opacity-60' : ''
-                      }`}
+                      accessibilityRole="button"
+                      accessibilityState={{ expanded: identificationExpanded }}
+                      onPress={() => setIdentificationExpanded((current) => !current)}
+                      activeOpacity={0.7}
+                      className="ml-4 mr-[18px] mt-3 h-6 flex-row items-center justify-between"
                     >
-                      {openingIdentification ? (
-                        <ActivityIndicator size="small" color="#FFFFFF" />
-                      ) : (
-                        <Feather name="download" size={17} color="#FFFFFF" />
-                      )}
-                      <Text className="text-sm text-white font-ubuntu-medium">
-                        {openingIdentification ? 'Opening...' : 'Open Document'}
+                      <Text
+                        className="font-inter-medium text-[#878686]"
+                        style={{ fontSize: 14, lineHeight: 14 }}
+                      >
+                        Identification Card
                       </Text>
+                      <View className="h-6 w-6 items-center justify-center">
+                        <Feather
+                          name={identificationExpanded ? 'chevron-up' : 'chevron-down'}
+                          size={14}
+                          color="#113E55"
+                        />
+                      </View>
                     </TouchableOpacity>
+
+                    {identificationExpanded && (
+                      <View
+                        className="mt-4 overflow-hidden rounded-2xl bg-[#F6F7F7]"
+                        style={{
+                          height: identificationPreviewHeight,
+                          marginLeft: profileContentWidth * (55 / 335),
+                          width: identificationPreviewWidth,
+                        }}
+                      >
+                        {identificationUri && identificationContentType === 'application/pdf' ? (
+                          <Pdf
+                            source={{ uri: identificationUri }}
+                            page={1}
+                            singlePage
+                            fitPolicy={0}
+                            spacing={0}
+                            enablePaging={false}
+                            enableAnnotationRendering={false}
+                            style={{
+                              height: identificationPreviewHeight,
+                              width: identificationPreviewWidth,
+                            }}
+                            onError={() => {
+                              setIdentificationUri(null);
+                              setIdentificationState('error');
+                            }}
+                          />
+                        ) : identificationUri ? (
+                          <Image
+                            source={{ uri: identificationUri }}
+                            className="h-full w-full"
+                            resizeMode="cover"
+                            onError={() => {
+                              setIdentificationUri(null);
+                              setIdentificationState('error');
+                            }}
+                          />
+                        ) : identificationState === 'loading' ? (
+                          <View className="h-full w-full items-center justify-center">
+                            <ActivityIndicator size="small" color="#113E55" />
+                          </View>
+                        ) : (
+                          <View className="h-full w-full items-center justify-center">
+                            <Feather name="credit-card" size={40} color="#C8CECE" />
+                          </View>
+                        )}
+                      </View>
+                    )}
                   </View>
                 )}
               </View>
-            </View>
 
-            {userData.role !== 'security' && (
-              <TouchableOpacity
-                onPress={() => setShowHouseholdSelector(true)}
-                disabled={processing || transferringHousehold}
-                className={`mb-4 flex-row items-center justify-center rounded-xl border border-primary bg-accent py-4 ${
-                  processing || transferringHousehold ? 'opacity-60' : ''
-                }`}
-              >
-                {transferringHousehold && <ActivityIndicator color="#113E55" size="small" />}
-                <Text className="ml-2 text-primary font-ubuntu-semibold">Transfer Household</Text>
-              </TouchableOpacity>
-            )}
-
-            <View className="mt-auto flex-row gap-5">
-              {userData.status ? (
-                <>
+              {isVerifiedProfile ? (
+                <View
+                  className="mt-[81px] flex-row"
+                  style={{
+                    columnGap: 10 * residentActionScale,
+                    marginLeft: -3 * residentActionScale,
+                  }}
+                >
                   <TouchableOpacity
                     onPress={() => setShowDeactivateModal(true)}
                     disabled={deactivating || processing}
-                    className={`flex-1 bg-teal justify-center items-center py-5 !rounded-xl ${deactivating || processing ? 'opacity-70' : ''}`}
+                    className={`h-12 items-center justify-center rounded-3xl bg-[#E5F6FF] ${
+                      deactivating || processing ? 'opacity-70' : ''
+                    }`}
+                    style={{ width: 168 * residentActionScale }}
                   >
-                    {deactivating ? (
-                      <ActivityIndicator color="#fff" size="small" />
-                    ) : (
-                      <Text className="text-white font-ubuntu-semibold text-md">Deactivate</Text>
-                    )}
-                  </TouchableOpacity>
-
-                  {userData.role !== 'security' && (
-                    <TouchableOpacity
-                      onPress={promptPromote}
-                      disabled={processing || deactivating}
-                      className={`flex-1 bg-primary justify-center items-center py-5 !rounded-xl ${processing || deactivating ? 'opacity-70' : ''}`}
+                    <Text
+                      className="font-ubuntu-semibold text-primary"
+                      style={{ fontSize: 14, lineHeight: 14, letterSpacing: -0.24 }}
                     >
-                      <Text className="text-white font-ubuntu-semibold text-md">
-                        {userData.role === 'admin' || userData.role === 'primary_admin'
-                          ? 'Make Resident'
-                          : 'Make Admin'}
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-                </>
-              ) : (
-                <>
+                      Deactivate
+                    </Text>
+                  </TouchableOpacity>
+
                   <TouchableOpacity
-                    onPress={() => setShowResendModal(true)}
+                    onPress={promptPromote}
+                    disabled={deactivating || processing}
+                    className={`h-12 items-center justify-center rounded-3xl border border-primary bg-primary ${
+                      deactivating || processing ? 'opacity-70' : ''
+                    }`}
+                    style={{ width: 159 * residentActionScale }}
+                  >
+                    <Text
+                      className="font-ubuntu-semibold text-white"
+                      style={{ fontSize: 14, lineHeight: 14, letterSpacing: -0.24 }}
+                    >
+                      Make Admin
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View className="mt-auto flex-row gap-[10px]">
+                  <TouchableOpacity
+                    onPress={handleDeleteUser}
                     disabled={processing}
-                    className={`flex-1 bg-teal justify-center items-center py-5 !rounded-xl border border-teal ${processing ? 'opacity-70' : ''}`}
+                    className={`h-12 items-center justify-center rounded-3xl bg-[#E5F6FF] ${
+                      processing ? 'opacity-70' : ''
+                    }`}
+                    style={{ flex: 168 }}
                   >
                     {processing ? (
-                      <ActivityIndicator color="#fff" size="small" />
+                      <ActivityIndicator color="#113E55" size="small" />
                     ) : (
-                      <Text className="text-white font-ubuntu-semibold text-md">Resend Email</Text>
+                      <Text
+                        className="font-ubuntu-semibold text-primary"
+                        style={{ fontSize: 14, lineHeight: 14, letterSpacing: -0.24 }}
+                      >
+                        Delete User
+                      </Text>
                     )}
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    onPress={() => setShowDeleteModal(true)}
+                    onPress={handleResendEmail}
                     disabled={processing}
-                    className={`flex-1 bg-red-600 justify-center items-center py-5 !rounded-xl ${processing ? 'opacity-70' : ''}`}
+                    className={`h-12 items-center justify-center rounded-3xl border border-primary bg-primary ${
+                      processing ? 'opacity-70' : ''
+                    }`}
+                    style={{ flex: 159 }}
                   >
                     {processing ? (
                       <ActivityIndicator color="#fff" size="small" />
                     ) : (
-                      <Text className="text-white font-ubuntu-semibold text-md">Delete User</Text>
+                      <Text
+                        className="font-ubuntu-semibold text-white"
+                        style={{ fontSize: 14, lineHeight: 14, letterSpacing: -0.24 }}
+                      >
+                        Resend Email
+                      </Text>
                     )}
                   </TouchableOpacity>
-                </>
+                </View>
               )}
-            </View>
+            </ScrollView>
 
             {/* Deactivate Confirmation Bottom Drawer */}
             <Modal
@@ -647,124 +877,6 @@ export default function SingleUserMobile() {
                 </Animated.View>
               </TouchableOpacity>
             </Modal>
-            {/* Resend Confirmation Bottom Drawer */}
-            <Modal
-              visible={showResendModal}
-              transparent
-              animationType="none"
-              onDismiss={() => panY.setValue(0)}
-            >
-              <TouchableOpacity
-                activeOpacity={1}
-                onPress={() => {
-                  setShowResendModal(false);
-                  panY.setValue(0);
-                }}
-                className="flex-1 bg-black/50 justify-end"
-              >
-                <Animated.View
-                  style={{ transform: [{ translateY: panY }] }}
-                  className="bg-white rounded-t-3xl p-6 pb-10"
-                >
-                  <View className="mb-2">
-                    <View className="h-1 w-12 bg-grey rounded-full self-center mb-4" />
-                  </View>
-
-                  <Text className="text-2xl font-ubuntu-medium text-grey mb-3 text-center">
-                    Are You sure ?
-                  </Text>
-                  <Text className="text-black text-base font-inter-regular mb-6 text-center">
-                    Confirm if you want to resend the verification email to {userData.first_name}
-                  </Text>
-
-                  <View className="flex-row gap-3 mt-6">
-                    <TouchableOpacity
-                      onPress={() => setShowResendModal(false)}
-                      disabled={processing}
-                      className={`flex-1 border-2 bg-teal border-teal py-4 rounded-lg ${processing ? 'opacity-70' : ''}`}
-                    >
-                      <Text className="text-white font-ubuntu-semibold text-center text-md">
-                        Cancel
-                      </Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      onPress={handleResendEmail}
-                      disabled={processing}
-                      className={`flex-1 bg-primary py-4 rounded-lg ${processing ? 'opacity-70' : ''}`}
-                    >
-                      {processing ? (
-                        <ActivityIndicator color="#fff" size="small" />
-                      ) : (
-                        <Text className="text-white font-ubuntu-semibold text-center text-md">
-                          Resend
-                        </Text>
-                      )}
-                    </TouchableOpacity>
-                  </View>
-                </Animated.View>
-              </TouchableOpacity>
-            </Modal>
-
-            {/* Delete Confirmation Bottom Drawer */}
-            <Modal
-              visible={showDeleteModal}
-              transparent
-              animationType="none"
-              onDismiss={() => panY.setValue(0)}
-            >
-              <TouchableOpacity
-                activeOpacity={1}
-                onPress={() => {
-                  setShowDeleteModal(false);
-                  panY.setValue(0);
-                }}
-                className="flex-1 bg-black/50 justify-end"
-              >
-                <Animated.View
-                  style={{ transform: [{ translateY: panY }] }}
-                  className="bg-white rounded-t-3xl p-6 pb-10"
-                >
-                  <View className="mb-2">
-                    <View className="h-1 w-12 bg-grey rounded-full self-center mb-4" />
-                  </View>
-
-                  <Text className="text-2xl font-ubuntu-medium text-grey mb-3 text-center">
-                    Are You sure ?
-                  </Text>
-                  <Text className="text-black text-base font-inter-regular mb-6 text-center">
-                    Confirm if you want to permanently delete this user
-                  </Text>
-
-                  <View className="flex-row gap-3 mt-6">
-                    <TouchableOpacity
-                      onPress={() => setShowDeleteModal(false)}
-                      disabled={processing}
-                      className={`flex-1 border-2 bg-teal border-teal py-4 rounded-lg ${processing ? 'opacity-70' : ''}`}
-                    >
-                      <Text className="text-white font-ubuntu-semibold text-center text-md">
-                        Cancel
-                      </Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      onPress={handleDeleteUser}
-                      disabled={processing}
-                      className={`flex-1 bg-red-600 py-4 rounded-lg ${processing ? 'opacity-70' : ''}`}
-                    >
-                      {processing ? (
-                        <ActivityIndicator color="#fff" size="small" />
-                      ) : (
-                        <Text className="text-white font-ubuntu-semibold text-center text-md">
-                          Delete
-                        </Text>
-                      )}
-                    </TouchableOpacity>
-                  </View>
-                </Animated.View>
-              </TouchableOpacity>
-            </Modal>
-
             {/* Dialog Box for System Messages */}
             <Modal visible={dialogVisible} transparent animationType="fade">
               <View className="flex-1 justify-center items-center bg-black/50">
