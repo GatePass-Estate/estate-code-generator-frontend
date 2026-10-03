@@ -22,6 +22,8 @@ type AISummaryModalProps = {
   onClose: () => void;
   summaryData?: any;
   initialIndex?: number;
+  tierTwoName?: string;
+  tierThreeName?: string;
 };
 
 const AccordionItem = ({
@@ -132,7 +134,9 @@ export default function AISummaryModal({
   visible,
   onClose,
   summaryData,
-  initialIndex,
+  initialIndex = 0,
+  tierTwoName,
+  tierThreeName,
 }: AISummaryModalProps) {
   const panY = React.useRef(new RNAnimated.Value(0)).current;
   const scrollViewRef = React.useRef<ScrollView>(null);
@@ -230,112 +234,112 @@ export default function AISummaryModal({
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={{ paddingBottom: 40 }}
             >
-              {(!summaryData?.tier1 && !summaryData?.tier2 ? ['tier1'] : ['tier1', 'tier2']).map((tierKey, idx) => {
-                const actualTierData = summaryData?.[tierKey];
-                if (!actualTierData && (summaryData?.tier1 || summaryData?.tier2)) return null;
+              {(!summaryData?.tier1 && !summaryData?.tier2 ? ['tier1'] : ['tier1', 'tier2']).map(
+                (tierKey, idx) => {
+                  const actualTierData = summaryData?.[tierKey];
+                  if (!actualTierData && (summaryData?.tier1 || summaryData?.tier2)) return null;
 
-                const tierData = actualTierData || {
-                  executive_summary: "This section provides a detailed summary of the anomalous behavior detected for this user. It breaks down the key factors contributing to the anomaly, including unusual entry times, late-night activity, and irregular visitor patterns over the selected timeframe.",
-                };
-                const isTier1 = tierKey === 'tier1';
+                  const tierData = actualTierData || {
+                    executive_summary:
+                      'This section provides a detailed summary of the anomalous behavior detected for this user. It breaks down the key factors contributing to the anomaly, including unusual entry times, late-night activity, and irregular visitor patterns over the selected timeframe.',
+                  };
+                  const isTier1 = tierKey === 'tier1';
 
-                const sections = [
-                  { title: 'EXECUTIVE SUMMARY', content: tierData.executive_summary },
-                  {
-                    title: 'KEY PATTERNS',
-                    content: tierData.detailed_insight || tierData.key_patterns,
-                  },
-                  { title: 'RISK DRIVERS', content: tierData.risk_drivers },
-                  { title: 'RECOMMENDED ACTIONS', content: tierData.recommended_actions },
-                  { title: 'DATA LIMITATIONS', content: tierData.data_limitations },
-                ].filter(
-                  (sec) =>
-                    sec.content && (Array.isArray(sec.content) ? sec.content.length > 0 : true)
-                );
+                  const sections = Object.entries(tierData || {})
+                    .map(([key, value]) => ({
+                      title: key.replace(/_/g, ' ').toUpperCase(),
+                      content: value as any,
+                    }))
+                    .filter(
+                      (sec) =>
+                        sec.content && (Array.isArray(sec.content) ? sec.content.length > 0 : true)
+                    );
 
-                return (
-                  <View
-                    key={tierKey}
-                    style={{
-                      width: Dimensions.get('window').width - 48,
-                      paddingRight: idx === 0 && summaryData?.tier1 && summaryData?.tier2 ? 24 : 0,
-                      paddingLeft: idx === 1 && summaryData?.tier1 && summaryData?.tier2 ? 24 : 0,
-                    }}
-                  >
-                    <Text
-                      allowFontScaling={false}
+                  return (
+                    <View
+                      key={tierKey}
                       style={{
-                        fontFamily: 'UbuntuSans-Medium',
-                        fontSize: 24,
-                        color: '#0A1F29',
-                        marginTop: 24,
-                        marginBottom: 12,
+                        width: Dimensions.get('window').width - 48,
+                        paddingRight:
+                          idx === 0 && summaryData?.tier1 && summaryData?.tier2 ? 24 : 0,
+                        paddingLeft: idx === 1 && summaryData?.tier1 && summaryData?.tier2 ? 24 : 0,
                       }}
                     >
-                      AI SUMMARY
-                    </Text>
-                    <View style={{ flexDirection: 'row', gap: 12, marginBottom: 32 }}>
-                      <View
+                      <Text
+                        allowFontScaling={false}
                         style={{
-                          flexDirection: 'row',
-                          gap: 4,
-                          alignItems: 'center',
-                          paddingHorizontal: 10,
-                          paddingVertical: 4,
-                          backgroundColor: '#FFF0F0',
-                          borderRadius: 12,
+                          fontFamily: 'UbuntuSans-Medium',
+                          fontSize: 24,
+                          color: '#0A1F29',
+                          marginTop: 24,
+                          marginBottom: 12,
                         }}
                       >
-                        <TimeIconSvg width={12} height={12} color="#F46036" />
-                        <Text
-                          allowFontScaling={false}
+                        AI SUMMARY
+                      </Text>
+                      <View style={{ flexDirection: 'row', gap: 12, marginBottom: 32 }}>
+                        <View
                           style={{
-                            fontFamily: 'Inter_18pt-Regular',
-                            fontSize: 10,
-                            color: '#F46036',
+                            flexDirection: 'row',
+                            gap: 4,
+                            alignItems: 'center',
+                            paddingHorizontal: 10,
+                            paddingVertical: 4,
+                            backgroundColor: '#FFF0F0',
+                            borderRadius: 12,
                           }}
                         >
-                          2 mins Read
-                        </Text>
-                      </View>
-                      <View
-                        style={{
-                          flexDirection: 'row',
-                          gap: 4,
-                          alignItems: 'center',
-                          paddingHorizontal: 10,
-                          paddingVertical: 4,
-                          backgroundColor: '#E5F5F3',
-                          borderRadius: 12,
-                        }}
-                      >
-                        <ThirdPartySvg width={12} height={12} color="#1B998B" />
-                        <Text
-                          allowFontScaling={false}
+                          <TimeIconSvg width={12} height={12} color="#F46036" />
+                          <Text
+                            allowFontScaling={false}
+                            style={{
+                              fontFamily: 'Inter_18pt-Regular',
+                              fontSize: 10,
+                              color: '#F46036',
+                            }}
+                          >
+                            2 mins Read
+                          </Text>
+                        </View>
+                        <View
                           style={{
-                            fontFamily: 'Inter_18pt-Regular',
-                            fontSize: 10,
-                            color: '#1B998B',
+                            flexDirection: 'row',
+                            gap: 4,
+                            alignItems: 'center',
+                            paddingHorizontal: 10,
+                            paddingVertical: 4,
+                            backgroundColor: '#E5F5F3',
+                            borderRadius: 12,
                           }}
                         >
-                          {isTier1 ? 'In house' : 'Third Party'}
-                        </Text>
+                          <ThirdPartySvg width={12} height={12} color="#1B998B" />
+                          <Text
+                            allowFontScaling={false}
+                            style={{
+                              fontFamily: 'Inter_18pt-Regular',
+                              fontSize: 10,
+                              color: '#1B998B',
+                            }}
+                          >
+                            {isTier1 ? 'In house' : 'Third Party'}
+                          </Text>
+                        </View>
                       </View>
-                    </View>
 
-                    <ScrollView showsVerticalScrollIndicator={false}>
-                      {sections.map((sec, index) => (
-                        <AccordionItem
-                          key={sec.title}
-                          title={sec.title}
-                          content={sec.content}
-                          isLast={index === sections.length - 1}
-                        />
-                      ))}
-                    </ScrollView>
-                  </View>
-                );
-              })}
+                      <ScrollView showsVerticalScrollIndicator={false}>
+                        {sections.map((sec, index) => (
+                          <AccordionItem
+                            key={sec.title}
+                            title={sec.title}
+                            content={sec.content}
+                            isLast={index === sections.length - 1}
+                          />
+                        ))}
+                      </ScrollView>
+                    </View>
+                  );
+                }
+              )}
             </ScrollView>
           </RNAnimated.View>
         </Animated.View>

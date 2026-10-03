@@ -38,6 +38,8 @@ import {
   useAnomalyCaseSummary,
   useAnomalyCaseResults,
 } from '@/src/hooks/useAnomalyQueries';
+import { getMarketplaceFeatures, getMarketplaceFeatureById } from '@/src/lib/api/aiMarketplace';
+import { MarketplaceDetailResponse } from '@/src/types/aiMarketplace';
 
 const GaugeCardsSection = React.memo(function GaugeCardsSection({
   gaugeList,
@@ -186,6 +188,34 @@ export default function AnomalyDetectionUserDetailsScreen() {
   );
 
   const [localSummaryData, setLocalSummaryData] = useState<any>(null);
+  const [featureDetail, setFeatureDetail] = useState<MarketplaceDetailResponse | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchFeature() {
+      try {
+        const list = await getMarketplaceFeatures();
+        const anomalyTool = list.items?.find((item: any) =>
+          item.name.toLowerCase().includes('anomaly')
+        );
+        if (anomalyTool && isMounted) {
+          const detail = await getMarketplaceFeatureById(anomalyTool.id);
+          if (isMounted) {
+            setFeatureDetail(detail);
+          }
+        }
+      } catch (err: any) {
+        console.log('Error loading anomaly feature details:', err?.message || err);
+      }
+    }
+    fetchFeature();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const tierTwoApi = featureDetail?.tiers?.find((t: any) => t.tier === 'tier2');
+  const tierThreeApi = featureDetail?.tiers?.find((t: any) => t.tier === 'tier3');
 
   const rawSummaryData = localSummaryData || summaryData;
   const currentSummaryData = rawSummaryData?.data || rawSummaryData;
@@ -973,13 +1003,13 @@ export default function AnomalyDetectionUserDetailsScreen() {
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              snapToInterval={330}
+              snapToInterval={Dimensions.get('window').width - 40 + 16}
               decelerationRate="fast"
               disableIntervalMomentum
               contentContainerStyle={{ gap: 16 }}
               onScroll={(e) => {
                 const offset = e.nativeEvent.contentOffset.x;
-                const index = Math.round(offset / 330);
+                const index = Math.round(offset / (Dimensions.get('window').width - 24));
                 if (index !== activeCarouselIndex) setActiveCarouselIndex(index);
               }}
               scrollEventThrottle={16}
@@ -999,7 +1029,7 @@ export default function AnomalyDetectionUserDetailsScreen() {
                       setShowAiSummaryModal(true);
                     }}
                     style={{
-                      width: activeTiers.length === 1 ? Dimensions.get('window').width - 40 : 314, // Fixed width for carousel if multiple
+                      width: Dimensions.get('window').width - 40,
                       backgroundColor: '#FFFFFF',
                       borderRadius: 24,
                       padding: 20,
@@ -1023,7 +1053,7 @@ export default function AnomalyDetectionUserDetailsScreen() {
                           color: '#0A1F29',
                         }}
                       >
-                        AI Summary
+                        AI SUMMARY
                       </Text>
                       <AiSummaryExpandSvg width={32} height={32} />
                     </View>
@@ -1122,7 +1152,7 @@ export default function AnomalyDetectionUserDetailsScreen() {
                         color: '#0A1F29',
                       }}
                     >
-                      AI Summary
+                      AI SUMMARY
                     </Text>
                     <AiSummaryExpandSvg width={32} height={32} />
                   </View>
