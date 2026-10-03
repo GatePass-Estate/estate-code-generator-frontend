@@ -148,7 +148,7 @@ export default function AnomalyDetectionUserDetailsScreen() {
   const { id, gender, user_type, display_name, date_from, date_to } = useLocalSearchParams();
   const estateId = useUserStore((state: any) => state.estate_id) || '';
   const [aiState, setAiState] = useState<'idle' | 'loading' | 'loaded' | 'forbidden' | 'error'>(
-    'loaded'
+    'idle'
   );
   const [showAiSummaryModal, setShowAiSummaryModal] = useState(false);
   const [activeCarouselIndex, setActiveCarouselIndex] = useState(0);
@@ -186,7 +186,7 @@ export default function AnomalyDetectionUserDetailsScreen() {
   );
 
   const [localSummaryData, setLocalSummaryData] = useState<any>(null);
-  
+
   const rawSummaryData = localSummaryData || summaryData;
   const currentSummaryData = rawSummaryData?.data || rawSummaryData;
 
@@ -989,12 +989,13 @@ export default function AnomalyDetectionUserDetailsScreen() {
                 if (!tierData) return null;
                 const isTier1 = tierKey === 'tier1';
                 const activeTiers = arr.filter((k) => !!(currentSummaryData as any)?.[k]);
+                const visualIndex = activeTiers.indexOf(tierKey);
 
                 return (
                   <Pressable
                     key={tierKey}
                     onPress={() => {
-                      setModalInitialIndex(idx);
+                      setModalInitialIndex(visualIndex);
                       setShowAiSummaryModal(true);
                     }}
                     style={{

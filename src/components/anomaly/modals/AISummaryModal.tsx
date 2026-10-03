@@ -230,9 +230,13 @@ export default function AISummaryModal({
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={{ paddingBottom: 40 }}
             >
-              {['tier1', 'tier2'].map((tierKey, idx) => {
-                const tierData = summaryData?.[tierKey];
-                if (!tierData) return null;
+              {(!summaryData?.tier1 && !summaryData?.tier2 ? ['tier1'] : ['tier1', 'tier2']).map((tierKey, idx) => {
+                const actualTierData = summaryData?.[tierKey];
+                if (!actualTierData && (summaryData?.tier1 || summaryData?.tier2)) return null;
+
+                const tierData = actualTierData || {
+                  executive_summary: "This section provides a detailed summary of the anomalous behavior detected for this user. It breaks down the key factors contributing to the anomaly, including unusual entry times, late-night activity, and irregular visitor patterns over the selected timeframe.",
+                };
                 const isTier1 = tierKey === 'tier1';
 
                 const sections = [
@@ -254,8 +258,8 @@ export default function AISummaryModal({
                     key={tierKey}
                     style={{
                       width: Dimensions.get('window').width - 48,
-                      paddingRight: idx === 0 && summaryData?.tier2 ? 24 : 0,
-                      paddingLeft: idx === 1 ? 24 : 0,
+                      paddingRight: idx === 0 && summaryData?.tier1 && summaryData?.tier2 ? 24 : 0,
+                      paddingLeft: idx === 1 && summaryData?.tier1 && summaryData?.tier2 ? 24 : 0,
                     }}
                   >
                     <Text

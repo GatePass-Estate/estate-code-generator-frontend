@@ -569,7 +569,7 @@ export default function AnomalyDetectionPreviewScreen() {
                 </Text>
 
                 <View
-                  className={`rounded-[16px] p-5 mb-4 ${tierOneApi?.is_installed ? 'bg-[#F2FAF9] border border-[#1B998B]' : expandedTier === 'Tier One' ? 'bg-white border border-[#113E55]' : 'bg-white'}`}
+                  className={`rounded-[16px] p-5 mb-4 ${expandedTier === 'Tier One' ? (tierOneApi?.is_installed ? 'bg-[#F2FAF9] border border-[#1B998B]' : 'bg-white border border-[#113E55]') : 'bg-white border border-[#EFF1F3]'}`}
                 >
                   <View className="flex-row justify-between items-start mb-1.5">
                     <View className="flex-1 pr-2">
@@ -694,7 +694,7 @@ export default function AnomalyDetectionPreviewScreen() {
                 </View>
 
                 <View
-                  className={`rounded-[16px] p-5 mb-4 ${tierTwoApi?.is_installed ? 'bg-[#F2FAF9] border border-[#1B998B]' : expandedTier === 'Tier Two' ? 'bg-white border border-[#113E55]' : 'bg-white'}`}
+                  className={`rounded-[16px] p-5 mb-4 ${expandedTier === 'Tier Two' ? (tierTwoApi?.is_installed ? 'bg-[#F2FAF9] border border-[#1B998B]' : 'bg-white border border-[#113E55]') : 'bg-white border border-[#EFF1F3]'}`}
                 >
                   <View className="flex-row justify-between items-start mb-1.5">
                     <View className="flex-1 pr-2">
