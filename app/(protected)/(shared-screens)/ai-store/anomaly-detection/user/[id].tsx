@@ -8,9 +8,15 @@ import {
   Animated,
   ActivityIndicator,
   Alert,
+  Modal,
+  Platform,
+  StyleSheet,
+  Dimensions,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { BlurView } from 'expo-blur';
+import Reanimated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { MaterialIcons, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { sharedStyles } from '@/src/theme/styles';
 import AnomalyRadarChart from '@/src/components/anomaly/AnomalyRadarChart';
@@ -22,6 +28,9 @@ import TotalUsersSvg from '@/src/assets/icons/totalusers.svg';
 import GuestMaleSvg from '@/src/assets/images/guestmale.svg';
 import GuestFemaleSvg from '@/src/assets/images/guestfemale.svg';
 import ExportSvg from '@/src/assets/images/export.svg';
+import AiSummaryExpandSvg from '@/src/assets/images/aisummaryexpand.svg';
+import TimeIconSvg from '@/src/assets/images/timeicon.svg';
+import ThirdPartySvg from '@/src/assets/images/thirdparty.svg';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import {
   useAnomalyCaseDemographic,
@@ -142,6 +151,9 @@ export default function AnomalyDetectionUserDetailsScreen() {
     'idle'
   );
   const [showAiSummaryModal, setShowAiSummaryModal] = useState(false);
+  const [activeCarouselIndex, setActiveCarouselIndex] = useState(0);
+  const [modalInitialIndex, setModalInitialIndex] = useState(0);
+  const [showComingSoon, setShowComingSoon] = useState(false);
 
   const formatDateObj = (dateStr: string) => {
     if (!dateStr) return '';
@@ -159,32 +171,38 @@ export default function AnomalyDetectionUserDetailsScreen() {
     displayDateFrom && displayDateTo ? `${displayDateFrom} • ${displayDateTo}` : '';
 
   const { data: rawDemographic } = useAnomalyCaseDemographic(estateId, id as string);
-  const { data: rawHistoryData } = useAnomalyCaseHistory(estateId, id as string);
-  const { data: rawResultsData } = useAnomalyCaseResults(estateId, id as string);
+  const demographic = (rawDemographic as any)?.data || rawDemographic || {};
 
-  const { refetch: fetchSummary, data: rawSummaryData } = useAnomalyCaseSummary(
+  const { data: rawHistoryData } = useAnomalyCaseHistory(estateId, id as string);
+  const historyData = (rawHistoryData as any)?.data || rawHistoryData || {};
+
+  const { data: rawResultsData } = useAnomalyCaseResults(estateId, id as string);
+  const resultsData = (rawResultsData as any)?.data || rawResultsData || {};
+
+  const { refetch: fetchSummary, data: summaryData } = useAnomalyCaseSummary(
     estateId,
     id as string,
     false
   );
-  const summaryData: any = rawSummaryData;
 
-  const demographic: any = rawDemographic || {};
-  let historyData: any = rawHistoryData || {};
-  const resultsData: any = rawResultsData || {};
+  const [localSummaryData, setLocalSummaryData] = useState<any>(null);
+
+  const rawSummaryData = localSummaryData || summaryData;
+  const currentSummaryData = rawSummaryData?.data || rawSummaryData;
 
   const userTypeStr =
     typeof user_type === 'string' && user_type
       ? user_type
-      : demographic?.user_type || demographic?.role || 'Guest';
-  const genderStr = typeof gender === 'string' && gender ? gender : demographic?.gender || '';
+      : demographic?.user_type || (demographic as any)?.role || 'Guest';
+  const genderStr =
+    typeof gender === 'string' && gender ? gender : (demographic as any)?.gender || '';
 
   const demo = {
     ...demographic,
     user_type: userTypeStr,
     display_name: display_name
       ? decodeURIComponent(display_name as string)
-      : demographic.display_name,
+      : demographic?.display_name || '',
     gender: genderStr,
   };
 
@@ -192,13 +210,17 @@ export default function AnomalyDetectionUserDetailsScreen() {
   const isFemale = genderStr.toLowerCase().startsWith('f');
   const accentColor = isGuest ? '#113E55' : '#F46036';
 
-  const historyRecordsCount = useMemo(() => {
-    if (historyData?.total !== undefined) return historyData.total;
-    if (Array.isArray(historyData?.data)) return historyData.data.length;
-    if (Array.isArray(historyData)) return historyData.length;
-    if (historyData?.items) return historyData.items.length;
-    return 0;
+  const historyRecords = useMemo(() => {
+    if (Array.isArray((historyData as any)?.data)) return (historyData as any).data;
+    if (Array.isArray(historyData)) return historyData;
+    if (historyData?.items) return historyData.items;
+    return [];
   }, [historyData]);
+
+  const historyRecordsCount = useMemo(() => {
+    if ((historyData as any)?.total !== undefined) return (historyData as any).total;
+    return historyRecords.length;
+  }, [historyData, historyRecords]);
 
   const selectedDays = useMemo(() => {
     if (date_from && date_to) {
@@ -275,6 +297,9 @@ export default function AnomalyDetectionUserDetailsScreen() {
         setAiState('error');
       }
     } else {
+      if (result.data) {
+        setLocalSummaryData(result.data);
+      }
       setAiState('loaded');
     }
   };
@@ -365,7 +390,7 @@ export default function AnomalyDetectionUserDetailsScreen() {
           User Overview
         </Text>
         <Pressable
-          onPress={() => Alert.alert('Coming Soon', 'This feature is not yet active.')}
+          onPress={() => setShowComingSoon(true)}
           style={{
             width: 32,
             height: 32,
@@ -413,7 +438,7 @@ export default function AnomalyDetectionUserDetailsScreen() {
                   marginBottom: 4,
                 }}
               >
-                {demo.display_name || demo.name || 'Unknown User'}
+                {demo.display_name || (demo as any).name || 'Unknown User'}
               </Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                 <Text
@@ -480,9 +505,9 @@ export default function AnomalyDetectionUserDetailsScreen() {
                   ) : (
                     <GuestMaleSvg width={78} height={78} style={{ borderRadius: 39 }} />
                   )
-                ) : demo.avatar_url || profilePicUri ? (
+                ) : (demo as any).avatar_url || profilePicUri ? (
                   <Image
-                    source={{ uri: demo.avatar_url || profilePicUri! }}
+                    source={{ uri: (demo as any).avatar_url || profilePicUri! }}
                     style={{ width: 78, height: 78, borderRadius: 39 }}
                   />
                 ) : isGuest ? (
@@ -617,11 +642,9 @@ export default function AnomalyDetectionUserDetailsScreen() {
           >
             <View style={{ position: 'relative' }}>
               {/* Dashed Line Background - starts from center of first card (top: 39) */}
-              {(Array.isArray(historyData) ? historyData : historyData?.items)?.length > 0 ? (
+              {historyRecords.length > 0 ? (
                 <Svg
-                  height={
-                    (Array.isArray(historyData) ? historyData : historyData?.items).length * 90
-                  }
+                  height={historyRecords.length * 90}
                   width="2"
                   style={{ position: 'absolute', top: 39, left: 12, zIndex: 1 }}
                 >
@@ -638,110 +661,120 @@ export default function AnomalyDetectionUserDetailsScreen() {
               ) : null}
 
               <View style={{ gap: 12 }}>
-                {(Array.isArray(historyData) ? historyData : historyData?.items)?.length > 0 ? (
-                  (Array.isArray(historyData) ? historyData : historyData?.items).map(
-                    (record: any, index: number) => {
-                      const isHigh = record.severity?.toLowerCase() === 'high';
-                      const d = new Date(record.validated_at);
-                      const timeString = isNaN(d.getTime())
-                        ? '--:--'
-                        : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                      const dateString = isNaN(d.getTime())
-                        ? 'N/A'
-                        : `${d.getDate().toString().padStart(2, '0')}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getFullYear()}`;
+                {historyRecords.length > 0 ? (
+                  historyRecords.map((record: any, index: number) => {
+                    const sev = (record.severity || 'low').toLowerCase();
+                    let bgColor = '#1B998B1F';
+                    let textColor = '#1B998B';
+                    if (sev === 'high') {
+                      bgColor = '#F61C1C1F';
+                      textColor = '#E30404';
+                    } else if (sev === 'medium') {
+                      bgColor = '#FBFBEE';
+                      textColor = '#D97706';
+                    }
+                    const d = new Date(record.validated_at);
+                    const timeString = isNaN(d.getTime())
+                      ? '--:--'
+                      : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    const dateString = isNaN(d.getTime())
+                      ? 'N/A'
+                      : `${d.getDate().toString().padStart(2, '0')}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getFullYear()}`;
 
-                      return (
+                    return (
+                      <View
+                        key={`history-${index}`}
+                        style={{ flexDirection: 'row', alignItems: 'center', gap: 24 }}
+                      >
                         <View
-                          key={`history-${index}`}
-                          style={{ flexDirection: 'row', alignItems: 'center', gap: 24 }}
+                          style={{
+                            width: 26,
+                            height: 26,
+                            borderRadius: 13,
+                            borderWidth: 1.4,
+                            borderColor: '#8A9A9D',
+                            backgroundColor: '#F6F7F7',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            zIndex: 10,
+                          }}
                         >
                           <View
                             style={{
-                              width: 26,
-                              height: 26,
-                              borderRadius: 13,
-                              borderWidth: 1.4,
-                              borderColor: '#8A9A9D',
-                              backgroundColor: '#F6F7F7',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              zIndex: 10,
+                              width: 14,
+                              height: 14,
+                              borderRadius: 7,
+                              backgroundColor: '#8A9A9D',
+                            }}
+                          />
+                        </View>
+                        <View
+                          style={{
+                            flex: 1,
+                            height: 78,
+                            backgroundColor: '#FFFFFF',
+                            borderRadius: 16,
+                            paddingHorizontal: 16,
+                            paddingVertical: 12,
+                            justifyContent: 'space-between',
+                          }}
+                        >
+                          <Text
+                            allowFontScaling={false}
+                            style={{
+                              fontFamily: 'Inter_18pt-Regular',
+                              fontSize: 13,
+                              color: '#8A9A9D',
                             }}
                           >
-                            <View
-                              style={{
-                                width: 14,
-                                height: 14,
-                                borderRadius: 7,
-                                backgroundColor: '#8A9A9D',
-                              }}
-                            />
-                          </View>
+                            {timeString} • {dateString}
+                          </Text>
                           <View
                             style={{
-                              flex: 1,
-                              height: 78,
-                              backgroundColor: '#FFFFFF',
-                              borderRadius: 16,
-                              paddingHorizontal: 16,
-                              paddingVertical: 12,
+                              flexDirection: 'row',
                               justifyContent: 'space-between',
+                              alignItems: 'center',
                             }}
                           >
                             <Text
                               allowFontScaling={false}
                               style={{
-                                fontFamily: 'Inter_18pt-Regular',
-                                fontSize: 13,
-                                color: '#8A9A9D',
+                                fontFamily: 'UbuntuSans-SemiBold',
+                                fontSize: 22,
+                                lineHeight: 22,
+                                color: '#113E55',
                               }}
                             >
-                              {timeString} • {dateString}
+                              {record.validated_code || 'N/A'}
                             </Text>
                             <View
                               style={{
-                                flexDirection: 'row',
-                                justifyContent: 'space-between',
+                                backgroundColor: bgColor,
+                                paddingHorizontal: 16,
+                                height: 28,
+                                justifyContent: 'center',
                                 alignItems: 'center',
+                                borderRadius: 16,
                               }}
                             >
                               <Text
                                 allowFontScaling={false}
                                 style={{
-                                  fontFamily: 'UbuntuSans-SemiBold',
-                                  fontSize: 22,
-                                  lineHeight: 22,
-                                  color: '#113E55',
+                                  fontFamily: 'Inter_18pt-Regular',
+                                  fontSize: 11.2,
+                                  lineHeight: 11.2,
+                                  color: textColor,
+                                  textTransform: 'uppercase',
                                 }}
                               >
-                                {record.validated_code || 'N/A'}
+                                {sev === 'medium' ? 'MED' : record.severity || 'Normal'}
                               </Text>
-                              <View
-                                style={{
-                                  backgroundColor: isHigh ? '#FEE2E2' : '#E0F2F1',
-                                  paddingHorizontal: 16,
-                                  paddingVertical: 6,
-                                  borderRadius: 16,
-                                }}
-                              >
-                                <Text
-                                  allowFontScaling={false}
-                                  style={{
-                                    fontFamily: 'Inter_18pt-Regular',
-                                    fontSize: 12,
-                                    color: isHigh ? '#ED0808' : '#1B998B',
-                                    textTransform: 'capitalize',
-                                  }}
-                                >
-                                  {record.severity || 'Normal'}
-                                </Text>
-                              </View>
                             </View>
                           </View>
                         </View>
-                      );
-                    }
-                  )
+                      </View>
+                    );
+                  })
                 ) : (
                   <Text
                     allowFontScaling={false}
@@ -944,87 +977,128 @@ export default function AnomalyDetectionUserDetailsScreen() {
               decelerationRate="fast"
               disableIntervalMomentum
               contentContainerStyle={{ gap: 16 }}
+              onScroll={(e) => {
+                const offset = e.nativeEvent.contentOffset.x;
+                const index = Math.round(offset / 330);
+                if (index !== activeCarouselIndex) setActiveCarouselIndex(index);
+              }}
+              scrollEventThrottle={16}
             >
-              {summaryData?.tier1 && (
-                <Pressable
-                  onPress={() => setShowAiSummaryModal(true)}
-                  style={{
-                    width: 314, // Fixed width for carousel items
-                    backgroundColor: '#FFFFFF',
-                    borderRadius: 24,
-                    padding: 20,
-                    borderWidth: 1,
-                    borderColor: '#EFF1F3',
-                  }}
-                >
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      marginBottom: 12,
-                    }}
-                  >
-                    <Text
-                      allowFontScaling={false}
-                      style={{ fontFamily: 'UbuntuSans-Medium', fontSize: 16, color: '#113E55' }}
-                    >
-                      AI Summary
-                    </Text>
-                    <View
-                      style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: 16,
-                        backgroundColor: '#EFF1F3',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <MaterialCommunityIcons name="arrow-expand-all" size={16} color="#113E55" />
-                    </View>
-                  </View>
-                  <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
-                    <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
-                      <MaterialIcons name="schedule" size={12} color="#F46036" />
-                      <Text
-                        allowFontScaling={false}
-                        style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 10, color: '#F46036' }}
-                      >
-                        2 mins Read
-                      </Text>
-                    </View>
-                    <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
-                      <MaterialIcons name="security" size={12} color="#1B998B" />
-                      <Text
-                        allowFontScaling={false}
-                        style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 10, color: '#1B998B' }}
-                      >
-                        Third Party
-                      </Text>
-                    </View>
-                  </View>
-                  <Text
-                    allowFontScaling={false}
-                    numberOfLines={3}
-                    style={{
-                      fontFamily: 'Inter_18pt-Regular',
-                      fontSize: 12,
-                      color: '#8A9A9D',
-                      lineHeight: 20,
-                    }}
-                  >
-                    {summaryData?.tier1?.executive_summary ||
-                      'This section provides a detailed summary of the anomalous behavior detected for this user. It breaks down the key factors contributing to the anomaly, including unusual entry times, late-night activity, and irregular visitor patterns over the selected timeframe.'}
-                  </Text>
-                </Pressable>
-              )}
+              {['tier1', 'tier2'].map((tierKey, idx, arr) => {
+                const tierData = (currentSummaryData as any)?.[tierKey];
+                if (!tierData) return null;
+                const isTier1 = tierKey === 'tier1';
+                const activeTiers = arr.filter((k) => !!(currentSummaryData as any)?.[k]);
+                const visualIndex = activeTiers.indexOf(tierKey);
 
-              {summaryData?.tier2 && (
+                return (
+                  <Pressable
+                    key={tierKey}
+                    onPress={() => {
+                      setModalInitialIndex(visualIndex);
+                      setShowAiSummaryModal(true);
+                    }}
+                    style={{
+                      width: activeTiers.length === 1 ? Dimensions.get('window').width - 40 : 314, // Fixed width for carousel if multiple
+                      backgroundColor: '#FFFFFF',
+                      borderRadius: 24,
+                      padding: 20,
+                      borderWidth: 1,
+                      borderColor: '#EFF1F3',
+                    }}
+                  >
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginBottom: 12,
+                      }}
+                    >
+                      <Text
+                        allowFontScaling={false}
+                        style={{
+                          fontFamily: 'Inter_18pt-Regular',
+                          fontSize: 17.5,
+                          color: '#0A1F29',
+                        }}
+                      >
+                        AI Summary
+                      </Text>
+                      <AiSummaryExpandSvg width={32} height={32} />
+                    </View>
+                    <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
+                      <View
+                        style={{
+                          flexDirection: 'row',
+                          gap: 4,
+                          alignItems: 'center',
+                          paddingHorizontal: 8,
+                          paddingVertical: 4,
+                          backgroundColor: '#FFF0F0',
+                          borderRadius: 10,
+                        }}
+                      >
+                        <TimeIconSvg width={12} height={12} color="#F46036" />
+                        <Text
+                          allowFontScaling={false}
+                          style={{
+                            fontFamily: 'Inter_18pt-Regular',
+                            fontSize: 10,
+                            color: '#F46036',
+                          }}
+                        >
+                          2 mins Read
+                        </Text>
+                      </View>
+                      <View
+                        style={{
+                          flexDirection: 'row',
+                          gap: 4,
+                          alignItems: 'center',
+                          paddingHorizontal: 8,
+                          paddingVertical: 4,
+                          backgroundColor: '#E5F5F3',
+                          borderRadius: 10,
+                        }}
+                      >
+                        <ThirdPartySvg width={12} height={12} color="#1B998B" />
+                        <Text
+                          allowFontScaling={false}
+                          style={{
+                            fontFamily: 'Inter_18pt-Regular',
+                            fontSize: 10,
+                            color: '#1B998B',
+                          }}
+                        >
+                          {isTier1 ? 'In house' : 'Third Party'}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text
+                      allowFontScaling={false}
+                      numberOfLines={6}
+                      style={{
+                        fontFamily: 'Inter_18pt-Regular',
+                        fontSize: 11.2,
+                        color: '#878686',
+                        lineHeight: 18,
+                      }}
+                    >
+                      {tierData.executive_summary}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+
+              {!currentSummaryData?.tier1 && !currentSummaryData?.tier2 && (
                 <Pressable
-                  onPress={() => setShowAiSummaryModal(true)}
+                  onPress={() => {
+                    setModalInitialIndex(0);
+                    setShowAiSummaryModal(true);
+                  }}
                   style={{
-                    width: 314, // Fixed width for carousel items
+                    width: Dimensions.get('window').width - 40,
                     backgroundColor: '#FFFFFF',
                     borderRadius: 24,
                     padding: 20,
@@ -1042,38 +1116,59 @@ export default function AnomalyDetectionUserDetailsScreen() {
                   >
                     <Text
                       allowFontScaling={false}
-                      style={{ fontFamily: 'UbuntuSans-Medium', fontSize: 16, color: '#113E55' }}
+                      style={{
+                        fontFamily: 'Inter_18pt-Regular',
+                        fontSize: 17.5,
+                        color: '#0A1F29',
+                      }}
                     >
                       AI Summary
                     </Text>
-                    <View
-                      style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: 16,
-                        backgroundColor: '#EFF1F3',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <MaterialCommunityIcons name="arrow-expand-all" size={16} color="#113E55" />
-                    </View>
+                    <AiSummaryExpandSvg width={32} height={32} />
                   </View>
                   <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
-                    <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
-                      <MaterialIcons name="schedule" size={12} color="#F46036" />
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        gap: 4,
+                        alignItems: 'center',
+                        paddingHorizontal: 8,
+                        paddingVertical: 4,
+                        backgroundColor: '#FFF0F0',
+                        borderRadius: 10,
+                      }}
+                    >
+                      <TimeIconSvg width={12} height={12} color="#F46036" />
                       <Text
                         allowFontScaling={false}
-                        style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 10, color: '#F46036' }}
+                        style={{
+                          fontFamily: 'Inter_18pt-Regular',
+                          fontSize: 10,
+                          color: '#F46036',
+                        }}
                       >
                         2 mins Read
                       </Text>
                     </View>
-                    <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
-                      <MaterialIcons name="security" size={12} color="#1B998B" />
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        gap: 4,
+                        alignItems: 'center',
+                        paddingHorizontal: 8,
+                        paddingVertical: 4,
+                        backgroundColor: '#E5F5F3',
+                        borderRadius: 10,
+                      }}
+                    >
+                      <ThirdPartySvg width={12} height={12} color="#1B998B" />
                       <Text
                         allowFontScaling={false}
-                        style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 10, color: '#1B998B' }}
+                        style={{
+                          fontFamily: 'Inter_18pt-Regular',
+                          fontSize: 10,
+                          color: '#1B998B',
+                        }}
                       >
                         In house
                       </Text>
@@ -1081,52 +1176,39 @@ export default function AnomalyDetectionUserDetailsScreen() {
                   </View>
                   <Text
                     allowFontScaling={false}
-                    numberOfLines={3}
+                    numberOfLines={6}
                     style={{
                       fontFamily: 'Inter_18pt-Regular',
-                      fontSize: 12,
-                      color: '#8A9A9D',
-                      lineHeight: 20,
+                      fontSize: 11.2,
+                      color: '#878686',
+                      lineHeight: 18,
                     }}
                   >
-                    {summaryData?.tier2?.executive_summary ||
-                      'This section provides a detailed summary of the anomalous behavior detected for this user. It breaks down the key factors contributing to the anomaly, including unusual entry times, late-night activity, and irregular visitor patterns over the selected timeframe.'}
+                    This section provides a detailed summary of the anomalous behavior detected for
+                    this user. It breaks down the key factors contributing to the anomaly, including
+                    unusual entry times, late-night activity, and irregular visitor patterns over
+                    the selected timeframe.
                   </Text>
                 </Pressable>
-              )}
-
-              {!summaryData?.tier1 && !summaryData?.tier2 && (
-                <View
-                  style={{
-                    width: 314,
-                    backgroundColor: '#FFFFFF',
-                    borderRadius: 24,
-                    padding: 20,
-                    borderWidth: 1,
-                    borderColor: '#EFF1F3',
-                  }}
-                >
-                  <Text
-                    allowFontScaling={false}
-                    style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 13, color: '#8A9A9D' }}
-                  >
-                    No AI summaries available for this case.
-                  </Text>
-                </View>
               )}
             </ScrollView>
 
             {/* Carousel dots indicator */}
-            {summaryData?.tier1 && summaryData?.tier2 && (
+            {currentSummaryData?.tier1 && currentSummaryData?.tier2 && (
               <View
                 style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 12, gap: 6 }}
               >
-                <View
-                  style={{ width: 16, height: 6, borderRadius: 3, backgroundColor: '#113E55' }}
-                />
-                <View
-                  style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#C4CDD0' }}
-                />
+                {[0, 1].map((dotIndex) => (
+                  <View
+                    key={dotIndex}
+                    style={{
+                      width: activeCarouselIndex === dotIndex ? 16 : 6,
+                      height: 6,
+                      borderRadius: 3,
+                      backgroundColor: activeCarouselIndex === dotIndex ? '#113E55' : '#C4CDD0',
+                    }}
+                  />
+                ))}
               </View>
             )}
           </View>
@@ -1317,8 +1399,86 @@ export default function AnomalyDetectionUserDetailsScreen() {
       <AISummaryModal
         visible={showAiSummaryModal}
         onClose={() => setShowAiSummaryModal(false)}
-        summaryData={summaryData}
+        summaryData={currentSummaryData}
+        initialIndex={modalInitialIndex}
       />
+
+      <Modal
+        visible={showComingSoon}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowComingSoon(false)}
+      >
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          {Platform.OS === 'ios' ? (
+            <BlurView intensity={15} tint="dark" style={StyleSheet.absoluteFill}>
+              <Pressable style={StyleSheet.absoluteFill} onPress={() => setShowComingSoon(false)} />
+            </BlurView>
+          ) : (
+            <BlurView intensity={25} tint="dark" style={StyleSheet.absoluteFill}>
+              <Pressable style={StyleSheet.absoluteFill} onPress={() => setShowComingSoon(false)} />
+            </BlurView>
+          )}
+
+          <Reanimated.View
+            entering={FadeIn.duration(250)}
+            exiting={FadeOut.duration(250)}
+            style={{
+              backgroundColor: '#F6F7F7',
+              width: 320,
+              borderRadius: 32,
+              padding: 24,
+              alignItems: 'center',
+              zIndex: 10,
+            }}
+          >
+            <View style={{ alignItems: 'center', paddingTop: 8, paddingBottom: 8, width: '100%' }}>
+              <Text
+                allowFontScaling={false}
+                style={{
+                  fontFamily: 'UbuntuSans-Medium',
+                  fontSize: 22,
+                  color: '#0A1F29',
+                  marginBottom: 12,
+                }}
+              >
+                Coming Soon
+              </Text>
+              <Text
+                allowFontScaling={false}
+                style={{
+                  fontFamily: 'Inter_18pt-Regular',
+                  fontSize: 15,
+                  color: '#8A9A9D',
+                  marginBottom: 32,
+                  textAlign: 'center',
+                  lineHeight: 22,
+                }}
+              >
+                This feature is not yet active. We are working hard to bring it to you soon!
+              </Text>
+
+              <Pressable
+                onPress={() => setShowComingSoon(false)}
+                style={{
+                  backgroundColor: '#113E55',
+                  width: '100%',
+                  paddingVertical: 16,
+                  borderRadius: 24,
+                  alignItems: 'center',
+                }}
+              >
+                <Text
+                  allowFontScaling={false}
+                  style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 16, color: '#FFFFFF' }}
+                >
+                  Got it
+                </Text>
+              </Pressable>
+            </View>
+          </Reanimated.View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
