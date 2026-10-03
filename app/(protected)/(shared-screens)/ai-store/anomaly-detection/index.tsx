@@ -575,20 +575,20 @@ export default function AnomalyDetectionPreviewScreen() {
                     <View className="flex-1 pr-2">
                       <Text
                         allowFontScaling={false}
-                        className={`text-[17.5px] font-inter-regular leading-[17.5px] mb-1.5 ${(tierOneApi?.is_installed && expandedTier === 'Tier One') ? 'text-[#1B998B]' : 'text-[#113E55]'}`}
+                        className={`text-[17.5px] font-inter-regular leading-[17.5px] mb-1.5 ${tierOneApi?.is_installed && expandedTier === 'Tier One' ? 'text-[#1B998B]' : 'text-[#113E55]'}`}
                       >
                         {tierOneApi?.tier ? formatTierName(tierOneApi.tier) : 'Tier One'}
                       </Text>
                       {tierOneApi?.name && (
                         <Text
                           allowFontScaling={false}
-                          className={`text-[15px] font-inter-medium leading-[22px] mb-2.5 ${(tierOneApi?.is_installed && expandedTier === 'Tier One') ? 'text-[#1B998B]' : 'text-[#113E55]'}`}
+                          className={`text-[15px] font-inter-medium leading-[22px] mb-2.5 ${tierOneApi?.is_installed && expandedTier === 'Tier One' ? 'text-[#1B998B]' : 'text-[#113E55]'}`}
                         >
                           {tierOneApi?.name}
                         </Text>
                       )}
                     </View>
-                    {(tierOneApi?.is_installed && expandedTier === 'Tier One') && (
+                    {tierOneApi?.is_installed && expandedTier === 'Tier One' && (
                       <View className="bg-[#D9EAE8] px-[22px] py-[10px] rounded-[14px]">
                         <Text
                           allowFontScaling={false}
@@ -700,20 +700,20 @@ export default function AnomalyDetectionPreviewScreen() {
                     <View className="flex-1 pr-2">
                       <Text
                         allowFontScaling={false}
-                        className={`text-[17.5px] font-inter-regular leading-[17.5px] mb-1.5 ${(tierTwoApi?.is_installed && expandedTier === 'Tier Two') ? 'text-[#1B998B]' : 'text-[#113E55]'}`}
+                        className={`text-[17.5px] font-inter-regular leading-[17.5px] mb-1.5 ${tierTwoApi?.is_installed && expandedTier === 'Tier Two' ? 'text-[#1B998B]' : 'text-[#113E55]'}`}
                       >
                         {tierTwoApi?.tier ? formatTierName(tierTwoApi.tier) : 'Tier Two'}
                       </Text>
                       {tierTwoApi?.name && (
                         <Text
                           allowFontScaling={false}
-                          className={`text-[15px] font-inter-medium leading-[22px] mb-2.5 ${(tierTwoApi?.is_installed && expandedTier === 'Tier Two') ? 'text-[#1B998B]' : 'text-[#113E55]'}`}
+                          className={`text-[15px] font-inter-medium leading-[22px] mb-2.5 ${tierTwoApi?.is_installed && expandedTier === 'Tier Two' ? 'text-[#1B998B]' : 'text-[#113E55]'}`}
                         >
                           {tierTwoApi?.name}
                         </Text>
                       )}
                     </View>
-                    {(tierTwoApi?.is_installed && expandedTier === 'Tier Two') && (
+                    {tierTwoApi?.is_installed && expandedTier === 'Tier Two' && (
                       <View className="bg-[#D9EAE8] px-[22px] py-[10px] rounded-[14px]">
                         <Text
                           allowFontScaling={false}
@@ -819,26 +819,26 @@ export default function AnomalyDetectionPreviewScreen() {
                 </View>
 
                 <View
-                  className={`rounded-[16px] p-5 mb-4 ${tierThreeApi?.is_installed ? 'bg-[#F2FAF9] border border-[#1B998B]' : expandedTier === 'Tier Three' ? 'bg-white border border-[#113E55]' : 'bg-white'}`}
+                  className={`rounded-[16px] p-5 mb-4 ${expandedTier === 'Tier Three' ? (tierThreeApi?.is_installed ? 'bg-[#F2FAF9] border border-[#1B998B]' : 'bg-white border border-[#113E55]') : 'bg-white border border-[#EFF1F3]'}`}
                 >
                   <View className="flex-row justify-between items-start mb-1.5">
                     <View className="flex-1 pr-2">
                       <Text
                         allowFontScaling={false}
-                        className={`text-[17.5px] font-inter-regular leading-[17.5px] mb-1.5 ${(tierThreeApi?.is_installed && expandedTier === 'Tier Three') ? 'text-[#1B998B]' : 'text-[#113E55]'}`}
+                        className={`text-[17.5px] font-inter-regular leading-[17.5px] mb-1.5 ${tierThreeApi?.is_installed && expandedTier === 'Tier Three' ? 'text-[#1B998B]' : 'text-[#113E55]'}`}
                       >
                         {tierThreeApi?.tier ? formatTierName(tierThreeApi.tier) : 'Tier Three'}
                       </Text>
                       {tierThreeApi?.name && (
                         <Text
                           allowFontScaling={false}
-                          className={`text-[15px] font-inter-medium leading-[22px] mb-2.5 ${(tierThreeApi?.is_installed && expandedTier === 'Tier Three') ? 'text-[#1B998B]' : 'text-[#113E55]'}`}
+                          className={`text-[15px] font-inter-medium leading-[22px] mb-2.5 ${tierThreeApi?.is_installed && expandedTier === 'Tier Three' ? 'text-[#1B998B]' : 'text-[#113E55]'}`}
                         >
                           {tierThreeApi?.name}
                         </Text>
                       )}
                     </View>
-                    {(tierThreeApi?.is_installed && expandedTier === 'Tier Three') && (
+                    {tierThreeApi?.is_installed && expandedTier === 'Tier Three' && (
                       <View className="bg-[#D9EAE8] px-[22px] py-[10px] rounded-[14px]">
                         <Text
                           allowFontScaling={false}
