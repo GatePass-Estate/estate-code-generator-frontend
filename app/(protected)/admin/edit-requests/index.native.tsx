@@ -9,16 +9,29 @@ import { ActivityIndicator, FlatList, Pressable, RefreshControl, Text, View } fr
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 
+const REQUEST_ORDER: Partial<Record<RequestType, number>> = {
+  first_name_change: 0,
+  gender_change: 1,
+  email_change: 2,
+  last_name_change: 3,
+  id_change: 5,
+};
+
 export const fetchEditRequests = async (): Promise<EditRequestView[]> => {
   const data = await getRequests({ page: 1, limit: 50, status: 'pending' });
 
-  return data.items.map((item) => ({
-    id: item.id,
-    requestType: item.request_type,
-    oldValue: item.old_value,
-    newValue: item.new_value,
-    createdAt: item.created_at,
-  }));
+  return data.items
+    .map((item) => ({
+      id: item.id,
+      requestType: item.request_type,
+      oldValue: item.old_value,
+      newValue: item.new_value,
+      createdAt: item.created_at,
+    }))
+    .sort(
+      (first, second) =>
+        (REQUEST_ORDER[first.requestType] ?? 4) - (REQUEST_ORDER[second.requestType] ?? 4)
+    );
 };
 
 const REQUEST_LABELS: Record<RequestType, string> = {

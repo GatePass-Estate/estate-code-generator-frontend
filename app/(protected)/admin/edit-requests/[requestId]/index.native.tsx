@@ -1,7 +1,7 @@
 import Back from '@/src/components/mobile/Back';
 import { Toast, ToastType } from '@/src/components/mobile/Toast';
 import { getRequestById, approveRequests, declineRequests } from '@/src/lib/api/requests';
-import { getUserByIdAdmin } from '@/src/lib/api/user';
+import { getUserById } from '@/src/lib/api/user';
 import {
   getPendingDocumentViewUri,
   getUserDocuments,
@@ -15,6 +15,38 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
+import Pdf from 'react-native-pdf';
+
+type IdPreview = { uri: string; contentType: string } | null;
+
+async function loadIdPreviews(userId: string): Promise<{
+  current: IdPreview;
+  pending: IdPreview;
+}> {
+  const { documents } = await getUserDocuments(userId, 'id_card', ['active', 'pending']);
+  const active = documents.find(
+    (document) => document.document_type === 'id_card' && document.document_status === 'active'
+  );
+  const pending = documents.find(
+    (document) =>
+      document.document_type === 'id_card' &&
+      document.document_status === 'pending' &&
+      document.document_id
+  );
+  const [current, next] = await Promise.all([
+    active
+      ? getUserDocumentViewUri(userId, 'id_card', active.content_type)
+          .then((uri) => ({ uri, contentType: active.content_type }))
+          .catch(() => null)
+      : Promise.resolve(null),
+    pending?.document_id
+      ? getPendingDocumentViewUri(pending.document_id, pending.content_type)
+          .then((uri) => ({ uri, contentType: pending.content_type }))
+          .catch(() => null)
+      : Promise.resolve(null),
+  ]);
+  return { current, pending: next };
+}
 
 const ComparisonRow = ({ label, value }: { label: string; value: string }) => (
   <View
@@ -67,8 +99,8 @@ export default function EditSingleRequestMobile() {
   const [error, setError] = useState<string | null>(null);
   const [requestData, setRequestData] = useState<RequestItem | null>(null);
   const [requestingUser, setRequestingUser] = useState<User | null>(null);
-  const [currentIdUri, setCurrentIdUri] = useState<string | null>(null);
-  const [newIdUri, setNewIdUri] = useState<string | null>(null);
+  const [currentId, setCurrentId] = useState<IdPreview>(null);
+  const [newId, setNewId] = useState<IdPreview>(null);
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<ToastType>('success');
@@ -86,28 +118,16 @@ export default function EditSingleRequestMobile() {
           setRequestData(data);
           if (data.request_type === 'id_change') {
             try {
-              setCurrentIdUri(await getUserDocumentViewUri(data.resident_id, 'id_card'));
+              const previews = await loadIdPreviews(data.resident_id);
+              setCurrentId(previews.current);
+              setNewId(previews.pending);
             } catch {
-              setCurrentIdUri(null);
-            }
-            try {
-              const pendingDocuments = await getUserDocuments(data.resident_id, 'id_card', [
-                'pending',
-              ]);
-              const pendingId = pendingDocuments.documents.find(
-                (document) => document.document_type === 'id_card' && document.document_id
-              );
-              setNewIdUri(
-                pendingId?.document_id
-                  ? await getPendingDocumentViewUri(pendingId.document_id, pendingId.content_type)
-                  : null
-              );
-            } catch {
-              setNewIdUri(null);
+              setCurrentId(null);
+              setNewId(null);
             }
           }
           try {
-            const user = await getUserByIdAdmin(data.resident_id);
+            const user = await getUserById(data.resident_id);
             setRequestingUser(user);
           } catch {
             setRequestingUser(null);
@@ -260,36 +280,16 @@ export default function EditSingleRequestMobile() {
                       setRequestData(data);
                       if (data.request_type === 'id_change') {
                         try {
-                          setCurrentIdUri(
-                            await getUserDocumentViewUri(data.resident_id, 'id_card')
-                          );
+                          const previews = await loadIdPreviews(data.resident_id);
+                          setCurrentId(previews.current);
+                          setNewId(previews.pending);
                         } catch {
-                          setCurrentIdUri(null);
-                        }
-                        try {
-                          const pendingDocuments = await getUserDocuments(
-                            data.resident_id,
-                            'id_card',
-                            ['pending']
-                          );
-                          const pendingId = pendingDocuments.documents.find(
-                            (document) =>
-                              document.document_type === 'id_card' && document.document_id
-                          );
-                          setNewIdUri(
-                            pendingId?.document_id
-                              ? await getPendingDocumentViewUri(
-                                  pendingId.document_id,
-                                  pendingId.content_type
-                                )
-                              : null
-                          );
-                        } catch {
-                          setNewIdUri(null);
+                          setCurrentId(null);
+                          setNewId(null);
                         }
                       }
                       try {
-                        const user = await getUserByIdAdmin(data.resident_id);
+                        const user = await getUserById(data.resident_id);
                         setRequestingUser(user);
                       } catch {
                         setRequestingUser(null);
@@ -344,14 +344,27 @@ export default function EditSingleRequestMobile() {
                   overflow: 'hidden',
                 }}
               >
-                {currentIdUri ? (
+                {currentId?.contentType === 'application/pdf' ? (
+                  <Pdf
+                    source={{ uri: currentId.uri }}
+                    page={1}
+                    singlePage
+                    fitPolicy={0}
+                    spacing={0}
+                    enablePaging={false}
+                    enableAnnotationRendering={false}
+                    style={{ height: '100%', width: '100%' }}
+                    onError={() => setCurrentId(null)}
+                  />
+                ) : currentId ? (
                   <Image
-                    source={{ uri: currentIdUri }}
+                    source={{ uri: currentId.uri }}
                     resizeMode="cover"
                     style={{ height: '100%', width: '100%' }}
+                    onError={() => setCurrentId(null)}
                   />
                 ) : (
-                  <Feather name="file-text" size={40} color="#113E55" />
+                  <Feather name="credit-card" size={40} color="#C8CECE" />
                 )}
               </View>
               <Text
@@ -380,14 +393,27 @@ export default function EditSingleRequestMobile() {
                   overflow: 'hidden',
                 }}
               >
-                {newIdUri ? (
+                {newId?.contentType === 'application/pdf' ? (
+                  <Pdf
+                    source={{ uri: newId.uri }}
+                    page={1}
+                    singlePage
+                    fitPolicy={0}
+                    spacing={0}
+                    enablePaging={false}
+                    enableAnnotationRendering={false}
+                    style={{ height: '100%', width: '100%' }}
+                    onError={() => setNewId(null)}
+                  />
+                ) : newId ? (
                   <Image
-                    source={{ uri: newIdUri }}
+                    source={{ uri: newId.uri }}
                     resizeMode="cover"
                     style={{ height: '100%', width: '100%' }}
+                    onError={() => setNewId(null)}
                   />
                 ) : (
-                  <Feather name="file-text" size={40} color="#113E55" />
+                  <Feather name="credit-card" size={40} color="#C8CECE" />
                 )}
               </View>
               <View
