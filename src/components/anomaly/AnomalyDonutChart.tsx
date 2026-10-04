@@ -17,10 +17,18 @@ interface AnomalyDonutChartProps {
   size?: number;
   totalText?: string;
   countText?: string;
+  /** Optional override for the center count text. */
+  countColor?: string;
+  /** Optional override for the whole tick ring color. */
+  ringColor?: string;
   isActive?: boolean;
   residentPercentage?: number;
   guestPercentage?: number;
   securityPercentage?: number;
+  /** Prefer counts over percentages when picking the dominant ring color. */
+  residentCount?: number;
+  guestCount?: number;
+  securityCount?: number;
 }
 
 interface TickData {
@@ -34,13 +42,45 @@ interface TickData {
 
 const TICK_WIDTH = 1.308;
 const TICK_HEIGHT = 5.275;
+/** Design authored at 106×106 (Figma 6355:2809 scales to ~99). */
+const DESIGN_SIZE = 106;
+const TICK_RADIUS_AT_DESIGN = 41.5;
+/**
+ * Figma rings (outside → in):
+ * 1. White outer — substrate the progress ticks sit on
+ * 2. Gray track — inset ~13.33% (node 6355:2810)
+ * 3. White inner — inset ~17.33% (node 6355:2868)
+ */
+const GRAY_TRACK_RADIUS_RATIO = 0.5 - 0.1333; // ~0.3667
+const WHITE_INNER_RADIUS_RATIO = 0.5 - 0.1733; // ~0.3267
 
-// Colors matching user specs
+// Colors matching the right-side legend (Guest / Resident / Security)
 const COLOR_GUEST = '#F46036';
 const COLOR_RESIDENT = '#113E55';
 const COLOR_SECURITY = '#1B998B';
+const COLOR_COUNT_DEFAULT = '#04162D';
+const COLOR_TRACK = '#F8F8F8';
+const COLOR_WHITE = '#FFFFFF';
 
-const AnimatedTick = ({ tick, progress }: { tick: TickData; progress: SharedValue<number> }) => {
+function dominantLegendColor(segments: { value: number; color: string }[]): string {
+  let best = segments[0];
+  for (let i = 1; i < segments.length; i++) {
+    if (segments[i].value > best.value) best = segments[i];
+  }
+  return best.value > 0 ? best.color : COLOR_RESIDENT;
+}
+
+const AnimatedTick = ({
+  tick,
+  progress,
+  width,
+  height,
+}: {
+  tick: TickData;
+  progress: SharedValue<number>;
+  width: number;
+  height: number;
+}) => {
   const animatedStyle = useAnimatedStyle(() => {
     'worklet';
     if (progress.value >= 1) {
@@ -67,9 +107,9 @@ const AnimatedTick = ({ tick, progress }: { tick: TickData; progress: SharedValu
           position: 'absolute',
           top: tick.y,
           left: tick.x,
-          width: TICK_WIDTH,
-          height: TICK_HEIGHT,
-          borderRadius: TICK_WIDTH / 2,
+          width,
+          height,
+          borderRadius: width / 2,
           backgroundColor: tick.color,
         },
         animatedStyle,
@@ -82,9 +122,14 @@ const AnomalyDonutChart = ({
   size = 106,
   totalText = 'TOTAL USERS',
   countText = '50k',
+  countColor,
+  ringColor: ringColorOverride,
   residentPercentage = 0,
   guestPercentage = 0,
   securityPercentage = 0,
+  residentCount,
+  guestCount,
+  securityCount,
 }: AnomalyDonutChartProps) => {
   const progress = useSharedValue(0);
   const pulse = useSharedValue(1);
@@ -118,13 +163,19 @@ const AnomalyDonutChart = ({
     );
   }, [progress, pulse]);
 
+  const scale = size / DESIGN_SIZE;
+  const tickRadius = TICK_RADIUS_AT_DESIGN * scale;
+  const grayTrackRadius = size * GRAY_TRACK_RADIUS_RATIO;
+  const whiteInnerRadius = size * WHITE_INNER_RADIUS_RATIO;
+  const tickW = TICK_WIDTH * scale;
+  const tickH = TICK_HEIGHT * scale;
+
   const ticks = useMemo(() => {
     const center = size / 2;
-    const radius = 41.5; // Tick center radius matching track band
     const list: TickData[] = [];
 
-    // Calculate tick counts based on percentages (out of 59 ticks to leave 1 gap)
-    const totalTicks = 59;
+    // Calculate tick counts based on percentages (full 60-tick ring)
+    const totalTicks = 60;
     let rTicks = Math.round((residentPercentage / 100) * totalTicks);
     let gTicks = Math.round((guestPercentage / 100) * totalTicks);
     let sTicks = Math.round((securityPercentage / 100) * totalTicks);
@@ -136,25 +187,34 @@ const AnomalyDonutChart = ({
       else sTicks += totalTicks - sum;
     }
 
-    for (let i = 0; i < 60; i++) {
+    // Optional single ring color (e.g. anomaly dominant). Otherwise segment colors.
+    const unified =
+      ringColorOverride ??
+      (residentCount != null || guestCount != null || securityCount != null
+        ? dominantLegendColor([
+            { value: residentCount ?? 0, color: COLOR_RESIDENT },
+            { value: guestCount ?? 0, color: COLOR_GUEST },
+            { value: securityCount ?? 0, color: COLOR_SECURITY },
+          ])
+        : null);
+
+    for (let i = 0; i < totalTicks; i++) {
       let color: string | null = null;
 
       if (i < rTicks) {
-        color = COLOR_RESIDENT;
+        color = unified ?? COLOR_RESIDENT;
       } else if (i < rTicks + gTicks) {
-        color = COLOR_GUEST;
-      } else if (i === rTicks + gTicks && sum > 0) {
-        color = null; // 1 gap tick if there's data
-      } else if (i < rTicks + gTicks + 1 + sTicks) {
-        color = COLOR_SECURITY;
+        color = unified ?? COLOR_GUEST;
+      } else if (i < rTicks + gTicks + sTicks) {
+        color = unified ?? COLOR_SECURITY;
       }
 
       if (!color) continue;
 
       const angle = i * 6; // clockwise from 12 o'clock
       const rad = (angle * Math.PI) / 180;
-      const x = center + radius * Math.sin(rad) - TICK_WIDTH / 2;
-      const y = center - radius * Math.cos(rad) - TICK_HEIGHT / 2;
+      const x = center + tickRadius * Math.sin(rad) - tickW / 2;
+      const y = center - tickRadius * Math.cos(rad) - tickH / 2;
 
       // Clockwise sweep starting from 9 o'clock (slot 45)
       const order = (i - 45 + 60) % 60;
@@ -170,7 +230,19 @@ const AnomalyDonutChart = ({
     }
 
     return list;
-  }, [size, residentPercentage, guestPercentage, securityPercentage]);
+  }, [
+    size,
+    tickRadius,
+    tickW,
+    tickH,
+    residentPercentage,
+    guestPercentage,
+    securityPercentage,
+    ringColorOverride,
+    residentCount,
+    guestCount,
+    securityCount,
+  ]);
 
   const centerTextStyle = useAnimatedStyle(() => {
     'worklet';
@@ -202,7 +274,10 @@ const AnomalyDonutChart = ({
         chartPulseStyle,
       ]}
     >
-      {/* Background Circular Track Band & Inner White Disc */}
+      {/*
+        Figma 6355:2809 layers (outside → in):
+        white outer (gauge base) → gray track → white inner
+      */}
       <Svg
         width={size}
         height={size}
@@ -212,22 +287,20 @@ const AnomalyDonutChart = ({
           left: 0,
         }}
       >
-        <Circle
-          cx={size / 2}
-          cy={size / 2}
-          r={41.5}
-          stroke="#EAEFF2"
-          strokeWidth={7.0}
-          fill="#FFFFFF"
-        />
+        {/* 1. White outer — where the progress ticks sit */}
+        <Circle cx={size / 2} cy={size / 2} r={size / 2} fill={COLOR_WHITE} />
+        {/* 2. Gray track ring disc */}
+        <Circle cx={size / 2} cy={size / 2} r={grayTrackRadius} fill={COLOR_TRACK} />
+        {/* 3. White inner disc */}
+        <Circle cx={size / 2} cy={size / 2} r={whiteInnerRadius} fill={COLOR_WHITE} />
       </Svg>
 
       {/* 59 Animated Radial Ticks */}
       {ticks.map((t) => (
-        <AnimatedTick key={t.index} tick={t} progress={progress} />
+        <AnimatedTick key={t.index} tick={t} progress={progress} width={tickW} height={tickH} />
       ))}
 
-      {/* Center Label & Count: Neat, petite typography with generous whitespace */}
+      {/* Center: TOTAL REPORT above count (Figma Inter Light + Ubuntu Sans SemiBold) */}
       <Animated.View
         style={[
           {
@@ -238,24 +311,25 @@ const AnomalyDonutChart = ({
         ]}
       >
         <Text
+          allowFontScaling={false}
           style={{
-            fontFamily: 'Inter_18pt-Regular',
-            fontSize: 6.8,
+            fontFamily: 'Inter_18pt-Light',
+            fontSize: 6.8 * scale,
             color: '#878686',
-            letterSpacing: 0.3,
             textAlign: 'center',
-            lineHeight: 9,
-            marginBottom: 1,
+            lineHeight: 8 * scale,
+            marginBottom: 1 * scale,
           }}
         >
           {totalText}
         </Text>
         <Text
+          allowFontScaling={false}
           style={{
             fontFamily: 'UbuntuSans-SemiBold',
-            fontSize: 21,
-            lineHeight: 23,
-            color: '#113E55',
+            fontSize: 21.88 * scale,
+            lineHeight: 23 * scale,
+            color: countColor || COLOR_COUNT_DEFAULT,
             textAlign: 'center',
           }}
         >

@@ -122,8 +122,72 @@ const toggleFilter = (currentSelection: string[], value: string, allValues: stri
 const PURCHASE_OPTIONS = ['purchased', 'not_purchased'];
 const CATEGORY_OPTIONS = ['Access Anomaly Detection', 'Incident Report Insights'];
 
+/** Local shop cards so anomaly + incident always appear even if the API omits them. */
+const LOCAL_SHOP_TOOLS: AITool[] = [
+  {
+    id: 'local-anomaly-detection',
+    title: 'Access Anomaly Detection',
+    rating: 0,
+    icon: getToolIllustration('anomaly'),
+    category: 'Access Anomaly Detection',
+    isPurchased: true,
+    isVerified: true,
+  },
+  {
+    id: 'local-incident-report',
+    title: 'Incident Report Insights',
+    rating: 0,
+    icon: getToolIllustration('incident report'),
+    category: 'Incident Report Insights',
+    isPurchased: true,
+    isVerified: true,
+  },
+];
+
+function mapMarketplaceItem(item: MarketplaceListItem): AITool {
+  const cat = item.category || 'Access Anomaly Detection';
+  const iconUrl = (item as any).display_picture_url || item.picture_path;
+
+  return {
+    id: item.id,
+    title: item.name,
+    isVerified: item.purchased,
+    price: item.purchased
+      ? undefined
+      : item.price != null
+        ? `${item.currency_code === 'NGN' ? '₦' : '$'}${item.price}`
+        : undefined,
+    rating: item.rating != null ? Math.round(item.rating) : 0,
+    icon: iconUrl ? (
+      <Image
+        source={{ uri: getFeaturePictureUrl(iconUrl) }}
+        style={{ width: 96, height: 89 }}
+        resizeMode="cover"
+      />
+    ) : (
+      getToolIllustration(item.name)
+    ),
+    disabled: false,
+    category: cat,
+    isPurchased: item.purchased,
+  };
+}
+
+function withLocalShopFallback(liveTools: AITool[]): AITool[] {
+  const titles = liveTools.map((t) => t.title.toLowerCase());
+  const hasAnomaly = titles.some((t) => t.includes('anomaly'));
+  const hasIncident = titles.some(
+    (t) => t.includes('incident') || (t.includes('report') && !t.includes('anomaly'))
+  );
+
+  const merged = [...liveTools];
+  if (!hasAnomaly) merged.push(LOCAL_SHOP_TOOLS[0]);
+  if (!hasIncident) merged.push(LOCAL_SHOP_TOOLS[1]);
+  return merged.length > 0 ? merged : LOCAL_SHOP_TOOLS;
+}
+
 export default function AIStoreScreen() {
-  const [tools, setTools] = useState<AITool[]>([]);
+  const [tools, setTools] = useState<AITool[]>(LOCAL_SHOP_TOOLS);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -148,39 +212,15 @@ export default function AIStoreScreen() {
         console.log(JSON.stringify(data, null, 2));
         console.log('===================================================================\n');
 
-        if (isMounted && data && data.items && data.items.length > 0) {
-          const liveTools: AITool[] = data.items.map((item: MarketplaceListItem) => {
-            const cat = item.category || 'Access Anomaly Detection';
-            const iconUrl = (item as any).display_picture_url || item.picture_path;
-
-            return {
-              id: item.id,
-              title: item.name,
-              isVerified: item.purchased,
-              price: item.purchased
-                ? undefined
-                : item.price != null
-                  ? `${item.currency_code === 'NGN' ? '₦' : '$'}${item.price}`
-                  : undefined,
-              rating: item.rating != null ? Math.round(item.rating) : 0,
-              icon: iconUrl ? (
-                <Image
-                  source={{ uri: getFeaturePictureUrl(iconUrl) }}
-                  style={{ width: 96, height: 89 }}
-                  resizeMode="cover"
-                />
-              ) : (
-                getToolIllustration(item.name)
-              ),
-              disabled: false,
-              category: cat,
-              isPurchased: item.purchased,
-            };
-          });
-          setTools(liveTools);
+        if (isMounted) {
+          const liveTools = (data?.items ?? []).map(mapMarketplaceItem);
+          setTools(withLocalShopFallback(liveTools));
         }
       } catch (err: any) {
         console.log('AI Marketplace API note:', err?.message || err);
+        if (isMounted) {
+          setTools(LOCAL_SHOP_TOOLS);
+        }
       } finally {
         if (isMounted) {
           setIsLoading(false);
@@ -206,40 +246,11 @@ export default function AIStoreScreen() {
         params.category = categoryFilters;
       }
       const data = await getMarketplaceFeatures(params);
-
-      if (data && data.items && data.items.length > 0) {
-        const liveTools: AITool[] = data.items.map((item: MarketplaceListItem) => {
-          const cat = item.category || 'Access Anomaly Detection';
-          const iconUrl = (item as any).display_picture_url || item.picture_path;
-
-          return {
-            id: item.id,
-            title: item.name,
-            isVerified: item.purchased,
-            price: item.purchased
-              ? undefined
-              : item.price != null
-                ? `${item.currency_code === 'NGN' ? '₦' : '$'}${item.price}`
-                : undefined,
-            rating: item.rating != null ? Math.round(item.rating) : 0,
-            icon: iconUrl ? (
-              <Image
-                source={{ uri: getFeaturePictureUrl(iconUrl) }}
-                style={{ width: 96, height: 89 }}
-                resizeMode="cover"
-              />
-            ) : (
-              getToolIllustration(item.name)
-            ),
-            disabled: false,
-            category: cat,
-            isPurchased: item.purchased,
-          };
-        });
-        setTools(liveTools);
-      }
+      const liveTools = (data?.items ?? []).map(mapMarketplaceItem);
+      setTools(withLocalShopFallback(liveTools));
     } catch (err: any) {
       console.log('AI Marketplace API refresh note:', err?.message || err);
+      setTools(LOCAL_SHOP_TOOLS);
     } finally {
       setRefreshing(false);
     }
@@ -397,7 +408,15 @@ export default function AIStoreScreen() {
               <Pressable
                 key={tool.id}
                 onPress={() => {
-                  if (tool.title.toLowerCase().includes('anomaly') || tool.id === '2') {
+                  const title = tool.title.toLowerCase();
+                  if (title.includes('incident') || title.includes('report')) {
+                    router.push({
+                      pathname: '/(protected)/(shared-screens)/ai-store/incident-report',
+                      params: { featureId: tool.id, title: tool.title },
+                    });
+                    return;
+                  }
+                  if (title.includes('anomaly') || tool.id === '2') {
                     router.push({
                       pathname: '/(protected)/(shared-screens)/ai-store/anomaly-detection',
                       params: { featureId: tool.id, title: tool.title },

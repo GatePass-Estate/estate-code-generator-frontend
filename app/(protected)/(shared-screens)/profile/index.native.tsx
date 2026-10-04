@@ -472,7 +472,7 @@ export default function ProfileScreen() {
           </View>
         </Pressable>
 
-        <Text className="pt-[13px] text-[24px] leading-6 font-ubuntu-medium text-[#113E55]">
+        <Text className="pt-[13px] text-[24px] leading-[30px] font-ubuntu-medium text-[#113E55]">
           Hi {first_name ?? 'there'}
         </Text>
       </View>

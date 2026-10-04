@@ -14,6 +14,16 @@ export interface UserRating {
   updated_at?: string | null;
 }
 
+export interface TierBenefitGroup {
+  tier: string;
+  benefits: string[];
+}
+
+export interface MarketplaceDataInsight {
+  legal?: string[];
+  data?: string[];
+}
+
 export interface MarketplaceListItem {
   id: string;
   name: string;
@@ -27,6 +37,9 @@ export interface MarketplaceListItem {
   price?: number | null;
   currency_code?: string | null;
   ai_feature_ids?: string[];
+  tier_benefits?: TierBenefitGroup[];
+  product_features?: string[];
+  data_insight?: MarketplaceDataInsight | null;
 }
 
 export interface MarketplaceListResponse {
@@ -59,10 +72,11 @@ export interface MarketplaceDetailResponse {
   rating_count?: number;
   rating_samples?: Record<string, RatingSample[]>;
   tiers: MarketplaceTier[];
+  tier_benefits?: TierBenefitGroup[];
+  product_features?: string[];
+  data_insight?: MarketplaceDataInsight | null;
   display_picture_url?: string | null;
   video_url?: string | null;
-  product_features?: string[];
-  data_insight?: { legal?: string[]; data?: string[] };
 }
 
 export interface RatingRequest {
