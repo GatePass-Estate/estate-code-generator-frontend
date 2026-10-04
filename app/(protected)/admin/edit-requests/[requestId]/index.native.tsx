@@ -15,7 +15,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import Pdf from 'react-native-pdf';
+import IdDocumentPdf from '@/src/components/mobile/IdDocumentPdf';
 
 type IdPreview = { uri: string; contentType: string } | null;
 
@@ -345,15 +345,10 @@ export default function EditSingleRequestMobile() {
                 }}
               >
                 {currentId?.contentType === 'application/pdf' ? (
-                  <Pdf
-                    source={{ uri: currentId.uri }}
-                    page={1}
-                    singlePage
-                    fitPolicy={0}
-                    spacing={0}
-                    enablePaging={false}
-                    enableAnnotationRendering={false}
-                    style={{ height: '100%', width: '100%' }}
+                  <IdDocumentPdf
+                    uri={currentId.uri}
+                    height="100%"
+                    width="100%"
                     onError={() => setCurrentId(null)}
                   />
                 ) : currentId ? (
@@ -394,15 +389,10 @@ export default function EditSingleRequestMobile() {
                 }}
               >
                 {newId?.contentType === 'application/pdf' ? (
-                  <Pdf
-                    source={{ uri: newId.uri }}
-                    page={1}
-                    singlePage
-                    fitPolicy={0}
-                    spacing={0}
-                    enablePaging={false}
-                    enableAnnotationRendering={false}
-                    style={{ height: '100%', width: '100%' }}
+                  <IdDocumentPdf
+                    uri={newId.uri}
+                    height="100%"
+                    width="100%"
                     onError={() => setNewId(null)}
                   />
                 ) : newId ? (

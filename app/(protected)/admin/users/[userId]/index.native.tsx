@@ -30,7 +30,7 @@ import { transferUserHousehold } from '@/src/lib/api/households';
 import type { Household } from '@/src/types/household';
 import { getUserDocuments, getUserDocumentViewUri } from '@/src/lib/api/userDocuments';
 import { Feather } from '@expo/vector-icons';
-import Pdf from 'react-native-pdf';
+import IdDocumentPdf from '@/src/components/mobile/IdDocumentPdf';
 import ResidentProfileFallback from '@/src/assets/icons/user-profile-placeholder.svg';
 
 type DocumentLoadState = 'loading' | 'loaded' | 'missing' | 'pending' | 'error';
@@ -624,18 +624,10 @@ export default function SingleUserMobile() {
                         }}
                       >
                         {identificationUri && identificationContentType === 'application/pdf' ? (
-                          <Pdf
-                            source={{ uri: identificationUri }}
-                            page={1}
-                            singlePage
-                            fitPolicy={0}
-                            spacing={0}
-                            enablePaging={false}
-                            enableAnnotationRendering={false}
-                            style={{
-                              height: identificationPreviewHeight,
-                              width: identificationPreviewWidth,
-                            }}
+                          <IdDocumentPdf
+                            uri={identificationUri}
+                            height={identificationPreviewHeight}
+                            width={identificationPreviewWidth}
                             onError={() => {
                               setIdentificationUri(null);
                               setIdentificationState('error');
