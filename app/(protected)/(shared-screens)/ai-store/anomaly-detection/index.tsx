@@ -47,7 +47,9 @@ import {
   subscribeMarketplaceFeature,
   getFeaturePictureUrl,
   rateMarketplaceFeature,
+  uninstallAiFeature,
 } from '@/src/lib/api/aiMarketplace';
+import { useUserStore } from '@/src/lib/stores/userStore';
 import { MarketplaceDetailResponse } from '@/src/types/aiMarketplace';
 
 const PILL_WIDTH = 228;
@@ -77,10 +79,14 @@ export default function AnomalyDetectionPreviewScreen() {
   const [featureDetail, setFeatureDetail] = useState<MarketplaceDetailResponse | null>(null);
   const [isSubscribing, setIsSubscribing] = useState(false);
   const [subscribingTierKey, setSubscribingTierKey] = useState<string | null>(null);
+  const [isUninstalling, setIsUninstalling] = useState(false);
+  const [uninstallingTierKey, setUninstallingTierKey] = useState<string | null>(null);
   const [dataInsightVisible, setDataInsightVisible] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [isRatingModalVisible, setIsRatingModalVisible] = useState(false);
   const [cardHeight, setCardHeight] = useState<number>(120);
+
+  const estateId = useUserStore((state) => state.estate_id) || '';
 
   const formatTierName = (tier: string) => {
     const map: Record<string, string> = { '1': 'One', '2': 'Two', '3': 'Three' };
@@ -207,6 +213,43 @@ export default function AnomalyDetectionPreviewScreen() {
       setIsSubscribing(false);
       setSubscribingTierKey(null);
     }
+  };
+
+  const handleUninstall = async (tierPayload: {
+    id?: string;
+    tier: string;
+    feature_key?: string | null;
+  }) => {
+    if (!estateId) {
+      Alert.alert('Error', 'Estate ID not found');
+      return;
+    }
+    if (!tierPayload.feature_key) {
+      Alert.alert('Error', 'Feature key is missing for this tier.');
+      return;
+    }
+
+    Alert.alert('Uninstall Feature', 'Are you sure you want to uninstall this feature?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Uninstall',
+        style: 'destructive',
+        onPress: async () => {
+          setUninstallingTierKey(tierPayload.tier);
+          setIsUninstalling(true);
+          try {
+            await uninstallAiFeature(estateId, tierPayload.feature_key!);
+            Alert.alert('Success', 'Feature uninstalled successfully.');
+            loadFeature(featureDetail?.id);
+          } catch (err: any) {
+            Alert.alert('Uninstall Failed', err?.message || 'Failed to uninstall feature.');
+          } finally {
+            setIsUninstalling(false);
+            setUninstallingTierKey(null);
+          }
+        },
+      },
+    ]);
   };
 
   const tierOneApi = featureDetail?.tiers?.find(
@@ -568,24 +611,37 @@ export default function AnomalyDetectionPreviewScreen() {
                   Choose Subscription Plan
                 </Text>
 
-                {/* Tier One */}
                 <View
-                  className={`bg-white rounded-[16px] p-5 mb-4 ${expandedTier === 'Tier One' ? 'border border-[#113E55]' : ''}`}
+                  className={`rounded-[16px] p-5 mb-4 ${expandedTier === 'Tier One' ? (tierOneApi?.is_installed ? 'bg-[#F2FAF9] border border-[#1B998B]' : 'bg-white border border-[#113E55]') : 'bg-white border border-[#EFF1F3]'}`}
                 >
-                  <Text
-                    allowFontScaling={false}
-                    className="text-[17.5px] font-inter-regular text-[#113E55] leading-[17.5px] mb-1.5"
-                  >
-                    {tierOneApi?.tier ? formatTierName(tierOneApi.tier) : 'Tier One'}
-                  </Text>
-                  {tierOneApi?.name && (
-                    <Text
-                      allowFontScaling={false}
-                      className="text-[15px] font-inter-medium text-[#113E55] leading-[22px] mb-2.5"
-                    >
-                      {tierOneApi.name}
-                    </Text>
-                  )}
+                  <View className="flex-row justify-between items-start mb-1.5">
+                    <View className="flex-1 pr-2">
+                      <Text
+                        allowFontScaling={false}
+                        className={`text-[17.5px] font-inter-regular leading-[17.5px] mb-1.5 ${tierOneApi?.is_installed && expandedTier === 'Tier One' ? 'text-[#1B998B]' : 'text-[#113E55]'}`}
+                      >
+                        {tierOneApi?.tier ? formatTierName(tierOneApi.tier) : 'Tier One'}
+                      </Text>
+                      {tierOneApi?.name && (
+                        <Text
+                          allowFontScaling={false}
+                          className={`text-[15px] font-inter-medium leading-[22px] mb-2.5 ${tierOneApi?.is_installed && expandedTier === 'Tier One' ? 'text-[#1B998B]' : 'text-[#113E55]'}`}
+                        >
+                          {tierOneApi?.name}
+                        </Text>
+                      )}
+                    </View>
+                    {tierOneApi?.is_installed && expandedTier === 'Tier One' && (
+                      <View className="bg-[#D9EAE8] px-[22px] py-[10px] rounded-[14px]">
+                        <Text
+                          allowFontScaling={false}
+                          className="text-[#1B998B] font-inter-medium text-[13px]"
+                        >
+                          ACTIVE
+                        </Text>
+                      </View>
+                    )}
+                  </View>
                   <Text
                     allowFontScaling={false}
                     className="text-[11.2px] font-inter-regular text-[#8A9A9D] leading-[16px] text-justify"
@@ -599,7 +655,7 @@ export default function AnomalyDetectionPreviewScreen() {
                   >
                     <Text
                       allowFontScaling={false}
-                      className="text-[13px] font-inter-medium text-[#113E55]"
+                      className="text-[13px] font-inter-medium text-[#8A9A9D]"
                     >
                       See benefits
                     </Text>
@@ -608,7 +664,7 @@ export default function AnomalyDetectionPreviewScreen() {
                         expandedTier === 'Tier One' ? 'keyboard-arrow-down' : 'keyboard-arrow-right'
                       }
                       size={18}
-                      color="#113E55"
+                      color="#8A9A9D"
                     />
                   </Pressable>
 
@@ -616,8 +672,14 @@ export default function AnomalyDetectionPreviewScreen() {
                     <View className="space-y-3">
                       {(tierOneApi?.benefits || []).map((benefit, index) => (
                         <View key={index} className="flex-row items-start gap-2 mb-3">
-                          <View className="bg-[#CEE5ED] rounded-full p-[2px] mt-[2px]">
-                            <MaterialIcons name="check" size={12} color="#113E55" />
+                          <View
+                            className={`${tierOneApi?.is_installed ? 'bg-[#D9EAE8]' : 'bg-[#CEE5ED]'} rounded-full p-[2px] mt-[2px]`}
+                          >
+                            <MaterialIcons
+                              name="check"
+                              size={12}
+                              color={tierOneApi?.is_installed ? '#1B998B' : '#113E55'}
+                            />
                           </View>
                           <Text
                             allowFontScaling={false}
@@ -627,44 +689,89 @@ export default function AnomalyDetectionPreviewScreen() {
                           </Text>
                         </View>
                       ))}
-                      <Pressable
-                        disabled={isSubscribing}
-                        onPress={() => handleSubscribe(tierOneApi || { tier: 'Tier One' })}
-                        className="w-full h-[48px] bg-[#113E55] rounded-full items-center justify-center mt-4"
-                      >
-                        {subscribingTierKey === (tierOneApi?.tier || 'Tier One') ? (
-                          <ActivityIndicator size="small" color="white" />
-                        ) : (
-                          <Text
-                            allowFontScaling={false}
-                            className="text-[14px] font-inter-medium text-white"
+                      {tierOneApi?.is_installed ? (
+                        <View className="gap-3 mt-4">
+                          <Pressable
+                            className="w-full h-[48px] bg-[#113E55] rounded-full items-center justify-center"
+                            onPress={() => {}}
                           >
-                            {tierOneApi?.is_installed ? 'Installed' : 'Activate'}
-                          </Text>
-                        )}
-                      </Pressable>
+                            <Text
+                              allowFontScaling={false}
+                              className="text-[14px] font-inter-medium text-white"
+                            >
+                              Cancel Subscription
+                            </Text>
+                          </Pressable>
+                          <Pressable
+                            disabled={isUninstalling}
+                            className="w-full h-[48px] bg-[#E3F5FC] rounded-full items-center justify-center"
+                            onPress={() => handleUninstall(tierOneApi || { tier: 'Tier One' })}
+                          >
+                            {uninstallingTierKey === (tierOneApi?.tier || 'Tier One') ? (
+                              <ActivityIndicator size="small" color="#113E55" />
+                            ) : (
+                              <Text
+                                allowFontScaling={false}
+                                className="text-[14px] font-inter-medium text-[#113E55]"
+                              >
+                                Uninstall
+                              </Text>
+                            )}
+                          </Pressable>
+                        </View>
+                      ) : (
+                        <Pressable
+                          disabled={isSubscribing}
+                          onPress={() => handleSubscribe(tierOneApi || { tier: 'Tier One' })}
+                          className="w-full h-[48px] bg-[#113E55] rounded-full items-center justify-center mt-4"
+                        >
+                          {subscribingTierKey === (tierOneApi?.tier || 'Tier One') ? (
+                            <ActivityIndicator size="small" color="white" />
+                          ) : (
+                            <Text
+                              allowFontScaling={false}
+                              className="text-[14px] font-inter-medium text-white"
+                            >
+                              Activate
+                            </Text>
+                          )}
+                        </Pressable>
+                      )}
                     </View>
                   )}
                 </View>
 
-                {/* Tier Two */}
                 <View
-                  className={`bg-white rounded-[16px] p-5 mb-4 ${expandedTier === 'Tier Two' ? 'border border-[#113E55]' : ''}`}
+                  className={`rounded-[16px] p-5 mb-4 ${expandedTier === 'Tier Two' ? (tierTwoApi?.is_installed ? 'bg-[#F2FAF9] border border-[#1B998B]' : 'bg-white border border-[#113E55]') : 'bg-white border border-[#EFF1F3]'}`}
                 >
-                  <Text
-                    allowFontScaling={false}
-                    className="text-[17.5px] font-inter-regular text-[#113E55] leading-[17.5px] mb-1.5"
-                  >
-                    {tierTwoApi?.tier ? formatTierName(tierTwoApi.tier) : 'Tier Two'}
-                  </Text>
-                  {tierTwoApi?.name && (
-                    <Text
-                      allowFontScaling={false}
-                      className="text-[15px] font-inter-medium text-[#113E55] leading-[22px] mb-2.5"
-                    >
-                      {tierTwoApi.name}
-                    </Text>
-                  )}
+                  <View className="flex-row justify-between items-start mb-1.5">
+                    <View className="flex-1 pr-2">
+                      <Text
+                        allowFontScaling={false}
+                        className={`text-[17.5px] font-inter-regular leading-[17.5px] mb-1.5 ${tierTwoApi?.is_installed && expandedTier === 'Tier Two' ? 'text-[#1B998B]' : 'text-[#113E55]'}`}
+                      >
+                        {tierTwoApi?.tier ? formatTierName(tierTwoApi.tier) : 'Tier Two'}
+                      </Text>
+                      {tierTwoApi?.name && (
+                        <Text
+                          allowFontScaling={false}
+                          className={`text-[15px] font-inter-medium leading-[22px] mb-2.5 ${tierTwoApi?.is_installed && expandedTier === 'Tier Two' ? 'text-[#1B998B]' : 'text-[#113E55]'}`}
+                        >
+                          {tierTwoApi?.name}
+                        </Text>
+                      )}
+                    </View>
+                    {tierTwoApi?.is_installed && expandedTier === 'Tier Two' && (
+                      <View className="bg-[#D9EAE8] px-[22px] py-[10px] rounded-[14px]">
+                        <Text
+                          allowFontScaling={false}
+                          className="text-[#1B998B] font-inter-medium text-[13px]"
+                        >
+                          ACTIVE
+                        </Text>
+                      </View>
+                    )}
+                  </View>
                   <Text
                     allowFontScaling={false}
                     className="text-[11.2px] font-inter-regular text-[#8A9A9D] leading-[16px] text-justify"
@@ -678,7 +785,7 @@ export default function AnomalyDetectionPreviewScreen() {
                   >
                     <Text
                       allowFontScaling={false}
-                      className="text-[13px] font-inter-medium text-[#113E55]"
+                      className="text-[13px] font-inter-medium text-[#8A9A9D]"
                     >
                       See benefits
                     </Text>
@@ -687,7 +794,7 @@ export default function AnomalyDetectionPreviewScreen() {
                         expandedTier === 'Tier Two' ? 'keyboard-arrow-down' : 'keyboard-arrow-right'
                       }
                       size={18}
-                      color="#113E55"
+                      color="#8A9A9D"
                     />
                   </Pressable>
 
@@ -695,8 +802,14 @@ export default function AnomalyDetectionPreviewScreen() {
                     <View className="space-y-3">
                       {(tierTwoApi?.benefits || []).map((benefit, index) => (
                         <View key={index} className="flex-row items-start gap-2 mb-3">
-                          <View className="bg-[#CEE5ED] rounded-full p-[2px] mt-[2px]">
-                            <MaterialIcons name="check" size={12} color="#113E55" />
+                          <View
+                            className={`${tierTwoApi?.is_installed ? 'bg-[#D9EAE8]' : 'bg-[#CEE5ED]'} rounded-full p-[2px] mt-[2px]`}
+                          >
+                            <MaterialIcons
+                              name="check"
+                              size={12}
+                              color={tierTwoApi?.is_installed ? '#1B998B' : '#113E55'}
+                            />
                           </View>
                           <Text
                             allowFontScaling={false}
@@ -706,44 +819,89 @@ export default function AnomalyDetectionPreviewScreen() {
                           </Text>
                         </View>
                       ))}
-                      <Pressable
-                        disabled={isSubscribing}
-                        onPress={() => handleSubscribe(tierTwoApi || { tier: 'Tier Two' })}
-                        className="w-full h-[48px] bg-[#113E55] rounded-full items-center justify-center mt-4"
-                      >
-                        {subscribingTierKey === (tierTwoApi?.tier || 'Tier Two') ? (
-                          <ActivityIndicator size="small" color="white" />
-                        ) : (
-                          <Text
-                            allowFontScaling={false}
-                            className="text-[14px] font-inter-medium text-white"
+                      {tierTwoApi?.is_installed ? (
+                        <View className="gap-3 mt-4">
+                          <Pressable
+                            className="w-full h-[48px] bg-[#113E55] rounded-full items-center justify-center"
+                            onPress={() => {}}
                           >
-                            {tierTwoApi?.is_installed ? 'Installed' : 'Activate'}
-                          </Text>
-                        )}
-                      </Pressable>
+                            <Text
+                              allowFontScaling={false}
+                              className="text-[14px] font-inter-medium text-white"
+                            >
+                              Cancel Subscription
+                            </Text>
+                          </Pressable>
+                          <Pressable
+                            disabled={isUninstalling}
+                            className="w-full h-[48px] bg-[#E3F5FC] rounded-full items-center justify-center"
+                            onPress={() => handleUninstall(tierTwoApi || { tier: 'Tier Two' })}
+                          >
+                            {uninstallingTierKey === (tierTwoApi?.tier || 'Tier Two') ? (
+                              <ActivityIndicator size="small" color="#113E55" />
+                            ) : (
+                              <Text
+                                allowFontScaling={false}
+                                className="text-[14px] font-inter-medium text-[#113E55]"
+                              >
+                                Uninstall
+                              </Text>
+                            )}
+                          </Pressable>
+                        </View>
+                      ) : (
+                        <Pressable
+                          disabled={isSubscribing}
+                          onPress={() => handleSubscribe(tierTwoApi || { tier: 'Tier Two' })}
+                          className="w-full h-[48px] bg-[#113E55] rounded-full items-center justify-center mt-4"
+                        >
+                          {subscribingTierKey === (tierTwoApi?.tier || 'Tier Two') ? (
+                            <ActivityIndicator size="small" color="white" />
+                          ) : (
+                            <Text
+                              allowFontScaling={false}
+                              className="text-[14px] font-inter-medium text-white"
+                            >
+                              Activate
+                            </Text>
+                          )}
+                        </Pressable>
+                      )}
                     </View>
                   )}
                 </View>
 
-                {/* Tier Three */}
                 <View
-                  className={`bg-white rounded-[16px] p-5 mb-4 ${expandedTier === 'Tier Three' ? 'border border-[#113E55]' : ''}`}
+                  className={`rounded-[16px] p-5 mb-4 ${expandedTier === 'Tier Three' ? (tierThreeApi?.is_installed ? 'bg-[#F2FAF9] border border-[#1B998B]' : 'bg-white border border-[#113E55]') : 'bg-white border border-[#EFF1F3]'}`}
                 >
-                  <Text
-                    allowFontScaling={false}
-                    className="text-[17.5px] font-inter-regular text-[#113E55] leading-[17.5px] mb-1.5"
-                  >
-                    {tierThreeApi?.tier ? formatTierName(tierThreeApi.tier) : 'Tier Three'}
-                  </Text>
-                  {tierThreeApi?.name && (
-                    <Text
-                      allowFontScaling={false}
-                      className="text-[15px] font-inter-medium text-[#113E55] leading-[22px] mb-2.5"
-                    >
-                      {tierThreeApi.name}
-                    </Text>
-                  )}
+                  <View className="flex-row justify-between items-start mb-1.5">
+                    <View className="flex-1 pr-2">
+                      <Text
+                        allowFontScaling={false}
+                        className={`text-[17.5px] font-inter-regular leading-[17.5px] mb-1.5 ${tierThreeApi?.is_installed && expandedTier === 'Tier Three' ? 'text-[#1B998B]' : 'text-[#113E55]'}`}
+                      >
+                        {tierThreeApi?.tier ? formatTierName(tierThreeApi.tier) : 'Tier Three'}
+                      </Text>
+                      {tierThreeApi?.name && (
+                        <Text
+                          allowFontScaling={false}
+                          className={`text-[15px] font-inter-medium leading-[22px] mb-2.5 ${tierThreeApi?.is_installed && expandedTier === 'Tier Three' ? 'text-[#1B998B]' : 'text-[#113E55]'}`}
+                        >
+                          {tierThreeApi?.name}
+                        </Text>
+                      )}
+                    </View>
+                    {tierThreeApi?.is_installed && expandedTier === 'Tier Three' && (
+                      <View className="bg-[#D9EAE8] px-[22px] py-[10px] rounded-[14px]">
+                        <Text
+                          allowFontScaling={false}
+                          className="text-[#1B998B] font-inter-medium text-[13px]"
+                        >
+                          ACTIVE
+                        </Text>
+                      </View>
+                    )}
+                  </View>
                   <Text
                     allowFontScaling={false}
                     className="text-[11.2px] font-inter-regular text-[#8A9A9D] leading-[16px] text-justify"
@@ -759,7 +917,7 @@ export default function AnomalyDetectionPreviewScreen() {
                   >
                     <Text
                       allowFontScaling={false}
-                      className="text-[13px] font-inter-medium text-[#113E55]"
+                      className="text-[13px] font-inter-medium text-[#8A9A9D]"
                     >
                       See benefits
                     </Text>
@@ -770,7 +928,7 @@ export default function AnomalyDetectionPreviewScreen() {
                           : 'keyboard-arrow-right'
                       }
                       size={18}
-                      color="#113E55"
+                      color="#8A9A9D"
                     />
                   </Pressable>
 
@@ -778,8 +936,14 @@ export default function AnomalyDetectionPreviewScreen() {
                     <View className="space-y-3">
                       {(tierThreeApi?.benefits || []).map((benefit, index) => (
                         <View key={index} className="flex-row items-start gap-2 mb-3">
-                          <View className="bg-[#CEE5ED] rounded-full p-[2px] mt-[2px]">
-                            <MaterialIcons name="check" size={12} color="#113E55" />
+                          <View
+                            className={`${tierThreeApi?.is_installed ? 'bg-[#D9EAE8]' : 'bg-[#CEE5ED]'} rounded-full p-[2px] mt-[2px]`}
+                          >
+                            <MaterialIcons
+                              name="check"
+                              size={12}
+                              color={tierThreeApi?.is_installed ? '#1B998B' : '#113E55'}
+                            />
                           </View>
                           <Text
                             allowFontScaling={false}
@@ -789,22 +953,49 @@ export default function AnomalyDetectionPreviewScreen() {
                           </Text>
                         </View>
                       ))}
-                      <Pressable
-                        disabled={isSubscribing}
-                        onPress={() => handleSubscribe(tierThreeApi || { tier: 'Tier Three' })}
-                        className="w-full h-[48px] bg-[#113E55] rounded-full items-center justify-center mt-4"
-                      >
-                        {subscribingTierKey === (tierThreeApi?.tier || 'Tier Three') ? (
-                          <ActivityIndicator size="small" color="white" />
-                        ) : (
-                          <Text
-                            allowFontScaling={false}
-                            className="text-[14px] font-inter-medium text-white"
+                      {tierThreeApi?.is_installed ? (
+                        <View className="gap-3 mt-4">
+                          <Pressable
+                            className="w-full h-[48px] bg-[#113E55] rounded-full items-center justify-center"
+                            onPress={() => {}}
                           >
-                            {tierThreeApi?.is_installed ? 'Installed' : 'Activate'}
-                          </Text>
-                        )}
-                      </Pressable>
+                            <Text
+                              allowFontScaling={false}
+                              className="text-[14px] font-inter-medium text-white"
+                            >
+                              Cancel Subscription
+                            </Text>
+                          </Pressable>
+                          <Pressable
+                            className="w-full h-[48px] bg-[#E3F5FC] rounded-full items-center justify-center"
+                            onPress={() => {}}
+                          >
+                            <Text
+                              allowFontScaling={false}
+                              className="text-[14px] font-inter-medium text-[#113E55]"
+                            >
+                              Uninstall
+                            </Text>
+                          </Pressable>
+                        </View>
+                      ) : (
+                        <Pressable
+                          disabled={isSubscribing}
+                          onPress={() => handleSubscribe(tierThreeApi || { tier: 'Tier Three' })}
+                          className="w-full h-[48px] bg-[#113E55] rounded-full items-center justify-center mt-4"
+                        >
+                          {subscribingTierKey === (tierThreeApi?.tier || 'Tier Three') ? (
+                            <ActivityIndicator size="small" color="white" />
+                          ) : (
+                            <Text
+                              allowFontScaling={false}
+                              className="text-[14px] font-inter-medium text-white"
+                            >
+                              Activate
+                            </Text>
+                          )}
+                        </Pressable>
+                      )}
                     </View>
                   )}
                 </View>

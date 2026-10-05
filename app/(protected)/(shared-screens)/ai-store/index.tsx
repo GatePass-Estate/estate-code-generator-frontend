@@ -26,7 +26,7 @@ import { getMarketplaceFeatures, getFeaturePictureUrl } from '@/src/lib/api/aiMa
 import { MarketplaceListItem } from '@/src/types/aiMarketplace';
 
 import IncidentReportSvg from '@/src/assets/images/incidentreportsummary.svg';
-import AnomalyDetectionSvg from '@/src/assets/images/anomalydetection.svg';
+import AnomalyDetectionSvg from '@/src/assets/images/aianormaly.svg';
 import AccessVolumePredictionSvg from '@/src/assets/images/accessvolumeprediction.svg';
 import TemporaryAnomalyDetectionSvg from '@/src/assets/images/temporaryanomalydetection.svg';
 import ExploratoryDataAnalysisSvg from '@/src/assets/images/exploratorydataanalysis.svg';
@@ -442,9 +442,7 @@ export default function AIStoreScreen() {
 
                 {/* Illustration */}
                 <View style={[styles.illustrationContainer, { opacity: tool.disabled ? 0.15 : 1 }]}>
-                  <View style={{ width: 96, height: 89, borderRadius: 12, overflow: 'hidden' }}>
-                    {tool.icon}
-                  </View>
+                  <View style={{ borderRadius: 16, overflow: 'hidden' }}>{tool.icon}</View>
                 </View>
 
                 {/* "Coming Soon" Overlay for disabled cards */}
