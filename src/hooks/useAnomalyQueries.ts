@@ -27,6 +27,14 @@ export const useAnomalyPredictions = (
     queryFn: () => anomalyApi.getPredictions({ estate_id, ...params }),
     enabled: !!estate_id,
     placeholderData: keepPreviousData,
+    select: (data: any) => {
+      const actualData = data?.data || data;
+
+      return {
+        predictionsArray: actualData?.items || [],
+        totalPredictionsCount: actualData?.total || 0,
+      };
+    },
   });
 };
 
