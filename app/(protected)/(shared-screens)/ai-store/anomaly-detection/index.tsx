@@ -229,31 +229,27 @@ export default function AnomalyDetectionPreviewScreen() {
       return;
     }
 
-    Alert.alert(
-      'Uninstall Feature',
-      'Are you sure you want to uninstall this feature?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Uninstall',
-          style: 'destructive',
-          onPress: async () => {
-            setUninstallingTierKey(tierPayload.tier);
-            setIsUninstalling(true);
-            try {
-              await uninstallAiFeature(estateId, tierPayload.feature_key!);
-              Alert.alert('Success', 'Feature uninstalled successfully.');
-              loadFeature(featureDetail?.id);
-            } catch (err: any) {
-              Alert.alert('Uninstall Failed', err?.message || 'Failed to uninstall feature.');
-            } finally {
-              setIsUninstalling(false);
-              setUninstallingTierKey(null);
-            }
-          },
+    Alert.alert('Uninstall Feature', 'Are you sure you want to uninstall this feature?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Uninstall',
+        style: 'destructive',
+        onPress: async () => {
+          setUninstallingTierKey(tierPayload.tier);
+          setIsUninstalling(true);
+          try {
+            await uninstallAiFeature(estateId, tierPayload.feature_key!);
+            Alert.alert('Success', 'Feature uninstalled successfully.');
+            loadFeature(featureDetail?.id);
+          } catch (err: any) {
+            Alert.alert('Uninstall Failed', err?.message || 'Failed to uninstall feature.');
+          } finally {
+            setIsUninstalling(false);
+            setUninstallingTierKey(null);
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const tierOneApi = featureDetail?.tiers?.find(
@@ -697,7 +693,7 @@ export default function AnomalyDetectionPreviewScreen() {
                         <View className="gap-3 mt-4">
                           <Pressable
                             className="w-full h-[48px] bg-[#113E55] rounded-full items-center justify-center"
-                            onPress={() => { }}
+                            onPress={() => {}}
                           >
                             <Text
                               allowFontScaling={false}
@@ -827,7 +823,7 @@ export default function AnomalyDetectionPreviewScreen() {
                         <View className="gap-3 mt-4">
                           <Pressable
                             className="w-full h-[48px] bg-[#113E55] rounded-full items-center justify-center"
-                            onPress={() => { }}
+                            onPress={() => {}}
                           >
                             <Text
                               allowFontScaling={false}
@@ -961,7 +957,7 @@ export default function AnomalyDetectionPreviewScreen() {
                         <View className="gap-3 mt-4">
                           <Pressable
                             className="w-full h-[48px] bg-[#113E55] rounded-full items-center justify-center"
-                            onPress={() => { }}
+                            onPress={() => {}}
                           >
                             <Text
                               allowFontScaling={false}
@@ -972,7 +968,7 @@ export default function AnomalyDetectionPreviewScreen() {
                           </Pressable>
                           <Pressable
                             className="w-full h-[48px] bg-[#E3F5FC] rounded-full items-center justify-center"
-                            onPress={() => { }}
+                            onPress={() => {}}
                           >
                             <Text
                               allowFontScaling={false}

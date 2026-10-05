@@ -231,10 +231,7 @@ export function getFeaturePictureUrl(path: string): string {
 /**
  * Uninstall an AI feature via the revenue service.
  */
-export async function uninstallAiFeature(
-  estateId: string,
-  featureKey: string
-): Promise<void> {
+export async function uninstallAiFeature(estateId: string, featureKey: string): Promise<void> {
   try {
     const api = Api('revenue');
     await api.post(`/ai-features/estate/${encodeURIComponent(estateId)}/uninstall`, {
@@ -244,4 +241,3 @@ export async function uninstallAiFeature(
     throw new Error(getErrorMessage(error) || 'Failed to uninstall feature');
   }
 }
-

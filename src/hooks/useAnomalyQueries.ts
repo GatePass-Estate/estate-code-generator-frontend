@@ -28,9 +28,7 @@ export const useAnomalyPredictions = (
     enabled: !!estate_id,
     placeholderData: keepPreviousData,
     select: (data: any) => {
-
       const actualData = data?.data || data;
-
 
       return {
         predictionsArray: actualData?.items || [],
