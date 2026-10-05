@@ -227,3 +227,21 @@ export function getFeaturePictureUrl(path: string): string {
     process.env.EXPO_PUBLIC_AI_SERVICE_API_URL || 'https://staging-api.gatepassng.com/ai';
   return `${baseUrl}/api/v1/ai-marketplace/picture?path=${encodeURIComponent(path)}`;
 }
+
+/**
+ * Uninstall an AI feature via the revenue service.
+ */
+export async function uninstallAiFeature(
+  estateId: string,
+  featureKey: string
+): Promise<void> {
+  try {
+    const api = Api('revenue');
+    await api.post(`/ai-features/estate/${encodeURIComponent(estateId)}/uninstall`, {
+      feature_key: featureKey,
+    });
+  } catch (error: any) {
+    throw new Error(getErrorMessage(error) || 'Failed to uninstall feature');
+  }
+}
+

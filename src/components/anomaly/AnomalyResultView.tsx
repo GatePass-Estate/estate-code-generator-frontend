@@ -94,7 +94,7 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
   );
 
   const {
-    data: rawPredictions,
+    data: predictionsData,
     isLoading: predictionsLoading,
     isFetching: predictionsFetching,
   } = useAnomalyPredictions(estate_id, {
@@ -218,26 +218,8 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
     );
   }
 
-  const unwrappedPredictions = (rawPredictions as any)?.data || rawPredictions;
-  let predictionsArray: any[] = [];
-  let totalPredictionsCount = 0;
-
-  if (Array.isArray(unwrappedPredictions)) {
-    predictionsArray = unwrappedPredictions;
-  } else if (Array.isArray(unwrappedPredictions?.items)) {
-    predictionsArray = unwrappedPredictions.items;
-    totalPredictionsCount = unwrappedPredictions?.total || predictionsArray.length;
-  } else if (Array.isArray(unwrappedPredictions?.data)) {
-    predictionsArray = unwrappedPredictions.data;
-    totalPredictionsCount = unwrappedPredictions?.total || predictionsArray.length;
-  } else if (Array.isArray(unwrappedPredictions?.data?.items)) {
-    predictionsArray = unwrappedPredictions.data.items;
-    totalPredictionsCount = unwrappedPredictions?.data?.total || predictionsArray.length;
-  }
-
-  if (totalPredictionsCount === 0 && predictionsArray.length > 0) {
-    totalPredictionsCount = predictionsArray.length;
-  }
+  const predictionsArray = predictionsData?.predictionsArray || [];
+  const totalPredictionsCount = predictionsData?.totalPredictionsCount || 0;
 
   const predictions = predictionsArray.slice(0, paginationLimit);
 

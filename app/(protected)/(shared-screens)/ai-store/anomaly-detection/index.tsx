@@ -47,7 +47,9 @@ import {
   subscribeMarketplaceFeature,
   getFeaturePictureUrl,
   rateMarketplaceFeature,
+  uninstallAiFeature,
 } from '@/src/lib/api/aiMarketplace';
+import { useUserStore } from '@/src/lib/stores/userStore';
 import { MarketplaceDetailResponse } from '@/src/types/aiMarketplace';
 
 const PILL_WIDTH = 228;
@@ -77,10 +79,14 @@ export default function AnomalyDetectionPreviewScreen() {
   const [featureDetail, setFeatureDetail] = useState<MarketplaceDetailResponse | null>(null);
   const [isSubscribing, setIsSubscribing] = useState(false);
   const [subscribingTierKey, setSubscribingTierKey] = useState<string | null>(null);
+  const [isUninstalling, setIsUninstalling] = useState(false);
+  const [uninstallingTierKey, setUninstallingTierKey] = useState<string | null>(null);
   const [dataInsightVisible, setDataInsightVisible] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [isRatingModalVisible, setIsRatingModalVisible] = useState(false);
   const [cardHeight, setCardHeight] = useState<number>(120);
+
+  const estateId = useUserStore((state) => state.estate_id) || '';
 
   const formatTierName = (tier: string) => {
     const map: Record<string, string> = { '1': 'One', '2': 'Two', '3': 'Three' };
@@ -207,6 +213,47 @@ export default function AnomalyDetectionPreviewScreen() {
       setIsSubscribing(false);
       setSubscribingTierKey(null);
     }
+  };
+
+  const handleUninstall = async (tierPayload: {
+    id?: string;
+    tier: string;
+    feature_key?: string | null;
+  }) => {
+    if (!estateId) {
+      Alert.alert('Error', 'Estate ID not found');
+      return;
+    }
+    if (!tierPayload.feature_key) {
+      Alert.alert('Error', 'Feature key is missing for this tier.');
+      return;
+    }
+
+    Alert.alert(
+      'Uninstall Feature',
+      'Are you sure you want to uninstall this feature?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Uninstall',
+          style: 'destructive',
+          onPress: async () => {
+            setUninstallingTierKey(tierPayload.tier);
+            setIsUninstalling(true);
+            try {
+              await uninstallAiFeature(estateId, tierPayload.feature_key!);
+              Alert.alert('Success', 'Feature uninstalled successfully.');
+              loadFeature(featureDetail?.id);
+            } catch (err: any) {
+              Alert.alert('Uninstall Failed', err?.message || 'Failed to uninstall feature.');
+            } finally {
+              setIsUninstalling(false);
+              setUninstallingTierKey(null);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const tierOneApi = featureDetail?.tiers?.find(
@@ -650,7 +697,7 @@ export default function AnomalyDetectionPreviewScreen() {
                         <View className="gap-3 mt-4">
                           <Pressable
                             className="w-full h-[48px] bg-[#113E55] rounded-full items-center justify-center"
-                            onPress={() => {}}
+                            onPress={() => { }}
                           >
                             <Text
                               allowFontScaling={false}
@@ -660,15 +707,20 @@ export default function AnomalyDetectionPreviewScreen() {
                             </Text>
                           </Pressable>
                           <Pressable
+                            disabled={isUninstalling}
                             className="w-full h-[48px] bg-[#E3F5FC] rounded-full items-center justify-center"
-                            onPress={() => {}}
+                            onPress={() => handleUninstall(tierOneApi || { tier: 'Tier One' })}
                           >
-                            <Text
-                              allowFontScaling={false}
-                              className="text-[14px] font-inter-medium text-[#113E55]"
-                            >
-                              Uninstall
-                            </Text>
+                            {uninstallingTierKey === (tierOneApi?.tier || 'Tier One') ? (
+                              <ActivityIndicator size="small" color="#113E55" />
+                            ) : (
+                              <Text
+                                allowFontScaling={false}
+                                className="text-[14px] font-inter-medium text-[#113E55]"
+                              >
+                                Uninstall
+                              </Text>
+                            )}
                           </Pressable>
                         </View>
                       ) : (
@@ -775,7 +827,7 @@ export default function AnomalyDetectionPreviewScreen() {
                         <View className="gap-3 mt-4">
                           <Pressable
                             className="w-full h-[48px] bg-[#113E55] rounded-full items-center justify-center"
-                            onPress={() => {}}
+                            onPress={() => { }}
                           >
                             <Text
                               allowFontScaling={false}
@@ -785,15 +837,20 @@ export default function AnomalyDetectionPreviewScreen() {
                             </Text>
                           </Pressable>
                           <Pressable
+                            disabled={isUninstalling}
                             className="w-full h-[48px] bg-[#E3F5FC] rounded-full items-center justify-center"
-                            onPress={() => {}}
+                            onPress={() => handleUninstall(tierTwoApi || { tier: 'Tier Two' })}
                           >
-                            <Text
-                              allowFontScaling={false}
-                              className="text-[14px] font-inter-medium text-[#113E55]"
-                            >
-                              Uninstall
-                            </Text>
+                            {uninstallingTierKey === (tierTwoApi?.tier || 'Tier Two') ? (
+                              <ActivityIndicator size="small" color="#113E55" />
+                            ) : (
+                              <Text
+                                allowFontScaling={false}
+                                className="text-[14px] font-inter-medium text-[#113E55]"
+                              >
+                                Uninstall
+                              </Text>
+                            )}
                           </Pressable>
                         </View>
                       ) : (
@@ -904,7 +961,7 @@ export default function AnomalyDetectionPreviewScreen() {
                         <View className="gap-3 mt-4">
                           <Pressable
                             className="w-full h-[48px] bg-[#113E55] rounded-full items-center justify-center"
-                            onPress={() => {}}
+                            onPress={() => { }}
                           >
                             <Text
                               allowFontScaling={false}
@@ -915,7 +972,7 @@ export default function AnomalyDetectionPreviewScreen() {
                           </Pressable>
                           <Pressable
                             className="w-full h-[48px] bg-[#E3F5FC] rounded-full items-center justify-center"
-                            onPress={() => {}}
+                            onPress={() => { }}
                           >
                             <Text
                               allowFontScaling={false}

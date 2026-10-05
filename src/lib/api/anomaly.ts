@@ -242,12 +242,14 @@ export const anomalyApi = {
   // Case Summary (LLM)
   getCaseSummary: async (
     estate_id: string,
-    prediction_id: string
+    prediction_id: string,
+    from_date?: string,
+    to_date?: string
   ): Promise<AnomalyCaseSummaryResponse> => {
     const { data } = await Api('ai').get(
       `/spatial-anomaly/result-page/cases/${prediction_id}/summary`,
       {
-        params: { estate_id },
+        params: { estate_id, from_date, to_date },
       }
     );
     return data;

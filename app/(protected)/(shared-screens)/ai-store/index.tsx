@@ -442,9 +442,7 @@ export default function AIStoreScreen() {
 
                 {/* Illustration */}
                 <View style={[styles.illustrationContainer, { opacity: tool.disabled ? 0.15 : 1 }]}>
-                  <View style={{ borderRadius: 16, overflow: 'hidden' }}>
-                    {tool.icon}
-                  </View>
+                  <View style={{ borderRadius: 16, overflow: 'hidden' }}>{tool.icon}</View>
                 </View>
 
                 {/* "Coming Soon" Overlay for disabled cards */}
@@ -501,12 +499,14 @@ export default function AIStoreScreen() {
                 <View className="flex-row flex-wrap gap-4">
                   <Pressable
                     onPress={() => setPurchaseFilters(['all'])}
-                    className={`px-5 py-[10px] rounded-full ${purchaseFilters.includes('all') ? 'bg-[#D2E7ED]' : 'bg-[#EFF1F1]'
-                      }`}
+                    className={`px-5 py-[10px] rounded-full ${
+                      purchaseFilters.includes('all') ? 'bg-[#D2E7ED]' : 'bg-[#EFF1F1]'
+                    }`}
                   >
                     <Text
-                      className={`text-[14px] font-inter-regular ${purchaseFilters.includes('all') ? 'text-[#113E55]' : 'text-[#8A9A9D]'
-                        }`}
+                      className={`text-[14px] font-inter-regular ${
+                        purchaseFilters.includes('all') ? 'text-[#113E55]' : 'text-[#8A9A9D]'
+                      }`}
                     >
                       All
                     </Text>
@@ -517,12 +517,14 @@ export default function AIStoreScreen() {
                         toggleFilter(prev, 'purchased', PURCHASE_OPTIONS)
                       )
                     }
-                    className={`px-5 py-[10px] rounded-full ${purchaseFilters.includes('purchased') ? 'bg-[#D2E7ED]' : 'bg-[#EFF1F1]'
-                      }`}
+                    className={`px-5 py-[10px] rounded-full ${
+                      purchaseFilters.includes('purchased') ? 'bg-[#D2E7ED]' : 'bg-[#EFF1F1]'
+                    }`}
                   >
                     <Text
-                      className={`text-[14px] font-inter-regular ${purchaseFilters.includes('purchased') ? 'text-[#113E55]' : 'text-[#8A9A9D]'
-                        }`}
+                      className={`text-[14px] font-inter-regular ${
+                        purchaseFilters.includes('purchased') ? 'text-[#113E55]' : 'text-[#8A9A9D]'
+                      }`}
                     >
                       Purchased
                     </Text>
@@ -533,14 +535,16 @@ export default function AIStoreScreen() {
                         toggleFilter(prev, 'not_purchased', PURCHASE_OPTIONS)
                       )
                     }
-                    className={`px-5 py-[10px] rounded-full ${purchaseFilters.includes('not_purchased') ? 'bg-[#D2E7ED]' : 'bg-[#EFF1F1]'
-                      }`}
+                    className={`px-5 py-[10px] rounded-full ${
+                      purchaseFilters.includes('not_purchased') ? 'bg-[#D2E7ED]' : 'bg-[#EFF1F1]'
+                    }`}
                   >
                     <Text
-                      className={`text-[14px] font-inter-regular ${purchaseFilters.includes('not_purchased')
+                      className={`text-[14px] font-inter-regular ${
+                        purchaseFilters.includes('not_purchased')
                           ? 'text-[#113E55]'
                           : 'text-[#8A9A9D]'
-                        }`}
+                      }`}
                     >
                       Not Purchased
                     </Text>
@@ -557,12 +561,14 @@ export default function AIStoreScreen() {
                 <View className="flex-row flex-wrap gap-4">
                   <Pressable
                     onPress={() => setCategoryFilters(['all'])}
-                    className={`px-5 py-[10px] rounded-full ${categoryFilters.includes('all') ? 'bg-[#D2E7ED]' : 'bg-[#EFF1F1]'
-                      }`}
+                    className={`px-5 py-[10px] rounded-full ${
+                      categoryFilters.includes('all') ? 'bg-[#D2E7ED]' : 'bg-[#EFF1F1]'
+                    }`}
                   >
                     <Text
-                      className={`text-[14px] font-inter-regular ${categoryFilters.includes('all') ? 'text-[#113E55]' : 'text-[#8A9A9D]'
-                        }`}
+                      className={`text-[14px] font-inter-regular ${
+                        categoryFilters.includes('all') ? 'text-[#113E55]' : 'text-[#8A9A9D]'
+                      }`}
                     >
                       All
                     </Text>
@@ -573,16 +579,18 @@ export default function AIStoreScreen() {
                         toggleFilter(prev, 'Access Anomaly Detection', CATEGORY_OPTIONS)
                       )
                     }
-                    className={`px-5 py-[10px] rounded-full ${categoryFilters.includes('Access Anomaly Detection')
+                    className={`px-5 py-[10px] rounded-full ${
+                      categoryFilters.includes('Access Anomaly Detection')
                         ? 'bg-[#D2E7ED]'
                         : 'bg-[#EFF1F1]'
-                      }`}
+                    }`}
                   >
                     <Text
-                      className={`text-[14px] font-inter-regular ${categoryFilters.includes('Access Anomaly Detection')
+                      className={`text-[14px] font-inter-regular ${
+                        categoryFilters.includes('Access Anomaly Detection')
                           ? 'text-[#113E55]'
                           : 'text-[#8A9A9D]'
-                        }`}
+                      }`}
                     >
                       Access Anomaly Detection
                     </Text>
@@ -593,16 +601,18 @@ export default function AIStoreScreen() {
                         toggleFilter(prev, 'Incident Report Insights', CATEGORY_OPTIONS)
                       )
                     }
-                    className={`px-5 py-[10px] rounded-full ${categoryFilters.includes('Incident Report Insights')
+                    className={`px-5 py-[10px] rounded-full ${
+                      categoryFilters.includes('Incident Report Insights')
                         ? 'bg-[#D2E7ED]'
                         : 'bg-[#EFF1F1]'
-                      }`}
+                    }`}
                   >
                     <Text
-                      className={`text-[14px] font-inter-regular ${categoryFilters.includes('Incident Report Insights')
+                      className={`text-[14px] font-inter-regular ${
+                        categoryFilters.includes('Incident Report Insights')
                           ? 'text-[#113E55]'
                           : 'text-[#8A9A9D]'
-                        }`}
+                      }`}
                     >
                       Incident Report Insights
                     </Text>

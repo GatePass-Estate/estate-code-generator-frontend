@@ -27,6 +27,16 @@ export const useAnomalyPredictions = (
     queryFn: () => anomalyApi.getPredictions({ estate_id, ...params }),
     enabled: !!estate_id,
     placeholderData: keepPreviousData,
+    select: (data: any) => {
+
+      const actualData = data?.data || data;
+
+
+      return {
+        predictionsArray: actualData?.items || [],
+        totalPredictionsCount: actualData?.total || 0,
+      };
+    },
   });
 };
 
@@ -49,11 +59,13 @@ export const useAnomalyCaseHistory = (estate_id: string, prediction_id: string) 
 export const useAnomalyCaseSummary = (
   estate_id: string,
   prediction_id: string,
+  from_date?: string,
+  to_date?: string,
   enabled: boolean = false
 ) => {
   return useQuery({
-    queryKey: ['anomaly', 'case-summary', estate_id, prediction_id],
-    queryFn: () => anomalyApi.getCaseSummary(estate_id, prediction_id),
+    queryKey: ['anomaly', 'case-summary', estate_id, prediction_id, from_date, to_date],
+    queryFn: () => anomalyApi.getCaseSummary(estate_id, prediction_id, from_date, to_date),
     enabled: !!estate_id && !!prediction_id && enabled,
   });
 };
