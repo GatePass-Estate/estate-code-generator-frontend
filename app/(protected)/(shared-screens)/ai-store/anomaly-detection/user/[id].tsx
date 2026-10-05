@@ -178,19 +178,12 @@ export default function AnomalyDetectionUserDetailsScreen() {
   const { data: rawHistoryData } = useAnomalyCaseHistory(estateId, id as string);
   const historyData = (rawHistoryData as any)?.data || rawHistoryData || {};
 
-  const { data: rawResultsData } = useAnomalyCaseResults(
-    estateId,
-    id as string,
-    date_from as string,
-    date_to as string
-  );
+  const { data: rawResultsData } = useAnomalyCaseResults(estateId, id as string);
   const resultsData = (rawResultsData as any)?.data || rawResultsData || {};
 
   const { refetch: fetchSummary, data: summaryData } = useAnomalyCaseSummary(
     estateId,
     id as string,
-    date_from as string,
-    date_to as string,
     false
   );
 
