@@ -105,7 +105,9 @@ export const getAllEstateUsers = async (page: number = 1, limit: number = 5): Pr
   try {
     const api = Api();
 
-    const axiosRes = await api.get(`/users/?page=${page}&limit=${limit}`);
+    const axiosRes = await api.get('/users/all', {
+      params: { page, limit, status: 'all' },
+    });
     const data = axiosRes.data;
 
     return data;

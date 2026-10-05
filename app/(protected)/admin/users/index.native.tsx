@@ -59,7 +59,6 @@ export default function AllUsersMobile() {
   const [refreshing, setRefreshing] = useState(false);
   const [fetchingMore, setFetchingMore] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [quickRoleFilter, setQuickRoleFilter] = useState<UserFilter | null>(null);
   const [selectedFilters, setSelectedFilters] = useState<UserFilter[]>([]);
   const [validationFilter, setValidationFilter] = useState<ValidationFilter>(null);
   const [filterVisible, setFilterVisible] = useState(false);
@@ -123,17 +122,11 @@ export default function AllUsersMobile() {
           return user.role === filter;
         });
 
-      const matchesQuickRole =
-        quickRoleFilter === null ||
-        (quickRoleFilter === 'admins'
-          ? ['admin', 'primary_admin'].includes(user.role as string)
-          : user.role === quickRoleFilter);
-
       const matchesValidation = validationFilter === null || user.status === validationFilter;
 
-      return matchesSearch && matchesQuickRole && matchesFilter && matchesValidation;
+      return matchesSearch && matchesFilter && matchesValidation;
     });
-  }, [allUsers, quickRoleFilter, searchQuery, selectedFilters, validationFilter]);
+  }, [allUsers, searchQuery, selectedFilters, validationFilter]);
 
   const displayedUsers = useMemo(
     () => filteredUsers.slice(0, visibleCount),
@@ -241,12 +234,14 @@ export default function AllUsersMobile() {
           <View className="h-[35px] min-w-0 flex-1 flex-row items-center pr-[10px]">
             {FILTERS.map((item, index) => {
               const active =
-                item.value === null ? quickRoleFilter === null : quickRoleFilter === item.value;
+                item.value === null
+                  ? selectedFilters.length === 0
+                  : selectedFilters.includes(item.value);
               return [
                 <Pressable
                   key={item.label}
                   onPress={() => {
-                    setQuickRoleFilter(item.value);
+                    setSelectedFilters(item.value === null ? [] : [item.value]);
                     setVisibleCount(PAGE_SIZE);
                   }}
                   style={{ width: item.width, height: 35 }}

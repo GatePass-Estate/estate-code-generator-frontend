@@ -28,7 +28,12 @@ import { User } from '@/src/types/user';
 import HouseholdSelectorSheet from '@/src/components/mobile/HouseholdSelectorSheet';
 import { transferUserHousehold } from '@/src/lib/api/households';
 import type { Household } from '@/src/types/household';
-import { getUserDocuments, getUserDocumentViewUri } from '@/src/lib/api/userDocuments';
+import { getUserDocuments } from '@/src/lib/api/userDocuments';
+import {
+  getCachedUserDocument,
+  loadUserDocument,
+  removeCachedUserDocument,
+} from '@/src/lib/userDocumentCache';
 import { Feather } from '@expo/vector-icons';
 import IdDocumentPdf from '@/src/components/mobile/IdDocumentPdf';
 import ResidentProfileFallback from '@/src/assets/icons/user-profile-placeholder.svg';
@@ -40,6 +45,10 @@ export default function SingleUserMobile() {
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
   const { userId, userParam } = useLocalSearchParams();
+  const cachedPicture =
+    typeof userId === 'string' ? getCachedUserDocument(userId, 'profile_picture') : null;
+  const cachedIdentification =
+    typeof userId === 'string' ? getCachedUserDocument(userId, 'id_card') : null;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showDeactivateModal, setShowDeactivateModal] = useState(false);
@@ -52,12 +61,22 @@ export default function SingleUserMobile() {
   const [promoteActionType, setPromoteActionType] = useState<'promote' | 'demote' | null>(null);
   const [showHouseholdSelector, setShowHouseholdSelector] = useState(false);
   const [transferringHousehold, setTransferringHousehold] = useState(false);
-  const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null);
-  const [profilePictureState, setProfilePictureState] = useState<DocumentLoadState>('loading');
+  const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(
+    cachedPicture?.uri ?? null
+  );
+  const [profilePictureState, setProfilePictureState] = useState<DocumentLoadState>(
+    cachedPicture ? 'loaded' : 'loading'
+  );
   const [identificationExpanded, setIdentificationExpanded] = useState(true);
-  const [identificationUri, setIdentificationUri] = useState<string | null>(null);
-  const [identificationContentType, setIdentificationContentType] = useState<string | null>(null);
-  const [identificationState, setIdentificationState] = useState<DocumentLoadState>('loading');
+  const [identificationUri, setIdentificationUri] = useState<string | null>(
+    cachedIdentification?.uri ?? null
+  );
+  const [identificationContentType, setIdentificationContentType] = useState<string | null>(
+    cachedIdentification?.contentType ?? null
+  );
+  const [identificationState, setIdentificationState] = useState<DocumentLoadState>(
+    cachedIdentification ? 'loaded' : 'loading'
+  );
   const panY = new Animated.Value(0);
   const [userData, setUserData] = useState<User>({
     first_name: '',
@@ -151,7 +170,9 @@ export default function SingleUserMobile() {
     }
 
     let active = true;
-    setProfilePictureState('loading');
+    const cached = getCachedUserDocument(userId as string, 'profile_picture');
+    setProfilePictureUrl(cached?.uri ?? null);
+    setProfilePictureState(cached ? 'loaded' : 'loading');
 
     void getUserDocuments(userId as string, 'profile_picture', ['active', 'pending'])
       .then(async ({ documents }) => {
@@ -166,26 +187,26 @@ export default function SingleUserMobile() {
 
         if (!profilePicture) {
           if (active) {
+            removeCachedUserDocument(userId as string, 'profile_picture');
             setProfilePictureUrl(null);
             setProfilePictureState(pendingPicture ? 'pending' : 'missing');
           }
           return;
         }
 
-        const uri = await getUserDocumentViewUri(
+        const document = await loadUserDocument(
           userId as string,
           'profile_picture',
-          profilePicture.content_type
+          profilePicture
         );
         if (active) {
-          setProfilePictureUrl(uri);
+          setProfilePictureUrl(document.uri);
           setProfilePictureState('loaded');
         }
       })
       .catch(() => {
         if (active) {
-          setProfilePictureUrl(null);
-          setProfilePictureState('error');
+          setProfilePictureState(cached ? 'loaded' : 'error');
         }
       });
 
@@ -195,10 +216,13 @@ export default function SingleUserMobile() {
   }, [isVerifiedProfile, userId]);
 
   useEffect(() => {
-    if (!isVerifiedProfile || !identificationExpanded || !userId || identificationUri) return;
+    if (!isVerifiedProfile || !identificationExpanded || !userId) return;
 
     let active = true;
-    setIdentificationState('loading');
+    const cached = getCachedUserDocument(userId as string, 'id_card');
+    setIdentificationUri(cached?.uri ?? null);
+    setIdentificationContentType(cached?.contentType ?? null);
+    setIdentificationState(cached ? 'loaded' : 'loading');
 
     void getUserDocuments(userId as string, 'id_card', ['active', 'pending'])
       .then(async ({ documents }) => {
@@ -213,6 +237,7 @@ export default function SingleUserMobile() {
 
         if (!identification) {
           if (active) {
+            removeCachedUserDocument(userId as string, 'id_card');
             setIdentificationContentType(null);
             setIdentificationUri(null);
             setIdentificationState(pendingIdentification ? 'pending' : 'missing');
@@ -221,25 +246,24 @@ export default function SingleUserMobile() {
         }
 
         const contentType = identification?.content_type ?? null;
-        const uri = await getUserDocumentViewUri(userId as string, 'id_card', contentType);
+        const document = await loadUserDocument(userId as string, 'id_card', identification);
 
         if (active) {
           setIdentificationContentType(contentType);
-          setIdentificationUri(uri);
+          setIdentificationUri(document.uri);
           setIdentificationState('loaded');
         }
       })
       .catch(() => {
         if (active) {
-          setIdentificationUri(null);
-          setIdentificationState('error');
+          setIdentificationState(cached ? 'loaded' : 'error');
         }
       });
 
     return () => {
       active = false;
     };
-  }, [identificationExpanded, identificationUri, isVerifiedProfile, userId]);
+  }, [identificationExpanded, isVerifiedProfile, userId]);
 
   const handleDeactivate = async () => {
     setDeactivating(true);
@@ -475,6 +499,11 @@ export default function SingleUserMobile() {
                         className="h-full w-full"
                         resizeMode="cover"
                         onError={() => {
+                          removeCachedUserDocument(
+                            userId as string,
+                            'profile_picture',
+                            profilePictureUrl
+                          );
                           setProfilePictureUrl(null);
                           setProfilePictureState('error');
                         }}
@@ -629,6 +658,11 @@ export default function SingleUserMobile() {
                             height={identificationPreviewHeight}
                             width={identificationPreviewWidth}
                             onError={() => {
+                              removeCachedUserDocument(
+                                userId as string,
+                                'id_card',
+                                identificationUri
+                              );
                               setIdentificationUri(null);
                               setIdentificationState('error');
                             }}
@@ -639,6 +673,11 @@ export default function SingleUserMobile() {
                             className="h-full w-full"
                             resizeMode="cover"
                             onError={() => {
+                              removeCachedUserDocument(
+                                userId as string,
+                                'id_card',
+                                identificationUri
+                              );
                               setIdentificationUri(null);
                               setIdentificationState('error');
                             }}
