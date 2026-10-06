@@ -37,19 +37,36 @@ import {
 import { Feather } from '@expo/vector-icons';
 import IdDocumentPdf from '@/src/components/mobile/IdDocumentPdf';
 import ResidentProfileFallback from '@/src/assets/icons/user-profile-placeholder.svg';
+import { useAuthStore } from '@/src/lib/stores/authStore';
 
 type DocumentLoadState = 'loading' | 'loaded' | 'missing' | 'pending' | 'error';
 
+const parseUserParam = (
+  value: string | string[] | undefined,
+  userId: string | string[] | undefined
+): User | null => {
+  if (typeof value !== 'string') return null;
+  try {
+    const user = JSON.parse(value) as User;
+    if (!user?.role || (!user.user_id && !user.id)) return null;
+    return { ...user, user_id: user.user_id ?? (userId as string) };
+  } catch {
+    return null;
+  }
+};
+
 export default function SingleUserMobile() {
   const router = useRouter();
+  const viewerRole = useAuthStore((state) => state.role);
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
   const { userId, userParam } = useLocalSearchParams();
+  const initialUser = parseUserParam(userParam, userId);
   const cachedPicture =
     typeof userId === 'string' ? getCachedUserDocument(userId, 'profile_picture') : null;
   const cachedIdentification =
     typeof userId === 'string' ? getCachedUserDocument(userId, 'id_card') : null;
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialUser);
   const [error, setError] = useState<string | null>(null);
   const [showDeactivateModal, setShowDeactivateModal] = useState(false);
   const [showPromoteModal, setShowPromoteModal] = useState(false);
@@ -78,22 +95,37 @@ export default function SingleUserMobile() {
     cachedIdentification ? 'loaded' : 'loading'
   );
   const panY = new Animated.Value(0);
-  const [userData, setUserData] = useState<User>({
-    first_name: '',
-    last_name: '',
-    home_address: '',
-    estate_name: '',
-    email: '',
-    phone_number: '',
-    user_id: userId as string,
-    estate_id: '',
-    role: 'resident',
-    gender: null,
-    status: false,
-  });
+  const [userData, setUserData] = useState<User>(
+    initialUser ?? {
+      first_name: '',
+      last_name: '',
+      home_address: '',
+      estate_name: '',
+      email: '',
+      phone_number: '',
+      user_id: userId as string,
+      estate_id: '',
+      role: 'resident',
+      gender: null,
+      status: false,
+    }
+  );
   const isVerifiedProfile =
-    userData.status && (userData.role === 'resident' || userData.role === 'security');
-  const verifiedRoleLabel = userData.role === 'security' ? 'Security' : 'Resident';
+    userData.status &&
+    (userData.role === 'resident' || userData.role === 'security' || userData.role === 'admin');
+  const isSecurityProfile = userData.status && userData.role === 'security';
+  const isAdminProfile = userData.status && userData.role === 'admin';
+  const showRoleAction = !isSecurityProfile && viewerRole === 'primary_admin';
+  const hideProfileActions =
+    userData.status && userData.role === 'primary_admin' && viewerRole === 'admin';
+  const hasVerifiedDocuments =
+    userData.status &&
+    (userData.role === 'resident' ||
+      userData.role === 'security' ||
+      userData.role === 'admin' ||
+      userData.role === 'primary_admin');
+  const verifiedRoleLabel =
+    userData.role === 'security' ? 'Security' : userData.role === 'admin' ? 'Admin' : 'Resident';
   const profileContentWidth = screenWidth - 40;
   const identificationPreviewWidth = profileContentWidth * (211 / 335);
   const identificationPreviewHeight = identificationPreviewWidth * (138.18 / 211);
@@ -120,14 +152,9 @@ export default function SingleUserMobile() {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        setLoading(true);
         setError(null);
-        let resident: any = null;
-        if (userParam) {
-          try {
-            resident = JSON.parse(userParam as string);
-          } catch {}
-        }
+        let resident: User | null = parseUserParam(userParam, userId);
+        setLoading(!resident);
 
         if (!resident) {
           resident = await getUserByIdAdmin(userId as string);
@@ -163,7 +190,7 @@ export default function SingleUserMobile() {
   }, [userId, userParam]);
 
   useEffect(() => {
-    if (!isVerifiedProfile || !userId) {
+    if (!hasVerifiedDocuments || !userId) {
       setProfilePictureUrl(null);
       setProfilePictureState('missing');
       return;
@@ -213,10 +240,10 @@ export default function SingleUserMobile() {
     return () => {
       active = false;
     };
-  }, [isVerifiedProfile, userId]);
+  }, [hasVerifiedDocuments, userId]);
 
   useEffect(() => {
-    if (!isVerifiedProfile || !identificationExpanded || !userId) return;
+    if (!hasVerifiedDocuments || !identificationExpanded || !userId) return;
 
     let active = true;
     const cached = getCachedUserDocument(userId as string, 'id_card');
@@ -263,7 +290,7 @@ export default function SingleUserMobile() {
     return () => {
       active = false;
     };
-  }, [identificationExpanded, isVerifiedProfile, userId]);
+  }, [hasVerifiedDocuments, identificationExpanded, userId]);
 
   const handleDeactivate = async () => {
     setDeactivating(true);
@@ -353,6 +380,11 @@ export default function SingleUserMobile() {
     setShowPromoteModal(true);
   };
 
+  const promptDemote = () => {
+    setPromoteActionType('demote');
+    setShowPromoteModal(true);
+  };
+
   const handleHouseholdTransfer = async (household: Household) => {
     if (household.id === userData.household_id) {
       setShowHouseholdSelector(false);
@@ -418,7 +450,7 @@ export default function SingleUserMobile() {
             iconStyle={{ width: 8.56, height: 12, top: 0 }}
           />
 
-          {!loading && !error && isVerifiedProfile && (
+          {!loading && !error && isVerifiedProfile && !isAdminProfile && (
             <TouchableOpacity
               onPress={() => setShowHouseholdSelector(true)}
               accessibilityRole="button"
@@ -488,12 +520,10 @@ export default function SingleUserMobile() {
               showsVerticalScrollIndicator={false}
               contentContainerStyle={isVerifiedProfile ? { paddingBottom: 110 } : { flexGrow: 1 }}
             >
-              {isVerifiedProfile && (
+              {hasVerifiedDocuments && (
                 <View className="mt-[19px] items-center">
                   <View className="h-[87px] w-[87px] items-center justify-center overflow-hidden rounded-full bg-[#F6F7F7]">
-                    {profilePictureState === 'loading' ? (
-                      <ActivityIndicator size="small" color="#113E55" />
-                    ) : profilePictureUrl ? (
+                    {profilePictureUrl && profilePictureState === 'loaded' ? (
                       <Image
                         source={{ uri: profilePictureUrl }}
                         className="h-full w-full"
@@ -513,28 +543,30 @@ export default function SingleUserMobile() {
                     )}
                   </View>
 
-                  <View
-                    className="mt-[13px] h-[33px] items-center"
-                    style={{ width: Platform.OS === 'android' ? 160 : 111 }}
-                  >
-                    <Text
-                      allowFontScaling={false}
-                      numberOfLines={1}
-                      className="text-center font-ubuntu-medium text-primary"
-                      style={{
-                        fontSize: 27.34,
-                        lineHeight: 27.34,
-                        width: Platform.OS === 'android' ? 160 : undefined,
-                      }}
+                  {isVerifiedProfile && (
+                    <View
+                      className="mt-[13px] h-[33px] items-center"
+                      style={{ width: Platform.OS === 'android' ? 160 : 111 }}
                     >
-                      {verifiedRoleLabel}
-                    </Text>
-                  </View>
+                      <Text
+                        allowFontScaling={false}
+                        numberOfLines={1}
+                        className="text-center font-ubuntu-medium text-primary"
+                        style={{
+                          fontSize: 27.34,
+                          lineHeight: 27.34,
+                          width: Platform.OS === 'android' ? 160 : undefined,
+                        }}
+                      >
+                        {verifiedRoleLabel}
+                      </Text>
+                    </View>
+                  )}
                 </View>
               )}
 
               <View
-                className={`${isVerifiedProfile ? 'mt-8' : 'mt-14'} ${isVerifiedProfile ? '' : 'flex-1'}`}
+                className={`${hasVerifiedDocuments ? 'mt-8' : 'mt-14'} ${isVerifiedProfile ? '' : 'flex-1'}`}
               >
                 <View className="h-[41px] w-full flex-row items-center justify-between rounded-2xl bg-white px-4">
                   <Text
@@ -616,7 +648,7 @@ export default function SingleUserMobile() {
                   </Text>
                 </View>
 
-                {isVerifiedProfile && (
+                {hasVerifiedDocuments && (
                   <View
                     className="mt-2 w-full overflow-hidden rounded-2xl bg-white"
                     style={{ height: identificationExpanded ? identificationExpandedHeight : 41 }}
@@ -688,7 +720,12 @@ export default function SingleUserMobile() {
                           </View>
                         ) : (
                           <View className="h-full w-full items-center justify-center">
-                            <Feather name="credit-card" size={40} color="#C8CECE" />
+                            <Text
+                              className="font-inter-regular text-[#878686]"
+                              style={{ fontSize: 14, lineHeight: 18 }}
+                            >
+                              No ID to preview
+                            </Text>
                           </View>
                         )}
                       </View>
@@ -697,7 +734,7 @@ export default function SingleUserMobile() {
                 )}
               </View>
 
-              {isVerifiedProfile ? (
+              {hideProfileActions ? null : isVerifiedProfile ? (
                 <View
                   className="mt-[81px] flex-row"
                   style={{
@@ -711,7 +748,7 @@ export default function SingleUserMobile() {
                     className={`h-12 items-center justify-center rounded-3xl bg-[#E5F6FF] ${
                       deactivating || processing ? 'opacity-70' : ''
                     }`}
-                    style={{ width: 168 * residentActionScale }}
+                    style={{ width: (showRoleAction ? 168 : 337) * residentActionScale }}
                   >
                     <Text
                       className="font-ubuntu-semibold text-primary"
@@ -721,21 +758,23 @@ export default function SingleUserMobile() {
                     </Text>
                   </TouchableOpacity>
 
-                  <TouchableOpacity
-                    onPress={promptPromote}
-                    disabled={deactivating || processing}
-                    className={`h-12 items-center justify-center rounded-3xl border border-primary bg-primary ${
-                      deactivating || processing ? 'opacity-70' : ''
-                    }`}
-                    style={{ width: 159 * residentActionScale }}
-                  >
-                    <Text
-                      className="font-ubuntu-semibold text-white"
-                      style={{ fontSize: 14, lineHeight: 14, letterSpacing: -0.24 }}
+                  {showRoleAction && (
+                    <TouchableOpacity
+                      onPress={isAdminProfile ? promptDemote : promptPromote}
+                      disabled={deactivating || processing}
+                      className={`h-12 items-center justify-center rounded-3xl border border-primary bg-primary ${
+                        deactivating || processing ? 'opacity-70' : ''
+                      }`}
+                      style={{ width: 159 * residentActionScale }}
                     >
-                      Make Admin
-                    </Text>
-                  </TouchableOpacity>
+                      <Text
+                        className="font-ubuntu-semibold text-white"
+                        style={{ fontSize: 14, lineHeight: 14, letterSpacing: -0.24 }}
+                      >
+                        {isAdminProfile ? 'Make Resident' : 'Make Admin'}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               ) : (
                 <View className="mt-auto flex-row gap-[10px]">
