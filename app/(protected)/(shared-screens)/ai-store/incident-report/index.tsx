@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { View, Text, Pressable, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import { useQueryClient } from '@tanstack/react-query';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import ValidationBackSvg from '@/src/assets/icons/validation-back.svg';
@@ -20,6 +21,7 @@ import {
   formatTierLabel,
   formatTierSubtitle,
   getMarketplaceFeatureById,
+  installMarketplaceFeature,
   rateMarketplaceFeature,
   resolveMarketplaceFeatureId,
   sortMarketplaceTiers,
@@ -51,6 +53,7 @@ export default function IncidentReportPreviewScreen() {
   const [featureDetail, setFeatureDetail] = useState<MarketplaceDetailResponse | null>(null);
   const [, setIsSubscribing] = useState(false);
   const [subscribingTierKey, setSubscribingTierKey] = useState<string | null>(null);
+  const [uninstallingTierKey, setUninstallingTierKey] = useState<string | null>(null);
   const [isRatingModalVisible, setIsRatingModalVisible] = useState(false);
   const [dataInsightVisible, setDataInsightVisible] = useState(false);
   const [cardHeight, setCardHeight] = useState<number>(120);
@@ -93,6 +96,14 @@ export default function IncidentReportPreviewScreen() {
     void loadFeature();
   }, [loadFeature]);
 
+  const queryClient = useQueryClient();
+  /** Tier entitlements changed → drop cached summaries so Result can't show a removed tier. */
+  const refreshAfterTierChange = async () => {
+    queryClient.removeQueries({ queryKey: ['incident-reports', 'summary'] });
+    void queryClient.invalidateQueries({ queryKey: ['incident-reports', 'overview'] });
+    if (featureDetail?.id) await loadFeature(featureDetail.id);
+  };
+
   useEffect(() => {
     if (!featureDetail) return;
     console.log(
@@ -111,28 +122,6 @@ export default function IncidentReportPreviewScreen() {
     } catch (err: any) {
       Alert.alert('Error', err.message || 'Failed to submit rating');
       throw err;
-    }
-  };
-
-  const runUninstall = async (tier: MarketplaceTier, successMessage: string, failTitle: string) => {
-    if (!estateId || !tier.feature_key) {
-      Alert.alert(
-        'Unable to continue',
-        'Missing estate or feature details. Pull to refresh and try again.'
-      );
-      return;
-    }
-    setSubscribingTierKey(tier.tier);
-    setIsSubscribing(true);
-    try {
-      await uninstallMarketplaceFeature(estateId, tier.feature_key);
-      Alert.alert('Done', successMessage);
-      if (featureDetail?.id) await loadFeature(featureDetail.id);
-    } catch (err: any) {
-      Alert.alert(failTitle, err?.message || `Failed to ${failTitle.toLowerCase()}.`);
-    } finally {
-      setIsSubscribing(false);
-      setSubscribingTierKey(null);
     }
   };
 
@@ -159,7 +148,7 @@ export default function IncidentReportPreviewScreen() {
               try {
                 await cancelMarketplaceSubscription(estateId);
                 Alert.alert('Done', 'Subscription cancelled successfully.');
-                if (featureDetail?.id) await loadFeature(featureDetail.id);
+                await refreshAfterTierChange();
               } catch (err: any) {
                 Alert.alert(
                   'Cancel Subscription',
@@ -177,24 +166,67 @@ export default function IncidentReportPreviewScreen() {
   };
 
   const handleUninstall = (tier: MarketplaceTier) => {
-    Alert.alert(
-      'Uninstall',
-      'Remove this feature from your estate? You can activate it again later.',
-      [
-        { text: 'Keep', style: 'cancel' },
-        {
-          text: 'Uninstall',
-          style: 'destructive',
-          onPress: () => {
-            void runUninstall(tier, 'Feature uninstalled successfully.', 'Uninstall');
-          },
+    if (!estateId) {
+      Alert.alert('Error', 'Estate ID not found');
+      return;
+    }
+    const featureKey = tier.feature_key;
+    if (!featureKey) {
+      Alert.alert('Error', 'Feature key is missing for this tier.');
+      return;
+    }
+
+    Alert.alert('Uninstall Feature', 'Are you sure you want to uninstall this feature?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Uninstall',
+        style: 'destructive',
+        onPress: async () => {
+          setUninstallingTierKey(tier.tier);
+          try {
+            await uninstallMarketplaceFeature(estateId, featureKey);
+            Alert.alert('Success', 'Feature uninstalled successfully.');
+            await refreshAfterTierChange();
+          } catch (err: any) {
+            Alert.alert('Uninstall Failed', err?.message || 'Failed to uninstall feature.');
+          } finally {
+            setUninstallingTierKey(null);
+          }
         },
-      ]
-    );
+      },
+    ]);
+  };
+
+  /** Already paid for but uninstalled → turn the existing grant back on (no new quote). */
+  const handleReinstall = async (tier: MarketplaceTier) => {
+    if (!estateId) {
+      Alert.alert('Error', 'Estate ID not found');
+      return;
+    }
+    if (!tier.feature_key) {
+      Alert.alert('Error', 'Feature key is missing for this tier.');
+      return;
+    }
+    setSubscribingTierKey(tier.tier);
+    setIsSubscribing(true);
+    try {
+      await installMarketplaceFeature(estateId, tier.feature_key);
+      Alert.alert('Success', 'Feature activated successfully.');
+      await refreshAfterTierChange();
+    } catch (err: any) {
+      Alert.alert('Activation Failed', err?.message || 'Failed to activate feature.');
+    } finally {
+      setIsSubscribing(false);
+      setSubscribingTierKey(null);
+    }
   };
 
   const handleSubscribe = async (tier: MarketplaceTier) => {
     if (tier.is_installed) return;
+    if (tier.status === 'subscribed') {
+      await handleReinstall(tier);
+      return;
+    }
 
     if (!featureDetail?.id || !tier.ai_feature_id) {
       Alert.alert(
@@ -217,7 +249,7 @@ export default function IncidentReportPreviewScreen() {
           ? 'Free feature tier activated successfully!'
           : 'Subscription quote created successfully.'
       );
-      await loadFeature(featureDetail.id);
+      await refreshAfterTierChange();
     } catch (err: any) {
       Alert.alert('Subscription Failed', err?.message || 'Failed to activate tier.');
     } finally {
@@ -230,14 +262,19 @@ export default function IncidentReportPreviewScreen() {
     () => sortMarketplaceTiers(featureDetail?.tiers ?? []),
     [featureDetail?.tiers]
   );
-  /** Tier 2 (In-house) and tier 3 (Third-party) unlock AI summaries; undefined until loaded. */
-  const hasAiReviewTier = featureDetail
-    ? sortedTiers.some(
-        (tier) =>
-          (tier.is_installed || tier.status === 'installed') &&
-          (Number.parseInt(tier.tier.replace(/\D/g, ''), 10) || 0) >= 2
-      )
-    : undefined;
+  /** Tier 2 = In-house summary, tier 3 = Third-party summary; undefined until tiers load. */
+  const isTierInstalled = (num: number) =>
+    featureDetail
+      ? sortedTiers.some(
+          (tier) =>
+            (tier.is_installed || tier.status === 'installed') &&
+            (Number.parseInt(tier.tier.replace(/\D/g, ''), 10) || 0) === num
+        )
+      : undefined;
+  const inHouseInstalled = isTierInstalled(2);
+  const thirdPartyInstalled = isTierInstalled(3);
+  const hasAiReviewTier =
+    inHouseInstalled === undefined ? undefined : !!(inHouseInstalled || thirdPartyInstalled);
   const productFeatures = (featureDetail?.product_features ?? [])
     .map((text) => text.trim())
     .filter(Boolean);
@@ -295,7 +332,12 @@ export default function IncidentReportPreviewScreen() {
         </View>
 
         {activeTab === 'Result' ? (
-          <IncidentResultView isActive={activeTab === 'Result'} hasAiReviewTier={hasAiReviewTier} />
+          <IncidentResultView
+            isActive={activeTab === 'Result'}
+            hasAiReviewTier={hasAiReviewTier}
+            inHouseInstalled={inHouseInstalled}
+            thirdPartyInstalled={thirdPartyInstalled}
+          />
         ) : isLoading ? (
           <View
             style={{
@@ -489,6 +531,7 @@ export default function IncidentReportPreviewScreen() {
                           onCancelSubscription={() => handleCancelSubscription(tier)}
                           onUninstall={() => handleUninstall(tier)}
                           isSubscribing={subscribingTierKey === tierKey}
+                          isUninstalling={uninstallingTierKey === tierKey}
                           isInstalled={!!tier.is_installed || tier.status === 'installed'}
                         />
                       );

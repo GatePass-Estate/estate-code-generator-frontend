@@ -30,6 +30,8 @@ type SubscriptionTierCardProps = {
   onCancelSubscription?: () => void;
   onUninstall?: () => void;
   isSubscribing?: boolean;
+  /** Spinner on the Uninstall button while this tier is being removed. */
+  isUninstalling?: boolean;
   isInstalled?: boolean;
   /** Benefit rows from the API (`tier.benefits` / `tier_benefits`). */
   benefits?: string[];
@@ -46,6 +48,7 @@ export default function SubscriptionTierCard({
   onCancelSubscription,
   onUninstall,
   isSubscribing = false,
+  isUninstalling = false,
   isInstalled = false,
   benefits,
   subtitleUppercase = false,
@@ -84,7 +87,7 @@ export default function SubscriptionTierCard({
   const purchasedActions = (
     <View className="gap-4">
       <Pressable
-        disabled={isSubscribing || !expanded}
+        disabled={isSubscribing || isUninstalling || !expanded}
         onPress={onCancelSubscription}
         className="h-[48px] w-full items-center justify-center rounded-full bg-[#113E55]"
       >
@@ -97,11 +100,20 @@ export default function SubscriptionTierCard({
         )}
       </Pressable>
       <Pressable
-        disabled={isSubscribing || !expanded}
+        disabled={isSubscribing || isUninstalling || !expanded}
         onPress={onUninstall}
         className="h-[48px] w-full items-center justify-center rounded-full bg-[#E5F6FF]"
       >
-        <Text className="text-[14px] font-ubuntu-semibold text-[#113E55]">Uninstall</Text>
+        {isUninstalling ? (
+          <ActivityIndicator size="small" color="#113E55" />
+        ) : (
+          <Text
+            allowFontScaling={false}
+            className="text-[14px] font-ubuntu-semibold text-[#113E55]"
+          >
+            Uninstall
+          </Text>
+        )}
       </Pressable>
     </View>
   );
