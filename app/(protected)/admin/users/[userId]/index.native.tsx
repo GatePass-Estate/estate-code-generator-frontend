@@ -36,6 +36,7 @@ import { Feather } from '@expo/vector-icons';
 import IdDocumentPdf from '@/src/components/mobile/IdDocumentPdf';
 import ResidentProfileFallback from '@/src/assets/icons/user-profile-placeholder.svg';
 import { useAuthStore } from '@/src/lib/stores/authStore';
+import { useUserStore } from '@/src/lib/stores/userStore';
 
 type DocumentLoadState = 'loading' | 'loaded' | 'missing' | 'pending' | 'error';
 
@@ -56,6 +57,7 @@ const parseUserParam = (
 export default function SingleUserMobile() {
   const router = useRouter();
   const viewerRole = useAuthStore((state) => state.role);
+  const viewerUserId = useUserStore((state) => state.user_id);
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
   const { userId, userParam } = useLocalSearchParams();
@@ -111,8 +113,13 @@ export default function SingleUserMobile() {
   const isSecurityProfile = userData.status && userData.role === 'security';
   const isAdminProfile = userData.status && userData.role === 'admin';
   const showRoleAction = !isSecurityProfile && viewerRole === 'primary_admin';
+  const isOwnProfile = Boolean(
+    viewerUserId &&
+    (viewerUserId === userData.user_id || viewerUserId === userData.id || viewerUserId === userId)
+  );
   const hideProfileActions =
-    userData.status && userData.role === 'primary_admin' && viewerRole === 'admin';
+    userData.role === 'primary_admin' &&
+    (viewerRole === 'admin' || (viewerRole === 'primary_admin' && isOwnProfile));
   const hasVerifiedDocuments =
     userData.status &&
     (userData.role === 'resident' ||
@@ -427,7 +434,7 @@ export default function SingleUserMobile() {
             >
               <Text
                 className="font-inter-semibold text-primary"
-                style={{ fontSize: 11.2, lineHeight: 11.2 }}
+                style={{ fontSize: 11.2, lineHeight: 16 }}
               >
                 Transfer User
               </Text>
@@ -521,7 +528,7 @@ export default function SingleUserMobile() {
                         className="text-center font-ubuntu-medium text-primary"
                         style={{
                           fontSize: 27.34,
-                          lineHeight: 27.34,
+                          lineHeight: 33,
                           width: Platform.OS === 'android' ? 160 : undefined,
                         }}
                       >
@@ -538,14 +545,14 @@ export default function SingleUserMobile() {
                 <View className="h-[41px] w-full flex-row items-center justify-between rounded-2xl bg-white px-4">
                   <Text
                     className="font-inter-medium text-[#878686]"
-                    style={{ fontSize: 14, lineHeight: 14 }}
+                    style={{ fontSize: 14, lineHeight: 18 }}
                   >
                     Name
                   </Text>
                   <Text
-                    className="font-inter-light text-[#878686]"
+                    className="max-w-[65%] font-inter-light text-[#878686]"
                     numberOfLines={1}
-                    style={{ fontSize: 14, lineHeight: 14 }}
+                    style={{ fontSize: 14, lineHeight: 18 }}
                   >
                     {`${userData.first_name} ${userData.last_name}`.trim()}
                   </Text>
@@ -554,14 +561,14 @@ export default function SingleUserMobile() {
                 <View className="mt-2 h-[41px] w-full flex-row items-center justify-between rounded-2xl bg-white px-4">
                   <Text
                     className="font-inter-medium text-[#878686]"
-                    style={{ fontSize: 14, lineHeight: 14 }}
+                    style={{ fontSize: 14, lineHeight: 18 }}
                   >
                     Phone Number
                   </Text>
                   <Text
                     className="max-w-[55%] font-inter-light text-[#878686]"
                     numberOfLines={1}
-                    style={{ fontSize: 14, lineHeight: 14 }}
+                    style={{ fontSize: 14, lineHeight: 18 }}
                   >
                     {userData.phone_number}
                   </Text>
@@ -570,14 +577,14 @@ export default function SingleUserMobile() {
                 <View className="mt-2 h-[41px] w-full flex-row items-center justify-between rounded-2xl bg-white px-4">
                   <Text
                     className="font-inter-medium text-[#878686]"
-                    style={{ fontSize: 14, lineHeight: 14 }}
+                    style={{ fontSize: 14, lineHeight: 18 }}
                   >
                     Email Address
                   </Text>
                   <Text
                     className="max-w-[55%] font-inter-light text-[#878686]"
                     numberOfLines={1}
-                    style={{ fontSize: 14, lineHeight: 14 }}
+                    style={{ fontSize: 14, lineHeight: 18 }}
                   >
                     {userData.email}
                   </Text>
@@ -586,14 +593,14 @@ export default function SingleUserMobile() {
                 <View className="mt-2 h-[41px] w-full flex-row items-center justify-between rounded-2xl bg-white px-4">
                   <Text
                     className="font-inter-medium text-[#878686]"
-                    style={{ fontSize: 14, lineHeight: 14 }}
+                    style={{ fontSize: 14, lineHeight: 18 }}
                   >
                     House Hold
                   </Text>
                   <Text
                     className="max-w-[55%] font-inter-light text-[#878686]"
                     numberOfLines={1}
-                    style={{ fontSize: 14, lineHeight: 14 }}
+                    style={{ fontSize: 14, lineHeight: 18 }}
                   >
                     {userData.household_name || 'No household assigned'}
                   </Text>
@@ -602,14 +609,14 @@ export default function SingleUserMobile() {
                 <View className="mt-2 h-[41px] w-full flex-row items-center justify-between rounded-2xl bg-white px-4">
                   <Text
                     className="font-inter-medium text-[#878686]"
-                    style={{ fontSize: 14, lineHeight: 14 }}
+                    style={{ fontSize: 14, lineHeight: 18 }}
                   >
                     Address
                   </Text>
                   <Text
                     className="max-w-[65%] font-inter-light text-[#878686]"
                     numberOfLines={1}
-                    style={{ fontSize: 14, lineHeight: 14 }}
+                    style={{ fontSize: 14, lineHeight: 18 }}
                   >
                     {userData.home_address}
                   </Text>
@@ -629,7 +636,7 @@ export default function SingleUserMobile() {
                     >
                       <Text
                         className="font-inter-medium text-[#878686]"
-                        style={{ fontSize: 14, lineHeight: 14 }}
+                        style={{ fontSize: 14, lineHeight: 18 }}
                       >
                         Identification Card
                       </Text>
@@ -724,7 +731,7 @@ export default function SingleUserMobile() {
                   >
                     <Text
                       className="font-ubuntu-semibold text-primary"
-                      style={{ fontSize: 14, lineHeight: 14, letterSpacing: -0.24 }}
+                      style={{ fontSize: 14, lineHeight: 18, letterSpacing: -0.24 }}
                     >
                       Deactivate
                     </Text>
@@ -741,7 +748,7 @@ export default function SingleUserMobile() {
                     >
                       <Text
                         className="font-ubuntu-semibold text-white"
-                        style={{ fontSize: 14, lineHeight: 14, letterSpacing: -0.24 }}
+                        style={{ fontSize: 14, lineHeight: 18, letterSpacing: -0.24 }}
                       >
                         {isAdminProfile ? 'Make Resident' : 'Make Admin'}
                       </Text>
@@ -763,7 +770,7 @@ export default function SingleUserMobile() {
                     ) : (
                       <Text
                         className="font-ubuntu-semibold text-primary"
-                        style={{ fontSize: 14, lineHeight: 14, letterSpacing: -0.24 }}
+                        style={{ fontSize: 14, lineHeight: 18, letterSpacing: -0.24 }}
                       >
                         Delete User
                       </Text>
@@ -783,7 +790,7 @@ export default function SingleUserMobile() {
                     ) : (
                       <Text
                         className="font-ubuntu-semibold text-white"
-                        style={{ fontSize: 14, lineHeight: 14, letterSpacing: -0.24 }}
+                        style={{ fontSize: 14, lineHeight: 18, letterSpacing: -0.24 }}
                       >
                         Resend Email
                       </Text>
