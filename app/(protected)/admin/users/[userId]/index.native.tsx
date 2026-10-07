@@ -14,8 +14,6 @@ import {
   ActivityIndicator,
   Image,
   Modal,
-  Animated,
-  PanResponder,
   Platform,
   ScrollView,
   Text,
@@ -68,14 +66,12 @@ export default function SingleUserMobile() {
     typeof userId === 'string' ? getCachedUserDocument(userId, 'id_card') : null;
   const [loading, setLoading] = useState(!initialUser);
   const [error, setError] = useState<string | null>(null);
-  const [showDeactivateModal, setShowDeactivateModal] = useState(false);
-  const [showPromoteModal, setShowPromoteModal] = useState(false);
   const [deactivating, setDeactivating] = useState(false);
   const [processing, setProcessing] = useState(false);
-  const [dialogMessage, setDialogMessage] = useState('');
-  const [dialogVisible, setDialogVisible] = useState(false);
-  const [dialogType, setDialogType] = useState<'success' | 'error'>('success');
-  const [promoteActionType, setPromoteActionType] = useState<'promote' | 'demote' | null>(null);
+  const [actionError, setActionError] = useState('');
+  const [pendingAction, setPendingAction] = useState<'deactivate' | 'promote' | 'demote' | null>(
+    null
+  );
   const [showHouseholdSelector, setShowHouseholdSelector] = useState(false);
   const [transferringHousehold, setTransferringHousehold] = useState(false);
   const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(
@@ -94,7 +90,6 @@ export default function SingleUserMobile() {
   const [identificationState, setIdentificationState] = useState<DocumentLoadState>(
     cachedIdentification ? 'loaded' : 'loading'
   );
-  const panY = new Animated.Value(0);
   const [userData, setUserData] = useState<User>(
     initialUser ?? {
       first_name: '',
@@ -131,23 +126,6 @@ export default function SingleUserMobile() {
   const identificationPreviewHeight = identificationPreviewWidth * (138.18 / 211);
   const identificationExpandedHeight = 52 + identificationPreviewHeight + 11.82;
   const residentActionScale = profileContentWidth / 335;
-
-  const panResponder = PanResponder.create({
-    onStartShouldSetPanResponder: () => true,
-    onMoveShouldSetPanResponder: (evt, gestureState) => gestureState.dy > 10,
-    onPanResponderMove: Animated.event([null, { dy: panY }], { useNativeDriver: false }),
-    onPanResponderRelease: (evt, gestureState) => {
-      if (gestureState.dy > 100) {
-        setShowDeactivateModal(false);
-        panY.setValue(0);
-      } else {
-        Animated.spring(panY, {
-          toValue: 0,
-          useNativeDriver: false,
-        }).start();
-      }
-    },
-  });
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -294,16 +272,15 @@ export default function SingleUserMobile() {
 
   const handleDeactivate = async () => {
     setDeactivating(true);
+    setActionError('');
 
     try {
       await deactivateUser(userId as string);
-      setShowDeactivateModal(false);
-      panY.setValue(0);
       router.back();
-    } catch {
-      setDialogType('error');
-      setDialogMessage('Failed to deactivate user. Please try again.');
-      setDialogVisible(true);
+    } catch (err) {
+      setActionError(
+        err instanceof Error ? err.message : 'Failed to deactivate user. Please try again.'
+      );
     } finally {
       setDeactivating(false);
     }
@@ -311,12 +288,11 @@ export default function SingleUserMobile() {
 
   const handleResendEmail = async () => {
     setProcessing(true);
+    setActionError('');
     try {
       await resendEmailVerification(userId as string);
     } catch (err) {
-      setDialogType('error');
-      setDialogMessage(err instanceof Error ? err.message : 'Failed to resend email.');
-      setDialogVisible(true);
+      setActionError(err instanceof Error ? err.message : 'Failed to resend email.');
     } finally {
       setProcessing(false);
     }
@@ -324,79 +300,75 @@ export default function SingleUserMobile() {
 
   const handleDeleteUser = async () => {
     setProcessing(true);
+    setActionError('');
     try {
       await deleteUser(userId as string);
       router.back();
     } catch (err) {
-      setDialogType('error');
-      setDialogMessage(err instanceof Error ? err.message : 'Failed to delete user.');
-      setDialogVisible(true);
+      setActionError(err instanceof Error ? err.message : 'Failed to delete user.');
     } finally {
       setProcessing(false);
     }
   };
 
-  const handlePromoteOrDemote = async () => {
-    if (!promoteActionType) return;
-
+  const handlePromoteOrDemote = async (action: 'promote' | 'demote') => {
     setProcessing(true);
+    setActionError('');
     try {
-      let message = '';
-
-      if (promoteActionType === 'promote') {
+      if (action === 'promote') {
         await promoteToAdmin(userId as string);
-        message = `${userData.first_name} has been successfully promoted to Admin.`;
-      } else if (promoteActionType === 'demote') {
+      } else {
         await demoteToResident(userId as string);
-        message = `${userData.first_name} has been successfully demoted to Resident.`;
       }
-
-      setShowPromoteModal(false);
-      setPromoteActionType(null);
-      setDialogType('success');
-      setDialogMessage(message);
-      setDialogVisible(true);
-
-      // Refresh user data after successful action
-      setTimeout(async () => {
-        const resident = await getUserByIdAdmin(userId as string);
-        if (resident) {
-          setUserData(resident);
-        }
-      }, 1500);
+      setUserData((current) => ({ ...current, role: action === 'promote' ? 'admin' : 'resident' }));
     } catch (err) {
-      setShowPromoteModal(false);
-      setPromoteActionType(null);
-      setDialogType('error');
-      setDialogMessage(err instanceof Error ? err.message : 'Failed to process action.');
-      setDialogVisible(true);
+      setActionError(err instanceof Error ? err.message : 'Failed to update user role.');
     } finally {
       setProcessing(false);
     }
   };
 
-  const promptPromote = () => {
-    setPromoteActionType('promote');
-    setShowPromoteModal(true);
+  const confirmProfileAction = async () => {
+    const action = pendingAction;
+    if (!action) return;
+    setPendingAction(null);
+    if (action === 'deactivate') {
+      await handleDeactivate();
+    } else {
+      await handlePromoteOrDemote(action);
+    }
   };
 
-  const promptDemote = () => {
-    setPromoteActionType('demote');
-    setShowPromoteModal(true);
-  };
+  const confirmationCopy =
+    pendingAction === 'deactivate'
+      ? {
+          title: 'Deactivate User?',
+          message: 'This user will lose access until their account is reactivated.',
+          button: 'Deactivate',
+        }
+      : pendingAction === 'promote'
+        ? {
+            title: 'Make Admin?',
+            message: 'This user will receive secondary admin access.',
+            button: 'Make Admin',
+          }
+        : {
+            title: 'Make Resident?',
+            message: 'This admin will become a resident and lose admin access.',
+            button: 'Make Resident',
+          };
 
   const handleHouseholdTransfer = async (household: Household) => {
     if (household.id === userData.household_id) {
       setShowHouseholdSelector(false);
-      setDialogType('error');
-      setDialogMessage(`${userData.first_name || 'This user'} is already in ${household.name}.`);
-      setDialogVisible(true);
+      setActionError(`${userData.first_name || 'This user'} is already in ${household.name}.`);
       return;
     }
 
     setTransferringHousehold(true);
+    setActionError('');
     try {
-      const response = await transferUserHousehold({
+      await transferUserHousehold({
         user_id: userId as string,
         household_id: household.id,
       });
@@ -406,13 +378,8 @@ export default function SingleUserMobile() {
         household_name: household.name,
       }));
       setShowHouseholdSelector(false);
-      setDialogType('success');
-      setDialogMessage(response.message || `${userData.first_name} was transferred successfully.`);
-      setDialogVisible(true);
     } catch (err) {
-      setDialogType('error');
-      setDialogMessage(err instanceof Error ? err.message : 'Failed to transfer household.');
-      setDialogVisible(true);
+      setActionError(err instanceof Error ? err.message : 'Failed to transfer household.');
     } finally {
       setTransferringHousehold(false);
     }
@@ -734,6 +701,11 @@ export default function SingleUserMobile() {
                 )}
               </View>
 
+              {actionError ? (
+                <Text className="mb-4 text-center text-[13px] text-[#B42318] font-inter-regular">
+                  {actionError}
+                </Text>
+              ) : null}
               {hideProfileActions ? null : isVerifiedProfile ? (
                 <View
                   className="mt-[81px] flex-row"
@@ -743,7 +715,7 @@ export default function SingleUserMobile() {
                   }}
                 >
                   <TouchableOpacity
-                    onPress={() => setShowDeactivateModal(true)}
+                    onPress={() => setPendingAction('deactivate')}
                     disabled={deactivating || processing}
                     className={`h-12 items-center justify-center rounded-3xl bg-[#E5F6FF] ${
                       deactivating || processing ? 'opacity-70' : ''
@@ -760,7 +732,7 @@ export default function SingleUserMobile() {
 
                   {showRoleAction && (
                     <TouchableOpacity
-                      onPress={isAdminProfile ? promptDemote : promptPromote}
+                      onPress={() => setPendingAction(isAdminProfile ? 'demote' : 'promote')}
                       disabled={deactivating || processing}
                       className={`h-12 items-center justify-center rounded-3xl border border-primary bg-primary ${
                         deactivating || processing ? 'opacity-70' : ''
@@ -821,155 +793,6 @@ export default function SingleUserMobile() {
               )}
             </ScrollView>
 
-            {/* Deactivate Confirmation Bottom Drawer */}
-            <Modal
-              visible={showDeactivateModal}
-              transparent
-              animationType="none"
-              onDismiss={() => panY.setValue(0)}
-            >
-              <TouchableOpacity
-                activeOpacity={1}
-                onPress={() => {
-                  setShowDeactivateModal(false);
-                  panY.setValue(0);
-                }}
-                className="flex-1 bg-black/50 justify-end"
-              >
-                <Animated.View
-                  style={{ transform: [{ translateY: panY }] }}
-                  {...panResponder.panHandlers}
-                  className="bg-white rounded-t-3xl p-6 pb-10"
-                >
-                  <View className="mb-2">
-                    <View className="h-1 w-12 bg-grey rounded-full self-center mb-4" />
-                  </View>
-
-                  <Text className="text-2xl font-ubuntu-medium text-grey mb-3 text-center">
-                    Are You sure ?
-                  </Text>
-                  <Text className="text-black text-base font-inter-regular mb-2 text-center">
-                    Confirm if you want to deactivate this user from the system
-                  </Text>
-                  <Text className="text-black text- font-inter-regular mb-6 text-center">
-                    This action will be reviewed in 48 hours.
-                  </Text>
-
-                  <View className="flex-row gap-3 mt-6">
-                    <TouchableOpacity
-                      onPress={() => setShowDeactivateModal(false)}
-                      disabled={deactivating}
-                      className={`flex-1 border-2 bg-teal border-teal py-4 rounded-lg ${deactivating ? 'opacity-70' : ''}`}
-                    >
-                      <Text className="text-white font-ubuntu-semibold text-center text-md">
-                        Cancel
-                      </Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      onPress={handleDeactivate}
-                      disabled={deactivating}
-                      className={`flex-1 bg-primary py-4 rounded-lg ${deactivating ? 'opacity-70' : ''}`}
-                    >
-                      {deactivating ? (
-                        <ActivityIndicator color="#fff" size="small" />
-                      ) : (
-                        <Text className="text-white font-ubuntu-semibold text-center text-md">
-                          Proceed
-                        </Text>
-                      )}
-                    </TouchableOpacity>
-                  </View>
-                </Animated.View>
-              </TouchableOpacity>
-            </Modal>
-
-            {/* Promote/Demote Confirmation Bottom Drawer */}
-            <Modal
-              visible={showPromoteModal}
-              transparent
-              animationType="none"
-              onDismiss={() => panY.setValue(0)}
-            >
-              <TouchableOpacity
-                activeOpacity={1}
-                onPress={() => {
-                  setShowPromoteModal(false);
-                  setPromoteActionType(null);
-                }}
-                className="flex-1 bg-black/50 justify-end"
-              >
-                <Animated.View
-                  style={{ transform: [{ translateY: panY }] }}
-                  className="bg-white rounded-t-3xl p-6 pb-10"
-                >
-                  <View className="mb-2">
-                    <View className="h-1 w-12 bg-grey rounded-full self-center mb-4" />
-                  </View>
-
-                  <Text className="text-2xl font-ubuntu-medium text-grey mb-3 text-center">
-                    Are You sure ?
-                  </Text>
-                  <Text className="text-black text-base font-inter-regular mb-2 text-center">
-                    {promoteActionType === 'promote'
-                      ? `Confirm if you want to promote ${userData.first_name} to admin`
-                      : `Confirm if you want to demote ${userData.first_name} to resident`}
-                  </Text>
-
-                  <View className="flex-row gap-3 mt-6">
-                    <TouchableOpacity
-                      onPress={() => {
-                        setShowPromoteModal(false);
-                        setPromoteActionType(null);
-                      }}
-                      disabled={processing}
-                      className={`flex-1 border-2 bg-teal border-teal py-4 rounded-lg ${processing ? 'opacity-70' : ''}`}
-                    >
-                      <Text className="text-white font-ubuntu-semibold text-center text-md">
-                        Cancel
-                      </Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      onPress={handlePromoteOrDemote}
-                      disabled={processing}
-                      className={`flex-1 bg-primary py-4 rounded-lg ${processing ? 'opacity-70' : ''}`}
-                    >
-                      {processing ? (
-                        <ActivityIndicator color="#fff" size="small" />
-                      ) : (
-                        <Text className="text-white font-ubuntu-semibold text-center text-md">
-                          {promoteActionType === 'promote' ? 'Promote' : 'Demote'}
-                        </Text>
-                      )}
-                    </TouchableOpacity>
-                  </View>
-                </Animated.View>
-              </TouchableOpacity>
-            </Modal>
-            {/* Dialog Box for System Messages */}
-            <Modal visible={dialogVisible} transparent animationType="fade">
-              <View className="flex-1 justify-center items-center bg-black/50">
-                <View className="bg-white rounded-lg p-6 mx-4 max-w-xs">
-                  <Text
-                    className={`text-lg font-ubuntu-semibold text-center mb-4 ${dialogType === 'success' ? 'text-green-600' : 'text-red-600'}`}
-                  >
-                    {dialogType === 'success' ? 'Success' : 'Error'}
-                  </Text>
-                  <Text className="text-grey text-base font-ubuntu-regular text-center mb-6">
-                    {dialogMessage}
-                  </Text>
-
-                  <TouchableOpacity
-                    onPress={() => setDialogVisible(false)}
-                    className="bg-primary py-3 rounded-lg"
-                  >
-                    <Text className="text-white font-ubuntu-semibold text-center">OK</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </Modal>
-
             <HouseholdSelectorSheet
               visible={showHouseholdSelector}
               estateId={userData.estate_id || ''}
@@ -984,11 +807,45 @@ export default function SingleUserMobile() {
                     }
                   : null
               }
-              confirmationTitle="Transfer User?"
-              confirmationActionLabel="Transfer"
               onClose={() => !transferringHousehold && setShowHouseholdSelector(false)}
               onSelect={handleHouseholdTransfer}
             />
+            <Modal
+              visible={pendingAction !== null}
+              transparent
+              animationType="fade"
+              statusBarTranslucent
+              onRequestClose={() => setPendingAction(null)}
+            >
+              <View className="flex-1 items-center justify-center bg-black/40 px-6">
+                <View className="w-full max-w-[360px] rounded-[24px] bg-[#F6F7F7] px-6 py-7">
+                  <Text className="text-center font-ubuntu-semibold text-[21px] text-[#113E55]">
+                    {confirmationCopy.title}
+                  </Text>
+                  <Text className="mt-3 text-center font-inter-regular text-[14px] leading-[21px] text-[#646B70]">
+                    {confirmationCopy.message}
+                  </Text>
+                  <View className="mt-7 flex-row gap-[10px]">
+                    <TouchableOpacity
+                      onPress={() => setPendingAction(null)}
+                      className="h-12 flex-1 items-center justify-center rounded-3xl bg-[#E5F6FF]"
+                    >
+                      <Text className="font-ubuntu-semibold text-[14px] text-[#113E55]">
+                        Cancel
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => void confirmProfileAction()}
+                      className="h-12 flex-1 items-center justify-center rounded-3xl bg-[#113E55]"
+                    >
+                      <Text className="font-ubuntu-semibold text-[14px] text-white">
+                        {confirmationCopy.button}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            </Modal>
           </>
         )}
       </SafeAreaView>
