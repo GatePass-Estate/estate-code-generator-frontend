@@ -211,10 +211,16 @@ function IncidentListRow({ row }: { row: IncidentRow }) {
 export default function IncidentResultView({
   isActive = true,
   hasAiReviewTier,
+  inHouseInstalled,
+  thirdPartyInstalled,
 }: {
   isActive?: boolean;
   /** False when neither tier 2 nor tier 3 is installed → show the Upgrade Plan card. */
   hasAiReviewTier?: boolean;
+  /** False hides the In-house summary even if the API still returns `tier1`. */
+  inHouseInstalled?: boolean;
+  /** False hides the Third-party summary even if the API still returns `tier2`. */
+  thirdPartyInstalled?: boolean;
 }) {
   const estate_id = useUserStore((state) => state.estate_id) || '';
   const estateName = useUserStore((state) => state.estate_name) || '';
@@ -280,10 +286,18 @@ export default function IncidentResultView({
     isPlaceholderData: reportsPlaceholder,
   } = useIncidentReports(estate_id, reportsQueryParams);
   const {
-    data: summary,
+    data: rawSummary,
     isFetching: summaryLoading,
     isError: summaryError,
   } = useIncidentSummary(estate_id, fromDate, toDate, fetchSummary);
+  const summary = useMemo(() => {
+    if (!rawSummary) return rawSummary;
+    return {
+      ...rawSummary,
+      tier1: inHouseInstalled === false ? null : rawSummary.tier1,
+      tier2: thirdPartyInstalled === false ? null : rawSummary.tier2,
+    };
+  }, [rawSummary, inHouseInstalled, thirdPartyInstalled]);
   // Warm categories cache so filter chips are instant when the modal opens.
   useIncidentCategories(!!estate_id);
 
@@ -448,7 +462,7 @@ export default function IncidentResultView({
   }, [fetchSummary, summary, summaryLoading, summaryError, hasSummaryPayload]);
 
   useEffect(() => {
-    if (!fetchSummary || !summary) return;
+    if (!fetchSummary || !rawSummary) return;
     const pretty = (payload: unknown) => {
       try {
         return JSON.stringify(payload, null, 2);
@@ -459,27 +473,58 @@ export default function IncidentResultView({
     console.log('\n================== [incident-reports] AI summary details ==================');
     console.log(
       pretty({
-        entitled_tier: summary.entitled_tier,
-        from_cache: summary.from_cache,
-        read_time: summary.read_time,
-        source_label: summary.source_label,
+        entitled_tier: rawSummary.entitled_tier,
+        from_cache: rawSummary.from_cache,
+        read_time: rawSummary.read_time,
+        source_label: rawSummary.source_label,
+        api_returned_tier1: !!rawSummary.tier1,
+        api_returned_tier2: !!rawSummary.tier2,
+        marketplace_in_house_installed: inHouseInstalled ?? null,
+        marketplace_third_party_installed: thirdPartyInstalled ?? null,
       })
     );
     console.log('--- tier1 (In house) ---');
-    console.log(pretty(summary.tier1 ?? null));
+    console.log(pretty(rawSummary.tier1 ?? null));
     console.log('--- tier2 (Third party) ---');
-    console.log(pretty(summary.tier2 ?? null));
+    console.log(pretty(rawSummary.tier2 ?? null));
     console.log('--- resolved for UI ---');
     console.log(
       pretty({
         inhouseExecutiveSummary,
         inhouseTimelineSummary: inhouseInsight.timelineSummary,
         inhouseThemes: inhouseInsight.themes,
-        thirdPartyExecutiveSummary: summary.tier2?.executive_summary ?? null,
+        thirdPartyExecutiveSummary: summary?.tier2?.executive_summary ?? null,
+      })
+    );
+    // Printed last so it stays visible below the large tier payloads.
+    console.log('--- entitlement check (API vs marketplace) ---');
+    console.log(
+      pretty({
+        requested_at: new Date().toISOString(),
+        from_date: fromDate ?? null,
+        to_date: toDate ?? null,
+        entitled_tier: rawSummary.entitled_tier ?? null,
+        from_cache: rawSummary.from_cache ?? null,
+        api_returned_in_house_tier1: !!rawSummary.tier1,
+        api_returned_third_party_tier2: !!rawSummary.tier2,
+        marketplace_tier2_in_house_installed: inHouseInstalled ?? null,
+        marketplace_tier3_third_party_installed: thirdPartyInstalled ?? null,
+        backend_sent_uninstalled_in_house: !!rawSummary.tier1 && inHouseInstalled === false,
+        backend_sent_uninstalled_third_party: !!rawSummary.tier2 && thirdPartyInstalled === false,
       })
     );
     console.log('===========================================================================\n');
-  }, [fetchSummary, summary, inhouseExecutiveSummary, inhouseInsight]);
+  }, [
+    fetchSummary,
+    fromDate,
+    toDate,
+    rawSummary,
+    summary,
+    inHouseInstalled,
+    thirdPartyInstalled,
+    inhouseExecutiveSummary,
+    inhouseInsight,
+  ]);
 
   useEffect(() => {
     if (!overviewError && !reportsError) return;

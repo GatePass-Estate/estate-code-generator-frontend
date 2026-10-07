@@ -262,6 +262,19 @@ export const incidentReportsApi = {
         timeout: 60_000,
       });
       logJson('[incident-reports] summary response', { path, params, data });
+      logJson('[incident-reports] summary in-house (tier1) content returned', {
+        received_at: new Date().toISOString(),
+        params,
+        entitled_tier: data?.entitled_tier ?? null,
+        from_cache: data?.from_cache ?? null,
+        tier1_returned: !!data?.tier1,
+        tier2_returned: !!data?.tier2,
+        tier1_executive_summary: data?.tier1?.executive_summary ?? null,
+        tier1_detailed_insight: data?.tier1?.detailed_insight ?? null,
+        tier1_topics_headline:
+          (data?.tier1?.topics?.human_report as { headline?: string } | undefined)?.headline ??
+          null,
+      });
       return data;
     } catch (error) {
       logJson('[incident-reports] summary error', {
