@@ -256,7 +256,7 @@ export default function MoreMenuScreen({
         }}
         showsVerticalScrollIndicator={false}
       >
-        {isPrimaryAdmin && (
+        {isAdmin && (
           <View className="mb-6">
             <BannerCard
               colors={['#185A75', '#5796AB']}
