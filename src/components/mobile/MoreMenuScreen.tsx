@@ -251,20 +251,20 @@ export default function MoreMenuScreen({
       <ScrollView
         contentContainerStyle={{
           paddingBottom: 40,
-          paddingTop: isAdmin ? 24 : 40,
+          paddingTop: 24,
           flexGrow: 0,
         }}
         showsVerticalScrollIndicator={false}
       >
-        {isPrimaryAdmin && (
-          <View className="mb-6">
-            <BannerCard
-              colors={['#185A75', '#5796AB']}
-              icon={<Ionicons name="diamond-outline" size={24} color="white" />}
-              title={`${planName} Plan`}
-              subtitle="Upgrade your account plan to get exclusive features including Freeze, Scheduling and more"
-              onPress={() => {}}
-            />
+        <View className="mb-6">
+          <BannerCard
+            colors={['#185A75', '#5796AB']}
+            icon={<Ionicons name="diamond-outline" size={24} color="white" />}
+            title={`${planName} Plan`}
+            subtitle="Upgrade your account plan to get exclusive features including Freeze, Scheduling and more"
+            onPress={() => {}}
+          />
+          {isAdmin && (
             <View className="flex-row gap-2">
               <SquareCard
                 colors={['#F05E3E', '#F99573']}
@@ -281,8 +281,8 @@ export default function MoreMenuScreen({
                 onPress={() => router.push('/ai-store')}
               />
             </View>
-          </View>
-        )}
+          )}
+        </View>
         <View className="flex-col gap-10">
           <View>
             <SectionTitle first>Account</SectionTitle>
