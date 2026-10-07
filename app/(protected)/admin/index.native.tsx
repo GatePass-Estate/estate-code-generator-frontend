@@ -82,7 +82,14 @@ export default function AdminUsersMobilePage() {
   const { requestAccessWhenReady: requestBroadcastAccess } = useFeatureGate('admin_broadcast', {
     notice: 'floating',
   });
+  const { requestAccessWhenReady: requestIncidentReportAccess } = useFeatureGate(
+    'incident_report',
+    {
+      notice: 'floating',
+    }
+  );
   const openingBroadcastRef = useRef(false);
+  const openingIncidentReportRef = useRef(false);
 
   // Check the plan before opening the form, so admins on a plan without broadcasts see the
   // Upgrade Plan modal / Contact Admin notice here rather than after filling it in.
@@ -96,6 +103,17 @@ export default function AdminUsersMobilePage() {
       openingBroadcastRef.current = false;
     }
   }, [navigation, requestBroadcastAccess, router]);
+
+  const handleOpenIncidentReport = useCallback(async () => {
+    if (openingIncidentReportRef.current) return;
+    openingIncidentReportRef.current = true;
+    try {
+      const allowed = await requestIncidentReportAccess(() => navigation.isFocused());
+      if (allowed && navigation.isFocused()) router.push('/user/report');
+    } finally {
+      openingIncidentReportRef.current = false;
+    }
+  }, [navigation, requestIncidentReportAccess, router]);
 
   const handleBackToHome = useCallback(() => {
     router.replace('/user');
@@ -356,7 +374,7 @@ export default function AdminUsersMobilePage() {
 
           <TouchableOpacity
             className="h-[50px] w-[50px] items-center justify-center"
-            onPress={() => router.push('/user/report')}
+            onPress={handleOpenIncidentReport}
             onPressIn={() => setActiveTool('incident-report')}
             onPressOut={() => setActiveTool(null)}
             style={{
