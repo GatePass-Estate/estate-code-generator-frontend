@@ -118,8 +118,8 @@ export default function SingleUserMobile() {
     (viewerUserId === userData.user_id || viewerUserId === userData.id || viewerUserId === userId)
   );
   const hideProfileActions =
-    userData.role === 'primary_admin' &&
-    (viewerRole === 'admin' || (viewerRole === 'primary_admin' && isOwnProfile));
+    (isOwnProfile && (viewerRole === 'primary_admin' || viewerRole === 'admin')) ||
+    (userData.role === 'primary_admin' && viewerRole === 'admin');
   const hasVerifiedDocuments =
     userData.status &&
     (userData.role === 'resident' ||
