@@ -7,6 +7,7 @@ import {
 import { getErrorMessage } from '../helpers';
 import {
   DocumentType,
+  DocumentStatus,
   UploadDocumentResponse,
   UserDocumentsMetadataResponse,
 } from '@/src/types/userDocuments';
@@ -54,6 +55,26 @@ export async function getMyDocuments(
     return axiosRes.data;
   } catch (error: any) {
     throw new Error(`${getErrorMessage(error) || 'Could not fetch documents'} `);
+  }
+}
+
+export async function getUserDocuments(
+  userId: string,
+  documentType?: DocumentType,
+  documentStatuses?: DocumentStatus[]
+): Promise<UserDocumentsMetadataResponse> {
+  try {
+    const api = Api();
+    const axiosRes = await api.get(`/users/documents/${encodeURIComponent(userId)}`, {
+      params: {
+        ...(documentType ? { document_type: documentType } : {}),
+        ...(documentStatuses?.length ? { document_status: documentStatuses } : {}),
+      },
+      paramsSerializer: { indexes: null },
+    });
+    return axiosRes.data;
+  } catch (error: any) {
+    throw new Error(`${getErrorMessage(error) || 'Could not fetch user documents'} `);
   }
 }
 

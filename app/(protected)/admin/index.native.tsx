@@ -17,7 +17,7 @@ import { sharedStyles } from '@/src/theme/styles';
 import Back from '@/src/components/mobile/Back';
 import icons from '@/src/constants/icons';
 import { getRoleIcon, isDataEqual } from '@/src/lib/helpers';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { useEstateEntitlements } from '@/src/lib/api/entitlements';
 import { useFeatureGate } from '@/src/hooks/usePlan';
@@ -70,6 +70,7 @@ function TotalUsersCardIcon() {
   );
 }
 export default function AdminUsersMobilePage() {
+  const insets = useSafeAreaInsets();
   const [users, setUsers] = useState<AllUsers>({ total: 0, page: 1, limit: 30, items: [] });
   const [refreshing, setRefreshing] = useState(false);
   const [activeTool, setActiveTool] = useState<string | null>(null);
@@ -124,8 +125,8 @@ export default function AdminUsersMobilePage() {
       if (!isDataEqual(finalData, usersRef.current)) {
         setUsers(finalData);
       }
-    } catch (error) {
-      console.log('Error fetching users:', error);
+    } catch {
+      // Preserve the last successfully loaded totals when refreshing fails.
     } finally {
       if (showLoading) setRefreshing(false);
     }
@@ -190,7 +191,7 @@ export default function AdminUsersMobilePage() {
         }}
       />
 
-      <View className="pt-10">
+      <View style={{ paddingTop: Math.max(0, 88 - insets.top) }}>
         <Back
           type="short-arrow"
           showText={false}

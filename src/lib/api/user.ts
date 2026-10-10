@@ -105,7 +105,9 @@ export const getAllEstateUsers = async (page: number = 1, limit: number = 5): Pr
   try {
     const api = Api();
 
-    const axiosRes = await api.get(`/users/?page=${page}&limit=${limit}`);
+    const axiosRes = await api.get('/users/all', {
+      params: { page, limit, status: 'all' },
+    });
     const data = axiosRes.data;
 
     return data;
@@ -182,6 +184,16 @@ export const deleteUser = async (user_id: string): Promise<any> => {
   try {
     const api = Api();
     const axiosRes = await api.delete(`/users/${user_id}`);
+    return axiosRes.data;
+  } catch (error: any) {
+    throw new Error(`${getErrorMessage(error) || 'An error occured'} `);
+  }
+};
+
+export const deactivateUser = async (user_id: string): Promise<any> => {
+  try {
+    const api = Api();
+    const axiosRes = await api.post(`/users/${user_id}/close`, { close_at: null });
     return axiosRes.data;
   } catch (error: any) {
     throw new Error(`${getErrorMessage(error) || 'An error occured'} `);

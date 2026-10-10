@@ -7,7 +7,7 @@ import {
   Text,
   TouchableOpacity,
 } from 'react-native';
-import Icon from 'react-native-vector-icons/Ionicons';
+import { Ionicons as Icon } from '@expo/vector-icons';
 import icons from '@/src/constants/icons';
 import { cn } from '@/src/lib/cn';
 
@@ -16,6 +16,7 @@ const Back = ({
   showText = true,
   showBorder = false,
   borderSize = 40,
+  borderRadius,
   leftOffset = -5,
   iconStyle,
   onPress,
@@ -24,6 +25,7 @@ const Back = ({
   showText?: boolean;
   showBorder?: boolean;
   borderSize?: number;
+  borderRadius?: number;
   leftOffset?: number;
   iconStyle?: StyleProp<ImageStyle>;
   onPress?: () => void;
@@ -38,7 +40,7 @@ const Back = ({
         { gap: 8, marginLeft: leftOffset },
         showBorder && {
           backgroundColor: '#EFF1F1',
-          borderRadius: borderSize / 2,
+          borderRadius: borderRadius ?? borderSize / 2,
           height: borderSize,
           justifyContent: 'center',
           width: borderSize,

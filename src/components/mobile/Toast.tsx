@@ -1,6 +1,6 @@
 import { Text, View, Animated, useWindowDimensions, TouchableOpacity } from 'react-native';
 import { useEffect, useRef } from 'react';
-import Icon from 'react-native-vector-icons/Ionicons';
+import { Ionicons as Icon } from '@expo/vector-icons';
 
 export type ToastType = 'success' | 'error' | 'info';
 
