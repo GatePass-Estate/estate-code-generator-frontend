@@ -254,7 +254,6 @@ export default function IncidentReportPreviewScreen() {
       return;
     }
 
-  const handleSubscribe = async (tier: MarketplaceTier) => {
     if (!featureDetail?.id || !tier.ai_feature_id) {
       Alert.alert(
         'Unable to activate',
