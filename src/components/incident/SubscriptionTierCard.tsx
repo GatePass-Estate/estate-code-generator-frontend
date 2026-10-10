@@ -29,10 +29,13 @@ type SubscriptionTierCardProps = {
   onActivate: () => void;
   onCancelSubscription?: () => void;
   onUninstall?: () => void;
+  onInstall?: () => void;
   isSubscribing?: boolean;
-  /** Spinner on the Uninstall button while this tier is being removed. */
+  isInstalling?: boolean;
   isUninstalling?: boolean;
+  isCanceling?: boolean;
   isInstalled?: boolean;
+  isSubscribed?: boolean;
   /** Benefit rows from the API (`tier.benefits` / `tier_benefits`). */
   benefits?: string[];
   subtitleUppercase?: boolean;
@@ -47,9 +50,13 @@ export default function SubscriptionTierCard({
   onActivate,
   onCancelSubscription,
   onUninstall,
+  onInstall,
   isSubscribing = false,
+  isInstalling = false,
   isUninstalling = false,
+  isCanceling = false,
   isInstalled = false,
+  isSubscribed = false,
   benefits,
   subtitleUppercase = false,
 }: SubscriptionTierCardProps) {
@@ -84,54 +91,73 @@ export default function SubscriptionTierCard({
     }
   };
 
-  const purchasedActions = (
-    <View className="gap-4">
-      <Pressable
-        disabled={isSubscribing || isUninstalling || !expanded}
-        onPress={onCancelSubscription}
-        className="h-[48px] w-full items-center justify-center rounded-full bg-[#113E55]"
-      >
-        {isSubscribing ? (
-          <ActivityIndicator size="small" color="white" />
-        ) : (
-          <Text allowFontScaling={false} className="text-[14px] font-ubuntu-semibold text-white">
-            Cancel Subscription
-          </Text>
-        )}
-      </Pressable>
-      <Pressable
-        disabled={isSubscribing || isUninstalling || !expanded}
-        onPress={onUninstall}
-        className="h-[48px] w-full items-center justify-center rounded-full bg-[#E5F6FF]"
-      >
-        {isUninstalling ? (
-          <ActivityIndicator size="small" color="#113E55" />
-        ) : (
-          <Text
-            allowFontScaling={false}
-            className="text-[14px] font-ubuntu-semibold text-[#113E55]"
-          >
-            Uninstall
-          </Text>
-        )}
-      </Pressable>
-    </View>
-  );
+  const showActivate = !isSubscribed;
+  const showCancel = isSubscribed;
+  const showInstall = isSubscribed && !isInstalled;
+  const showUninstall = isInstalled;
 
-  const activateButton = (
-    <Pressable
-      disabled={isSubscribing || !expanded}
-      onPress={onActivate}
-      className="h-[48px] w-full items-center justify-center rounded-full bg-[#113E55]"
-    >
-      {isSubscribing ? (
-        <ActivityIndicator size="small" color="white" />
-      ) : (
-        <Text allowFontScaling={false} className="text-[14px] font-ubuntu-semibold text-white">
-          Activate
-        </Text>
+  const buttons = (
+    <View className="gap-4">
+      {showActivate && (
+        <Pressable
+          disabled={isSubscribing || !expanded}
+          onPress={onActivate}
+          className="h-[48px] w-full items-center justify-center rounded-full bg-[#113E55]"
+        >
+          {isSubscribing ? (
+            <ActivityIndicator size="small" color="white" />
+          ) : (
+            <Text allowFontScaling={false} className="text-[14px] font-ubuntu-semibold text-white">
+              Activate
+            </Text>
+          )}
+        </Pressable>
       )}
-    </Pressable>
+
+      {showCancel && (
+        <Pressable
+          disabled={isCanceling || !expanded}
+          onPress={onCancelSubscription}
+          className="h-[48px] w-full items-center justify-center rounded-full bg-[#113E55]"
+        >
+          {isCanceling ? (
+            <ActivityIndicator size="small" color="white" />
+          ) : (
+            <Text allowFontScaling={false} className="text-[14px] font-ubuntu-semibold text-white">
+              Cancel Subscription
+            </Text>
+          )}
+        </Pressable>
+      )}
+
+      {showInstall && (
+        <Pressable
+          disabled={isInstalling || !expanded}
+          onPress={onInstall}
+          className="h-[48px] w-full items-center justify-center rounded-full bg-[#E5F6FF]"
+        >
+          {isInstalling ? (
+            <ActivityIndicator size="small" color="#113E55" />
+          ) : (
+            <Text className="text-[14px] font-ubuntu-semibold text-[#113E55]">Install</Text>
+          )}
+        </Pressable>
+      )}
+
+      {showUninstall && (
+        <Pressable
+          disabled={isUninstalling || !expanded}
+          onPress={onUninstall}
+          className="h-[48px] w-full items-center justify-center rounded-full bg-[#E5F6FF]"
+        >
+          {isUninstalling ? (
+            <ActivityIndicator size="small" color="#113E55" />
+          ) : (
+            <Text className="text-[14px] font-ubuntu-semibold text-[#113E55]">Uninstall</Text>
+          )}
+        </Pressable>
+      )}
+    </View>
   );
 
   return (
@@ -205,7 +231,7 @@ export default function SubscriptionTierCard({
             </Animated.View>
           </Pressable>
         ) : (
-          activateButton
+          buttons
         )}
       </View>
 
@@ -236,7 +262,7 @@ export default function SubscriptionTierCard({
             ))}
 
             <View className={benefitRows.length > 0 ? 'mt-10 px-3' : ''}>
-              {isInstalled ? purchasedActions : activateButton}
+              {buttons}
             </View>
           </View>
         </Animated.View>

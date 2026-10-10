@@ -53,6 +53,8 @@ export default function IncidentReportPreviewScreen() {
   const [featureDetail, setFeatureDetail] = useState<MarketplaceDetailResponse | null>(null);
   const [, setIsSubscribing] = useState(false);
   const [subscribingTierKey, setSubscribingTierKey] = useState<string | null>(null);
+  const [isInstalling, setIsInstalling] = useState(false);
+  const [installingTierKey, setInstallingTierKey] = useState<string | null>(null);
   const [uninstallingTierKey, setUninstallingTierKey] = useState<string | null>(null);
   const [isRatingModalVisible, setIsRatingModalVisible] = useState(false);
   const [dataInsightVisible, setDataInsightVisible] = useState(false);
@@ -218,6 +220,30 @@ export default function IncidentReportPreviewScreen() {
     } finally {
       setIsSubscribing(false);
       setSubscribingTierKey(null);
+    }
+  };
+
+  const handleInstall = async (tier: MarketplaceTier) => {
+    if (!estateId || !tier.feature_key) {
+      Alert.alert(
+        'Unable to continue',
+        'Missing estate or feature details. Pull to refresh and try again.'
+      );
+      return;
+    }
+    setInstallingTierKey(tier.tier);
+    setIsInstalling(true);
+    try {
+      // Assuming a similar API for install in aiMarketplace
+      const { installAiFeature } = await import('@/src/lib/api/aiMarketplace');
+      await installAiFeature(estateId, tier.feature_key);
+      Alert.alert('Done', 'Feature installed successfully.');
+      if (featureDetail?.id) await loadFeature(featureDetail.id);
+    } catch (err: any) {
+      Alert.alert('Install', err?.message || 'Failed to install feature.');
+    } finally {
+      setIsInstalling(false);
+      setInstallingTierKey(null);
     }
   };
 
@@ -515,6 +541,9 @@ export default function IncidentReportPreviewScreen() {
                           )?.benefits ?? []);
                       const description = tier.description?.trim() || '';
                       const subtitle = formatTierSubtitle(tier);
+                      const isSubscribed = tier.status === 'active' || tier.status === 'purchased' || tier.status === 'subscribed' || tier.status === 'installed' || !!tier.purchased;
+                      const isInstalled = !!tier.is_installed || tier.status === 'installed';
+
                       return (
                         <SubscriptionTierCard
                           key={tier.ai_feature_id || tierKey}
@@ -530,9 +559,13 @@ export default function IncidentReportPreviewScreen() {
                           onActivate={() => void handleSubscribe(tier)}
                           onCancelSubscription={() => handleCancelSubscription(tier)}
                           onUninstall={() => handleUninstall(tier)}
+                          onInstall={() => handleInstall(tier)}
                           isSubscribing={subscribingTierKey === tierKey}
+                          isCanceling={subscribingTierKey === tierKey}
                           isUninstalling={uninstallingTierKey === tierKey}
+                          isInstalling={installingTierKey === tierKey}
                           isInstalled={!!tier.is_installed || tier.status === 'installed'}
+                          isSubscribed={isSubscribed}
                         />
                       );
                     })
