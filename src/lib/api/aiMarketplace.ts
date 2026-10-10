@@ -223,8 +223,7 @@ export async function cancelMarketplaceSubscription(estateId: string): Promise<v
  * Helper to build display picture URL from GCS object path.
  */
 export function getFeaturePictureUrl(path: string): string {
-  const baseUrl =
-    process.env.EXPO_PUBLIC_AI_SERVICE_API_URL || 'https://staging-api.gatepassng.com/ai';
+  const baseUrl = process.env.EXPO_PUBLIC_AI_SERVICE_API_URL || '';
   return `${baseUrl}/api/v1/ai-marketplace/picture?path=${encodeURIComponent(path)}`;
 }
 
@@ -239,5 +238,42 @@ export async function uninstallAiFeature(estateId: string, featureKey: string): 
     });
   } catch (error: any) {
     throw new Error(getErrorMessage(error) || 'Failed to uninstall feature');
+  }
+}
+
+export async function installAiFeature(estateId: string, featureKey: string): Promise<void> {
+  try {
+    const api = Api('revenue');
+    await api.post(`/ai-features/estate/${encodeURIComponent(estateId)}/install`, {
+      feature_key: featureKey,
+    });
+  } catch (error: any) {
+    throw new Error(getErrorMessage(error) || 'Failed to install feature');
+  }
+}
+
+export async function initializeCheckout(payload: {
+  estate_id: string;
+  customer_email: string;
+  checkout_kind: string;
+  ai_feature_keys?: string[];
+  ai_feature_ids?: string[];
+  period_months?: number;
+}): Promise<{
+  authorization_url: string;
+  checkout_session_id: string;
+  paystack_reference: string;
+  checkout_token: string;
+}> {
+  try {
+    const api = Api('revenue');
+    const response = await api.post('/checkout/initialize', payload, {
+      headers: {
+        'Idempotency-Key': `${payload.estate_id}-${Date.now()}`,
+      },
+    });
+    return response.data;
+  } catch (error: any) {
+    throw new Error(getErrorMessage(error) || 'Failed to initialize checkout');
   }
 }
