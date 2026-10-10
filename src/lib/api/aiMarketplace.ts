@@ -50,7 +50,10 @@ export function formatTierLabel(tier: string): string {
 }
 
 export function formatTierSubtitle(tier: MarketplaceTier): string {
-  if (tier.is_installed || tier.status === 'installed') return tier.name?.trim() || 'PURCHASED';
+  /** Installed, or paid but uninstalled (`subscribed`) — owned, so show the tier name, not the price. */
+  if (tier.is_installed || tier.status === 'installed' || tier.status === 'subscribed') {
+    return tier.name?.trim() || 'Purchased';
+  }
   if (tier.is_free) return 'FREE';
   if (tier.price != null) {
     const prefix =
@@ -163,11 +166,20 @@ export async function subscribeMarketplaceFeature(
   id: string,
   payload: SubscribeRequest
 ): Promise<SubscribeResponse> {
+  const path = `/ai-marketplace/${encodeURIComponent(id)}/subscribe`;
   try {
     const api = Api('ai');
-    const response = await api.post(`/ai-marketplace/${encodeURIComponent(id)}/subscribe`, payload);
+    const response = await api.post(path, payload);
+    logJson('[ai-marketplace] subscribe response', { path, payload, data: response.data });
     return response.data;
   } catch (error: any) {
+    logJson('[ai-marketplace] subscribe error', {
+      path,
+      payload,
+      status: error?.response?.status,
+      data: error?.response?.data,
+      message: getErrorMessage(error) || String(error),
+    });
     throw new Error(getErrorMessage(error) || 'Failed to subscribe to feature');
   }
 }
@@ -185,6 +197,24 @@ export async function rateMarketplaceFeature(
     return response.data;
   } catch (error: any) {
     throw new Error(getErrorMessage(error) || 'Failed to submit rating');
+  }
+}
+
+/**
+ * Re-enable an AI feature grant the estate already owns (e.g. after Uninstall).
+ * Revenue: POST /ai-features/estate/{estate_id}/install — only creates a grant for free features.
+ */
+export async function installMarketplaceFeature(
+  estateId: string,
+  featureKey: string
+): Promise<void> {
+  try {
+    const api = Api('revenue');
+    await api.post(`/ai-features/estate/${encodeURIComponent(estateId)}/install`, {
+      feature_key: featureKey,
+    });
+  } catch (error: any) {
+    throw new Error(getErrorMessage(error) || 'Failed to install feature');
   }
 }
 
