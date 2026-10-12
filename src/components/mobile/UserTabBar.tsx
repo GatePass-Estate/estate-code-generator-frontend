@@ -1,6 +1,10 @@
 import { Platform, Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
-import { Tabs } from 'expo-router';
+import { useRef } from 'react';
+import { Tabs, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFeatureGate } from '@/src/hooks/usePlan';
+import { useUserStore } from '@/src/lib/stores/userStore';
+import { reportReturnToForTab } from '@/src/lib/incidentReportNavigation';
 import { APP_TAB_BAR_COLOR, TAB_BAR_BASE_HEIGHT, TAB_BAR_FAB_OVERHANG } from '@/src/theme/styles';
 
 const FAB_WIDTH = 89;
@@ -20,6 +24,12 @@ type UserTabBarProps = Parameters<NonNullable<React.ComponentProps<typeof Tabs>[
 
 export default function UserTabBar({ state, descriptors, navigation }: UserTabBarProps) {
   const insets = useSafeAreaInsets();
+  const role = useUserStore((user) => user.role);
+  const { requestAccessWhenReady: requestIncidentReportAccess } = useFeatureGate(
+    'incident_report',
+    { notice: 'floating' }
+  );
+  const openingIncidentReportRef = useRef(false);
   const focusedOptions = descriptors[state.routes[state.index].key].options;
 
   // Android: float above the system nav (3-button / gesture inset).
@@ -58,6 +68,26 @@ export default function UserTabBar({ state, descriptors, navigation }: UserTabBa
               target: route.key,
               canPreventDefault: true,
             });
+
+            if (route.name === 'report' && !event.defaultPrevented) {
+              if (openingIncidentReportRef.current) return;
+              openingIncidentReportRef.current = true;
+              const returnTo = reportReturnToForTab(state.routes[state.index].name);
+              void (async () => {
+                try {
+                  const allowed = await requestIncidentReportAccess(() => navigation.isFocused());
+                  if (!allowed || !navigation.isFocused()) return;
+                  if (role === 'admin') {
+                    router.push({ pathname: '/user/report/category', params: { returnTo } });
+                  } else {
+                    router.push({ pathname: '/user/report', params: { returnTo } });
+                  }
+                } finally {
+                  openingIncidentReportRef.current = false;
+                }
+              })();
+              return;
+            }
 
             if (!focused && !event.defaultPrevented) {
               navigation.navigate(route.name, route.params);

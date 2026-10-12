@@ -12,6 +12,7 @@ import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-rou
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Back from '@/src/components/mobile/Back';
+import ActionConfirmModal from '@/src/components/mobile/ActionConfirmModal';
 import { incidentManagementApi, type IncidentReport } from '@/src/lib/api/incidentManagement';
 
 function displayDate(value: string): string {
@@ -35,9 +36,9 @@ function categoryLabel(report: IncidentReport): string {
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
-function SenderRow({ label, value, top }: { label: string; value?: string | null; top: number }) {
+function SenderRow({ label, value }: { label: string; value?: string | null }) {
   return (
-    <View className="absolute left-[21px] right-[21px]" style={{ top }}>
+    <View>
       <Text className="text-[14px] leading-[20px] text-[#878686] font-inter-medium">{label} :</Text>
       <Text className="text-[14px] leading-[16px] text-[#0A1F29] font-inter-light">
         {value?.trim() || 'Not provided'}
@@ -47,13 +48,14 @@ function SenderRow({ label, value, top }: { label: string; value?: string | null
 }
 
 export default function IncidentReportDetailScreen() {
-  const { id } = useLocalSearchParams<{ id?: string }>();
+  const { id, returnTo } = useLocalSearchParams<{ id?: string; returnTo?: string }>();
   const router = useRouter();
   const [report, setReport] = useState<IncidentReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [senderVisible, setSenderVisible] = useState(false);
+  const [confirmMarkRead, setConfirmMarkRead] = useState(false);
 
   const load = useCallback(async () => {
     if (!id) {
@@ -83,8 +85,10 @@ export default function IncidentReportDetailScreen() {
     setSaving(true);
     try {
       await incidentManagementApi.markRead(id);
-      router.back();
+      setConfirmMarkRead(false);
+      router.replace({ pathname: '/user/report', params: { returnTo: returnTo || '/admin' } });
     } catch {
+      setConfirmMarkRead(false);
       setError('Unable to mark this report as read. Please try again.');
     } finally {
       setSaving(false);
@@ -99,7 +103,19 @@ export default function IncidentReportDetailScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <View className="px-5 pt-[29px]">
         <View className="relative h-[30px] flex-row items-center justify-between">
-          <Back type="short-arrow" showText={false} showBorder borderSize={30} leftOffset={-3} />
+          <Back
+            type="short-arrow"
+            showText={false}
+            showBorder
+            borderSize={30}
+            leftOffset={-3}
+            onPress={() =>
+              router.replace({
+                pathname: '/user/report',
+                params: { returnTo: returnTo || '/admin' },
+              })
+            }
+          />
           <TouchableOpacity
             accessibilityRole="button"
             onPress={() => setSenderVisible(true)}
@@ -159,9 +175,7 @@ export default function IncidentReportDetailScreen() {
         <View className="h-[282px] items-center bg-[#F6F7F7] px-[48.5px] pt-[94px]">
           <TouchableOpacity
             accessibilityRole="button"
-            onPress={() => {
-              void markRead();
-            }}
+            onPress={() => setConfirmMarkRead(true)}
             disabled={saving}
             className="h-[48px] w-full items-center justify-center rounded-[24px] border border-[#0A1F29] bg-[#113E55]"
           >
@@ -171,6 +185,16 @@ export default function IncidentReportDetailScreen() {
           </TouchableOpacity>
         </View>
       ) : null}
+
+      <ActionConfirmModal
+        visible={confirmMarkRead}
+        title="Mark Report as Read?"
+        message="This report will move from New Reports to Read Reports."
+        confirmLabel="Mark as Read"
+        busy={saving}
+        onConfirm={() => void markRead()}
+        onCancel={() => setConfirmMarkRead(false)}
+      />
 
       <Modal
         visible={senderVisible}
@@ -186,10 +210,16 @@ export default function IncidentReportDetailScreen() {
             <Text className="absolute left-0 right-0 top-[56px] text-center text-[21.88px] leading-[26px] text-[#878686] font-ubuntu-semibold">
               Report From
             </Text>
-            <SenderRow label="Name" value={senderName} top={105} />
-            <SenderRow label="Address" value={sender?.home_address} top={158} />
-            <SenderRow label="Email Address" value={sender?.email} top={230} />
-            <SenderRow label="Phone Number" value={sender?.phone_number} top={283} />
+            <ScrollView
+              className="absolute left-[21px] right-[21px] top-[105px] bottom-[25px]"
+              contentContainerStyle={{ gap: 18, paddingBottom: 4 }}
+              showsVerticalScrollIndicator={false}
+            >
+              <SenderRow label="Name" value={senderName} />
+              <SenderRow label="Address" value={sender?.home_address} />
+              <SenderRow label="Email Address" value={sender?.email} />
+              <SenderRow label="Phone Number" value={sender?.phone_number} />
+            </ScrollView>
           </Pressable>
           <TouchableOpacity
             accessibilityRole="button"
