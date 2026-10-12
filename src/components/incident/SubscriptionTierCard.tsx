@@ -34,6 +34,13 @@ type SubscriptionTierCardProps = {
   isInstalling?: boolean;
   isUninstalling?: boolean;
   isCanceling?: boolean;
+  /** Same action already running on another tier. */
+  subscribeDisabled?: boolean;
+  cancelDisabled?: boolean;
+  installDisabled?: boolean;
+  uninstallDisabled?: boolean;
+  /** Cancelled on this device; backend may still report the tier as subscribed. */
+  isCancelledLocally?: boolean;
   isInstalled?: boolean;
   isSubscribed?: boolean;
   /** Benefit rows from the API (`tier.benefits` / `tier_benefits`). */
@@ -55,6 +62,11 @@ export default function SubscriptionTierCard({
   isInstalling = false,
   isUninstalling = false,
   isCanceling = false,
+  subscribeDisabled = false,
+  cancelDisabled = false,
+  installDisabled = false,
+  uninstallDisabled = false,
+  isCancelledLocally = false,
   isInstalled = false,
   isSubscribed = false,
   benefits,
@@ -100,7 +112,7 @@ export default function SubscriptionTierCard({
     <View className="gap-4">
       {showActivate && (
         <Pressable
-          disabled={isSubscribing || !expanded}
+          disabled={isSubscribing || subscribeDisabled || !expanded}
           onPress={onActivate}
           className="h-[48px] w-full items-center justify-center rounded-full bg-[#113E55]"
         >
@@ -116,15 +128,17 @@ export default function SubscriptionTierCard({
 
       {showCancel && (
         <Pressable
-          disabled={isCanceling || !expanded}
+          disabled={isCanceling || cancelDisabled || isCancelledLocally || !expanded}
           onPress={onCancelSubscription}
-          className="h-[48px] w-full items-center justify-center rounded-full bg-[#113E55]"
+          className={`h-[48px] w-full items-center justify-center rounded-full bg-[#113E55] ${
+            isCancelledLocally ? 'opacity-50' : ''
+          }`}
         >
           {isCanceling ? (
             <ActivityIndicator size="small" color="white" />
           ) : (
             <Text allowFontScaling={false} className="text-[14px] font-ubuntu-semibold text-white">
-              Cancel Subscription
+              {isCancelledLocally ? 'Cancelled' : 'Cancel Subscription'}
             </Text>
           )}
         </Pressable>
@@ -132,28 +146,38 @@ export default function SubscriptionTierCard({
 
       {showInstall && (
         <Pressable
-          disabled={isInstalling || !expanded}
+          disabled={isInstalling || installDisabled || !expanded}
           onPress={onInstall}
           className="h-[48px] w-full items-center justify-center rounded-full bg-[#E5F6FF]"
         >
           {isInstalling ? (
             <ActivityIndicator size="small" color="#113E55" />
           ) : (
-            <Text className="text-[14px] font-ubuntu-semibold text-[#113E55]">Install</Text>
+            <Text
+              allowFontScaling={false}
+              className="text-[14px] font-ubuntu-semibold text-[#113E55]"
+            >
+              Install
+            </Text>
           )}
         </Pressable>
       )}
 
       {showUninstall && (
         <Pressable
-          disabled={isUninstalling || !expanded}
+          disabled={isUninstalling || uninstallDisabled || !expanded}
           onPress={onUninstall}
           className="h-[48px] w-full items-center justify-center rounded-full bg-[#E5F6FF]"
         >
           {isUninstalling ? (
             <ActivityIndicator size="small" color="#113E55" />
           ) : (
-            <Text className="text-[14px] font-ubuntu-semibold text-[#113E55]">Uninstall</Text>
+            <Text
+              allowFontScaling={false}
+              className="text-[14px] font-ubuntu-semibold text-[#113E55]"
+            >
+              Uninstall
+            </Text>
           )}
         </Pressable>
       )}
@@ -261,9 +285,7 @@ export default function SubscriptionTierCard({
               </View>
             ))}
 
-            <View className={benefitRows.length > 0 ? 'mt-10 px-3' : ''}>
-              {buttons}
-            </View>
+            <View className={benefitRows.length > 0 ? 'mt-10 px-3' : ''}>{buttons}</View>
           </View>
         </Animated.View>
       ) : null}
