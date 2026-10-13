@@ -238,6 +238,10 @@ export default function AnomalyDetectionPreviewScreen() {
         if (tierPayload.feature_key) {
           await installAiFeature(estateId, tierPayload.feature_key);
         } else {
+          if (!tierPayload.ai_feature_id) {
+            Alert.alert('Error', 'Missing feature identifier.');
+            return;
+          }
           await subscribeMarketplaceFeature(featureDetail.id, {
             ai_feature_id: tierPayload.ai_feature_id,
             period_months: 1,
@@ -263,11 +267,18 @@ export default function AnomalyDetectionPreviewScreen() {
             // Also remove from justCancelledTiers if they activate again
             setJustCancelledTiers((prev) => {
               const next = { ...prev, [tierPayload.tier]: false };
-              if (estateId) AsyncStorage.setItem(`cancelledTiers-${estateId}`, JSON.stringify(next)).catch(console.error);
+              if (estateId)
+                AsyncStorage.setItem(`cancelledTiers-${estateId}`, JSON.stringify(next)).catch(
+                  console.error
+                );
               return next;
             });
           }
         } else {
+          if (!tierPayload.ai_feature_id) {
+            Alert.alert('Error', 'Missing feature identifier.');
+            return;
+          }
           await subscribeMarketplaceFeature(featureDetail.id, {
             ai_feature_id: tierPayload.ai_feature_id,
             period_months: 1,
@@ -299,7 +310,10 @@ export default function AnomalyDetectionPreviewScreen() {
           Alert.alert('Success', 'Subscription cancelled successfully.');
           setJustCancelledTiers((prev) => {
             const next = { ...prev, [tierPayload.tier]: true };
-            if (estateId) AsyncStorage.setItem(`cancelledTiers-${estateId}`, JSON.stringify(next)).catch(console.error);
+            if (estateId)
+              AsyncStorage.setItem(`cancelledTiers-${estateId}`, JSON.stringify(next)).catch(
+                console.error
+              );
             return next;
           });
           loadFeature(featureDetail?.id);
@@ -312,7 +326,10 @@ export default function AnomalyDetectionPreviewScreen() {
           ) {
             setJustCancelledTiers((prev) => {
               const next = { ...prev, [tierPayload.tier]: true };
-              if (estateId) AsyncStorage.setItem(`cancelledTiers-${estateId}`, JSON.stringify(next)).catch(console.error);
+              if (estateId)
+                AsyncStorage.setItem(`cancelledTiers-${estateId}`, JSON.stringify(next)).catch(
+                  console.error
+                );
               return next;
             });
             Alert.alert('Already Cancelled', 'Your subscription has already been cancelled.');
@@ -396,7 +413,6 @@ export default function AnomalyDetectionPreviewScreen() {
     }
   };
 
-
   const sortedTiers = featureDetail?.tiers ? sortMarketplaceTiers(featureDetail.tiers) : [];
   const tierOneApi = sortedTiers[0];
   const tierTwoApi = sortedTiers[1];
@@ -404,7 +420,12 @@ export default function AnomalyDetectionPreviewScreen() {
 
   const renderTierButtons = (tierApi: any, fallbackTier: string) => {
     const api = tierApi || { tier: fallbackTier };
-    const isSubscribed = api.status === 'active' || api.status === 'purchased' || api.status === 'subscribed' || api.status === 'installed' || api.purchased;
+    const isSubscribed =
+      api.status === 'active' ||
+      api.status === 'purchased' ||
+      api.status === 'subscribed' ||
+      api.status === 'installed' ||
+      api.purchased;
     const isCancelledLocally = !!justCancelledTiers[api.tier];
     const isInstalled = !!api.is_installed && !justPurchasedTiers[api.tier];
 
@@ -412,7 +433,7 @@ export default function AnomalyDetectionPreviewScreen() {
     const showCancel = isSubscribed;
     const showInstall = isSubscribed && !isInstalled;
     const showUninstall = isInstalled;
-    
+
     return (
       <View className="gap-3 mt-4">
         {showActivate && (
@@ -430,7 +451,7 @@ export default function AnomalyDetectionPreviewScreen() {
             )}
           </Pressable>
         )}
-        
+
         {showCancel && (
           <Pressable
             disabled={isCanceling || isCancelledLocally}
@@ -457,7 +478,10 @@ export default function AnomalyDetectionPreviewScreen() {
             {installingTierKey === api.tier ? (
               <ActivityIndicator size="small" color="#113E55" />
             ) : (
-              <Text allowFontScaling={false} className="text-[14px] font-inter-medium text-[#113E55]">
+              <Text
+                allowFontScaling={false}
+                className="text-[14px] font-inter-medium text-[#113E55]"
+              >
                 Install
               </Text>
             )}
@@ -473,7 +497,10 @@ export default function AnomalyDetectionPreviewScreen() {
             {uninstallingTierKey === api.tier ? (
               <ActivityIndicator size="small" color="#113E55" />
             ) : (
-              <Text allowFontScaling={false} className="text-[14px] font-inter-medium text-[#113E55]">
+              <Text
+                allowFontScaling={false}
+                className="text-[14px] font-inter-medium text-[#113E55]"
+              >
                 Uninstall
               </Text>
             )}
@@ -1109,11 +1136,25 @@ export default function AnomalyDetectionPreviewScreen() {
         onRequestClose={() => setCheckoutUrl(null)}
       >
         <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }} edges={['top']}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottomWidth: 1, borderBottomColor: '#EFF1F3' }}>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: 16,
+              borderBottomWidth: 1,
+              borderBottomColor: '#EFF1F3',
+            }}
+          >
             <Pressable onPress={() => setCheckoutUrl(null)} style={{ padding: 8, marginLeft: -8 }}>
               <MaterialIcons name="close" size={24} color="#113E55" />
             </Pressable>
-            <Text allowFontScaling={false} style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 16, color: '#113E55' }}>Checkout</Text>
+            <Text
+              allowFontScaling={false}
+              style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 16, color: '#113E55' }}
+            >
+              Checkout
+            </Text>
             <View style={{ width: 40 }} />
           </View>
           {checkoutUrl && (
@@ -1138,30 +1179,106 @@ export default function AnomalyDetectionPreviewScreen() {
         </SafeAreaView>
       </Modal>
 
-      <Modal visible={confirmModalVisible} transparent animationType="fade" onRequestClose={() => setConfirmModalVisible(false)}>
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
-          <View style={{ width: '100%', backgroundColor: '#F2F4F4', borderRadius: 28, padding: 24, paddingTop: 28, shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 15, elevation: 10 }}>
-            <Text allowFontScaling={false} style={{ fontSize: 18, fontFamily: 'Inter_18pt-SemiBold', color: '#000', marginBottom: 10 }}>
+      <Modal
+        visible={confirmModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setConfirmModalVisible(false)}
+      >
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            justifyContent: 'center',
+            alignItems: 'center',
+            padding: 24,
+          }}
+        >
+          <View
+            style={{
+              width: '100%',
+              backgroundColor: '#F2F4F4',
+              borderRadius: 28,
+              padding: 24,
+              paddingTop: 28,
+              shadowColor: '#000',
+              shadowOpacity: 0.15,
+              shadowRadius: 15,
+              elevation: 10,
+            }}
+          >
+            <Text
+              allowFontScaling={false}
+              style={{
+                fontSize: 18,
+                fontFamily: 'Inter_18pt-SemiBold',
+                color: '#000',
+                marginBottom: 10,
+              }}
+            >
               {confirmModalConfig.title}
             </Text>
-            <Text allowFontScaling={false} style={{ fontSize: 15, fontFamily: 'Inter_18pt-Regular', color: '#666', marginBottom: 28, lineHeight: 22 }}>
+            <Text
+              allowFontScaling={false}
+              style={{
+                fontSize: 15,
+                fontFamily: 'Inter_18pt-Regular',
+                color: '#666',
+                marginBottom: 28,
+                lineHeight: 22,
+              }}
+            >
               {confirmModalConfig.message}
             </Text>
-            
+
             <View style={{ flexDirection: 'row', gap: 14 }}>
               <Pressable
                 onPress={() => setConfirmModalVisible(false)}
-                style={{ flex: 1, backgroundColor: '#EBEBEB', height: 50, borderRadius: 25, justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 3 }}
+                style={{
+                  flex: 1,
+                  backgroundColor: '#EBEBEB',
+                  height: 50,
+                  borderRadius: 25,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 3 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 6,
+                  elevation: 3,
+                }}
               >
-                <Text allowFontScaling={false} style={{ fontSize: 16, fontFamily: 'Inter_18pt-Medium', color: '#000' }}>
+                <Text
+                  allowFontScaling={false}
+                  style={{ fontSize: 16, fontFamily: 'Inter_18pt-Medium', color: '#000' }}
+                >
                   {confirmModalConfig.cancelText}
                 </Text>
               </Pressable>
               <Pressable
                 onPress={confirmModalConfig.onConfirm}
-                style={{ flex: 1, backgroundColor: '#EBEBEB', height: 50, borderRadius: 25, justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 3 }}
+                style={{
+                  flex: 1,
+                  backgroundColor: '#EBEBEB',
+                  height: 50,
+                  borderRadius: 25,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 3 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 6,
+                  elevation: 3,
+                }}
               >
-                <Text allowFontScaling={false} style={{ fontSize: 16, fontFamily: 'Inter_18pt-Medium', color: confirmModalConfig.confirmStyle === 'destructive' ? '#FF3B30' : '#000' }}>
+                <Text
+                  allowFontScaling={false}
+                  style={{
+                    fontSize: 16,
+                    fontFamily: 'Inter_18pt-Medium',
+                    color: confirmModalConfig.confirmStyle === 'destructive' ? '#FF3B30' : '#000',
+                  }}
+                >
                   {confirmModalConfig.confirmText}
                 </Text>
               </Pressable>

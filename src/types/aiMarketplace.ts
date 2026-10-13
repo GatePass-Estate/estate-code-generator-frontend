@@ -61,6 +61,7 @@ export interface MarketplaceTier {
   status: string;
   is_installed?: boolean;
   benefits?: string[];
+  purchased?: boolean;
 }
 
 export interface MarketplaceDetailResponse {

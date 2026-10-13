@@ -541,7 +541,12 @@ export default function IncidentReportPreviewScreen() {
                           )?.benefits ?? []);
                       const description = tier.description?.trim() || '';
                       const subtitle = formatTierSubtitle(tier);
-                      const isSubscribed = tier.status === 'active' || tier.status === 'purchased' || tier.status === 'subscribed' || tier.status === 'installed' || !!tier.purchased;
+                      const isSubscribed =
+                        tier.status === 'active' ||
+                        tier.status === 'purchased' ||
+                        tier.status === 'subscribed' ||
+                        tier.status === 'installed' ||
+                        !!tier.purchased;
                       const isInstalled = !!tier.is_installed || tier.status === 'installed';
 
                       return (

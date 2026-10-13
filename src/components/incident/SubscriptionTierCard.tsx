@@ -261,9 +261,7 @@ export default function SubscriptionTierCard({
               </View>
             ))}
 
-            <View className={benefitRows.length > 0 ? 'mt-10 px-3' : ''}>
-              {buttons}
-            </View>
+            <View className={benefitRows.length > 0 ? 'mt-10 px-3' : ''}>{buttons}</View>
           </View>
         </Animated.View>
       ) : null}
