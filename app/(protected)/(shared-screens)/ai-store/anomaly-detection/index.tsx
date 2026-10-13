@@ -42,6 +42,12 @@ import DownloadSvg from '@/src/assets/icons/download.svg';
 import AnomalySvg from '@/src/assets/images/anomaly.svg';
 import RatingModal from '@/src/components/anomaly/modals/RatingModal';
 import DataInsightModal from '@/src/components/anomaly/modals/DataInsightModal';
+import ActivationQuoteModal, {
+  prefetchAiQuotes,
+} from '@/src/components/anomaly/modals/ActivationQuoteModal';
+import PaymentVerificationModal, {
+  PaymentVerificationState,
+} from '@/src/components/anomaly/modals/PaymentVerificationModal';
 import AnomalyResultView from '@/src/components/anomaly/AnomalyResultView';
 import { WebView } from 'react-native-webview';
 import {
@@ -53,11 +59,18 @@ import {
   uninstallAiFeature,
   installAiFeature,
   initializeCheckout,
+  getCheckoutStatus,
   cancelMarketplaceSubscription,
   sortMarketplaceTiers,
+  resolveMarketplaceFeatureId,
 } from '@/src/lib/api/aiMarketplace';
 import { useUserStore } from '@/src/lib/stores/userStore';
-import { MarketplaceDetailResponse } from '@/src/types/aiMarketplace';
+import {
+  MarketplaceDetailResponse,
+  MarketplaceTier,
+  AiCheckoutDuration,
+  AiQuoteResponse,
+} from '@/src/types/aiMarketplace';
 
 const PILL_WIDTH = 228;
 const PILL_HEIGHT = 40;
@@ -99,6 +112,15 @@ export default function AnomalyDetectionPreviewScreen() {
   const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
   const [justPurchasedTiers, setJustPurchasedTiers] = useState<Record<string, boolean>>({});
   const [justCancelledTiers, setJustCancelledTiers] = useState<Record<string, boolean>>({});
+  const [activationModalVisible, setActivationModalVisible] = useState(false);
+  const [selectedTierForActivation, setSelectedTierForActivation] =
+    useState<MarketplaceTier | null>(null);
+  const [isConfirmingActivation, setIsConfirmingActivation] = useState(false);
+  const [activePaystackReference, setActivePaystackReference] = useState<string | null>(null);
+  const [activeCheckoutToken, setActiveCheckoutToken] = useState<string | null>(null);
+  const [verificationModalVisible, setVerificationModalVisible] = useState(false);
+  const [verificationState, setVerificationState] = useState<PaymentVerificationState>('verifying');
+  const pollingTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const [confirmModalVisible, setConfirmModalVisible] = useState(false);
   const [confirmModalConfig, setConfirmModalConfig] = useState<{
@@ -144,24 +166,25 @@ export default function AnomalyDetectionPreviewScreen() {
 
   const [isLoading, setIsLoading] = useState(true);
 
+  const isAnomalyProduct = (name: string) => name.toLowerCase().includes('anomaly');
+
   const loadFeature = useCallback(
     async (id?: string) => {
       setIsLoading(true);
       try {
-        let targetId = id || params.featureId;
-        if (!targetId) {
-          const list = await getMarketplaceFeatures();
-          const anomalyTool = list.items?.find((item) =>
-            item.name.toLowerCase().includes('anomaly')
-          );
-          if (anomalyTool) {
-            targetId = anomalyTool.id;
-          }
-        }
+        const rawId = id || (typeof params.featureId === 'string' ? params.featureId : undefined);
+        const targetId = await resolveMarketplaceFeatureId(rawId, isAnomalyProduct);
 
         if (targetId) {
           const detail = await getMarketplaceFeatureById(targetId);
           setFeatureDetail(detail);
+          if (estateId && detail.tiers) {
+            detail.tiers.forEach((t) => {
+              if (t.feature_key && !t.is_free) {
+                prefetchAiQuotes(estateId, t.feature_key);
+              }
+            });
+          }
         }
       } catch (err: any) {
         console.log('Error loading feature details:', err?.message || err);
@@ -169,7 +192,7 @@ export default function AnomalyDetectionPreviewScreen() {
         setIsLoading(false);
       }
     },
-    [params.featureId]
+    [params.featureId, estateId]
   );
 
   useEffect(() => {
@@ -188,21 +211,20 @@ export default function AnomalyDetectionPreviewScreen() {
           }
         }
 
-        let targetId = params.featureId;
-        if (!targetId) {
-          const list = await getMarketplaceFeatures();
-          const anomalyTool = list.items?.find((item) =>
-            item.name.toLowerCase().includes('anomaly')
-          );
-          if (anomalyTool) {
-            targetId = anomalyTool.id;
-          }
-        }
+        const rawId = typeof params.featureId === 'string' ? params.featureId : undefined;
+        const targetId = await resolveMarketplaceFeatureId(rawId, isAnomalyProduct);
 
         if (targetId && isMounted) {
           const detail = await getMarketplaceFeatureById(targetId);
           if (isMounted) {
             setFeatureDetail(detail);
+            if (estateId && detail.tiers) {
+              detail.tiers.forEach((t) => {
+                if (t.feature_key && !t.is_free) {
+                  prefetchAiQuotes(estateId, t.feature_key);
+                }
+              });
+            }
           }
         }
       } catch (err: any) {
@@ -219,14 +241,7 @@ export default function AnomalyDetectionPreviewScreen() {
     };
   }, [params.featureId, estateId]);
 
-  const handleSubscribe = async (tierPayload: {
-    id?: string;
-    tier: string;
-    ai_feature_id?: string;
-    is_free?: boolean;
-    is_installed?: boolean;
-    feature_key?: string | null;
-  }) => {
+  const handleActivateFreeTier = async (tierPayload: MarketplaceTier) => {
     if (!featureDetail?.id || (!tierPayload.ai_feature_id && !tierPayload.feature_key)) {
       return;
     }
@@ -234,64 +249,160 @@ export default function AnomalyDetectionPreviewScreen() {
     setSubscribingTierKey(tierPayload.tier);
     setIsSubscribing(true);
     try {
-      if (tierPayload.is_free) {
-        if (tierPayload.feature_key) {
-          await installAiFeature(estateId, tierPayload.feature_key);
-        } else {
-          if (!tierPayload.ai_feature_id) {
-            Alert.alert('Error', 'Missing feature identifier.');
-            return;
-          }
-          await subscribeMarketplaceFeature(featureDetail.id, {
-            ai_feature_id: tierPayload.ai_feature_id,
-            period_months: 1,
-          });
-        }
-        Alert.alert('Success', 'Free feature tier activated successfully!');
-        loadFeature(featureDetail.id);
+      if (tierPayload.feature_key) {
+        await installAiFeature(estateId, tierPayload.feature_key);
       } else {
-        if (tierPayload.feature_key) {
-          const response = await initializeCheckout({
-            estate_id: estateId,
-            customer_email: email,
-            checkout_kind: 'ai_only',
-            ai_feature_keys: tierPayload.feature_key ? [tierPayload.feature_key] : undefined,
-            ai_feature_ids: tierPayload.ai_feature_id ? [tierPayload.ai_feature_id] : undefined,
-            period_months: 1,
-          });
-
-          if (response?.authorization_url) {
-            setCheckoutUrl(response.authorization_url);
-            // Mark as just purchased so it shows 'Install' after checkout
-            setJustPurchasedTiers((prev) => ({ ...prev, [tierPayload.tier]: true }));
-            // Also remove from justCancelledTiers if they activate again
-            setJustCancelledTiers((prev) => {
-              const next = { ...prev, [tierPayload.tier]: false };
-              if (estateId)
-                AsyncStorage.setItem(`cancelledTiers-${estateId}`, JSON.stringify(next)).catch(
-                  console.error
-                );
-              return next;
-            });
-          }
-        } else {
-          if (!tierPayload.ai_feature_id) {
-            Alert.alert('Error', 'Missing feature identifier.');
-            return;
-          }
-          await subscribeMarketplaceFeature(featureDetail.id, {
-            ai_feature_id: tierPayload.ai_feature_id,
-            period_months: 1,
-          });
-          Alert.alert('Success', 'Subscription quote created successfully.');
+        if (!tierPayload.ai_feature_id) {
+          Alert.alert('Error', 'Missing feature identifier.');
+          return;
         }
+        await subscribeMarketplaceFeature(featureDetail.id, {
+          ai_feature_id: tierPayload.ai_feature_id,
+          period_months: 1,
+        });
       }
+      Alert.alert('Success', 'Free feature tier activated successfully!');
+      loadFeature(featureDetail.id);
     } catch (err: any) {
-      Alert.alert('Subscription Failed', err?.message || 'Failed to activate tier.');
+      Alert.alert('Activation Failed', err?.message || 'Failed to activate tier.');
     } finally {
       setIsSubscribing(false);
       setSubscribingTierKey(null);
     }
+  };
+
+  const handlePressActivate = (tierPayload: MarketplaceTier) => {
+    if (tierPayload.is_free) {
+      handleActivateFreeTier(tierPayload);
+      return;
+    }
+    setSelectedTierForActivation(tierPayload);
+    setActivationModalVisible(true);
+  };
+
+  const handleConfirmActivation = async (duration: AiCheckoutDuration, _quote: AiQuoteResponse) => {
+    if (!selectedTierForActivation?.feature_key) {
+      Alert.alert('Error', 'Feature key is missing for this tier.');
+      return;
+    }
+
+    setIsConfirmingActivation(true);
+    try {
+      const response = await initializeCheckout({
+        estate_id: estateId,
+        customer_email: email,
+        checkout_kind: 'ai_only',
+        ai_feature_keys: [selectedTierForActivation.feature_key],
+        ai_feature_ids: selectedTierForActivation.ai_feature_id
+          ? [selectedTierForActivation.ai_feature_id]
+          : undefined,
+        period_months: duration,
+      });
+
+      if (response?.authorization_url) {
+        setActivePaystackReference(response.paystack_reference);
+        setActiveCheckoutToken(response.checkout_token);
+        setActivationModalVisible(false);
+        setCheckoutUrl(response.authorization_url);
+        // Also remove from justCancelledTiers if they activate again
+        setJustCancelledTiers((prev) => {
+          const next = { ...prev, [selectedTierForActivation.tier]: false };
+          if (estateId)
+            AsyncStorage.setItem(`cancelledTiers-${estateId}`, JSON.stringify(next)).catch(
+              console.error
+            );
+          return next;
+        });
+      } else {
+        Alert.alert('Error', 'No checkout authorization URL returned.');
+      }
+    } catch (err: any) {
+      Alert.alert('Checkout Failed', err?.message || 'Failed to initialize checkout.');
+    } finally {
+      setIsConfirmingActivation(false);
+    }
+  };
+
+  const stopPolling = () => {
+    if (pollingTimerRef.current) {
+      clearTimeout(pollingTimerRef.current);
+      pollingTimerRef.current = null;
+    }
+  };
+
+  const startPaymentVerification = useCallback(
+    (reference: string, token?: string) => {
+      stopPolling();
+      setVerificationModalVisible(true);
+      setVerificationState('verifying');
+
+      let attempts = 0;
+      const maxAttempts = 15; // 30 seconds max polling
+
+      const poll = async () => {
+        attempts += 1;
+        try {
+          const res = await getCheckoutStatus(reference, token);
+          if (res.status === 'success' || res.status === 'completed' || !!res.paid_at) {
+            setVerificationState('success');
+            if (selectedTierForActivation?.tier) {
+              setJustPurchasedTiers((prev) => ({
+                ...prev,
+                [selectedTierForActivation.tier]: true,
+              }));
+            }
+            if (featureDetail?.id) {
+              loadFeature(featureDetail.id);
+            }
+            return;
+          } else if (res.status === 'failed') {
+            setVerificationState('failed');
+            return;
+          }
+        } catch (err) {
+          console.log('Checkout status poll error:', err);
+        }
+
+        if (attempts >= maxAttempts) {
+          setVerificationState('delayed');
+          if (featureDetail?.id) {
+            loadFeature(featureDetail.id);
+          }
+        } else {
+          pollingTimerRef.current = setTimeout(poll, 2000);
+        }
+      };
+
+      pollingTimerRef.current = setTimeout(poll, 1200);
+    },
+    [selectedTierForActivation?.tier, featureDetail?.id, loadFeature]
+  );
+
+  useEffect(() => {
+    return () => {
+      stopPolling();
+    };
+  }, []);
+
+  const handleRequestCloseCheckout = () => {
+    setConfirmModalConfig({
+      title: 'Exit Checkout?',
+      message:
+        'If you have already approved this transaction in your bank app, exiting now might disrupt confirmation. Are you sure you want to close this window?',
+      cancelText: 'Stay on Payment',
+      confirmText: 'Exit Anyway',
+      confirmStyle: 'destructive',
+      onConfirm: () => {
+        setConfirmModalVisible(false);
+        setCheckoutUrl(null);
+        setActivePaystackReference(null);
+        setActiveCheckoutToken(null);
+        if (featureDetail?.id) {
+          loadFeature(featureDetail.id);
+        }
+      },
+    });
+    setConfirmModalVisible(true);
   };
 
   const handleCancelSubscription = async (tierPayload: { tier: string }) => {
@@ -419,7 +530,7 @@ export default function AnomalyDetectionPreviewScreen() {
   const tierThreeApi = sortedTiers[2];
 
   const renderTierButtons = (tierApi: any, fallbackTier: string) => {
-    const api = tierApi || { tier: fallbackTier };
+    const api: MarketplaceTier = tierApi || { tier: fallbackTier };
     const isSubscribed =
       api.status === 'active' ||
       api.status === 'purchased' ||
@@ -428,9 +539,10 @@ export default function AnomalyDetectionPreviewScreen() {
       api.purchased;
     const isCancelledLocally = !!justCancelledTiers[api.tier];
     const isInstalled = !!api.is_installed && !justPurchasedTiers[api.tier];
+    const isFromSubscriptionTier = api.payment_mode === 'subscription';
 
     const showActivate = !isSubscribed;
-    const showCancel = isSubscribed;
+    const showCancel = isSubscribed && !api.is_free;
     const showInstall = isSubscribed && !isInstalled;
     const showUninstall = isInstalled;
 
@@ -439,7 +551,7 @@ export default function AnomalyDetectionPreviewScreen() {
         {showActivate && (
           <Pressable
             disabled={isSubscribing}
-            onPress={() => handleSubscribe(api)}
+            onPress={() => handlePressActivate(api)}
             className="w-full h-[48px] bg-[#113E55] rounded-full items-center justify-center"
           >
             {subscribingTierKey === api.tier ? (
@@ -453,20 +565,63 @@ export default function AnomalyDetectionPreviewScreen() {
         )}
 
         {showCancel && (
-          <Pressable
-            disabled={isCanceling || isCancelledLocally}
-            style={{ opacity: isCancelledLocally ? 0.5 : 1 }}
-            className="w-full h-[48px] bg-[#113E55] rounded-full items-center justify-center"
-            onPress={() => handleCancelSubscription(api)}
-          >
-            {cancelTierKey === api.tier ? (
-              <ActivityIndicator size="small" color="white" />
-            ) : (
-              <Text allowFontScaling={false} className="text-[14px] font-inter-medium text-white">
-                {isCancelledLocally ? 'Cancelled' : 'Cancel Subscription'}
-              </Text>
+          <>
+            <Pressable
+              disabled={isFromSubscriptionTier || isCanceling || isCancelledLocally}
+              style={{
+                opacity: isFromSubscriptionTier || isCancelledLocally ? 0.6 : 1,
+                backgroundColor: isFromSubscriptionTier ? '#E2E8F0' : '#113E55',
+              }}
+              className="w-full h-[48px] rounded-full items-center justify-center"
+              onPress={() => !isFromSubscriptionTier && handleCancelSubscription(api)}
+            >
+              {cancelTierKey === api.tier ? (
+                <ActivityIndicator
+                  size="small"
+                  color={isFromSubscriptionTier ? '#64748B' : 'white'}
+                />
+              ) : (
+                <Text
+                  allowFontScaling={false}
+                  className="text-[14px] font-inter-medium"
+                  style={{ color: isFromSubscriptionTier ? '#64748B' : '#FFFFFF' }}
+                >
+                  {isCancelledLocally ? 'Cancelled' : 'Cancel Subscription'}
+                </Text>
+              )}
+            </Pressable>
+
+            {isFromSubscriptionTier && (
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  backgroundColor: '#EBF5FA',
+                  borderColor: '#BAE6FD',
+                  borderWidth: 1,
+                  borderRadius: 12,
+                  paddingHorizontal: 14,
+                  paddingVertical: 10,
+                  gap: 10,
+                }}
+              >
+                <BiInfoSvg width={18} height={18} />
+                <Text
+                  allowFontScaling={false}
+                  style={{
+                    flex: 1,
+                    fontSize: 12,
+                    color: '#113E55',
+                    fontFamily: 'Inter_18pt-Regular',
+                    lineHeight: 16,
+                  }}
+                >
+                  This feature is included in your estate subscription plan and cannot be cancelled
+                  separately.
+                </Text>
+              </View>
             )}
-          </Pressable>
+          </>
         )}
 
         {showInstall && (
@@ -1133,7 +1288,7 @@ export default function AnomalyDetectionPreviewScreen() {
         visible={!!checkoutUrl}
         animationType="slide"
         presentationStyle="pageSheet"
-        onRequestClose={() => setCheckoutUrl(null)}
+        onRequestClose={handleRequestCloseCheckout}
       >
         <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }} edges={['top']}>
           <View
@@ -1146,7 +1301,7 @@ export default function AnomalyDetectionPreviewScreen() {
               borderBottomColor: '#EFF1F3',
             }}
           >
-            <Pressable onPress={() => setCheckoutUrl(null)} style={{ padding: 8, marginLeft: -8 }}>
+            <Pressable onPress={handleRequestCloseCheckout} style={{ padding: 8, marginLeft: -8 }}>
               <MaterialIcons name="close" size={24} color="#113E55" />
             </Pressable>
             <Text
@@ -1168,8 +1323,12 @@ export default function AnomalyDetectionPreviewScreen() {
                   navState.url.includes('callback') ||
                   navState.url.includes('close')
                 ) {
+                  const ref = activePaystackReference;
+                  const token = activeCheckoutToken || undefined;
                   setCheckoutUrl(null);
-                  if (featureDetail?.id) {
+                  if (ref) {
+                    startPaymentVerification(ref, token);
+                  } else if (featureDetail?.id) {
                     loadFeature(featureDetail.id);
                   }
                 }
@@ -1286,6 +1445,29 @@ export default function AnomalyDetectionPreviewScreen() {
           </View>
         </View>
       </Modal>
+
+      <ActivationQuoteModal
+        visible={activationModalVisible}
+        onClose={() => setActivationModalVisible(false)}
+        tier={selectedTierForActivation}
+        estateId={estateId}
+        onConfirm={handleConfirmActivation}
+        isConfirming={isConfirmingActivation}
+      />
+
+      <PaymentVerificationModal
+        visible={verificationModalVisible}
+        status={verificationState}
+        onClose={() => {
+          stopPolling();
+          setVerificationModalVisible(false);
+          setActivePaystackReference(null);
+          setActiveCheckoutToken(null);
+          if (featureDetail?.id) {
+            loadFeature(featureDetail.id);
+          }
+        }}
+      />
     </Animated.View>
   );
 }

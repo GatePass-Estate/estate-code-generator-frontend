@@ -60,8 +60,49 @@ export interface MarketplaceTier {
   currency_code?: string | null;
   status: string;
   is_installed?: boolean;
+  payment_mode?: 'subscription' | 'standalone' | null;
   benefits?: string[];
   purchased?: boolean;
+}
+
+export type AiCheckoutDuration = 1 | 3 | 6 | 12;
+
+export interface AiQuoteRequest {
+  estate_id: string;
+  ai_feature_keys: string[];
+  period_months?: AiCheckoutDuration;
+  paid_at?: string | null;
+}
+
+export interface AiQuoteLineItem {
+  feature_key?: string;
+  name?: string;
+  monthly_price?: number;
+  months?: number;
+  total?: number;
+  [key: string]: any;
+}
+
+export interface AiQuoteResponse {
+  estate_id: string;
+  country_code: string;
+  currency_code: string;
+  ai_feature_keys: string[];
+  period_months: number;
+  ai_price_per_month?: number;
+  subtotal: number;
+  vat_rate: number;
+  vat_amount: number;
+  client_total: number;
+  line_items?: AiQuoteLineItem[];
+}
+
+export interface CheckoutStatusResponse {
+  paystack_reference: string;
+  status: 'pending' | 'success' | 'completed' | 'failed' | string;
+  checkout_kind: string;
+  paid_at?: string | null;
+  estate_id_masked: string;
 }
 
 export interface MarketplaceDetailResponse {
