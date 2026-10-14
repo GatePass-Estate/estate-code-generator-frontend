@@ -25,6 +25,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { User } from '@/src/types/user';
 import HouseholdSelectorSheet from '@/src/components/mobile/HouseholdSelectorSheet';
 import { transferUserHousehold } from '@/src/lib/api/households';
+import { transferPrimaryAdmin } from '@/src/lib/api/estate';
 import type { Household } from '@/src/types/household';
 import { getUserDocuments } from '@/src/lib/api/userDocuments';
 import {
@@ -32,11 +33,12 @@ import {
   loadUserDocument,
   removeCachedUserDocument,
 } from '@/src/lib/userDocumentCache';
-import { Feather } from '@expo/vector-icons';
+import { Feather, FontAwesome5 } from '@expo/vector-icons';
 import IdDocumentPdf from '@/src/components/mobile/IdDocumentPdf';
 import ResidentProfileFallback from '@/src/assets/icons/user-profile-placeholder.svg';
 import { useAuthStore } from '@/src/lib/stores/authStore';
 import { useUserStore } from '@/src/lib/stores/userStore';
+import { useAuth } from '@/src/hooks/useAuthContext';
 
 type DocumentLoadState = 'loading' | 'loaded' | 'missing' | 'pending' | 'error';
 
@@ -56,6 +58,7 @@ const parseUserParam = (
 
 export default function SingleUserMobile() {
   const router = useRouter();
+  const { signOut } = useAuth();
   const viewerRole = useAuthStore((state) => state.role);
   const viewerUserId = useUserStore((state) => state.user_id);
   const insets = useSafeAreaInsets();
@@ -71,9 +74,9 @@ export default function SingleUserMobile() {
   const [deactivating, setDeactivating] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [actionError, setActionError] = useState('');
-  const [pendingAction, setPendingAction] = useState<'deactivate' | 'promote' | 'demote' | null>(
-    null
-  );
+  const [pendingAction, setPendingAction] = useState<
+    'deactivate' | 'promote' | 'demote' | 'transferPrimary' | null
+  >(null);
   const [showHouseholdSelector, setShowHouseholdSelector] = useState(false);
   const [transferringHousehold, setTransferringHousehold] = useState(false);
   const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(
@@ -109,14 +112,18 @@ export default function SingleUserMobile() {
   );
   const isVerifiedProfile =
     userData.status &&
-    (userData.role === 'resident' || userData.role === 'security' || userData.role === 'admin');
-  const isSecurityProfile = userData.status && userData.role === 'security';
+    (userData.role === 'resident' ||
+      userData.role === 'security' ||
+      userData.role === 'admin' ||
+      userData.role === 'primary_admin');
   const isAdminProfile = userData.status && userData.role === 'admin';
-  const showRoleAction = !isSecurityProfile && viewerRole === 'primary_admin';
+  const showRoleAction =
+    (userData.role === 'resident' || userData.role === 'admin') && viewerRole === 'primary_admin';
   const isOwnProfile = Boolean(
     viewerUserId &&
     (viewerUserId === userData.user_id || viewerUserId === userData.id || viewerUserId === userId)
   );
+  const canTransferPrimary = isAdminProfile && viewerRole === 'primary_admin' && !isOwnProfile;
   const hideProfileActions =
     (isOwnProfile && (viewerRole === 'primary_admin' || viewerRole === 'admin')) ||
     (userData.role === 'primary_admin' && viewerRole === 'admin');
@@ -127,7 +134,11 @@ export default function SingleUserMobile() {
       userData.role === 'admin' ||
       userData.role === 'primary_admin');
   const verifiedRoleLabel =
-    userData.role === 'security' ? 'Security' : userData.role === 'admin' ? 'Admin' : 'Resident';
+    userData.role === 'security'
+      ? 'Security'
+      : userData.role === 'admin' || userData.role === 'primary_admin'
+        ? 'Admin'
+        : 'Resident';
   const profileContentWidth = screenWidth - 40;
   const identificationPreviewWidth = profileContentWidth * (211 / 335);
   const identificationPreviewHeight = identificationPreviewWidth * (138.18 / 211);
@@ -335,12 +346,32 @@ export default function SingleUserMobile() {
     }
   };
 
+  const handleTransferPrimary = async () => {
+    if (!userData.estate_id) {
+      setActionError('Estate information is unavailable for this user.');
+      return;
+    }
+
+    setProcessing(true);
+    setActionError('');
+    try {
+      await transferPrimaryAdmin(userData.estate_id, userId as string);
+      await signOut();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Failed to transfer primary admin.');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   const confirmProfileAction = async () => {
     const action = pendingAction;
     if (!action) return;
     setPendingAction(null);
     if (action === 'deactivate') {
       await handleDeactivate();
+    } else if (action === 'transferPrimary') {
+      await handleTransferPrimary();
     } else {
       await handlePromoteOrDemote(action);
     }
@@ -359,11 +390,18 @@ export default function SingleUserMobile() {
             message: 'This user will receive secondary admin access.',
             button: 'Make Admin',
           }
-        : {
-            title: 'Make Resident?',
-            message: 'This admin will become a resident and lose admin access.',
-            button: 'Make Resident',
-          };
+        : pendingAction === 'transferPrimary'
+          ? {
+              title: 'Promote',
+              message:
+                'This action promotes the user to primary admin, while revoking your primary admin rights.',
+              button: 'Promote User',
+            }
+          : {
+              title: 'Make Resident?',
+              message: 'This admin will become a resident and lose admin access.',
+              button: 'Make Resident',
+            };
 
   const handleHouseholdTransfer = async (household: Household) => {
     if (household.id === userData.household_id) {
@@ -714,43 +752,58 @@ export default function SingleUserMobile() {
                 </Text>
               ) : null}
               {hideProfileActions ? null : isVerifiedProfile ? (
-                <View
-                  className="mt-[81px] flex-row"
-                  style={{
-                    columnGap: 10 * residentActionScale,
-                    marginLeft: -3 * residentActionScale,
-                  }}
-                >
-                  <TouchableOpacity
-                    onPress={() => setPendingAction('deactivate')}
-                    disabled={deactivating || processing}
-                    className={`h-12 items-center justify-center rounded-3xl bg-[#E5F6FF] ${
-                      deactivating || processing ? 'opacity-70' : ''
-                    }`}
-                    style={{ width: (showRoleAction ? 168 : 337) * residentActionScale }}
+                <View className="mt-[81px]">
+                  <View
+                    className="flex-row"
+                    style={{
+                      columnGap: 10 * residentActionScale,
+                      marginLeft: -3 * residentActionScale,
+                    }}
                   >
-                    <Text
-                      className="font-ubuntu-semibold text-primary"
-                      style={{ fontSize: 14, lineHeight: 18, letterSpacing: -0.24 }}
-                    >
-                      Deactivate
-                    </Text>
-                  </TouchableOpacity>
-
-                  {showRoleAction && (
                     <TouchableOpacity
-                      onPress={() => setPendingAction(isAdminProfile ? 'demote' : 'promote')}
+                      onPress={() => setPendingAction('deactivate')}
                       disabled={deactivating || processing}
-                      className={`h-12 items-center justify-center rounded-3xl border border-primary bg-primary ${
+                      className={`h-12 items-center justify-center rounded-3xl bg-[#E5F6FF] ${
                         deactivating || processing ? 'opacity-70' : ''
                       }`}
-                      style={{ width: 159 * residentActionScale }}
+                      style={{ width: (showRoleAction ? 168 : 337) * residentActionScale }}
                     >
                       <Text
-                        className="font-ubuntu-semibold text-white"
+                        className="font-ubuntu-semibold text-primary"
                         style={{ fontSize: 14, lineHeight: 18, letterSpacing: -0.24 }}
                       >
-                        {isAdminProfile ? 'Make Resident' : 'Make Admin'}
+                        Deactivate
+                      </Text>
+                    </TouchableOpacity>
+
+                    {showRoleAction && (
+                      <TouchableOpacity
+                        onPress={() => setPendingAction(isAdminProfile ? 'demote' : 'promote')}
+                        disabled={deactivating || processing}
+                        className={`h-12 items-center justify-center rounded-3xl border border-primary bg-primary ${
+                          deactivating || processing ? 'opacity-70' : ''
+                        }`}
+                        style={{ width: 159 * residentActionScale }}
+                      >
+                        <Text
+                          className="font-ubuntu-semibold text-white"
+                          style={{ fontSize: 14, lineHeight: 18, letterSpacing: -0.24 }}
+                        >
+                          {isAdminProfile ? 'Make Resident' : 'Make Admin'}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                  {canTransferPrimary && (
+                    <TouchableOpacity
+                      onPress={() => setPendingAction('transferPrimary')}
+                      disabled={deactivating || processing}
+                      accessibilityRole="button"
+                      accessibilityLabel="Promote to Primary Admin"
+                      className="mt-2 h-12 items-center justify-center"
+                    >
+                      <Text className="font-inter-semibold text-primary" style={{ fontSize: 11.2 }}>
+                        Promote to Primary Admin
                       </Text>
                     </TouchableOpacity>
                   )}
@@ -824,33 +877,66 @@ export default function SingleUserMobile() {
               statusBarTranslucent
               onRequestClose={() => setPendingAction(null)}
             >
-              <View className="flex-1 items-center justify-center bg-black/40 px-6">
-                <View className="w-full max-w-[360px] rounded-[24px] bg-[#F6F7F7] px-6 py-7">
-                  <Text className="text-center font-ubuntu-semibold text-[21px] text-[#113E55]">
-                    {confirmationCopy.title}
-                  </Text>
-                  <Text className="mt-3 text-center font-inter-regular text-[14px] leading-[21px] text-[#646B70]">
-                    {confirmationCopy.message}
-                  </Text>
-                  <View className="mt-7 flex-row gap-[10px]">
+              <View
+                className={`flex-1 items-center justify-center ${pendingAction === 'transferPrimary' ? 'bg-black/80 px-[19px]' : 'bg-black/40 px-6'}`}
+              >
+                {pendingAction === 'transferPrimary' ? (
+                  <View className="w-full items-center" style={{ transform: [{ translateY: 42 }] }}>
+                    <View className="h-[305px] w-full max-w-[337px] items-center rounded-[24px] border-[0.5px] border-[#CEE5ED] bg-white px-4 py-10">
+                      <FontAwesome5 name="user-shield" solid size={24} color="#E8794E" />
+                      <Text className="mt-2 text-center font-ubuntu-medium text-[27.34px] text-[#0A1F29]">
+                        Promote
+                      </Text>
+                      <Text className="mt-4 max-w-[257px] text-center font-inter-light text-[14px] leading-[17px] text-[#878686]">
+                        {confirmationCopy.message}
+                      </Text>
+                      <TouchableOpacity
+                        onPress={() => void confirmProfileAction()}
+                        accessibilityRole="button"
+                        className="mt-6 h-12 w-full max-w-[278px] items-center justify-center rounded-3xl bg-primary"
+                      >
+                        <Text className="font-inter-semibold text-[11.2px] text-white">
+                          Promote User
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
                     <TouchableOpacity
                       onPress={() => setPendingAction(null)}
-                      className="h-12 flex-1 items-center justify-center rounded-3xl bg-[#E5F6FF]"
+                      accessibilityRole="button"
+                      accessibilityLabel="Cancel promotion"
+                      className="mt-[128px] h-10 w-10 items-center justify-center"
                     >
-                      <Text className="font-ubuntu-semibold text-[14px] text-[#113E55]">
-                        Cancel
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => void confirmProfileAction()}
-                      className="h-12 flex-1 items-center justify-center rounded-3xl bg-[#113E55]"
-                    >
-                      <Text className="font-ubuntu-semibold text-[14px] text-white">
-                        {confirmationCopy.button}
-                      </Text>
+                      <Feather name="x-circle" size={24} color="#FFFFFF" />
                     </TouchableOpacity>
                   </View>
-                </View>
+                ) : (
+                  <View className="w-full max-w-[360px] rounded-[24px] bg-[#F6F7F7] px-6 py-7">
+                    <Text className="text-center font-ubuntu-semibold text-[21px] text-[#113E55]">
+                      {confirmationCopy.title}
+                    </Text>
+                    <Text className="mt-3 text-center font-inter-regular text-[14px] leading-[21px] text-[#646B70]">
+                      {confirmationCopy.message}
+                    </Text>
+                    <View className="mt-7 flex-row gap-[10px]">
+                      <TouchableOpacity
+                        onPress={() => setPendingAction(null)}
+                        className="h-12 flex-1 items-center justify-center rounded-3xl bg-[#E5F6FF]"
+                      >
+                        <Text className="font-ubuntu-semibold text-[14px] text-[#113E55]">
+                          Cancel
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() => void confirmProfileAction()}
+                        className="h-12 flex-1 items-center justify-center rounded-3xl bg-[#113E55]"
+                      >
+                        <Text className="font-ubuntu-semibold text-[14px] text-white">
+                          {confirmationCopy.button}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
               </View>
             </Modal>
           </>

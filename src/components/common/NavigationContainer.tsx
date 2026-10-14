@@ -60,6 +60,7 @@ export default function NavigationContainer({
                   }
                   options={{
                     title,
+                    tabBarStyle: name === 'report' ? { display: 'none' } : tabBarStyle,
                     headerTitleStyle: {
                       color: '#113E55',
                       fontFamily: 'UbuntuSans',

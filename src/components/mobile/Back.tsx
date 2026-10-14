@@ -1,4 +1,4 @@
-import { useNavigation } from 'expo-router';
+import { useRouter } from 'expo-router';
 import {
   Image,
   type ImageStyle,
@@ -30,8 +30,8 @@ const Back = ({
   iconStyle?: StyleProp<ImageStyle>;
   onPress?: () => void;
 }) => {
-  const navigation = useNavigation();
-  const handlePress = onPress ?? (() => navigation.goBack());
+  const router = useRouter();
+  const handlePress = onPress ?? (() => router.back());
 
   return (
     <TouchableOpacity

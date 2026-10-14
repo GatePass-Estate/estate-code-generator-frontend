@@ -186,7 +186,7 @@ export const menuRoutes: menuRouteType[] = [
   },
 
   {
-    name: 'report/index',
+    name: 'report',
     link: '/user/report',
     title: 'Report',
     TabIcon: ReportTabIcon,
