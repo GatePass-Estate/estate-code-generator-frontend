@@ -1,6 +1,6 @@
 import { Platform, Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
 import { useRef } from 'react';
-import { Tabs, router } from 'expo-router';
+import { Tabs, router, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFeatureGate } from '@/src/hooks/usePlan';
 import { useUserStore } from '@/src/lib/stores/userStore';
@@ -24,7 +24,11 @@ type UserTabBarProps = Parameters<NonNullable<React.ComponentProps<typeof Tabs>[
 
 export default function UserTabBar({ state, descriptors, navigation }: UserTabBarProps) {
   const insets = useSafeAreaInsets();
+  const pathname = usePathname();
   const role = useUserStore((user) => user.role);
+  const isAdmin = role === 'admin' || role === 'primary_admin' || role === 'root';
+  const onIncidentCategory =
+    pathname === '/user/report/category' || (pathname === '/user/report' && !isAdmin);
   const { requestAccessWhenReady: requestIncidentReportAccess } = useFeatureGate(
     'incident_report',
     { notice: 'floating' }
@@ -38,7 +42,7 @@ export default function UserTabBar({ state, descriptors, navigation }: UserTabBa
   // iOS: only pad when a home indicator exists. SE / 8 / etc. get 0 — bar sits flush, no empty gap.
   const iosHomeIndicator = Platform.OS === 'ios' ? insets.bottom : 0;
 
-  if (isTabBarHidden(focusedOptions.tabBarStyle)) {
+  if (isTabBarHidden(focusedOptions.tabBarStyle) && !onIncidentCategory) {
     return null;
   }
 
@@ -70,6 +74,7 @@ export default function UserTabBar({ state, descriptors, navigation }: UserTabBa
             });
 
             if (route.name === 'report' && !event.defaultPrevented) {
+              if (focused && onIncidentCategory) return;
               if (openingIncidentReportRef.current) return;
               openingIncidentReportRef.current = true;
               const returnTo = reportReturnToForTab(state.routes[state.index].name);
