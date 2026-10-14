@@ -15,8 +15,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons, Feather, MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
-import { useState, ReactNode } from 'react';
+import { useCallback, useRef, useState, ReactNode } from 'react';
 import { useAuth } from '@/src/hooks/useAuthContext';
+import { useFeatureGate, useUpgradePromptStore } from '@/src/hooks/usePlan';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { useEstateEntitlements } from '@/src/lib/api/entitlements';
 import { revokeAllSessions } from '@/src/lib/api/auth';
@@ -192,11 +193,39 @@ export default function MoreMenuScreen({
   const navigation = useNavigation();
   const { signOut } = useAuth();
   const role = useUserStore((s) => s.role);
+  const { requestAccessWhenReady: requestIncidentReportAccess } = useFeatureGate(
+    'incident_report',
+    { notice: 'floating' }
+  );
+  const openingIncidentReportRef = useRef(false);
   const [feedbackPopupStep, setFeedbackPopupStep] = useState<'NONE' | 'SELECT' | 'RATE_US'>('NONE');
   const [starRating, setStarRating] = useState(0);
 
   const isAdmin = role === 'admin' || role === 'primary_admin' || role === 'root';
-  const isPrimaryAdmin = role === 'primary_admin' || role === 'root';
+
+  const handleOpenIncidentReport = useCallback(async () => {
+    if (openingIncidentReportRef.current) return;
+    openingIncidentReportRef.current = true;
+    try {
+      const allowed = await requestIncidentReportAccess(() => navigation.isFocused());
+      if (!allowed || !navigation.isFocused()) return;
+      router.push({
+        pathname: '/user/report/mine',
+        params: { returnTo: role === 'security' ? '/security/more' : '/settings' },
+      });
+    } finally {
+      openingIncidentReportRef.current = false;
+    }
+  }, [navigation, requestIncidentReportAccess, role]);
+
+  const handleBack = useCallback(() => {
+    if (useUpgradePromptStore.getState().visible) return;
+    if (Platform.OS === 'web') {
+      navigation.goBack();
+      return;
+    }
+    router.replace(role === 'security' ? '/security' : '/user');
+  }, [navigation, role]);
 
   const { data: entitlements } = useEstateEntitlements();
   const planName = entitlements?.tierSlug
@@ -235,7 +264,7 @@ export default function MoreMenuScreen({
       <Stack.Screen options={{ headerShown: false }} />
 
       <Pressable
-        onPress={() => navigation.goBack()}
+        onPress={handleBack}
         className="h-[30px] w-[30px] items-center justify-center rounded-full bg-[#EFF1F1]"
       >
         <MaterialIcons name="keyboard-arrow-left" size={24} color="#113E55" />
@@ -271,7 +300,9 @@ export default function MoreMenuScreen({
                 icon={<MaterialCommunityIcons name="account-cog-outline" size={20} color="white" />}
                 title="ADMIN TOOLS"
                 subtitle="Control and manage access on your dashboard"
-                onPress={() => router.replace('/admin')}
+                onPress={() =>
+                  router.push({ pathname: '/admin', params: { returnTo: '/settings' } })
+                }
               />
               <SquareCard
                 colors={['#129B85', '#49CCB8']}
@@ -307,9 +338,7 @@ export default function MoreMenuScreen({
               <MoreMenuRow
                 icon={<IncidentReportIcon color={iconColor} />}
                 label="Incident Report"
-                onPress={() =>
-                  Alert.alert('Coming soon', 'Incident reporting is not available yet.')
-                }
+                onPress={() => void handleOpenIncidentReport()}
               />
               <MoreMenuRow
                 icon={<LinkedDevicesIcon color={iconColor} />}
