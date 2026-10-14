@@ -22,6 +22,7 @@ import Animated, {
   interpolateColor,
   runOnJS,
   FadeIn,
+  FadeOut,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import BiInfoSvg from '@/src/assets/icons/bi_info.svg';
@@ -121,6 +122,31 @@ export default function AnomalyDetectionPreviewScreen() {
   const [verificationModalVisible, setVerificationModalVisible] = useState(false);
   const [verificationState, setVerificationState] = useState<PaymentVerificationState>('verifying');
   const pollingTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const [activeCancelBubbleTier, setActiveCancelBubbleTier] = useState<string | null>(null);
+  const cancelBubbleTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const showCancelInfoBubble = (tier: string) => {
+    if (cancelBubbleTimerRef.current) {
+      clearTimeout(cancelBubbleTimerRef.current);
+    }
+    if (activeCancelBubbleTier === tier) {
+      setActiveCancelBubbleTier(null);
+      return;
+    }
+    setActiveCancelBubbleTier(tier);
+    cancelBubbleTimerRef.current = setTimeout(() => {
+      setActiveCancelBubbleTier(null);
+    }, 3500);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (cancelBubbleTimerRef.current) {
+        clearTimeout(cancelBubbleTimerRef.current);
+      }
+    };
+  }, []);
 
   const [confirmModalVisible, setConfirmModalVisible] = useState(false);
   const [confirmModalConfig, setConfirmModalConfig] = useState<{
@@ -531,14 +557,15 @@ export default function AnomalyDetectionPreviewScreen() {
 
   const renderTierButtons = (tierApi: any, fallbackTier: string) => {
     const api: MarketplaceTier = tierApi || { tier: fallbackTier };
+    const tierKey = api.tier || fallbackTier;
     const isSubscribed =
       api.status === 'active' ||
       api.status === 'purchased' ||
       api.status === 'subscribed' ||
       api.status === 'installed' ||
       api.purchased;
-    const isCancelledLocally = !!justCancelledTiers[api.tier];
-    const isInstalled = !!api.is_installed && !justPurchasedTiers[api.tier];
+    const isCancelledLocally = !!justCancelledTiers[tierKey];
+    const isInstalled = !!api.is_installed && !justPurchasedTiers[tierKey];
     const isFromSubscriptionTier = api.payment_mode === 'subscription';
 
     const showActivate = !isSubscribed;
@@ -554,7 +581,7 @@ export default function AnomalyDetectionPreviewScreen() {
             onPress={() => handlePressActivate(api)}
             className="w-full h-[48px] bg-[#113E55] rounded-full items-center justify-center"
           >
-            {subscribingTierKey === api.tier ? (
+            {subscribingTierKey === tierKey ? (
               <ActivityIndicator size="small" color="white" />
             ) : (
               <Text allowFontScaling={false} className="text-[14px] font-inter-medium text-white">
@@ -565,17 +592,75 @@ export default function AnomalyDetectionPreviewScreen() {
         )}
 
         {showCancel && (
-          <>
+          <View style={{ position: 'relative', width: '100%', zIndex: 10 }}>
+            {isFromSubscriptionTier && activeCancelBubbleTier === tierKey && (
+              <Animated.View
+                entering={FadeIn.duration(180)}
+                exiting={FadeOut.duration(180)}
+                pointerEvents="none"
+                style={{
+                  position: 'absolute',
+                  bottom: '100%',
+                  left: 0,
+                  right: 0,
+                  marginBottom: 6,
+                  alignItems: 'center',
+                  zIndex: 20,
+                  elevation: 5,
+                }}
+              >
+                <View
+                  style={{
+                    backgroundColor: '#113E55',
+                    borderRadius: 8,
+                    paddingHorizontal: 12,
+                    paddingVertical: 8,
+                    maxWidth: '92%',
+                  }}
+                >
+                  <Text
+                    allowFontScaling={false}
+                    style={{
+                      fontFamily: 'Inter_18pt-Medium',
+                      fontSize: 12,
+                      color: '#FFFFFF',
+                      textAlign: 'center',
+                      lineHeight: 16,
+                    }}
+                  >
+                    This feature is included in your estate subscription plan and cannot be
+                    cancelled separately.
+                  </Text>
+                </View>
+                <View
+                  style={{
+                    width: 10,
+                    height: 10,
+                    marginTop: -5,
+                    borderBottomRightRadius: 2,
+                    backgroundColor: '#113E55',
+                    transform: [{ rotate: '45deg' }],
+                  }}
+                />
+              </Animated.View>
+            )}
+
             <Pressable
-              disabled={isFromSubscriptionTier || isCanceling || isCancelledLocally}
+              disabled={(!isFromSubscriptionTier && isCanceling) || isCancelledLocally}
               style={{
                 opacity: isFromSubscriptionTier || isCancelledLocally ? 0.6 : 1,
                 backgroundColor: isFromSubscriptionTier ? '#E2E8F0' : '#113E55',
               }}
               className="w-full h-[48px] rounded-full items-center justify-center"
-              onPress={() => !isFromSubscriptionTier && handleCancelSubscription(api)}
+              onPress={() => {
+                if (isFromSubscriptionTier) {
+                  showCancelInfoBubble(tierKey);
+                } else {
+                  handleCancelSubscription(api);
+                }
+              }}
             >
-              {cancelTierKey === api.tier ? (
+              {cancelTierKey === tierKey ? (
                 <ActivityIndicator
                   size="small"
                   color={isFromSubscriptionTier ? '#64748B' : 'white'}
@@ -590,38 +675,7 @@ export default function AnomalyDetectionPreviewScreen() {
                 </Text>
               )}
             </Pressable>
-
-            {isFromSubscriptionTier && (
-              <View
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  backgroundColor: '#EBF5FA',
-                  borderColor: '#BAE6FD',
-                  borderWidth: 1,
-                  borderRadius: 12,
-                  paddingHorizontal: 14,
-                  paddingVertical: 10,
-                  gap: 10,
-                }}
-              >
-                <BiInfoSvg width={18} height={18} />
-                <Text
-                  allowFontScaling={false}
-                  style={{
-                    flex: 1,
-                    fontSize: 12,
-                    color: '#113E55',
-                    fontFamily: 'Inter_18pt-Regular',
-                    lineHeight: 16,
-                  }}
-                >
-                  This feature is included in your estate subscription plan and cannot be cancelled
-                  separately.
-                </Text>
-              </View>
-            )}
-          </>
+          </View>
         )}
 
         {showInstall && (
