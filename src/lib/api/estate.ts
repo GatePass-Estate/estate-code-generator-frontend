@@ -37,3 +37,14 @@ export async function getEstateById(estateId: string): Promise<Estate> {
     throw new Error(`${getErrorMessage(error) || 'Failed to load estate details'} `);
   }
 }
+
+export async function transferPrimaryAdmin(estateId: string, adminId: string): Promise<void> {
+  try {
+    const api = Api();
+    await api.post(`/estates/${encodeURIComponent(estateId)}/assign/admin`, null, {
+      params: { admin_id: adminId },
+    });
+  } catch (error: unknown) {
+    throw new Error(getErrorMessage(error) || 'Failed to transfer primary admin');
+  }
+}
