@@ -411,24 +411,28 @@ export default function AnomalyDetectionPreviewScreen() {
   }, []);
 
   const handleRequestCloseCheckout = () => {
-    setConfirmModalConfig({
-      title: 'Exit Checkout?',
-      message:
-        'If you have already approved this transaction in your bank app, exiting now might disrupt confirmation. Are you sure you want to close this window?',
-      cancelText: 'Stay on Payment',
-      confirmText: 'Exit Anyway',
-      confirmStyle: 'destructive',
-      onConfirm: () => {
-        setConfirmModalVisible(false);
-        setCheckoutUrl(null);
-        setActivePaystackReference(null);
-        setActiveCheckoutToken(null);
-        if (featureDetail?.id) {
-          loadFeature(featureDetail.id);
-        }
-      },
-    });
-    setConfirmModalVisible(true);
+    Alert.alert(
+      'Exit Checkout?',
+      'If you have already approved this transaction in your bank app, exiting now might disrupt confirmation. Are you sure you want to close this window?',
+      [
+        {
+          text: 'Stay on Payment',
+          style: 'cancel',
+        },
+        {
+          text: 'Exit Anyway',
+          style: 'destructive',
+          onPress: () => {
+            setCheckoutUrl(null);
+            setActivePaystackReference(null);
+            setActiveCheckoutToken(null);
+            if (featureDetail?.id) {
+              loadFeature(featureDetail.id);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleCancelSubscription = async (tierPayload: { tier: string }) => {
@@ -1355,7 +1359,11 @@ export default function AnomalyDetectionPreviewScreen() {
               borderBottomColor: '#EFF1F3',
             }}
           >
-            <Pressable onPress={handleRequestCloseCheckout} style={{ padding: 8, marginLeft: -8 }}>
+            <Pressable
+              onPress={handleRequestCloseCheckout}
+              hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
+              style={{ padding: 8, marginLeft: -8 }}
+            >
               <MaterialIcons name="close" size={24} color="#113E55" />
             </Pressable>
             <Text
@@ -1371,11 +1379,22 @@ export default function AnomalyDetectionPreviewScreen() {
               source={{ uri: checkoutUrl }}
               style={{ flex: 1 }}
               onNavigationStateChange={(navState) => {
+                const lowerUrl = navState.url.toLowerCase();
+                if (lowerUrl.includes('cancel') || lowerUrl.includes('cancelled')) {
+                  setCheckoutUrl(null);
+                  setActivePaystackReference(null);
+                  setActiveCheckoutToken(null);
+                  if (featureDetail?.id) {
+                    loadFeature(featureDetail.id);
+                  }
+                  return;
+                }
+
                 if (
-                  navState.url.includes('app.gatepassng.com') ||
-                  navState.url.includes('gatepassng.com/callback') ||
-                  navState.url.includes('callback') ||
-                  navState.url.includes('close')
+                  lowerUrl.includes('app.gatepassng.com') ||
+                  lowerUrl.includes('gatepassng.com/callback') ||
+                  lowerUrl.includes('callback') ||
+                  lowerUrl.includes('close')
                 ) {
                   const ref = activePaystackReference;
                   const token = activeCheckoutToken || undefined;
@@ -1385,6 +1404,25 @@ export default function AnomalyDetectionPreviewScreen() {
                   } else if (featureDetail?.id) {
                     loadFeature(featureDetail.id);
                   }
+                }
+              }}
+              onMessage={(event) => {
+                try {
+                  const data = JSON.parse(event.nativeEvent.data);
+                  if (
+                    data?.event === 'close' ||
+                    data?.event === 'cancel' ||
+                    data?.status === 'cancelled'
+                  ) {
+                    setCheckoutUrl(null);
+                    setActivePaystackReference(null);
+                    setActiveCheckoutToken(null);
+                    if (featureDetail?.id) {
+                      loadFeature(featureDetail.id);
+                    }
+                  }
+                } catch {
+                  // Ignore non-json messages
                 }
               }}
             />
