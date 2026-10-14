@@ -56,7 +56,12 @@ export default function IncidentReportCreateScreen() {
   useFocusEffect(
     useCallback(() => {
       let active = true;
-      if (role !== 'resident' && role !== 'security' && role !== 'admin') {
+      if (
+        role !== 'resident' &&
+        role !== 'security' &&
+        role !== 'admin' &&
+        role !== 'primary_admin'
+      ) {
         router.replace('/user/report');
         return () => {
           active = false;

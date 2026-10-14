@@ -8,8 +8,8 @@ export default function IncidentReportCategoryRoute() {
   const role = useUserStore((state) => state.role);
 
   useEffect(() => {
-    if (role !== 'admin') router.replace('/user/report');
+    if (role !== 'admin' && role !== 'primary_admin') router.replace('/user/report');
   }, [role, router]);
 
-  return role === 'admin' ? <IncidentReportCategoryScreen /> : null;
+  return role === 'admin' || role === 'primary_admin' ? <IncidentReportCategoryScreen /> : null;
 }

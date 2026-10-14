@@ -5,7 +5,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Back from '@/src/components/mobile/Back';
 import { useFeatureGate } from '@/src/hooks/usePlan';
 import { incidentManagementApi, type IncidentReport } from '@/src/lib/api/incidentManagement';
-import { useUserStore } from '@/src/lib/stores/userStore';
 
 function displayDate(value: string): string {
   const date = new Date(value);
@@ -31,7 +30,6 @@ function categoryLabel(report: IncidentReport): string {
 export default function MyIncidentReportDetailScreen() {
   const { id, returnTo } = useLocalSearchParams<{ id?: string; returnTo?: string }>();
   const router = useRouter();
-  const role = useUserStore((state) => state.role);
   const { requestAccessWhenReady } = useFeatureGate('incident_report', { notice: 'floating' });
   const [report, setReport] = useState<IncidentReport | null>(null);
   const [loading, setLoading] = useState(true);
@@ -57,10 +55,6 @@ export default function MyIncidentReportDetailScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      if (role !== 'resident' && role !== 'security') {
-        router.replace('/user/report');
-        return;
-      }
       let active = true;
       void (async () => {
         const allowed = await requestAccessWhenReady(() => active);
@@ -71,7 +65,7 @@ export default function MyIncidentReportDetailScreen() {
       return () => {
         active = false;
       };
-    }, [load, requestAccessWhenReady, role, router])
+    }, [load, requestAccessWhenReady, router])
   );
 
   return (

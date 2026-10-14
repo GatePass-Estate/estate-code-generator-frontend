@@ -210,13 +210,13 @@ export default function MoreMenuScreen({
       const allowed = await requestIncidentReportAccess(() => navigation.isFocused());
       if (!allowed || !navigation.isFocused()) return;
       router.push({
-        pathname: isAdmin ? '/user/report' : '/user/report/mine',
+        pathname: '/user/report/mine',
         params: { returnTo: role === 'security' ? '/security/more' : '/settings' },
       });
     } finally {
       openingIncidentReportRef.current = false;
     }
-  }, [isAdmin, navigation, requestIncidentReportAccess, role]);
+  }, [navigation, requestIncidentReportAccess, role]);
 
   const handleBack = useCallback(() => {
     if (useUpgradePromptStore.getState().visible) return;

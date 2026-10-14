@@ -16,7 +16,6 @@ import Back from '@/src/components/mobile/Back';
 import icons from '@/src/constants/icons';
 import { useFeatureGate } from '@/src/hooks/usePlan';
 import { incidentManagementApi, type IncidentReport } from '@/src/lib/api/incidentManagement';
-import { useUserStore } from '@/src/lib/stores/userStore';
 import {
   leaveIncidentReport,
   parseIncidentReportReturnTo,
@@ -50,8 +49,6 @@ export default function MyIncidentReportsScreen() {
   const router = useRouter();
   const { returnTo: returnToParam } = useLocalSearchParams<{ returnTo?: string }>();
   const returnTo = parseIncidentReportReturnTo(returnToParam);
-  const role = useUserStore((state) => state.role);
-  const isAdmin = role === 'admin' || role === 'primary_admin' || role === 'root';
   const { requestAccessWhenReady } = useFeatureGate('incident_report', { notice: 'floating' });
   const [checkingAccess, setCheckingAccess] = useState(true);
   const [reports, setReports] = useState<IncidentReport[]>([]);
@@ -73,21 +70,17 @@ export default function MyIncidentReportsScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      if (isAdmin || Platform.OS !== 'android') return;
+      if (Platform.OS !== 'android') return;
       const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
         leaveIncidentReport(returnTo, router);
         return true;
       });
       return () => subscription.remove();
-    }, [isAdmin, returnTo, router])
+    }, [returnTo, router])
   );
 
   useFocusEffect(
     useCallback(() => {
-      if (isAdmin) {
-        router.replace('/user/report');
-        return;
-      }
       let active = true;
       void (async () => {
         const allowed = await requestAccessWhenReady(() => active);
@@ -100,7 +93,7 @@ export default function MyIncidentReportsScreen() {
       return () => {
         active = false;
       };
-    }, [isAdmin, load, requestAccessWhenReady, router])
+    }, [load, requestAccessWhenReady, router])
   );
 
   return (
@@ -121,7 +114,7 @@ export default function MyIncidentReportsScreen() {
         Incident Report
       </Text>
       <Text className="mt-[12px] ml-[3px] text-[14px] leading-[17px] text-[#878686] font-inter-light">
-        View reports you have sent.
+        View all reports observed in your space.
       </Text>
       <ScrollView
         className="flex-1"
@@ -136,10 +129,7 @@ export default function MyIncidentReportsScreen() {
           />
         }
       >
-        <Text className="mt-[36px] ml-[29px] mb-[16px] text-[11.2px] leading-[14px] text-[#878686] font-inter-regular">
-          Read Reports
-        </Text>
-        <View className="ml-[10px] mr-[8px] gap-[1px]">
+        <View className="mt-[36px] mx-[9px] gap-[1px]">
           {checkingAccess || loading ? <ActivityIndicator color="#113E55" /> : null}
           {!loading && error ? (
             <Text className="text-[13px] leading-[18px] text-[#B42318] font-inter-regular">
