@@ -10,12 +10,13 @@ import {
 } from 'react-native';
 import Svg, { Line } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { UbuntuSans } from '@/src/constants/fonts';
 
 type SeatCapacitySheetProps = {
   visible: boolean;
   onClose: () => void;
   currentCapacity: number;
-  maxCapacity?: number;
+  maxCapacity: number;
   residentsCount: number;
   securityPersonnelCount: number;
 };
@@ -112,7 +113,7 @@ function RadialSeatGauge({
           <Text
             allowFontScaling={false}
             style={{
-              fontFamily: 'Ubuntu-Bold',
+              fontFamily: UbuntuSans.bold,
               fontSize: 36,
               color: '#0A1F29',
               lineHeight: 40,
@@ -130,7 +131,7 @@ export default function SeatCapacitySheet({
   visible,
   onClose,
   currentCapacity,
-  maxCapacity = 1000000,
+  maxCapacity,
   residentsCount,
   securityPersonnelCount,
 }: SeatCapacitySheetProps) {
@@ -202,7 +203,7 @@ export default function SeatCapacitySheet({
   ).current;
 
   const occupiedSeats = residentsCount + securityPersonnelCount;
-  const vacantSeats = Math.max(0, currentCapacity - occupiedSeats);
+  const vacantSeats = Math.max(0, maxCapacity - occupiedSeats);
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -244,7 +245,7 @@ export default function SeatCapacitySheet({
 
           {/* Radial Meter Gauge */}
           <RadialSeatGauge
-            totalSeats={currentCapacity}
+            totalSeats={maxCapacity}
             residentsCount={residentsCount}
             securityCount={securityPersonnelCount}
             vacantCount={vacantSeats}
@@ -281,7 +282,7 @@ export default function SeatCapacitySheet({
               <Text
                 allowFontScaling={false}
                 style={{
-                  fontFamily: 'Ubuntu-Bold',
+                  fontFamily: UbuntuSans.bold,
                   fontSize: 24,
                   color: '#0A1F29',
                 }}
@@ -313,7 +314,7 @@ export default function SeatCapacitySheet({
               <Text
                 allowFontScaling={false}
                 style={{
-                  fontFamily: 'Ubuntu-Bold',
+                  fontFamily: UbuntuSans.bold,
                   fontSize: 24,
                   color: '#0A1F29',
                 }}
@@ -486,7 +487,7 @@ export default function SeatCapacitySheet({
             <Text
               allowFontScaling={false}
               style={{
-                fontFamily: 'Ubuntu-Medium',
+                fontFamily: UbuntuSans.medium,
                 fontSize: 15,
                 color: '#FFFFFF',
               }}

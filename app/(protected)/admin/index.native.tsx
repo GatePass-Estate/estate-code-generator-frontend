@@ -21,7 +21,12 @@ import icons from '@/src/constants/icons';
 import { getRoleIcon, isDataEqual } from '@/src/lib/helpers';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useEstateEntitlements } from '@/src/lib/api/entitlements';
-import { useFeatureGate, useUpgradePromptStore } from '@/src/hooks/usePlan';
+import {
+  useContactAdminNoticeStore,
+  useFeatureGate,
+  useUpgradePromptStore,
+} from '@/src/hooks/usePlan';
+import { useUserStore } from '@/src/lib/stores/userStore';
 import AdminToolsSvg from '@/src/assets/images/admintools.svg';
 import AdminResidentsSvg from '@/src/assets/images/adminresidents.svg';
 import AdminSecuritySvg from '@/src/assets/images/adminsecurity.svg';
@@ -40,6 +45,8 @@ export default function AdminUsersMobilePage() {
   const usersRef = useRef<AllUsers>(users);
   const { data: estateEntitlements } = useEstateEntitlements();
   const showUpgradePrompt = useUpgradePromptStore((s) => s.show);
+  const showContactAdminNotice = useContactAdminNoticeStore((s) => s.show);
+  const userRole = useUserStore((s) => s.role);
 
   const { requestAccessWhenReady: requestBroadcastAccess } = useFeatureGate('admin_broadcast', {
     notice: 'floating',
@@ -164,7 +171,14 @@ export default function AdminUsersMobilePage() {
   const limitedUsers = verifiedUsers.slice(0, 3);
 
   const handleOpenAddSeats = () => {
-    showUpgradePrompt('household_department_management');
+    if (userRole === 'primary_admin') {
+      router.push('/admin/seats');
+    } else {
+      showContactAdminNotice(
+        'guest_management',
+        'Only the primary admin can manage seat capacity.'
+      );
+    }
   };
 
   const handleRegisterUser = () => {
@@ -711,7 +725,8 @@ export default function AdminUsersMobilePage() {
       <SeatCapacitySheet
         visible={seatModalVisible}
         onClose={() => setSeatModalVisible(false)}
-        currentCapacity={estateUserCapacity ?? totalUsersCount}
+        currentCapacity={registeredUsersCount}
+        maxCapacity={estateUserCapacity ?? totalUsersCount}
         residentsCount={residentsCount}
         securityPersonnelCount={securityPersonnelCount}
       />
