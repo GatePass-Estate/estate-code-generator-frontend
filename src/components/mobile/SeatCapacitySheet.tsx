@@ -287,7 +287,7 @@ export default function SeatCapacitySheet({
                   color: '#0A1F29',
                 }}
               >
-                {currentCapacity.toLocaleString()}
+                {occupiedSeats.toLocaleString()}
               </Text>
             </View>
 

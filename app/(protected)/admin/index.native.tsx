@@ -163,11 +163,12 @@ export default function AdminUsersMobilePage() {
     users.role_summary?.security ?? users.items.filter((user) => user.role === 'security').length;
   const residentsCount =
     users.role_summary?.resident ?? users.items.filter((user) => user.role === 'resident').length;
+  const occupiedSeats = residentsCount + securityPersonnelCount;
   const totalUsersCount = users.total;
   const registeredUsersCount = users.total;
   const estateUserCapacity = estateEntitlements?.coveredUsers ?? null;
   const isRegistrationAtCapacity =
-    estateUserCapacity !== null && registeredUsersCount >= estateUserCapacity;
+    estateUserCapacity !== null && occupiedSeats >= estateUserCapacity;
   const limitedUsers = verifiedUsers.slice(0, 3);
 
   const handleOpenAddSeats = () => {
@@ -725,7 +726,7 @@ export default function AdminUsersMobilePage() {
       <SeatCapacitySheet
         visible={seatModalVisible}
         onClose={() => setSeatModalVisible(false)}
-        currentCapacity={registeredUsersCount}
+        currentCapacity={occupiedSeats}
         maxCapacity={estateUserCapacity ?? totalUsersCount}
         residentsCount={residentsCount}
         securityPersonnelCount={securityPersonnelCount}
