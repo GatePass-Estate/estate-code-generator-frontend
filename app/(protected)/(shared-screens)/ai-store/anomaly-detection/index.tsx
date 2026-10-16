@@ -8,9 +8,11 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Modal,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialIcons } from '@expo/vector-icons';
 import Svg, { Path } from 'react-native-svg';
 import Animated, {
@@ -20,6 +22,7 @@ import Animated, {
   interpolateColor,
   runOnJS,
   FadeIn,
+  FadeOut,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import BiInfoSvg from '@/src/assets/icons/bi_info.svg';
@@ -40,7 +43,14 @@ import DownloadSvg from '@/src/assets/icons/download.svg';
 import AnomalySvg from '@/src/assets/images/anomaly.svg';
 import RatingModal from '@/src/components/anomaly/modals/RatingModal';
 import DataInsightModal from '@/src/components/anomaly/modals/DataInsightModal';
+import ActivationQuoteModal, {
+  prefetchAiQuotes,
+} from '@/src/components/anomaly/modals/ActivationQuoteModal';
+import PaymentVerificationModal, {
+  PaymentVerificationState,
+} from '@/src/components/anomaly/modals/PaymentVerificationModal';
 import AnomalyResultView from '@/src/components/anomaly/AnomalyResultView';
+import { WebView } from 'react-native-webview';
 import {
   getMarketplaceFeatureById,
   getMarketplaceFeatures,
@@ -48,9 +58,20 @@ import {
   getFeaturePictureUrl,
   rateMarketplaceFeature,
   uninstallAiFeature,
+  installAiFeature,
+  initializeCheckout,
+  getCheckoutStatus,
+  cancelMarketplaceSubscription,
+  sortMarketplaceTiers,
+  resolveMarketplaceFeatureId,
 } from '@/src/lib/api/aiMarketplace';
 import { useUserStore } from '@/src/lib/stores/userStore';
-import { MarketplaceDetailResponse } from '@/src/types/aiMarketplace';
+import {
+  MarketplaceDetailResponse,
+  MarketplaceTier,
+  AiCheckoutDuration,
+  AiQuoteResponse,
+} from '@/src/types/aiMarketplace';
 
 const PILL_WIDTH = 228;
 const PILL_HEIGHT = 40;
@@ -81,12 +102,71 @@ export default function AnomalyDetectionPreviewScreen() {
   const [subscribingTierKey, setSubscribingTierKey] = useState<string | null>(null);
   const [isUninstalling, setIsUninstalling] = useState(false);
   const [uninstallingTierKey, setUninstallingTierKey] = useState<string | null>(null);
+  const [isInstalling, setIsInstalling] = useState(false);
+  const [installingTierKey, setInstallingTierKey] = useState<string | null>(null);
+  const [isCanceling, setIsCanceling] = useState(false);
+  const [cancelTierKey, setCancelTierKey] = useState<string | null>(null);
   const [dataInsightVisible, setDataInsightVisible] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [isRatingModalVisible, setIsRatingModalVisible] = useState(false);
   const [cardHeight, setCardHeight] = useState<number>(120);
+  const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
+  const [justPurchasedTiers, setJustPurchasedTiers] = useState<Record<string, boolean>>({});
+  const [justCancelledTiers, setJustCancelledTiers] = useState<Record<string, boolean>>({});
+  const [activationModalVisible, setActivationModalVisible] = useState(false);
+  const [selectedTierForActivation, setSelectedTierForActivation] =
+    useState<MarketplaceTier | null>(null);
+  const [isConfirmingActivation, setIsConfirmingActivation] = useState(false);
+  const [activePaystackReference, setActivePaystackReference] = useState<string | null>(null);
+  const [activeCheckoutToken, setActiveCheckoutToken] = useState<string | null>(null);
+  const [verificationModalVisible, setVerificationModalVisible] = useState(false);
+  const [verificationState, setVerificationState] = useState<PaymentVerificationState>('verifying');
+  const pollingTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const [activeCancelBubbleTier, setActiveCancelBubbleTier] = useState<string | null>(null);
+  const cancelBubbleTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const showCancelInfoBubble = (tier: string) => {
+    if (cancelBubbleTimerRef.current) {
+      clearTimeout(cancelBubbleTimerRef.current);
+    }
+    if (activeCancelBubbleTier === tier) {
+      setActiveCancelBubbleTier(null);
+      return;
+    }
+    setActiveCancelBubbleTier(tier);
+    cancelBubbleTimerRef.current = setTimeout(() => {
+      setActiveCancelBubbleTier(null);
+    }, 3500);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (cancelBubbleTimerRef.current) {
+        clearTimeout(cancelBubbleTimerRef.current);
+      }
+    };
+  }, []);
+
+  const [confirmModalVisible, setConfirmModalVisible] = useState(false);
+  const [confirmModalConfig, setConfirmModalConfig] = useState<{
+    title: string;
+    message: string;
+    cancelText: string;
+    confirmText: string;
+    confirmStyle: 'default' | 'destructive';
+    onConfirm: () => void;
+  }>({
+    title: '',
+    message: '',
+    cancelText: 'Cancel',
+    confirmText: 'Confirm',
+    confirmStyle: 'default',
+    onConfirm: () => {},
+  });
 
   const estateId = useUserStore((state) => state.estate_id) || '';
+  const email = useUserStore((state) => state.email) || '';
 
   const formatTierName = (tier: string) => {
     const map: Record<string, string> = { '1': 'One', '2': 'Two', '3': 'Three' };
@@ -112,24 +192,25 @@ export default function AnomalyDetectionPreviewScreen() {
 
   const [isLoading, setIsLoading] = useState(true);
 
+  const isAnomalyProduct = (name: string) => name.toLowerCase().includes('anomaly');
+
   const loadFeature = useCallback(
     async (id?: string) => {
       setIsLoading(true);
       try {
-        let targetId = id || params.featureId;
-        if (!targetId) {
-          const list = await getMarketplaceFeatures();
-          const anomalyTool = list.items?.find((item) =>
-            item.name.toLowerCase().includes('anomaly')
-          );
-          if (anomalyTool) {
-            targetId = anomalyTool.id;
-          }
-        }
+        const rawId = id || (typeof params.featureId === 'string' ? params.featureId : undefined);
+        const targetId = await resolveMarketplaceFeatureId(rawId, isAnomalyProduct);
 
         if (targetId) {
           const detail = await getMarketplaceFeatureById(targetId);
           setFeatureDetail(detail);
+          if (estateId && detail.tiers) {
+            detail.tiers.forEach((t) => {
+              if (t.feature_key && !t.is_free) {
+                prefetchAiQuotes(estateId, t.feature_key);
+              }
+            });
+          }
         }
       } catch (err: any) {
         console.log('Error loading feature details:', err?.message || err);
@@ -137,7 +218,7 @@ export default function AnomalyDetectionPreviewScreen() {
         setIsLoading(false);
       }
     },
-    [params.featureId]
+    [params.featureId, estateId]
   );
 
   useEffect(() => {
@@ -145,21 +226,31 @@ export default function AnomalyDetectionPreviewScreen() {
     async function init() {
       setIsLoading(true);
       try {
-        let targetId = params.featureId;
-        if (!targetId) {
-          const list = await getMarketplaceFeatures();
-          const anomalyTool = list.items?.find((item) =>
-            item.name.toLowerCase().includes('anomaly')
-          );
-          if (anomalyTool) {
-            targetId = anomalyTool.id;
+        if (estateId) {
+          try {
+            const stored = await AsyncStorage.getItem(`cancelledTiers-${estateId}`);
+            if (stored) {
+              setJustCancelledTiers(JSON.parse(stored));
+            }
+          } catch (e) {
+            console.error('Failed to load cancelled tiers from storage', e);
           }
         }
+
+        const rawId = typeof params.featureId === 'string' ? params.featureId : undefined;
+        const targetId = await resolveMarketplaceFeatureId(rawId, isAnomalyProduct);
 
         if (targetId && isMounted) {
           const detail = await getMarketplaceFeatureById(targetId);
           if (isMounted) {
             setFeatureDetail(detail);
+            if (estateId && detail.tiers) {
+              detail.tiers.forEach((t) => {
+                if (t.feature_key && !t.is_free) {
+                  prefetchAiQuotes(estateId, t.feature_key);
+                }
+              });
+            }
           }
         }
       } catch (err: any) {
@@ -174,45 +265,225 @@ export default function AnomalyDetectionPreviewScreen() {
     return () => {
       isMounted = false;
     };
-  }, [params.featureId]);
+  }, [params.featureId, estateId]);
 
-  const handleSubscribe = async (tierPayload: {
-    id?: string;
-    tier: string;
-    ai_feature_id?: string;
-    is_free?: boolean;
-    is_installed?: boolean;
-  }) => {
-    if (tierPayload.is_installed) {
-      router.push('/(protected)/(shared-screens)/ai-store/anomaly-detection/summary');
-      return;
-    }
-
-    if (!featureDetail?.id || !tierPayload.ai_feature_id) {
-      router.push('/(protected)/(shared-screens)/ai-store/anomaly-detection/summary');
+  const handleActivateFreeTier = async (tierPayload: MarketplaceTier) => {
+    if (!featureDetail?.id || (!tierPayload.ai_feature_id && !tierPayload.feature_key)) {
       return;
     }
 
     setSubscribingTierKey(tierPayload.tier);
     setIsSubscribing(true);
     try {
-      await subscribeMarketplaceFeature(featureDetail.id, {
-        ai_feature_id: tierPayload.ai_feature_id,
-        period_months: 1,
-      });
-      Alert.alert(
-        'Subscription Update',
-        tierPayload.is_free
-          ? 'Free feature tier activated successfully!'
-          : 'Subscription quote created successfully.'
-      );
+      if (tierPayload.feature_key) {
+        await installAiFeature(estateId, tierPayload.feature_key);
+      } else {
+        if (!tierPayload.ai_feature_id) {
+          Alert.alert('Error', 'Missing feature identifier.');
+          return;
+        }
+        await subscribeMarketplaceFeature(featureDetail.id, {
+          ai_feature_id: tierPayload.ai_feature_id,
+          period_months: 1,
+        });
+      }
+      Alert.alert('Success', 'Free feature tier activated successfully!');
       loadFeature(featureDetail.id);
     } catch (err: any) {
-      Alert.alert('Subscription Failed', err?.message || 'Failed to activate tier.');
+      Alert.alert('Activation Failed', err?.message || 'Failed to activate tier.');
     } finally {
       setIsSubscribing(false);
       setSubscribingTierKey(null);
     }
+  };
+
+  const handlePressActivate = (tierPayload: MarketplaceTier) => {
+    if (tierPayload.is_free) {
+      handleActivateFreeTier(tierPayload);
+      return;
+    }
+    setSelectedTierForActivation(tierPayload);
+    setActivationModalVisible(true);
+  };
+
+  const handleConfirmActivation = async (duration: AiCheckoutDuration, _quote: AiQuoteResponse) => {
+    if (!selectedTierForActivation?.feature_key) {
+      Alert.alert('Error', 'Feature key is missing for this tier.');
+      return;
+    }
+
+    setIsConfirmingActivation(true);
+    try {
+      const response = await initializeCheckout({
+        estate_id: estateId,
+        customer_email: email,
+        checkout_kind: 'ai_only',
+        ai_feature_keys: [selectedTierForActivation.feature_key],
+        ai_feature_ids: selectedTierForActivation.ai_feature_id
+          ? [selectedTierForActivation.ai_feature_id]
+          : undefined,
+        period_months: duration,
+      });
+
+      if (response?.authorization_url) {
+        setActivePaystackReference(response.paystack_reference);
+        setActiveCheckoutToken(response.checkout_token);
+        setActivationModalVisible(false);
+        setCheckoutUrl(response.authorization_url);
+        // Also remove from justCancelledTiers if they activate again
+        setJustCancelledTiers((prev) => {
+          const next = { ...prev, [selectedTierForActivation.tier]: false };
+          if (estateId)
+            AsyncStorage.setItem(`cancelledTiers-${estateId}`, JSON.stringify(next)).catch(
+              console.error
+            );
+          return next;
+        });
+      } else {
+        Alert.alert('Error', 'No checkout authorization URL returned.');
+      }
+    } catch (err: any) {
+      Alert.alert('Checkout Failed', err?.message || 'Failed to initialize checkout.');
+    } finally {
+      setIsConfirmingActivation(false);
+    }
+  };
+
+  const stopPolling = () => {
+    if (pollingTimerRef.current) {
+      clearTimeout(pollingTimerRef.current);
+      pollingTimerRef.current = null;
+    }
+  };
+
+  const startPaymentVerification = useCallback(
+    (reference: string, token?: string) => {
+      stopPolling();
+      setVerificationModalVisible(true);
+      setVerificationState('verifying');
+
+      let attempts = 0;
+      const maxAttempts = 15; // 30 seconds max polling
+
+      const poll = async () => {
+        attempts += 1;
+        try {
+          const res = await getCheckoutStatus(reference, token);
+          if (res.status === 'success' || res.status === 'completed' || !!res.paid_at) {
+            setVerificationState('success');
+            if (selectedTierForActivation?.tier) {
+              setJustPurchasedTiers((prev) => ({
+                ...prev,
+                [selectedTierForActivation.tier]: true,
+              }));
+            }
+            if (featureDetail?.id) {
+              loadFeature(featureDetail.id);
+            }
+            return;
+          } else if (res.status === 'failed') {
+            setVerificationState('failed');
+            return;
+          }
+        } catch (err) {
+          console.log('Checkout status poll error:', err);
+        }
+
+        if (attempts >= maxAttempts) {
+          setVerificationState('delayed');
+          if (featureDetail?.id) {
+            loadFeature(featureDetail.id);
+          }
+        } else {
+          pollingTimerRef.current = setTimeout(poll, 2000);
+        }
+      };
+
+      pollingTimerRef.current = setTimeout(poll, 1200);
+    },
+    [selectedTierForActivation?.tier, featureDetail?.id, loadFeature]
+  );
+
+  useEffect(() => {
+    return () => {
+      stopPolling();
+    };
+  }, []);
+
+  const handleRequestCloseCheckout = () => {
+    Alert.alert(
+      'Exit Checkout?',
+      'If you have already approved this transaction in your bank app, exiting now might disrupt confirmation. Are you sure you want to close this window?',
+      [
+        {
+          text: 'Stay on Payment',
+          style: 'cancel',
+        },
+        {
+          text: 'Exit Anyway',
+          style: 'destructive',
+          onPress: () => {
+            setCheckoutUrl(null);
+            setActivePaystackReference(null);
+            setActiveCheckoutToken(null);
+            if (featureDetail?.id) {
+              loadFeature(featureDetail.id);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleCancelSubscription = async (tierPayload: { tier: string }) => {
+    setConfirmModalConfig({
+      title: 'Cancel Subscription',
+      message: 'Are you sure you want to cancel your subscription to this AI feature?',
+      cancelText: 'No',
+      confirmText: 'Yes, Cancel',
+      confirmStyle: 'destructive',
+      onConfirm: async () => {
+        setConfirmModalVisible(false);
+        setCancelTierKey(tierPayload.tier);
+        setIsCanceling(true);
+        try {
+          await cancelMarketplaceSubscription(estateId);
+          Alert.alert('Success', 'Subscription cancelled successfully.');
+          setJustCancelledTiers((prev) => {
+            const next = { ...prev, [tierPayload.tier]: true };
+            if (estateId)
+              AsyncStorage.setItem(`cancelledTiers-${estateId}`, JSON.stringify(next)).catch(
+                console.error
+              );
+            return next;
+          });
+          loadFeature(featureDetail?.id);
+        } catch (err: any) {
+          const errorMessage = err?.message || 'Failed to cancel subscription.';
+          // If Paystack says it failed to disable, it's almost certainly because it's already cancelled
+          if (
+            errorMessage.toLowerCase().includes('disable subscription failed') ||
+            errorMessage.toLowerCase().includes('already')
+          ) {
+            setJustCancelledTiers((prev) => {
+              const next = { ...prev, [tierPayload.tier]: true };
+              if (estateId)
+                AsyncStorage.setItem(`cancelledTiers-${estateId}`, JSON.stringify(next)).catch(
+                  console.error
+                );
+              return next;
+            });
+            Alert.alert('Already Cancelled', 'Your subscription has already been cancelled.');
+          } else {
+            Alert.alert('Cancellation Failed', errorMessage);
+          }
+        } finally {
+          setIsCanceling(false);
+          setCancelTierKey(null);
+        }
+      },
+    });
+    setConfirmModalVisible(true);
   };
 
   const handleUninstall = async (tierPayload: {
@@ -229,38 +500,228 @@ export default function AnomalyDetectionPreviewScreen() {
       return;
     }
 
-    Alert.alert('Uninstall Feature', 'Are you sure you want to uninstall this feature?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Uninstall',
-        style: 'destructive',
-        onPress: async () => {
-          setUninstallingTierKey(tierPayload.tier);
-          setIsUninstalling(true);
-          try {
-            await uninstallAiFeature(estateId, tierPayload.feature_key!);
-            Alert.alert('Success', 'Feature uninstalled successfully.');
-            loadFeature(featureDetail?.id);
-          } catch (err: any) {
-            Alert.alert('Uninstall Failed', err?.message || 'Failed to uninstall feature.');
-          } finally {
-            setIsUninstalling(false);
-            setUninstallingTierKey(null);
-          }
-        },
+    setConfirmModalConfig({
+      title: 'Uninstall Feature',
+      message: 'Are you sure you want to uninstall this feature?',
+      cancelText: 'Cancel',
+      confirmText: 'Uninstall',
+      confirmStyle: 'destructive',
+      onConfirm: async () => {
+        setConfirmModalVisible(false);
+        setUninstallingTierKey(tierPayload.tier);
+        setIsUninstalling(true);
+        try {
+          await uninstallAiFeature(estateId, tierPayload.feature_key!);
+          Alert.alert('Success', 'Feature uninstalled successfully.');
+          loadFeature(featureDetail?.id);
+        } catch (err: any) {
+          Alert.alert('Uninstall Failed', err?.message || 'Failed to uninstall feature.');
+        } finally {
+          setIsUninstalling(false);
+          setUninstallingTierKey(null);
+        }
       },
-    ]);
+    });
+    setConfirmModalVisible(true);
   };
 
-  const tierOneApi = featureDetail?.tiers?.find(
-    (t) => t.tier.toLowerCase().includes('1') || t.tier.toLowerCase().includes('one')
-  );
-  const tierTwoApi = featureDetail?.tiers?.find(
-    (t) => t.tier.toLowerCase().includes('2') || t.tier.toLowerCase().includes('two')
-  );
-  const tierThreeApi = featureDetail?.tiers?.find(
-    (t) => t.tier.toLowerCase().includes('3') || t.tier.toLowerCase().includes('three')
-  );
+  const handleInstall = async (tierPayload: {
+    id?: string;
+    tier: string;
+    feature_key?: string | null;
+  }) => {
+    if (!estateId) {
+      Alert.alert('Error', 'Estate ID not found');
+      return;
+    }
+    if (!tierPayload.feature_key) {
+      Alert.alert('Error', 'Feature key is missing for this tier.');
+      return;
+    }
+
+    setInstallingTierKey(tierPayload.tier);
+    setIsInstalling(true);
+    try {
+      await installAiFeature(estateId, tierPayload.feature_key);
+      Alert.alert('Success', 'Feature installed successfully.');
+      setJustPurchasedTiers((prev) => ({ ...prev, [tierPayload.tier]: false }));
+      loadFeature(featureDetail?.id);
+    } catch (err: any) {
+      Alert.alert('Install Failed', err?.message || 'Failed to install feature.');
+    } finally {
+      setIsInstalling(false);
+      setInstallingTierKey(null);
+    }
+  };
+
+  const sortedTiers = featureDetail?.tiers ? sortMarketplaceTiers(featureDetail.tiers) : [];
+  const tierOneApi = sortedTiers[0];
+  const tierTwoApi = sortedTiers[1];
+  const tierThreeApi = sortedTiers[2];
+
+  const renderTierButtons = (tierApi: any, fallbackTier: string) => {
+    const api: MarketplaceTier = tierApi || { tier: fallbackTier };
+    const tierKey = api.tier || fallbackTier;
+    const isSubscribed =
+      api.status === 'active' ||
+      api.status === 'purchased' ||
+      api.status === 'subscribed' ||
+      api.status === 'installed' ||
+      api.purchased;
+    const isCancelledLocally = !!justCancelledTiers[tierKey];
+    const isInstalled = !!api.is_installed && !justPurchasedTiers[tierKey];
+    const isFromSubscriptionTier = api.payment_mode === 'subscription';
+
+    const showActivate = !isSubscribed;
+    const showCancel = isSubscribed && !api.is_free;
+    const showInstall = isSubscribed && !isInstalled;
+    const showUninstall = isInstalled;
+
+    return (
+      <View className="gap-3 mt-4">
+        {showActivate && (
+          <Pressable
+            disabled={isSubscribing}
+            onPress={() => handlePressActivate(api)}
+            className="w-full h-[48px] bg-[#113E55] rounded-full items-center justify-center"
+          >
+            {subscribingTierKey === tierKey ? (
+              <ActivityIndicator size="small" color="white" />
+            ) : (
+              <Text allowFontScaling={false} className="text-[14px] font-inter-medium text-white">
+                Activate
+              </Text>
+            )}
+          </Pressable>
+        )}
+
+        {showCancel && (
+          <View style={{ position: 'relative', width: '100%', zIndex: 10 }}>
+            {isFromSubscriptionTier && activeCancelBubbleTier === tierKey && (
+              <Animated.View
+                entering={FadeIn.duration(180)}
+                exiting={FadeOut.duration(180)}
+                pointerEvents="none"
+                style={{
+                  position: 'absolute',
+                  bottom: '100%',
+                  left: 0,
+                  right: 0,
+                  marginBottom: 6,
+                  alignItems: 'center',
+                  zIndex: 20,
+                  elevation: 5,
+                }}
+              >
+                <View
+                  style={{
+                    backgroundColor: '#113E55',
+                    borderRadius: 8,
+                    paddingHorizontal: 12,
+                    paddingVertical: 8,
+                    maxWidth: '92%',
+                  }}
+                >
+                  <Text
+                    allowFontScaling={false}
+                    style={{
+                      fontFamily: 'Inter_18pt-Medium',
+                      fontSize: 12,
+                      color: '#FFFFFF',
+                      textAlign: 'center',
+                      lineHeight: 16,
+                    }}
+                  >
+                    This feature is included in your estate subscription plan and cannot be
+                    cancelled separately.
+                  </Text>
+                </View>
+                <View
+                  style={{
+                    width: 10,
+                    height: 10,
+                    marginTop: -5,
+                    borderBottomRightRadius: 2,
+                    backgroundColor: '#113E55',
+                    transform: [{ rotate: '45deg' }],
+                  }}
+                />
+              </Animated.View>
+            )}
+
+            <Pressable
+              disabled={(!isFromSubscriptionTier && isCanceling) || isCancelledLocally}
+              style={{
+                opacity: isFromSubscriptionTier || isCancelledLocally ? 0.6 : 1,
+                backgroundColor: isFromSubscriptionTier ? '#E2E8F0' : '#113E55',
+              }}
+              className="w-full h-[48px] rounded-full items-center justify-center"
+              onPress={() => {
+                if (isFromSubscriptionTier) {
+                  showCancelInfoBubble(tierKey);
+                } else {
+                  handleCancelSubscription(api);
+                }
+              }}
+            >
+              {cancelTierKey === tierKey ? (
+                <ActivityIndicator
+                  size="small"
+                  color={isFromSubscriptionTier ? '#64748B' : 'white'}
+                />
+              ) : (
+                <Text
+                  allowFontScaling={false}
+                  className="text-[14px] font-inter-medium"
+                  style={{ color: isFromSubscriptionTier ? '#64748B' : '#FFFFFF' }}
+                >
+                  {isCancelledLocally ? 'Cancelled' : 'Cancel Subscription'}
+                </Text>
+              )}
+            </Pressable>
+          </View>
+        )}
+
+        {showInstall && (
+          <Pressable
+            disabled={isInstalling}
+            className="w-full h-[48px] bg-[#E3F5FC] rounded-full items-center justify-center"
+            onPress={() => handleInstall(api)}
+          >
+            {installingTierKey === api.tier ? (
+              <ActivityIndicator size="small" color="#113E55" />
+            ) : (
+              <Text
+                allowFontScaling={false}
+                className="text-[14px] font-inter-medium text-[#113E55]"
+              >
+                Install
+              </Text>
+            )}
+          </Pressable>
+        )}
+
+        {showUninstall && (
+          <Pressable
+            disabled={isUninstalling}
+            className="w-full h-[48px] bg-[#E3F5FC] rounded-full items-center justify-center"
+            onPress={() => handleUninstall(api)}
+          >
+            {uninstallingTierKey === api.tier ? (
+              <ActivityIndicator size="small" color="#113E55" />
+            ) : (
+              <Text
+                allowFontScaling={false}
+                className="text-[14px] font-inter-medium text-[#113E55]"
+              >
+                Uninstall
+              </Text>
+            )}
+          </Pressable>
+        )}
+      </View>
+    );
+  };
 
   const scrollViewRef = useRef<ScrollView>(null);
   const translateX = useSharedValue(params.tab === 'Result' ? TAB_WIDTH : 0);
@@ -689,54 +1150,7 @@ export default function AnomalyDetectionPreviewScreen() {
                           </Text>
                         </View>
                       ))}
-                      {tierOneApi?.is_installed ? (
-                        <View className="gap-3 mt-4">
-                          <Pressable
-                            className="w-full h-[48px] bg-[#113E55] rounded-full items-center justify-center"
-                            onPress={() => {}}
-                          >
-                            <Text
-                              allowFontScaling={false}
-                              className="text-[14px] font-inter-medium text-white"
-                            >
-                              Cancel Subscription
-                            </Text>
-                          </Pressable>
-                          <Pressable
-                            disabled={isUninstalling}
-                            className="w-full h-[48px] bg-[#E3F5FC] rounded-full items-center justify-center"
-                            onPress={() => handleUninstall(tierOneApi || { tier: 'Tier One' })}
-                          >
-                            {uninstallingTierKey === (tierOneApi?.tier || 'Tier One') ? (
-                              <ActivityIndicator size="small" color="#113E55" />
-                            ) : (
-                              <Text
-                                allowFontScaling={false}
-                                className="text-[14px] font-inter-medium text-[#113E55]"
-                              >
-                                Uninstall
-                              </Text>
-                            )}
-                          </Pressable>
-                        </View>
-                      ) : (
-                        <Pressable
-                          disabled={isSubscribing}
-                          onPress={() => handleSubscribe(tierOneApi || { tier: 'Tier One' })}
-                          className="w-full h-[48px] bg-[#113E55] rounded-full items-center justify-center mt-4"
-                        >
-                          {subscribingTierKey === (tierOneApi?.tier || 'Tier One') ? (
-                            <ActivityIndicator size="small" color="white" />
-                          ) : (
-                            <Text
-                              allowFontScaling={false}
-                              className="text-[14px] font-inter-medium text-white"
-                            >
-                              Activate
-                            </Text>
-                          )}
-                        </Pressable>
-                      )}
+                      {renderTierButtons(tierOneApi, 'Tier One')}
                     </View>
                   )}
                 </View>
@@ -819,54 +1233,7 @@ export default function AnomalyDetectionPreviewScreen() {
                           </Text>
                         </View>
                       ))}
-                      {tierTwoApi?.is_installed ? (
-                        <View className="gap-3 mt-4">
-                          <Pressable
-                            className="w-full h-[48px] bg-[#113E55] rounded-full items-center justify-center"
-                            onPress={() => {}}
-                          >
-                            <Text
-                              allowFontScaling={false}
-                              className="text-[14px] font-inter-medium text-white"
-                            >
-                              Cancel Subscription
-                            </Text>
-                          </Pressable>
-                          <Pressable
-                            disabled={isUninstalling}
-                            className="w-full h-[48px] bg-[#E3F5FC] rounded-full items-center justify-center"
-                            onPress={() => handleUninstall(tierTwoApi || { tier: 'Tier Two' })}
-                          >
-                            {uninstallingTierKey === (tierTwoApi?.tier || 'Tier Two') ? (
-                              <ActivityIndicator size="small" color="#113E55" />
-                            ) : (
-                              <Text
-                                allowFontScaling={false}
-                                className="text-[14px] font-inter-medium text-[#113E55]"
-                              >
-                                Uninstall
-                              </Text>
-                            )}
-                          </Pressable>
-                        </View>
-                      ) : (
-                        <Pressable
-                          disabled={isSubscribing}
-                          onPress={() => handleSubscribe(tierTwoApi || { tier: 'Tier Two' })}
-                          className="w-full h-[48px] bg-[#113E55] rounded-full items-center justify-center mt-4"
-                        >
-                          {subscribingTierKey === (tierTwoApi?.tier || 'Tier Two') ? (
-                            <ActivityIndicator size="small" color="white" />
-                          ) : (
-                            <Text
-                              allowFontScaling={false}
-                              className="text-[14px] font-inter-medium text-white"
-                            >
-                              Activate
-                            </Text>
-                          )}
-                        </Pressable>
-                      )}
+                      {renderTierButtons(tierTwoApi, 'Tier Two')}
                     </View>
                   )}
                 </View>
@@ -953,49 +1320,7 @@ export default function AnomalyDetectionPreviewScreen() {
                           </Text>
                         </View>
                       ))}
-                      {tierThreeApi?.is_installed ? (
-                        <View className="gap-3 mt-4">
-                          <Pressable
-                            className="w-full h-[48px] bg-[#113E55] rounded-full items-center justify-center"
-                            onPress={() => {}}
-                          >
-                            <Text
-                              allowFontScaling={false}
-                              className="text-[14px] font-inter-medium text-white"
-                            >
-                              Cancel Subscription
-                            </Text>
-                          </Pressable>
-                          <Pressable
-                            className="w-full h-[48px] bg-[#E3F5FC] rounded-full items-center justify-center"
-                            onPress={() => {}}
-                          >
-                            <Text
-                              allowFontScaling={false}
-                              className="text-[14px] font-inter-medium text-[#113E55]"
-                            >
-                              Uninstall
-                            </Text>
-                          </Pressable>
-                        </View>
-                      ) : (
-                        <Pressable
-                          disabled={isSubscribing}
-                          onPress={() => handleSubscribe(tierThreeApi || { tier: 'Tier Three' })}
-                          className="w-full h-[48px] bg-[#113E55] rounded-full items-center justify-center mt-4"
-                        >
-                          {subscribingTierKey === (tierThreeApi?.tier || 'Tier Three') ? (
-                            <ActivityIndicator size="small" color="white" />
-                          ) : (
-                            <Text
-                              allowFontScaling={false}
-                              className="text-[14px] font-inter-medium text-white"
-                            >
-                              Activate
-                            </Text>
-                          )}
-                        </Pressable>
-                      )}
+                      {renderTierButtons(tierThreeApi, 'Tier Three')}
                     </View>
                   )}
                 </View>
@@ -1015,6 +1340,225 @@ export default function AnomalyDetectionPreviewScreen() {
         visible={dataInsightVisible}
         onClose={() => setDataInsightVisible(false)}
         dataInsight={featureDetail?.data_insight}
+      />
+
+      <Modal
+        visible={!!checkoutUrl}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={handleRequestCloseCheckout}
+      >
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }} edges={['top']}>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: 16,
+              borderBottomWidth: 1,
+              borderBottomColor: '#EFF1F3',
+            }}
+          >
+            <Pressable
+              onPress={handleRequestCloseCheckout}
+              hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
+              style={{ padding: 8, marginLeft: -8 }}
+            >
+              <MaterialIcons name="close" size={24} color="#113E55" />
+            </Pressable>
+            <Text
+              allowFontScaling={false}
+              style={{ fontFamily: 'Inter_18pt-Medium', fontSize: 16, color: '#113E55' }}
+            >
+              Checkout
+            </Text>
+            <View style={{ width: 40 }} />
+          </View>
+          {checkoutUrl && (
+            <WebView
+              source={{ uri: checkoutUrl }}
+              style={{ flex: 1 }}
+              onNavigationStateChange={(navState) => {
+                const lowerUrl = navState.url.toLowerCase();
+                if (lowerUrl.includes('cancel') || lowerUrl.includes('cancelled')) {
+                  setCheckoutUrl(null);
+                  setActivePaystackReference(null);
+                  setActiveCheckoutToken(null);
+                  if (featureDetail?.id) {
+                    loadFeature(featureDetail.id);
+                  }
+                  return;
+                }
+
+                if (
+                  lowerUrl.includes('app.gatepassng.com') ||
+                  lowerUrl.includes('gatepassng.com/callback') ||
+                  lowerUrl.includes('callback') ||
+                  lowerUrl.includes('close')
+                ) {
+                  const ref = activePaystackReference;
+                  const token = activeCheckoutToken || undefined;
+                  setCheckoutUrl(null);
+                  if (ref) {
+                    startPaymentVerification(ref, token);
+                  } else if (featureDetail?.id) {
+                    loadFeature(featureDetail.id);
+                  }
+                }
+              }}
+              onMessage={(event) => {
+                try {
+                  const data = JSON.parse(event.nativeEvent.data);
+                  if (
+                    data?.event === 'close' ||
+                    data?.event === 'cancel' ||
+                    data?.status === 'cancelled'
+                  ) {
+                    setCheckoutUrl(null);
+                    setActivePaystackReference(null);
+                    setActiveCheckoutToken(null);
+                    if (featureDetail?.id) {
+                      loadFeature(featureDetail.id);
+                    }
+                  }
+                } catch {
+                  // Ignore non-json messages
+                }
+              }}
+            />
+          )}
+        </SafeAreaView>
+      </Modal>
+
+      <Modal
+        visible={confirmModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setConfirmModalVisible(false)}
+      >
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            justifyContent: 'center',
+            alignItems: 'center',
+            padding: 24,
+          }}
+        >
+          <View
+            style={{
+              width: '100%',
+              backgroundColor: '#F2F4F4',
+              borderRadius: 28,
+              padding: 24,
+              paddingTop: 28,
+              shadowColor: '#000',
+              shadowOpacity: 0.15,
+              shadowRadius: 15,
+              elevation: 10,
+            }}
+          >
+            <Text
+              allowFontScaling={false}
+              style={{
+                fontSize: 18,
+                fontFamily: 'Inter_18pt-SemiBold',
+                color: '#000',
+                marginBottom: 10,
+              }}
+            >
+              {confirmModalConfig.title}
+            </Text>
+            <Text
+              allowFontScaling={false}
+              style={{
+                fontSize: 15,
+                fontFamily: 'Inter_18pt-Regular',
+                color: '#666',
+                marginBottom: 28,
+                lineHeight: 22,
+              }}
+            >
+              {confirmModalConfig.message}
+            </Text>
+
+            <View style={{ flexDirection: 'row', gap: 14 }}>
+              <Pressable
+                onPress={() => setConfirmModalVisible(false)}
+                style={{
+                  flex: 1,
+                  backgroundColor: '#EBEBEB',
+                  height: 50,
+                  borderRadius: 25,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 3 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 6,
+                  elevation: 3,
+                }}
+              >
+                <Text
+                  allowFontScaling={false}
+                  style={{ fontSize: 16, fontFamily: 'Inter_18pt-Medium', color: '#000' }}
+                >
+                  {confirmModalConfig.cancelText}
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={confirmModalConfig.onConfirm}
+                style={{
+                  flex: 1,
+                  backgroundColor: '#EBEBEB',
+                  height: 50,
+                  borderRadius: 25,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 3 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 6,
+                  elevation: 3,
+                }}
+              >
+                <Text
+                  allowFontScaling={false}
+                  style={{
+                    fontSize: 16,
+                    fontFamily: 'Inter_18pt-Medium',
+                    color: confirmModalConfig.confirmStyle === 'destructive' ? '#FF3B30' : '#000',
+                  }}
+                >
+                  {confirmModalConfig.confirmText}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <ActivationQuoteModal
+        visible={activationModalVisible}
+        onClose={() => setActivationModalVisible(false)}
+        tier={selectedTierForActivation}
+        estateId={estateId}
+        onConfirm={handleConfirmActivation}
+        isConfirming={isConfirmingActivation}
+      />
+
+      <PaymentVerificationModal
+        visible={verificationModalVisible}
+        status={verificationState}
+        onClose={() => {
+          stopPolling();
+          setVerificationModalVisible(false);
+          setActivePaystackReference(null);
+          setActiveCheckoutToken(null);
+          if (featureDetail?.id) {
+            loadFeature(featureDetail.id);
+          }
+        }}
       />
     </Animated.View>
   );
