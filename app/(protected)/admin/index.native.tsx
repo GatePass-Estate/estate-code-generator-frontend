@@ -6,79 +6,48 @@ import {
   Image,
   RefreshControl,
   BackHandler,
+  StatusBar,
+  useWindowDimensions,
+  StyleSheet,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Stack, useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
-import Svg, { Circle, Ellipse, G, Path } from 'react-native-svg';
+import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
+import { LinearGradient } from 'expo-linear-gradient';
 import { getAllEstateUsers } from '@/src/lib/api/user';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AllUsers } from '@/src/types/user';
-import { sharedStyles } from '@/src/theme/styles';
-import Back from '@/src/components/mobile/Back';
 import icons from '@/src/constants/icons';
 import { getRoleIcon, isDataEqual } from '@/src/lib/helpers';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useUserStore } from '@/src/lib/stores/userStore';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useEstateEntitlements } from '@/src/lib/api/entitlements';
-import { useFeatureGate } from '@/src/hooks/usePlan';
+import {
+  useContactAdminNoticeStore,
+  useFeatureGate,
+  useUpgradePromptStore,
+} from '@/src/hooks/usePlan';
+import { useUserStore } from '@/src/lib/stores/userStore';
+import AdminToolsSvg from '@/src/assets/images/admintools.svg';
+import AdminResidentsSvg from '@/src/assets/images/adminresidents.svg';
+import AdminSecuritySvg from '@/src/assets/images/adminsecurity.svg';
+import AdminIncidentResponseSvg from '@/src/assets/images/adminincidentresponse.svg';
+import SeatsSvg from '@/src/assets/images/seats.svg';
+import SeatCapacitySheet from '@/src/components/mobile/SeatCapacitySheet';
 
-function ResidentsCardIcon() {
-  return (
-    <Svg width={30} height={30} viewBox="0 0 20 20">
-      <G fill="#F46036">
-        <Path
-          d="M3.889 11H2.5a.5.5 0 0 1-.33-.875l8.5-7.5a.5.5 0 0 1 .66 0l8.5 7.5a.5.5 0 0 1-.33.875h-1.389v7a.5.5 0 0 1-.5.5H4.39a.5.5 0 0 1-.5-.5z"
-          opacity={0.2}
-        />
-        <Path
-          fillRule="evenodd"
-          d="M1 10h1.389v7a.5.5 0 0 0 .5.5H16.11a.5.5 0 0 0 .5-.5v-7H18a.5.5 0 0 0 .33-.875l-8.5-7.5a.5.5 0 0 0-.66 0l-8.5 7.5A.5.5 0 0 0 1 10m1.889-1h-.567L9.5 2.667L16.678 9h-.567a.5.5 0 0 0-.5.5v7H3.39v-7a.5.5 0 0 0-.5-.5"
-          clipRule="evenodd"
-        />
-        <Path
-          fillRule="evenodd"
-          d="M10.708 11.5h-2.5a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h2.5a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1m-2.5 5v-4h2.5v4z"
-          clipRule="evenodd"
-        />
-      </G>
-    </Svg>
-  );
-}
-
-function TotalUsersCardIcon() {
-  return (
-    <Svg width={25} height={27} viewBox="0 0 25 27">
-      <Ellipse
-        cx={12.5}
-        cy={13.5}
-        rx={11.75}
-        ry={12.75}
-        fill="none"
-        stroke="#F6F7F7"
-        strokeWidth={1.5}
-      />
-      <Circle cx={12.5} cy={8.5} r={3.75} fill="none" stroke="#F6F7F7" strokeWidth={1.5} />
-      <Path
-        d="M3.6 21.75C6.15 18.45 9.1 16.75 12.5 16.75S18.85 18.45 21.4 21.75"
-        fill="none"
-        stroke="#F6F7F7"
-        strokeWidth={1.5}
-        strokeLinecap="butt"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
 export default function AdminUsersMobilePage() {
   const insets = useSafeAreaInsets();
+  const { width: screenWidth } = useWindowDimensions();
   const [users, setUsers] = useState<AllUsers>({ total: 0, page: 1, limit: 30, items: [] });
   const [refreshing, setRefreshing] = useState(false);
-  const [activeTool, setActiveTool] = useState<string | null>(null);
+  const [seatModalVisible, setSeatModalVisible] = useState(false);
   const router = useRouter();
   const navigation = useNavigation();
   const usersRef = useRef<AllUsers>(users);
-  const firstName = useUserStore((state) => state.first_name);
   const { data: estateEntitlements } = useEstateEntitlements();
+  const showUpgradePrompt = useUpgradePromptStore((s) => s.show);
+  const showContactAdminNotice = useContactAdminNoticeStore((s) => s.show);
+  const userRole = useUserStore((s) => s.role);
+
   const { requestAccessWhenReady: requestBroadcastAccess } = useFeatureGate('admin_broadcast', {
     notice: 'floating',
   });
@@ -91,8 +60,6 @@ export default function AdminUsersMobilePage() {
   const openingBroadcastRef = useRef(false);
   const openingIncidentReportRef = useRef(false);
 
-  // Check the plan before opening the form, so admins on a plan without broadcasts see the
-  // Upgrade Plan modal / Contact Admin notice here rather than after filling it in.
   const handleOpenBroadcast = useCallback(async () => {
     if (openingBroadcastRef.current) return;
     openingBroadcastRef.current = true;
@@ -196,269 +163,574 @@ export default function AdminUsersMobilePage() {
     users.role_summary?.security ?? users.items.filter((user) => user.role === 'security').length;
   const residentsCount =
     users.role_summary?.resident ?? users.items.filter((user) => user.role === 'resident').length;
+  const occupiedSeats = residentsCount + securityPersonnelCount;
   const totalUsersCount = users.total;
   const registeredUsersCount = users.total;
   const estateUserCapacity = estateEntitlements?.coveredUsers ?? null;
   const isRegistrationAtCapacity =
-    estateUserCapacity !== null && registeredUsersCount >= estateUserCapacity;
+    estateUserCapacity !== null && occupiedSeats >= estateUserCapacity;
   const limitedUsers = verifiedUsers.slice(0, 3);
-  const greetingName = firstName || 'Admin';
+
+  const handleOpenAddSeats = () => {
+    if (userRole === 'primary_admin') {
+      router.push('/admin/seats');
+    } else {
+      showContactAdminNotice(
+        'guest_management',
+        'Only the primary admin can manage seat capacity.'
+      );
+    }
+  };
+
+  const handleRegisterUser = () => {
+    if (isRegistrationAtCapacity) {
+      showUpgradePrompt('household_department_management');
+      return;
+    }
+    router.push('/admin/users/add');
+  };
+
+  const illustrationWidth = Math.min(screenWidth - 32, 340);
+  const illustrationHeight = Math.round(illustrationWidth * (246 / 353));
 
   return (
-    <SafeAreaView style={[sharedStyles.container, { backgroundColor: '#F6F7F7' }]}>
-      <Stack.Screen
-        options={{
-          headerShown: false,
+    <View style={{ flex: 1, backgroundColor: '#F6F7F7' }}>
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+      <Stack.Screen options={{ headerShown: false }} />
+
+      {/* Top Bounce Background for iOS */}
+      <View
+        style={{
+          position: 'absolute',
+          top: -500,
+          left: 0,
+          right: 0,
+          height: 500,
+          backgroundColor: '#14659B',
         }}
       />
 
-      <View style={{ paddingTop: Math.max(0, 88 - insets.top) }}>
-        <Back
-          type="short-arrow"
-          showText={false}
-          showBorder
-          borderSize={30}
-          leftOffset={-3}
-          iconStyle={{ width: 8.56, height: 12, top: 0 }}
-          onPress={handleBack}
-        />
-      </View>
-
       <ScrollView
-        style={{ marginHorizontal: -4 }}
-        contentContainerStyle={{ paddingTop: 22, paddingBottom: 24, paddingHorizontal: 4 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor="#FFFFFF"
+            colors={['#14659B']}
+          />
+        }
       >
-        <Text className="mb-8 h-[33px] text-[27.34px] leading-[27.34px] text-[#113E55] font-ubuntu-medium">
-          Hi {greetingName} !
-        </Text>
+        {/* Top Header with Gradient & Glow */}
+        <View style={{ position: 'relative' }}>
+          <LinearGradient
+            colors={['#14659B', '#1E6B9E', '#2C6492', '#4B8BAA', '#8EB6C8', '#F6F7F7', '#F6F7F7']}
+            locations={[0, 0.35, 0.76, 0.83, 0.87, 0.91, 1.0]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
 
-        <View className="mx-[-3px] mb-[8px] flex-row justify-between">
-          <View
-            className="relative h-[82px] rounded-[8px] border-[#F46036] bg-[#FFF8F5]"
-            style={{ width: '48.7%', borderWidth: 0.5 }}
-          >
-            <View className="absolute top-[26px]" style={{ left: '15.6%' }}>
-              <ResidentsCardIcon />
-            </View>
-            <Text
-              className="absolute top-[19px] h-[33px] w-[58px] text-center text-[34.18px] leading-[34.18px] text-[#F46036] font-ubuntu-medium"
-              style={{ left: '40.1%' }}
-            >
-              {residentsCount}
-            </Text>
-            <Text
-              className="absolute top-[54px] h-[11px] w-[50px] text-center text-[8.96px] leading-[8.96px] text-[#F46036] font-inter-medium"
-              style={{ left: '44.9%' }}
-            >
-              RESIDENTS
-            </Text>
-          </View>
+          {/* Radiant Glow in #1B998B behind illustration */}
+          <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" pointerEvents="none">
+            <Defs>
+              <RadialGradient id="adminGlow" cx="80%" cy="32%" rx="55%" ry="45%" fx="80%" fy="32%">
+                <Stop offset="0%" stopColor="#1B998B" stopOpacity="0.85" />
+                <Stop offset="55%" stopColor="#1B998B" stopOpacity="0.35" />
+                <Stop offset="100%" stopColor="#1B998B" stopOpacity="0" />
+              </RadialGradient>
+            </Defs>
+            <Rect x="0" y="0" width="100%" height="100%" fill="url(#adminGlow)" />
+          </Svg>
 
           <View
-            className="relative h-[82px] rounded-[8px] border-[#1B998B] bg-[#F4FFFE]"
-            style={{ width: '48.7%', borderWidth: 0.5 }}
+            style={{
+              paddingTop: Math.max(insets.top, 14),
+              paddingHorizontal: 16,
+              paddingBottom: 16,
+            }}
           >
-            <Image
-              source={icons.securityIcon}
-              className="absolute top-[26px] h-[30px] w-[30px]"
-              style={{ left: '16.2%' }}
-            />
-            <Text
-              className="absolute top-[19px] h-[34px] w-[58px] text-center text-[34.18px] leading-[34.18px] text-[#1B998B] font-ubuntu-medium"
-              style={{ left: '40.1%' }}
-            >
-              {securityPersonnelCount}
-            </Text>
-            <Text
-              className="absolute top-[56px] h-[11px] w-[101px] text-center text-[8.96px] leading-[8.96px] text-[#1B998B] font-inter-medium"
-              style={{ left: '14.4%' }}
-            >
-              SECURITY PERSONNEL
-            </Text>
-          </View>
-        </View>
-
-        <View className="relative mx-[-3px] mb-[40px] h-[82px] flex-row">
-          <View
-            className="relative h-[82px] flex-1 rounded-[8px] border-[#F6F7F7] bg-[#113E55]"
-            style={{ maxWidth: '48.7%', borderWidth: 0.5 }}
-          >
-            <View className="absolute left-[25px] top-[28px] h-[27px] w-[25px]">
-              <TotalUsersCardIcon />
-            </View>
-            <Text className="absolute left-[67px] top-[19px] h-[32px] w-[58px] text-center text-[34.18px] leading-[34.18px] text-[#F6F7F7] font-ubuntu-medium">
-              {totalUsersCount}
-            </Text>
-            <Text
-              className="absolute left-[65px] top-[56px] h-[11px] w-[61px] text-center text-[8.96px] leading-[8.96px] text-[#F6F7F7] font-inter-medium"
-              numberOfLines={1}
-            >
-              TOTAL USERS
-            </Text>
-          </View>
-
-          <View
-            className="absolute h-[82px] w-[82px] items-center justify-center"
-            style={{ left: '65.1%' }}
-          >
+            {/* Top Bar with Back and Add Seats */}
             <View
-              className="h-[60px] w-[60px] items-center justify-center rounded-full bg-[#EFF8FA]"
-              accessibilityLabel="Add user"
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: 8,
+                paddingHorizontal: 4,
+              }}
             >
-              <Feather name="plus" size={30} color="#113E55" />
-            </View>
-          </View>
-        </View>
-
-        <View
-          className="relative left-[-1px] mb-[46px] h-[66px] flex-row items-center justify-between rounded-[16px] px-[16px] py-[8px]"
-          style={{ backgroundColor: 'rgba(255, 255, 255, 0.7)' }}
-        >
-          <TouchableOpacity
-            className="h-[50px] w-[50px] items-center justify-center"
-            onPress={() => router.push('/admin/users/add')}
-            onPressIn={() => !isRegistrationAtCapacity && setActiveTool('register')}
-            onPressOut={() => setActiveTool(null)}
-            disabled={isRegistrationAtCapacity}
-            accessibilityState={{ disabled: isRegistrationAtCapacity }}
-            style={{
-              opacity: isRegistrationAtCapacity ? 0.35 : 1,
-              backgroundColor: activeTool === 'register' ? '#EFF8FA' : 'transparent',
-              borderRadius: 8,
-            }}
-          >
-            <Image source={icons.addUserIcon} style={{ width: 19.64, height: 19.64 }} />
-            <Text
-              className="mt-[4px] h-[12px] w-[64px] text-center text-[8.96px] leading-[8.96px] text-[#113E55] font-inter-medium"
-              numberOfLines={1}
-            >
-              Register User
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            className="h-[50px] w-[50px] items-center justify-center"
-            onPress={handleOpenBroadcast}
-            onPressIn={() => setActiveTool('broadcast')}
-            onPressOut={() => setActiveTool(null)}
-            style={{
-              backgroundColor: activeTool === 'broadcast' ? '#EFF8FA' : 'transparent',
-              borderRadius: 8,
-            }}
-          >
-            <Image source={icons.broadcastIcon} style={{ width: 19.64, height: 19.64 }} />
-            <Text
-              className="mt-[4px] h-[12px] w-[64px] text-center text-[8.96px] leading-[8.96px] text-[#113E55] font-inter-medium"
-              numberOfLines={1}
-            >
-              Broadcast
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            className="h-[50px] w-[50px] items-center justify-center"
-            onPress={() => router.push('/admin/edit-requests')}
-            onPressIn={() => setActiveTool('edit-requests')}
-            onPressOut={() => setActiveTool(null)}
-            style={{
-              backgroundColor: activeTool === 'edit-requests' ? '#EFF8FA' : 'transparent',
-              borderRadius: 8,
-            }}
-          >
-            <Image source={icons.editRequestIcon} style={{ width: 24, height: 24 }} />
-            <Text
-              className="mt-[4px] h-[12px] w-[64px] text-center text-[8.96px] leading-[8.96px] text-[#113E55] font-inter-medium"
-              numberOfLines={1}
-            >
-              Edit Requests
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            className="h-[50px] w-[50px] items-center justify-center"
-            onPress={handleOpenIncidentReport}
-            onPressIn={() => setActiveTool('incident-report')}
-            onPressOut={() => setActiveTool(null)}
-            style={{
-              backgroundColor: activeTool === 'incident-report' ? '#EFF8FA' : 'transparent',
-              borderRadius: 8,
-            }}
-          >
-            <Feather name="shield" size={24} color="#113E55" />
-            <Text
-              className="mt-[4px] h-[12px] w-[70px] text-center text-[8.96px] leading-[8.96px] text-[#113E55] font-inter-medium"
-              numberOfLines={1}
-            >
-              Incident Report
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        <View className="relative mb-[22px] h-[34px]">
-          <Text
-            className="absolute left-[5px] top-[8px] h-[26px] w-[110px] text-[21.88px] leading-[21.88px] text-[#878686] font-ubuntu-semibold"
-            numberOfLines={1}
-          >
-            All Users
-          </Text>
-          <TouchableOpacity
-            className="absolute right-[2px] top-0 h-[34px] w-[63px] items-center justify-center"
-            onPress={() => router.push('/admin/users/')}
-          >
-            <Text className="h-[15px] w-[47px] text-center text-[12px] leading-[12px] text-[#113E55] font-inter-semibold">
-              View All
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        <View>
-          {limitedUsers.length === 0 ? (
-            <View className="py-8 items-center">
-              <Text className="text-grey text-center text-md font-inter-regular">
-                No users at the moment
-              </Text>
-            </View>
-          ) : (
-            limitedUsers.map((item) => (
               <TouchableOpacity
-                key={item.id}
-                className="relative left-[-1px] mb-[4px] h-[52px] rounded-[16px]"
-                style={{ backgroundColor: 'rgba(255, 255, 255, 0.7)' }}
-                onPress={() =>
-                  router.push({
-                    pathname: '/(protected)/admin/users/[userId]',
-                    params: { userId: item.id!, userParam: JSON.stringify(item) },
-                  })
-                }
+                onPress={handleBack}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 18,
+                  backgroundColor: 'rgba(255, 255, 255, 0.25)',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
               >
-                <Image
-                  source={getRoleIcon(item.role)}
-                  style={{ position: 'absolute', left: 16, top: 14, width: 24, height: 24 }}
-                  resizeMode="contain"
-                />
-                <View className="absolute left-[56px] top-[8px] h-[36px] right-[56px]">
+                <Feather name="chevron-left" size={22} color="#FFFFFF" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handleOpenAddSeats}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                style={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.25)',
+                  borderColor: 'rgba(255, 255, 255, 0.35)',
+                  borderWidth: 1,
+                  borderRadius: 8,
+                  paddingHorizontal: 14,
+                  paddingVertical: 6,
+                }}
+              >
+                <Text
+                  allowFontScaling={false}
+                  style={{
+                    fontFamily: 'Inter_18pt-Medium',
+                    fontSize: 13,
+                    color: '#FFFFFF',
+                  }}
+                >
+                  Add Seats
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Hero Illustration */}
+            <View
+              style={{
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginVertical: 6,
+              }}
+            >
+              <AdminToolsSvg width={illustrationWidth} height={illustrationHeight} />
+            </View>
+
+            {/* 3 Metrics Pills */}
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 8,
+                marginTop: 12,
+              }}
+            >
+              {/* Residents */}
+              <TouchableOpacity
+                onPress={() =>
+                  router.push({ pathname: '/admin/users', params: { role: 'resident' } })
+                }
+                activeOpacity={0.8}
+                style={{
+                  flex: 1,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  backgroundColor: 'rgba(255, 255, 255, 0.18)',
+                  borderColor: 'rgba(255, 255, 255, 0.35)',
+                  borderWidth: 1,
+                  borderRadius: 14,
+                  paddingVertical: 10,
+                  paddingHorizontal: 10,
+                  gap: 8,
+                }}
+              >
+                <AdminResidentsSvg width={22} height={22} />
+                <View>
                   <Text
-                    className="h-[17px] text-[14px] leading-[14px] text-[#113E55] font-inter-light"
-                    numberOfLines={1}
+                    allowFontScaling={false}
+                    style={{
+                      fontFamily: 'UbuntuSans-SemiBold',
+                      fontSize: 21.88,
+                      color: '#FFFFFF',
+                      lineHeight: 22,
+                      letterSpacing: 0,
+                    }}
                   >
-                    {`${item.first_name} ${item.last_name}`}
+                    {residentsCount}
                   </Text>
                   <Text
-                    className="mt-[5px] h-[14px] text-[11.2px] leading-[11.2px] text-[#113E55] font-inter-regular"
-                    numberOfLines={1}
+                    allowFontScaling={false}
+                    style={{
+                      fontFamily: 'Inter_18pt-Medium',
+                      fontSize: 8.5,
+                      color: '#FFFFFF',
+                      letterSpacing: 0.5,
+                      marginTop: 2,
+                    }}
                   >
-                    {item.home_address}
+                    RESIDENTS
                   </Text>
-                </View>
-                <View className="absolute right-[16px] top-[14px] h-[24px] w-[24px] items-center justify-center">
-                  <Feather name="chevron-right" size={24} color="#113E55" />
                 </View>
               </TouchableOpacity>
-            ))
-          )}
+
+              {/* Security */}
+              <TouchableOpacity
+                onPress={() =>
+                  router.push({ pathname: '/admin/users', params: { role: 'security' } })
+                }
+                activeOpacity={0.8}
+                style={{
+                  flex: 1,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  backgroundColor: 'rgba(255, 255, 255, 0.18)',
+                  borderColor: 'rgba(255, 255, 255, 0.35)',
+                  borderWidth: 1,
+                  borderRadius: 14,
+                  paddingVertical: 10,
+                  paddingHorizontal: 10,
+                  gap: 8,
+                }}
+              >
+                <AdminSecuritySvg width={22} height={22} />
+                <View>
+                  <Text
+                    allowFontScaling={false}
+                    style={{
+                      fontFamily: 'UbuntuSans-SemiBold',
+                      fontSize: 21.88,
+                      color: '#FFFFFF',
+                      lineHeight: 22,
+                      letterSpacing: 0,
+                    }}
+                  >
+                    {securityPersonnelCount}
+                  </Text>
+                  <Text
+                    allowFontScaling={false}
+                    style={{
+                      fontFamily: 'Inter_18pt-Medium',
+                      fontSize: 8.5,
+                      color: '#FFFFFF',
+                      letterSpacing: 0.5,
+                      marginTop: 2,
+                    }}
+                  >
+                    SECURITY
+                  </Text>
+                </View>
+              </TouchableOpacity>
+
+              {/* Seats */}
+              <TouchableOpacity
+                onPress={() => setSeatModalVisible(true)}
+                activeOpacity={0.8}
+                style={{
+                  flex: 1,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  backgroundColor: 'rgba(255, 255, 255, 0.18)',
+                  borderColor: 'rgba(255, 255, 255, 0.35)',
+                  borderWidth: 1,
+                  borderRadius: 14,
+                  paddingVertical: 10,
+                  paddingHorizontal: 10,
+                  gap: 8,
+                }}
+              >
+                <SeatsSvg width={22} height={22} />
+                <View>
+                  <Text
+                    allowFontScaling={false}
+                    style={{
+                      fontFamily: 'UbuntuSans-SemiBold',
+                      fontSize: 21.88,
+                      color: '#FFFFFF',
+                      lineHeight: 22,
+                      letterSpacing: 0,
+                    }}
+                  >
+                    {estateUserCapacity ?? totalUsersCount}
+                  </Text>
+                  <Text
+                    allowFontScaling={false}
+                    style={{
+                      fontFamily: 'Inter_18pt-Medium',
+                      fontSize: 8.5,
+                      color: '#FFFFFF',
+                      letterSpacing: 0.5,
+                      marginTop: 2,
+                    }}
+                  >
+                    SEATS
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+
+            {/* Quick Actions Card (gradient stops at half of the card) */}
+            <View
+              style={{
+                backgroundColor: '#FFFFFF',
+                borderRadius: 18,
+                paddingVertical: 14,
+                paddingHorizontal: 12,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-around',
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.06,
+                shadowRadius: 10,
+                elevation: 3,
+                marginTop: 16,
+              }}
+            >
+              {/* Register User */}
+              <TouchableOpacity
+                style={{ alignItems: 'center', flex: 1 }}
+                onPress={handleRegisterUser}
+                hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+              >
+                <View
+                  style={{ width: 28, height: 28, alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <Image
+                    source={icons.addUserIcon}
+                    style={{ width: 22, height: 22 }}
+                    resizeMode="contain"
+                  />
+                </View>
+                <Text
+                  allowFontScaling={false}
+                  style={{
+                    fontFamily: 'Inter_18pt-Medium',
+                    fontSize: 10,
+                    color: '#113E55',
+                    marginTop: 6,
+                    textAlign: 'center',
+                  }}
+                  numberOfLines={1}
+                >
+                  Register User
+                </Text>
+              </TouchableOpacity>
+
+              {/* Broadcast (Greyed out for upgrade) */}
+              <TouchableOpacity
+                style={{ alignItems: 'center', flex: 1 }}
+                onPress={handleOpenBroadcast}
+                hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+              >
+                <View
+                  style={{ width: 28, height: 28, alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <Image
+                    source={icons.broadcastIcon}
+                    style={{ width: 22, height: 22, tintColor: '#9DA9AF', opacity: 0.6 }}
+                    resizeMode="contain"
+                  />
+                </View>
+                <Text
+                  allowFontScaling={false}
+                  style={{
+                    fontFamily: 'Inter_18pt-Medium',
+                    fontSize: 10,
+                    color: '#9DA9AF',
+                    marginTop: 6,
+                    textAlign: 'center',
+                  }}
+                  numberOfLines={1}
+                >
+                  Broadcast
+                </Text>
+              </TouchableOpacity>
+
+              {/* Edit Requests */}
+              <TouchableOpacity
+                style={{ alignItems: 'center', flex: 1 }}
+                onPress={() => router.push('/admin/edit-requests')}
+                hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+              >
+                <View
+                  style={{ width: 28, height: 28, alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <Image
+                    source={icons.editRequestIcon}
+                    style={{ width: 24, height: 24 }}
+                    resizeMode="contain"
+                  />
+                </View>
+                <Text
+                  allowFontScaling={false}
+                  style={{
+                    fontFamily: 'Inter_18pt-Medium',
+                    fontSize: 10,
+                    color: '#113E55',
+                    marginTop: 6,
+                    textAlign: 'center',
+                  }}
+                  numberOfLines={1}
+                >
+                  Edit Requests
+                </Text>
+              </TouchableOpacity>
+
+              {/* Incident Report */}
+              <TouchableOpacity
+                style={{ alignItems: 'center', flex: 1 }}
+                onPress={handleOpenIncidentReport}
+                hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+              >
+                <View
+                  style={{ width: 28, height: 28, alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <AdminIncidentResponseSvg width={24} height={24} />
+                </View>
+                <Text
+                  allowFontScaling={false}
+                  style={{
+                    fontFamily: 'Inter_18pt-Medium',
+                    fontSize: 10,
+                    color: '#113E55',
+                    marginTop: 6,
+                    textAlign: 'center',
+                  }}
+                  numberOfLines={1}
+                >
+                  Incident Report
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+
+        {/* Lower Content Section */}
+        <View style={{ paddingHorizontal: 16, marginTop: 8 }}>
+          {/* All Users Title & View All */}
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: 14,
+              paddingHorizontal: 4,
+            }}
+          >
+            <Text
+              allowFontScaling={false}
+              style={{
+                fontFamily: 'Ubuntu-SemiBold',
+                fontSize: 20,
+                color: '#7A868C',
+              }}
+            >
+              All Users
+            </Text>
+            <TouchableOpacity
+              onPress={() => router.push('/admin/users/')}
+              hitSlop={{ top: 8, bottom: 8, left: 10, right: 10 }}
+            >
+              <Text
+                allowFontScaling={false}
+                style={{
+                  fontFamily: 'Inter_18pt-SemiBold',
+                  fontSize: 13,
+                  color: '#113E55',
+                }}
+              >
+                View All
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Users List */}
+          <View>
+            {limitedUsers.length === 0 ? (
+              <View style={{ paddingVertical: 32, alignItems: 'center' }}>
+                <Text
+                  allowFontScaling={false}
+                  style={{
+                    fontFamily: 'Inter_18pt-Regular',
+                    fontSize: 14,
+                    color: '#8A9A9D',
+                    textAlign: 'center',
+                  }}
+                >
+                  No users at the moment
+                </Text>
+              </View>
+            ) : (
+              limitedUsers.map((item) => (
+                <TouchableOpacity
+                  key={item.id}
+                  style={{
+                    backgroundColor: '#FFFFFF',
+                    borderRadius: 16,
+                    paddingHorizontal: 16,
+                    paddingVertical: 14,
+                    marginBottom: 10,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    borderWidth: 1,
+                    borderColor: '#EFF1F3',
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.03,
+                    shadowRadius: 4,
+                    elevation: 1,
+                  }}
+                  onPress={() =>
+                    router.push({
+                      pathname: '/(protected)/admin/users/[userId]',
+                      params: { userId: item.id!, userParam: JSON.stringify(item) },
+                    })
+                  }
+                >
+                  <Image
+                    source={getRoleIcon(item.role)}
+                    style={{ width: 26, height: 26 }}
+                    resizeMode="contain"
+                  />
+                  <View style={{ flex: 1, marginLeft: 14, marginRight: 8 }}>
+                    <Text
+                      allowFontScaling={false}
+                      style={{
+                        fontFamily: 'Inter_18pt-Medium',
+                        fontSize: 14,
+                        color: '#113E55',
+                      }}
+                      numberOfLines={1}
+                    >
+                      {`${item.first_name} ${item.last_name}`}
+                    </Text>
+                    <Text
+                      allowFontScaling={false}
+                      style={{
+                        fontFamily: 'Inter_18pt-Regular',
+                        fontSize: 12,
+                        color: '#8A9A9D',
+                        marginTop: 4,
+                      }}
+                      numberOfLines={1}
+                    >
+                      {item.home_address || 'No address provided'}
+                    </Text>
+                  </View>
+                  <Feather name="chevron-right" size={20} color="#113E55" />
+                </TouchableOpacity>
+              ))
+            )}
+          </View>
         </View>
       </ScrollView>
-    </SafeAreaView>
+
+      {/* Seat Capacity Bottom Drawer Modal */}
+      <SeatCapacitySheet
+        visible={seatModalVisible}
+        onClose={() => setSeatModalVisible(false)}
+        currentCapacity={occupiedSeats}
+        maxCapacity={estateUserCapacity ?? totalUsersCount}
+        residentsCount={residentsCount}
+        securityPersonnelCount={securityPersonnelCount}
+      />
+    </View>
   );
 }
