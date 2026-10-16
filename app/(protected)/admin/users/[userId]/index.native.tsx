@@ -15,6 +15,7 @@ import {
   Image,
   Modal,
   Platform,
+  Pressable,
   ScrollView,
   Text,
   TouchableOpacity,
@@ -33,9 +34,11 @@ import {
   loadUserDocument,
   removeCachedUserDocument,
 } from '@/src/lib/userDocumentCache';
-import { Feather, FontAwesome5 } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import IdDocumentPdf from '@/src/components/mobile/IdDocumentPdf';
 import ResidentProfileFallback from '@/src/assets/icons/user-profile-placeholder.svg';
+import PrimaryAdminPromotionIcon from '@/src/assets/icons/primary-admin-promotion.svg';
+import PromotionCancelIcon from '@/src/assets/icons/promotion-cancel.svg';
 import { useAuthStore } from '@/src/lib/stores/authStore';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { useAuth } from '@/src/hooks/useAuthContext';
@@ -62,7 +65,7 @@ export default function SingleUserMobile() {
   const viewerRole = useAuthStore((state) => state.role);
   const viewerUserId = useUserStore((state) => state.user_id);
   const insets = useSafeAreaInsets();
-  const { width: screenWidth } = useWindowDimensions();
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const { userId, userParam } = useLocalSearchParams();
   const initialUser = parseUserParam(userParam, userId);
   const cachedPicture =
@@ -144,6 +147,12 @@ export default function SingleUserMobile() {
   const identificationPreviewHeight = identificationPreviewWidth * (138.18 / 211);
   const identificationExpandedHeight = 52 + identificationPreviewHeight + 11.82;
   const residentActionScale = profileContentWidth / 335;
+  const promotionCloseGap = Math.min(138, Math.max(24, screenHeight - 369));
+  const promotionOverlayHeight = 339 + promotionCloseGap + 32;
+  const promotionOverlayOffset = Math.min(
+    42,
+    Math.max(0, (screenHeight - promotionOverlayHeight) / 2)
+  );
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -394,7 +403,7 @@ export default function SingleUserMobile() {
           ? {
               title: 'Promote',
               message:
-                'This action promotes the user to primary admin, while revoking your primary admin rights.',
+                'Promoting this user will revoke your primary admin rights and sign you out. Are you sure you want to proceed?',
               button: 'Promote User',
             }
           : {
@@ -800,7 +809,7 @@ export default function SingleUserMobile() {
                       disabled={deactivating || processing}
                       accessibilityRole="button"
                       accessibilityLabel="Promote to Primary Admin"
-                      className="mt-2 h-12 items-center justify-center"
+                      className="mt-[6px] h-12 w-full max-w-[278px] self-center items-center justify-center"
                     >
                       <Text className="font-inter-semibold text-primary" style={{ fontSize: 11.2 }}>
                         Promote to Primary Admin
@@ -880,22 +889,37 @@ export default function SingleUserMobile() {
               <View
                 className={`flex-1 items-center justify-center ${pendingAction === 'transferPrimary' ? 'bg-black/80 px-[19px]' : 'bg-black/40 px-6'}`}
               >
+                {pendingAction === 'transferPrimary' && (
+                  <Pressable
+                    onPress={() => setPendingAction(null)}
+                    accessibilityRole="button"
+                    accessibilityLabel="Dismiss promotion"
+                    style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
+                  />
+                )}
                 {pendingAction === 'transferPrimary' ? (
-                  <View className="w-full items-center" style={{ transform: [{ translateY: 42 }] }}>
-                    <View className="h-[305px] w-full max-w-[337px] items-center rounded-[24px] border-[0.5px] border-[#CEE5ED] bg-white px-4 py-10">
-                      <FontAwesome5 name="user-shield" solid size={24} color="#E8794E" />
-                      <Text className="mt-2 text-center font-ubuntu-medium text-[27.34px] text-[#0A1F29]">
+                  <View
+                    pointerEvents="box-none"
+                    className="w-full items-center"
+                    style={{ transform: [{ translateY: promotionOverlayOffset }] }}
+                  >
+                    <View className="h-[339px] w-full max-w-[337px] items-center rounded-[24px] border-[0.5px] border-[#CEE5ED] bg-white px-4 py-10">
+                      <PrimaryAdminPromotionIcon width={40} height={40} />
+                      <Text className="mt-2 h-[33px] w-[169px] text-center font-ubuntu-medium text-[27.34px] leading-[33px] text-[#0A1F29]">
                         Promote
                       </Text>
-                      <Text className="mt-4 max-w-[257px] text-center font-inter-light text-[14px] leading-[17px] text-[#878686]">
+                      <Text className="mt-4 min-h-[51px] w-full max-w-[257px] text-center font-inter-light text-[14px] leading-[17px] text-[#878686]">
                         {confirmationCopy.message}
                       </Text>
                       <TouchableOpacity
                         onPress={() => void confirmProfileAction()}
                         accessibilityRole="button"
-                        className="mt-6 h-12 w-full max-w-[278px] items-center justify-center rounded-3xl bg-primary"
+                        className="mt-6 h-11 w-full max-w-[278px] items-center justify-center rounded-3xl border border-primary bg-primary"
                       >
-                        <Text className="font-inter-semibold text-[11.2px] text-white">
+                        <Text
+                          className="font-ubuntu-semibold text-[14px] leading-[17px] text-[#F6F7F7]"
+                          style={{ letterSpacing: -0.24 }}
+                        >
                           Promote User
                         </Text>
                       </TouchableOpacity>
@@ -904,9 +928,11 @@ export default function SingleUserMobile() {
                       onPress={() => setPendingAction(null)}
                       accessibilityRole="button"
                       accessibilityLabel="Cancel promotion"
-                      className="mt-[128px] h-10 w-10 items-center justify-center"
+                      hitSlop={6}
+                      className="h-8 w-8 items-center justify-center"
+                      style={{ marginTop: promotionCloseGap }}
                     >
-                      <Feather name="x-circle" size={24} color="#FFFFFF" />
+                      <PromotionCancelIcon width={32} height={32} />
                     </TouchableOpacity>
                   </View>
                 ) : (

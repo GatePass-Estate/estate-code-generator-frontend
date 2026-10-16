@@ -82,7 +82,7 @@ export default function UserTabBar({ state, descriptors, navigation }: UserTabBa
                 try {
                   const allowed = await requestIncidentReportAccess(() => navigation.isFocused());
                   if (!allowed || !navigation.isFocused()) return;
-                  if (role === 'admin') {
+                  if (role === 'admin' || role === 'primary_admin') {
                     router.push({ pathname: '/user/report/category', params: { returnTo } });
                   } else {
                     router.push({ pathname: '/user/report', params: { returnTo } });
