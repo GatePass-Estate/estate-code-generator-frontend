@@ -33,7 +33,8 @@ export function getProfileOnboardingStep(
   hasIdentification: boolean,
   hasPhoto: boolean
 ): ProfileOnboardingStep {
-  if (!hasIdentification) return 'id';
+  // Photo first (1/2), then the ID (2/2).
   if (!hasPhoto) return 'photo';
+  if (!hasIdentification) return 'id';
   return null;
 }

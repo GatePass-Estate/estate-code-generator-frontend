@@ -10,7 +10,7 @@ import {
   Image,
   TouchableOpacity,
 } from 'react-native';
-import { router, Stack, useNavigation } from 'expo-router';
+import { router, Stack, useLocalSearchParams, useNavigation } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -75,6 +75,7 @@ const ONBOARDING_COPY: Record<
 
 export default function ProfileScreen() {
   const navigation = useNavigation();
+  const { verify } = useLocalSearchParams<{ verify?: string }>();
   const {
     first_name,
     last_name,
@@ -162,6 +163,14 @@ export default function ProfileScreen() {
     if (!user_id) return;
     syncDocuments(user_id);
   }, [user_id, syncDocuments]);
+
+  // Opened from the Complete KYC modal: show the 2/2 ID step until an ID is uploaded.
+  const [verifyIdFirst, setVerifyIdFirst] = useState(false);
+  useEffect(() => {
+    if (verify !== 'id') return;
+    setVerifyIdFirst(true);
+    router.setParams({ verify: undefined });
+  }, [verify]);
 
   useEffect(() => {
     if (showAccessCode) fetchMyCode();
@@ -287,6 +296,7 @@ export default function ProfileScreen() {
 
       setShowIdentificationSheet(false);
       setUploadingIdentification(false);
+      setVerifyIdFirst(false);
 
       // Refresh authenticated preview in the background; local URI is already shown.
       if (result.document_status === 'pending' && result.document_id) {
@@ -397,7 +407,10 @@ export default function ProfileScreen() {
     identificationUri || identificationPendingRequest || onboardingCache?.hasIdentification
   );
   const hasPhoto = Boolean(profilePhotoUri || onboardingCache?.hasPhoto);
-  const onboardingStep = getProfileOnboardingStep(hasIdentification, hasPhoto);
+  const onboardingStep =
+    verifyIdFirst && !identificationPendingRequest
+      ? 'id'
+      : getProfileOnboardingStep(hasIdentification, hasPhoto);
   const isProfileLocked = onboardingStep !== null && !uploadingPhoto && !uploadingIdentification;
 
   const identificationDisplayValue = identificationPendingRequest
@@ -477,190 +490,194 @@ export default function ProfileScreen() {
         </Text>
       </View>
 
-      {showAccessCode ? (
-        <View className="mt-8 flex-row items-stretch justify-between rounded-[16px] bg-white p-4">
-          <View className="flex-1 justify-between gap-2 ">
-            <View className="gap-2">
-              <Text className="text-[11px] font-inter-regular text-[#6C6C6C]">My Access Code</Text>
+      <View pointerEvents={isPreview ? 'none' : 'auto'}>
+        {showAccessCode ? (
+          <View className="mt-8 flex-row items-stretch justify-between rounded-[16px] bg-white p-4">
+            <View className="flex-1 justify-between gap-2 ">
+              <View className="gap-2">
+                <Text className="text-[11px] font-inter-regular text-[#6C6C6C]">
+                  My Access Code
+                </Text>
 
-              <View
-                className="flex-row items-center gap-1"
-                style={{ minHeight: isPreview ? 28 : 22 }}
-              >
-                {!isPreview ? (
-                  <>
-                    <TouchableOpacity
-                      onLongPress={handleCopyCode}
-                      delayLongPress={400}
-                      activeOpacity={0.6}
-                      disabled={!canCopyCode || loading}
-                      hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
-                      style={{ minHeight: 28, justifyContent: 'center' }}
-                    >
-                      <View
-                        style={
-                          !loading && codeDisplay === '******'
-                            ? { transform: [{ translateY: 5 }] }
-                            : undefined
-                        }
+                <View
+                  className="flex-row items-center gap-1"
+                  style={{ minHeight: isPreview ? 28 : 22 }}
+                >
+                  {!isPreview ? (
+                    <>
+                      <TouchableOpacity
+                        onLongPress={handleCopyCode}
+                        delayLongPress={400}
+                        activeOpacity={0.6}
+                        disabled={!canCopyCode || loading}
+                        hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+                        style={{ minHeight: 28, justifyContent: 'center' }}
                       >
-                        <Text
-                          className={`text-[24px]   ${
+                        <View
+                          style={
                             !loading && codeDisplay === '******'
-                              ? 'font-ubuntu-normal text-[#113E55]/90 tracking-[3.5px] '
-                              : 'font-ubuntu-medium text-primary'
-                          }`}
-                          style={{
-                            lineHeight: 28,
-                            includeFontPadding: false,
-                            minWidth: 109,
-                          }}
+                              ? { transform: [{ translateY: 5 }] }
+                              : undefined
+                          }
                         >
-                          {loading ? '------' : codeDisplay}
-                        </Text>
+                          <Text
+                            className={`text-[24px]   ${
+                              !loading && codeDisplay === '******'
+                                ? 'font-ubuntu-normal text-[#113E55]/90 tracking-[3.5px] '
+                                : 'font-ubuntu-medium text-primary'
+                            }`}
+                            style={{
+                              lineHeight: 28,
+                              includeFontPadding: false,
+                              minWidth: 109,
+                            }}
+                          >
+                            {loading ? '------' : codeDisplay}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                      <View className="h-8 w-8 items-center justify-center">
+                        {code && !noCode && !loading ? (
+                          <Pressable
+                            onPress={() => setCodeVisible((visible) => !visible)}
+                            hitSlop={8}
+                            className="h-8 w-8 items-center justify-center rounded-full bg-[#E0FFFC80]"
+                          >
+                            {codeVisible ? (
+                              <EyeIcon width={18} height={18} />
+                            ) : (
+                              <HiddenEyeIcon width={18} height={18} />
+                            )}
+                          </Pressable>
+                        ) : null}
                       </View>
-                    </TouchableOpacity>
-                    <View className="h-8 w-8 items-center justify-center">
-                      {code && !noCode && !loading ? (
-                        <Pressable
-                          onPress={() => setCodeVisible((visible) => !visible)}
-                          hitSlop={8}
-                          className="h-8 w-8 items-center justify-center rounded-full bg-[#E0FFFC80]"
-                        >
-                          {codeVisible ? (
-                            <EyeIcon width={18} height={18} />
-                          ) : (
-                            <HiddenEyeIcon width={18} height={18} />
-                          )}
-                        </Pressable>
-                      ) : null}
-                    </View>
-                  </>
-                ) : null}
+                    </>
+                  ) : null}
+                </View>
+              </View>
+
+              <View>
+                {isPreview || loading ? (
+                  <Text className="text-[11px] font-inter-regular text-[#6C6C6C]">
+                    Code expires on —
+                  </Text>
+                ) : formattedDate ? (
+                  <Text className="text-[11px] font-inter-regular text-[#6C6C6C]">
+                    Code expires on {formattedDate}
+                  </Text>
+                ) : noCode ? (
+                  <Text className="text-[11px] font-inter-regular text-grey">
+                    You do not have a code yet. Tap refresh to generate one.
+                  </Text>
+                ) : (
+                  <Text className="text-[11px] font-inter-regular text-[#6C6C6C]">
+                    Code expires on —
+                  </Text>
+                )}
               </View>
             </View>
 
-            <View>
-              {isPreview || loading ? (
-                <Text className="text-[11px] font-inter-regular text-[#6C6C6C]">
-                  Code expires on —
-                </Text>
-              ) : formattedDate ? (
-                <Text className="text-[11px] font-inter-regular text-[#6C6C6C]">
-                  Code expires on {formattedDate}
-                </Text>
-              ) : noCode ? (
-                <Text className="text-[11px] font-inter-regular text-grey">
-                  You do not have a code yet. Tap refresh to generate one.
-                </Text>
-              ) : (
-                <Text className="text-[11px] font-inter-regular text-[#6C6C6C]">
-                  Code expires on —
-                </Text>
-              )}
-            </View>
-          </View>
-
-          <View className="items-end justify-between">
-            <Pressable onPress={() => router.push('/profile/access-log')} hitSlop={8}>
-              <Text className="text-[11px] font-inter-semibold text-primary">View History</Text>
-            </Pressable>
-
-            <View className="flex-row gap-3">
-              <Pressable
-                onPress={handleGenerateCode}
-                disabled={loading}
-                hitSlop={8}
-                className="h-[30px] w-[30px] items-center justify-center rounded-full bg-[#E0FFFC80]"
-              >
-                {loading ? (
-                  <ActivityIndicator size="small" color="#1B998B" />
-                ) : (
-                  <RefreshIcon width={16} height={16} />
-                )}
+            <View className="items-end justify-between">
+              <Pressable onPress={() => router.push('/profile/access-log')} hitSlop={8}>
+                <Text className="text-[11px] font-inter-semibold text-primary">View History</Text>
               </Pressable>
 
-              <Pressable
-                onPress={() => {
-                  if (code) setShowQrModal(true);
-                  else handleGenerateCode();
-                }}
-                className="h-[30px] w-[30px] items-center justify-center rounded-full bg-[#E0FFFC80]"
-                disabled={loading}
-                hitSlop={8}
-              >
-                <QrCodeIcon width={20} height={20} />
-              </Pressable>
+              <View className="flex-row gap-3">
+                <Pressable
+                  onPress={handleGenerateCode}
+                  disabled={loading}
+                  hitSlop={8}
+                  className="h-[30px] w-[30px] items-center justify-center rounded-full bg-[#E0FFFC80]"
+                >
+                  {loading ? (
+                    <ActivityIndicator size="small" color="#1B998B" />
+                  ) : (
+                    <RefreshIcon width={16} height={16} />
+                  )}
+                </Pressable>
+
+                <Pressable
+                  onPress={() => {
+                    if (code) setShowQrModal(true);
+                    else handleGenerateCode();
+                  }}
+                  className="h-[30px] w-[30px] items-center justify-center rounded-full bg-[#E0FFFC80]"
+                  disabled={loading}
+                  hitSlop={8}
+                >
+                  <QrCodeIcon width={20} height={20} />
+                </Pressable>
+              </View>
             </View>
           </View>
-        </View>
-      ) : null}
+        ) : null}
 
-      <View className="mt-4 flex-col gap-2 rounded-[16px] bg-white py-4 mb-6">
-        <ProfileFieldRow
-          label="First Name"
-          value={first_name}
-          pendingValue={pendingDetails.firstName.newValue}
-          onEdit={openEditProfile}
-          onPendingPress={() => openPendingRequestSheet('firstName', 'First Name')}
-          hasPendingRequest={pendingFields.firstName}
-        />
-        <ProfileFieldRow
-          label="Last Name"
-          value={last_name}
-          pendingValue={pendingDetails.lastName.newValue}
-          onEdit={openEditProfile}
-          onPendingPress={() => openPendingRequestSheet('lastName', 'Last Name')}
-          hasPendingRequest={pendingFields.lastName}
-        />
-        <ProfileFieldRow label="Phone Number" value={phone_number} onEdit={openEditProfile} />
-        <ProfileFieldRow
-          label="Email Address"
-          value={email}
-          pendingValue={pendingDetails.email.newValue}
-          onEdit={openEditProfile}
-          onPendingPress={() => openPendingRequestSheet('email', 'Email Address')}
-          hasPendingRequest={pendingFields.email}
-          isLast
-        />
-      </View>
-
-      <View className=" flex-col gap-2 rounded-[16px] bg-white py-4">
-        <ProfileFieldRow label="Household" value={household_name ?? null} />
-        <ProfileFieldRow label="Primary Resident" value={household_primary_resident ?? null} />
-        <ProfileFieldRow
-          label="Address"
-          value={home_address}
-          pendingValue={pendingDetails.address.newValue}
-          onEdit={openEditProfile}
-          onPendingPress={() => openPendingRequestSheet('address', 'Address')}
-          hasPendingRequest={pendingFields.address}
-          isLast
-        />
-      </View>
-
-      <View className="mt-6 flex-row items-center gap-3.5">
-        <View className="flex-1 rounded-[16px] bg-white">
+        <View className="mt-4 flex-col gap-2 rounded-[16px] bg-white py-4 mb-6">
           <ProfileFieldRow
-            label="Identification"
-            value={identificationDisplayValue}
-            pendingValue={identificationPendingRequest?.newFileName}
-            onEdit={handleIdentificationPress}
-            onPendingPress={() => {
-              if (identificationPendingRequest) {
-                openPendingSheet(identificationPendingRequest);
-              }
-            }}
-            hasPendingRequest={!!identificationPendingRequest}
+            label="First Name"
+            value={first_name}
+            pendingValue={pendingDetails.firstName.newValue}
+            onEdit={openEditProfile}
+            onPendingPress={() => openPendingRequestSheet('firstName', 'First Name')}
+            hasPendingRequest={pendingFields.firstName}
+          />
+          <ProfileFieldRow
+            label="Last Name"
+            value={last_name}
+            pendingValue={pendingDetails.lastName.newValue}
+            onEdit={openEditProfile}
+            onPendingPress={() => openPendingRequestSheet('lastName', 'Last Name')}
+            hasPendingRequest={pendingFields.lastName}
+          />
+          <ProfileFieldRow label="Phone Number" value={phone_number} onEdit={openEditProfile} />
+          <ProfileFieldRow
+            label="Email Address"
+            value={email}
+            pendingValue={pendingDetails.email.newValue}
+            onEdit={openEditProfile}
+            onPendingPress={() => openPendingRequestSheet('email', 'Email Address')}
+            hasPendingRequest={pendingFields.email}
+            isLast
           />
         </View>
 
-        <Pressable
-          onPress={handleIdentificationDownload}
-          className="h-10 w-10 items-center justify-center rounded-full bg-white"
-        >
-          <DownloadIcon width={10} height={12} />
-        </Pressable>
+        <View className=" flex-col gap-2 rounded-[16px] bg-white py-4">
+          <ProfileFieldRow label="Household" value={household_name ?? null} />
+          <ProfileFieldRow label="Primary Resident" value={household_primary_resident ?? null} />
+          <ProfileFieldRow
+            label="Address"
+            value={home_address}
+            pendingValue={pendingDetails.address.newValue}
+            onEdit={openEditProfile}
+            onPendingPress={() => openPendingRequestSheet('address', 'Address')}
+            hasPendingRequest={pendingFields.address}
+            isLast
+          />
+        </View>
+
+        <View className="mt-6 flex-row items-center gap-3.5">
+          <View className="flex-1 rounded-[16px] bg-white">
+            <ProfileFieldRow
+              label="Identification"
+              value={identificationDisplayValue}
+              pendingValue={identificationPendingRequest?.newFileName}
+              onEdit={handleIdentificationPress}
+              onPendingPress={() => {
+                if (identificationPendingRequest) {
+                  openPendingSheet(identificationPendingRequest);
+                }
+              }}
+              hasPendingRequest={!!identificationPendingRequest}
+            />
+          </View>
+
+          <Pressable
+            onPress={handleIdentificationDownload}
+            className="h-10 w-10 items-center justify-center rounded-full bg-white"
+          >
+            <DownloadIcon width={10} height={12} />
+          </Pressable>
+        </View>
       </View>
     </>
   );
@@ -687,7 +704,7 @@ export default function ProfileScreen() {
 
           {isProfileLocked ? (
             <Text className="text-[11px] font-inter-regular text-[#0A1F29]">
-              {onboardingStep === 'id' ? '1/2' : '2/2'}
+              {onboardingStep === 'photo' ? '1/2' : '2/2'}
             </Text>
           ) : (
             <View className="h-[30px] w-[30px]" />
@@ -703,7 +720,8 @@ export default function ProfileScreen() {
               />
             </View>
 
-            <View style={{ opacity: 0.35 }} pointerEvents="none" className="mt-6 w-full">
+            {/* Only the avatar stays tappable, so the photo can be uploaded before the ID. */}
+            <View style={{ opacity: 0.35 }} pointerEvents="box-none" className="mt-6 w-full">
               {renderProfileContent(true)}
             </View>
           </View>
