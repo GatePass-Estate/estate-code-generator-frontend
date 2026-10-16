@@ -16,6 +16,12 @@ import Pf2Svg from '@/src/assets/icons/pf_2.svg';
 import Pf3Svg from '@/src/assets/icons/pf_3.svg';
 import { FeatureDownloadIcon, FeatureUsersIcon, RatingStarIcon } from '@/src/assets/svgs';
 import RatingModal from '@/src/components/anomaly/modals/RatingModal';
+import ActivationQuoteModal, {
+  prefetchAiQuotes,
+} from '@/src/components/anomaly/modals/ActivationQuoteModal';
+import PaymentVerificationModal, {
+  PaymentVerificationState,
+} from '@/src/components/anomaly/modals/PaymentVerificationModal';
 import IncidentDataInsightModal from '@/src/components/incident/IncidentDataInsightModal';
 import IncidentResultView from '@/src/components/incident/IncidentResultView';
 import SubscriptionTierCard from '@/src/components/incident/SubscriptionTierCard';
@@ -23,6 +29,7 @@ import AnimatedPillTabs from '@/src/components/mobile/AnimatedPillTabs';
 import {
   formatTierLabel,
   formatTierSubtitle,
+  getCheckoutStatus,
   getMarketplaceFeatureById,
   initializeCheckout,
   installAiFeature,
@@ -34,7 +41,11 @@ import {
   cancelMarketplaceSubscription,
 } from '@/src/lib/api/aiMarketplace';
 import { useUserStore } from '@/src/lib/stores/userStore';
-import { MarketplaceDetailResponse, MarketplaceTier } from '@/src/types/aiMarketplace';
+import {
+  AiCheckoutDuration,
+  MarketplaceDetailResponse,
+  MarketplaceTier,
+} from '@/src/types/aiMarketplace';
 
 const isIncidentProduct = (name: string) => name.toLowerCase().includes('incident');
 
@@ -70,6 +81,16 @@ export default function IncidentReportPreviewScreen() {
   const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
   const [justPurchasedTiers, setJustPurchasedTiers] = useState<Record<string, boolean>>({});
   const [justCancelledTiers, setJustCancelledTiers] = useState<Record<string, boolean>>({});
+  // Duration quote → Paystack → payment check, the same flow as the anomaly product.
+  const [activationModalVisible, setActivationModalVisible] = useState(false);
+  const [selectedTierForActivation, setSelectedTierForActivation] =
+    useState<MarketplaceTier | null>(null);
+  const [isConfirmingActivation, setIsConfirmingActivation] = useState(false);
+  const [activePaystackReference, setActivePaystackReference] = useState<string | null>(null);
+  const [activeCheckoutToken, setActiveCheckoutToken] = useState<string | null>(null);
+  const [verificationModalVisible, setVerificationModalVisible] = useState(false);
+  const [verificationState, setVerificationState] = useState<PaymentVerificationState>('verifying');
+  const pollingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [confirmModalVisible, setConfirmModalVisible] = useState(false);
   const [confirmModalConfig, setConfirmModalConfig] = useState<{
@@ -110,6 +131,11 @@ export default function IncidentReportPreviewScreen() {
 
         const detail = await getMarketplaceFeatureById(targetId);
         setFeatureDetail(detail);
+        if (estateId) {
+          detail.tiers?.forEach((t) => {
+            if (t.feature_key && !t.is_free) prefetchAiQuotes(estateId, t.feature_key);
+          });
+        }
         const sorted = sortMarketplaceTiers(detail.tiers ?? []);
         setExpandedTier((prev) =>
           prev && sorted.some((tier) => tier.tier === prev) ? prev : null
@@ -122,7 +148,7 @@ export default function IncidentReportPreviewScreen() {
         setIsLoading(false);
       }
     },
-    [params.featureId]
+    [params.featureId, estateId]
   );
 
   useEffect(() => {
@@ -199,21 +225,9 @@ export default function IncidentReportPreviewScreen() {
         Alert.alert('Success', 'Free feature tier activated successfully!');
         await refreshAfterTierChange();
       } else if (tier.feature_key) {
-        const response = await initializeCheckout({
-          estate_id: estateId || '',
-          customer_email: email,
-          checkout_kind: 'ai_only',
-          ai_feature_keys: tier.feature_key ? [tier.feature_key] : undefined,
-          ai_feature_ids: tier.ai_feature_id ? [tier.ai_feature_id] : undefined,
-          period_months: 1,
-        });
-
-        if (response?.authorization_url) {
-          setCheckoutUrl(response.authorization_url);
-          // Shows Install (not Uninstall) for this tier once checkout closes.
-          setJustPurchasedTiers((prev) => ({ ...prev, [tier.tier]: true }));
-          markTierCancelled(tier.tier, false);
-        }
+        // Paid tier: pick a duration and see the price before Paystack.
+        setSelectedTierForActivation(tier);
+        setActivationModalVisible(true);
       } else {
         await subscribeMarketplaceFeature(featureDetail.id, {
           ai_feature_id: tier.ai_feature_id,
@@ -227,6 +241,107 @@ export default function IncidentReportPreviewScreen() {
       setIsSubscribing(false);
       setSubscribingTierKey(null);
     }
+  };
+
+  const handleConfirmActivation = async (duration: AiCheckoutDuration) => {
+    const tier = selectedTierForActivation;
+    if (!tier?.feature_key) {
+      Alert.alert('Error', 'Feature key is missing for this tier.');
+      return;
+    }
+
+    setIsConfirmingActivation(true);
+    try {
+      const response = await initializeCheckout({
+        estate_id: estateId || '',
+        customer_email: email,
+        checkout_kind: 'ai_only',
+        ai_feature_keys: [tier.feature_key],
+        ai_feature_ids: tier.ai_feature_id ? [tier.ai_feature_id] : undefined,
+        period_months: duration,
+      });
+
+      if (response?.authorization_url) {
+        setActivePaystackReference(response.paystack_reference);
+        setActiveCheckoutToken(response.checkout_token);
+        setActivationModalVisible(false);
+        setCheckoutUrl(response.authorization_url);
+        markTierCancelled(tier.tier, false);
+      } else {
+        Alert.alert('Error', 'No checkout authorization URL returned.');
+      }
+    } catch (err: any) {
+      Alert.alert('Checkout Failed', err?.message || 'Failed to initialize checkout.');
+    } finally {
+      setIsConfirmingActivation(false);
+    }
+  };
+
+  const stopPolling = () => {
+    if (pollingTimerRef.current) {
+      clearTimeout(pollingTimerRef.current);
+      pollingTimerRef.current = null;
+    }
+  };
+
+  useEffect(() => stopPolling, []);
+
+  /** Polls the Paystack reference until it settles (about 30 seconds at most). */
+  const startPaymentVerification = (reference: string, token?: string) => {
+    stopPolling();
+    setVerificationModalVisible(true);
+    setVerificationState('verifying');
+
+    const tierKey = selectedTierForActivation?.tier;
+    let attempts = 0;
+    const maxAttempts = 15;
+
+    const poll = async () => {
+      attempts += 1;
+      try {
+        const res = await getCheckoutStatus(reference, token);
+        if (res.status === 'success' || res.status === 'completed' || !!res.paid_at) {
+          setVerificationState('success');
+          // Shows Install (not Uninstall) for the tier just paid for.
+          if (tierKey) setJustPurchasedTiers((prev) => ({ ...prev, [tierKey]: true }));
+          void refreshAfterTierChange();
+          return;
+        }
+        if (res.status === 'failed') {
+          setVerificationState('failed');
+          return;
+        }
+      } catch (err) {
+        console.log('Checkout status poll error:', err);
+      }
+
+      if (attempts >= maxAttempts) {
+        setVerificationState('delayed');
+        void refreshAfterTierChange();
+      } else {
+        pollingTimerRef.current = setTimeout(poll, 2000);
+      }
+    };
+
+    pollingTimerRef.current = setTimeout(poll, 1200);
+  };
+
+  const closeCheckout = () => {
+    setCheckoutUrl(null);
+    setActivePaystackReference(null);
+    setActiveCheckoutToken(null);
+    void refreshAfterTierChange();
+  };
+
+  const handleRequestCloseCheckout = () => {
+    Alert.alert(
+      'Exit Checkout?',
+      'If you have already approved this transaction in your bank app, exiting now might disrupt confirmation. Are you sure you want to close this window?',
+      [
+        { text: 'Stay on Payment', style: 'cancel' },
+        { text: 'Exit Anyway', style: 'destructive', onPress: closeCheckout },
+      ]
+    );
   };
 
   const handleCancelSubscription = (tier: MarketplaceTier) => {
@@ -583,7 +698,8 @@ export default function IncidentReportPreviewScreen() {
                             (group) => tierNumber(group.tier) === tierNumber(tierKey)
                           )?.benefits ?? []);
                       const description = tier.description?.trim() || '';
-                      const subtitle = formatTierSubtitle(tier);
+                      // The tier's name, like anomaly; the price shows in the quote sheet on Activate.
+                      const subtitle = tier.name?.trim() || formatTierSubtitle(tier);
                       const isSubscribed =
                         tier.status === 'active' ||
                         tier.status === 'purchased' ||
@@ -617,6 +733,12 @@ export default function IncidentReportPreviewScreen() {
                           installDisabled={isInstalling}
                           uninstallDisabled={isUninstalling}
                           isCancelledLocally={!!justCancelledTiers[tierKey]}
+                          cancelLockedMessage={
+                            tier.payment_mode === 'subscription'
+                              ? 'This feature is included in your estate subscription plan and cannot be cancelled separately.'
+                              : undefined
+                          }
+                          isFree={!!tier.is_free}
                           isInstalled={isInstalled}
                           isSubscribed={isSubscribed}
                         />
@@ -645,7 +767,7 @@ export default function IncidentReportPreviewScreen() {
         visible={!!checkoutUrl}
         animationType="slide"
         presentationStyle="pageSheet"
-        onRequestClose={() => setCheckoutUrl(null)}
+        onRequestClose={handleRequestCloseCheckout}
       >
         <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }} edges={['top']}>
           <View
@@ -658,7 +780,11 @@ export default function IncidentReportPreviewScreen() {
               borderBottomColor: '#EFF1F3',
             }}
           >
-            <Pressable onPress={() => setCheckoutUrl(null)} style={{ padding: 8, marginLeft: -8 }}>
+            <Pressable
+              onPress={handleRequestCloseCheckout}
+              hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
+              style={{ padding: 8, marginLeft: -8 }}
+            >
               <MaterialIcons name="close" size={24} color="#113E55" />
             </Pressable>
             <Text
@@ -674,14 +800,36 @@ export default function IncidentReportPreviewScreen() {
               source={{ uri: checkoutUrl }}
               style={{ flex: 1 }}
               onNavigationStateChange={(navState) => {
+                const lowerUrl = navState.url.toLowerCase();
+                if (lowerUrl.includes('cancel')) {
+                  closeCheckout();
+                  return;
+                }
                 if (
-                  navState.url.includes('app.gatepassng.com') ||
-                  navState.url.includes('gatepassng.com/callback') ||
-                  navState.url.includes('callback') ||
-                  navState.url.includes('close')
+                  lowerUrl.includes('app.gatepassng.com') ||
+                  lowerUrl.includes('gatepassng.com/callback') ||
+                  lowerUrl.includes('callback') ||
+                  lowerUrl.includes('close')
                 ) {
+                  const ref = activePaystackReference;
+                  const token = activeCheckoutToken || undefined;
                   setCheckoutUrl(null);
-                  void refreshAfterTierChange();
+                  if (ref) startPaymentVerification(ref, token);
+                  else void refreshAfterTierChange();
+                }
+              }}
+              onMessage={(event) => {
+                try {
+                  const data = JSON.parse(event.nativeEvent.data);
+                  if (
+                    data?.event === 'close' ||
+                    data?.event === 'cancel' ||
+                    data?.status === 'cancelled'
+                  ) {
+                    closeCheckout();
+                  }
+                } catch {
+                  // Ignore non-JSON messages from the checkout page.
                 }
               }}
             />
@@ -796,6 +944,27 @@ export default function IncidentReportPreviewScreen() {
           </View>
         </View>
       </Modal>
+
+      <ActivationQuoteModal
+        visible={activationModalVisible}
+        onClose={() => setActivationModalVisible(false)}
+        tier={selectedTierForActivation}
+        estateId={estateId || ''}
+        onConfirm={(duration) => handleConfirmActivation(duration)}
+        isConfirming={isConfirmingActivation}
+      />
+
+      <PaymentVerificationModal
+        visible={verificationModalVisible}
+        status={verificationState}
+        onClose={() => {
+          stopPolling();
+          setVerificationModalVisible(false);
+          setActivePaystackReference(null);
+          setActiveCheckoutToken(null);
+          void refreshAfterTierChange();
+        }}
+      />
     </View>
   );
 }
