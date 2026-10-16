@@ -9,10 +9,13 @@ import {
   RatingResponse,
   SubscribeRequest,
   SubscribeResponse,
+  AiQuoteRequest,
+  AiQuoteResponse,
+  CheckoutStatusResponse,
 } from '@/src/types/aiMarketplace';
 
 export function isLocalMarketplaceId(id?: string | null): boolean {
-  return !id || id.startsWith('local-');
+  return !id || id.startsWith('local-') || id === '1' || id === '2' || !id.includes('-');
 }
 
 /** Prefer a real product UUID; fall back to matching a live list item by name. */
@@ -305,5 +308,56 @@ export async function initializeCheckout(payload: {
     return response.data;
   } catch (error: any) {
     throw new Error(getErrorMessage(error) || 'Failed to initialize checkout');
+  }
+}
+
+/**
+ * Fetch prorated quote for standalone AI feature purchase.
+ * Revenue: POST /checkout/ai/quote
+ */
+export async function getAiQuote(payload: AiQuoteRequest): Promise<AiQuoteResponse> {
+  const path = '/checkout/ai/quote';
+  logJson('[ai-checkout] quote request', { path, payload });
+  try {
+    const api = Api('revenue');
+    const response = await api.post(path, payload);
+    logJson('[ai-checkout] quote response', { path, payload, data: response.data });
+    return response.data;
+  } catch (error: any) {
+    logJson('[ai-checkout] quote error', {
+      path,
+      payload,
+      status: error?.response?.status,
+      data: error?.response?.data,
+      message: getErrorMessage(error) || String(error),
+    });
+    throw new Error(getErrorMessage(error) || 'Failed to fetch AI subscription quote');
+  }
+}
+
+/**
+ * Poll current status of a checkout session.
+ * Revenue: GET /checkout/status/{paystack_reference}
+ */
+export async function getCheckoutStatus(
+  paystackReference: string,
+  checkoutToken?: string
+): Promise<CheckoutStatusResponse> {
+  const path = `/checkout/status/${encodeURIComponent(paystackReference)}`;
+  try {
+    const api = Api('revenue');
+    const headers: Record<string, string> = {};
+    if (checkoutToken) {
+      headers['X-Checkout-Token'] = checkoutToken;
+    }
+    const response = await api.get(path, { headers });
+    logJson('[ai-checkout] status response', { path, data: response.data });
+    return response.data;
+  } catch (error: any) {
+    logJson('[ai-checkout] status error', {
+      path,
+      message: getErrorMessage(error) || String(error),
+    });
+    throw new Error(getErrorMessage(error) || 'Failed to check checkout status');
   }
 }

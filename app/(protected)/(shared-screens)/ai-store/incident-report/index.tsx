@@ -588,7 +588,8 @@ export default function IncidentReportPreviewScreen() {
                         tier.status === 'active' ||
                         tier.status === 'purchased' ||
                         tier.status === 'subscribed' ||
-                        tier.status === 'installed';
+                        tier.status === 'installed' ||
+                        !!tier.purchased;
                       const isInstalled = !!tier.is_installed && !justPurchasedTiers[tierKey];
 
                       return (
