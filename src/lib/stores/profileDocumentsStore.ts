@@ -50,6 +50,15 @@ function buildOnboardingState(
   };
 }
 
+/** `null` until the documents have loaded once; only an admin-approved (active) ID is `approved`. */
+export type IdApproval = 'none' | 'pending' | 'approved' | null;
+
+function idApprovalOf(activeId?: DocumentItem, pendingId?: DocumentItem): IdApproval {
+  if (activeId) return 'approved';
+  if (pendingId) return 'pending';
+  return 'none';
+}
+
 type SyncOptions = {
   force?: boolean;
   skipPhotoClear?: boolean;
@@ -61,6 +70,7 @@ type ProfileDocumentsStore = {
   identificationUri: string | null;
   identificationPendingRequest: PendingRequestSheetData | null;
   onboarding: OnboardingState | null;
+  idApproval: IdApproval;
   imagesLoading: boolean;
   photoDocumentId: string | null;
   activeIdDocumentId: string | null;
@@ -81,6 +91,7 @@ const initialState = {
   identificationUri: null,
   identificationPendingRequest: null,
   onboarding: null,
+  idApproval: null as IdApproval,
   imagesLoading: false,
   photoDocumentId: null,
   activeIdDocumentId: null,
@@ -143,7 +154,7 @@ export const useProfileDocumentsStore = create<ProfileDocumentsStore>((set, get)
       ({ activePhoto, activeId, pendingId } = findProfileDocuments(documents));
 
       const onboarding = buildOnboardingState(activePhoto, activeId, pendingId);
-      set({ onboarding });
+      set({ onboarding, idApproval: idApprovalOf(activeId, pendingId) });
       await setProfileOnboardingCache(userId, onboarding);
 
       if (pendingId?.document_id) {
