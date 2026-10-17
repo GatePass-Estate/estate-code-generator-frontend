@@ -143,10 +143,15 @@ export default function IncidentReportPreviewScreen() {
                 );
                 return;
               }
+              const featureKey = tier.feature_key;
+              if (!featureKey) {
+                Alert.alert('Error', 'Feature key is missing for this tier.');
+                return;
+              }
               setSubscribingTierKey(tier.tier);
               setIsSubscribing(true);
               try {
-                await cancelMarketplaceSubscription(estateId);
+                await cancelMarketplaceSubscription(estateId, featureKey);
                 Alert.alert('Done', 'Subscription cancelled successfully.');
                 await refreshAfterTierChange();
               } catch (err: any) {
