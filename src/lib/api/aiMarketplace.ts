@@ -240,13 +240,17 @@ export async function uninstallMarketplaceFeature(
 }
 
 /**
- * Cancel the estate's Paystack AI/subscription auto-renew.
- * Revenue: POST /subscriptions/estate/{estate_id}/cancel
+ * Cancel the estate's Paystack AI subscription auto-renew via standalone AI cancellation endpoint.
+ * Revenue: POST /ai-features/estate/{estate_id}/cancel
  */
-export async function cancelMarketplaceSubscription(estateId: string): Promise<void> {
+export async function cancelMarketplaceSubscription(
+  estateId: string,
+  featureKey?: string
+): Promise<void> {
   try {
     const api = Api('revenue');
-    await api.post(`/subscriptions/estate/${encodeURIComponent(estateId)}/cancel`);
+    const body = featureKey ? { feature_key: featureKey } : {};
+    await api.post(`/ai-features/estate/${encodeURIComponent(estateId)}/cancel`, body);
   } catch (error: any) {
     throw new Error(getErrorMessage(error) || 'Failed to cancel subscription');
   }
