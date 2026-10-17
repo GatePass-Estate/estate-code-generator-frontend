@@ -20,6 +20,7 @@ import { useAuth } from '@/src/hooks/useAuthContext';
 import { useFeatureGate, useUpgradePromptStore } from '@/src/hooks/usePlan';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { useEstateEntitlements } from '@/src/lib/api/entitlements';
+import { canViewBilling } from '@/src/lib/billing';
 import { revokeAllSessions } from '@/src/lib/api/auth';
 import { sharedStyles } from '@/src/theme/styles';
 import ScreenHeader from '@/src/components/mobile/ScreenHeader';
@@ -38,49 +39,16 @@ import {
   LinkedDevicesIcon,
   LogOutIcon,
   MyProfileIcon,
-  NavigateNextIcon,
   PrivacyPolicyIcon,
   RatingsFeedbackIcon,
   TermsOfServiceIcon,
 } from '@/src/assets/svgs';
+import { MoreMenuRow, SectionTitle } from '@/src/components/mobile/MoreMenuRow';
 
 type MoreMenuScreenProps = {
   title?: string;
   subtitle?: string;
 };
-
-function SectionTitle({ children, first = false }: { children: string; first?: boolean }) {
-  return (
-    <Text className="mb-2 text-[10px] font-inter-regular uppercase  text-[#113E55]">
-      {children}
-    </Text>
-  );
-}
-
-function MoreMenuRow({
-  icon,
-  label,
-  onPress,
-  showNavigateNext = true,
-}: {
-  icon: ReactNode;
-  label: string;
-  onPress: () => void;
-  showNavigateNext?: boolean;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      className="flex-row items-center justify-between rounded-[8px] border-[0.5px] border-[#CEE5ED]  px-4 py-[18px]"
-    >
-      <View className="flex-row items-center gap-4">
-        {icon}
-        <Text className="text-sm font-inter-light text-primary">{label}</Text>
-      </View>
-      {showNavigateNext ? <NavigateNextIcon /> : null}
-    </Pressable>
-  );
-}
 
 function SparklesIcon({ size = 20, color = 'white' }) {
   return (
@@ -115,7 +83,7 @@ function BannerCard({
   onPress?: () => void;
 }) {
   return (
-    <Pressable onPress={onPress}>
+    <Pressable onPress={onPress} disabled={!onPress}>
       <LinearGradient
         colors={colors}
         start={{ x: 0, y: 0 }}
@@ -202,6 +170,7 @@ export default function MoreMenuScreen({
   const [starRating, setStarRating] = useState(0);
 
   const isAdmin = role === 'admin' || role === 'primary_admin' || role === 'root';
+  const canOpenBilling = canViewBilling(role);
 
   const handleOpenIncidentReport = useCallback(async () => {
     if (openingIncidentReportRef.current) return;
@@ -291,7 +260,7 @@ export default function MoreMenuScreen({
             icon={<Ionicons name="diamond-outline" size={24} color="white" />}
             title={`${planName} Plan`}
             subtitle="Upgrade your account plan to get exclusive features including Freeze, Scheduling and more"
-            onPress={() => {}}
+            onPress={canOpenBilling ? () => router.push('/billing') : undefined}
           />
           {isAdmin && (
             <View className="flex-row gap-2">
@@ -314,7 +283,7 @@ export default function MoreMenuScreen({
             </View>
           )}
         </View>
-        <View className="flex-col gap-10">
+        <View className="flex-col gap-6">
           <View>
             <SectionTitle first>Account</SectionTitle>
             <View className="flex-col gap-2">
@@ -328,16 +297,16 @@ export default function MoreMenuScreen({
                 label="Account Security"
                 onPress={() => router.push('/account-security')}
               />
-              <MoreMenuRow
-                icon={<Ionicons name="diamond-outline" size={22} color={iconColor} />}
-                label="Billing and Subscription"
-                onPress={() =>
-                  Alert.alert('Coming soon', 'Billing and subscription is not available yet.')
-                }
-              />
+              {canOpenBilling ? (
+                <MoreMenuRow
+                  icon={<Ionicons name="diamond-outline" size={22} color={iconColor} />}
+                  label="Billing and Subscription"
+                  onPress={() => router.push('/billing')}
+                />
+              ) : null}
               <MoreMenuRow
                 icon={<IncidentReportIcon color={iconColor} />}
-                label="Incident Report"
+                label="Report Incident"
                 onPress={() => void handleOpenIncidentReport()}
               />
               <MoreMenuRow
@@ -371,15 +340,9 @@ export default function MoreMenuScreen({
                   })
                 }
               />
-            </View>
-          </View>
-
-          <View>
-            <SectionTitle>Help</SectionTitle>
-            <View className="flex-col gap-1">
               <MoreMenuRow
                 icon={<RatingsFeedbackIcon color={iconColor} />}
-                label="Ratings and Feedback"
+                label="Rating and Feedback"
                 onPress={() => setFeedbackPopupStep('SELECT')}
               />
             </View>
