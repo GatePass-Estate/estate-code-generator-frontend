@@ -86,8 +86,24 @@ export default function AdminUsersMobilePage() {
 
   const { returnTo } = useLocalSearchParams<{ returnTo?: string }>();
   const handleBack = useCallback(() => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+      return;
+    }
+    let parent = navigation.getParent();
+    while (parent) {
+      if (parent.canGoBack()) {
+        parent.goBack();
+        return;
+      }
+      parent = parent.getParent();
+    }
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
     router.replace(returnTo === '/settings' ? '/settings' : '/user');
-  }, [returnTo, router]);
+  }, [navigation, returnTo, router]);
 
   useEffect(() => {
     usersRef.current = users;
@@ -163,7 +179,11 @@ export default function AdminUsersMobilePage() {
     users.role_summary?.security ?? users.items.filter((user) => user.role === 'security').length;
   const residentsCount =
     users.role_summary?.resident ?? users.items.filter((user) => user.role === 'resident').length;
-  const occupiedSeats = residentsCount + securityPersonnelCount;
+  const adminsCount =
+    (users.role_summary?.admin ?? 0) + (users.role_summary?.primary_admin ?? 0) ||
+    users.items.filter((user) => user.role === 'admin' || user.role === 'primary_admin').length;
+  const seatResidentsCount = residentsCount + adminsCount;
+  const occupiedSeats = seatResidentsCount + securityPersonnelCount;
   const totalUsersCount = users.total;
   const registeredUsersCount = users.total;
   const estateUserCapacity = estateEntitlements?.coveredUsers ?? null;
@@ -728,7 +748,7 @@ export default function AdminUsersMobilePage() {
         onClose={() => setSeatModalVisible(false)}
         currentCapacity={occupiedSeats}
         maxCapacity={estateUserCapacity ?? totalUsersCount}
-        residentsCount={residentsCount}
+        residentsCount={seatResidentsCount}
         securityPersonnelCount={securityPersonnelCount}
       />
     </View>
