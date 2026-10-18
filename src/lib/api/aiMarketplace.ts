@@ -9,10 +9,13 @@ import {
   RatingResponse,
   SubscribeRequest,
   SubscribeResponse,
+  AiQuoteRequest,
+  AiQuoteResponse,
+  CheckoutStatusResponse,
 } from '@/src/types/aiMarketplace';
 
 export function isLocalMarketplaceId(id?: string | null): boolean {
-  return !id || id.startsWith('local-');
+  return !id || id.startsWith('local-') || id === '1' || id === '2' || !id.includes('-');
 }
 
 /** Prefer a real product UUID; fall back to matching a live list item by name. */
@@ -237,13 +240,17 @@ export async function uninstallMarketplaceFeature(
 }
 
 /**
- * Cancel the estate's Paystack AI/subscription auto-renew.
- * Revenue: POST /subscriptions/estate/{estate_id}/cancel
+ * Cancel the estate's Paystack AI subscription auto-renew via standalone AI cancellation endpoint.
+ * Revenue: POST /ai-features/estate/{estate_id}/cancel
  */
-export async function cancelMarketplaceSubscription(estateId: string): Promise<void> {
+export async function cancelMarketplaceSubscription(
+  estateId: string,
+  featureKey?: string
+): Promise<void> {
   try {
     const api = Api('revenue');
-    await api.post(`/subscriptions/estate/${encodeURIComponent(estateId)}/cancel`);
+    const body = featureKey ? { feature_key: featureKey } : {};
+    await api.post(`/ai-features/estate/${encodeURIComponent(estateId)}/cancel`, body);
   } catch (error: any) {
     throw new Error(getErrorMessage(error) || 'Failed to cancel subscription');
   }
@@ -253,8 +260,7 @@ export async function cancelMarketplaceSubscription(estateId: string): Promise<v
  * Helper to build display picture URL from GCS object path.
  */
 export function getFeaturePictureUrl(path: string): string {
-  const baseUrl =
-    process.env.EXPO_PUBLIC_AI_SERVICE_API_URL || 'https://staging-api.gatepassng.com/ai';
+  const baseUrl = process.env.EXPO_PUBLIC_AI_SERVICE_API_URL || '';
   return `${baseUrl}/api/v1/ai-marketplace/picture?path=${encodeURIComponent(path)}`;
 }
 
@@ -269,5 +275,93 @@ export async function uninstallAiFeature(estateId: string, featureKey: string): 
     });
   } catch (error: any) {
     throw new Error(getErrorMessage(error) || 'Failed to uninstall feature');
+  }
+}
+
+export async function installAiFeature(estateId: string, featureKey: string): Promise<void> {
+  try {
+    const api = Api('revenue');
+    await api.post(`/ai-features/estate/${encodeURIComponent(estateId)}/install`, {
+      feature_key: featureKey,
+    });
+  } catch (error: any) {
+    throw new Error(getErrorMessage(error) || 'Failed to install feature');
+  }
+}
+
+export async function initializeCheckout(payload: {
+  estate_id: string;
+  customer_email: string;
+  checkout_kind: string;
+  ai_feature_keys?: string[];
+  ai_feature_ids?: string[];
+  period_months?: number;
+}): Promise<{
+  authorization_url: string;
+  checkout_session_id: string;
+  paystack_reference: string;
+  checkout_token: string;
+}> {
+  try {
+    const api = Api('revenue');
+    const response = await api.post('/checkout/initialize', payload, {
+      headers: {
+        'Idempotency-Key': `${payload.estate_id}-${Date.now()}`,
+      },
+    });
+    return response.data;
+  } catch (error: any) {
+    throw new Error(getErrorMessage(error) || 'Failed to initialize checkout');
+  }
+}
+
+/**
+ * Fetch prorated quote for standalone AI feature purchase.
+ * Revenue: POST /checkout/ai/quote
+ */
+export async function getAiQuote(payload: AiQuoteRequest): Promise<AiQuoteResponse> {
+  const path = '/checkout/ai/quote';
+  logJson('[ai-checkout] quote request', { path, payload });
+  try {
+    const api = Api('revenue');
+    const response = await api.post(path, payload);
+    logJson('[ai-checkout] quote response', { path, payload, data: response.data });
+    return response.data;
+  } catch (error: any) {
+    logJson('[ai-checkout] quote error', {
+      path,
+      payload,
+      status: error?.response?.status,
+      data: error?.response?.data,
+      message: getErrorMessage(error) || String(error),
+    });
+    throw new Error(getErrorMessage(error) || 'Failed to fetch AI subscription quote');
+  }
+}
+
+/**
+ * Poll current status of a checkout session.
+ * Revenue: GET /checkout/status/{paystack_reference}
+ */
+export async function getCheckoutStatus(
+  paystackReference: string,
+  checkoutToken?: string
+): Promise<CheckoutStatusResponse> {
+  const path = `/checkout/status/${encodeURIComponent(paystackReference)}`;
+  try {
+    const api = Api('revenue');
+    const headers: Record<string, string> = {};
+    if (checkoutToken) {
+      headers['X-Checkout-Token'] = checkoutToken;
+    }
+    const response = await api.get(path, { headers });
+    logJson('[ai-checkout] status response', { path, data: response.data });
+    return response.data;
+  } catch (error: any) {
+    logJson('[ai-checkout] status error', {
+      path,
+      message: getErrorMessage(error) || String(error),
+    });
+    throw new Error(getErrorMessage(error) || 'Failed to check checkout status');
   }
 }
