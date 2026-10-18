@@ -435,7 +435,10 @@ export default function AnomalyDetectionPreviewScreen() {
     );
   };
 
-  const handleCancelSubscription = async (tierPayload: { tier: string }) => {
+  const handleCancelSubscription = async (tierPayload: {
+    tier: string;
+    feature_key?: string | null;
+  }) => {
     setConfirmModalConfig({
       title: 'Cancel Subscription',
       message: 'Are you sure you want to cancel your subscription to this AI feature?',
@@ -447,7 +450,7 @@ export default function AnomalyDetectionPreviewScreen() {
         setCancelTierKey(tierPayload.tier);
         setIsCanceling(true);
         try {
-          await cancelMarketplaceSubscription(estateId);
+          await cancelMarketplaceSubscription(estateId, tierPayload.feature_key || undefined);
           Alert.alert('Success', 'Subscription cancelled successfully.');
           setJustCancelledTiers((prev) => {
             const next = { ...prev, [tierPayload.tier]: true };

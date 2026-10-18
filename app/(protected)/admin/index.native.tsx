@@ -8,7 +8,7 @@ import {
   BackHandler,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { Stack, useFocusEffect, useNavigation, useRouter } from 'expo-router';
+import { Stack, useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import Svg, { Circle, Ellipse, G, Path } from 'react-native-svg';
 import { getAllEstateUsers } from '@/src/lib/api/user';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -82,7 +82,14 @@ export default function AdminUsersMobilePage() {
   const { requestAccessWhenReady: requestBroadcastAccess } = useFeatureGate('admin_broadcast', {
     notice: 'floating',
   });
+  const { requestAccessWhenReady: requestIncidentReportAccess } = useFeatureGate(
+    'incident_report',
+    {
+      notice: 'floating',
+    }
+  );
   const openingBroadcastRef = useRef(false);
+  const openingIncidentReportRef = useRef(false);
 
   // Check the plan before opening the form, so admins on a plan without broadcasts see the
   // Upgrade Plan modal / Contact Admin notice here rather than after filling it in.
@@ -97,9 +104,23 @@ export default function AdminUsersMobilePage() {
     }
   }, [navigation, requestBroadcastAccess, router]);
 
-  const handleBackToHome = useCallback(() => {
-    router.replace('/user');
-  }, [router]);
+  const handleOpenIncidentReport = useCallback(async () => {
+    if (openingIncidentReportRef.current) return;
+    openingIncidentReportRef.current = true;
+    try {
+      const allowed = await requestIncidentReportAccess(() => navigation.isFocused());
+      if (allowed && navigation.isFocused()) {
+        router.push({ pathname: '/user/report', params: { returnTo: '/admin' } });
+      }
+    } finally {
+      openingIncidentReportRef.current = false;
+    }
+  }, [navigation, requestIncidentReportAccess, router]);
+
+  const { returnTo } = useLocalSearchParams<{ returnTo?: string }>();
+  const handleBack = useCallback(() => {
+    router.replace(returnTo === '/settings' ? '/settings' : '/user');
+  }, [returnTo, router]);
 
   useEffect(() => {
     usersRef.current = users;
@@ -143,12 +164,12 @@ export default function AdminUsersMobilePage() {
   useFocusEffect(
     useCallback(() => {
       const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
-        handleBackToHome();
+        handleBack();
         return true;
       });
 
       return () => subscription.remove();
-    }, [handleBackToHome])
+    }, [handleBack])
   );
 
   useEffect(() => {
@@ -199,7 +220,7 @@ export default function AdminUsersMobilePage() {
           borderSize={30}
           leftOffset={-3}
           iconStyle={{ width: 8.56, height: 12, top: 0 }}
-          onPress={handleBackToHome}
+          onPress={handleBack}
         />
       </View>
 
@@ -356,7 +377,7 @@ export default function AdminUsersMobilePage() {
 
           <TouchableOpacity
             className="h-[50px] w-[50px] items-center justify-center"
-            onPress={() => router.push('/user/report')}
+            onPress={handleOpenIncidentReport}
             onPressIn={() => setActiveTool('incident-report')}
             onPressOut={() => setActiveTool(null)}
             style={{
