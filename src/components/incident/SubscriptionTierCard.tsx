@@ -1,6 +1,8 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, ActivityIndicator, LayoutChangeEvent } from 'react-native';
 import Animated, {
+  FadeIn,
+  FadeOut,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
@@ -34,6 +36,20 @@ type SubscriptionTierCardProps = {
   isInstalling?: boolean;
   isUninstalling?: boolean;
   isCanceling?: boolean;
+  /** Same action already running on another tier. */
+  subscribeDisabled?: boolean;
+  cancelDisabled?: boolean;
+  installDisabled?: boolean;
+  uninstallDisabled?: boolean;
+  /** Cancelled on this device; backend may still report the tier as subscribed. */
+  isCancelledLocally?: boolean;
+  /**
+   * Set when the tier comes with the estate plan: Cancel greys out and tapping it shows this
+   * message in a speech bubble instead of cancelling.
+   */
+  cancelLockedMessage?: string;
+  /** Free tiers have nothing to cancel, so they never show Cancel Subscription. */
+  isFree?: boolean;
   isInstalled?: boolean;
   isSubscribed?: boolean;
   /** Benefit rows from the API (`tier.benefits` / `tier_benefits`). */
@@ -55,6 +71,13 @@ export default function SubscriptionTierCard({
   isInstalling = false,
   isUninstalling = false,
   isCanceling = false,
+  subscribeDisabled = false,
+  cancelDisabled = false,
+  installDisabled = false,
+  uninstallDisabled = false,
+  isCancelledLocally = false,
+  cancelLockedMessage,
+  isFree = false,
   isInstalled = false,
   isSubscribed = false,
   benefits,
@@ -91,8 +114,27 @@ export default function SubscriptionTierCard({
     }
   };
 
+  const [cancelBubbleVisible, setCancelBubbleVisible] = useState(false);
+  const cancelBubbleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (cancelBubbleTimer.current) clearTimeout(cancelBubbleTimer.current);
+    },
+    []
+  );
+  const toggleCancelBubble = () => {
+    if (cancelBubbleTimer.current) clearTimeout(cancelBubbleTimer.current);
+    if (cancelBubbleVisible) {
+      setCancelBubbleVisible(false);
+      return;
+    }
+    setCancelBubbleVisible(true);
+    cancelBubbleTimer.current = setTimeout(() => setCancelBubbleVisible(false), 3500);
+  };
+  const cancelLocked = !!cancelLockedMessage;
+
   const showActivate = !isSubscribed;
-  const showCancel = isSubscribed;
+  const showCancel = isSubscribed && !isFree;
   const showInstall = isSubscribed && !isInstalled;
   const showUninstall = isInstalled;
 
@@ -100,7 +142,7 @@ export default function SubscriptionTierCard({
     <View className="gap-4">
       {showActivate && (
         <Pressable
-          disabled={isSubscribing || !expanded}
+          disabled={isSubscribing || subscribeDisabled || !expanded}
           onPress={onActivate}
           className="h-[48px] w-full items-center justify-center rounded-full bg-[#113E55]"
         >
@@ -115,45 +157,117 @@ export default function SubscriptionTierCard({
       )}
 
       {showCancel && (
-        <Pressable
-          disabled={isCanceling || !expanded}
-          onPress={onCancelSubscription}
-          className="h-[48px] w-full items-center justify-center rounded-full bg-[#113E55]"
-        >
-          {isCanceling ? (
-            <ActivityIndicator size="small" color="white" />
-          ) : (
-            <Text allowFontScaling={false} className="text-[14px] font-ubuntu-semibold text-white">
-              Cancel Subscription
-            </Text>
+        <View style={{ position: 'relative', width: '100%', zIndex: 10 }}>
+          {cancelLocked && cancelBubbleVisible && (
+            <Animated.View
+              entering={FadeIn.duration(180)}
+              exiting={FadeOut.duration(180)}
+              pointerEvents="none"
+              style={{
+                position: 'absolute',
+                bottom: '100%',
+                left: 0,
+                right: 0,
+                marginBottom: 6,
+                alignItems: 'center',
+                zIndex: 20,
+                elevation: 5,
+              }}
+            >
+              <View
+                style={{
+                  backgroundColor: '#113E55',
+                  borderRadius: 8,
+                  paddingHorizontal: 12,
+                  paddingVertical: 8,
+                  maxWidth: '92%',
+                }}
+              >
+                <Text
+                  allowFontScaling={false}
+                  style={{
+                    fontFamily: 'Inter_18pt-Medium',
+                    fontSize: 12,
+                    color: '#FFFFFF',
+                    textAlign: 'center',
+                    lineHeight: 16,
+                  }}
+                >
+                  {cancelLockedMessage}
+                </Text>
+              </View>
+              <View
+                style={{
+                  width: 10,
+                  height: 10,
+                  marginTop: -5,
+                  borderBottomRightRadius: 2,
+                  backgroundColor: '#113E55',
+                  transform: [{ rotate: '45deg' }],
+                }}
+              />
+            </Animated.View>
           )}
-        </Pressable>
+
+          <Pressable
+            disabled={
+              (!cancelLocked && (isCanceling || cancelDisabled)) || isCancelledLocally || !expanded
+            }
+            onPress={cancelLocked ? toggleCancelBubble : onCancelSubscription}
+            className={`h-[48px] w-full items-center justify-center rounded-full ${
+              cancelLocked ? 'bg-[#E2E8F0] opacity-60' : 'bg-[#113E55]'
+            } ${isCancelledLocally ? 'opacity-50' : ''}`}
+          >
+            {isCanceling ? (
+              <ActivityIndicator size="small" color={cancelLocked ? '#64748B' : 'white'} />
+            ) : (
+              <Text
+                allowFontScaling={false}
+                className={`text-[14px] font-ubuntu-semibold ${
+                  cancelLocked ? 'text-[#64748B]' : 'text-white'
+                }`}
+              >
+                {isCancelledLocally ? 'Cancelled' : 'Cancel Subscription'}
+              </Text>
+            )}
+          </Pressable>
+        </View>
       )}
 
       {showInstall && (
         <Pressable
-          disabled={isInstalling || !expanded}
+          disabled={isInstalling || installDisabled || !expanded}
           onPress={onInstall}
           className="h-[48px] w-full items-center justify-center rounded-full bg-[#E5F6FF]"
         >
           {isInstalling ? (
             <ActivityIndicator size="small" color="#113E55" />
           ) : (
-            <Text className="text-[14px] font-ubuntu-semibold text-[#113E55]">Install</Text>
+            <Text
+              allowFontScaling={false}
+              className="text-[14px] font-ubuntu-semibold text-[#113E55]"
+            >
+              Install
+            </Text>
           )}
         </Pressable>
       )}
 
       {showUninstall && (
         <Pressable
-          disabled={isUninstalling || !expanded}
+          disabled={isUninstalling || uninstallDisabled || !expanded}
           onPress={onUninstall}
           className="h-[48px] w-full items-center justify-center rounded-full bg-[#E5F6FF]"
         >
           {isUninstalling ? (
             <ActivityIndicator size="small" color="#113E55" />
           ) : (
-            <Text className="text-[14px] font-ubuntu-semibold text-[#113E55]">Uninstall</Text>
+            <Text
+              allowFontScaling={false}
+              className="text-[14px] font-ubuntu-semibold text-[#113E55]"
+            >
+              Uninstall
+            </Text>
           )}
         </Pressable>
       )}
