@@ -187,7 +187,7 @@ function withLocalShopFallback(liveTools: AITool[]): AITool[] {
 }
 
 export default function AIStoreScreen() {
-  const [tools, setTools] = useState<AITool[]>(LOCAL_SHOP_TOOLS);
+  const [tools, setTools] = useState<AITool[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
