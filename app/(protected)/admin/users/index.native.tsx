@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { NavigationBar as AndroidNavigationBar } from 'expo-navigation-bar';
-import { Stack, router, useFocusEffect } from 'expo-router';
+import { Stack, router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
@@ -53,17 +53,31 @@ const PAGE_SIZE = 10;
 
 export default function AllUsersMobile() {
   const insets = useSafeAreaInsets();
+  const { role } = useLocalSearchParams<{ role?: string }>();
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [fetchingMore, setFetchingMore] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedFilters, setSelectedFilters] = useState<UserFilter[]>([]);
+  const [selectedFilters, setSelectedFilters] = useState<UserFilter[]>(() => {
+    if (role === 'resident' || role === 'security' || role === 'admins') {
+      return [role as UserFilter];
+    }
+    return [];
+  });
   const [validationFilter, setValidationFilter] = useState<ValidationFilter>(null);
   const [filterVisible, setFilterVisible] = useState(false);
   const [error, setError] = useState('');
   const hasActiveAdvancedFilter = validationFilter !== null || selectedFilters.length > 0;
+
+  useEffect(() => {
+    if (role === 'resident' || role === 'security' || role === 'admins') {
+      setSelectedFilters([role as UserFilter]);
+    } else if (role === 'all') {
+      setSelectedFilters([]);
+    }
+  }, [role]);
 
   const fetchUsers = useCallback(async (showLoading = false) => {
     try {
