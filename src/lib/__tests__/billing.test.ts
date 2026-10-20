@@ -7,10 +7,13 @@ import {
   createIdempotencyKey,
   formatBillingDate,
   formatMoney,
+  getAmountFontSize,
   getBillingEntry,
   getCurrentPlanQuoteParams,
+  getCurrentPlanState,
   getCycleProgress,
   getPlanDirection,
+  getPlanExpiredFootnote,
   getPlanRenewalFootnote,
   getTierFeatureRows,
   humaniseFeatureKey,
@@ -451,5 +454,61 @@ describe('getPlanRenewalFootnote', () => {
   it('is null without a subscription or end date', () => {
     expect(getPlanRenewalFootnote(null)).toBeNull();
     expect(getPlanRenewalFootnote(subscription({ period_end: null }))).toBeNull();
+  });
+});
+
+describe('getCurrentPlanState', () => {
+  const now = new Date('2026-10-16T12:00:00Z');
+  const sentinel = TIERS[2];
+
+  it('is free on the Access tier or without a subscription/tier', () => {
+    expect(getCurrentPlanState(null, null, now)).toBe('free');
+    expect(getCurrentPlanState(null, sentinel, now)).toBe('free');
+    expect(getCurrentPlanState(subscription(), null, now)).toBe('free');
+    expect(getCurrentPlanState(subscription(), TIERS[0], now)).toBe('free');
+    expect(getCurrentPlanState(subscription({ status: 'expired' }), TIERS[0], now)).toBe('free');
+  });
+
+  it('is paid while a paid plan is running', () => {
+    expect(getCurrentPlanState(subscription(), sentinel, now)).toBe('paid');
+    expect(getCurrentPlanState(subscription({ status: 'past_due' }), sentinel, now)).toBe('paid');
+    expect(getCurrentPlanState(subscription({ status: 'cancelled' }), sentinel, now)).toBe('paid');
+  });
+
+  it('is expired for a paid plan that has stopped', () => {
+    expect(getCurrentPlanState(subscription({ status: 'expired' }), sentinel, now)).toBe('expired');
+    expect(
+      getCurrentPlanState(
+        subscription({ status: 'cancelled', period_end: '2026-10-01T00:00:00Z' }),
+        sentinel,
+        now
+      )
+    ).toBe('expired');
+  });
+});
+
+describe('getPlanExpiredFootnote', () => {
+  it('formats the end date', () => {
+    const end = new Date(2026, 4, 23, 12).toISOString();
+    expect(getPlanExpiredFootnote(subscription({ period_end: end }))).toBe(
+      'Expired on May 23rd, 2026.'
+    );
+  });
+
+  it('is null without a subscription or end date', () => {
+    expect(getPlanExpiredFootnote(null)).toBeNull();
+    expect(getPlanExpiredFootnote(subscription({ period_end: null }))).toBeNull();
+  });
+});
+
+describe('getAmountFontSize', () => {
+  it('keeps the base size while the amount fits', () => {
+    expect(getAmountFontSize('₦14,835', 34, 11)).toBe(34);
+    expect(getAmountFontSize('₦6,772.50', 34, 11)).toBe(34);
+  });
+
+  it('scales long amounts down proportionally, with a floor', () => {
+    expect(getAmountFontSize('₦1,234,567.50', 34, 11)).toBe(29);
+    expect(getAmountFontSize('₦123,456,789,012.50', 34, 11)).toBe(22);
   });
 });

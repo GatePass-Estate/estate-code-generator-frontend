@@ -301,7 +301,7 @@ export default function MoreMenuScreen({
                 <MoreMenuRow
                   icon={<Ionicons name="diamond-outline" size={22} color={iconColor} />}
                   label="Billing and Subscription"
-                  onPress={() => router.push('/billing')}
+                  onPress={() => router.push('/billing/choose-plan')}
                 />
               ) : null}
               <MoreMenuRow

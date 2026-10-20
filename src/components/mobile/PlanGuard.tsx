@@ -18,11 +18,11 @@ export default function PlanGuard() {
   const noticeMessage = useContactAdminNoticeStore((s) => s.message);
   const noticeVisible = useContactAdminNoticeStore((s) => s.visible);
 
-  // Billing viewers go straight to the billing screens; anyone else just closes the modal.
+  // Billing viewers go straight to "Choose your plan"; anyone else just closes the modal.
   const handleUpgrade = canViewBilling(role)
     ? () => {
         dismiss();
-        router.push('/billing');
+        router.push('/billing/choose-plan');
       }
     : undefined;
 

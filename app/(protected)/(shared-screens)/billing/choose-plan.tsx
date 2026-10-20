@@ -36,6 +36,7 @@ import { useBillingScreenGuard } from '@/src/hooks/useBillingScreenGuard';
 import {
   buildCustomEntitlements,
   formatMoney,
+  getAmountFontSize,
   getTierFeatureRows,
   PLAN_DURATIONS,
   type PeriodMonths,
@@ -174,7 +175,8 @@ export default function ChoosePlanScreen() {
         : { checkout_kind: 'tier', tier_slug, covered_users, period_months }
     );
     showCheckoutOutcomeAlert(outcome, 'Your subscription is now active.');
-    if (outcome === 'paid') router.replace('/billing');
+    // Back to an existing Current Plan screen rather than stacking a second copy of it.
+    if (outcome === 'paid') router.dismissTo('/billing');
   };
 
   const retry = () => {
@@ -207,14 +209,18 @@ export default function ChoosePlanScreen() {
       );
     }
     if (quote) {
+      const amount = formatMoney(quote.client_total, quote.currency_code);
       return (
         <Text
-          className="text-center font-ubuntu-medium text-[34px] leading-[41px] text-[#167A6F]"
-          style={{ opacity: quoteQuery.isPlaceholderData ? 0.5 : 1 }}
+          className="text-center font-ubuntu-medium text-[#167A6F]"
+          style={{
+            fontSize: getAmountFontSize(amount, 34, 11),
+            lineHeight: 41,
+            opacity: quoteQuery.isPlaceholderData ? 0.5 : 1,
+          }}
           numberOfLines={1}
-          adjustsFontSizeToFit
         >
-          {formatMoney(quote.client_total, quote.currency_code)}
+          {amount}
         </Text>
       );
     }
@@ -253,7 +259,8 @@ export default function ChoosePlanScreen() {
           keyboardShouldPersistTaps="handled"
           automaticallyAdjustKeyboardInsets
           // Full-bleed scroll area so the plan tabs can span the screen without being clipped.
-          style={{ marginHorizontal: -20 }}
+          // 16pt gap under the fixed title so scrolled content doesn't run into it.
+          style={{ marginHorizontal: -20, marginTop: 16 }}
           contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: BUTTON_MARGIN_BOTTOM }}
         >
           <PlanCard
@@ -262,7 +269,7 @@ export default function ChoosePlanScreen() {
             priceLabel={planPriceLabel}
             unitLabel="/month"
             footnote={isCustom ? 'Build your own plan' : 'Per seat'}
-            className="mt-10"
+            className="mt-6"
           />
 
           <PlanTabs

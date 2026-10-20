@@ -29,6 +29,7 @@ import {
   formatBillingDate,
   formatMoney,
   getCurrentPlanQuoteParams,
+  getCurrentPlanState,
   getCycleProgress,
   inferPeriodMonths,
 } from '@/src/lib/billing';
@@ -37,18 +38,19 @@ import { sharedStyles } from '@/src/theme/styles';
 const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? '' : 's'}`;
 
 /**
- * Billing entry + "Your Current Plan". Estates without a paid, running plan are sent to
- * "Choose your plan"; everyone who can't view billing is sent back to the More screen.
+ * "Your Current Plan" (the More screen's plan banner). Always shown to billing viewers, in one of
+ * three states: a running paid plan, the free Access plan (or no plan), or a paid plan that has
+ * expired. Everyone who can't view billing is sent back to the More screen.
  */
 export default function BillingScreen() {
-  const { canManage, subscriptionQuery, subscription, tier, entry, redirecting } =
-    useBillingScreenGuard({ requirePaidPlan: true });
-  const isCurrent = entry === 'current';
+  const { canManage, subscriptionQuery, subscription, tier, redirecting } = useBillingScreenGuard();
+  const planState = subscriptionQuery.data ? getCurrentPlanState(subscription, tier) : null;
+  const isPaid = planState === 'paid';
 
   // The current cycle's total, as a fallback for the billing-cycle amount when the API has no
-  // `next_billing_amount`.
+  // `next_billing_amount`. Only a running paid plan has one.
   const cycleQuote = useBillingQuote(
-    isCurrent
+    isPaid
       ? getCurrentPlanQuoteParams(
           subscription,
           tier,
@@ -84,22 +86,39 @@ export default function BillingScreen() {
         />
       );
     }
-    if (redirecting || !isCurrent || !subscription || !tier) return <BillingLoading />;
+    if (redirecting || !subscriptionQuery.data || !planState) return <BillingLoading />;
 
-    const periodStart = subscription.period_start;
-    const periodEnd = subscription.period_end;
+    const isFree = planState === 'free';
+    const periodStart = subscription?.period_start;
+    const periodEnd = subscription?.period_end;
+    // Free plans have no billing period; an expired plan keeps its last period when it has one.
+    const showCycleProgress = isPaid || (planState === 'expired' && !!periodStart && !!periodEnd);
 
-    const nextAmount = billingCycle?.next_billing_amount;
-    const cycleAmount =
-      nextAmount !== null && nextAmount !== undefined
-        ? formatMoney(
-            nextAmount,
-            billingCycle?.next_billing_currency ?? cycleQuote.data?.currency_code
-          )
-        : formatMoney(cycleQuote.data?.client_total, cycleQuote.data?.currency_code);
-    const isRunning = subscription.status === 'active' || subscription.status === 'trialing';
+    let cycleAmount = '';
+    if (isFree) {
+      cycleAmount = 'Free';
+    } else if (isPaid) {
+      const nextAmount = billingCycle?.next_billing_amount;
+      cycleAmount =
+        nextAmount !== null && nextAmount !== undefined
+          ? formatMoney(
+              nextAmount,
+              billingCycle?.next_billing_currency ?? cycleQuote.data?.currency_code
+            )
+          : formatMoney(cycleQuote.data?.client_total, cycleQuote.data?.currency_code);
+    }
+    const isRunning =
+      isPaid && (subscription?.status === 'active' || subscription?.status === 'trialing');
 
-    const covered = subscription.covered_users;
+    // Free/expired plans can't change plan or add seats: send them to "Choose your plan".
+    const cycleAction = isPaid
+      ? { label: 'Change Plan', onPress: () => router.push('/billing/change-plan') }
+      : {
+          label: isFree ? 'Upgrade Plan' : 'Choose Plan',
+          onPress: () => router.push('/billing/choose-plan'),
+        };
+
+    const covered = subscription?.covered_users ?? subscriptionQuery.data.covered_users ?? 0;
     const activeUsers = eligibility?.active_users;
     const hasUsage = typeof activeUsers === 'number';
     const seatTrailing = hasUsage ? `${activeUsers}/${covered} Seats` : plural(covered, 'Seat');
@@ -112,8 +131,10 @@ export default function BillingScreen() {
     return (
       <ScrollView
         showsVerticalScrollIndicator={false}
-        // Figma: plan card 40pt under the title; 24pt to the first section, 16pt between sections.
-        contentContainerStyle={{ paddingTop: 40, paddingBottom: 40 }}
+        // Figma: plan card 40pt under the title (16pt gap so scrolled content clears the fixed title,
+        // + 24pt padding); 24pt to the first section, 16pt between sections.
+        style={{ marginTop: 16 }}
+        contentContainerStyle={{ paddingTop: 24, paddingBottom: 40 }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#113E55" />
         }
@@ -140,24 +161,27 @@ export default function BillingScreen() {
                 ) : null}
               </View>
             }
-            actionLabel="Change Plan"
-            onAction={() => router.push('/billing/change-plan')}
+            actionLabel={cycleAction.label}
+            onAction={cycleAction.onPress}
           >
-            {/* Figma: the bar sits 8pt into its frame, with ~11pt of slack under the dates. */}
-            <SegmentedProgress
-              className="mb-[11px] mt-2"
-              progress={getCycleProgress(periodStart, periodEnd)}
-              startLabel={formatBillingDate(periodStart, 'short')}
-              endLabel={formatBillingDate(periodEnd, 'short')}
-            />
+            {showCycleProgress ? (
+              // Figma: the bar sits 8pt into its frame, with ~11pt of slack under the dates.
+              <SegmentedProgress
+                className="mb-[11px] mt-2"
+                progress={getCycleProgress(periodStart, periodEnd)}
+                startLabel={formatBillingDate(periodStart, 'short')}
+                endLabel={formatBillingDate(periodEnd, 'short')}
+              />
+            ) : null}
           </BillingSectionCard>
 
           <BillingSectionCard
             eyebrow="Seat Usage"
             title="Active Users"
             trailing={seatTrailing}
-            actionLabel="Manage Seats"
-            onAction={() => router.push('/billing/manage-seats')}
+            // Seats can only be changed within a paid billing period.
+            actionLabel={isPaid ? 'Manage Seats' : undefined}
+            onAction={isPaid ? () => router.push('/billing/manage-seats') : undefined}
           >
             <ProgressBar className="mb-3 mt-[7px]" progress={seatUsage} />
           </BillingSectionCard>
@@ -189,8 +213,8 @@ export default function BillingScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <Back type="short-arrow" showText={false} showBorder />
 
-      {/* Hidden while deciding the entry so "Choose your plan" estates never see this title. */}
-      {isCurrent ? (
+      {/* Hidden until the role is known, so users who are redirected away never see it. */}
+      {!redirecting ? (
         <Text className="mt-[9px] font-ubuntu-medium text-[27px] leading-[32.8px] text-[#113E55]">
           Your Current Plan
         </Text>

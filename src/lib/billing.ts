@@ -267,6 +267,32 @@ export function getBillingEntry(
   return isPaidActiveSubscription(subscription, tier, now) ? 'current' : 'choose';
 }
 
+/**
+ * How "Your Current Plan" renders: 'paid' (a running paid plan), 'free' (the Access tier, or no
+ * subscription/tier at all) or 'expired' (a paid tier that is expired or cancelled past its end).
+ */
+export type CurrentPlanState = 'paid' | 'free' | 'expired';
+
+export function getCurrentPlanState(
+  subscription: EstateSubscription | null | undefined,
+  tier: BillingTier | null | undefined,
+  now: Date = new Date()
+): CurrentPlanState {
+  if (!subscription || !tier || tier.slug === 'access') return 'free';
+  return isPaidActiveSubscription(subscription, tier, now) ? 'paid' : 'expired';
+}
+
+/** Plan card footnote on the free Access plan. */
+export const FREE_PLAN_FOOTNOTE = 'Change Plan to Unlock more features';
+
+/** 'Expired on May 23rd, 2026.' for a plan that is no longer running; `null` without an end date. */
+export function getPlanExpiredFootnote(
+  subscription: EstateSubscription | null | undefined
+): string | null {
+  const endDate = formatBillingDate(subscription?.period_end);
+  return endDate ? `Expired on ${endDate}.` : null;
+}
+
 /** `access_anomaly_detection_tier_1` → 'Access Anomaly Detection'. */
 export function humaniseFeatureKey(key: string | null | undefined): string {
   if (!key) return '';
@@ -361,4 +387,15 @@ export function getCurrentPlanQuoteParams(
     tier_slug: 'custom',
     entitlements: { ...entitlements, administrative_fee: true },
   };
+}
+
+/**
+ * Font size for a big money figure that must stay on one line: `baseSize` while it has at most
+ * `fitChars` characters, then scaled down in proportion (never below 65% of `baseSize`). Used
+ * instead of `adjustsFontSizeToFit`, which on iOS measures a changed amount against the previous
+ * layout and can shrink it to a sliver.
+ */
+export function getAmountFontSize(amount: string, baseSize: number, fitChars: number): number {
+  if (amount.length <= fitChars) return baseSize;
+  return Math.max(Math.round((baseSize * fitChars) / amount.length), Math.round(baseSize * 0.65));
 }

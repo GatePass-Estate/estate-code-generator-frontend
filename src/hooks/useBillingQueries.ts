@@ -1,5 +1,5 @@
 import { keepPreviousData, useMutation, useQueries, useQuery } from '@tanstack/react-query';
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { queryClient } from '@/lib/queryClient';
 import {
   cancelSeatReduction,
@@ -27,6 +27,7 @@ import {
 } from '@/src/lib/billing';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import {
+  AiFeatureGrantStatus,
   BillingTier,
   BillingTierListResponse,
   CheckoutQuoteRequest,
@@ -68,6 +69,11 @@ export function refreshBillingData(): Promise<void> {
   return queryClient.invalidateQueries({ queryKey: billingKeys.all });
 }
 
+/** Drop every cached billing response (on sign-out, so the next account never sees stale plans). */
+export function clearBillingData() {
+  queryClient.removeQueries({ queryKey: billingKeys.all });
+}
+
 /** Signed-in user's billing permissions. Admin-only queries stay disabled unless `canView`. */
 export function useBillingAccess() {
   const role = useUserStore((s) => s.role);
@@ -104,6 +110,8 @@ export function useEstateSubscription() {
     queryKey: billingKeys.subscription(estateId ?? ''),
     queryFn: () => getEstateSubscription(estateId as string),
     enabled: Boolean(estateId) && canView,
+    // The plan can change outside the app (payment webhook, admin tools): refetch on every visit.
+    refetchOnMount: 'always',
   });
 }
 
@@ -113,21 +121,44 @@ export function useBillingCycle() {
     queryKey: billingKeys.cycle(estateId ?? ''),
     queryFn: () => getBillingCycle(estateId as string),
     enabled: Boolean(estateId) && canView,
+    refetchOnMount: 'always',
   });
+}
+
+function resolveQuoteBody(
+  params: BillingQuoteParams | null,
+  estateId: string | null
+): CheckoutQuoteRequest | null {
+  const resolvedEstateId = params?.estate_id ?? estateId;
+  return params && resolvedEstateId ? { ...params, estate_id: resolvedEstateId } : null;
 }
 
 /** Price quote; disabled while `params` is null. Keeps the last quote while new params load. */
 export function useBillingQuote(params: BillingQuoteParams | null) {
   const { estateId, canView } = useBillingAccess();
-  const resolvedEstateId = params?.estate_id ?? estateId;
-  const body: CheckoutQuoteRequest | null =
-    params && resolvedEstateId ? { ...params, estate_id: resolvedEstateId } : null;
+  const body = resolveQuoteBody(params, estateId);
   return useQuery({
     queryKey: billingKeys.quote(body ?? ({} as CheckoutQuoteRequest)),
     queryFn: () => getCheckoutQuote(body as CheckoutQuoteRequest),
     enabled: body !== null && canView,
     placeholderData: body ? keepPreviousData : undefined,
   });
+}
+
+/** Warms the `useBillingQuote` cache for `params` (same key and fetcher); no-op when not allowed. */
+export function usePrefetchBillingQuote() {
+  const { estateId, canView } = useBillingAccess();
+  return useCallback(
+    (params: BillingQuoteParams | null) => {
+      const body = canView ? resolveQuoteBody(params, estateId) : null;
+      if (!body) return;
+      void queryClient.prefetchQuery({
+        queryKey: billingKeys.quote(body),
+        queryFn: () => getCheckoutQuote(body),
+      });
+    },
+    [estateId, canView]
+  );
 }
 
 type SeatPriceResult = { slug: string } & TierSeatPrice;
@@ -234,7 +265,7 @@ export function useEstateAiTools() {
       const tool: EstateAiTool = {
         featureKey: grant.feature_key ?? '',
         name,
-        status: grant.status,
+        status: effectiveGrantStatus(grant.status, grant.expires_at),
         startsAt: grant.starts_at,
         expiresAt: grant.expires_at,
       };
@@ -256,6 +287,19 @@ export function useEstateAiTools() {
     error: grantsQuery.error ?? null,
     refetch: () => Promise.all([refetchGrants(), refetchMarketplace()]),
   };
+}
+
+/**
+ * The API can leave a grant `active` after its `expires_at` (e.g. plan-included AI tools after the
+ * plan dropped back to Access), so treat a lapsed end date as expired.
+ */
+function effectiveGrantStatus(
+  status: AiFeatureGrantStatus,
+  expiresAt: string | null
+): AiFeatureGrantStatus {
+  if (status !== 'active' || !expiresAt) return status;
+  const end = new Date(expiresAt).getTime();
+  return Number.isFinite(end) && end <= Date.now() ? 'expired' : status;
 }
 
 function isMoreRelevantGrant(candidate: EstateAiTool, current: EstateAiTool): boolean {
