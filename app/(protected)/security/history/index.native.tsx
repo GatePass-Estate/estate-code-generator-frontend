@@ -17,6 +17,7 @@ import {
 } from '@/src/lib/accessLogMappers';
 import { getEstateResidentLogs, getEstateVisitorLogs } from '@/src/lib/api/accessLogs';
 import { SecurityHistoryEntry } from '@/src/types/accessLogs';
+import SecurityTabBar from '@/src/components/security/SecurityTabBar';
 
 type HistoryMode = 'visitor' | 'resident';
 
@@ -156,7 +157,7 @@ export default function AccessLogScreen() {
         ) : (
           <ScrollView
             style={{ flex: 1 }}
-            contentContainerStyle={{ flexGrow: 0, paddingTop: 20, paddingBottom: 40, gap: 30 }}
+            contentContainerStyle={{ flexGrow: 0, paddingTop: 20, paddingBottom: 96, gap: 30 }}
             showsVerticalScrollIndicator={false}
           >
             {error ? (
@@ -188,6 +189,7 @@ export default function AccessLogScreen() {
           </ScrollView>
         )}
       </View>
+      <SecurityTabBar activeTab="history" />
     </SafeAreaView>
   );
 }
