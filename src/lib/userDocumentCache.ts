@@ -74,7 +74,7 @@ export const loadUserDocument = async (
 
   const current: CachedUserDocument = {
     contentType: metadata.content_type,
-    documentId: metadata.document_id,
+    documentId: metadata.document_id ?? null,
     uri,
   };
   documents.set(key, current);

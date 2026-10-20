@@ -201,7 +201,7 @@ export default function SecurityVerificationMobile() {
     try {
       const result = await validateCode(entered);
       const resident = await getUserById(result.user_id);
-      const residentHousehold = resident?.household_name || resident?.household_id || 'Household';
+      const residentHousehold = resident?.household_name || 'Household';
 
       router.push({
         pathname: '/security/result',

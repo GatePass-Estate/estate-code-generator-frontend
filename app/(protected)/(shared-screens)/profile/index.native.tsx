@@ -10,7 +10,7 @@ import {
   Image,
   TouchableOpacity,
 } from 'react-native';
-import { router, Stack, useLocalSearchParams, useNavigation } from 'expo-router';
+import { router, Stack, useNavigation } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -40,6 +40,7 @@ import {
   uploadUserDocument,
 } from '@/src/lib/api/userDocuments';
 import { formatDateWithOrdinal } from '@/src/lib/helpers';
+import { useAccountVerification, useVerificationGate } from '@/src/hooks/useAccountVerification';
 import { useProfilePendingFields } from '@/src/hooks/useProfilePendingFields';
 import { ProfileFieldKey } from '@/src/lib/profilePendingFields';
 import {
@@ -59,6 +60,17 @@ function formatAccessCode(code: string) {
   return code.replace(/\s+/g, '').toUpperCase();
 }
 
+const WAITING_APPROVAL_COPY = {
+  title: 'Waiting Approval',
+  description: 'Your documents are currently being reviewed by Admin.',
+};
+
+const ID_REJECTED_COPY = {
+  title: 'ID Rejected',
+  description:
+    'Admin could not approve your ID. Please upload a clear, valid government-issued ID.',
+};
+
 const ONBOARDING_COPY: Record<
   Exclude<ProfileOnboardingStep, null>,
   { title: string; description: string }
@@ -74,8 +86,11 @@ const ONBOARDING_COPY: Record<
 };
 
 export default function ProfileScreen() {
+  // Until the ID is approved only the photo and ID uploads work here; anything else shows the
+  // Complete KYC modal.
+  const { requireVerified } = useVerificationGate();
+  const { approval: idApproval, blocked: verificationBlocked } = useAccountVerification();
   const navigation = useNavigation();
-  const { verify } = useLocalSearchParams<{ verify?: string }>();
   const {
     first_name,
     last_name,
@@ -104,6 +119,7 @@ export default function ProfileScreen() {
   );
   const onboardingCache = useProfileDocumentsStore((state) => state.onboarding);
   const documentsImagesLoading = useProfileDocumentsStore((state) => state.imagesLoading);
+  const idRejected = useProfileDocumentsStore((state) => state.idRejected);
   const syncDocuments = useProfileDocumentsStore((state) => state.syncDocuments);
   const markOnboardingStep = useProfileDocumentsStore((state) => state.markOnboardingStep);
   const setProfilePhotoUri = useProfileDocumentsStore((state) => state.setProfilePhotoUri);
@@ -141,6 +157,7 @@ export default function ProfileScreen() {
   }, [user_id]);
 
   const handleGenerateCode = useCallback(async () => {
+    if (!requireVerified()) return;
     if (!user_id) return;
     setLoading(true);
     try {
@@ -157,20 +174,12 @@ export default function ProfileScreen() {
     } finally {
       setLoading(false);
     }
-  }, [user_id, estate_id]);
+  }, [requireVerified, user_id, estate_id]);
 
   useEffect(() => {
     if (!user_id) return;
     syncDocuments(user_id);
   }, [user_id, syncDocuments]);
-
-  // Opened from the Complete KYC modal: show the 2/2 ID step until an ID is uploaded.
-  const [verifyIdFirst, setVerifyIdFirst] = useState(false);
-  useEffect(() => {
-    if (verify !== 'id') return;
-    setVerifyIdFirst(true);
-    router.setParams({ verify: undefined });
-  }, [verify]);
 
   useEffect(() => {
     if (showAccessCode) fetchMyCode();
@@ -183,12 +192,26 @@ export default function ProfileScreen() {
     return unsubscribe;
   }, [navigation, fetchMyCode, showAccessCode]);
 
+  // The admin may have rejected the ID since the last sync: check on every visit.
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      if (!user_id) return;
+      const { activeIdDocumentId, pendingIdDocumentId, checkIdRejection } =
+        useProfileDocumentsStore.getState();
+      if (!activeIdDocumentId) void checkIdRejection(user_id, pendingIdDocumentId);
+    });
+    return unsubscribe;
+  }, [navigation, user_id]);
+
   const formattedDate = useMemo(() => {
     if (!expiry) return null;
     return formatDateWithOrdinal(new Date(expiry));
   }, [expiry]);
 
-  const openEditProfile = () => router.push('/profile/edit');
+  const openEditProfile = () => {
+    if (!requireVerified()) return;
+    router.push('/profile/edit');
+  };
 
   const openPendingSheet = useCallback((data: PendingRequestSheetData) => {
     setPendingRequestSheet(data);
@@ -261,6 +284,7 @@ export default function ProfileScreen() {
   const handleIdentificationSelected = async (uri: string) => {
     setUploadingIdentification(true);
     try {
+      // The server attaches a re-submitted ID to the existing request itself; nothing more to call.
       const result = await uploadUserDocument(uri, 'id_card');
 
       if (user_id) {
@@ -280,10 +304,19 @@ export default function ProfileScreen() {
             currentFileName: identificationUri ? 'Current ID' : DEFAULT_PENDING_ID_LABEL,
           })
         );
+        // The server says the ID now waits for an admin: reflect that straight away so this screen
+        // shows "Waiting Approval" and the Complete KYC modal sends the user back here.
         useProfileDocumentsStore.setState({
           pendingIdDocumentId: result.document_id,
+          idApproval: 'pending',
+          // A just-uploaded ID hasn't been reviewed, so it can't be rejected yet.
+          idRejected: false,
+          idRejectionDocumentId: result.document_id,
           lastSyncedAt: Date.now(),
         });
+        if (user_id) {
+          void useProfileDocumentsStore.getState().checkIdRejection(user_id, result.document_id);
+        }
       } else {
         setIdentificationUri(uri);
         setIdentificationPendingRequest(null);
@@ -296,7 +329,6 @@ export default function ProfileScreen() {
 
       setShowIdentificationSheet(false);
       setUploadingIdentification(false);
-      setVerifyIdFirst(false);
 
       // Refresh authenticated preview in the background; local URI is already shown.
       if (result.document_status === 'pending' && result.document_id) {
@@ -330,6 +362,7 @@ export default function ProfileScreen() {
   };
 
   const handleIdentificationDownload = async () => {
+    if (!requireVerified()) return;
     if (identificationPendingRequest?.newFileUri) {
       await downloadFile(identificationPendingRequest.newFileUri);
       return;
@@ -378,6 +411,7 @@ export default function ProfileScreen() {
   const canCopyCode = Boolean(code && !noCode);
 
   const handleCopyCode = useCallback(async () => {
+    if (!requireVerified()) return;
     if (!canCopyCode) {
       Alert.alert('No access code', 'Generate an access code first, then long-press it to copy.');
       return;
@@ -393,7 +427,7 @@ export default function ProfileScreen() {
     copiedToastTimer.current = setTimeout(() => {
       setShowCopiedToast(false);
     }, 2000);
-  }, [canCopyCode, code]);
+  }, [canCopyCode, code, requireVerified]);
 
   useEffect(() => {
     return () => {
@@ -407,11 +441,16 @@ export default function ProfileScreen() {
     identificationUri || identificationPendingRequest || onboardingCache?.hasIdentification
   );
   const hasPhoto = Boolean(profilePhotoUri || onboardingCache?.hasPhoto);
-  const onboardingStep =
-    verifyIdFirst && !identificationPendingRequest
-      ? 'id'
-      : getProfileOnboardingStep(hasIdentification, hasPhoto);
+  // Always the user's real step (photo, then ID), however the screen was opened.
+  const onboardingStep = getProfileOnboardingStep(hasIdentification, hasPhoto);
   const isProfileLocked = onboardingStep !== null && !uploadingPhoto && !uploadingIdentification;
+  // Photo and ID are in, the ID is waiting for an admin: show "Waiting Approval" over a faded profile.
+  const isAwaitingApproval =
+    !isProfileLocked &&
+    verificationBlocked &&
+    (idApproval === 'pending' || !!identificationPendingRequest) &&
+    !uploadingPhoto &&
+    !uploadingIdentification;
 
   const identificationDisplayValue = identificationPendingRequest
     ? identificationPendingRequest.newFileName || 'Uploaded'
@@ -539,7 +578,10 @@ export default function ProfileScreen() {
                       <View className="h-8 w-8 items-center justify-center">
                         {code && !noCode && !loading ? (
                           <Pressable
-                            onPress={() => setCodeVisible((visible) => !visible)}
+                            onPress={() => {
+                              if (!requireVerified()) return;
+                              setCodeVisible((visible) => !visible);
+                            }}
                             hitSlop={8}
                             className="h-8 w-8 items-center justify-center rounded-full bg-[#E0FFFC80]"
                           >
@@ -578,7 +620,13 @@ export default function ProfileScreen() {
             </View>
 
             <View className="items-end justify-between">
-              <Pressable onPress={() => router.push('/profile/access-log')} hitSlop={8}>
+              <Pressable
+                onPress={() => {
+                  if (!requireVerified()) return;
+                  router.push('/profile/access-log');
+                }}
+                hitSlop={8}
+              >
                 <Text className="text-[11px] font-inter-semibold text-primary">View History</Text>
               </Pressable>
 
@@ -598,6 +646,7 @@ export default function ProfileScreen() {
 
                 <Pressable
                   onPress={() => {
+                    if (!requireVerified()) return;
                     if (code) setShowQrModal(true);
                     else handleGenerateCode();
                   }}
@@ -722,6 +771,30 @@ export default function ProfileScreen() {
 
             {/* Only the avatar stays tappable, so the photo can be uploaded before the ID. */}
             <View style={{ opacity: 0.35 }} pointerEvents="box-none" className="mt-6 w-full">
+              {renderProfileContent(true)}
+            </View>
+          </View>
+        ) : isAwaitingApproval ? (
+          <View className="w-full flex-1 justify-center">
+            <View className="w-full items-center px-1">
+              {idRejected === null ? (
+                // Still checking whether the admin rejected this ID: show neither banner yet.
+                <View
+                  className="mb-[30px] w-full items-center justify-center pt-12"
+                  style={{ height: 230 }}
+                >
+                  <ActivityIndicator color="#1B998B" />
+                </View>
+              ) : (
+                <ProfileOnboardingBanner
+                  {...(idRejected ? ID_REJECTED_COPY : WAITING_APPROVAL_COPY)}
+                  buttonLabel={idRejected ? 'Re-upload' : 'Re-submit'}
+                  onUpload={() => setShowIdentificationSheet(true)}
+                />
+              )}
+            </View>
+
+            <View style={{ opacity: 0.4 }} pointerEvents="box-none" className="mt-6 w-full">
               {renderProfileContent(true)}
             </View>
           </View>

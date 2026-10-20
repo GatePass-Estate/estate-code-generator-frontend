@@ -10,13 +10,15 @@ import { IdApproval, useProfileDocumentsStore } from '@/src/lib/stores/profileDo
 const VERIFICATION_REQUIRED_ROLES = ['resident', 'security', 'admin'];
 
 /**
- * Screens an unverified user can still open: home, their profile (to upload the photo and ID)
- * and account settings. Every other screen sends them back home with the verify prompt.
+ * Screens an unverified user can still open: home, notifications (they may carry the "verify your
+ * ID" message), their profile (to upload the photo and ID), account settings and the Terms of
+ * Service / Privacy Policy. Every other screen sends them back home with the verify prompt.
  */
 const VERIFICATION_FREE_PATHS = [
   '/user',
   '/security',
   '/security/more',
+  '/info-board',
   '/profile',
   '/profile/edit',
   '/profile/edit/password',
@@ -26,6 +28,8 @@ const VERIFICATION_FREE_PATHS = [
   '/account-security/recovery-codes',
   '/linked-devices',
   '/delete-account',
+  '/auth/tos',
+  '/auth/data-protection-policy',
 ];
 
 /** Where a blocked user lands: their role's home screen. */

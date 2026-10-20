@@ -13,12 +13,13 @@ import { useUserStore } from '@/src/lib/stores/userStore';
 /**
  * Mount once in the protected layout. Until an admin approves the user's ID, opening any screen
  * other than home, profile and settings goes back and shows the Complete KYC modal. Its button opens
- * the ID upload on the profile, or just the profile when the ID is already waiting for approval.
+ * the profile, which shows the user's current step from their documents: photo (1/2), then ID (2/2),
+ * then "Waiting Approval". No step is passed in, so the photo can never be skipped.
  */
 export default function VerifyAccountGuard() {
   const pathname = usePathname();
   const role = useUserStore((s) => s.role);
-  const { approval, blocked } = useAccountVerification();
+  const { blocked } = useAccountVerification();
   const visible = useVerifyAccountPromptStore((s) => s.visible);
   const show = useVerifyAccountPromptStore((s) => s.show);
   const dismiss = useVerifyAccountPromptStore((s) => s.dismiss);
@@ -36,11 +37,7 @@ export default function VerifyAccountGuard() {
     <VerifyAccountModal
       visible={visible && blocked}
       onClose={dismiss}
-      onVerify={() =>
-        router.push(
-          approval === 'pending' ? '/profile' : { pathname: '/profile', params: { verify: 'id' } }
-        )
-      }
+      onVerify={() => router.push('/profile')}
     />
   );
 }
