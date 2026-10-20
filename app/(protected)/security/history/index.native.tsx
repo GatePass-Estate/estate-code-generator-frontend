@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack, useNavigation, useRouter } from 'expo-router';
-import { MaterialIcons } from '@expo/vector-icons';
+import { Stack, useRouter } from 'expo-router';
 import { sharedStyles } from '@/src/theme/styles';
 import ScreenHeader from '@/src/components/mobile/ScreenHeader';
 import AnimatedPillTabs from '@/src/components/mobile/AnimatedPillTabs';
@@ -60,7 +59,6 @@ const AccessLogCard = ({
 );
 
 export default function AccessLogScreen() {
-  const navigation = useNavigation();
   const router = useRouter();
   const [mode, setMode] = useState<HistoryMode>('visitor');
   const [logs, setLogs] = useState<SecurityHistoryEntry[]>([]);
@@ -127,13 +125,6 @@ export default function AccessLogScreen() {
       style={[sharedStyles.container, sharedStyles.modalContainer, { backgroundColor: '#F6F7F7' }]}
     >
       <Stack.Screen options={{ headerShown: false }} />
-
-      <Pressable
-        onPress={() => navigation.goBack()}
-        className="h-[30px] w-[30px] items-center justify-center rounded-full bg-[#EFF1F1]"
-      >
-        <MaterialIcons name="keyboard-arrow-left" size={24} color="#113E55" />
-      </Pressable>
 
       <ScreenHeader title="Access Log" subtitle="View all access code you have approved" />
 
