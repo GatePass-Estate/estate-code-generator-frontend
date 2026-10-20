@@ -93,7 +93,7 @@ export default function ChoosePlanScreen() {
   const tiersQuery = useBillingTiers();
   const eligibilityQuery = useSeatReductionEligibility();
   const seatPrices = useTierSeatPrices(tiersQuery.data);
-  const { startCheckout, isRunning } = usePaystackCheckout();
+  const { startCheckout, isRunning, checkoutSheet } = usePaystackCheckout();
 
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
   const [seatsInput, setSeatsInput] = useState<number | null>(null);
@@ -376,6 +376,7 @@ export default function ChoosePlanScreen() {
         onConfirm={setMonths}
         quoteParams={buildQuoteParams}
       />
+      {checkoutSheet}
     </SafeAreaView>
   );
 }

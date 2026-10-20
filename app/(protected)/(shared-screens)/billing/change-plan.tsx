@@ -47,7 +47,7 @@ export default function ChangePlanScreen() {
   } = useBillingScreenGuard({ requirePaidPlan: true });
   const tiersQuery = useBillingTiers();
   const scheduleTierChange = useScheduleTierChange();
-  const { startCheckout, isRunning: checkoutRunning } = usePaystackCheckout();
+  const { startCheckout, isRunning: checkoutRunning, checkoutSheet } = usePaystackCheckout();
   const pendingRequests = usePendingRequests();
 
   const tiers = tiersQuery.data;
@@ -339,6 +339,7 @@ export default function ChangePlanScreen() {
       {renderContent()}
 
       <PendingRequestsSheet visible={pendingVisible} onClose={() => setPendingVisible(false)} />
+      {checkoutSheet}
     </SafeAreaView>
   );
 }

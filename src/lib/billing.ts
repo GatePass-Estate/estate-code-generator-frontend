@@ -399,3 +399,37 @@ export function getAmountFontSize(amount: string, baseSize: number, fitChars: nu
   if (amount.length <= fitChars) return baseSize;
   return Math.max(Math.round((baseSize * fitChars) / amount.length), Math.round(baseSize * 0.65));
 }
+
+/** Paystack's own checkout/3-D Secure pages (checkout.paystack.com, standard.paystack.co, …). */
+const PAYSTACK_HOST = /(^|\.)paystack\.(com|co)$/i;
+
+/**
+ * What a navigation inside the Paystack checkout WebView means:
+ * - `'return'`: Paystack is sending the user back to our callback (it appends `reference`/`trxref`,
+ *   and the backend's callback lives on app.gatepassng.com) — close the sheet and verify payment.
+ * - `'cancel'`: the user cancelled on Paystack's page (its "close"/"cancel" routes).
+ * - `null`: keep browsing (payment pages, bank 3-D Secure pages).
+ */
+export function classifyCheckoutNavigation(
+  url: string,
+  reference?: string | null
+): 'return' | 'cancel' | null {
+  const match = /^https?:\/\/([^/?#]+)([^?#]*)(\?[^#]*)?/i.exec(url);
+  if (!match) return null;
+  const host = match[1].toLowerCase().replace(/:\d+$/, '');
+  const path = (match[2] || '').toLowerCase();
+  const query = match[3] || '';
+
+  if (PAYSTACK_HOST.test(host)) {
+    return /\/(close|cancel)/.test(path) ? 'cancel' : null;
+  }
+  const hasReference =
+    /[?&]trxref=/i.test(query) ||
+    (reference
+      ? query.includes(`reference=${encodeURIComponent(reference)}`)
+      : /[?&]reference=/i.test(query));
+  if (hasReference || host.endsWith('gatepassng.com') || path.includes('/payment/callback')) {
+    return 'return';
+  }
+  return null;
+}

@@ -51,6 +51,9 @@ function quoteTotal(query: {
   return query.isError ? 'Unavailable' : '…';
 }
 
+/** RN Modal slide-out duration, so the next sheet doesn't present mid-dismiss. */
+const SHEET_DISMISS_MS = 350;
+
 export default function ManageSeatsScreen() {
   // Seat changes only apply to a running paid plan; anything else picks a plan first.
   const { canManage, subscriptionQuery, subscription, tier, redirecting } = useBillingScreenGuard({
@@ -58,7 +61,7 @@ export default function ManageSeatsScreen() {
   });
   const eligibilityQuery = useSeatReductionEligibility();
   const scheduleSeatReduction = useScheduleSeatReduction();
-  const { startCheckout, isRunning: checkoutRunning } = usePaystackCheckout();
+  const { startCheckout, isRunning: checkoutRunning, checkoutSheet } = usePaystackCheckout();
 
   const eligibility = eligibilityQuery.data ?? null;
   const currentSeats = subscription?.covered_users ?? 1;
@@ -128,7 +131,10 @@ export default function ManageSeatsScreen() {
       });
       return;
     }
-    // The sheet stays open (busy) while the payment page is shown on top of it.
+    // Close the confirmation sheet before the checkout sheet opens: iOS can't present a modal while
+    // another is still sliding away.
+    setConfirmVisible(false);
+    await new Promise((resolve) => setTimeout(resolve, SHEET_DISMISS_MS));
     const outcome = await startCheckout({ checkout_kind: 'seat_add', seats_added: delta });
     showCheckoutOutcomeAlert(outcome, 'Your seats have been updated.');
     if (outcome === 'paid') closeAfterSuccess();
@@ -271,6 +277,7 @@ export default function ManageSeatsScreen() {
       />
 
       <PendingRequestsSheet visible={pendingVisible} onClose={() => setPendingVisible(false)} />
+      {checkoutSheet}
     </SafeAreaView>
   );
 }

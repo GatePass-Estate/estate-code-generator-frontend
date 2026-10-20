@@ -2,6 +2,7 @@ import { describe, expect, it } from '@jest/globals';
 import {
   buildCustomEntitlements,
   buildPendingRequests,
+  classifyCheckoutNavigation,
   canManageBilling,
   canViewBilling,
   createIdempotencyKey,
@@ -510,5 +511,35 @@ describe('getAmountFontSize', () => {
   it('scales long amounts down proportionally, with a floor', () => {
     expect(getAmountFontSize('₦1,234,567.50', 34, 11)).toBe(29);
     expect(getAmountFontSize('₦123,456,789,012.50', 34, 11)).toBe(22);
+  });
+});
+
+describe('classifyCheckoutNavigation', () => {
+  const ref = 'GP-123';
+
+  it('treats the backend callback as the end of checkout', () => {
+    expect(
+      classifyCheckoutNavigation(
+        'https://app.gatepassng.com/payment/callback?trxref=GP-123&reference=GP-123',
+        ref
+      )
+    ).toBe('return');
+    expect(classifyCheckoutNavigation('https://staging.example.com/cb?reference=GP-123', ref)).toBe(
+      'return'
+    );
+  });
+
+  it('keeps Paystack and bank pages in the sheet', () => {
+    expect(classifyCheckoutNavigation('https://checkout.paystack.com/abc123', ref)).toBeNull();
+    expect(classifyCheckoutNavigation('https://standard.paystack.co/charge/3ds', ref)).toBeNull();
+    expect(classifyCheckoutNavigation('https://acs.mybank.com/challenge', ref)).toBeNull();
+    expect(classifyCheckoutNavigation('about:blank', ref)).toBeNull();
+  });
+
+  it('detects a cancel on Paystack', () => {
+    expect(classifyCheckoutNavigation('https://standard.paystack.co/close', ref)).toBe('cancel');
+    expect(classifyCheckoutNavigation('https://checkout.paystack.com/cancel?x=1', ref)).toBe(
+      'cancel'
+    );
   });
 });

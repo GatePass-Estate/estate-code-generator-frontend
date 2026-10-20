@@ -43,6 +43,8 @@ const PUBLIC_AUTH_ROUTES = [
   '/auth/reset-password',
   '/auth/tos',
   '/auth/data-protection-policy',
+  // Paystack's return page after checkout (opened outside the signed-in app).
+  '/payment/callback',
 ];
 
 /** Prefetch documents, profile photo and plan entitlements without blocking navigation. */
