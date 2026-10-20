@@ -30,6 +30,7 @@ import {
   AiFeatureGrantStatus,
   BillingTier,
   BillingTierListResponse,
+  CheckoutQuote,
   CheckoutQuoteRequest,
   CheckoutStatusResponse,
   EstateAiTool,
@@ -161,14 +162,12 @@ export function usePrefetchBillingQuote() {
   );
 }
 
-type SeatPriceResult = { slug: string } & TierSeatPrice;
-
-const combineSeatPrices = (
-  results: { data?: SeatPriceResult }[]
-): Record<string, TierSeatPrice> => {
+const combineSeatPrices = (results: { data?: CheckoutQuote }[]): Record<string, TierSeatPrice> => {
   const prices: Record<string, TierSeatPrice> = {};
   for (const { data } of results) {
-    if (data) prices[data.slug] = { pricePerSeat: data.pricePerSeat, currency: data.currency };
+    if (data?.tier_slug) {
+      prices[data.tier_slug] = { pricePerSeat: data.price_per_seat, currency: data.currency_code };
+    }
   }
   return prices;
 };
@@ -176,6 +175,9 @@ const combineSeatPrices = (
 /**
  * Per-seat monthly price for each paid, non-custom tier (one quote each: 1 seat, 1 month), keyed
  * by slug. A slug is missing until its quote loads (or if it failed).
+ *
+ * These share `useBillingQuote`'s cache key (e.g. Choose Plan at 1 seat / 30 days), so the cached
+ * value must stay the full quote; the per-seat price is derived in `combine`.
  */
 export function useTierSeatPrices(
   tiers: readonly BillingTier[] | null | undefined
@@ -192,14 +194,7 @@ export function useTierSeatPrices(
       };
       return {
         queryKey: billingKeys.quote(body),
-        queryFn: async (): Promise<SeatPriceResult> => {
-          const quote = await getCheckoutQuote(body);
-          return {
-            slug: tier.slug,
-            pricePerSeat: quote.price_per_seat,
-            currency: quote.currency_code,
-          };
-        },
+        queryFn: () => getCheckoutQuote(body),
         enabled: Boolean(estateId) && canView,
       };
     }),
