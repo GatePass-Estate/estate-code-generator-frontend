@@ -192,16 +192,14 @@ export default function ProfileScreen() {
     return unsubscribe;
   }, [navigation, fetchMyCode, showAccessCode]);
 
-  // The admin may have rejected the ID since the last sync: check on every visit.
+  // The admin may have approved or rejected the ID since the last visit: refresh on every visit.
+  // Approved users' documents still come from the cache.
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
-      if (!user_id) return;
-      const { activeIdDocumentId, pendingIdDocumentId, checkIdRejection } =
-        useProfileDocumentsStore.getState();
-      if (!activeIdDocumentId) void checkIdRejection(user_id, pendingIdDocumentId);
+      if (user_id) void syncDocuments(user_id);
     });
     return unsubscribe;
-  }, [navigation, user_id]);
+  }, [navigation, user_id, syncDocuments]);
 
   const formattedDate = useMemo(() => {
     if (!expiry) return null;

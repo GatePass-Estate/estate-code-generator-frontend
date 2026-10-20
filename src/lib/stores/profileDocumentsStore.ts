@@ -159,8 +159,11 @@ export const useProfileDocumentsStore = create<ProfileDocumentsStore>((set, get)
     }
 
     const current = get();
+    // Until the ID is approved an admin can approve or reject it at any moment, so only an approved
+    // user's documents are served from the cache.
     if (
       !force &&
+      current.idApproval === 'approved' &&
       current.userId === userId &&
       current.lastSyncedAt &&
       Date.now() - current.lastSyncedAt < STALE_MS
