@@ -19,6 +19,8 @@ import {
   parseIncidentReportReturnTo,
 } from '@/src/lib/incidentReportNavigation';
 import { toggleIncidentType } from '@/src/lib/incidentTypeSelection';
+import SecurityTabBar from '@/src/components/security/SecurityTabBar';
+import { useUserStore } from '@/src/lib/stores/userStore';
 
 const INCIDENT_TYPES = [
   'Break In and Theft',
@@ -40,6 +42,7 @@ export default function IncidentReportCategoryScreen() {
   const [other, setOther] = useState('');
   const [checkingAccess, setCheckingAccess] = useState(true);
   const [error, setError] = useState('');
+  const isSecurity = useUserStore((state) => state.role === 'security');
 
   useFocusEffect(
     useCallback(() => {
@@ -59,12 +62,12 @@ export default function IncidentReportCategoryScreen() {
         const allowed = await requestAccessWhenReady(() => active);
         if (!active) return;
         if (allowed) setCheckingAccess(false);
-        else router.replace('/user');
+        else leaveIncidentReport(returnTo, router);
       })();
       return () => {
         active = false;
       };
-    }, [requestAccessWhenReady, router])
+    }, [requestAccessWhenReady, returnTo, router])
   );
 
   const toggle = (label: string) => {
@@ -101,7 +104,7 @@ export default function IncidentReportCategoryScreen() {
           contentContainerStyle={{
             flexGrow: 1,
             paddingTop: Math.max(24, 88 - insets.top) + 53,
-            paddingBottom: Math.max(32, height * (157 / 921) - insets.bottom),
+            paddingBottom: Math.max(isSecurity ? 96 : 32, height * (157 / 921) - insets.bottom),
           }}
         >
           <View className="pl-[21px] pr-[30px]">
@@ -168,6 +171,7 @@ export default function IncidentReportCategoryScreen() {
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
+      {isSecurity ? <SecurityTabBar activeTab="report" /> : null}
     </SafeAreaView>
   );
 }
