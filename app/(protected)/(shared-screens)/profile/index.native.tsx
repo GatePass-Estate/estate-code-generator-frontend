@@ -40,6 +40,7 @@ import {
   uploadUserDocument,
 } from '@/src/lib/api/userDocuments';
 import { formatDateWithOrdinal } from '@/src/lib/helpers';
+import { useAccountVerification, useVerificationGate } from '@/src/hooks/useAccountVerification';
 import { useProfilePendingFields } from '@/src/hooks/useProfilePendingFields';
 import { ProfileFieldKey } from '@/src/lib/profilePendingFields';
 import {
@@ -59,6 +60,17 @@ function formatAccessCode(code: string) {
   return code.replace(/\s+/g, '').toUpperCase();
 }
 
+const WAITING_APPROVAL_COPY = {
+  title: 'Waiting Approval',
+  description: 'Your documents are currently being reviewed by Admin.',
+};
+
+const ID_REJECTED_COPY = {
+  title: 'ID Rejected',
+  description:
+    'Admin could not approve your ID. Please upload a clear, valid government-issued ID.',
+};
+
 const ONBOARDING_COPY: Record<
   Exclude<ProfileOnboardingStep, null>,
   { title: string; description: string }
@@ -74,6 +86,10 @@ const ONBOARDING_COPY: Record<
 };
 
 export default function ProfileScreen() {
+  // Until the ID is approved only the photo and ID uploads work here; anything else shows the
+  // Complete KYC modal.
+  const { requireVerified } = useVerificationGate();
+  const { approval: idApproval, blocked: verificationBlocked } = useAccountVerification();
   const navigation = useNavigation();
   const {
     first_name,
@@ -103,6 +119,7 @@ export default function ProfileScreen() {
   );
   const onboardingCache = useProfileDocumentsStore((state) => state.onboarding);
   const documentsImagesLoading = useProfileDocumentsStore((state) => state.imagesLoading);
+  const idRejected = useProfileDocumentsStore((state) => state.idRejected);
   const syncDocuments = useProfileDocumentsStore((state) => state.syncDocuments);
   const markOnboardingStep = useProfileDocumentsStore((state) => state.markOnboardingStep);
   const setProfilePhotoUri = useProfileDocumentsStore((state) => state.setProfilePhotoUri);
@@ -140,6 +157,7 @@ export default function ProfileScreen() {
   }, [user_id]);
 
   const handleGenerateCode = useCallback(async () => {
+    if (!requireVerified()) return;
     if (!user_id) return;
     setLoading(true);
     try {
@@ -156,7 +174,7 @@ export default function ProfileScreen() {
     } finally {
       setLoading(false);
     }
-  }, [user_id, estate_id]);
+  }, [requireVerified, user_id, estate_id]);
 
   useEffect(() => {
     if (!user_id) return;
@@ -174,12 +192,24 @@ export default function ProfileScreen() {
     return unsubscribe;
   }, [navigation, fetchMyCode, showAccessCode]);
 
+  // The admin may have approved or rejected the ID since the last visit: refresh on every visit.
+  // Approved users' documents still come from the cache.
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      if (user_id) void syncDocuments(user_id);
+    });
+    return unsubscribe;
+  }, [navigation, user_id, syncDocuments]);
+
   const formattedDate = useMemo(() => {
     if (!expiry) return null;
     return formatDateWithOrdinal(new Date(expiry));
   }, [expiry]);
 
-  const openEditProfile = () => router.push('/profile/edit');
+  const openEditProfile = () => {
+    if (!requireVerified()) return;
+    router.push('/profile/edit');
+  };
 
   const openPendingSheet = useCallback((data: PendingRequestSheetData) => {
     setPendingRequestSheet(data);
@@ -252,6 +282,7 @@ export default function ProfileScreen() {
   const handleIdentificationSelected = async (uri: string) => {
     setUploadingIdentification(true);
     try {
+      // The server attaches a re-submitted ID to the existing request itself; nothing more to call.
       const result = await uploadUserDocument(uri, 'id_card');
 
       if (user_id) {
@@ -271,10 +302,19 @@ export default function ProfileScreen() {
             currentFileName: identificationUri ? 'Current ID' : DEFAULT_PENDING_ID_LABEL,
           })
         );
+        // The server says the ID now waits for an admin: reflect that straight away so this screen
+        // shows "Waiting Approval" and the Complete KYC modal sends the user back here.
         useProfileDocumentsStore.setState({
           pendingIdDocumentId: result.document_id,
+          idApproval: 'pending',
+          // A just-uploaded ID hasn't been reviewed, so it can't be rejected yet.
+          idRejected: false,
+          idRejectionDocumentId: result.document_id,
           lastSyncedAt: Date.now(),
         });
+        if (user_id) {
+          void useProfileDocumentsStore.getState().checkIdRejection(user_id, result.document_id);
+        }
       } else {
         setIdentificationUri(uri);
         setIdentificationPendingRequest(null);
@@ -320,6 +360,7 @@ export default function ProfileScreen() {
   };
 
   const handleIdentificationDownload = async () => {
+    if (!requireVerified()) return;
     if (identificationPendingRequest?.newFileUri) {
       await downloadFile(identificationPendingRequest.newFileUri);
       return;
@@ -368,6 +409,7 @@ export default function ProfileScreen() {
   const canCopyCode = Boolean(code && !noCode);
 
   const handleCopyCode = useCallback(async () => {
+    if (!requireVerified()) return;
     if (!canCopyCode) {
       Alert.alert('No access code', 'Generate an access code first, then long-press it to copy.');
       return;
@@ -383,7 +425,7 @@ export default function ProfileScreen() {
     copiedToastTimer.current = setTimeout(() => {
       setShowCopiedToast(false);
     }, 2000);
-  }, [canCopyCode, code]);
+  }, [canCopyCode, code, requireVerified]);
 
   useEffect(() => {
     return () => {
@@ -397,8 +439,16 @@ export default function ProfileScreen() {
     identificationUri || identificationPendingRequest || onboardingCache?.hasIdentification
   );
   const hasPhoto = Boolean(profilePhotoUri || onboardingCache?.hasPhoto);
+  // Always the user's real step (photo, then ID), however the screen was opened.
   const onboardingStep = getProfileOnboardingStep(hasIdentification, hasPhoto);
   const isProfileLocked = onboardingStep !== null && !uploadingPhoto && !uploadingIdentification;
+  // Photo and ID are in, the ID is waiting for an admin: show "Waiting Approval" over a faded profile.
+  const isAwaitingApproval =
+    !isProfileLocked &&
+    verificationBlocked &&
+    (idApproval === 'pending' || !!identificationPendingRequest) &&
+    !uploadingPhoto &&
+    !uploadingIdentification;
 
   const identificationDisplayValue = identificationPendingRequest
     ? identificationPendingRequest.newFileName || 'Uploaded'
@@ -477,190 +527,204 @@ export default function ProfileScreen() {
         </Text>
       </View>
 
-      {showAccessCode ? (
-        <View className="mt-8 flex-row items-stretch justify-between rounded-[16px] bg-white p-4">
-          <View className="flex-1 justify-between gap-2 ">
-            <View className="gap-2">
-              <Text className="text-[11px] font-inter-regular text-[#6C6C6C]">My Access Code</Text>
+      <View pointerEvents={isPreview ? 'none' : 'auto'}>
+        {showAccessCode ? (
+          <View className="mt-8 flex-row items-stretch justify-between rounded-[16px] bg-white p-4">
+            <View className="flex-1 justify-between gap-2 ">
+              <View className="gap-2">
+                <Text className="text-[11px] font-inter-regular text-[#6C6C6C]">
+                  My Access Code
+                </Text>
 
-              <View
-                className="flex-row items-center gap-1"
-                style={{ minHeight: isPreview ? 28 : 22 }}
-              >
-                {!isPreview ? (
-                  <>
-                    <TouchableOpacity
-                      onLongPress={handleCopyCode}
-                      delayLongPress={400}
-                      activeOpacity={0.6}
-                      disabled={!canCopyCode || loading}
-                      hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
-                      style={{ minHeight: 28, justifyContent: 'center' }}
-                    >
-                      <View
-                        style={
-                          !loading && codeDisplay === '******'
-                            ? { transform: [{ translateY: 5 }] }
-                            : undefined
-                        }
+                <View
+                  className="flex-row items-center gap-1"
+                  style={{ minHeight: isPreview ? 28 : 22 }}
+                >
+                  {!isPreview ? (
+                    <>
+                      <TouchableOpacity
+                        onLongPress={handleCopyCode}
+                        delayLongPress={400}
+                        activeOpacity={0.6}
+                        disabled={!canCopyCode || loading}
+                        hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+                        style={{ minHeight: 28, justifyContent: 'center' }}
                       >
-                        <Text
-                          className={`text-[24px]   ${
+                        <View
+                          style={
                             !loading && codeDisplay === '******'
-                              ? 'font-ubuntu-normal text-[#113E55]/90 tracking-[3.5px] '
-                              : 'font-ubuntu-medium text-primary'
-                          }`}
-                          style={{
-                            lineHeight: 28,
-                            includeFontPadding: false,
-                            minWidth: 109,
-                          }}
+                              ? { transform: [{ translateY: 5 }] }
+                              : undefined
+                          }
                         >
-                          {loading ? '------' : codeDisplay}
-                        </Text>
+                          <Text
+                            className={`text-[24px]   ${
+                              !loading && codeDisplay === '******'
+                                ? 'font-ubuntu-normal text-[#113E55]/90 tracking-[3.5px] '
+                                : 'font-ubuntu-medium text-primary'
+                            }`}
+                            style={{
+                              lineHeight: 28,
+                              includeFontPadding: false,
+                              minWidth: 109,
+                            }}
+                          >
+                            {loading ? '------' : codeDisplay}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                      <View className="h-8 w-8 items-center justify-center">
+                        {code && !noCode && !loading ? (
+                          <Pressable
+                            onPress={() => {
+                              if (!requireVerified()) return;
+                              setCodeVisible((visible) => !visible);
+                            }}
+                            hitSlop={8}
+                            className="h-8 w-8 items-center justify-center rounded-full bg-[#E0FFFC80]"
+                          >
+                            {codeVisible ? (
+                              <EyeIcon width={18} height={18} />
+                            ) : (
+                              <HiddenEyeIcon width={18} height={18} />
+                            )}
+                          </Pressable>
+                        ) : null}
                       </View>
-                    </TouchableOpacity>
-                    <View className="h-8 w-8 items-center justify-center">
-                      {code && !noCode && !loading ? (
-                        <Pressable
-                          onPress={() => setCodeVisible((visible) => !visible)}
-                          hitSlop={8}
-                          className="h-8 w-8 items-center justify-center rounded-full bg-[#E0FFFC80]"
-                        >
-                          {codeVisible ? (
-                            <EyeIcon width={18} height={18} />
-                          ) : (
-                            <HiddenEyeIcon width={18} height={18} />
-                          )}
-                        </Pressable>
-                      ) : null}
-                    </View>
-                  </>
-                ) : null}
+                    </>
+                  ) : null}
+                </View>
+              </View>
+
+              <View>
+                {isPreview || loading ? (
+                  <Text className="text-[11px] font-inter-regular text-[#6C6C6C]">
+                    Code expires on —
+                  </Text>
+                ) : formattedDate ? (
+                  <Text className="text-[11px] font-inter-regular text-[#6C6C6C]">
+                    Code expires on {formattedDate}
+                  </Text>
+                ) : noCode ? (
+                  <Text className="text-[11px] font-inter-regular text-grey">
+                    You do not have a code yet. Tap refresh to generate one.
+                  </Text>
+                ) : (
+                  <Text className="text-[11px] font-inter-regular text-[#6C6C6C]">
+                    Code expires on —
+                  </Text>
+                )}
               </View>
             </View>
 
-            <View>
-              {isPreview || loading ? (
-                <Text className="text-[11px] font-inter-regular text-[#6C6C6C]">
-                  Code expires on —
-                </Text>
-              ) : formattedDate ? (
-                <Text className="text-[11px] font-inter-regular text-[#6C6C6C]">
-                  Code expires on {formattedDate}
-                </Text>
-              ) : noCode ? (
-                <Text className="text-[11px] font-inter-regular text-grey">
-                  You do not have a code yet. Tap refresh to generate one.
-                </Text>
-              ) : (
-                <Text className="text-[11px] font-inter-regular text-[#6C6C6C]">
-                  Code expires on —
-                </Text>
-              )}
-            </View>
-          </View>
-
-          <View className="items-end justify-between">
-            <Pressable onPress={() => router.push('/profile/access-log')} hitSlop={8}>
-              <Text className="text-[11px] font-inter-semibold text-primary">View History</Text>
-            </Pressable>
-
-            <View className="flex-row gap-3">
-              <Pressable
-                onPress={handleGenerateCode}
-                disabled={loading}
-                hitSlop={8}
-                className="h-[30px] w-[30px] items-center justify-center rounded-full bg-[#E0FFFC80]"
-              >
-                {loading ? (
-                  <ActivityIndicator size="small" color="#1B998B" />
-                ) : (
-                  <RefreshIcon width={16} height={16} />
-                )}
-              </Pressable>
-
+            <View className="items-end justify-between">
               <Pressable
                 onPress={() => {
-                  if (code) setShowQrModal(true);
-                  else handleGenerateCode();
+                  if (!requireVerified()) return;
+                  router.push('/profile/access-log');
                 }}
-                className="h-[30px] w-[30px] items-center justify-center rounded-full bg-[#E0FFFC80]"
-                disabled={loading}
                 hitSlop={8}
               >
-                <QrCodeIcon width={20} height={20} />
+                <Text className="text-[11px] font-inter-semibold text-primary">View History</Text>
               </Pressable>
+
+              <View className="flex-row gap-3">
+                <Pressable
+                  onPress={handleGenerateCode}
+                  disabled={loading}
+                  hitSlop={8}
+                  className="h-[30px] w-[30px] items-center justify-center rounded-full bg-[#E0FFFC80]"
+                >
+                  {loading ? (
+                    <ActivityIndicator size="small" color="#1B998B" />
+                  ) : (
+                    <RefreshIcon width={16} height={16} />
+                  )}
+                </Pressable>
+
+                <Pressable
+                  onPress={() => {
+                    if (!requireVerified()) return;
+                    if (code) setShowQrModal(true);
+                    else handleGenerateCode();
+                  }}
+                  className="h-[30px] w-[30px] items-center justify-center rounded-full bg-[#E0FFFC80]"
+                  disabled={loading}
+                  hitSlop={8}
+                >
+                  <QrCodeIcon width={20} height={20} />
+                </Pressable>
+              </View>
             </View>
           </View>
-        </View>
-      ) : null}
+        ) : null}
 
-      <View className="mt-4 flex-col gap-2 rounded-[16px] bg-white py-4 mb-6">
-        <ProfileFieldRow
-          label="First Name"
-          value={first_name}
-          pendingValue={pendingDetails.firstName.newValue}
-          onEdit={openEditProfile}
-          onPendingPress={() => openPendingRequestSheet('firstName', 'First Name')}
-          hasPendingRequest={pendingFields.firstName}
-        />
-        <ProfileFieldRow
-          label="Last Name"
-          value={last_name}
-          pendingValue={pendingDetails.lastName.newValue}
-          onEdit={openEditProfile}
-          onPendingPress={() => openPendingRequestSheet('lastName', 'Last Name')}
-          hasPendingRequest={pendingFields.lastName}
-        />
-        <ProfileFieldRow label="Phone Number" value={phone_number} onEdit={openEditProfile} />
-        <ProfileFieldRow
-          label="Email Address"
-          value={email}
-          pendingValue={pendingDetails.email.newValue}
-          onEdit={openEditProfile}
-          onPendingPress={() => openPendingRequestSheet('email', 'Email Address')}
-          hasPendingRequest={pendingFields.email}
-          isLast
-        />
-      </View>
-
-      <View className=" flex-col gap-2 rounded-[16px] bg-white py-4">
-        <ProfileFieldRow label="Household" value={household_name ?? null} />
-        <ProfileFieldRow label="Primary Resident" value={household_primary_resident ?? null} />
-        <ProfileFieldRow
-          label="Address"
-          value={home_address}
-          pendingValue={pendingDetails.address.newValue}
-          onEdit={openEditProfile}
-          onPendingPress={() => openPendingRequestSheet('address', 'Address')}
-          hasPendingRequest={pendingFields.address}
-          isLast
-        />
-      </View>
-
-      <View className="mt-6 flex-row items-center gap-3.5">
-        <View className="flex-1 rounded-[16px] bg-white">
+        <View className="mt-4 flex-col gap-2 rounded-[16px] bg-white py-4 mb-6">
           <ProfileFieldRow
-            label="Identification"
-            value={identificationDisplayValue}
-            pendingValue={identificationPendingRequest?.newFileName}
-            onEdit={handleIdentificationPress}
-            onPendingPress={() => {
-              if (identificationPendingRequest) {
-                openPendingSheet(identificationPendingRequest);
-              }
-            }}
-            hasPendingRequest={!!identificationPendingRequest}
+            label="First Name"
+            value={first_name}
+            pendingValue={pendingDetails.firstName.newValue}
+            onEdit={openEditProfile}
+            onPendingPress={() => openPendingRequestSheet('firstName', 'First Name')}
+            hasPendingRequest={pendingFields.firstName}
+          />
+          <ProfileFieldRow
+            label="Last Name"
+            value={last_name}
+            pendingValue={pendingDetails.lastName.newValue}
+            onEdit={openEditProfile}
+            onPendingPress={() => openPendingRequestSheet('lastName', 'Last Name')}
+            hasPendingRequest={pendingFields.lastName}
+          />
+          <ProfileFieldRow label="Phone Number" value={phone_number} onEdit={openEditProfile} />
+          <ProfileFieldRow
+            label="Email Address"
+            value={email}
+            pendingValue={pendingDetails.email.newValue}
+            onEdit={openEditProfile}
+            onPendingPress={() => openPendingRequestSheet('email', 'Email Address')}
+            hasPendingRequest={pendingFields.email}
+            isLast
           />
         </View>
 
-        <Pressable
-          onPress={handleIdentificationDownload}
-          className="h-10 w-10 items-center justify-center rounded-full bg-white"
-        >
-          <DownloadIcon width={10} height={12} />
-        </Pressable>
+        <View className=" flex-col gap-2 rounded-[16px] bg-white py-4">
+          <ProfileFieldRow label="Household" value={household_name ?? null} />
+          <ProfileFieldRow label="Primary Resident" value={household_primary_resident ?? null} />
+          <ProfileFieldRow
+            label="Address"
+            value={home_address}
+            pendingValue={pendingDetails.address.newValue}
+            onEdit={openEditProfile}
+            onPendingPress={() => openPendingRequestSheet('address', 'Address')}
+            hasPendingRequest={pendingFields.address}
+            isLast
+          />
+        </View>
+
+        <View className="mt-6 flex-row items-center gap-3.5">
+          <View className="flex-1 rounded-[16px] bg-white">
+            <ProfileFieldRow
+              label="Identification"
+              value={identificationDisplayValue}
+              pendingValue={identificationPendingRequest?.newFileName}
+              onEdit={handleIdentificationPress}
+              onPendingPress={() => {
+                if (identificationPendingRequest) {
+                  openPendingSheet(identificationPendingRequest);
+                }
+              }}
+              hasPendingRequest={!!identificationPendingRequest}
+            />
+          </View>
+
+          <Pressable
+            onPress={handleIdentificationDownload}
+            className="h-10 w-10 items-center justify-center rounded-full bg-white"
+          >
+            <DownloadIcon width={10} height={12} />
+          </Pressable>
+        </View>
       </View>
     </>
   );
@@ -687,7 +751,7 @@ export default function ProfileScreen() {
 
           {isProfileLocked ? (
             <Text className="text-[11px] font-inter-regular text-[#0A1F29]">
-              {onboardingStep === 'id' ? '1/2' : '2/2'}
+              {onboardingStep === 'photo' ? '1/2' : '2/2'}
             </Text>
           ) : (
             <View className="h-[30px] w-[30px]" />
@@ -703,7 +767,32 @@ export default function ProfileScreen() {
               />
             </View>
 
-            <View style={{ opacity: 0.35 }} pointerEvents="none" className="mt-6 w-full">
+            {/* Only the avatar stays tappable, so the photo can be uploaded before the ID. */}
+            <View style={{ opacity: 0.35 }} pointerEvents="box-none" className="mt-6 w-full">
+              {renderProfileContent(true)}
+            </View>
+          </View>
+        ) : isAwaitingApproval ? (
+          <View className="w-full flex-1 justify-center">
+            <View className="w-full items-center px-1">
+              {idRejected === null ? (
+                // Still checking whether the admin rejected this ID: show neither banner yet.
+                <View
+                  className="mb-[30px] w-full items-center justify-center pt-12"
+                  style={{ height: 230 }}
+                >
+                  <ActivityIndicator color="#1B998B" />
+                </View>
+              ) : (
+                <ProfileOnboardingBanner
+                  {...(idRejected ? ID_REJECTED_COPY : WAITING_APPROVAL_COPY)}
+                  buttonLabel={idRejected ? 'Re-upload' : 'Re-submit'}
+                  onUpload={() => setShowIdentificationSheet(true)}
+                />
+              )}
+            </View>
+
+            <View style={{ opacity: 0.4 }} pointerEvents="box-none" className="mt-6 w-full">
               {renderProfileContent(true)}
             </View>
           </View>

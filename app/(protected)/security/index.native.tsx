@@ -25,6 +25,7 @@ import MoreFill from '@/src/assets/icons/more-fill.svg';
 import Rectangle5 from '@/src/assets/icons/rectangle-5.svg';
 import ScanFrame from '@/src/assets/icons/scan-frame.svg';
 import { validateCode } from '@/src/lib/api/codes';
+import { useVerificationGate } from '@/src/hooks/useAccountVerification';
 import { getUserById } from '@/src/lib/api/user';
 import { sharedStyles } from '@/src/theme/styles';
 import { Inter } from '@/src/constants/fonts';
@@ -148,6 +149,7 @@ export default function SecurityVerificationMobile() {
   const [errorMessage, setErrorMessage] = useState('');
   const [invalidCode, setInvalidCode] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { requireVerified } = useVerificationGate();
   const [permission, requestPermission] = useCameraPermissions();
   const inputs = useRef<InputRefsStorage>({});
   const scanNavigationInProgressRef = useRef(false);
@@ -187,6 +189,11 @@ export default function SecurityVerificationMobile() {
       return;
     }
 
+    if (!requireVerified()) {
+      if (source === 'scan') scanNavigationInProgressRef.current = false;
+      return;
+    }
+
     setIsSubmitting(true);
     setErrorMessage('');
     Keyboard.dismiss();
@@ -194,7 +201,7 @@ export default function SecurityVerificationMobile() {
     try {
       const result = await validateCode(entered);
       const resident = await getUserById(result.user_id);
-      const residentHousehold = resident?.household_name || resident?.household_id || 'Household';
+      const residentHousehold = resident?.household_name || 'Household';
 
       router.push({
         pathname: '/security/result',
