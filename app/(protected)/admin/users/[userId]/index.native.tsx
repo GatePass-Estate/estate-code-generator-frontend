@@ -35,7 +35,7 @@ import {
   removeCachedUserDocument,
 } from '@/src/lib/userDocumentCache';
 import { Feather } from '@expo/vector-icons';
-import IdDocumentPdf from '@/src/components/mobile/IdDocumentPdf';
+import IdDocumentDownload from '@/src/components/mobile/IdDocumentDownload';
 import ResidentProfileFallback from '@/src/assets/icons/user-profile-placeholder.svg';
 import PrimaryAdminPromotionIcon from '@/src/assets/icons/primary-admin-promotion.svg';
 import PromotionCancelIcon from '@/src/assets/icons/promotion-cancel.svg';
@@ -706,20 +706,7 @@ export default function SingleUserMobile() {
                         }}
                       >
                         {identificationUri && identificationContentType === 'application/pdf' ? (
-                          <IdDocumentPdf
-                            uri={identificationUri}
-                            height={identificationPreviewHeight}
-                            width={identificationPreviewWidth}
-                            onError={() => {
-                              removeCachedUserDocument(
-                                userId as string,
-                                'id_card',
-                                identificationUri
-                              );
-                              setIdentificationUri(null);
-                              setIdentificationState('error');
-                            }}
-                          />
+                          <IdDocumentDownload uri={identificationUri} />
                         ) : identificationUri ? (
                           <Image
                             source={{ uri: identificationUri }}
