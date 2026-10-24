@@ -6,6 +6,7 @@ import {
   UpdatePasswordPayload,
   UpdateUserRoleResponse,
   User,
+  UserProfileResponse,
 } from '@/src/types/user';
 import { DocumentMetadataItem, UserDocumentsMetadataResponse } from '@/src/types/userDocuments';
 
@@ -59,7 +60,7 @@ export const getUserByIdAdmin = async (id: string): Promise<User> => {
   }
 };
 
-export const getUserById = async (id: string): Promise<User> => {
+export const getUserById = async (id: string): Promise<UserProfileResponse> => {
   try {
     const api = Api();
 

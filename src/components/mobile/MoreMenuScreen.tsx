@@ -17,6 +17,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
 import { useCallback, useRef, useState, ReactNode } from 'react';
 import { useAuth } from '@/src/hooks/useAuthContext';
+import { useVerificationGate } from '@/src/hooks/useAccountVerification';
 import { useFeatureGate, useUpgradePromptStore } from '@/src/hooks/usePlan';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { useEstateEntitlements } from '@/src/lib/api/entitlements';
@@ -197,6 +198,7 @@ export default function MoreMenuScreen({
     'incident_report',
     { notice: 'floating' }
   );
+  const { requireVerified } = useVerificationGate();
   const openingIncidentReportRef = useRef(false);
   const [feedbackPopupStep, setFeedbackPopupStep] = useState<'NONE' | 'SELECT' | 'RATE_US'>('NONE');
   const [starRating, setStarRating] = useState(0);
@@ -204,6 +206,8 @@ export default function MoreMenuScreen({
   const isAdmin = role === 'admin' || role === 'primary_admin' || role === 'root';
 
   const handleOpenIncidentReport = useCallback(async () => {
+    // Unverified users get the Complete KYC modal before any plan/upgrade prompt.
+    if (!requireVerified()) return;
     if (openingIncidentReportRef.current) return;
     openingIncidentReportRef.current = true;
     try {
@@ -216,7 +220,7 @@ export default function MoreMenuScreen({
     } finally {
       openingIncidentReportRef.current = false;
     }
-  }, [navigation, requestIncidentReportAccess, role]);
+  }, [navigation, requestIncidentReportAccess, requireVerified, role]);
 
   const handleBack = useCallback(() => {
     if (useUpgradePromptStore.getState().visible) return;
@@ -300,16 +304,20 @@ export default function MoreMenuScreen({
                 icon={<MaterialCommunityIcons name="account-cog-outline" size={20} color="white" />}
                 title="ADMIN TOOLS"
                 subtitle="Control and manage access on your dashboard"
-                onPress={() =>
-                  router.push({ pathname: '/admin', params: { returnTo: '/settings' } })
-                }
+                onPress={() => {
+                  if (!requireVerified()) return;
+                  router.push({ pathname: '/admin', params: { returnTo: '/settings' } });
+                }}
               />
               <SquareCard
                 colors={['#129B85', '#49CCB8']}
                 icon={<SparklesIcon size={20} color="white" />}
                 title="AI STORE"
                 subtitle="Get AI assistance on your dashboard"
-                onPress={() => router.push('/ai-store')}
+                onPress={() => {
+                  if (!requireVerified()) return;
+                  router.push('/ai-store');
+                }}
               />
             </View>
           )}
