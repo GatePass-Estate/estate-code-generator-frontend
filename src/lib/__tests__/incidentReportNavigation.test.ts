@@ -14,6 +14,8 @@ describe('incident report return navigation', () => {
 
   it('accepts only known entry screens and falls back to Home', () => {
     expect(parseIncidentReportReturnTo('/settings')).toBe('/settings');
+    expect(parseIncidentReportReturnTo('/security')).toBe('/security');
+    expect(parseIncidentReportReturnTo('/security/history')).toBe('/security/history');
     expect(parseIncidentReportReturnTo('/security/more')).toBe('/security/more');
     expect(parseIncidentReportReturnTo('/admin')).toBe('/admin');
     expect(parseIncidentReportReturnTo('/user/report')).toBe('/user');
@@ -34,11 +36,13 @@ describe('incident report return navigation', () => {
       replace: (path: unknown) => calls.push(path),
     };
     leaveIncidentReport('/security/more', router);
+    leaveIncidentReport('/security', router);
     leaveIncidentReport('/settings', router);
     leaveIncidentReport('/admin', router);
     leaveIncidentReport('/user', router);
     expect(calls).toEqual([
       '/security/more',
+      '/security',
       '/settings',
       { pathname: '/admin', params: { returnTo: '/settings' } },
       '/user',

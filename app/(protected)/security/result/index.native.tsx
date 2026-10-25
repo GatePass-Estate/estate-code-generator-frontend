@@ -12,15 +12,15 @@ import {
 import Svg, { Text as SvgText } from 'react-native-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import KeyboardArrowLeft from '@/src/assets/icons/keyboard-arrow-left.svg';
 import ProfileExpandedOverlay from '@/src/assets/icons/profile-expanded-overlay.svg';
 import ProfileOverlayClose from '@/src/assets/icons/profile-overlay-close.svg';
 import ResidentProfileHead from '@/src/assets/icons/resident-profile-head.svg';
 import ResidentProfileOutline from '@/src/assets/icons/resident-profile-outline.svg';
-import { sharedStyles } from '@/src/theme/styles';
 import { Inter } from '@/src/constants/fonts';
 import { useAuthStore } from '@/src/lib/stores/authStore';
 import { getUserDocumentViewUri } from '@/src/lib/api/userDocuments';
+import AnomalousScanOverlay from '@/src/components/security/AnomalousScanOverlay';
+import { parseScanWarningSeverity, type ScanWarningSeverity } from '@/src/lib/securityScanWarning';
 import { MaterialIcons } from '@expo/vector-icons';
 
 const getParam = (value: string | string[] | undefined, fallback = 'N/A') => {
@@ -154,9 +154,15 @@ export default function ValidationResult() {
   const params = useLocalSearchParams();
   const router = useRouter();
   const [pictureOpen, setPictureOpen] = useState(false);
+  const [warningSeverity, setWarningSeverity] = useState<ScanWarningSeverity | null>(null);
   const [profileImageFailed, setProfileImageFailed] = useState(false);
   const [fetchedProfilePictureUrl, setFetchedProfilePictureUrl] = useState<string | null>(null);
   const accessToken = useAuthStore((state) => state.access_token);
+  const routeWarningSeverity = parseScanWarningSeverity(params.warningSeverity);
+
+  useEffect(() => {
+    setWarningSeverity(routeWarningSeverity);
+  }, [routeWarningSeverity]);
 
   const receiver = String(params.receiver || '');
   const isResidentCode = receiver === 'resident';
@@ -385,6 +391,12 @@ export default function ValidationResult() {
             </View>
           </Pressable>
         </Modal>
+      ) : null}
+      {warningSeverity ? (
+        <AnomalousScanOverlay
+          severity={warningSeverity}
+          onAcknowledge={() => setWarningSeverity(null)}
+        />
       ) : null}
     </SafeAreaView>
   );

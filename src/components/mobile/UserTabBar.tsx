@@ -44,6 +44,8 @@ export default function UserTabBar({ state, descriptors, navigation }: UserTabBa
   // iOS: only pad when a home indicator exists. SE / 8 / etc. get 0 — bar sits flush, no empty gap.
   const iosHomeIndicator = Platform.OS === 'ios' ? insets.bottom : 0;
 
+  if (role === 'security' && pathname.startsWith('/user/report')) return null;
+
   if (isTabBarHidden(focusedOptions.tabBarStyle) && !onIncidentCategory) {
     return null;
   }
@@ -95,6 +97,11 @@ export default function UserTabBar({ state, descriptors, navigation }: UserTabBa
                   openingIncidentReportRef.current = false;
                 }
               })();
+              return;
+            }
+
+            if (route.name === 'index' && role === 'security' && !event.defaultPrevented) {
+              router.replace('/security');
               return;
             }
 

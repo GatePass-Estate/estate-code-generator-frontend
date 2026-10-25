@@ -15,6 +15,7 @@ export type Codes = {
   hashed_code: string;
   gender: GenderType;
   estate_name?: string | null;
+  household_name?: string | null;
   valid_until: string;
   validity_period?: ValidityRange | null;
   validity_window?: ValidityRange | null;
@@ -22,6 +23,9 @@ export type Codes = {
   frozen?: boolean;
   is_expired: boolean;
   is_valid?: boolean;
+  is_anomalous?: boolean | null;
+  severity?: 'low' | 'medium' | 'high' | null;
+  prediction_result_id?: string | null;
   receiver: ReceiverType;
 };
 

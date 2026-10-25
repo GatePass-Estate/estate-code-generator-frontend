@@ -19,16 +19,17 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons as Icon } from '@expo/vector-icons';
-import HistoryRounded from '@/src/assets/icons/history-rounded.svg';
+import NotificationBell from '@/src/components/common/NotificationBell';
 import InvalidCodeClose from '@/src/assets/icons/invalid-code-close.svg';
 import MoreFill from '@/src/assets/icons/more-fill.svg';
-import Rectangle5 from '@/src/assets/icons/rectangle-5.svg';
 import ScanFrame from '@/src/assets/icons/scan-frame.svg';
 import { validateCode } from '@/src/lib/api/codes';
+import { getScanWarningSeverity } from '@/src/lib/securityScanWarning';
 import { useVerificationGate } from '@/src/hooks/useAccountVerification';
 import { getUserById } from '@/src/lib/api/user';
 import { sharedStyles } from '@/src/theme/styles';
 import { Inter } from '@/src/constants/fonts';
+import SecurityTabBar from '@/src/components/security/SecurityTabBar';
 import { InputRefsStorage } from '@/src/types/general';
 
 const EMPTY_CODE = ['', '', '', '', '', ''];
@@ -154,10 +155,9 @@ export default function SecurityVerificationMobile() {
   const inputs = useRef<InputRefsStorage>({});
   const scanNavigationInProgressRef = useRef(false);
   const router = useRouter();
-  const iconOffsetFromTitle = -7;
   const headerTopGap = 24.14;
-  const headerToToggleGap = 51;
-  const contentTopGap = mode === 'scan' ? 40 : 128;
+  const headerToToggleGap = 24;
+  const contentTopGap = mode === 'scan' ? 66 : 96;
 
   const setInputRef = (el: TextInput | null, index: number) => {
     if (el) inputs.current[index] = el;
@@ -200,8 +200,15 @@ export default function SecurityVerificationMobile() {
 
     try {
       const result = await validateCode(entered);
-      const resident = await getUserById(result.user_id);
-      const residentHousehold = resident?.household_name || 'Household';
+      if (result.is_valid === false || result.is_expired) {
+        showInvalidOverlay(entered, 'This code does not exist or has expired.');
+        return;
+      }
+
+      // Code validation is authoritative; missing profile details must not reject a valid scan.
+      const resident = result.user_id ? await getUserById(result.user_id).catch(() => null) : null;
+      const residentHousehold = resident?.household_name || result.household_name || 'Household';
+      const warningSeverity = getScanWarningSeverity(result);
 
       router.push({
         pathname: '/security/result',
@@ -217,6 +224,7 @@ export default function SecurityVerificationMobile() {
           resident_user_id: result.user_id,
           code: result.hashed_code,
           receiver: result.receiver,
+          ...(warningSeverity ? { warningSeverity } : {}),
         },
       });
       setCode(EMPTY_CODE);
@@ -302,7 +310,7 @@ export default function SecurityVerificationMobile() {
     if (permission && !permission.canAskAgain) {
       Alert.alert(
         'Camera access is blocked',
-        'Open iPhone Settings, select Expo Go, then turn Camera back on.',
+        'Open your device settings and allow GatePass to use the camera.',
         [
           { text: 'Cancel', style: 'cancel' },
           { text: 'Try Open Settings', onPress: () => void openAppSettings() },
@@ -311,16 +319,11 @@ export default function SecurityVerificationMobile() {
       return;
     }
 
-    if (permission?.status === 'denied') {
-      await openAppSettings();
-      return;
-    }
-
     const result = await requestPermission();
     if (!result.granted && !result.canAskAgain) {
       Alert.alert(
         'Camera access is blocked',
-        'Open iPhone Settings, select Expo Go, then turn Camera back on.',
+        'Open your device settings and allow GatePass to use the camera.',
         [
           { text: 'Cancel', style: 'cancel' },
           { text: 'Try Open Settings', onPress: () => void openAppSettings() },
@@ -352,7 +355,7 @@ export default function SecurityVerificationMobile() {
         </View>
       </View>
 
-      <View className="h-[65px] w-[304px] flex-row justify-center gap-[8px] py-[2px]">
+      <View className="h-[64.5px] w-[304px] flex-row justify-center gap-[8px] py-[2px]">
         {code.map((digit, idx) =>
           Platform.OS === 'ios' ? (
             <View
@@ -400,7 +403,7 @@ export default function SecurityVerificationMobile() {
         )}
       </View>
 
-      <View className="mt-[108px] h-[48px] w-full items-center">
+      <View className="mt-[106.5px] h-[48px] w-full items-center">
         <Pressable
           className="h-[48px] min-w-[80px] max-w-[278px] w-[171px] flex-row items-center justify-center gap-[10px] rounded-[24px] bg-[#113E55] px-[24px] py-[16px]"
           style={({ pressed }) => [pressed && styles.pressed]}
@@ -461,7 +464,7 @@ export default function SecurityVerificationMobile() {
             <Text style={styles.permissionTitle}>Camera access needed</Text>
             <Text style={styles.permissionBody}>
               {permission && !permission.canAskAgain
-                ? 'Camera access is blocked. Enable it in iPhone Settings to scan access codes.'
+                ? 'Camera access is blocked. Enable it in your device settings to scan access codes.'
                 : 'Allow GatePass to scan access codes in this space.'}
             </Text>
             <Pressable
@@ -500,87 +503,73 @@ export default function SecurityVerificationMobile() {
       <Stack.Screen options={{ headerShown: false }} />
 
       <View
-        className="w-full max-w-[390px] flex-row items-center justify-between self-center"
+        className="relative h-[77px] w-full max-w-[390px] self-center"
         style={{ marginBottom: headerToToggleGap, marginTop: headerTopGap }}
       >
         <Text
           allowFontScaling={false}
           numberOfLines={1}
-          className="h-[33px] w-[209px] font-ubuntu-medium text-[27.34px] leading-[27.34px] text-[#113E55]"
+          className="absolute left-[1px] top-[44px] h-[33px] w-[229px] font-ubuntu-medium text-[27.34px] leading-[27.34px] text-[#113E55]"
           style={styles.incomingGuestTitle}
         >
           Incoming Guest
         </Text>
-        <View className="flex-row items-center gap-[4px]" style={styles.headerIconGroup}>
-          <Pressable
-            accessibilityLabel="Open access log"
-            hitSlop={8}
-            onPress={() => router.push('/security/history')}
-            className="h-[42px] w-[42px] items-center justify-center"
-            style={({ pressed }) => [pressed && styles.pressed]}
-          >
-            <View
-              className="relative h-[42px] w-[42px] rounded-full bg-[#F6FCFF]"
-              style={{ transform: [{ translateY: iconOffsetFromTitle }] }}
-            >
-              <View style={styles.group863InnerIcon}>
-                <HistoryRounded width={14.58} height={14.74} style={styles.group863VectorIcon} />
-              </View>
-            </View>
-          </Pressable>
+        <View
+          className="absolute right-0 top-0 flex-row items-start gap-[10px]"
+          style={styles.headerIconGroup}
+        >
+          <NotificationBell className="mt-[3px]" securityHeader />
           <Pressable
             accessibilityLabel="Open more options"
             hitSlop={8}
             onPress={() => router.push('/security/more')}
-            className="h-[42px] w-[42px] items-center justify-center"
+            className="h-[38px] w-[38px] items-center justify-center"
             style={({ pressed }) => [pressed && styles.pressed]}
           >
-            <View
-              className="relative h-[42px] w-[42px] rounded-full bg-[#F6FCFF]"
-              style={{ transform: [{ translateY: iconOffsetFromTitle }] }}
-            >
-              <View style={styles.group862InnerIcon}>
-                <MoreFill width={19.89} height={4.43} style={styles.group862VectorIcon} />
-              </View>
+            <View className="relative h-[38px] w-[38px] rounded-full bg-[#F6FCFF]">
+              <MoreFill width={18} height={4} style={styles.group862VectorIcon} />
             </View>
           </Pressable>
         </View>
       </View>
 
-      <View className="relative h-[40px] w-[229px] flex-row self-center overflow-hidden rounded-[24px]">
-        <Rectangle5
-          pointerEvents="none"
-          width={229}
-          height={40}
-          style={styles.segmentedControlBackground}
-        />
+      <View
+        className="h-[40px] flex-row self-stretch overflow-hidden rounded-[20px] bg-[#EFF1F1]"
+        style={{ marginLeft: mode === 'scan' ? 1 : 3 }}
+      >
         <Pressable
-          className={`relative h-[40px] rounded-[24px] ${
-            mode === 'enter' ? 'w-[119px] bg-[#CEE5ED]' : 'w-[110px]'
-          }`}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: mode === 'enter' }}
+          className={`h-[40px] items-center justify-center rounded-[20px] ${mode === 'enter' ? 'bg-[#CEE5ED]' : ''}`}
+          style={{ flex: mode === 'enter' ? 172.52 : 160.44 }}
           onPress={() => setMode('enter')}
         >
-          <Text
-            allowFontScaling={false}
-            numberOfLines={1}
-            style={[styles.enterCodeSegmentText, mode === 'scan' && styles.inactiveSegmentText]}
-          >
-            Enter Code
-          </Text>
+          <View style={styles.enterCodeText}>
+            <Text
+              allowFontScaling={false}
+              numberOfLines={1}
+              style={[styles.segmentText, mode === 'scan' && styles.inactiveSegmentText]}
+            >
+              Enter Code
+            </Text>
+          </View>
         </Pressable>
         <Pressable
-          className={`relative h-[40px] rounded-[24px] ${
-            mode === 'scan' ? 'w-[119px] bg-[#CEE5ED]' : 'w-[110px]'
-          }`}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: mode === 'scan' }}
+          className={`h-[40px] items-center justify-center rounded-[20px] ${mode === 'scan' ? 'bg-[#CEE5ED]' : ''}`}
+          style={{ flex: mode === 'scan' ? 173.56 : 159.48 }}
           onPress={() => setMode('scan')}
         >
-          <Text
-            allowFontScaling={false}
-            numberOfLines={1}
-            style={[styles.scanCodeSegmentText, mode === 'scan' && styles.activeSegmentText]}
-          >
-            Scan Code
-          </Text>
+          <View style={styles.scanCodeText}>
+            <Text
+              allowFontScaling={false}
+              numberOfLines={1}
+              style={[styles.segmentText, mode !== 'scan' && styles.inactiveSegmentText]}
+            >
+              Scan Code
+            </Text>
+          </View>
         </Pressable>
       </View>
 
@@ -598,6 +587,8 @@ export default function SecurityVerificationMobile() {
         </ScrollView>
       </KeyboardAvoidingView>
 
+      <SecurityTabBar activeTab="home" />
+
       {invalidCode ? (
         <InvalidCodeOverlay
           onClose={() => {
@@ -613,68 +604,33 @@ export default function SecurityVerificationMobile() {
 
 const styles = StyleSheet.create({
   incomingGuestTitle: {
-    marginLeft: 2,
+    letterSpacing: 0,
   },
   headerIconGroup: {
-    marginRight: -4,
-  },
-  group863InnerIcon: {
-    height: 22.08,
-    left: 9.95,
-    position: 'absolute',
-    top: 11.08,
-    width: 22.1,
-  },
-  group863VectorIcon: {
-    left: 3.81,
-    position: 'absolute',
-    top: 3.68,
-  },
-  group862InnerIcon: {
-    height: 26.53,
-    left: 7.74,
-    position: 'absolute',
-    top: 7.74,
-    width: 26.53,
+    transform: [{ translateY: -22.14 }],
   },
   group862VectorIcon: {
-    left: 3.32,
+    left: 10,
     position: 'absolute',
-    top: 11.05,
+    top: 17,
   },
-  segmentedControlBackground: {
-    height: 40,
-    left: 0,
-    position: 'absolute',
-    top: 0,
-    width: 229,
-  },
-  enterCodeSegmentText: {
+  segmentText: {
     color: '#113E55',
     fontFamily: Inter.regular,
     fontSize: 11.2,
-    height: 14,
-    left: 27,
-    lineHeight: 14,
-    position: 'absolute',
+    includeFontPadding: false,
+    lineHeight: 11.2,
     textAlign: 'center',
-    top: 13,
-    width: 60,
   },
-  scanCodeSegmentText: {
-    color: '#878686',
-    fontFamily: Inter.regular,
-    fontSize: 11.2,
+  enterCodeText: {
     height: 14,
-    left: 23,
-    lineHeight: 14,
-    position: 'absolute',
-    textAlign: 'center',
-    top: 13,
-    width: 64,
+    justifyContent: 'center',
+    width: 86.99,
   },
-  activeSegmentText: {
-    color: '#113E55',
+  scanCodeText: {
+    height: 14,
+    justifyContent: 'center',
+    width: 84.09,
   },
   inactiveSegmentText: {
     color: '#878686',
@@ -760,7 +716,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     height: 225.15,
     justifyContent: 'center',
-    marginTop: 59,
+    marginTop: 44,
     position: 'relative',
     width: 250.94,
   },

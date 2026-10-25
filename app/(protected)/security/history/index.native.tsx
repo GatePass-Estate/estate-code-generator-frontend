@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack, useNavigation, useRouter } from 'expo-router';
-import { MaterialIcons } from '@expo/vector-icons';
+import { Stack, useRouter } from 'expo-router';
 import { sharedStyles } from '@/src/theme/styles';
 import ScreenHeader from '@/src/components/mobile/ScreenHeader';
 import AnimatedPillTabs from '@/src/components/mobile/AnimatedPillTabs';
@@ -17,6 +16,7 @@ import {
 } from '@/src/lib/accessLogMappers';
 import { getEstateResidentLogs, getEstateVisitorLogs } from '@/src/lib/api/accessLogs';
 import { SecurityHistoryEntry } from '@/src/types/accessLogs';
+import SecurityTabBar from '@/src/components/security/SecurityTabBar';
 
 type HistoryMode = 'visitor' | 'resident';
 
@@ -59,7 +59,6 @@ const AccessLogCard = ({
 );
 
 export default function AccessLogScreen() {
-  const navigation = useNavigation();
   const router = useRouter();
   const [mode, setMode] = useState<HistoryMode>('visitor');
   const [logs, setLogs] = useState<SecurityHistoryEntry[]>([]);
@@ -127,13 +126,6 @@ export default function AccessLogScreen() {
     >
       <Stack.Screen options={{ headerShown: false }} />
 
-      <Pressable
-        onPress={() => navigation.goBack()}
-        className="h-[30px] w-[30px] items-center justify-center rounded-full bg-[#EFF1F1]"
-      >
-        <MaterialIcons name="keyboard-arrow-left" size={24} color="#113E55" />
-      </Pressable>
-
       <ScreenHeader title="Access Log" subtitle="View all access code you have approved" />
 
       <View style={{ flex: 1, paddingTop: 24 }}>
@@ -156,7 +148,7 @@ export default function AccessLogScreen() {
         ) : (
           <ScrollView
             style={{ flex: 1 }}
-            contentContainerStyle={{ flexGrow: 0, paddingTop: 20, paddingBottom: 40, gap: 30 }}
+            contentContainerStyle={{ flexGrow: 0, paddingTop: 20, paddingBottom: 96, gap: 30 }}
             showsVerticalScrollIndicator={false}
           >
             {error ? (
@@ -188,6 +180,7 @@ export default function AccessLogScreen() {
           </ScrollView>
         )}
       </View>
+      <SecurityTabBar activeTab="history" />
     </SafeAreaView>
   );
 }
