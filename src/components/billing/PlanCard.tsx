@@ -24,6 +24,8 @@ type PlanCardTheme = {
     width: number;
   };
   image: ImageSourcePropType;
+  /** Greyscale copy of `image` for an expired plan (Figma: saturation -100). */
+  mutedImage: ImageSourcePropType;
   /**
    * Illustration size/offset inside the slot, in pt for the regular 150pt slot (scaled down with
    * the slot on narrow screens). Tuned so the art overflows the slot like the Figma frames but
@@ -55,24 +57,28 @@ const PLAN_CARD_THEMES: Record<PlanCardSlug, PlanCardTheme> = {
   access: {
     fill: ['#113E55', '#113E55'],
     image: require('@/src/assets/images/plans/plan-access.png'),
+    mutedImage: require('@/src/assets/images/plans/plan-access-muted.png'),
     imageBox: { size: 168, left: -8, top: -8 },
   },
   watch: {
     fill: ['#113E55', '#19719D'],
     fillLocations: FILL_LOCATIONS,
     image: require('@/src/assets/images/plans/plan-watch.png'),
+    mutedImage: require('@/src/assets/images/plans/plan-watch-muted.png'),
     imageBox: { size: 164, left: -4, top: -8 },
   },
   sentinel: {
     fill: ['#F46036', '#F68C6E'],
     fillLocations: FILL_LOCATIONS,
     image: require('@/src/assets/images/plans/plan-sentinel.png'),
+    mutedImage: require('@/src/assets/images/plans/plan-sentinel-muted.png'),
     imageBox: { size: 164, left: -4, top: -4 },
   },
   command: {
     fill: ['#1C9A8C', '#49C8BA'],
     fillLocations: FILL_LOCATIONS,
     image: require('@/src/assets/images/plans/plan-command.png'),
+    mutedImage: require('@/src/assets/images/plans/plan-command-muted.png'),
     imageBox: { size: IMAGE_SLOT, left: 0, top: 2 },
   },
   custom: {
@@ -86,13 +92,25 @@ const PLAN_CARD_THEMES: Record<PlanCardSlug, PlanCardTheme> = {
       width: 1.5,
     },
     image: require('@/src/assets/images/plans/plan-custom.png'),
+    mutedImage: require('@/src/assets/images/plans/plan-custom-muted.png'),
     imageBox: { size: IMAGE_SLOT, left: 0, top: 0 },
   },
 };
 
-function getTheme(slug: string): PlanCardTheme {
+// Expired plan ("Your Previous Plan"): grey fill, greyscale art, no Custom gold ring.
+const EXPIRED_FILL = ['#5E6061', '#A5A5A6'] as const;
+
+function getTheme(slug: string, expired: boolean): PlanCardTheme {
   const key = slug.toLowerCase() as PlanCardSlug;
-  return PLAN_CARD_THEMES[key] ?? PLAN_CARD_THEMES.watch;
+  const theme = PLAN_CARD_THEMES[key] ?? PLAN_CARD_THEMES.watch;
+  if (!expired) return theme;
+  return {
+    ...theme,
+    fill: EXPIRED_FILL,
+    fillLocations: FILL_LOCATIONS,
+    stroke: undefined,
+    image: theme.mutedImage,
+  };
 }
 
 export type PlanCardProps = {
@@ -107,6 +125,8 @@ export type PlanCardProps = {
   footnote?: string | null;
   /** Small line above the name, e.g. 'Your Current Plan'. */
   eyebrow?: string | null;
+  /** Greyed-out "Your Previous Plan" look for a plan that has ended. */
+  expired?: boolean;
   onPress?: () => void;
   className?: string;
 };
@@ -122,10 +142,11 @@ export default function PlanCard({
   unitLabel,
   footnote,
   eyebrow,
+  expired = false,
   onPress,
   className,
 }: PlanCardProps) {
-  const theme = getTheme(slug);
+  const theme = getTheme(slug, expired);
   const { width: screenWidth } = useWindowDimensions();
   const slot = screenWidth < NARROW_SCREEN ? IMAGE_SLOT_NARROW : IMAGE_SLOT;
   const scale = slot / IMAGE_SLOT;

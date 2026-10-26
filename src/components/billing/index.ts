@@ -16,7 +16,12 @@ export { default as BillingSheet } from './BillingSheet';
 export type { BillingSheetProps } from './BillingSheet';
 export { default as BillingSectionCard } from './BillingSectionCard';
 export type { BillingSectionCardProps } from './BillingSectionCard';
-export { CheckCircleFilledIcon, CheckCircleOutlineIcon, LockOutlineIcon } from './BillingIcons';
+export {
+  CheckCircleFilledIcon,
+  CheckCircleOutlineIcon,
+  ExpiredClockIcon,
+  LockOutlineIcon,
+} from './BillingIcons';
 export { default as AiToolsSheet } from './AiToolsSheet';
 export { default as PendingRequestsSheet, usePendingRequests } from './PendingRequestsSheet';
 export { default as PlanDurationSheet } from './PlanDurationSheet';

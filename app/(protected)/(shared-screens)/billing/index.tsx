@@ -10,6 +10,8 @@ import {
   BillingViewOnlyNote,
   CheckCircleOutlineIcon,
   CurrentPlanCard,
+  ExpiredClockIcon,
+  InfoNote,
   ProgressBar,
   SegmentedProgress,
 } from '@/src/components/billing';
@@ -32,6 +34,7 @@ import {
   getCurrentPlanState,
   getCycleProgress,
   inferPeriodMonths,
+  isRenewalRetrying,
 } from '@/src/lib/billing';
 import { sharedStyles } from '@/src/theme/styles';
 
@@ -46,11 +49,12 @@ export default function BillingScreen() {
   const { canManage, subscriptionQuery, subscription, tier, redirecting } = useBillingScreenGuard();
   const planState = subscriptionQuery.data ? getCurrentPlanState(subscription, tier) : null;
   const isPaid = planState === 'paid';
+  const isExpired = planState === 'expired';
 
-  // The current cycle's total, as a fallback for the billing-cycle amount when the API has no
-  // `next_billing_amount`. Only a running paid plan has one.
+  // The cycle's total, as a fallback for the billing-cycle amount when the API has no
+  // `next_billing_amount`. A running or ended paid plan has one; the free plan doesn't.
   const cycleQuote = useBillingQuote(
-    isPaid
+    isPaid || isExpired
       ? getCurrentPlanQuoteParams(
           subscription,
           tier,
@@ -92,12 +96,15 @@ export default function BillingScreen() {
     const periodStart = subscription?.period_start;
     const periodEnd = subscription?.period_end;
     // Free plans have no billing period; an expired plan keeps its last period when it has one.
-    const showCycleProgress = isPaid || (planState === 'expired' && !!periodStart && !!periodEnd);
+    const showCycleProgress = isPaid || (isExpired && !!periodStart && !!periodEnd);
+    // Period over but auto-renew on: Paystack is still retrying the card and the backend refuses a
+    // new purchase until the plan expires, so renewing is not possible yet.
+    const retryingPayment = isExpired && isRenewalRetrying(subscription);
 
     let cycleAmount = '';
     if (isFree) {
       cycleAmount = 'Free';
-    } else if (isPaid) {
+    } else {
       const nextAmount = billingCycle?.next_billing_amount;
       cycleAmount =
         nextAmount !== null && nextAmount !== undefined
@@ -110,15 +117,27 @@ export default function BillingScreen() {
     const isRunning =
       isPaid && (subscription?.status === 'active' || subscription?.status === 'trialing');
 
-    // Free/expired plans can't change plan or add seats: send them to "Choose your plan".
+    const covered = subscription?.covered_users ?? subscriptionQuery.data.covered_users ?? 0;
+
+    // There is no renewal endpoint: renewing buys the same plan again, so Choose Plan opens with
+    // the previous plan and seat count already selected.
+    const renew = () =>
+      router.push({
+        pathname: '/billing/choose-plan',
+        params: { plan: tier?.slug ?? '', seats: String(covered) },
+      });
+
     const cycleAction = isPaid
       ? { label: 'Change Plan', onPress: () => router.push('/billing/change-plan') }
-      : {
-          label: isFree ? 'Upgrade Plan' : 'Choose Plan',
-          onPress: () => router.push('/billing/choose-plan'),
-        };
-
-    const covered = subscription?.covered_users ?? subscriptionQuery.data.covered_users ?? 0;
+      : isExpired
+        ? { label: 'Renew Plan', onPress: renew }
+        : { label: 'Upgrade Plan', onPress: () => router.push('/billing/choose-plan') };
+    // An ended plan's seats change as part of renewing it.
+    const seatAction = isPaid
+      ? () => router.push('/billing/manage-seats')
+      : isExpired
+        ? renew
+        : undefined;
     const activeUsers = eligibility?.active_users;
     const hasUsage = typeof activeUsers === 'number';
     const seatTrailing = hasUsage ? `${activeUsers}/${covered} Seats` : plural(covered, 'Seat');
@@ -141,6 +160,12 @@ export default function BillingScreen() {
       >
         <CurrentPlanCard subscription={subscription} tier={tier} />
 
+        {retryingPayment ? (
+          <InfoNote
+            className="mt-4"
+            text="We couldn't charge your saved card for this plan. We'll keep retrying for a few days; you can renew here once the retries end."
+          />
+        ) : null}
         {canManage ? null : <BillingViewOnlyNote className="mt-4" />}
 
         <View className="mt-6 gap-4">
@@ -151,18 +176,25 @@ export default function BillingScreen() {
                 <Text className="font-ubuntu-medium text-[27px] leading-[32.8px] text-[#113E55]">
                   {cycleAmount || '—'}
                 </Text>
-                {isRunning ? (
+                {isRunning || isExpired ? (
                   <>
                     <View className="h-[2px] w-[2px] rounded-full bg-[#878686]" />
-                    <View accessible accessibilityLabel="Subscription active">
-                      <CheckCircleOutlineIcon size={16} color="#46EE6A" />
-                    </View>
+                    {isExpired ? (
+                      <View accessible accessibilityLabel="Plan expired">
+                        <ExpiredClockIcon size={16} />
+                      </View>
+                    ) : (
+                      <View accessible accessibilityLabel="Subscription active">
+                        <CheckCircleOutlineIcon size={16} color="#46EE6A" />
+                      </View>
+                    )}
                   </>
                 ) : null}
               </View>
             }
             actionLabel={cycleAction.label}
             onAction={cycleAction.onPress}
+            actionDisabled={retryingPayment}
           >
             {showCycleProgress ? (
               // Figma: the bar sits 8pt into its frame, with ~11pt of slack under the dates.
@@ -179,9 +211,10 @@ export default function BillingScreen() {
             eyebrow="Seat Usage"
             title="Active Users"
             trailing={seatTrailing}
-            // Seats can only be changed within a paid billing period.
-            actionLabel={isPaid ? 'Manage Seats' : undefined}
-            onAction={isPaid ? () => router.push('/billing/manage-seats') : undefined}
+            // The free plan has no seats to buy; an ended plan changes seats while renewing.
+            actionLabel={seatAction ? 'Manage Seats' : undefined}
+            onAction={seatAction}
+            actionDisabled={retryingPayment}
           >
             <ProgressBar className="mb-3 mt-[7px]" progress={seatUsage} />
           </BillingSectionCard>

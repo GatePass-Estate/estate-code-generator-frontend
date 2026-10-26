@@ -18,7 +18,10 @@ import {
   getPlanRenewalFootnote,
   getTierFeatureRows,
   humaniseFeatureKey,
+  hasPeriodEnded,
   inferPeriodMonths,
+  isRenewalRetrying,
+  koboToNaira,
   isPaidActiveSubscription,
   sortTiers,
 } from '@/src/lib/billing';
@@ -541,5 +544,40 @@ describe('classifyCheckoutNavigation', () => {
     expect(classifyCheckoutNavigation('https://checkout.paystack.com/cancel?x=1', ref)).toBe(
       'cancel'
     );
+  });
+});
+
+describe('koboToNaira', () => {
+  it('converts integer kobo to naira', () => {
+    expect(koboToNaira(63000)).toBe(630);
+    expect(koboToNaira(67725)).toBe(677.25);
+    expect(koboToNaira(1551225)).toBe(15512.25);
+    expect(koboToNaira(0)).toBe(0);
+  });
+});
+
+describe('ended billing periods', () => {
+  const now = new Date('2026-10-16T12:00:00Z');
+  const sentinel = TIERS[2];
+  const ended = { period_end: '2026-10-10T00:00:00Z' };
+
+  it('treats a paid plan past its end date as expired, whatever its status', () => {
+    expect(hasPeriodEnded(subscription(ended), now)).toBe(true);
+    expect(isPaidActiveSubscription(subscription(ended), sentinel, now)).toBe(false);
+    expect(getCurrentPlanState(subscription(ended), sentinel, now)).toBe('expired');
+    expect(getBillingEntry(subscription(ended), sentinel, now)).toBe('choose');
+  });
+
+  it('flags an auto-renewing plan in its grace period as retrying payment', () => {
+    expect(isRenewalRetrying(subscription({ ...ended, auto_renew: true }), now)).toBe(true);
+    expect(isRenewalRetrying(subscription({ ...ended, auto_renew: false }), now)).toBe(false);
+    expect(
+      isRenewalRetrying(subscription({ ...ended, auto_renew: true, status: 'cancelled' }), now)
+    ).toBe(false);
+    expect(isRenewalRetrying(subscription({ auto_renew: true }), now)).toBe(false);
+  });
+
+  it('never treats the free Access row (no end date) as ended', () => {
+    expect(hasPeriodEnded(subscription({ period_end: null }), now)).toBe(false);
   });
 });

@@ -224,9 +224,19 @@ export function canManageBilling(role: UserRolesType | undefined): boolean {
   return !!role && BILLING_MANAGE_ROLES.includes(role);
 }
 
+/** The paid period is over (`period_end` reached). Free Access rows have no end date. */
+export function hasPeriodEnded(
+  subscription: EstateSubscription | null | undefined,
+  now: Date = new Date()
+): boolean {
+  const end = parseDate(subscription?.period_end);
+  return Boolean(end && end <= now);
+}
+
 /**
- * A subscription that is still running on a paid tier: not expired, not cancelled past its end,
- * and not the free `access` tier.
+ * A subscription that is still running on a paid tier: not expired, inside its billing period,
+ * and not the free `access` tier. A plan past `period_end` is not running even while the backend
+ * still reports it `active` (renewal grace period), so no next-cycle changes are offered on it.
  */
 export function isPaidActiveSubscription(
   subscription: EstateSubscription | null | undefined,
@@ -235,11 +245,21 @@ export function isPaidActiveSubscription(
 ): boolean {
   if (!subscription || !tier || tier.slug === 'access') return false;
   if (subscription.status === 'expired') return false;
-  if (subscription.status === 'cancelled') {
-    const end = parseDate(subscription.period_end);
-    if (!end || end <= now) return false;
-  }
-  return true;
+  if (subscription.status === 'cancelled' && !subscription.period_end) return false;
+  return !hasPeriodEnded(subscription, now);
+}
+
+/**
+ * The period has ended but auto-renew is still on: Paystack keeps retrying the saved card during
+ * the backend's grace period, and a new purchase is refused until the plan actually expires.
+ */
+export function isRenewalRetrying(
+  subscription: EstateSubscription | null | undefined,
+  now: Date = new Date()
+): boolean {
+  if (!subscription || !subscription.auto_renew) return false;
+  const running = subscription.status === 'active' || subscription.status === 'trialing';
+  return running && hasPeriodEnded(subscription, now);
 }
 
 /**
@@ -432,4 +452,9 @@ export function classifyCheckoutNavigation(
     return 'return';
   }
   return null;
+}
+
+/** The revenue service sends money as integer kobo (since backend PR #106); 100 kobo = ₦1. */
+export function koboToNaira(kobo: number): number {
+  return Math.round(kobo) / 100;
 }

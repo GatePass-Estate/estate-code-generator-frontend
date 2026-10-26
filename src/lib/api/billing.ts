@@ -1,6 +1,7 @@
 import { isAxiosError } from 'axios';
 import Api from '.';
 import { getErrorMessage } from '../helpers';
+import { koboToNaira } from '../billing';
 import {
   BillingCycleResponse,
   BillingTierListParams,
@@ -33,39 +34,47 @@ export class BillingApiError extends Error {
 
 function toBillingError(error: unknown, fallback: string): BillingApiError {
   const status = isAxiosError(error) ? error.response?.status : undefined;
+  // 5xx details describe internal services (e.g. "Upstream returned HTTP 500 for GET
+  // http://db-service…"): show the plain fallback instead. 4xx messages are meant for the user.
+  if (status !== undefined && status >= 500) {
+    return new BillingApiError(`${fallback}. Please try again.`, status);
+  }
   return new BillingApiError(getErrorMessage(error) || fallback, status);
 }
 
 const estatePath = (estateId: string) => `/subscriptions/estate/${encodeURIComponent(estateId)}`;
 
-/** Money fields may arrive as numbers or numeric strings. */
+/** Numeric fields may arrive as numbers or numeric strings. */
 const num = (value: unknown): number => {
   const n = Number(value);
   return Number.isFinite(n) ? n : 0;
 };
+
+/** Money from the revenue service is in kobo (integers); the app works in naira. */
+const naira = (value: unknown): number => koboToNaira(num(value));
 
 function normaliseQuote(raw: Record<string, any>): CheckoutQuote {
   return {
     estate_id: String(raw.estate_id ?? ''),
     country_code: String(raw.country_code ?? ''),
     currency_code: String(raw.currency_code ?? ''),
-    price_per_seat: num(raw.price_per_seat),
+    price_per_seat: naira(raw.price_per_seat),
     seats: num(raw.seats),
-    ai_price_per_month: num(raw.ai_price_per_month),
-    monthly_subtotal: num(raw.monthly_subtotal),
+    ai_price_per_month: naira(raw.ai_price_per_month),
+    monthly_subtotal: naira(raw.monthly_subtotal),
     period_months: num(raw.period_months),
-    subtotal: num(raw.subtotal),
+    subtotal: naira(raw.subtotal),
     vat_rate: num(raw.vat_rate),
-    vat_amount: num(raw.vat_amount),
-    client_total: num(raw.client_total),
-    administrative_fee: num(raw.administrative_fee),
-    sum_of_included_features: num(raw.sum_of_included_features),
+    vat_amount: naira(raw.vat_amount),
+    client_total: naira(raw.client_total),
+    administrative_fee: naira(raw.administrative_fee),
+    sum_of_included_features: naira(raw.sum_of_included_features),
     line_items: Array.isArray(raw.line_items)
       ? raw.line_items.map(
           (item: Record<string, any>): QuoteLineItem => ({
             key: String(item.key ?? ''),
             kind: item.kind,
-            unit_price: num(item.unit_price),
+            unit_price: naira(item.unit_price),
           })
         )
       : [],
@@ -81,16 +90,16 @@ function normaliseProrate(raw: Record<string, any>): SeatProrate {
     seats_added: num(raw.seats_added),
     country_code: String(raw.country_code ?? ''),
     currency_code: String(raw.currency_code ?? ''),
-    price_per_seat: num(raw.price_per_seat),
+    price_per_seat: naira(raw.price_per_seat),
     period_months: num(raw.period_months),
-    period_seat_price: num(raw.period_seat_price),
+    period_seat_price: naira(raw.period_seat_price),
     period_days: num(raw.period_days),
     remaining_days: num(raw.remaining_days),
-    daily_seat_rate: num(raw.daily_seat_rate),
-    subtotal: num(raw.subtotal),
+    daily_seat_rate: naira(raw.daily_seat_rate),
+    subtotal: naira(raw.subtotal),
     vat_rate: num(raw.vat_rate),
-    vat_amount: num(raw.vat_amount),
-    prorated_charge: num(raw.prorated_charge),
+    vat_amount: naira(raw.vat_amount),
+    prorated_charge: naira(raw.prorated_charge),
     period_start: String(raw.period_start ?? ''),
     period_end: String(raw.period_end ?? ''),
   };
@@ -126,13 +135,17 @@ export async function getBillingCycle(estateId: string): Promise<BillingCycleRes
     const { data } = await Api('revenue').get<BillingCycleResponse>(
       `${estatePath(estateId)}/billing-cycle`
     );
-    return data;
+    const amount = data.next_billing_amount;
+    return {
+      ...data,
+      next_billing_amount: amount === null || amount === undefined ? amount : naira(amount),
+    };
   } catch (error) {
     throw toBillingError(error, 'Could not load your billing cycle');
   }
 }
 
-/** POST /checkout/quote — numbers coerced with Number(). */
+/** POST /checkout/quote — money converted from kobo to naira. */
 export async function getCheckoutQuote(body: CheckoutQuoteRequest): Promise<CheckoutQuote> {
   try {
     const { data } = await Api('revenue').post('/checkout/quote', body);

@@ -17,7 +17,7 @@ const EYEBROW = 'Your Current Plan';
  * - Running paid plan: per-seat monthly price (1-seat, 1-month quote of the current plan) and the
  *   renew/expiry date.
  * - Free Access plan (or no plan at all): the Access card, 'Free', and an upgrade hint.
- * - Paid plan that has stopped: the tier's card with its expiry date and no price.
+ * - Paid plan that has ended: the greyed "Your Previous Plan" card with its price and expiry date.
  */
 export default function CurrentPlanCard({
   subscription,
@@ -30,9 +30,11 @@ export default function CurrentPlanCard({
 }) {
   const state = getCurrentPlanState(subscription, tier);
   // Only a running paid plan has a price to quote.
+  // A paid plan (running or ended) shows its per-seat monthly price.
   const { data: quote } = useBillingQuote(
-    state === 'paid' ? getCurrentPlanQuoteParams(subscription, tier, 1, 1) : null
+    state === 'free' ? null : getCurrentPlanQuoteParams(subscription, tier, 1, 1)
   );
+  const priceLabel = quote ? formatMoney(quote.price_per_seat, quote.currency_code) : null;
 
   if (state === 'free') {
     return (
@@ -57,8 +59,11 @@ export default function CurrentPlanCard({
         className={className}
         slug={slug}
         name={name}
-        eyebrow={EYEBROW}
+        eyebrow="Your Previous Plan"
+        priceLabel={priceLabel}
+        unitLabel="/month"
         footnote={getPlanExpiredFootnote(subscription)}
+        expired
       />
     );
   }
@@ -69,7 +74,7 @@ export default function CurrentPlanCard({
       slug={slug}
       name={name}
       eyebrow={EYEBROW}
-      priceLabel={quote ? formatMoney(quote.price_per_seat, quote.currency_code) : null}
+      priceLabel={priceLabel}
       unitLabel="/month"
       footnote={getPlanRenewalFootnote(subscription)}
     />

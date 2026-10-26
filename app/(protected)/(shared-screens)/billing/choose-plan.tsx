@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Keyboard,
@@ -85,7 +85,8 @@ function useDebouncedValue<T>(value: T, delayMs: number): T {
 const clampSeats = (n: number, min: number) => Math.min(MAX_SEATS, Math.max(min, n));
 
 export default function ChoosePlanScreen() {
-  const { plan } = useLocalSearchParams<{ plan?: string }>();
+  // `plan` / `seats` preselect the tab and seat count (e.g. "Renew Plan" on an expired plan).
+  const { plan, seats: seatsParam } = useLocalSearchParams<{ plan?: string; seats?: string }>();
   // No paid-plan requirement: estates with a running plan may still open this screen directly
   // (checkout then surfaces the API's "already subscribed" error).
   const { canManage, subscriptionQuery, redirecting } = useBillingScreenGuard();
@@ -116,10 +117,29 @@ export default function ChoosePlanScreen() {
   const isCustom = Boolean(activeTier?.is_custom);
 
   const minSeats = Math.max(1, eligibilityQuery.data?.active_users ?? 1);
-  const defaultSeats = subscriptionQuery.data?.subscription?.covered_users ?? minSeats;
+  const requestedSeats = Number.parseInt(seatsParam ?? '', 10);
+  const defaultSeats =
+    requestedSeats > 0
+      ? requestedSeats
+      : (subscriptionQuery.data?.subscription?.covered_users ?? minSeats);
   const seats = clampSeats(seatsInput ?? defaultSeats, minSeats);
 
   const custom = useMemo(() => getCustomFeatureRows(activeTier), [activeTier]);
+
+  // Renewing a Custom plan: start from the services in its last entitlements snapshot (once).
+  const customPrefilled = useRef(false);
+  const customSnapshot = subscriptionQuery.data?.subscription?.entitlements;
+  useEffect(() => {
+    if (customPrefilled.current || plan !== CUSTOM_SLUG || !isCustom || !customSnapshot) return;
+    customPrefilled.current = true;
+    const selectable = new Set(
+      custom.rows.filter((row) => row.state === 'selectable').map((row) => row.key)
+    );
+    const keys = Object.entries(customSnapshot)
+      .filter(([key, value]) => selectable.has(key) && (value === true || Number(value) > 0))
+      .map(([key]) => key);
+    if (keys.length > 0) setSelectedKeys(keys);
+  }, [plan, isCustom, customSnapshot, custom.rows]);
 
   const buildQuoteParams = useCallback(
     (periodMonths: PeriodMonths): BillingQuoteParams | null => {
