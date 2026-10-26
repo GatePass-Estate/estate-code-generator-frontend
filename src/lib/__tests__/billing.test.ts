@@ -14,6 +14,7 @@ import {
   getCurrentPlanState,
   getCycleProgress,
   getPlanDirection,
+  getSeatOccupancy,
   getPlanExpiredFootnote,
   getPlanRenewalFootnote,
   getTierFeatureRows,
@@ -579,5 +580,29 @@ describe('ended billing periods', () => {
 
   it('never treats the free Access row (no end date) as ended', () => {
     expect(hasPeriodEnded(subscription({ period_end: null }), now)).toBe(false);
+  });
+});
+
+describe('getSeatOccupancy', () => {
+  const user = (role: string) => ({ role }) as any;
+
+  it('counts residents, admins and security from the role summary', () => {
+    expect(
+      getSeatOccupancy({
+        items: [],
+        role_summary: { admin: 2, primary_admin: 1, resident: 14, security: 2, guest: 5 },
+      })
+    ).toEqual({ residents: 14, admins: 3, security: 2, seatResidents: 17, occupied: 19 });
+  });
+
+  it('falls back to counting the loaded users (guests never take a seat)', () => {
+    const items = ['resident', 'resident', 'admin', 'primary_admin', 'security', 'guest'].map(user);
+    expect(getSeatOccupancy({ items })).toEqual({
+      residents: 2,
+      admins: 2,
+      security: 1,
+      seatResidents: 4,
+      occupied: 5,
+    });
   });
 });

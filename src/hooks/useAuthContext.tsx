@@ -2,6 +2,7 @@ import { Platform } from 'react-native';
 import { fetchMe } from '@/src/lib/api/auth';
 import { clearEstateEntitlements, prefetchEstateEntitlements } from '@/src/lib/api/entitlements';
 import { clearBillingData } from '@/src/hooks/useBillingQueries';
+import { clearEstateUsers } from '@/src/hooks/useEstateUsers';
 import {
   broadcastLogout,
   clearAuthState,
@@ -62,6 +63,7 @@ function clearUserData() {
   useContactAdminNoticeStore.getState().reset();
   clearEstateEntitlements();
   clearBillingData();
+  clearEstateUsers();
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {

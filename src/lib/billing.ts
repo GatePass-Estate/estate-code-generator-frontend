@@ -1,5 +1,6 @@
 /** Pure billing helpers (no React) shared by the billing screens. */
 import { UserRolesType } from '@/src/types/general';
+import type { AllUsers } from '@/src/types/user';
 import {
   BillingTier,
   CheckoutQuoteRequest,
@@ -457,4 +458,31 @@ export function classifyCheckoutNavigation(
 /** The revenue service sends money as integer kobo (since backend PR #106); 100 kobo = ₦1. */
 export function koboToNaira(kobo: number): number {
   return Math.round(kobo) / 100;
+}
+
+export type SeatOccupancy = {
+  residents: number;
+  /** admins + primary admins */
+  admins: number;
+  security: number;
+  /** residents + admins */
+  seatResidents: number;
+  /** Seats in use: residents + admins + security personnel. */
+  occupied: number;
+};
+
+/**
+ * Seats in use, counted the way the admin dashboard does: from the users list's `role_summary`,
+ * falling back to counting the loaded items per role.
+ */
+export function getSeatOccupancy(users: Pick<AllUsers, 'items' | 'role_summary'>): SeatOccupancy {
+  const summary = users.role_summary;
+  const countRole = (...roles: string[]) =>
+    users.items.filter((user) => roles.includes(user.role ?? '')).length;
+  const security = summary?.security ?? countRole('security');
+  const residents = summary?.resident ?? countRole('resident');
+  const admins =
+    (summary?.admin ?? 0) + (summary?.primary_admin ?? 0) || countRole('admin', 'primary_admin');
+  const seatResidents = residents + admins;
+  return { residents, admins, security, seatResidents, occupied: seatResidents + security };
 }

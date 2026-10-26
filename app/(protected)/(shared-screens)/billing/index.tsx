@@ -24,15 +24,17 @@ import {
   useBillingCycle,
   useBillingQuote,
   useEstateAiTools,
-  useSeatReductionEligibility,
 } from '@/src/hooks/useBillingQueries';
 import { useBillingScreenGuard } from '@/src/hooks/useBillingScreenGuard';
+import { useEstateUsers } from '@/src/hooks/useEstateUsers';
+import { useEstateEntitlements } from '@/src/lib/api/entitlements';
 import {
   formatBillingDate,
   formatMoney,
   getCurrentPlanQuoteParams,
   getCurrentPlanState,
   getCycleProgress,
+  getSeatOccupancy,
   inferPeriodMonths,
   isRenewalRetrying,
 } from '@/src/lib/billing';
@@ -46,7 +48,8 @@ const plural = (count: number, word: string) => `${count} ${word}${count === 1 ?
  * expired. Everyone who can't view billing is sent back to the More screen.
  */
 export default function BillingScreen() {
-  const { canManage, subscriptionQuery, subscription, tier, redirecting } = useBillingScreenGuard();
+  const { canView, canManage, subscriptionQuery, subscription, tier, redirecting } =
+    useBillingScreenGuard();
   const planState = subscriptionQuery.data ? getCurrentPlanState(subscription, tier) : null;
   const isPaid = planState === 'paid';
   const isExpired = planState === 'expired';
@@ -64,7 +67,10 @@ export default function BillingScreen() {
       : null
   );
   const { data: billingCycle } = useBillingCycle();
-  const { data: eligibility } = useSeatReductionEligibility();
+  // Seat usage without a dedicated call: the seat total from the (already cached) entitlements and
+  // seats in use counted like the admin dashboard, from the shared estate users list.
+  const { data: entitlements } = useEstateEntitlements();
+  const { data: estateUsers } = useEstateUsers({ enabled: canView });
   const aiTools = useEstateAiTools();
   const pendingRequests = usePendingRequests();
 
@@ -117,7 +123,11 @@ export default function BillingScreen() {
     const isRunning =
       isPaid && (subscription?.status === 'active' || subscription?.status === 'trialing');
 
-    const covered = subscription?.covered_users ?? subscriptionQuery.data.covered_users ?? 0;
+    const covered =
+      entitlements?.coveredUsers ??
+      subscription?.covered_users ??
+      subscriptionQuery.data.covered_users ??
+      0;
 
     // There is no renewal endpoint: renewing buys the same plan again, so Choose Plan opens with
     // the previous plan and seat count already selected.
@@ -138,7 +148,7 @@ export default function BillingScreen() {
       : isExpired
         ? renew
         : undefined;
-    const activeUsers = eligibility?.active_users;
+    const activeUsers = estateUsers ? getSeatOccupancy(estateUsers).occupied : undefined;
     const hasUsage = typeof activeUsers === 'number';
     const seatTrailing = hasUsage ? `${activeUsers}/${covered} Seats` : plural(covered, 'Seat');
     const seatUsage = hasUsage && covered > 0 ? activeUsers / covered : 0;
