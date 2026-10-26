@@ -1,6 +1,7 @@
 import 'react-native-reanimated';
 import { Redirect, Stack } from 'expo-router';
 import PlanGuard from '@/src/components/mobile/PlanGuard';
+import VerifyAccountGuard from '@/src/components/mobile/VerifyAccountGuard';
 import { useAuth } from '@/src/hooks/useAuthContext';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import BroadcastPopupHost from '@/src/components/common/BroadcastPopupHost';
@@ -29,6 +30,7 @@ export default function ProtectedLayout() {
         <Stack.Screen name="user" />
       </Stack>
       <PlanGuard />
+      <VerifyAccountGuard />
       {/* Announcements sit above every signed-in screen. */}
       <BroadcastPopupHost />
       <PushNotificationsHost />

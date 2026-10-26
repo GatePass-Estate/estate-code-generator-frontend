@@ -25,7 +25,7 @@ export const fetchEditRequests = async (): Promise<EditRequestView[]> => {
       id: item.id,
       requestType: item.request_type,
       oldValue: item.old_value,
-      newValue: item.new_value,
+      newValue: item.new_value ?? null,
       createdAt: item.created_at,
     }))
     .sort(
