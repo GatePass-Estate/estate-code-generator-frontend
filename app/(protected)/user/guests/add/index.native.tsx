@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { View, Text, TextInput, Pressable, Alert, ScrollView, Modal } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { MaterialIcons } from '@expo/vector-icons';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createGuest } from '@/src/lib/api/guests';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { GenderType, RelationshipType } from '@/src/types/general';
 import { sharedStyles } from '@/src/theme/styles';
 import { useAndroidBottomInset } from '@/src/hooks/useAndroidBottomInset';
-import { CheckIcon, CheckRingIcon, ExpandMoreIcon } from '@/src/assets/svgs';
+import { CheckRingIcon, ExpandMoreIcon } from '@/src/assets/svgs';
 import Button, { BUTTON_MARGIN_BOTTOM } from '@/src/components/mobile/Button';
 import { PlanNoticeSlot } from '@/src/components/mobile/FreePlanNotice';
 import ScreenHeader from '@/src/components/mobile/ScreenHeader';
@@ -30,6 +31,7 @@ const RELATIONSHIP_OPTIONS: { label: string; value: Exclude<RelationshipType, nu
 ];
 
 const AddGuestMobile = () => {
+  const insets = useSafeAreaInsets();
   const { tabContentPadding } = useAndroidBottomInset();
   const [guestName, setGuestName] = useState('');
   const [relationship, setRelationship] = useState<RelationshipType>(null);
@@ -119,7 +121,11 @@ const AddGuestMobile = () => {
       <Stack.Screen options={{ headerShown: false }} />
 
       <ScrollView
-        contentContainerStyle={{ flexGrow: 1, paddingBottom: tabContentPadding }}
+        contentContainerStyle={{
+          flexGrow: 1,
+          paddingTop: Math.max(24, 99 - insets.top),
+          paddingBottom: tabContentPadding,
+        }}
         showsVerticalScrollIndicator={false}
       >
         <ScreenHeader
@@ -128,7 +134,7 @@ const AddGuestMobile = () => {
           showActions
           titleClassName="text-[27.34px]"
           subtitleClassName="text-[#878686]"
-          containerClassName="mb-[19px]"
+          containerClassName="mb-[19px] mt-0"
         />
 
         <View style={{ gap: 19 }}>
@@ -180,12 +186,23 @@ const AddGuestMobile = () => {
             if (!saveGuestGate.requestAccess()) return;
             setAddToGuestList((prev) => !prev);
           }}
-          className="mt-[19px] h-10 flex-row items-center gap-1.5 self-start"
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: addToGuestList && saveGuestGate.allowed }}
+          className="mt-[19px] h-10 flex-row items-center gap-[10px] self-start"
         >
-          <View className="h-4 w-4 items-center justify-center rounded-[3px] border border-[#113E55]">
-            {addToGuestList && saveGuestGate.allowed ? <CheckIcon /> : null}
+          <View className="h-6 w-6 items-center justify-center overflow-hidden">
+            <MaterialIcons
+              name={
+                addToGuestList && saveGuestGate.allowed ? 'check-box' : 'check-box-outline-blank'
+              }
+              size={24}
+              color="#113E55"
+            />
           </View>
-          <Text className="text-[11.2px] font-inter-semibold text-[#113E55]">
+          <Text
+            className="mt-1 text-[11.2px] font-inter-semibold leading-[14px] text-[#113E55]"
+            style={{ includeFontPadding: false }}
+          >
             Add to Guest List
           </Text>
         </Pressable>
