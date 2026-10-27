@@ -60,6 +60,7 @@ export default function Login() {
   // Set when a session was revoked or expired elsewhere and we signed this
   // device out; explains why the user is suddenly back on the login screen.
   const sessionExpired = searchParams.session_expired === 'true';
+  const [sessionNoticeDismissed, setSessionNoticeDismissed] = useState(false);
   const [showBiometric, setShowBiometric] = useState(false);
   const [showBiometricPrompt, setShowBiometricPrompt] = useState(false);
   const [pendingAuth, setPendingAuth] = useState<{ token: string; user: User } | null>(null);
@@ -374,11 +375,28 @@ export default function Login() {
         >
           <Back type="short-arrow" onPress={handleBackPress} showText={false} showBorder={true} />
 
-          {sessionExpired && (
-            <View className="rounded-2xl border-mini border-[#FFCDD2] bg-[#FFF0F0] px-6 py-3.5 mb-4 self-center">
-              <Text className="text-[#B3261E] font-inter-regular text-xs text-center">
-                You were signed out because this session was ended on another device.
-              </Text>
+          {sessionExpired && !sessionNoticeDismissed && (
+            // Floats over the empty space under the back button (column padding 24 + back button 40
+            // + 12) so showing or dismissing it never moves the form.
+            <View
+              className="absolute left-5 right-5 z-10 items-center"
+              style={{ top: 76 }}
+              pointerEvents="box-none"
+            >
+              <View className="flex-row items-center gap-3 rounded-2xl border-mini border-[#FFCDD2] bg-[#FFF0F0] py-3 pl-5 pr-3">
+                <Text className="flex-shrink text-center font-inter-regular text-xs text-[#B3261E]">
+                  You were signed out because this session was ended on another device.
+                </Text>
+                <Pressable
+                  onPress={() => setSessionNoticeDismissed(true)}
+                  hitSlop={10}
+                  accessibilityRole="button"
+                  accessibilityLabel="Dismiss message"
+                  className="active:opacity-60"
+                >
+                  <AntDesign name="close" size={14} color="#B3261E" />
+                </Pressable>
+              </View>
             </View>
           )}
 
@@ -417,7 +435,13 @@ export default function Login() {
             style={{ justifyContent: isLargeScreen ? 'center' : 'flex-start' }}
           >
             <View
-              className={`max-w-xl w-full justify-center self-center flex-1 ${showTosRejected && !isLargeScreen ? 'my-20' : 'my-40'}`}
+              className={cn(
+                'max-w-xl w-full justify-center self-center flex-1',
+                showTosRejected && !isLargeScreen ? 'my-20' : 'my-40',
+                // The error banner adds height above the inputs: take it out of the top margin so the
+                // form moves down less and the buttons keep their room.
+                errorMessage && (showTosRejected && !isLargeScreen ? 'mt-10' : 'mt-24')
+              )}
             >
               <View className={cn(`mb-10 max-w-xl items-center text-center`)}>
                 <Text className={cn(`text-primary font-ubuntu-semibold text-2xl`)}>Sign in to</Text>
@@ -471,7 +495,8 @@ export default function Login() {
                 </View>
               </View>
 
-              <View className="mt-auto gap-4 mx-8">
+              {/* pt-8: a minimum gap above the buttons, which mt-auto alone loses when space runs out. */}
+              <View className="mt-auto gap-4 mx-8 pt-8">
                 <View className="flex-row w-full items-center gap-3">
                   <Button
                     className="h-14 w-full flex-row items-center justify-center rounded-full"

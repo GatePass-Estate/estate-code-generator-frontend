@@ -14,7 +14,8 @@ import { Feather } from '@expo/vector-icons';
 import { Stack, useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';
-import { getAllEstateUsers } from '@/src/lib/api/user';
+import { fetchEstateUsersFresh } from '@/src/hooks/useEstateUsers';
+import { getSeatOccupancy } from '@/src/lib/billing';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AllUsers } from '@/src/types/user';
 import icons from '@/src/constants/icons';
@@ -112,19 +113,8 @@ export default function AdminUsersMobilePage() {
   const fetchUsers = async (showLoading = false) => {
     if (showLoading) setRefreshing(true);
     try {
-      let allItems: any[] = [];
-      let currentPage = 1;
-      let totalUsers = 0;
-      let fetchedData;
-
-      do {
-        fetchedData = await getAllEstateUsers(currentPage, 100);
-        allItems = [...allItems, ...fetchedData.items];
-        totalUsers = fetchedData.total;
-        currentPage++;
-      } while (allItems.length < totalUsers && fetchedData.items.length > 0);
-
-      const finalData = { ...fetchedData, items: allItems, total: totalUsers };
+      // Goes through the shared query cache so other screens (billing seat usage) reuse it.
+      const finalData = await fetchEstateUsersFresh(useUserStore.getState().estate_id ?? '');
 
       if (!isDataEqual(finalData, usersRef.current)) {
         setUsers(finalData);
@@ -175,15 +165,12 @@ export default function AdminUsersMobilePage() {
   }, [navigation]);
 
   const verifiedUsers = users.items.filter((user) => user.status);
-  const securityPersonnelCount =
-    users.role_summary?.security ?? users.items.filter((user) => user.role === 'security').length;
-  const residentsCount =
-    users.role_summary?.resident ?? users.items.filter((user) => user.role === 'resident').length;
-  const adminsCount =
-    (users.role_summary?.admin ?? 0) + (users.role_summary?.primary_admin ?? 0) ||
-    users.items.filter((user) => user.role === 'admin' || user.role === 'primary_admin').length;
-  const seatResidentsCount = residentsCount + adminsCount;
-  const occupiedSeats = seatResidentsCount + securityPersonnelCount;
+  const {
+    security: securityPersonnelCount,
+    residents: residentsCount,
+    seatResidents: seatResidentsCount,
+    occupied: occupiedSeats,
+  } = getSeatOccupancy(users);
   const totalUsersCount = users.total;
   const registeredUsersCount = users.total;
   const estateUserCapacity = estateEntitlements?.coveredUsers ?? null;
