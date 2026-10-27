@@ -22,7 +22,7 @@ import icons from '@/src/constants/icons';
 export default function ResetPassword() {
   const router = useRouter();
   const { width } = useWindowDimensions();
-  const params = useLocalSearchParams<{ token?: string; user_id?: string }>();
+  const params = useLocalSearchParams<{ token?: string }>();
 
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -32,7 +32,7 @@ export default function ResetPassword() {
   const [isLoading, setIsLoading] = useState(false);
   const [isVerifying, setIsVerifying] = useState(true);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [userId, setUserId] = useState('');
+  const [resetToken, setResetToken] = useState('');
   const [userEmail, setUserEmail] = useState('');
   const [tokenError, setTokenError] = useState('');
 
@@ -44,14 +44,8 @@ export default function ResetPassword() {
 
   useEffect(() => {
     const verify = async () => {
-      if (params.user_id) {
-        setUserId(params.user_id);
-        setIsVerifying(false);
-        return;
-      }
-
       const token =
-        params.token ||
+        (Array.isArray(params.token) ? params.token[0] : params.token) ||
         (Platform.OS === 'web' ? new URLSearchParams(window.location.search).get('token') : null);
 
       if (!token) {
@@ -62,7 +56,7 @@ export default function ResetPassword() {
 
       try {
         const result = await verifyPasswordReset(token);
-        setUserId(result.user_id);
+        setResetToken(token);
         setUserEmail(result.email);
         setIsVerifying(false);
       } catch (error: any) {
@@ -72,7 +66,7 @@ export default function ResetPassword() {
     };
 
     verify();
-  }, [params.token, params.user_id]);
+  }, [params.token]);
 
   useEffect(() => {
     if (errorMessage) setErrorMessage('');
@@ -100,15 +94,21 @@ export default function ResetPassword() {
       return;
     }
 
+    if (!resetToken) {
+      setErrorMessage('Invalid password reset link. Please request a new one.');
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      await resetPassword(userId, newPassword);
+      await resetPassword(resetToken, newPassword);
       setIsSuccess(true);
     } catch (error: any) {
       setErrorMessage(error.message || 'Failed to reset password');
     } finally {
       setIsLoading(false);
     }
-  }, [newPassword, confirmPassword, userId]);
+  }, [newPassword, confirmPassword, resetToken]);
 
   const ErrorBanner = errorMessage ? (
     <View className="bg-red-50 p-5 rounded-lg flex-row justify-between items-center mb-4">

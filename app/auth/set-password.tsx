@@ -152,10 +152,16 @@ const WebSetPasswordView = (props: SetPasswordFormProps) => (
 );
 
 const SetPasswordPage = () => {
-  const { user_id } = useLocalSearchParams<{
-    user_id?: string;
+  const params = useLocalSearchParams<{
+    token?: string | string[];
     email?: string;
   }>();
+  const tokenFromParams = Array.isArray(params.token) ? params.token[0] : params.token;
+  const token =
+    tokenFromParams ||
+    (Platform.OS === 'web' && typeof window !== 'undefined'
+      ? (new URLSearchParams(window.location.search).get('token') ?? undefined)
+      : undefined);
   const router = useRouter();
   const { width } = useWindowDimensions();
   const isLargeScreen = width > getWidthBreakpoint();
@@ -188,7 +194,7 @@ const SetPasswordPage = () => {
       return;
     }
 
-    if (!user_id) {
+    if (!token) {
       setErrorMessage('Verification failed. Please try the link again.');
       return;
     }
@@ -197,7 +203,7 @@ const SetPasswordPage = () => {
 
     try {
       await activateUser({
-        user_id,
+        token,
         new_password: password,
       });
       grantActivationStatusAccess();
@@ -207,9 +213,9 @@ const SetPasswordPage = () => {
     } finally {
       setIsSubmitting(false);
     }
-  }, [password, confirmPassword, user_id, router]);
+  }, [password, confirmPassword, token, router]);
 
-  if (!user_id) {
+  if (!token) {
     grantActivationStatusAccess();
     return <Redirect href="/auth/email-activation-status?status=error" />;
   }

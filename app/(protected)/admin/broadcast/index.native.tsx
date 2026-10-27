@@ -73,12 +73,15 @@ const BroadcastMobile = () => {
 
   // Step 2's back gesture returns to step 1 rather than leaving the flow.
   useEffect(() => {
-    const unsubscribe = navigation.addListener('beforeRemove', (e) => {
-      if (currentStep !== 2) return;
-      e.preventDefault();
-      setCurrentStep(1);
-      setErrors({});
-    });
+    const unsubscribe = navigation.addListener(
+      'beforeRemove' as never,
+      (e: { preventDefault: () => void }) => {
+        if (currentStep !== 2) return;
+        e.preventDefault();
+        setCurrentStep(1);
+        setErrors({});
+      }
+    );
 
     return unsubscribe;
   }, [navigation, currentStep]);

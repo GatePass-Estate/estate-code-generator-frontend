@@ -131,7 +131,7 @@ export const registerUser = async (payload: RegisterUserPayload): Promise<User> 
 };
 
 export const activateUser = async (payload: {
-  user_id: string;
+  token: string;
   new_password: string;
 }): Promise<User> => {
   try {

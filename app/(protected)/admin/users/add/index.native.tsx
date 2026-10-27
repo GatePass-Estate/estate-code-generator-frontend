@@ -90,16 +90,19 @@ const RegisterUser = () => {
   }, [estateId]);
 
   useEffect(() => {
-    const unsubscribe = navigation.addListener('beforeRemove', (e) => {
-      e.preventDefault();
+    const unsubscribe = navigation.addListener(
+      'beforeRemove' as never,
+      (e: { preventDefault: () => void; data?: { action?: object } }) => {
+        e.preventDefault();
 
-      if (currentStep > 1) {
-        setCurrentStep((step) => step - 1);
-        setErrors({});
-      } else {
-        navigation.dispatch(e.data.action);
+        if (currentStep > 1) {
+          setCurrentStep((step) => step - 1);
+          setErrors({});
+        } else if (e.data?.action) {
+          navigation.dispatch(e.data.action as never);
+        }
       }
-    });
+    );
 
     return unsubscribe;
   }, [navigation, currentStep]);

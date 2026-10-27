@@ -17,6 +17,10 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 ExpoSplashScreen.preventAutoHideAsync();
 
+export const unstable_settings = {
+  initialRouteName: 'auth/institution',
+};
+
 function RootLayoutContent() {
   const { resetKey, isReady } = useAuth();
 
@@ -29,7 +33,6 @@ function RootLayoutContent() {
       <StatusBar style="dark" />
       <Stack
         key={resetKey}
-        initialRouteName="auth/institution"
         screenOptions={{
           headerShown: false,
         }}
