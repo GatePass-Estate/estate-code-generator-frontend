@@ -11,7 +11,7 @@ import { getErrorMessage } from '../helpers';
 const entitlementKeys = {
   all: ['entitlements'] as const,
   estate: (estateId: string) => ['entitlements', 'estate', estateId] as const,
-  tier: (slug: string) => ['entitlements', 'tier', slug] as const,
+  tier: (estateId: string) => ['entitlements', 'tier', estateId] as const,
 };
 
 /**
@@ -44,21 +44,21 @@ const estateEntitlementsQuery = (estateId: string) => ({
     !(error instanceof EntitlementsDeniedError) && failureCount < 2,
 });
 
-async function fetchTierBySlug(slug: string): Promise<BillingTier> {
+/** The caller's estate tier (any role); `null` when the estate has no running subscription. */
+async function fetchMyTier(): Promise<BillingTier | null> {
   try {
-    const { data } = await Api('revenue').get<BillingTier>(
-      `/subscriptions/tiers/by-slug/${encodeURIComponent(slug)}`
-    );
-    return data;
+    const { data } = await Api('revenue').get<BillingTier | null>('/subscriptions/tiers/my-tier');
+    return data ?? null;
   } catch (error: any) {
     throw new Error(getErrorMessage(error) || 'Could not load plan details');
   }
 }
 
-const tierQuery = (slug: string) => ({
-  queryKey: entitlementKeys.tier(slug),
-  queryFn: () => fetchTierBySlug(slug),
-  // Tier copy rarely changes, so keep it for the whole session (cleared on sign-out).
+// Keyed by estate because the server resolves the tier from the caller's token.
+const myTierQuery = (estateId: string) => ({
+  queryKey: entitlementKeys.tier(estateId),
+  queryFn: fetchMyTier,
+  // Kept for the whole session; billing changes refresh it via `refreshEstateEntitlements`.
   staleTime: Infinity,
   gcTime: Infinity,
 });
@@ -66,10 +66,8 @@ const tierQuery = (slug: string) => ({
 /** Call right after sign-in so plan checks are ready before the user taps anything. */
 export function prefetchEstateEntitlements(estateId: string | null | undefined) {
   if (!estateId) return;
-  void queryClient.prefetchQuery(estateEntitlementsQuery(estateId)).then(() => {
-    const slug = queryClient.getQueryData<Entitlements>(entitlementKeys.estate(estateId))?.tierSlug;
-    if (slug) void queryClient.prefetchQuery(tierQuery(slug));
-  });
+  void queryClient.prefetchQuery(estateEntitlementsQuery(estateId));
+  void queryClient.prefetchQuery(myTierQuery(estateId));
 }
 
 /**
@@ -105,7 +103,6 @@ export function useEstateEntitlements() {
 
 /** Catalog details (name, description) of the signed-in estate's current tier. */
 export function useEstateTier() {
-  const { data: entitlements } = useEstateEntitlements();
-  const slug = entitlements?.tierSlug ?? '';
-  return useQuery({ ...tierQuery(slug), enabled: Boolean(slug) });
+  const estateId = useUserStore((s) => s.estate_id);
+  return useQuery({ ...myTierQuery(estateId ?? ''), enabled: Boolean(estateId) });
 }

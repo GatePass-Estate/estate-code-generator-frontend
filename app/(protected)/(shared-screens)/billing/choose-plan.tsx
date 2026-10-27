@@ -40,6 +40,7 @@ import {
   formatMoney,
   getAmountFontSize,
   getCurrentPlanQuoteParams,
+  getPlanRenewalFootnote,
   getRenewalBlockMessage,
   getTierFeatureRows,
   PLAN_DURATIONS,
@@ -340,15 +341,6 @@ export default function ChoosePlanScreen() {
           style={{ marginHorizontal: -20, marginTop: 16 }}
           contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: BUTTON_MARGIN_BOTTOM }}
         >
-          <PlanCard
-            slug={activeTier.slug}
-            name={activeTier.name}
-            priceLabel={planPriceLabel}
-            unitLabel="/month"
-            footnote={isCustom && !isRenew ? 'Build your own plan' : 'Per seat'}
-            className="mt-6"
-          />
-
           {isRenew ? null : (
             <PlanTabs
               tabs={tabs}
@@ -357,6 +349,20 @@ export default function ChoosePlanScreen() {
               className="-mx-5 mt-6"
             />
           )}
+
+          {/* Matches Change Plan: tabs above the card, which carries the current plan's renew/expiry line. */}
+          <PlanCard
+            slug={activeTier.slug}
+            name={activeTier.name}
+            priceLabel={planPriceLabel}
+            unitLabel="/month"
+            footnote={
+              isCustom && !isRenew
+                ? 'Build your own plan'
+                : getPlanRenewalFootnote(currentSubscription)
+            }
+            className={isRenew ? 'mt-6' : 'mt-9'}
+          />
 
           <View className="mt-6 gap-4 px-3">
             <View className="items-center rounded-[16px] bg-white px-10 py-4">
