@@ -5,11 +5,13 @@ import { queryClient } from '@/lib/queryClient';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { Entitlements, parseEntitlements } from '@/src/lib/plans';
 import { EstateEntitlementsResponse } from '@/src/types/entitlements';
+import { BillingTier } from '@/src/types/billing';
 import { getErrorMessage } from '../helpers';
 
 const entitlementKeys = {
   all: ['entitlements'] as const,
   estate: (estateId: string) => ['entitlements', 'estate', estateId] as const,
+  tier: (slug: string) => ['entitlements', 'tier', slug] as const,
 };
 
 /**
@@ -42,10 +44,32 @@ const estateEntitlementsQuery = (estateId: string) => ({
     !(error instanceof EntitlementsDeniedError) && failureCount < 2,
 });
 
+async function fetchTierBySlug(slug: string): Promise<BillingTier> {
+  try {
+    const { data } = await Api('revenue').get<BillingTier>(
+      `/subscriptions/tiers/by-slug/${encodeURIComponent(slug)}`
+    );
+    return data;
+  } catch (error: any) {
+    throw new Error(getErrorMessage(error) || 'Could not load plan details');
+  }
+}
+
+const tierQuery = (slug: string) => ({
+  queryKey: entitlementKeys.tier(slug),
+  queryFn: () => fetchTierBySlug(slug),
+  // Tier copy rarely changes, so keep it for the whole session (cleared on sign-out).
+  staleTime: Infinity,
+  gcTime: Infinity,
+});
+
 /** Call right after sign-in so plan checks are ready before the user taps anything. */
 export function prefetchEstateEntitlements(estateId: string | null | undefined) {
   if (!estateId) return;
-  void queryClient.prefetchQuery(estateEntitlementsQuery(estateId));
+  void queryClient.prefetchQuery(estateEntitlementsQuery(estateId)).then(() => {
+    const slug = queryClient.getQueryData<Entitlements>(entitlementKeys.estate(estateId))?.tierSlug;
+    if (slug) void queryClient.prefetchQuery(tierQuery(slug));
+  });
 }
 
 /**
@@ -77,4 +101,11 @@ export function useEstateEntitlements() {
     ...estateEntitlementsQuery(estateId ?? ''),
     enabled: Boolean(estateId),
   });
+}
+
+/** Catalog details (name, description) of the signed-in estate's current tier. */
+export function useEstateTier() {
+  const { data: entitlements } = useEstateEntitlements();
+  const slug = entitlements?.tierSlug ?? '';
+  return useQuery({ ...tierQuery(slug), enabled: Boolean(slug) });
 }

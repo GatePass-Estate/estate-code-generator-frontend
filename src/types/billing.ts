@@ -145,6 +145,12 @@ export type ScheduleSeatReductionResponse = {
   effective_from: string | null;
 };
 
+/** POST /subscriptions/estate/{id}/cancel: the plan is now `cancelled` with auto-renew off. */
+export type CancelSubscriptionResponse = {
+  estate_id: string;
+  subscription: EstateSubscription | null;
+};
+
 export type ScheduleTierChangeResponse = {
   estate_id: string;
   pending_tier_slug: string | null;
@@ -178,7 +184,14 @@ export type SeatProrate = {
   period_end: string;
 };
 
-export type CheckoutKind = 'tier' | 'custom' | 'seat_add' | 'ai_only' | 'tier_upgrade_immediate';
+export type CheckoutKind =
+  | 'tier'
+  | 'custom'
+  | 'seat_add'
+  | 'ai_only'
+  | 'tier_upgrade_immediate'
+  /** Manual renewal of the current plan and seats; only `period_months` may be sent. */
+  | 'renew';
 
 /**
  * Fields per kind — tier: covered_users + tier_slug (+period_months); custom: covered_users +
@@ -265,3 +278,16 @@ export type TierFeatureRow = {
 };
 
 export type TierSeatPrice = { pricePerSeat: number; currency: string };
+
+/** GET /subscriptions/estate/{id}/renewal-eligibility */
+export type RenewalEligibility = {
+  estate_id: string;
+  can_renew: boolean;
+  reason: string | null;
+  current_tier_slug: string | null;
+  covered_users: number | null;
+  period_end: string | null;
+  auto_renew: boolean;
+  /** Renewal opens this many days before `period_end` (backend RENEWAL_GRACE_PERIOD_DAYS). */
+  grace_days: number;
+};

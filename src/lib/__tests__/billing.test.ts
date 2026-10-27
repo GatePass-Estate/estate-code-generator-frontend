@@ -3,6 +3,7 @@ import {
   buildCustomEntitlements,
   buildPendingRequests,
   classifyCheckoutNavigation,
+  canCancelSubscription,
   canManageBilling,
   canViewBilling,
   createIdempotencyKey,
@@ -14,6 +15,7 @@ import {
   getCurrentPlanState,
   getCycleProgress,
   getPlanDirection,
+  getRenewalBlockMessage,
   getSeatOccupancy,
   getPlanExpiredFootnote,
   getPlanRenewalFootnote,
@@ -578,6 +580,17 @@ describe('ended billing periods', () => {
     expect(isRenewalRetrying(subscription({ auto_renew: true }), now)).toBe(false);
   });
 
+  it('lets an active paid plan be cancelled, including in its grace period', () => {
+    expect(canCancelSubscription(subscription(), sentinel)).toBe(true);
+    expect(canCancelSubscription(subscription({ ...ended, auto_renew: true }), sentinel)).toBe(
+      true
+    );
+    expect(canCancelSubscription(subscription({ status: 'cancelled' }), sentinel)).toBe(false);
+    expect(canCancelSubscription(subscription({ status: 'expired' }), sentinel)).toBe(false);
+    expect(canCancelSubscription(subscription(), TIERS[0])).toBe(false);
+    expect(canCancelSubscription(null, sentinel)).toBe(false);
+  });
+
   it('never treats the free Access row (no end date) as ended', () => {
     expect(hasPeriodEnded(subscription({ period_end: null }), now)).toBe(false);
   });
@@ -604,5 +617,50 @@ describe('getSeatOccupancy', () => {
       seatResidents: 4,
       occupied: 5,
     });
+  });
+});
+
+describe('getRenewalBlockMessage', () => {
+  const now = new Date('2026-10-26T12:00:00Z');
+  const base = {
+    estate_id: 'e1',
+    reason: null,
+    current_tier_slug: 'watch',
+    covered_users: 10,
+    period_end: '2026-11-19T12:00:00Z',
+    auto_renew: false,
+    grace_days: 7,
+  };
+
+  it('allows renewal when the backend says so', () => {
+    expect(getRenewalBlockMessage({ ...base, can_renew: true }, now)).toBeNull();
+  });
+
+  it('explains that auto-renewal needs no action', () => {
+    const block = getRenewalBlockMessage({ ...base, can_renew: false, auto_renew: true }, now);
+    expect(block?.title).toBe('Auto-renewal is on');
+    expect(block?.message).toContain('renews automatically on November 19th, 2026');
+  });
+
+  it('mentions the card retry once an auto-renewing period has ended', () => {
+    const block = getRenewalBlockMessage(
+      { ...base, can_renew: false, auto_renew: true, period_end: '2026-10-20T12:00:00Z' },
+      now
+    );
+    expect(block?.message).toContain('retrying your saved card');
+  });
+
+  it('says when renewal opens if it is too early', () => {
+    const block = getRenewalBlockMessage({ ...base, can_renew: false }, now);
+    expect(block?.title).toBe('Not time to renew yet');
+    expect(block?.message).toContain('November 12th, 2026');
+  });
+
+  it('falls back to the backend reason', () => {
+    const block = getRenewalBlockMessage(
+      { ...base, can_renew: false, period_end: null, reason: 'No active subscription for estate' },
+      now
+    );
+    expect(block?.message).toBe('No active subscription for estate');
   });
 });

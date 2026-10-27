@@ -30,6 +30,7 @@ import {
   formatBillingDate,
   formatMoney,
   getPlanDirection,
+  getPlanRenewalFootnote,
   getTierFeatureRows,
 } from '@/src/lib/billing';
 import { sharedStyles } from '@/src/theme/styles';
@@ -265,7 +266,8 @@ export default function ChangePlanScreen() {
       : seatPrice
         ? formatMoney(seatPrice.pricePerSeat, seatPrice.currency)
         : null;
-    const footnote = isFreeTarget ? 'Free plan' : isCustomTarget ? 'Custom pricing' : 'Per seat';
+    // Figma: the card carries the current subscription's renew/expiry line, as on Your Current Plan.
+    const footnote = isCustomTarget ? 'Custom pricing' : getPlanRenewalFootnote(subscription);
     const hideButton = hasPendingTierChange && !isCustomTarget;
 
     return (

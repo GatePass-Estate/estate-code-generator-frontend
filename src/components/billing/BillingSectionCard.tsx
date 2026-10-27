@@ -3,6 +3,17 @@ import { Text, View } from 'react-native';
 import Button from '@/src/components/mobile/Button';
 import { cn } from '@/src/lib/cn';
 
+export type BillingSectionAction = {
+  label: string;
+  onPress?: () => void;
+  disabled?: boolean;
+  loading?: boolean;
+  /** Greyed out like `disabled` but still pressable, e.g. to explain why it is unavailable. */
+  muted?: boolean;
+  /** `danger` renders the orange destructive pill (e.g. Cancel Plan). */
+  variant?: 'secondary' | 'danger';
+};
+
 export type BillingSectionCardProps = {
   /** Small caption at the top, e.g. 'Seat Usage'. */
   eyebrow: string;
@@ -16,6 +27,8 @@ export type BillingSectionCardProps = {
   onAction?: () => void;
   actionDisabled?: boolean;
   actionLoading?: boolean;
+  /** Several stacked actions (used instead of the single `action*` props). */
+  actions?: BillingSectionAction[];
   className?: string;
 };
 
@@ -32,9 +45,22 @@ export default function BillingSectionCard({
   onAction,
   actionDisabled = false,
   actionLoading = false,
+  actions,
   className,
 }: BillingSectionCardProps) {
   const hasTitleRow = title != null || !!trailing;
+  const allActions: BillingSectionAction[] =
+    actions ??
+    (actionLabel
+      ? [
+          {
+            label: actionLabel,
+            onPress: onAction,
+            disabled: actionDisabled,
+            loading: actionLoading,
+          },
+        ]
+      : []);
 
   return (
     <View className={cn('w-full gap-4 rounded-[20px] bg-white p-4', className)}>
@@ -67,20 +93,27 @@ export default function BillingSectionCard({
         {children}
       </View>
 
-      {actionLabel ? (
-        <View className="px-3">
-          <Button
-            label={actionLabel}
-            variant="secondary"
-            onPress={onAction}
-            disabled={actionDisabled || !onAction}
-            loading={actionLoading}
-            accessibilityState={{ disabled: actionDisabled || !onAction, busy: actionLoading }}
-            className={cn(
-              'h-[44px] w-full max-w-none py-0',
-              (actionDisabled || !onAction) && !actionLoading && 'opacity-50'
-            )}
-          />
+      {allActions.length > 0 ? (
+        <View className="gap-3 px-3">
+          {allActions.map((action) => {
+            const disabled = Boolean(action.disabled) || !action.onPress;
+            const loading = Boolean(action.loading);
+            return (
+              <Button
+                key={action.label}
+                label={action.label}
+                variant={action.variant ?? 'secondary'}
+                onPress={action.onPress}
+                disabled={disabled}
+                loading={loading}
+                accessibilityState={{ disabled: disabled || action.muted, busy: loading }}
+                className={cn(
+                  'h-[44px] w-full max-w-none py-0',
+                  (disabled || action.muted) && !loading && 'opacity-50'
+                )}
+              />
+            );
+          })}
         </View>
       ) : null}
     </View>

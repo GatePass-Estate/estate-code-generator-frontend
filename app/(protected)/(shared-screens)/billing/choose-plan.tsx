@@ -18,6 +18,7 @@ import {
   BillingLoadError,
   BillingLoading,
   BillingViewOnlyNote,
+  InfoNote,
   PlanCard,
   PlanFeatureList,
   PlanTabs,
@@ -29,6 +30,7 @@ import {
   type BillingQuoteParams,
   useBillingQuote,
   useBillingTiers,
+  useRenewalEligibility,
   useSeatReductionEligibility,
   useTierSeatPrices,
 } from '@/src/hooks/useBillingQueries';
@@ -37,6 +39,8 @@ import {
   buildCustomEntitlements,
   formatMoney,
   getAmountFontSize,
+  getCurrentPlanQuoteParams,
+  getRenewalBlockMessage,
   getTierFeatureRows,
   PLAN_DURATIONS,
   type PeriodMonths,
@@ -86,7 +90,14 @@ const clampSeats = (n: number, min: number) => Math.min(MAX_SEATS, Math.max(min,
 
 export default function ChoosePlanScreen() {
   // `plan` / `seats` preselect the tab and seat count (e.g. "Renew Plan" on an expired plan).
-  const { plan, seats: seatsParam } = useLocalSearchParams<{ plan?: string; seats?: string }>();
+  // `renew=1`: manual renewal of the current plan (checkout kind `renew`): the plan and seats are
+  // fixed by the backend, only the duration can be chosen.
+  const {
+    plan,
+    seats: seatsParam,
+    renew,
+  } = useLocalSearchParams<{ plan?: string; seats?: string; renew?: string }>();
+  const isRenew = renew === '1';
   // No paid-plan requirement: estates with a running plan may still open this screen directly
   // (checkout then surfaces the API's "already subscribed" error).
   const { canManage, subscriptionQuery, redirecting } = useBillingScreenGuard();
@@ -111,7 +122,15 @@ export default function ChoosePlanScreen() {
     [tabTiers]
   );
 
-  const initialSlug = tabTiers.some((tier) => tier.slug === plan) ? plan : tabTiers[0]?.slug;
+  const currentSubscription = subscriptionQuery.data?.subscription ?? null;
+  const currentTier = subscriptionQuery.data?.tier ?? null;
+  const renewalQuery = useRenewalEligibility({ enabled: isRenew });
+  const renewBlock = isRenew ? getRenewalBlockMessage(renewalQuery.data) : null;
+
+  const preferredSlug = isRenew ? currentTier?.slug : plan;
+  const initialSlug = tabTiers.some((tier) => tier.slug === preferredSlug)
+    ? preferredSlug
+    : tabTiers[0]?.slug;
   const activeSlug = selectedSlug ?? initialSlug ?? null;
   const activeTier = tabTiers.find((tier) => tier.slug === activeSlug);
   const isCustom = Boolean(activeTier?.is_custom);
@@ -122,7 +141,8 @@ export default function ChoosePlanScreen() {
     requestedSeats > 0
       ? requestedSeats
       : (subscriptionQuery.data?.subscription?.covered_users ?? minSeats);
-  const seats = clampSeats(seatsInput ?? defaultSeats, minSeats);
+  const renewSeats = currentSubscription?.covered_users ?? 1;
+  const seats = isRenew ? renewSeats : clampSeats(seatsInput ?? defaultSeats, minSeats);
 
   const custom = useMemo(() => getCustomFeatureRows(activeTier), [activeTier]);
 
@@ -141,8 +161,26 @@ export default function ChoosePlanScreen() {
     if (keys.length > 0) setSelectedKeys(keys);
   }, [plan, isCustom, customSnapshot, custom.rows]);
 
+  // Renewing a Custom plan: list what the plan includes (free features + its snapshot), read-only.
+  const renewCustomRows = useMemo<PlanFeatureRow[]>(() => {
+    const snapshot = customSnapshot ?? {};
+    const included = (value: unknown) => value === true || Number(value) > 0;
+    return custom.rows
+      .filter((row) => row.state === 'included' || included(snapshot[row.key]))
+      .map((row) => ({ ...row, state: 'included' as const }));
+  }, [custom.rows, customSnapshot]);
+
   const buildQuoteParams = useCallback(
     (periodMonths: PeriodMonths): BillingQuoteParams | null => {
+      // Renewal is priced like the backend's `renew` checkout: current plan, current seats.
+      if (isRenew) {
+        return getCurrentPlanQuoteParams(
+          currentSubscription,
+          currentTier,
+          renewSeats,
+          periodMonths
+        );
+      }
       if (!activeTier) return null;
       if (!activeTier.is_custom) {
         return { tier_slug: activeTier.slug, covered_users: seats, period_months: periodMonths };
@@ -158,7 +196,16 @@ export default function ChoosePlanScreen() {
         period_months: periodMonths,
       };
     },
-    [activeTier, seats, selectedKeys, custom.aiKeys]
+    [
+      isRenew,
+      currentSubscription,
+      currentTier,
+      renewSeats,
+      activeTier,
+      seats,
+      selectedKeys,
+      custom.aiKeys,
+    ]
   );
 
   const liveParams = useMemo(() => buildQuoteParams(months), [buildQuoteParams, months]);
@@ -187,6 +234,13 @@ export default function ChoosePlanScreen() {
       return;
     }
     if (!liveParams) return;
+    if (isRenew) {
+      // Plan and seats come from the subscription; the API rejects anything but the duration.
+      const outcome = await startCheckout({ checkout_kind: 'renew', period_months: months });
+      showCheckoutOutcomeAlert(outcome, 'Your plan has been renewed.');
+      if (outcome === 'paid') router.dismissTo('/billing');
+      return;
+    }
     // Pay for exactly what was quoted. Custom: no tier_slug (the API rejects it for this kind).
     const { tier_slug, entitlements, ai_feature_keys, covered_users, period_months } = liveParams;
     const outcome = await startCheckout(
@@ -216,10 +270,13 @@ export default function ChoosePlanScreen() {
   const duration = PLAN_DURATIONS.find((option) => option.months === months) ?? PLAN_DURATIONS[0];
   const billedCaption = months === 1 ? 'Billed Monthly' : `Billed every ${months} months`;
   const subscribeDisabled =
-    !canManage || !quoteSettled || (isCustom && selectedKeys.length === 0) || isRunning;
+    !canManage ||
+    !quoteSettled ||
+    isRunning ||
+    (isRenew ? Boolean(renewBlock) : isCustom && selectedKeys.length === 0);
 
   const renderAmount = () => {
-    if (isCustom && selectedKeys.length === 0) {
+    if (isCustom && !isRenew && selectedKeys.length === 0) {
       return (
         <View className="h-[41px] justify-center">
           <Text className="font-inter-regular text-[14px] leading-[16.9px] text-[#878686]">
@@ -288,16 +345,18 @@ export default function ChoosePlanScreen() {
             name={activeTier.name}
             priceLabel={planPriceLabel}
             unitLabel="/month"
-            footnote={isCustom ? 'Build your own plan' : 'Per seat'}
+            footnote={isCustom && !isRenew ? 'Build your own plan' : 'Per seat'}
             className="mt-6"
           />
 
-          <PlanTabs
-            tabs={tabs}
-            value={activeSlug}
-            onChange={setSelectedSlug}
-            className="-mx-5 mt-6"
-          />
+          {isRenew ? null : (
+            <PlanTabs
+              tabs={tabs}
+              value={activeSlug}
+              onChange={setSelectedSlug}
+              className="-mx-5 mt-6"
+            />
+          )}
 
           <View className="mt-6 gap-4 px-3">
             <View className="items-center rounded-[16px] bg-white px-10 py-4">
@@ -324,26 +383,31 @@ export default function ChoosePlanScreen() {
                   Seats
                 </Text>
                 <Text className="font-inter-regular text-[11.2px] leading-[13.6px] text-[#0A1F29]">
-                  Set the total seats required
+                  {isRenew
+                    ? 'Your plan renews with its current seats'
+                    : 'Set the total seats required'}
                 </Text>
               </View>
               <SeatStepper
                 value={seats}
                 onChange={setSeatsInput}
-                min={minSeats}
-                max={MAX_SEATS}
+                min={isRenew ? seats : minSeats}
+                max={isRenew ? seats : MAX_SEATS}
+                disabled={isRenew}
                 accessibilityLabel="Total seats"
               />
             </View>
 
-            {isCustom ? (
+            {isCustom && !isRenew ? (
               <PlanFeatureList
                 rows={custom.rows}
                 selectedKeys={selectedKeys}
                 onToggle={toggleFeature}
               />
             ) : (
-              <PlanFeatureList rows={getTierFeatureRows(activeTier)} />
+              <PlanFeatureList
+                rows={isRenew && isCustom ? renewCustomRows : getTierFeatureRows(activeTier)}
+              />
             )}
 
             <Pressable
@@ -362,11 +426,12 @@ export default function ChoosePlanScreen() {
             </Pressable>
           </View>
 
+          {renewBlock ? <InfoNote className="mt-6" text={renewBlock.message} /> : null}
           {!canManage ? <BillingViewOnlyNote className="mt-6" /> : null}
 
           <View className={canManage ? 'mt-10 items-center' : 'mt-4 items-center'}>
             <Button
-              label="Subscribe"
+              label={isRenew ? 'Renew' : 'Subscribe'}
               onPress={subscribe}
               disabled={subscribeDisabled}
               loading={isRunning}
@@ -384,7 +449,7 @@ export default function ChoosePlanScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <Back type="short-arrow" showText={false} showBorder />
       <Text className="mt-[9px] font-ubuntu-medium text-[27px] leading-[32.8px] text-[#113E55]">
-        Choose your plan
+        {isRenew ? 'Renew your plan' : 'Choose your plan'}
       </Text>
 
       {renderContent()}

@@ -6,6 +6,7 @@ import {
   BillingCycleResponse,
   BillingTierListParams,
   BillingTierListResponse,
+  CancelSubscriptionResponse,
   CheckoutQuote,
   CheckoutQuoteRequest,
   CheckoutStatusResponse,
@@ -14,6 +15,7 @@ import {
   InitializeCheckoutRequest,
   InitializeCheckoutResponse,
   QuoteLineItem,
+  RenewalEligibility,
   ScheduleSeatReductionResponse,
   ScheduleTierChangeResponse,
   SeatProrate,
@@ -145,6 +147,18 @@ export async function getBillingCycle(estateId: string): Promise<BillingCycleRes
   }
 }
 
+/** GET /subscriptions/estate/{estateId}/renewal-eligibility — whether a manual renewal is allowed. */
+export async function getRenewalEligibility(estateId: string): Promise<RenewalEligibility> {
+  try {
+    const { data } = await Api('revenue').get<RenewalEligibility>(
+      `${estatePath(estateId)}/renewal-eligibility`
+    );
+    return data;
+  } catch (error) {
+    throw toBillingError(error, 'Could not check renewal');
+  }
+}
+
 /** POST /checkout/quote — money converted from kobo to naira. */
 export async function getCheckoutQuote(body: CheckoutQuoteRequest): Promise<CheckoutQuote> {
   try {
@@ -238,6 +252,21 @@ export async function cancelTierChange(estateId: string): Promise<ScheduleTierCh
     return data;
   } catch (error) {
     throw toBillingError(error, 'Could not cancel the plan change');
+  }
+}
+
+/**
+ * POST /subscriptions/estate/{estateId}/cancel — stops auto-renew and the Paystack subscription.
+ * The plan keeps running until `period_end`, then drops to Access. There is no undo endpoint.
+ */
+export async function cancelSubscription(estateId: string): Promise<CancelSubscriptionResponse> {
+  try {
+    const { data } = await Api('revenue').post<CancelSubscriptionResponse>(
+      `${estatePath(estateId)}/cancel`
+    );
+    return data;
+  } catch (error) {
+    throw toBillingError(error, 'Could not cancel your plan');
   }
 }
 

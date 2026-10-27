@@ -3,6 +3,7 @@ import { useCallback, useMemo } from 'react';
 import { queryClient } from '@/lib/queryClient';
 import {
   cancelSeatReduction,
+  cancelSubscription,
   cancelTierChange,
   getBillingCycle,
   getCheckoutQuote,
@@ -10,6 +11,7 @@ import {
   getEstateAiGrants,
   getEstateSubscription,
   getSeatProrate,
+  getRenewalEligibility,
   getSeatReductionEligibility,
   getSubscriptionTiers,
   initializeCheckout,
@@ -58,6 +60,7 @@ export const billingKeys = {
   cycle: (estateId: string) => ['billing', 'cycle', estateId] as const,
   quote: (params: CheckoutQuoteRequest) => ['billing', 'quote', params] as const,
   seatEligibility: (estateId: string) => ['billing', 'seat-eligibility', estateId] as const,
+  renewalEligibility: (estateId: string) => ['billing', 'renewal-eligibility', estateId] as const,
   seatProrate: (estateId: string, seatsAdded: number) =>
     ['billing', 'seat-prorate', estateId, seatsAdded] as const,
   aiGrants: (estateId: string) => ['billing', 'ai-grants', estateId] as const,
@@ -212,6 +215,17 @@ export function useSeatReductionEligibility() {
   });
 }
 
+/** Whether the estate may renew manually (`can_renew`) and why not (auto-renew on, too early, …). */
+export function useRenewalEligibility({ enabled = true }: { enabled?: boolean } = {}) {
+  const { estateId, canView } = useBillingAccess();
+  return useQuery({
+    queryKey: billingKeys.renewalEligibility(estateId ?? ''),
+    queryFn: () => getRenewalEligibility(estateId as string),
+    enabled: enabled && Boolean(estateId) && canView,
+    refetchOnMount: 'always',
+  });
+}
+
 /** Prorated charge for adding `seatsAdded` seats now; disabled unless `seatsAdded >= 1`. */
 export function useSeatProrate(seatsAdded: number | null) {
   const { estateId, canView } = useBillingAccess();
@@ -325,6 +339,15 @@ export function useCancelTierChange() {
   const { estateId } = useBillingAccess();
   return useMutation({
     mutationFn: () => cancelTierChange(requireEstateId(estateId)),
+    onSuccess: () => refreshBillingData(),
+  });
+}
+
+/** `mutate()` — cancel the plan (no auto-renew; it runs until period_end). */
+export function useCancelSubscription() {
+  const { estateId } = useBillingAccess();
+  return useMutation({
+    mutationFn: () => cancelSubscription(requireEstateId(estateId)),
     onSuccess: () => refreshBillingData(),
   });
 }

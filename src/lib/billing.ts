@@ -7,6 +7,7 @@ import {
   EstateSubscription,
   PendingRequest,
   PeriodMonths,
+  RenewalEligibility,
   TierFeatureRow,
 } from '@/src/types/billing';
 
@@ -264,6 +265,19 @@ export function isRenewalRetrying(
 }
 
 /**
+ * Whether POST /cancel will accept the plan: an `active`/`trialing` paid tier, whatever its end
+ * date (the backend's `require_paid_subscription`). That includes the renewal grace period, where
+ * cancelling also ends the plan at once: cancelled plans get no grace, so the estate drops to Access.
+ */
+export function canCancelSubscription(
+  subscription: EstateSubscription | null | undefined,
+  tier: BillingTier | null | undefined
+): boolean {
+  if (!subscription || !tier || tier.slug === 'access') return false;
+  return subscription.status === 'active' || subscription.status === 'trialing';
+}
+
+/**
  * Plan card footnote for the current plan: 'Renews on May 23rd, 2026.' while auto-renew is on,
  * else 'Expires on …'. `null` when there is no end date.
  */
@@ -485,4 +499,50 @@ export function getSeatOccupancy(users: Pick<AllUsers, 'items' | 'role_summary'>
     (summary?.admin ?? 0) + (summary?.primary_admin ?? 0) || countRole('admin', 'primary_admin');
   const seatResidents = residents + admins;
   return { residents, admins, security, seatResidents, occupied: seatResidents + security };
+}
+
+const DAY_MS_RENEW = 24 * 60 * 60 * 1000;
+
+/**
+ * Why a manual renewal is unavailable, worded for the user (shown when the greyed-out Renew Plan
+ * button is tapped). `null` when renewal is allowed.
+ */
+export function getRenewalBlockMessage(
+  eligibility: RenewalEligibility | null | undefined,
+  now: Date = new Date()
+): { title: string; message: string } | null {
+  if (!eligibility) {
+    return { title: 'Renewal unavailable', message: 'Please try again in a moment.' };
+  }
+  if (eligibility.can_renew) return null;
+  const end = parseDate(eligibility.period_end);
+  const endLabel = end ? formatBillingDate(end.toISOString()) : '';
+  if (eligibility.auto_renew && end && end <= now) {
+    return {
+      title: 'Auto-renewal is on',
+      message:
+        "We're retrying your saved card automatically. You don't need to do anything; your plan continues once the payment goes through.",
+    };
+  }
+  if (eligibility.auto_renew) {
+    return {
+      title: 'Auto-renewal is on',
+      message: endLabel
+        ? `Your plan renews automatically on ${endLabel}. You don't need to do anything.`
+        : "Your plan renews automatically. You don't need to do anything.",
+    };
+  }
+  if (end && eligibility.grace_days > 0) {
+    const opensAt = new Date(end.getTime() - eligibility.grace_days * DAY_MS_RENEW);
+    if (opensAt > now) {
+      return {
+        title: 'Not time to renew yet',
+        message: `You can renew from ${formatBillingDate(opensAt.toISOString())}, ${eligibility.grace_days} days before your plan ends on ${endLabel}.`,
+      };
+    }
+  }
+  return {
+    title: 'Renewal unavailable',
+    message: eligibility.reason || 'This plan cannot be renewed. Choose a plan to subscribe again.',
+  };
 }

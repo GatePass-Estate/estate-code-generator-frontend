@@ -20,7 +20,7 @@ import { useAuth } from '@/src/hooks/useAuthContext';
 import { useVerificationGate } from '@/src/hooks/useAccountVerification';
 import { useFeatureGate, useUpgradePromptStore } from '@/src/hooks/usePlan';
 import { useUserStore } from '@/src/lib/stores/userStore';
-import { useEstateEntitlements } from '@/src/lib/api/entitlements';
+import { useEstateEntitlements, useEstateTier } from '@/src/lib/api/entitlements';
 import { canViewBilling } from '@/src/lib/billing';
 import { revokeAllSessions } from '@/src/lib/api/auth';
 import { sharedStyles } from '@/src/theme/styles';
@@ -201,9 +201,15 @@ export default function MoreMenuScreen({
   }, [navigation, role]);
 
   const { data: entitlements } = useEstateEntitlements();
-  const planName = entitlements?.tierSlug
-    ? entitlements.tierSlug.charAt(0).toUpperCase() + entitlements.tierSlug.slice(1)
-    : 'Free';
+  const { data: tier } = useEstateTier();
+  const planName =
+    tier?.name ||
+    (entitlements?.tierSlug
+      ? entitlements.tierSlug.charAt(0).toUpperCase() + entitlements.tierSlug.slice(1)
+      : 'Free');
+  const planDescription =
+    tier?.description ||
+    'Upgrade your account plan to get exclusive features including Freeze, Scheduling and more';
 
   const confirmLogOutAllDevices = () => {
     Alert.alert(
@@ -263,7 +269,7 @@ export default function MoreMenuScreen({
             colors={['#185A75', '#5796AB']}
             icon={<Ionicons name="diamond-outline" size={24} color="white" />}
             title={`${planName} Plan`}
-            subtitle="Upgrade your account plan to get exclusive features including Freeze, Scheduling and more"
+            subtitle={planDescription}
             onPress={canOpenBilling ? () => router.push('/billing') : undefined}
           />
           {isAdmin && (
