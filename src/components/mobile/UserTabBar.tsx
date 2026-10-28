@@ -1,6 +1,6 @@
 import { Platform, Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
 import { useRef } from 'react';
-import { Tabs, router, usePathname } from 'expo-router';
+import { Tabs, router, useIsFocused, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFeatureGate } from '@/src/hooks/usePlan';
 import { useVerificationGate } from '@/src/hooks/useAccountVerification';
@@ -23,8 +23,16 @@ function isTabBarHidden(style: unknown) {
 
 type UserTabBarProps = Parameters<NonNullable<React.ComponentProps<typeof Tabs>['tabBar']>>[0];
 
-export default function UserTabBar({ state, descriptors, navigation }: UserTabBarProps) {
+export default function UserTabBar({
+  state,
+  descriptors,
+  emitter,
+  navigateToTab,
+}: UserTabBarProps) {
   const insets = useSafeAreaInsets();
+  const isScreenFocused = useIsFocused();
+  const isScreenFocusedRef = useRef(isScreenFocused);
+  isScreenFocusedRef.current = isScreenFocused;
   const pathname = usePathname();
   const role = useUserStore((user) => user.role);
   const isAdmin = role === 'admin' || role === 'primary_admin' || role === 'root';
@@ -73,7 +81,7 @@ export default function UserTabBar({ state, descriptors, navigation }: UserTabBa
           const onPress = () => {
             // Home stays open; every other tab needs an approved ID.
             if (route.name !== 'index' && !requireVerified()) return;
-            const event = navigation.emit({
+            const event = emitter.emit({
               type: 'tabPress',
               target: route.key,
               canPreventDefault: true,
@@ -86,8 +94,10 @@ export default function UserTabBar({ state, descriptors, navigation }: UserTabBa
               const returnTo = reportReturnToForTab(state.routes[state.index].name);
               void (async () => {
                 try {
-                  const allowed = await requestIncidentReportAccess(() => navigation.isFocused());
-                  if (!allowed || !navigation.isFocused()) return;
+                  const allowed = await requestIncidentReportAccess(
+                    () => isScreenFocusedRef.current
+                  );
+                  if (!allowed || !isScreenFocusedRef.current) return;
                   if (role === 'admin' || role === 'primary_admin') {
                     router.push({ pathname: '/user/report/category', params: { returnTo } });
                   } else {
@@ -106,7 +116,7 @@ export default function UserTabBar({ state, descriptors, navigation }: UserTabBa
             }
 
             if (!focused && !event.defaultPrevented) {
-              navigation.navigate(route.name, route.params);
+              navigateToTab(route.key);
             }
           };
 
@@ -144,14 +154,14 @@ export default function UserTabBar({ state, descriptors, navigation }: UserTabBa
             onPress={() => {
               if (!requireVerified()) return;
               const focused = state.routes[state.index].key === addRoute.key;
-              const event = navigation.emit({
+              const event = emitter.emit({
                 type: 'tabPress',
                 target: addRoute.key,
                 canPreventDefault: true,
               });
 
               if (!focused && !event.defaultPrevented) {
-                navigation.navigate(addRoute.name, addRoute.params);
+                navigateToTab(addRoute.key);
               }
             }}
             style={styles.fabHit}
