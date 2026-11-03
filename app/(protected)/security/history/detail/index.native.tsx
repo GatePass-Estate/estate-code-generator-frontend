@@ -85,7 +85,7 @@ export default function AccessLogDetailScreen() {
         const history = await getEstateVisitorLogByCode(hashedCode, { page: 1, limit: 100 });
         const mapped = history.items
           .sort(
-            (a, b) => parseLogDate(a.visit_time).getTime() - parseLogDate(b.visit_time).getTime()
+            (a, b) => parseLogDate(b.visit_time).getTime() - parseLogDate(a.visit_time).getTime()
           )
           .map((item) => ({
             id: item.id,
@@ -170,7 +170,6 @@ export default function AccessLogDetailScreen() {
             events={timelineEvents}
             error={error}
             gap={24}
-            lastOverflow={56}
           />
         </ScrollView>
       )}

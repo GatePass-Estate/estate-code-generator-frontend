@@ -21,6 +21,10 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { CheckIcon, ProfileAvatar } from '@/src/assets/svgs';
+import {
+  assertDocumentUploadSize,
+  documentUploadTooLargeMessage,
+} from '@/src/lib/userDocumentHelpers';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 const SHEET_HEIGHT = SCREEN_HEIGHT * 0.6;
@@ -133,7 +137,16 @@ export default function ProfilePhotoSheet({
     });
 
     if (!result.canceled && result.assets[0]?.uri) {
-      await onPhotoSelected(result.assets[0].uri);
+      const asset = result.assets[0];
+      try {
+        await assertDocumentUploadSize(asset.uri, asset.fileSize);
+        await onPhotoSelected(asset.uri);
+      } catch (error) {
+        Alert.alert(
+          'File too large',
+          error instanceof Error ? error.message : documentUploadTooLargeMessage()
+        );
+      }
     }
   };
 
@@ -151,7 +164,16 @@ export default function ProfilePhotoSheet({
     });
 
     if (!result.canceled && result.assets[0]?.uri) {
-      await onPhotoSelected(result.assets[0].uri);
+      const asset = result.assets[0];
+      try {
+        await assertDocumentUploadSize(asset.uri, asset.fileSize);
+        await onPhotoSelected(asset.uri);
+      } catch (error) {
+        Alert.alert(
+          'File too large',
+          error instanceof Error ? error.message : documentUploadTooLargeMessage()
+        );
+      }
     }
   };
 

@@ -255,6 +255,11 @@ export default function HistoryTabScreen() {
     });
   }, []);
 
+  const showingMessageOnly =
+    mode === 'past'
+      ? !!pastError || groupedPast.length === 0
+      : !!upcomingError || sortedUpcoming.length === 0;
+
   return (
     <SafeAreaView
       style={[sharedStyles.container, sharedStyles.modalContainer, { backgroundColor: '#F6F7F7' }]}
@@ -284,7 +289,9 @@ export default function HistoryTabScreen() {
             style={{ flex: 1 }}
             contentContainerStyle={{
               flexGrow: 1,
-              paddingTop: mode === 'upcoming' ? 35 : 31,
+              // Lists keep their per-tab offsets; the empty/error message sits at one shared offset so
+              // it lines up when switching tabs.
+              paddingTop: showingMessageOnly ? 31 : mode === 'upcoming' ? 35 : 31,
               paddingBottom: tabContentPadding + 40,
               gap: 38,
             }}

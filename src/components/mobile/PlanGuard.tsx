@@ -13,18 +13,25 @@ export default function PlanGuard() {
   const feature = useUpgradePromptStore((s) => s.feature);
   const visible = useUpgradePromptStore((s) => s.visible);
   const dismiss = useUpgradePromptStore((s) => s.dismiss);
+  const customUpgrade = useUpgradePromptStore((s) => s.onUpgrade);
   const role = useUserStore((s) => s.role);
   const noticeFeature = useContactAdminNoticeStore((s) => s.feature);
   const noticeMessage = useContactAdminNoticeStore((s) => s.message);
   const noticeVisible = useContactAdminNoticeStore((s) => s.visible);
 
-  // Billing viewers go straight to "Choose your plan"; anyone else just closes the modal.
-  const handleUpgrade = canViewBilling(role)
+  // A feature can send the upgrade elsewhere (e.g. the AI store). Otherwise billing viewers go
+  // straight to "Choose your plan" and anyone else just closes the modal.
+  const handleUpgrade = customUpgrade
     ? () => {
         dismiss();
-        router.push('/billing/choose-plan');
+        customUpgrade();
       }
-    : undefined;
+    : canViewBilling(role)
+      ? () => {
+          dismiss();
+          router.push('/billing/choose-plan');
+        }
+      : undefined;
 
   return (
     <>

@@ -37,7 +37,7 @@ export function mapResidentCodeHistoryToEvents(
   }
 
   return events
-    .sort((a, b) => parseLogDate(a.timestamp).getTime() - parseLogDate(b.timestamp).getTime())
+    .sort((a, b) => parseLogDate(b.timestamp).getTime() - parseLogDate(a.timestamp).getTime())
     .map((event, index) => ({
       id: `${event.type}-${index}`,
       type: event.type,

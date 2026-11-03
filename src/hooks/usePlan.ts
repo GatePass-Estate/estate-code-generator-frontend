@@ -21,8 +21,10 @@ const DENIAL_MAX_AGE_MS = 30_000;
 
 type UpgradePromptStore = {
   feature: PlanFeature | null;
+  /** Replaces where "Upgrade Your Plan" goes (default: the billing plan picker). */
+  onUpgrade: (() => void) | null;
   visible: boolean;
-  show: (feature: PlanFeature) => void;
+  show: (feature: PlanFeature, onUpgrade?: (() => void) | null) => void;
   dismiss: () => void;
   reset: () => void;
 };
@@ -30,11 +32,12 @@ type UpgradePromptStore = {
 /** Drives the single app-wide Upgrade Plan modal rendered by `PlanGuard`. */
 export const useUpgradePromptStore = create<UpgradePromptStore>((set) => ({
   feature: null,
+  onUpgrade: null,
   visible: false,
-  show: (feature) => set({ feature, visible: true }),
+  show: (feature, onUpgrade = null) => set({ feature, onUpgrade, visible: true }),
   // Keeps `feature` so the modal copy doesn't blank out while it fades away.
   dismiss: () => set({ visible: false }),
-  reset: () => set({ feature: null, visible: false }),
+  reset: () => set({ feature: null, onUpgrade: null, visible: false }),
 }));
 
 type ContactAdminNoticeStore = {
@@ -111,6 +114,8 @@ type FeatureGateOptions = {
    *   to sit above (icons, swipe actions, cards).
    */
   notice?: 'inline' | 'floating';
+  /** Where the Upgrade Plan modal's button goes, instead of the billing plan picker. */
+  onUpgrade?: () => void;
 };
 
 /**
@@ -133,7 +138,7 @@ type FeatureGateOptions = {
  */
 export function useFeatureGate(
   feature: PlanFeature,
-  { notice = 'inline' }: FeatureGateOptions = {}
+  { notice = 'inline', onUpgrade }: FeatureGateOptions = {}
 ) {
   const { access, reason } = useFeatureAccessWithReason(feature);
   const role = useUserStore((s) => s.role);
@@ -143,6 +148,9 @@ export function useFeatureGate(
   const [noticeVisible, flashInlineNotice] = useTimedFlag(CONTACT_ADMIN_NOTICE_MS);
   const [noticeMessage, setNoticeMessage] = useState<string | null>(null);
   const mountedRef = useRef(true);
+  // Read through a ref so an inline `onUpgrade` doesn't change `promptFor` on every render.
+  const onUpgradeRef = useRef(onUpgrade);
+  onUpgradeRef.current = onUpgrade;
 
   useEffect(() => {
     mountedRef.current = true;
@@ -155,7 +163,7 @@ export function useFeatureGate(
     (next: FeatureAccess, blockedReason: string | null = null): boolean => {
       if (next === 'granted') return true;
       if (next === 'upgrade') {
-        showUpgradePrompt(feature);
+        showUpgradePrompt(feature, onUpgradeRef.current ?? null);
         return false;
       }
       // `contact_admin` shows the feature's copy; `blocked` shows the server's reason instead.

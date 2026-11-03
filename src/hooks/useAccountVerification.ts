@@ -76,9 +76,10 @@ export function useVerificationGate() {
   const requireVerified = useCallback(() => {
     if (!blocked) return true;
     show();
-    // The admin may have approved the ID since the last check: refresh so the next tap goes through.
+    // The admin may have approved the ID since the last check: refresh (past the freshness window)
+    // so the next tap goes through.
     const userId = useUserStore.getState().user_id;
-    if (userId) void useProfileDocumentsStore.getState().syncDocuments(userId);
+    if (userId) void useProfileDocumentsStore.getState().syncDocuments(userId, { force: true });
     return false;
   }, [blocked, show]);
 

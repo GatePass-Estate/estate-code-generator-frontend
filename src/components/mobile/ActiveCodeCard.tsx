@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Clipboard from 'expo-clipboard';
@@ -49,7 +49,7 @@ type ActiveCodeCardProps = {
   onCopied: () => void;
   onOpenHistory: () => void;
   onOpenDetails: () => void;
-  onExtend: () => void;
+  onExtend: () => void | Promise<void>;
 };
 
 export default function ActiveCodeCard({
@@ -139,6 +139,33 @@ export default function ActiveCodeCard({
     setSheetView('confirmDelete');
     setSheetVisible(true);
   }, [closeSwipe, requireVerified]);
+
+  // The "+" extends the code straight away; the rest of the card opens the actions sheet.
+  const [extending, setExtending] = useState(false);
+  const handleExtendPress = useCallback(() => {
+    if (extending || !requireVerified()) return;
+    tryAdvanced(() => {
+      setExtending(true);
+      Promise.resolve(onExtend()).finally(() => setExtending(false));
+    });
+  }, [extending, onExtend, requireVerified, tryAdvanced]);
+
+  const extendTap = Gesture.Tap()
+    .maxDuration(400)
+    .hitSlop(16)
+    .onEnd((_e, success) => {
+      if (success) runOnJS(handleExtendPress)();
+    });
+
+  const lastExpiresAt = useRef(expiresAt);
+
+  useEffect(() => {
+    const previous = lastExpiresAt.current;
+    lastExpiresAt.current = expiresAt;
+    if (!Number.isFinite(expiresAt) || !Number.isFinite(previous)) return;
+    if (expiresAt - previous < 15_000) return;
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  }, [expiresAt]);
 
   const handleCardPress = useCallback(() => {
     if (Math.abs(translateX.value) > 4) {
@@ -406,17 +433,24 @@ export default function ActiveCodeCard({
         </Pressable>
       </Animated.View>
 
-      <Animated.View
-        pointerEvents="none"
-        className="absolute z-20 h-5 w-5 items-center justify-center"
-        style={[{ top: PLUS_TOP }, plusStyle]}
-      >
-        <CarbonAddFilledIcon
-          color={frozen ? FROZEN_TEXT : undefined}
-          width={PLUS_SIZE}
-          height={PLUS_SIZE}
-        />
-      </Animated.View>
+      <GestureDetector gesture={extendTap}>
+        <Animated.View
+          pointerEvents={openAction === 'none' && !extending ? 'auto' : 'none'}
+          accessibilityRole="button"
+          accessibilityLabel="Extend code"
+          className="absolute z-20 h-5 w-5 items-center justify-center"
+          style={[
+            { top: PLUS_TOP, elevation: 24, zIndex: 24, opacity: extending ? 0.4 : 1 },
+            plusStyle,
+          ]}
+        >
+          <CarbonAddFilledIcon
+            color={frozen ? FROZEN_TEXT : undefined}
+            width={PLUS_SIZE}
+            height={PLUS_SIZE}
+          />
+        </Animated.View>
+      </GestureDetector>
 
       {sheet}
     </View>

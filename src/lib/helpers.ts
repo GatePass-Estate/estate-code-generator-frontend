@@ -394,11 +394,38 @@ export const formatUpcomingInviteCardDate = (value?: string | null): string => {
   return `${day} ${month} ${hours}:${minutes}`;
 };
 
+/**
+ * Validity start/end as the clock the user picked. The API stamps ``+0000`` even when the
+ * digits are local (14:32 WAT stored as 14:32+0000). Parsing that as UTC shifts Active Codes
+ * an hour into "upcoming".
+ */
+export function parseValidityWallClock(value: string): Date {
+  const trimmed = value.trim();
+  const clock = trimmed.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  if (clock) {
+    const next = new Date();
+    next.setHours(Number(clock[1]), Number(clock[2]), Number(clock[3] || 0), 0);
+    return next;
+  }
+  const full = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?/);
+  if (full) {
+    return new Date(
+      Number(full[1]),
+      Number(full[2]) - 1,
+      Number(full[3]),
+      Number(full[4]),
+      Number(full[5]),
+      Number(full[6] || 0)
+    );
+  }
+  return parseLogDate(trimmed);
+}
+
 /** True when the invite's validity window has not started yet (History → Upcoming). */
 export function isUpcomingCode(code: Codes, now = Date.now()): boolean {
   const start = code.validity_period?.start ?? code.validity_window?.start;
   if (!start) return false;
-  const startMs = parseLogDate(start).getTime();
+  const startMs = parseValidityWallClock(start).getTime();
   return Number.isFinite(startMs) && startMs > now;
 }
 

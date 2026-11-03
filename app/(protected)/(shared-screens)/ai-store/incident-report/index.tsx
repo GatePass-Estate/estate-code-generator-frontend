@@ -42,6 +42,11 @@ import {
 } from '@/src/lib/api/aiMarketplace';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import {
+  useContactAdminNoticeStore,
+  useFeatureGate,
+  useUpgradePromptStore,
+} from '@/src/hooks/usePlan';
+import {
   AiCheckoutDuration,
   MarketplaceDetailResponse,
   MarketplaceTier,
@@ -465,8 +470,39 @@ export default function IncidentReportPreviewScreen() {
 
   const scrollViewRef = useRef<ScrollView>(null);
 
-  const handleTabChange = (tab: 'Preview' | 'Result') => {
+  // Result is only for estates whose plan includes incident insights. Entitlements are loaded at
+  // sign-in, so a locked estate sees the tab switch and the plan prompt together, with nothing
+  // fetched; closing the prompt takes the tab back to Preview, where the plans are.
+  const { requestAccessWhenReady: requestResultAccess } = useFeatureGate(
+    'incident_report_summary_tier_1',
+    { notice: 'floating', onUpgrade: () => setActiveTab('Preview') }
+  );
+  const [resultLocked, setResultLocked] = useState(false);
+  const promptVisible = useUpgradePromptStore((s) => s.visible);
+  const noticeVisible = useContactAdminNoticeStore((s) => s.visible);
+
+  useEffect(() => {
+    if (resultLocked && !promptVisible && !noticeVisible) {
+      setResultLocked(false);
+      setActiveTab('Preview');
+    }
+  }, [resultLocked, promptVisible, noticeVisible]);
+
+  // Arriving with `?tab=Result` skips the tap, so apply the same check.
+  useEffect(() => {
+    if (activeTab !== 'Result' || resultLocked) return;
+    let cancelled = false;
+    void requestResultAccess(() => !cancelled).then((allowed) => {
+      if (!allowed && !cancelled) setResultLocked(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, resultLocked, requestResultAccess]);
+
+  const handleTabChange = async (tab: 'Preview' | 'Result') => {
     if (tab === activeTab) return;
+    if (tab === 'Result' && !(await requestResultAccess())) setResultLocked(true);
     setActiveTab(tab);
     scrollViewRef.current?.scrollTo({ y: 0, animated: false });
   };
@@ -515,7 +551,9 @@ export default function IncidentReportPreviewScreen() {
           </Pressable>
         </View>
 
-        {activeTab === 'Result' ? (
+        {activeTab === 'Result' && resultLocked ? (
+          <View style={{ flex: 1, backgroundColor: '#F6F7F7' }} />
+        ) : activeTab === 'Result' ? (
           <IncidentResultView
             isActive={activeTab === 'Result'}
             hasAiReviewTier={hasAiReviewTier}
