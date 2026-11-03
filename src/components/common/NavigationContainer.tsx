@@ -77,6 +77,6 @@ export default function NavigationContainer({
       </Tabs>
     </View>
   ) : (
-    <Stack screenOptions={{ headerShown: false }} />
+    <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }} />
   );
 }

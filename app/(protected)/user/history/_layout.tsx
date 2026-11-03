@@ -1,5 +1,10 @@
 import { Stack } from 'expo-router';
 
 export default function HistoryLayout() {
-  return <Stack screenOptions={{ headerShown: false }} initialRouteName="index" />;
+  return (
+    <Stack
+      screenOptions={{ headerShown: false, animation: 'slide_from_right' }}
+      initialRouteName="index"
+    />
+  );
 }

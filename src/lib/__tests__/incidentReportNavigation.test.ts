@@ -44,4 +44,19 @@ describe('incident report return navigation', () => {
       '/user',
     ]);
   });
+
+  it('pops the stack using router.back when canGoBack is true to prevent duplicate history', () => {
+    const calls: string[] = [];
+    const router = {
+      canGoBack: () => true,
+      back: () => calls.push('back'),
+      replace: (path: unknown) => calls.push(`replace:${JSON.stringify(path)}`),
+    };
+
+    leaveIncidentReport('/admin', router);
+    leaveIncidentReport('/settings', router);
+    leaveIncidentReport('/security/more', router);
+
+    expect(calls).toEqual(['back', 'back', 'back']);
+  });
 });

@@ -31,9 +31,18 @@ type ReportRouter = {
   replace: (
     path: IncidentReportReturnTo | { pathname: '/admin'; params: { returnTo: '/settings' } }
   ) => void;
+  back?: () => void;
+  canGoBack?: () => boolean;
 };
 
 export function leaveIncidentReport(returnTo: IncidentReportReturnTo, router: ReportRouter): void {
+  if (
+    router.canGoBack?.() &&
+    (returnTo === '/admin' || returnTo === '/settings' || returnTo === '/security/more')
+  ) {
+    router.back?.();
+    return;
+  }
   if (returnTo === '/admin') {
     router.replace({ pathname: '/admin', params: { returnTo: '/settings' } });
     return;

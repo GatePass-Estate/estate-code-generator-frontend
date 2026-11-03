@@ -328,13 +328,15 @@ export default function MoreMenuScreen({
                 label="Account Security"
                 onPress={() => router.push('/account-security')}
               />
-              <MoreMenuRow
-                icon={<Ionicons name="diamond-outline" size={22} color={iconColor} />}
-                label="Billing and Subscription"
-                onPress={() =>
-                  Alert.alert('Coming soon', 'Billing and subscription is not available yet.')
-                }
-              />
+              {isAdmin && (
+                <MoreMenuRow
+                  icon={<Ionicons name="diamond-outline" size={22} color={iconColor} />}
+                  label="Billing and Subscription"
+                  onPress={() =>
+                    Alert.alert('Coming soon', 'Billing and subscription is not available yet.')
+                  }
+                />
+              )}
               <MoreMenuRow
                 icon={<IncidentReportIcon color={iconColor} />}
                 label="Incident Report"

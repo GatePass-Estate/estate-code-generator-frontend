@@ -18,6 +18,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useQueryClient } from '@tanstack/react-query';
 import { Ionicons as Icon } from '@expo/vector-icons';
 import HistoryRounded from '@/src/assets/icons/history-rounded.svg';
 import InvalidCodeClose from '@/src/assets/icons/invalid-code-close.svg';
@@ -142,6 +143,7 @@ function InvalidCodeOverlay({ onClose }: { onClose: () => void }) {
 }
 
 export default function SecurityVerificationMobile() {
+  const queryClient = useQueryClient();
   const params = useLocalSearchParams();
   const [mode, setMode] = useState<VerificationMode>(params.mode === 'scan' ? 'scan' : 'enter');
   const [code, setCode] = useState<string[]>(EMPTY_CODE);
@@ -193,6 +195,7 @@ export default function SecurityVerificationMobile() {
 
     try {
       const result = await validateCode(entered);
+      void queryClient.invalidateQueries({ queryKey: ['anomaly'] });
       const resident = await getUserById(result.user_id);
       const residentHousehold = resident?.household_name || resident?.household_id || 'Household';
 

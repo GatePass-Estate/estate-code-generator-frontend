@@ -9,6 +9,7 @@ import {
   StatusBar,
   useWindowDimensions,
   StyleSheet,
+  Modal,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Stack, useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
@@ -21,11 +22,7 @@ import icons from '@/src/constants/icons';
 import { getRoleIcon, isDataEqual } from '@/src/lib/helpers';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useEstateEntitlements } from '@/src/lib/api/entitlements';
-import {
-  useContactAdminNoticeStore,
-  useFeatureGate,
-  useUpgradePromptStore,
-} from '@/src/hooks/usePlan';
+import { useContactAdminNoticeStore, useFeatureGate } from '@/src/hooks/usePlan';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import AdminToolsSvg from '@/src/assets/images/admintools.svg';
 import AdminResidentsSvg from '@/src/assets/images/adminresidents.svg';
@@ -44,7 +41,6 @@ export default function AdminUsersMobilePage() {
   const navigation = useNavigation();
   const usersRef = useRef<AllUsers>(users);
   const { data: estateEntitlements } = useEstateEntitlements();
-  const showUpgradePrompt = useUpgradePromptStore((s) => s.show);
   const showContactAdminNotice = useContactAdminNoticeStore((s) => s.show);
   const userRole = useUserStore((s) => s.role);
 
@@ -185,10 +181,19 @@ export default function AdminUsersMobilePage() {
   const seatResidentsCount = residentsCount + adminsCount;
   const occupiedSeats = seatResidentsCount + securityPersonnelCount;
   const totalUsersCount = users.total;
-  const registeredUsersCount = users.total;
   const estateUserCapacity = estateEntitlements?.coveredUsers ?? null;
   const isRegistrationAtCapacity =
     estateUserCapacity !== null && occupiedSeats >= estateUserCapacity;
+  const hasPendingSeatReduction = Boolean(
+    (estateEntitlements as any)?.pending_seat_reduction ||
+    (estateEntitlements as any)?.has_pending_seat_reduction ||
+    (estateEntitlements as any)?.seat_reduction_pending ||
+    (estateEntitlements as any)?.seat_reduction_requested ||
+    estateEntitlements?.reason?.toLowerCase().includes('seat') ||
+    estateEntitlements?.reason?.toLowerCase().includes('reduction') ||
+    (estateEntitlements as any)?.subscription_status === 'pending_seat_reduction'
+  );
+  const [seatReductionOverlayVisible, setSeatReductionOverlayVisible] = useState(false);
   const limitedUsers = verifiedUsers.slice(0, 3);
 
   const handleOpenAddSeats = () => {
@@ -203,8 +208,8 @@ export default function AdminUsersMobilePage() {
   };
 
   const handleRegisterUser = () => {
-    if (isRegistrationAtCapacity) {
-      showUpgradePrompt('household_department_management');
+    if (hasPendingSeatReduction || isRegistrationAtCapacity) {
+      setSeatReductionOverlayVisible(true);
       return;
     }
     router.push('/admin/users/add');
@@ -316,7 +321,7 @@ export default function AdminUsersMobilePage() {
                     color: '#FFFFFF',
                   }}
                 >
-                  Add Seats
+                  Manage Seats
                 </Text>
               </TouchableOpacity>
             </View>
@@ -533,7 +538,7 @@ export default function AdminUsersMobilePage() {
                 </Text>
               </TouchableOpacity>
 
-              {/* Broadcast (Greyed out for upgrade) */}
+              {/* Broadcast */}
               <TouchableOpacity
                 style={{ alignItems: 'center', flex: 1 }}
                 onPress={handleOpenBroadcast}
@@ -544,7 +549,7 @@ export default function AdminUsersMobilePage() {
                 >
                   <Image
                     source={icons.broadcastIcon}
-                    style={{ width: 22, height: 22, tintColor: '#9DA9AF', opacity: 0.6 }}
+                    style={{ width: 22, height: 22 }}
                     resizeMode="contain"
                   />
                 </View>
@@ -553,7 +558,7 @@ export default function AdminUsersMobilePage() {
                   style={{
                     fontFamily: 'Inter_18pt-Medium',
                     fontSize: 10,
-                    color: '#9DA9AF',
+                    color: '#113E55',
                     marginTop: 6,
                     textAlign: 'center',
                   }}
@@ -750,7 +755,109 @@ export default function AdminUsersMobilePage() {
         maxCapacity={estateUserCapacity ?? totalUsersCount}
         residentsCount={seatResidentsCount}
         securityPersonnelCount={securityPersonnelCount}
+        onManageSeats={handleOpenAddSeats}
       />
+
+      {/* Seat Reduction Active Overlay */}
+      <Modal
+        visible={seatReductionOverlayVisible}
+        transparent
+        statusBarTranslucent
+        animationType="fade"
+        onRequestClose={() => setSeatReductionOverlayVisible(false)}
+      >
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0, 0, 0, 0.55)',
+            justifyContent: 'center',
+            alignItems: 'center',
+            paddingHorizontal: 24,
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: 24,
+              padding: 24,
+              width: '100%',
+              maxWidth: 340,
+              alignItems: 'center',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.15,
+              shadowRadius: 12,
+              elevation: 6,
+            }}
+          >
+            <View
+              style={{
+                width: 56,
+                height: 56,
+                borderRadius: 28,
+                backgroundColor: '#FEE2E2',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 16,
+              }}
+            >
+              <Feather name="alert-triangle" size={26} color="#DC2626" />
+            </View>
+
+            <Text
+              allowFontScaling={false}
+              style={{
+                fontFamily: 'UbuntuSans-Bold',
+                fontSize: 18,
+                color: '#113E55',
+                textAlign: 'center',
+                marginBottom: 12,
+              }}
+            >
+              Action Not Allowed
+            </Text>
+
+            <Text
+              allowFontScaling={false}
+              style={{
+                fontFamily: 'Inter_18pt-Regular',
+                fontSize: 14,
+                lineHeight: 20,
+                color: '#64748B',
+                textAlign: 'center',
+                marginBottom: 24,
+              }}
+            >
+              A seat reduction request prevents addition of new users. To add users, the request has
+              to be cancelled.
+            </Text>
+
+            <TouchableOpacity
+              onPress={() => setSeatReductionOverlayVisible(false)}
+              activeOpacity={0.8}
+              style={{
+                width: '100%',
+                backgroundColor: '#113E55',
+                borderRadius: 28,
+                paddingVertical: 14,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Text
+                allowFontScaling={false}
+                style={{
+                  fontFamily: 'Inter_18pt-Medium',
+                  fontSize: 15,
+                  color: '#FFFFFF',
+                }}
+              >
+                Understood
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

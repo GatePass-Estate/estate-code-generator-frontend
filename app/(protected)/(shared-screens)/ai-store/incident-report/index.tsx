@@ -41,6 +41,7 @@ import {
   cancelMarketplaceSubscription,
 } from '@/src/lib/api/aiMarketplace';
 import { useUserStore } from '@/src/lib/stores/userStore';
+import { useContactAdminNoticeStore } from '@/src/hooks/usePlan';
 import {
   AiCheckoutDuration,
   MarketplaceDetailResponse,
@@ -59,6 +60,8 @@ const cancelledTiersStorageKey = (estateId: string) => `incidentCancelledTiers-$
 export default function IncidentReportPreviewScreen() {
   const params = useLocalSearchParams<{ featureId?: string; title?: string; tab?: string }>();
   const estateId = useUserStore((s) => s.estate_id);
+  const userRole = useUserStore((s) => s.role);
+  const showContactAdminNotice = useContactAdminNoticeStore((s) => s.show);
   const [activeTab, setActiveTab] = useState<'Preview' | 'Result'>(
     params.tab === 'Result' ? 'Result' : 'Preview'
   );
@@ -206,6 +209,14 @@ export default function IncidentReportPreviewScreen() {
   };
 
   const handleSubscribe = async (tier: MarketplaceTier) => {
+    if (userRole !== 'primary_admin') {
+      showContactAdminNotice(
+        'guest_management',
+        'Only the primary admin can purchase AI subscriptions and features.'
+      );
+      return;
+    }
+
     if (!featureDetail?.id || (!tier.ai_feature_id && !tier.feature_key)) {
       return;
     }
@@ -244,6 +255,14 @@ export default function IncidentReportPreviewScreen() {
   };
 
   const handleConfirmActivation = async (duration: AiCheckoutDuration) => {
+    if (userRole !== 'primary_admin') {
+      showContactAdminNotice(
+        'guest_management',
+        'Only the primary admin can purchase AI subscriptions and features.'
+      );
+      return;
+    }
+
     const tier = selectedTierForActivation;
     if (!tier?.feature_key) {
       Alert.alert('Error', 'Feature key is missing for this tier.');
@@ -345,6 +364,14 @@ export default function IncidentReportPreviewScreen() {
   };
 
   const handleCancelSubscription = (tier: MarketplaceTier) => {
+    if (userRole !== 'primary_admin') {
+      showContactAdminNotice(
+        'guest_management',
+        'Only the primary admin can manage AI subscriptions.'
+      );
+      return;
+    }
+
     setConfirmModalConfig({
       title: 'Cancel Subscription',
       message: 'Are you sure you want to cancel your subscription to this AI feature?',
@@ -382,6 +409,14 @@ export default function IncidentReportPreviewScreen() {
   };
 
   const handleUninstall = (tier: MarketplaceTier) => {
+    if (userRole !== 'primary_admin') {
+      showContactAdminNotice(
+        'guest_management',
+        'Only the primary admin can manage AI subscriptions.'
+      );
+      return;
+    }
+
     if (!estateId) {
       Alert.alert('Error', 'Estate ID not found');
       return;

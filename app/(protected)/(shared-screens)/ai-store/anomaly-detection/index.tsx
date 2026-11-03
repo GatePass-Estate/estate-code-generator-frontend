@@ -66,6 +66,7 @@ import {
   resolveMarketplaceFeatureId,
 } from '@/src/lib/api/aiMarketplace';
 import { useUserStore } from '@/src/lib/stores/userStore';
+import { useContactAdminNoticeStore } from '@/src/hooks/usePlan';
 import {
   MarketplaceDetailResponse,
   MarketplaceTier,
@@ -167,6 +168,8 @@ export default function AnomalyDetectionPreviewScreen() {
 
   const estateId = useUserStore((state) => state.estate_id) || '';
   const email = useUserStore((state) => state.email) || '';
+  const userRole = useUserStore((state) => state.role);
+  const showContactAdminNotice = useContactAdminNoticeStore((s) => s.show);
 
   const formatTierName = (tier: string) => {
     const map: Record<string, string> = { '1': 'One', '2': 'Two', '3': 'Three' };
@@ -298,6 +301,13 @@ export default function AnomalyDetectionPreviewScreen() {
   };
 
   const handlePressActivate = (tierPayload: MarketplaceTier) => {
+    if (userRole !== 'primary_admin') {
+      showContactAdminNotice(
+        'guest_management',
+        'Only the primary admin can purchase AI subscriptions and features.'
+      );
+      return;
+    }
     if (tierPayload.is_free) {
       handleActivateFreeTier(tierPayload);
       return;
@@ -307,6 +317,13 @@ export default function AnomalyDetectionPreviewScreen() {
   };
 
   const handleConfirmActivation = async (duration: AiCheckoutDuration, _quote: AiQuoteResponse) => {
+    if (userRole !== 'primary_admin') {
+      showContactAdminNotice(
+        'guest_management',
+        'Only the primary admin can purchase AI subscriptions and features.'
+      );
+      return;
+    }
     if (!selectedTierForActivation?.feature_key) {
       Alert.alert('Error', 'Feature key is missing for this tier.');
       return;
@@ -439,6 +456,13 @@ export default function AnomalyDetectionPreviewScreen() {
     tier: string;
     feature_key?: string | null;
   }) => {
+    if (userRole !== 'primary_admin') {
+      showContactAdminNotice(
+        'guest_management',
+        'Only the primary admin can manage AI subscriptions.'
+      );
+      return;
+    }
     setConfirmModalConfig({
       title: 'Cancel Subscription',
       message: 'Are you sure you want to cancel your subscription to this AI feature?',
@@ -494,6 +518,13 @@ export default function AnomalyDetectionPreviewScreen() {
     tier: string;
     feature_key?: string | null;
   }) => {
+    if (userRole !== 'primary_admin') {
+      showContactAdminNotice(
+        'guest_management',
+        'Only the primary admin can manage AI subscriptions.'
+      );
+      return;
+    }
     if (!estateId) {
       Alert.alert('Error', 'Estate ID not found');
       return;
@@ -561,6 +592,24 @@ export default function AnomalyDetectionPreviewScreen() {
   const tierOneApi = sortedTiers[0];
   const tierTwoApi = sortedTiers[1];
   const tierThreeApi = sortedTiers[2];
+
+  const isTierSubscribed = useCallback(
+    (tier?: MarketplaceTier | null) => {
+      if (!tier) return false;
+      const tierKey = tier.tier;
+      if (justCancelledTiers[tierKey]) return false;
+      return (
+        tier.status === 'active' ||
+        tier.status === 'purchased' ||
+        tier.status === 'subscribed' ||
+        tier.status === 'installed' ||
+        Boolean(tier.purchased)
+      );
+    },
+    [justCancelledTiers]
+  );
+
+  const hasResultAccess = isTierSubscribed(tierTwoApi) || isTierSubscribed(tierThreeApi);
 
   const renderTierButtons = (tierApi: any, fallbackTier: string) => {
     const api: MarketplaceTier = tierApi || { tier: fallbackTier };
@@ -731,6 +780,27 @@ export default function AnomalyDetectionPreviewScreen() {
   const startX = useSharedValue(0);
 
   const handleTabPress = (tab: 'Overview' | 'Result') => {
+    if (tab === 'Result' && !hasResultAccess) {
+      translateX.value = withSpring(0, SPRING_CONFIG);
+      if (userRole === 'primary_admin') {
+        if (tierTwoApi) {
+          setSelectedTierForActivation(tierTwoApi);
+          setActivationModalVisible(true);
+        } else {
+          Alert.alert(
+            'Subscription Required',
+            'Upgrade to Sentinel or activate Anomaly Detection Tier Two to view results.'
+          );
+        }
+      } else {
+        showContactAdminNotice(
+          'access_anomaly_detection_tier_2',
+          'Upgrade to Sentinel or activate Anomaly Detection Tier Two to view results. Contact Admin to upgrade.'
+        );
+      }
+      return;
+    }
+
     if (tab !== activeTab) {
       setActiveTab(tab);
       const targetX = tab === 'Result' ? TAB_WIDTH : 0;
@@ -767,13 +837,7 @@ export default function AnomalyDetectionPreviewScreen() {
         targetTab = translateX.value > TAB_WIDTH / 2 ? 'Result' : 'Overview';
       }
 
-      const targetX = targetTab === 'Result' ? TAB_WIDTH : 0;
-      translateX.value = withSpring(targetX, {
-        ...SPRING_CONFIG,
-        velocity: e.velocityX,
-      });
-
-      runOnJS(setActiveTab)(targetTab);
+      runOnJS(handleTabPress)(targetTab);
     });
 
   const tapGesture = Gesture.Tap()
@@ -781,12 +845,37 @@ export default function AnomalyDetectionPreviewScreen() {
     .onEnd((e) => {
       'worklet';
       const targetTab: 'Overview' | 'Result' = e.x < PILL_WIDTH / 2 ? 'Overview' : 'Result';
-      const targetX = targetTab === 'Result' ? TAB_WIDTH : 0;
-      translateX.value = withSpring(targetX, SPRING_CONFIG);
-      runOnJS(setActiveTab)(targetTab);
+      runOnJS(handleTabPress)(targetTab);
     });
 
   const pillGesture = Gesture.Race(panGesture, tapGesture);
+
+  useEffect(() => {
+    if (activeTab === 'Result' && featureDetail && !isLoading && !hasResultAccess) {
+      setActiveTab('Overview');
+      translateX.value = withSpring(0, SPRING_CONFIG);
+      if (userRole === 'primary_admin') {
+        if (tierTwoApi) {
+          setSelectedTierForActivation(tierTwoApi);
+          setActivationModalVisible(true);
+        }
+      } else {
+        showContactAdminNotice(
+          'access_anomaly_detection_tier_2',
+          'Upgrade to Sentinel or activate Anomaly Detection Tier Two to view results. Contact Admin to upgrade.'
+        );
+      }
+    }
+  }, [
+    activeTab,
+    featureDetail,
+    isLoading,
+    hasResultAccess,
+    userRole,
+    tierTwoApi,
+    showContactAdminNotice,
+    translateX,
+  ]);
 
   useEffect(() => {
     const targetX = activeTab === 'Result' ? TAB_WIDTH : 0;
@@ -883,7 +972,7 @@ export default function AnomalyDetectionPreviewScreen() {
           </Pressable>
         </Animated.View>
 
-        {activeTab === 'Result' ? (
+        {activeTab === 'Result' && hasResultAccess ? (
           <AnomalyResultView />
         ) : isLoading ? (
           <View

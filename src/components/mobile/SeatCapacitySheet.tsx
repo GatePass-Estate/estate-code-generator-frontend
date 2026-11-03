@@ -19,6 +19,7 @@ type SeatCapacitySheetProps = {
   maxCapacity: number;
   residentsCount: number;
   securityPersonnelCount: number;
+  onManageSeats?: () => void;
 };
 
 const TOTAL_TICKS = 54;
@@ -134,6 +135,7 @@ export default function SeatCapacitySheet({
   maxCapacity,
   residentsCount,
   securityPersonnelCount,
+  onManageSeats,
 }: SeatCapacitySheetProps) {
   const insets = useSafeAreaInsets();
   const panY = useRef(new RNAnimated.Value(0)).current;
@@ -471,30 +473,59 @@ export default function SeatCapacitySheet({
             </View>
           </View>
 
-          {/* Done Action Button */}
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={onClose}
-            style={{
-              backgroundColor: '#113E55',
-              height: 50,
-              borderRadius: 25,
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginTop: 24,
-            }}
-          >
-            <Text
-              allowFontScaling={false}
+          {/* Action Buttons */}
+          <View style={{ gap: 10, marginTop: 24 }}>
+            {onManageSeats && (
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={() => {
+                  onClose();
+                  onManageSeats();
+                }}
+                style={{
+                  backgroundColor: '#113E55',
+                  height: 50,
+                  borderRadius: 25,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Text
+                  allowFontScaling={false}
+                  style={{
+                    fontFamily: UbuntuSans.medium,
+                    fontSize: 15,
+                    color: '#FFFFFF',
+                  }}
+                >
+                  Manage Seats
+                </Text>
+              </TouchableOpacity>
+            )}
+
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={onClose}
               style={{
-                fontFamily: UbuntuSans.medium,
-                fontSize: 15,
-                color: '#FFFFFF',
+                backgroundColor: onManageSeats ? '#EFF1F3' : '#113E55',
+                height: 50,
+                borderRadius: 25,
+                alignItems: 'center',
+                justifyContent: 'center',
               }}
             >
-              Done
-            </Text>
-          </TouchableOpacity>
+              <Text
+                allowFontScaling={false}
+                style={{
+                  fontFamily: UbuntuSans.medium,
+                  fontSize: 15,
+                  color: onManageSeats ? '#113E55' : '#FFFFFF',
+                }}
+              >
+                Done
+              </Text>
+            </TouchableOpacity>
+          </View>
         </RNAnimated.View>
       </Pressable>
     </Modal>

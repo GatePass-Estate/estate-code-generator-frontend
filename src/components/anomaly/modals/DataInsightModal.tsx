@@ -225,46 +225,7 @@ export default function DataInsightModal({ visible, onClose, dataInsight }: Data
   const [isPaused, setIsPaused] = useState(false);
   const [showInsightsList, setShowInsightsList] = useState(false);
 
-  useEffect(() => {
-    if (visible) {
-      setCurrentPage(0);
-      progress.value = 0;
-      setIsPaused(false);
-      setShowInsightsList(false);
-      startAnimation();
-    } else {
-      progress.value = 0;
-      cancelAnimation(progress);
-    }
-  }, [visible]);
-
-  useEffect(() => {
-    if (visible) {
-      if (isPaused) {
-        cancelAnimation(progress);
-      } else {
-        startAnimation();
-      }
-    }
-  }, [isPaused, currentPage, visible]);
-
-  const startAnimation = () => {
-    const currentProgress = progress.value >= 1 ? 0 : progress.value;
-    progress.value = currentProgress;
-    const remainingDuration = DURATION * (1 - currentProgress);
-
-    progress.value = withTiming(
-      1,
-      { duration: remainingDuration, easing: Easing.linear },
-      (finished) => {
-        if (finished) {
-          runOnJS(goToNextPage)();
-        }
-      }
-    );
-  };
-
-  const goToNextPage = () => {
+  const goToNextPage = React.useCallback(() => {
     cancelAnimation(progress);
     progress.value = 0;
     if (currentPage < PAGES.length - 1) {
@@ -272,17 +233,41 @@ export default function DataInsightModal({ visible, onClose, dataInsight }: Data
     } else {
       setShowInsightsList(true);
     }
-  };
+  }, [currentPage, progress]);
 
-  const goToPrevPage = () => {
+  const goToPrevPage = React.useCallback(() => {
     cancelAnimation(progress);
     progress.value = 0;
     if (currentPage > 0) {
       setCurrentPage((prev) => prev - 1);
-    } else {
-      startAnimation();
     }
-  };
+  }, [currentPage, progress]);
+
+  useEffect(() => {
+    if (!visible) return;
+    setCurrentPage(0);
+    setIsPaused(false);
+    setShowInsightsList(false);
+    progress.value = 0;
+  }, [visible, progress]);
+
+  useEffect(() => {
+    if (!visible || showInsightsList) return;
+    if (isPaused) {
+      cancelAnimation(progress);
+      return;
+    }
+    const from = progress.value >= 1 ? 0 : progress.value;
+    progress.value = from;
+    progress.value = withTiming(
+      1,
+      { duration: DURATION * (1 - from), easing: Easing.linear },
+      (finished) => {
+        if (finished) runOnJS(goToNextPage)();
+      }
+    );
+    return () => cancelAnimation(progress);
+  }, [visible, showInsightsList, isPaused, currentPage, goToNextPage, progress]);
 
   if (!visible) return null;
 
@@ -427,7 +412,13 @@ export default function DataInsightModal({ visible, onClose, dataInsight }: Data
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      transparent
+      statusBarTranslucent
+      animationType="fade"
+      onRequestClose={onClose}
+    >
       {showInsightsList ? (
         <View
           style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0, 0, 0, 0.5)' }}

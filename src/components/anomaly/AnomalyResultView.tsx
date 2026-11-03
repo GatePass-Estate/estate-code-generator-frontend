@@ -13,6 +13,7 @@ import {
   Modal,
   Platform,
   StyleSheet,
+  RefreshControl,
 } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { BlurView } from 'expo-blur';
@@ -83,23 +84,28 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
       .filter((p) => p.length > 0);
     return parts.length > 0 ? parts[0] : 'N/A';
   };
+  const isCustomTimeframe = selectedTimeframe === 'Custom';
+  const effectiveToDate =
+    isCustomTimeframe && endDate
+      ? new Date(new Date(endDate).setHours(23, 59, 59, 999)).toISOString()
+      : undefined;
+  const effectiveFromDate = startDate ? startDate.toISOString() : undefined;
+
   const {
     data: rawOverview,
     isLoading: overviewLoading,
     isError: overviewError,
-  } = useAnomalyOverview(
-    estate_id,
-    startDate ? startDate.toISOString() : undefined,
-    endDate ? endDate.toISOString() : undefined
-  );
+    refetch: refetchOverview,
+  } = useAnomalyOverview(estate_id, effectiveFromDate, effectiveToDate);
 
   const {
     data: predictionsData,
     isLoading: predictionsLoading,
     isFetching: predictionsFetching,
+    refetch: refetchPredictions,
   } = useAnomalyPredictions(estate_id, {
-    from_date: startDate ? startDate.toISOString() : undefined,
-    to_date: endDate ? endDate.toISOString() : undefined,
+    from_date: effectiveFromDate,
+    to_date: effectiveToDate,
     severity: filterSeverity.length > 0 ? filterSeverity.map((s) => s.toLowerCase()) : undefined,
     gender: filterGender.length > 0 ? filterGender.map((g) => g.toLowerCase()) : undefined,
     user_type: filterUserType.length > 0 ? filterUserType.map((u) => u.toLowerCase()) : undefined,
@@ -107,6 +113,16 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
     limit: paginationLimit,
     page: 1,
   });
+
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([refetchOverview(), refetchPredictions()]);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const isLoading = overviewLoading || predictionsLoading;
   const overview = (rawOverview as any)?.data || rawOverview;
@@ -230,6 +246,14 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
         contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 100 }}
         onScroll={handleScroll}
         scrollEventThrottle={16}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor="#113E55"
+            colors={['#113E55']}
+          />
+        }
       >
         {/* Title & Export Row */}
         <View className="flex-row items-start justify-between mb-1.5">

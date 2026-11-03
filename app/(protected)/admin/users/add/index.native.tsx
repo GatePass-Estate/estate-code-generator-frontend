@@ -12,6 +12,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Modal,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FormData, FormErrors, GenderType } from '@/src/types/general';
@@ -23,6 +24,7 @@ import { Picker } from '@/src/components/mobile/Picker';
 import { useAndroidBottomInset } from '@/src/hooks/useAndroidBottomInset';
 import { Feather } from '@expo/vector-icons';
 import { getEstateById } from '@/src/lib/api/estate';
+import { useEstateEntitlements } from '@/src/lib/api/entitlements';
 import HouseholdSelectorSheet from '@/src/components/mobile/HouseholdSelectorSheet';
 import type { Household } from '@/src/types/household';
 import {
@@ -67,6 +69,29 @@ const RegisterUser = () => {
   const [toastType, setToastType] = useState<ToastType>('success');
   const [selectedHousehold, setSelectedHousehold] = useState<Household | null>(null);
   const [householdSelectorVisible, setHouseholdSelectorVisible] = useState(false);
+
+  const { data: estateEntitlements } = useEstateEntitlements();
+  const hasPendingSeatReduction = Boolean(
+    (estateEntitlements as any)?.pending_seat_reduction ||
+    (estateEntitlements as any)?.has_pending_seat_reduction ||
+    (estateEntitlements as any)?.seat_reduction_pending ||
+    (estateEntitlements as any)?.seat_reduction_requested ||
+    estateEntitlements?.reason?.toLowerCase().includes('seat') ||
+    estateEntitlements?.reason?.toLowerCase().includes('reduction') ||
+    (estateEntitlements as any)?.subscription_status === 'pending_seat_reduction'
+  );
+  const [seatReductionOverlayVisible, setSeatReductionOverlayVisible] = useState(false);
+
+  useEffect(() => {
+    if (hasPendingSeatReduction) {
+      setSeatReductionOverlayVisible(true);
+    }
+  }, [hasPendingSeatReduction]);
+
+  const handleDismissSeatReduction = () => {
+    setSeatReductionOverlayVisible(false);
+    router.back();
+  };
 
   useEffect(() => {
     if (!estateId) return;
@@ -119,6 +144,10 @@ const RegisterUser = () => {
   };
 
   const handleContinue = () => {
+    if (hasPendingSeatReduction) {
+      setSeatReductionOverlayVisible(true);
+      return;
+    }
     if (currentStep === 1) {
       if (validateStep1()) {
         setCurrentStep(2);
@@ -133,6 +162,10 @@ const RegisterUser = () => {
   };
 
   const handleSaveUser = async () => {
+    if (hasPendingSeatReduction) {
+      setSeatReductionOverlayVisible(true);
+      return;
+    }
     setLoading(true);
 
     const { estate_id } = useUserStore.getState();
@@ -677,6 +710,107 @@ const RegisterUser = () => {
           setErrors((current) => ({ ...current, householdId: undefined }));
         }}
       />
+
+      {/* Seat Reduction Active Overlay */}
+      <Modal
+        visible={seatReductionOverlayVisible}
+        transparent
+        statusBarTranslucent
+        animationType="fade"
+        onRequestClose={handleDismissSeatReduction}
+      >
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0, 0, 0, 0.55)',
+            justifyContent: 'center',
+            alignItems: 'center',
+            paddingHorizontal: 24,
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: 24,
+              padding: 24,
+              width: '100%',
+              maxWidth: 340,
+              alignItems: 'center',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.15,
+              shadowRadius: 12,
+              elevation: 6,
+            }}
+          >
+            <View
+              style={{
+                width: 56,
+                height: 56,
+                borderRadius: 28,
+                backgroundColor: '#FEE2E2',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 16,
+              }}
+            >
+              <Feather name="alert-triangle" size={26} color="#DC2626" />
+            </View>
+
+            <Text
+              allowFontScaling={false}
+              style={{
+                fontFamily: 'UbuntuSans-Bold',
+                fontSize: 18,
+                color: '#113E55',
+                textAlign: 'center',
+                marginBottom: 12,
+              }}
+            >
+              Action Not Allowed
+            </Text>
+
+            <Text
+              allowFontScaling={false}
+              style={{
+                fontFamily: 'Inter_18pt-Regular',
+                fontSize: 14,
+                lineHeight: 20,
+                color: '#64748B',
+                textAlign: 'center',
+                marginBottom: 24,
+              }}
+            >
+              A seat reduction request prevents addition of new users. To add users, the request has
+              to be cancelled.
+            </Text>
+
+            <TouchableOpacity
+              onPress={handleDismissSeatReduction}
+              activeOpacity={0.8}
+              style={{
+                width: '100%',
+                backgroundColor: '#113E55',
+                borderRadius: 28,
+                paddingVertical: 14,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Text
+                allowFontScaling={false}
+                style={{
+                  fontFamily: 'Inter_18pt-Medium',
+                  fontSize: 15,
+                  color: '#FFFFFF',
+                }}
+              >
+                Understood
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
