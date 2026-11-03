@@ -1,5 +1,6 @@
 import Api from '.';
 import {
+  CreateEditRequestResponse,
   EditRequestResponse,
   GetRequestsResponse,
   PendingRequestsResponse,
@@ -7,6 +8,7 @@ import {
   RequestItem,
   RequestType,
   SearchRequestPayload,
+  UpdatePendingRequestResponse,
 } from '@/src/types/requests';
 import { getErrorMessage } from '../helpers';
 
@@ -37,7 +39,7 @@ export const declineRequests = async (id: string): Promise<EditRequestResponse> 
 export const updatePendingRequest = async (
   id: string,
   new_value: string
-): Promise<EditRequestResponse> => {
+): Promise<UpdatePendingRequestResponse> => {
   try {
     const api = Api();
     const axiosRes = await api.patch(`/requests/edit/${id}`, { new_value });
@@ -70,11 +72,22 @@ export async function getRequests(payload: SearchRequestPayload): Promise<GetReq
   }
 }
 
+/** The signed-in user's own edit requests, any status, newest first. */
+export async function getMyRequests(page = 1, limit = 20): Promise<GetRequestsResponse> {
+  try {
+    const api = Api();
+    const axiosRes = await api.get(`/requests/edit/me`, { params: { page, limit } });
+    return axiosRes.data;
+  } catch (error: any) {
+    throw new Error(`${getErrorMessage(error) || 'Could not fetch your requests'} `);
+  }
+}
+
 export async function createRequest(
   request_type: RequestType,
   old_value: string,
   new_value: string
-): Promise<boolean> {
+): Promise<CreateEditRequestResponse> {
   try {
     const api = Api();
     const axiosRes = await api.post(`/requests/edit`, { request_type, old_value, new_value });

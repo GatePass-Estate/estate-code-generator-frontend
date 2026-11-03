@@ -6,7 +6,8 @@ export const BUTTON_MARGIN_BOTTOM = 32;
 
 type ButtonProps = Omit<PressableProps, 'children'> & {
   label: string;
-  variant?: 'primary' | 'secondary';
+  /** `danger`: orange (#F46036, the seat-usage bar colour) for destructive actions. */
+  variant?: 'primary' | 'secondary' | 'danger';
   size?: 'lg' | 'md';
   loading?: boolean;
 };
@@ -38,15 +39,17 @@ export default function Button({
         variant === 'secondary' ? 'px-6' : 'px-8',
         variant === 'secondary'
           ? 'bg-[#E5F6FF]'
-          : mutedPrimary
-            ? 'border-0 bg-[#C0C0C0]'
-            : 'border border-[#113E55] bg-[#113E55]',
+          : variant === 'danger'
+            ? 'border border-[#F46036] bg-[#F46036]'
+            : mutedPrimary
+              ? 'border-0 bg-[#C0C0C0]'
+              : 'border border-[#113E55] bg-[#113E55]',
         className
       )}
       {...props}
     >
       {loading ? (
-        <ActivityIndicator color={variant === 'primary' ? '#F6F7F7' : '#113E55'} />
+        <ActivityIndicator color={variant === 'secondary' ? '#113E55' : '#F6F7F7'} />
       ) : (
         <Text
           className="text-center text-sm font-ubuntu-semibold tracking-[-0.24px]"
@@ -54,7 +57,7 @@ export default function Button({
             fontSize: 14,
             lineHeight: 17,
             letterSpacing: -0.24,
-            color: mutedPrimary ? '#878686' : variant === 'primary' ? '#F6F7F7' : '#113E55',
+            color: mutedPrimary ? '#878686' : variant === 'secondary' ? '#113E55' : '#F6F7F7',
           }}
         >
           {label}

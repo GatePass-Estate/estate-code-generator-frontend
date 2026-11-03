@@ -16,6 +16,7 @@ import AccessCodeRing from './AccessCodeRing';
 import CodeActionsSheet from './CodeActionsSheet';
 import { CarbonAddFilledIcon } from '@/src/assets/svgs';
 import images from '@/src/constants/images';
+import { useVerificationGate } from '@/src/hooks/useAccountVerification';
 import { useFeatureGate } from '@/src/hooks/usePlan';
 import { deleteCode } from '@/src/lib/api/codes';
 import { Codes } from '@/src/types/codes';
@@ -76,6 +77,7 @@ export default function ActiveCodeCard({
     'advanced_code_management',
     { notice: 'floating' }
   );
+  const { requireVerified } = useVerificationGate();
 
   const tryAdvanced = useCallback(
     (action: () => void) => {
@@ -106,10 +108,11 @@ export default function ActiveCodeCard({
   }, []);
 
   const handleCopy = useCallback(async () => {
+    if (!requireVerified()) return;
     await Clipboard.setStringAsync(code);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     onCopied();
-  }, [code, onCopied]);
+  }, [code, onCopied, requireVerified]);
 
   const handleDelete = useCallback(async () => {
     setDeleting(true);
@@ -122,16 +125,20 @@ export default function ActiveCodeCard({
     }
   }, [item.hashed_code, onDeleted]);
 
+  // Every card action (copy, history, details, extend, freeze, delete) starts here, so an unverified
+  // user gets the Complete KYC modal instead of the action.
   const openMenu = useCallback(() => {
+    if (!requireVerified()) return;
     setSheetView('menu');
     setSheetVisible(true);
-  }, []);
+  }, [requireVerified]);
 
   const openDeleteConfirm = useCallback(() => {
     closeSwipe();
+    if (!requireVerified()) return;
     setSheetView('confirmDelete');
     setSheetVisible(true);
-  }, [closeSwipe]);
+  }, [closeSwipe, requireVerified]);
 
   const handleCardPress = useCallback(() => {
     if (Math.abs(translateX.value) > 4) {
@@ -370,6 +377,10 @@ export default function ActiveCodeCard({
       >
         <Pressable
           onPress={() => {
+            if (!requireVerified()) {
+              closeSwipe();
+              return;
+            }
             const allowed = tryAdvanced(() => {
               closeSwipe();
               onToggleFreeze();

@@ -55,7 +55,7 @@ export function mapPendingRequestsToFields(items: RequestItem[]): ProfilePending
 
     details[fieldKey] = {
       hasPending: true,
-      newValue: item.new_value,
+      newValue: item.new_value ?? null,
       oldValue: item.old_value,
       requestId: item.id,
     };

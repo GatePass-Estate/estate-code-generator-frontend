@@ -3,6 +3,8 @@ export type IncidentReportReturnTo =
   | '/user/guests'
   | '/user/history'
   | '/settings'
+  | '/security'
+  | '/security/history'
   | '/security/more'
   | '/admin';
 
@@ -19,6 +21,8 @@ export function parseIncidentReportReturnTo(
     value === '/user/guests' ||
     value === '/user/history' ||
     value === '/settings' ||
+    value === '/security' ||
+    value === '/security/history' ||
     value === '/security/more' ||
     value === '/admin'
   ) {

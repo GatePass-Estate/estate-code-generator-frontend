@@ -19,6 +19,7 @@ import { useFeatureGate } from '@/src/hooks/usePlan';
 import { incidentManagementApi } from '@/src/lib/api/incidentManagement';
 import { parseIncidentReportReturnTo } from '@/src/lib/incidentReportNavigation';
 import { useUserStore } from '@/src/lib/stores/userStore';
+import SecurityTabBar from '@/src/components/security/SecurityTabBar';
 
 function parseCategories(value: string | string[] | undefined): string[] {
   if (typeof value !== 'string') return [];
@@ -148,7 +149,10 @@ export default function IncidentReportCreateScreen() {
           contentContainerStyle={{
             flexGrow: 1,
             paddingTop: Math.max(16, 88 - insets.top),
-            paddingBottom: Math.max(32, height * (126 / 847) - insets.bottom),
+            paddingBottom: Math.max(
+              role === 'security' ? 96 : 32,
+              height * (126 / 847) - insets.bottom
+            ),
           }}
         >
           <View className="px-5">
@@ -213,6 +217,7 @@ export default function IncidentReportCreateScreen() {
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
+      {role === 'security' ? <SecurityTabBar activeTab="report" /> : null}
       <ActionConfirmModal
         visible={confirmSubmit}
         title="Submit Incident Report?"

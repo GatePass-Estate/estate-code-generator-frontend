@@ -12,9 +12,11 @@ import { useNotificationStore, selectHasUnread } from '@/src/lib/stores/notifica
  */
 export default function NotificationBell({
   className = Platform.OS === 'web' ? 'mr-2' : 'mr-3',
+  securityHeader = false,
 }: {
   /** Outer spacing; pass '' when the parent already spaces its children. */
   className?: string;
+  securityHeader?: boolean;
 }) {
   const router = useRouter();
   const hasUnread = useNotificationStore(selectHasUnread);
@@ -39,11 +41,14 @@ export default function NotificationBell({
       <View className="h-[38px] w-[38px] items-center justify-center rounded-full bg-[#F6FCFF]">
         <Image
           source={icons.notificationBellIcon}
-          style={{ width: 20, height: 20 }}
+          style={{ width: securityHeader ? 24 : 20, height: securityHeader ? 24 : 20 }}
           resizeMode="contain"
         />
         {hasUnread && (
-          <View className="absolute right-[7px] top-[7px] h-[9px] w-[9px] rounded-full bg-[#E30404]" />
+          <View
+            className="absolute h-[9px] w-[9px] rounded-full bg-[#E30404]"
+            style={securityHeader ? { right: 4, top: -3 } : { right: 7, top: 7 }}
+          />
         )}
       </View>
     </Pressable>

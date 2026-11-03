@@ -1,6 +1,8 @@
 import { Platform } from 'react-native';
 import { fetchMe } from '@/src/lib/api/auth';
 import { clearEstateEntitlements, prefetchEstateEntitlements } from '@/src/lib/api/entitlements';
+import { clearBillingData } from '@/src/hooks/useBillingQueries';
+import { clearEstateUsers } from '@/src/hooks/useEstateUsers';
 import {
   broadcastLogout,
   clearAuthState,
@@ -42,6 +44,8 @@ const PUBLIC_AUTH_ROUTES = [
   '/auth/reset-password',
   '/auth/tos',
   '/auth/data-protection-policy',
+  // Paystack's return page after checkout (opened outside the signed-in app).
+  '/payment/callback',
 ];
 
 /** Prefetch documents, profile photo and plan entitlements without blocking navigation. */
@@ -58,6 +62,8 @@ function clearUserData() {
   useUpgradePromptStore.getState().reset();
   useContactAdminNoticeStore.getState().reset();
   clearEstateEntitlements();
+  clearBillingData();
+  clearEstateUsers();
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {

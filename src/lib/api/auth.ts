@@ -202,7 +202,9 @@ export async function verifyPasswordReset(
 ): Promise<{ user_id: string; email: string; must_change_password: boolean }> {
   try {
     const api = Api();
-    const axiosRes = await api.get(`/users/verify/password-reset?token=${token}`);
+    const axiosRes = await api.get(`/users/verify/password-reset`, {
+      params: { token },
+    });
     return axiosRes.data;
   } catch (error: any) {
     throw new Error(`${getErrorMessage(error) || 'Invalid or expired reset link'} `);
@@ -210,12 +212,12 @@ export async function verifyPasswordReset(
 }
 
 export async function resetPassword(
-  user_id: string,
+  token: string,
   new_password: string
 ): Promise<{ message: string }> {
   try {
     const api = Api();
-    const axiosRes = await api.post(`/users/password/reset`, { user_id, new_password });
+    const axiosRes = await api.post(`/users/password/reset`, { token, new_password });
     return axiosRes.data;
   } catch (error: any) {
     throw new Error(`${getErrorMessage(error) || 'Failed to reset password'} `);

@@ -1,8 +1,9 @@
 import { Platform, Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
 import { useRef } from 'react';
-import { Tabs, router, usePathname } from 'expo-router';
+import { Tabs, router, useIsFocused, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFeatureGate } from '@/src/hooks/usePlan';
+import { useVerificationGate } from '@/src/hooks/useAccountVerification';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { reportReturnToForTab } from '@/src/lib/incidentReportNavigation';
 import { APP_TAB_BAR_COLOR, TAB_BAR_BASE_HEIGHT, TAB_BAR_FAB_OVERHANG } from '@/src/theme/styles';
@@ -24,6 +25,9 @@ type UserTabBarProps = Parameters<NonNullable<React.ComponentProps<typeof Tabs>[
 
 export default function UserTabBar({ state, descriptors, navigation }: UserTabBarProps) {
   const insets = useSafeAreaInsets();
+  const isScreenFocused = useIsFocused();
+  const isScreenFocusedRef = useRef(isScreenFocused);
+  isScreenFocusedRef.current = isScreenFocused;
   const pathname = usePathname();
   const role = useUserStore((user) => user.role);
   const isAdmin = role === 'admin' || role === 'primary_admin' || role === 'root';
@@ -33,6 +37,7 @@ export default function UserTabBar({ state, descriptors, navigation }: UserTabBa
     'incident_report',
     { notice: 'floating' }
   );
+  const { requireVerified } = useVerificationGate();
   const openingIncidentReportRef = useRef(false);
   const focusedOptions = descriptors[state.routes[state.index].key].options;
 
@@ -41,6 +46,8 @@ export default function UserTabBar({ state, descriptors, navigation }: UserTabBa
 
   // iOS: only pad when a home indicator exists. SE / 8 / etc. get 0 — bar sits flush, no empty gap.
   const iosHomeIndicator = Platform.OS === 'ios' ? insets.bottom : 0;
+
+  if (role === 'security' && pathname.startsWith('/user/report')) return null;
 
   if (isTabBarHidden(focusedOptions.tabBarStyle) && !onIncidentCategory) {
     return null;
@@ -67,6 +74,8 @@ export default function UserTabBar({ state, descriptors, navigation }: UserTabBa
           const { options } = descriptors[route.key];
           const focused = state.index === index;
           const onPress = () => {
+            // Home stays open; every other tab needs an approved ID.
+            if (route.name !== 'index' && !requireVerified()) return;
             const event = navigation.emit({
               type: 'tabPress',
               target: route.key,
@@ -80,8 +89,10 @@ export default function UserTabBar({ state, descriptors, navigation }: UserTabBa
               const returnTo = reportReturnToForTab(state.routes[state.index].name);
               void (async () => {
                 try {
-                  const allowed = await requestIncidentReportAccess(() => navigation.isFocused());
-                  if (!allowed || !navigation.isFocused()) return;
+                  const allowed = await requestIncidentReportAccess(
+                    () => isScreenFocusedRef.current
+                  );
+                  if (!allowed || !isScreenFocusedRef.current) return;
                   if (role === 'admin' || role === 'primary_admin') {
                     router.push({ pathname: '/user/report/category', params: { returnTo } });
                   } else {
@@ -91,6 +102,11 @@ export default function UserTabBar({ state, descriptors, navigation }: UserTabBa
                   openingIncidentReportRef.current = false;
                 }
               })();
+              return;
+            }
+
+            if (route.name === 'index' && role === 'security' && !event.defaultPrevented) {
+              router.replace('/security');
               return;
             }
 
@@ -131,6 +147,7 @@ export default function UserTabBar({ state, descriptors, navigation }: UserTabBa
             }
             accessibilityLabel={descriptors[addRoute.key].options.title}
             onPress={() => {
+              if (!requireVerified()) return;
               const focused = state.routes[state.index].key === addRoute.key;
               const event = navigation.emit({
                 type: 'tabPress',

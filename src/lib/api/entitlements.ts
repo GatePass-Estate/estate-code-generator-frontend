@@ -5,11 +5,13 @@ import { queryClient } from '@/lib/queryClient';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { Entitlements, parseEntitlements } from '@/src/lib/plans';
 import { EstateEntitlementsResponse } from '@/src/types/entitlements';
+import { BillingTier } from '@/src/types/billing';
 import { getErrorMessage } from '../helpers';
 
 const entitlementKeys = {
   all: ['entitlements'] as const,
   estate: (estateId: string) => ['entitlements', 'estate', estateId] as const,
+  tier: (estateId: string) => ['entitlements', 'tier', estateId] as const,
 };
 
 /**
@@ -42,10 +44,30 @@ const estateEntitlementsQuery = (estateId: string) => ({
     !(error instanceof EntitlementsDeniedError) && failureCount < 2,
 });
 
+/** The caller's estate tier (any role); `null` when the estate has no running subscription. */
+async function fetchMyTier(): Promise<BillingTier | null> {
+  try {
+    const { data } = await Api('revenue').get<BillingTier | null>('/subscriptions/tiers/my-tier');
+    return data ?? null;
+  } catch (error: any) {
+    throw new Error(getErrorMessage(error) || 'Could not load plan details');
+  }
+}
+
+// Keyed by estate because the server resolves the tier from the caller's token.
+const myTierQuery = (estateId: string) => ({
+  queryKey: entitlementKeys.tier(estateId),
+  queryFn: fetchMyTier,
+  // Kept for the whole session; billing changes refresh it via `refreshEstateEntitlements`.
+  staleTime: Infinity,
+  gcTime: Infinity,
+});
+
 /** Call right after sign-in so plan checks are ready before the user taps anything. */
 export function prefetchEstateEntitlements(estateId: string | null | undefined) {
   if (!estateId) return;
   void queryClient.prefetchQuery(estateEntitlementsQuery(estateId));
+  void queryClient.prefetchQuery(myTierQuery(estateId));
 }
 
 /**
@@ -77,4 +99,10 @@ export function useEstateEntitlements() {
     ...estateEntitlementsQuery(estateId ?? ''),
     enabled: Boolean(estateId),
   });
+}
+
+/** Catalog details (name, description) of the signed-in estate's current tier. */
+export function useEstateTier() {
+  const estateId = useUserStore((s) => s.estate_id);
+  return useQuery({ ...myTierQuery(estateId ?? ''), enabled: Boolean(estateId) });
 }

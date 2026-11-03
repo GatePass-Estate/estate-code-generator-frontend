@@ -1,16 +1,17 @@
+// Mirrors the user-service OpenAPI schema GetEditRequestResponse.
 export type RequestItem = {
   id: string;
   resident_id: string;
   estate_id: string;
   request_type: RequestType;
   old_value: string;
+  new_value?: string | null;
   status: RequestStatus;
+  reviewed_by?: string | null;
   created_at: string;
-  new_value: string | null;
-  reviewed_by: string | null;
-  updated_at: string;
+  updated_at?: string | null;
   last_reminded_at?: string | null;
-  is_deleted: boolean;
+  is_deleted?: boolean;
 };
 
 export type GetRequestsResponse = {
@@ -55,10 +56,24 @@ export type SearchRequestPayload = {
   to_date?: string;
 };
 
+/** PATCH /requests/edit/{id}/status — UpdateRequestStatusResponse. */
 export type EditRequestResponse = {
   id: string;
   status: RequestStatus;
   reviewed_by: string;
+  updated_at: string;
+};
+
+/** POST /requests/edit — CreateEditRequestResponse. */
+export type CreateEditRequestResponse = {
+  id: string;
+  created_at: string;
+};
+
+/** PATCH /requests/edit/{id} — UpdatePendingRequestResponse. */
+export type UpdatePendingRequestResponse = {
+  id: string;
+  new_value: string;
   updated_at: string;
 };
 

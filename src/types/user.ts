@@ -21,6 +21,23 @@ export type User = {
   is_deleted?: false;
 };
 
+/** GET /users/profile/{user_id} — the user-service UserProfileResponse, field for field. */
+export type UserProfileResponse = {
+  user_id: string;
+  first_name: string;
+  last_name: string;
+  home_address: string;
+  email: string;
+  phone_number: string;
+  gender: 'male' | 'female' | 'prefer_not_to_say';
+  role: 'root' | 'primary_admin' | 'admin' | 'resident' | 'security' | 'guest';
+  estate_id: string;
+  estate_name: string;
+  household_name?: string | null;
+  household_primary_resident?: string | null;
+  status: boolean;
+};
+
 export type UpdatePasswordPayload = {
   success: boolean;
   message: string;

@@ -15,7 +15,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import IdDocumentPdf from '@/src/components/mobile/IdDocumentPdf';
+import IdDocumentDownload from '@/src/components/mobile/IdDocumentDownload';
 
 type IdPreview = { uri: string; contentType: string } | null;
 
@@ -345,12 +345,7 @@ export default function EditSingleRequestMobile() {
                 }}
               >
                 {currentId?.contentType === 'application/pdf' ? (
-                  <IdDocumentPdf
-                    uri={currentId.uri}
-                    height="100%"
-                    width="100%"
-                    onError={() => setCurrentId(null)}
-                  />
+                  <IdDocumentDownload uri={currentId.uri} />
                 ) : currentId ? (
                   <Image
                     source={{ uri: currentId.uri }}
@@ -389,12 +384,7 @@ export default function EditSingleRequestMobile() {
                 }}
               >
                 {newId?.contentType === 'application/pdf' ? (
-                  <IdDocumentPdf
-                    uri={newId.uri}
-                    height="100%"
-                    width="100%"
-                    onError={() => setNewId(null)}
-                  />
+                  <IdDocumentDownload uri={newId.uri} />
                 ) : newId ? (
                   <Image
                     source={{ uri: newId.uri }}

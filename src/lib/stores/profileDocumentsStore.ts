@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { PendingRequestSheetData } from '@/src/components/mobile/PendingRequestSheet';
-import { checkPendingRequests } from '@/src/lib/api/requests';
+import { checkPendingRequests, getMyRequests } from '@/src/lib/api/requests';
+import { isPendingIdRejected } from '@/src/lib/idRejection';
 import {
   getMyDocumentViewUri,
   getMyDocuments,
@@ -50,6 +51,15 @@ function buildOnboardingState(
   };
 }
 
+/** `null` until the documents have loaded once; only an admin-approved (active) ID is `approved`. */
+export type IdApproval = 'none' | 'pending' | 'approved' | null;
+
+function idApprovalOf(activeId?: DocumentItem, pendingId?: DocumentItem): IdApproval {
+  if (activeId) return 'approved';
+  if (pendingId) return 'pending';
+  return 'none';
+}
+
 type SyncOptions = {
   force?: boolean;
   skipPhotoClear?: boolean;
@@ -61,6 +71,14 @@ type ProfileDocumentsStore = {
   identificationUri: string | null;
   identificationPendingRequest: PendingRequestSheetData | null;
   onboarding: OnboardingState | null;
+  idApproval: IdApproval;
+  /**
+   * The pending ID is one the admin rejected; the user should upload a new one. `null` while that
+   * is still being checked, so the profile doesn't show "Waiting Approval" before it knows.
+   */
+  idRejected: boolean | null;
+  /** The pending ID that `idRejected` describes. */
+  idRejectionDocumentId: string | null;
   imagesLoading: boolean;
   photoDocumentId: string | null;
   activeIdDocumentId: string | null;
@@ -73,6 +91,7 @@ type ProfileDocumentsStore = {
   setIdentificationUri: (uri: string | null) => void;
   setIdentificationPendingRequest: (request: PendingRequestSheetData | null) => void;
   syncDocuments: (userId: string, options?: SyncOptions) => Promise<void>;
+  checkIdRejection: (userId: string, pendingDocumentId: string | null) => Promise<void>;
 };
 
 const initialState = {
@@ -81,6 +100,9 @@ const initialState = {
   identificationUri: null,
   identificationPendingRequest: null,
   onboarding: null,
+  idApproval: null as IdApproval,
+  idRejected: null as boolean | null,
+  idRejectionDocumentId: null as string | null,
   imagesLoading: false,
   photoDocumentId: null,
   activeIdDocumentId: null,
@@ -106,6 +128,27 @@ export const useProfileDocumentsStore = create<ProfileDocumentsStore>((set, get)
 
   setIdentificationPendingRequest: (request) => set({ identificationPendingRequest: request }),
 
+  checkIdRejection: async (userId, pendingDocumentId) => {
+    // Only a first ID still waiting for approval can be "rejected"; anything else clears it.
+    if (!pendingDocumentId) {
+      set({ idRejected: false, idRejectionDocumentId: null });
+      return;
+    }
+    // A different ID than last time: its answer isn't known yet.
+    if (get().idRejectionDocumentId !== pendingDocumentId) {
+      set({ idRejected: null, idRejectionDocumentId: pendingDocumentId });
+    }
+    try {
+      const { items } = await getMyRequests(1, 20);
+      if (get().userId === userId && get().idRejectionDocumentId === pendingDocumentId) {
+        set({ idRejected: isPendingIdRejected(items, pendingDocumentId) });
+      }
+    } catch {
+      // Requests unavailable: fall back to "Waiting Approval" rather than loading forever.
+      if (get().idRejected === null) set({ idRejected: false });
+    }
+  },
+
   syncDocuments: async (userId, { force = false, skipPhotoClear = false } = {}) => {
     const state = get();
 
@@ -116,8 +159,11 @@ export const useProfileDocumentsStore = create<ProfileDocumentsStore>((set, get)
     }
 
     const current = get();
+    // Until the ID is approved an admin can approve or reject it at any moment, so only an approved
+    // user's documents are served from the cache.
     if (
       !force &&
+      current.idApproval === 'approved' &&
       current.userId === userId &&
       current.lastSyncedAt &&
       Date.now() - current.lastSyncedAt < STALE_MS
@@ -143,7 +189,8 @@ export const useProfileDocumentsStore = create<ProfileDocumentsStore>((set, get)
       ({ activePhoto, activeId, pendingId } = findProfileDocuments(documents));
 
       const onboarding = buildOnboardingState(activePhoto, activeId, pendingId);
-      set({ onboarding });
+      set({ onboarding, idApproval: idApprovalOf(activeId, pendingId) });
+      void get().checkIdRejection(userId, activeId ? null : (pendingId?.document_id ?? null));
       await setProfileOnboardingCache(userId, onboarding);
 
       if (pendingId?.document_id) {
