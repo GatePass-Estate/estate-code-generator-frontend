@@ -22,10 +22,12 @@ import ActivationQuoteModal, {
 import PaymentVerificationModal, {
   PaymentVerificationState,
 } from '@/src/components/anomaly/modals/PaymentVerificationModal';
+import UpgradePlanModal from '@/src/components/mobile/UpgradePlanModal';
 import IncidentDataInsightModal from '@/src/components/incident/IncidentDataInsightModal';
 import IncidentResultView from '@/src/components/incident/IncidentResultView';
 import SubscriptionTierCard from '@/src/components/incident/SubscriptionTierCard';
 import AnimatedPillTabs from '@/src/components/mobile/AnimatedPillTabs';
+import { useEstateSubscription } from '@/src/hooks/useBillingQueries';
 import {
   formatTierLabel,
   formatTierSubtitle,
@@ -62,14 +64,10 @@ export default function IncidentReportPreviewScreen() {
   const estateId = useUserStore((s) => s.estate_id);
   const userRole = useUserStore((s) => s.role);
   const showContactAdminNotice = useContactAdminNoticeStore((s) => s.show);
-  const [activeTab, setActiveTab] = useState<'Preview' | 'Result'>(
-    params.tab === 'Result' ? 'Result' : 'Preview'
-  );
-  const [prevParamTab, setPrevParamTab] = useState(params.tab);
-  if (params.tab !== prevParamTab) {
-    setPrevParamTab(params.tab);
-    setActiveTab(params.tab === 'Result' ? 'Result' : 'Preview');
-  }
+  const { data: subscriptionData } = useEstateSubscription();
+  const tierTwoYRef = useRef<number>(0);
+  const [upgradeModalVisible, setUpgradeModalVisible] = useState(false);
+  const [activeTab, setActiveTab] = useState<'Preview' | 'Result'>('Preview');
   const [expandedTier, setExpandedTier] = useState<string | null>(null);
   const [featureDetail, setFeatureDetail] = useState<MarketplaceDetailResponse | null>(null);
   const email = useUserStore((s) => s.email) || '';
@@ -119,7 +117,7 @@ export default function IncidentReportPreviewScreen() {
 
   const loadFeature = useCallback(
     async (id?: string) => {
-      setIsLoading(true);
+      if (!featureDetail) setIsLoading(true);
       setLoadError(null);
       try {
         const targetId = await resolveMarketplaceFeatureId(
@@ -127,8 +125,10 @@ export default function IncidentReportPreviewScreen() {
           isIncidentProduct
         );
         if (!targetId) {
-          setFeatureDetail(null);
-          setLoadError('No marketplace product returned for this feature.');
+          if (!featureDetail) {
+            setFeatureDetail(null);
+            setLoadError('No marketplace product returned for this feature.');
+          }
           return;
         }
 
@@ -145,13 +145,15 @@ export default function IncidentReportPreviewScreen() {
         );
       } catch (err: any) {
         console.log('Error loading feature details:', err?.message || err);
-        setFeatureDetail(null);
-        setLoadError(err?.message || 'Failed to load feature details');
+        if (!featureDetail) {
+          setFeatureDetail(null);
+          setLoadError(err?.message || 'Failed to load feature details');
+        }
       } finally {
         setIsLoading(false);
       }
     },
-    [params.featureId, estateId]
+    [params.featureId, estateId, featureDetail]
   );
 
   useEffect(() => {
@@ -211,7 +213,7 @@ export default function IncidentReportPreviewScreen() {
   const handleSubscribe = async (tier: MarketplaceTier) => {
     if (userRole !== 'primary_admin') {
       showContactAdminNotice(
-        'guest_management',
+        'incident_report_summary_tier_2',
         'Only the primary admin can purchase AI subscriptions and features.'
       );
       return;
@@ -257,7 +259,7 @@ export default function IncidentReportPreviewScreen() {
   const handleConfirmActivation = async (duration: AiCheckoutDuration) => {
     if (userRole !== 'primary_admin') {
       showContactAdminNotice(
-        'guest_management',
+        'incident_report_summary_tier_2',
         'Only the primary admin can purchase AI subscriptions and features.'
       );
       return;
@@ -366,7 +368,7 @@ export default function IncidentReportPreviewScreen() {
   const handleCancelSubscription = (tier: MarketplaceTier) => {
     if (userRole !== 'primary_admin') {
       showContactAdminNotice(
-        'guest_management',
+        'incident_report_summary_tier_2',
         'Only the primary admin can manage AI subscriptions.'
       );
       return;
@@ -411,7 +413,7 @@ export default function IncidentReportPreviewScreen() {
   const handleUninstall = (tier: MarketplaceTier) => {
     if (userRole !== 'primary_admin') {
       showContactAdminNotice(
-        'guest_management',
+        'incident_report_summary_tier_2',
         'Only the primary admin can manage AI subscriptions.'
       );
       return;
@@ -453,6 +455,14 @@ export default function IncidentReportPreviewScreen() {
   };
 
   const handleInstall = async (tier: MarketplaceTier) => {
+    if (userRole !== 'primary_admin') {
+      showContactAdminNotice(
+        'incident_report_summary_tier_2',
+        'Only the primary admin can manage AI subscriptions.'
+      );
+      return;
+    }
+
     if (!estateId) {
       Alert.alert('Error', 'Estate ID not found');
       return;
@@ -481,6 +491,31 @@ export default function IncidentReportPreviewScreen() {
     () => sortMarketplaceTiers(featureDetail?.tiers ?? []),
     [featureDetail?.tiers]
   );
+  const tierOneApi = sortedTiers[0];
+  const tierTwoApi = sortedTiers[1];
+  const tierThreeApi = sortedTiers[2];
+
+  const isTierSubscribed = useCallback(
+    (tier?: MarketplaceTier | null) => {
+      if (!tier) return false;
+      const tierKey = tier.tier;
+      if (justCancelledTiers[tierKey]) return false;
+      return (
+        tier.status === 'active' ||
+        tier.status === 'purchased' ||
+        tier.status === 'subscribed' ||
+        tier.status === 'installed' ||
+        Boolean(tier.purchased)
+      );
+    },
+    [justCancelledTiers]
+  );
+
+  const planSlug = subscriptionData?.tier?.slug;
+  const isPlanIncludingResults = planSlug === 'sentinel' || planSlug === 'command';
+  const hasResultAccess =
+    isPlanIncludingResults || isTierSubscribed(tierTwoApi) || isTierSubscribed(tierThreeApi);
+
   /** Tier 2 = In-house summary, tier 3 = Third-party summary; undefined until tiers load. */
   const isTierInstalled = (num: number) =>
     featureDetail
@@ -500,11 +535,56 @@ export default function IncidentReportPreviewScreen() {
 
   const scrollViewRef = useRef<ScrollView>(null);
 
+  const handleUpgradeFlow = () => {
+    setUpgradeModalVisible(false);
+    setActiveTab('Preview');
+    const tierTwoKey = tierTwoApi?.tier || 'Tier Two';
+    setExpandedTier(tierTwoKey);
+    if (tierTwoYRef.current) {
+      scrollViewRef.current?.scrollTo({ y: Math.max(0, tierTwoYRef.current - 16), animated: true });
+    }
+    setTimeout(() => {
+      if (tierTwoApi) {
+        setSelectedTierForActivation(tierTwoApi);
+        setActivationModalVisible(true);
+      }
+    }, 400);
+  };
+
   const handleTabChange = (tab: 'Preview' | 'Result') => {
     if (tab === activeTab) return;
+    if (tab === 'Result' && !hasResultAccess) {
+      if (userRole === 'primary_admin') {
+        setUpgradeModalVisible(true);
+      } else {
+        showContactAdminNotice(
+          'incident_report_summary_tier_2',
+          'Upgrade to Sentinel or activate Incident Report Tier Two to view results. Contact Admin to upgrade.'
+        );
+      }
+      return;
+    }
     setActiveTab(tab);
     scrollViewRef.current?.scrollTo({ y: 0, animated: false });
   };
+
+  useEffect(() => {
+    if (params.tab === 'Result') {
+      if (hasResultAccess) {
+        setActiveTab('Result');
+      } else {
+        setActiveTab('Preview');
+        if (userRole === 'primary_admin') {
+          setUpgradeModalVisible(true);
+        } else {
+          showContactAdminNotice(
+            'incident_report_summary_tier_2',
+            'Upgrade to Sentinel or activate Incident Report Tier Two to view results. Contact Admin to upgrade.'
+          );
+        }
+      }
+    }
+  }, [params.tab, hasResultAccess, userRole, showContactAdminNotice]);
 
   return (
     <View style={{ flex: 1, backgroundColor: activeTab === 'Result' ? '#F6F7F7' : '#FFFFFF' }}>
@@ -550,14 +630,14 @@ export default function IncidentReportPreviewScreen() {
           </Pressable>
         </View>
 
-        {activeTab === 'Result' ? (
+        {activeTab === 'Result' && hasResultAccess ? (
           <IncidentResultView
             isActive={activeTab === 'Result'}
             hasAiReviewTier={hasAiReviewTier}
             inHouseInstalled={inHouseInstalled}
             thirdPartyInstalled={thirdPartyInstalled}
           />
-        ) : isLoading ? (
+        ) : isLoading && !featureDetail ? (
           <View
             style={{
               flex: 1,
@@ -743,40 +823,53 @@ export default function IncidentReportPreviewScreen() {
                         !!tier.purchased;
                       const isInstalled = !!tier.is_installed && !justPurchasedTiers[tierKey];
 
+                      const isTierTwo =
+                        (Number.parseInt(tier.tier.replace(/\D/g, ''), 10) || 0) === 2;
+
                       return (
-                        <SubscriptionTierCard
+                        <View
                           key={tier.ai_feature_id || tierKey}
-                          tierLabel={formatTierLabel(tierKey)}
-                          subtitle={subtitle}
-                          subtitleUppercase={false}
-                          description={description}
-                          benefits={benefits}
-                          expanded={expandedTier === tierKey}
-                          onToggle={() =>
-                            setExpandedTier(expandedTier === tierKey ? null : tierKey)
-                          }
-                          onActivate={() => void handleSubscribe(tier)}
-                          onCancelSubscription={() => handleCancelSubscription(tier)}
-                          onUninstall={() => handleUninstall(tier)}
-                          onInstall={() => void handleInstall(tier)}
-                          isSubscribing={subscribingTierKey === tierKey}
-                          isCanceling={cancelTierKey === tierKey}
-                          isUninstalling={uninstallingTierKey === tierKey}
-                          isInstalling={installingTierKey === tierKey}
-                          subscribeDisabled={isSubscribing}
-                          cancelDisabled={isCanceling}
-                          installDisabled={isInstalling}
-                          uninstallDisabled={isUninstalling}
-                          isCancelledLocally={!!justCancelledTiers[tierKey]}
-                          cancelLockedMessage={
-                            tier.payment_mode === 'subscription'
-                              ? 'This feature is included in your estate subscription plan and cannot be cancelled separately.'
+                          onLayout={
+                            isTierTwo
+                              ? (e) => {
+                                  tierTwoYRef.current = e.nativeEvent.layout.y;
+                                }
                               : undefined
                           }
-                          isFree={!!tier.is_free}
-                          isInstalled={isInstalled}
-                          isSubscribed={isSubscribed}
-                        />
+                        >
+                          <SubscriptionTierCard
+                            tierLabel={formatTierLabel(tierKey)}
+                            subtitle={subtitle}
+                            subtitleUppercase={false}
+                            description={description}
+                            benefits={benefits}
+                            expanded={expandedTier === tierKey}
+                            onToggle={() =>
+                              setExpandedTier(expandedTier === tierKey ? null : tierKey)
+                            }
+                            onActivate={() => void handleSubscribe(tier)}
+                            onCancelSubscription={() => handleCancelSubscription(tier)}
+                            onUninstall={() => handleUninstall(tier)}
+                            onInstall={() => void handleInstall(tier)}
+                            isSubscribing={subscribingTierKey === tierKey}
+                            isCanceling={cancelTierKey === tierKey}
+                            isUninstalling={uninstallingTierKey === tierKey}
+                            isInstalling={installingTierKey === tierKey}
+                            subscribeDisabled={isSubscribing}
+                            cancelDisabled={isCanceling}
+                            installDisabled={isInstalling}
+                            uninstallDisabled={isUninstalling}
+                            isCancelledLocally={!!justCancelledTiers[tierKey]}
+                            cancelLockedMessage={
+                              tier.payment_mode === 'subscription'
+                                ? 'This feature is included in your estate subscription plan and cannot be cancelled separately.'
+                                : undefined
+                            }
+                            isFree={!!tier.is_free}
+                            isInstalled={isInstalled}
+                            isSubscribed={isSubscribed}
+                          />
+                        </View>
                       );
                     })
                   )}
@@ -999,6 +1092,13 @@ export default function IncidentReportPreviewScreen() {
           setActiveCheckoutToken(null);
           void refreshAfterTierChange();
         }}
+      />
+
+      <UpgradePlanModal
+        visible={upgradeModalVisible}
+        feature="incident_report_summary_tier_2"
+        onClose={() => setUpgradeModalVisible(false)}
+        onUpgrade={handleUpgradeFlow}
       />
     </View>
   );

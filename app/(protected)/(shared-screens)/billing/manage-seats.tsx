@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Alert,
   Keyboard,
@@ -69,6 +69,12 @@ export default function ManageSeatsScreen() {
   const [seats, setSeats] = useState<number | null>(null);
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [pendingVisible, setPendingVisible] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      setSeats(null);
+    };
+  }, []);
 
   const newSeats = seats ?? currentSeats;
   const delta = newSeats - currentSeats;

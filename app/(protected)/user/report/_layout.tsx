@@ -5,10 +5,5 @@ export const unstable_settings = {
 };
 
 export default function ReportLayout() {
-  return (
-    <Stack
-      screenOptions={{ headerShown: false, animation: 'slide_from_right' }}
-      initialRouteName="index"
-    />
-  );
+  return <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }} />;
 }

@@ -49,7 +49,9 @@ import ActivationQuoteModal, {
 import PaymentVerificationModal, {
   PaymentVerificationState,
 } from '@/src/components/anomaly/modals/PaymentVerificationModal';
+import UpgradePlanModal from '@/src/components/mobile/UpgradePlanModal';
 import AnomalyResultView from '@/src/components/anomaly/AnomalyResultView';
+import { useEstateSubscription } from '@/src/hooks/useBillingQueries';
 import { WebView } from 'react-native-webview';
 import {
   getMarketplaceFeatureById,
@@ -126,6 +128,8 @@ export default function AnomalyDetectionPreviewScreen() {
 
   const [activeCancelBubbleTier, setActiveCancelBubbleTier] = useState<string | null>(null);
   const cancelBubbleTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const tierTwoYRef = useRef<number>(0);
+  const [upgradeModalVisible, setUpgradeModalVisible] = useState(false);
 
   const showCancelInfoBubble = (tier: string) => {
     if (cancelBubbleTimerRef.current) {
@@ -199,7 +203,7 @@ export default function AnomalyDetectionPreviewScreen() {
 
   const loadFeature = useCallback(
     async (id?: string) => {
-      setIsLoading(true);
+      if (!featureDetail) setIsLoading(true);
       try {
         const rawId = id || (typeof params.featureId === 'string' ? params.featureId : undefined);
         const targetId = await resolveMarketplaceFeatureId(rawId, isAnomalyProduct);
@@ -221,13 +225,13 @@ export default function AnomalyDetectionPreviewScreen() {
         setIsLoading(false);
       }
     },
-    [params.featureId, estateId]
+    [params.featureId, estateId, featureDetail]
   );
 
   useEffect(() => {
     let isMounted = true;
     async function init() {
-      setIsLoading(true);
+      if (!featureDetail) setIsLoading(true);
       try {
         if (estateId) {
           try {
@@ -458,7 +462,7 @@ export default function AnomalyDetectionPreviewScreen() {
   }) => {
     if (userRole !== 'primary_admin') {
       showContactAdminNotice(
-        'guest_management',
+        'access_anomaly_detection_tier_2',
         'Only the primary admin can manage AI subscriptions.'
       );
       return;
@@ -520,7 +524,7 @@ export default function AnomalyDetectionPreviewScreen() {
   }) => {
     if (userRole !== 'primary_admin') {
       showContactAdminNotice(
-        'guest_management',
+        'access_anomaly_detection_tier_2',
         'Only the primary admin can manage AI subscriptions.'
       );
       return;
@@ -588,6 +592,7 @@ export default function AnomalyDetectionPreviewScreen() {
     }
   };
 
+  const { data: subscriptionData } = useEstateSubscription();
   const sortedTiers = featureDetail?.tiers ? sortMarketplaceTiers(featureDetail.tiers) : [];
   const tierOneApi = sortedTiers[0];
   const tierTwoApi = sortedTiers[1];
@@ -609,7 +614,10 @@ export default function AnomalyDetectionPreviewScreen() {
     [justCancelledTiers]
   );
 
-  const hasResultAccess = isTierSubscribed(tierTwoApi) || isTierSubscribed(tierThreeApi);
+  const planSlug = subscriptionData?.tier?.slug;
+  const isPlanIncludingResults = planSlug === 'sentinel' || planSlug === 'command';
+  const hasResultAccess =
+    isPlanIncludingResults || isTierSubscribed(tierTwoApi) || isTierSubscribed(tierThreeApi);
 
   const renderTierButtons = (tierApi: any, fallbackTier: string) => {
     const api: MarketplaceTier = tierApi || { tier: fallbackTier };
@@ -776,22 +784,30 @@ export default function AnomalyDetectionPreviewScreen() {
   };
 
   const scrollViewRef = useRef<ScrollView>(null);
-  const translateX = useSharedValue(params.tab === 'Result' ? TAB_WIDTH : 0);
+  const translateX = useSharedValue(params.tab === 'Result' && hasResultAccess ? TAB_WIDTH : 0);
   const startX = useSharedValue(0);
+
+  const handleUpgradeFlow = () => {
+    setUpgradeModalVisible(false);
+    setActiveTab('Overview');
+    translateX.value = withSpring(0, SPRING_CONFIG);
+    setExpandedTier('Tier Two');
+    if (tierTwoYRef.current) {
+      scrollViewRef.current?.scrollTo({ y: Math.max(0, tierTwoYRef.current - 16), animated: true });
+    }
+    setTimeout(() => {
+      if (tierTwoApi) {
+        setSelectedTierForActivation(tierTwoApi);
+        setActivationModalVisible(true);
+      }
+    }, 400);
+  };
 
   const handleTabPress = (tab: 'Overview' | 'Result') => {
     if (tab === 'Result' && !hasResultAccess) {
       translateX.value = withSpring(0, SPRING_CONFIG);
       if (userRole === 'primary_admin') {
-        if (tierTwoApi) {
-          setSelectedTierForActivation(tierTwoApi);
-          setActivationModalVisible(true);
-        } else {
-          Alert.alert(
-            'Subscription Required',
-            'Upgrade to Sentinel or activate Anomaly Detection Tier Two to view results.'
-          );
-        }
+        setUpgradeModalVisible(true);
       } else {
         showContactAdminNotice(
           'access_anomaly_detection_tier_2',
@@ -808,6 +824,21 @@ export default function AnomalyDetectionPreviewScreen() {
       scrollViewRef.current?.scrollTo({ y: 0, animated: false });
     }
   };
+
+  useEffect(() => {
+    if (params.tab === 'Result' && !hasResultAccess) {
+      setActiveTab('Overview');
+      translateX.value = withSpring(0, SPRING_CONFIG);
+      if (userRole === 'primary_admin') {
+        setUpgradeModalVisible(true);
+      } else {
+        showContactAdminNotice(
+          'access_anomaly_detection_tier_2',
+          'Upgrade to Sentinel or activate Anomaly Detection Tier Two to view results. Contact Admin to upgrade.'
+        );
+      }
+    }
+  }, [params.tab, hasResultAccess, userRole, showContactAdminNotice, translateX]);
 
   const panGesture = Gesture.Pan()
     .activeOffsetX([-8, 8])
@@ -974,7 +1005,7 @@ export default function AnomalyDetectionPreviewScreen() {
 
         {activeTab === 'Result' && hasResultAccess ? (
           <AnomalyResultView />
-        ) : isLoading ? (
+        ) : isLoading && !featureDetail ? (
           <View
             style={{
               flex: 1,
@@ -1248,6 +1279,9 @@ export default function AnomalyDetectionPreviewScreen() {
                 </View>
 
                 <View
+                  onLayout={(e) => {
+                    tierTwoYRef.current = e.nativeEvent.layout.y;
+                  }}
                   className={`rounded-[16px] p-5 mb-4 ${expandedTier === 'Tier Two' ? (tierTwoApi?.is_installed ? 'bg-[#F2FAF9] border border-[#1B998B]' : 'bg-white border border-[#113E55]') : 'bg-white border border-[#EFF1F3]'}`}
                 >
                   <View className="flex-row justify-between items-start mb-1.5">
@@ -1651,6 +1685,13 @@ export default function AnomalyDetectionPreviewScreen() {
             loadFeature(featureDetail.id);
           }
         }}
+      />
+
+      <UpgradePlanModal
+        visible={upgradeModalVisible}
+        feature="access_anomaly_detection_tier_2"
+        onClose={() => setUpgradeModalVisible(false)}
+        onUpgrade={handleUpgradeFlow}
       />
     </Animated.View>
   );

@@ -3,6 +3,7 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
+  Pressable,
   Image,
   RefreshControl,
   BackHandler,
@@ -23,6 +24,7 @@ import icons from '@/src/constants/icons';
 import { getRoleIcon, isDataEqual } from '@/src/lib/helpers';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useEstateEntitlements } from '@/src/lib/api/entitlements';
+import { useEstateSubscription } from '@/src/hooks/useBillingQueries';
 import { useContactAdminNoticeStore, useFeatureGate } from '@/src/hooks/usePlan';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import AdminToolsSvg from '@/src/assets/images/admintools.svg';
@@ -168,35 +170,42 @@ export default function AdminUsersMobilePage() {
     occupied: occupiedSeats,
   } = getSeatOccupancy(users);
   const totalUsersCount = users.total;
-  const estateUserCapacity = estateEntitlements?.coveredUsers ?? null;
+  const { data: subscriptionData } = useEstateSubscription();
+  const subscription = subscriptionData?.subscription;
+  const isPrimaryAdmin = userRole === 'primary_admin' || userRole === 'root';
+  const estateUserCapacity =
+    estateEntitlements?.coveredUsers ?? subscription?.covered_users ?? null;
   const isRegistrationAtCapacity =
     estateUserCapacity !== null && occupiedSeats >= estateUserCapacity;
-  const hasPendingSeatReduction = Boolean(
-    (estateEntitlements as any)?.pending_seat_reduction ||
-    (estateEntitlements as any)?.has_pending_seat_reduction ||
-    (estateEntitlements as any)?.seat_reduction_pending ||
-    (estateEntitlements as any)?.seat_reduction_requested ||
-    estateEntitlements?.reason?.toLowerCase().includes('seat') ||
-    estateEntitlements?.reason?.toLowerCase().includes('reduction') ||
-    (estateEntitlements as any)?.subscription_status === 'pending_seat_reduction'
-  );
-  const [seatReductionOverlayVisible, setSeatReductionOverlayVisible] = useState(false);
+  const pendingCoveredUsers = subscription?.pending_covered_users ?? null;
+  const hasPendingSeatReduction =
+    pendingCoveredUsers !== null &&
+    estateUserCapacity !== null &&
+    pendingCoveredUsers < estateUserCapacity;
+  const isBlockedByPendingReduction =
+    hasPendingSeatReduction && pendingCoveredUsers <= occupiedSeats;
+
+  const [blockedRegistrationReason, setBlockedRegistrationReason] = useState<
+    'capacity' | 'pending_reduction' | null
+  >(null);
   const limitedUsers = verifiedUsers.slice(0, 3);
 
   const handleOpenAddSeats = () => {
-    if (userRole === 'primary_admin') {
-      router.push('/admin/seats');
+    if (isPrimaryAdmin) {
+      router.push('/billing/manage-seats');
     } else {
-      showContactAdminNotice(
-        'guest_management',
-        'Only the primary admin can manage seat capacity.'
-      );
+      showContactAdminNotice('guest_management', 'Only the primary admin can add seats.');
     }
   };
 
   const handleRegisterUser = () => {
-    if (hasPendingSeatReduction || isRegistrationAtCapacity) {
-      setSeatReductionOverlayVisible(true);
+    // Check order: first if capacity is reached, then if capacity minus pending drop is at or below registered users
+    if (isRegistrationAtCapacity) {
+      setBlockedRegistrationReason('capacity');
+      return;
+    }
+    if (isBlockedByPendingReduction) {
+      setBlockedRegistrationReason('pending_reduction');
       return;
     }
     router.push('/admin/users/add');
@@ -298,6 +307,7 @@ export default function AdminUsersMobilePage() {
                   borderRadius: 8,
                   paddingHorizontal: 14,
                   paddingVertical: 6,
+                  opacity: isPrimaryAdmin ? 1 : 0.45,
                 }}
               >
                 <Text
@@ -308,7 +318,7 @@ export default function AdminUsersMobilePage() {
                     color: '#FFFFFF',
                   }}
                 >
-                  Manage Seats
+                  Add Seats
                 </Text>
               </TouchableOpacity>
             </View>
@@ -743,17 +753,19 @@ export default function AdminUsersMobilePage() {
         residentsCount={seatResidentsCount}
         securityPersonnelCount={securityPersonnelCount}
         onManageSeats={handleOpenAddSeats}
+        canManageSeats={isPrimaryAdmin}
       />
 
-      {/* Seat Reduction Active Overlay */}
+      {/* Blocked Registration Overlay (Capacity reached or Pending reduction) */}
       <Modal
-        visible={seatReductionOverlayVisible}
+        visible={blockedRegistrationReason !== null}
         transparent
         statusBarTranslucent
         animationType="fade"
-        onRequestClose={() => setSeatReductionOverlayVisible(false)}
+        onRequestClose={() => setBlockedRegistrationReason(null)}
       >
-        <View
+        <Pressable
+          onPress={() => setBlockedRegistrationReason(null)}
           style={{
             flex: 1,
             backgroundColor: 'rgba(0, 0, 0, 0.55)',
@@ -762,7 +774,8 @@ export default function AdminUsersMobilePage() {
             paddingHorizontal: 24,
           }}
         >
-          <View
+          <Pressable
+            onPress={() => {}}
             style={{
               backgroundColor: '#FFFFFF',
               borderRadius: 24,
@@ -801,7 +814,9 @@ export default function AdminUsersMobilePage() {
                 marginBottom: 12,
               }}
             >
-              Action Not Allowed
+              {blockedRegistrationReason === 'capacity'
+                ? 'Capacity Reached'
+                : 'Registration Blocked'}
             </Text>
 
             <Text
@@ -815,12 +830,13 @@ export default function AdminUsersMobilePage() {
                 marginBottom: 24,
               }}
             >
-              A seat reduction request prevents addition of new users. To add users, the request has
-              to be cancelled.
+              {blockedRegistrationReason === 'capacity'
+                ? 'You have reached the maximum user capacity for your current plan. Please add seats to register more users.'
+                : 'A seat reduction request prevents addition of new users. To add users, the request has to be cancelled.'}
             </Text>
 
             <TouchableOpacity
-              onPress={() => setSeatReductionOverlayVisible(false)}
+              onPress={() => setBlockedRegistrationReason(null)}
               activeOpacity={0.8}
               style={{
                 width: '100%',
@@ -839,11 +855,11 @@ export default function AdminUsersMobilePage() {
                   color: '#FFFFFF',
                 }}
               >
-                Understood
+                Done
               </Text>
             </TouchableOpacity>
-          </View>
-        </View>
+          </Pressable>
+        </Pressable>
       </Modal>
     </View>
   );

@@ -1,5 +1,6 @@
-import { useMemo } from 'react';
-import { Alert, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { Alert, Pressable, Text, View } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import Button from '@/src/components/mobile/Button';
 import BillingSheet from '@/src/components/billing/BillingSheet';
 import InfoNote from '@/src/components/billing/InfoNote';
@@ -42,6 +43,11 @@ export default function PendingRequestsSheet({
   const cancelTierChange = useCancelTierChange();
   const cancelSeatReduction = useCancelSeatReduction();
   const busy = cancelTierChange.isPending || cancelSeatReduction.isPending;
+  const [expandedKinds, setExpandedKinds] = useState<Record<string, boolean>>({});
+
+  const toggleExpand = (kind: string) => {
+    setExpandedKinds((prev) => ({ ...prev, [kind]: !prev[kind] }));
+  };
 
   const confirmCancel = (request: PendingRequest) => {
     const mutation = request.kind === 'tier_change' ? cancelTierChange : cancelSeatReduction;
@@ -76,6 +82,7 @@ export default function PendingRequestsSheet({
                   ? cancelTierChange.isPending
                   : cancelSeatReduction.isPending;
               const effectiveDate = formatBillingDate(request.effectiveFrom);
+              const isExpanded = !!expandedKinds[request.kind];
               return (
                 <View
                   key={request.kind}
@@ -94,8 +101,68 @@ export default function PendingRequestsSheet({
                       {request.description}
                     </Text>
                   </View>
+
+                  {/* Expandable Request Details */}
+                  {isExpanded && (
+                    <View className="gap-2 rounded-[12px] bg-[#F8F9FA] p-3 border border-[#E5E9EA]">
+                      <Text className="font-inter-medium text-[11px] text-[#113E55]">
+                        Request Details:
+                      </Text>
+                      {request.kind === 'seat_reduction' ? (
+                        <>
+                          <View className="flex-row justify-between">
+                            <Text className="font-inter-regular text-[11px] text-[#64748B]">
+                              New Seat Limit:
+                            </Text>
+                            <Text className="font-inter-medium text-[11px] text-[#113E55]">
+                              {request.seats ? `${request.seats} Seats` : 'Reduced'}
+                            </Text>
+                          </View>
+                          <Text className="font-inter-regular text-[10px] text-[#878686] leading-[14px] mt-1">
+                            Your estate capacity will reduce to this seat count starting next
+                            billing cycle.
+                          </Text>
+                        </>
+                      ) : (
+                        <>
+                          <View className="flex-row justify-between">
+                            <Text className="font-inter-regular text-[11px] text-[#64748B]">
+                              Scheduled Plan:
+                            </Text>
+                            <Text className="font-inter-medium text-[11px] text-[#113E55]">
+                              {request.targetTierName || request.targetTierSlug || 'New Plan'}
+                            </Text>
+                          </View>
+                          <Text className="font-inter-regular text-[10px] text-[#878686] leading-[14px] mt-1">
+                            Your plan and features will automatically transition on your next
+                            renewal date.
+                          </Text>
+                        </>
+                      )}
+                    </View>
+                  )}
+
+                  <Pressable
+                    onPress={() => toggleExpand(request.kind)}
+                    hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel={
+                      isExpanded ? 'Hide request details' : 'View request details'
+                    }
+                    className="flex-row items-center justify-center gap-1 active:opacity-60"
+                  >
+                    <Text className="font-ubuntu-semibold text-[11px] text-[#113E55] underline">
+                      {isExpanded ? 'Hide Details' : 'View Details'}
+                    </Text>
+                    <Feather
+                      name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                      size={14}
+                      color="#113E55"
+                    />
+                  </Pressable>
+
                   <Button
-                    label="Cancel"
+                    label="Cancel Request"
                     variant="secondary"
                     loading={running}
                     disabled={!canManage || busy}

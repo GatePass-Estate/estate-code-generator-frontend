@@ -20,6 +20,7 @@ import {
 } from '@/src/lib/incidentReportNavigation';
 import { toggleIncidentType } from '@/src/lib/incidentTypeSelection';
 import SecurityTabBar from '@/src/components/security/SecurityTabBar';
+import Back from '@/src/components/mobile/Back';
 import { useUserStore } from '@/src/lib/stores/userStore';
 
 const INCIDENT_TYPES = [
@@ -103,12 +104,20 @@ export default function IncidentReportCategoryScreen() {
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={{
             flexGrow: 1,
-            paddingTop: Math.max(24, 88 - insets.top) + 53,
+            paddingTop: Math.max(16, 44 - insets.top),
             paddingBottom: Math.max(isSecurity ? 96 : 32, height * (157 / 921) - insets.bottom),
           }}
         >
           <View className="pl-[21px] pr-[30px]">
-            <Text className="ml-[5px] font-ubuntu-medium text-[27.34px] leading-[33px] text-[#113E55]">
+            <Back
+              type="short-arrow"
+              showText={false}
+              showBorder
+              borderSize={30}
+              leftOffset={-3}
+              onPress={() => leaveIncidentReport(returnTo, router)}
+            />
+            <Text className="ml-[5px] mt-[16px] font-ubuntu-medium text-[27.34px] leading-[33px] text-[#113E55]">
               Incident Report
             </Text>
             <Text className="ml-[7px] mt-[8px] font-inter-light text-[14px] leading-[17px] text-[#878686]">

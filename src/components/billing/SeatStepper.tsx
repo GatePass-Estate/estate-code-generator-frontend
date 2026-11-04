@@ -161,6 +161,12 @@ export default function SeatStepper({
   const [focused, setFocused] = useState(false);
   const [textWidth, setTextWidth] = useState<number | null>(null);
 
+  useEffect(() => {
+    if (!focused) {
+      setDraft(String(value));
+    }
+  }, [value, focused]);
+
   const text = focused ? draft : String(value);
   const parsedDraft = Number.parseInt(draft, 10);
   const current = focused && Number.isFinite(parsedDraft) ? parsedDraft : value;

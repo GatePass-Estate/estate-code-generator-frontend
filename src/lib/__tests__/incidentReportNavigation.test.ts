@@ -14,6 +14,7 @@ describe('incident report return navigation', () => {
 
   it('accepts only known entry screens and falls back to Home', () => {
     expect(parseIncidentReportReturnTo('/settings')).toBe('/settings');
+    expect(parseIncidentReportReturnTo('/profile')).toBe('/profile');
     expect(parseIncidentReportReturnTo('/security')).toBe('/security');
     expect(parseIncidentReportReturnTo('/security/history')).toBe('/security/history');
     expect(parseIncidentReportReturnTo('/security/more')).toBe('/security/more');
@@ -49,7 +50,7 @@ describe('incident report return navigation', () => {
     ]);
   });
 
-  it('pops the stack using router.back when canGoBack is true to prevent duplicate history', () => {
+  it('pops the stack using router.back only for admin and replaces to exact returnTo for others', () => {
     const calls: string[] = [];
     const router = {
       canGoBack: () => true,
@@ -59,8 +60,14 @@ describe('incident report return navigation', () => {
 
     leaveIncidentReport('/admin', router);
     leaveIncidentReport('/settings', router);
+    leaveIncidentReport('/profile', router);
     leaveIncidentReport('/security/more', router);
 
-    expect(calls).toEqual(['back', 'back', 'back']);
+    expect(calls).toEqual([
+      'back',
+      'replace:"/settings"',
+      'replace:"/profile"',
+      'replace:"/security/more"',
+    ]);
   });
 });

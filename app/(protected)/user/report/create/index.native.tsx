@@ -17,7 +17,10 @@ import Back from '@/src/components/mobile/Back';
 import ActionConfirmModal from '@/src/components/mobile/ActionConfirmModal';
 import { useFeatureGate } from '@/src/hooks/usePlan';
 import { incidentManagementApi } from '@/src/lib/api/incidentManagement';
-import { parseIncidentReportReturnTo } from '@/src/lib/incidentReportNavigation';
+import {
+  leaveIncidentReport,
+  parseIncidentReportReturnTo,
+} from '@/src/lib/incidentReportNavigation';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import SecurityTabBar from '@/src/components/security/SecurityTabBar';
 
@@ -72,12 +75,12 @@ export default function IncidentReportCreateScreen() {
         const allowed = await requestAccessWhenReady(() => active);
         if (!active) return;
         if (allowed) setCheckingAccess(false);
-        else router.replace('/user');
+        else leaveIncidentReport(returnTo, router);
       })();
       return () => {
         active = false;
       };
-    }, [requestAccessWhenReady, role, router])
+    }, [requestAccessWhenReady, returnTo, role, router])
   );
 
   useFocusEffect(

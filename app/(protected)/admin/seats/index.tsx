@@ -1,17 +1,19 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import Back from '@/src/components/mobile/Back';
 import { sharedStyles } from '@/src/theme/styles';
 import { useEstateEntitlements } from '@/src/lib/api/entitlements';
-import { useUpgradePromptStore } from '@/src/hooks/usePlan';
+import { useUserStore } from '@/src/lib/stores/userStore';
 import { UbuntuSans, Inter } from '@/src/constants/fonts';
 
 export default function ManageSeatsScreen() {
+  const router = useRouter();
   const { data: estateEntitlements } = useEstateEntitlements();
-  const showUpgradePrompt = useUpgradePromptStore((s) => s.show);
+  const role = useUserStore((s) => s.role);
+  const isPrimaryAdmin = role === 'primary_admin' || role === 'root';
 
   const totalSeats = estateEntitlements?.coveredUsers ?? 0;
   const tierSlug = estateEntitlements?.tierSlug
@@ -46,7 +48,7 @@ export default function ManageSeatsScreen() {
             marginTop: 24,
           }}
         >
-          Seat Management
+          Add Seats
         </Text>
         <Text
           allowFontScaling={false}
@@ -216,16 +218,18 @@ export default function ManageSeatsScreen() {
           </Text>
         </View>
 
-        {/* Upgrade / Request More Seats Action */}
+        {/* Add Seats Action */}
         <TouchableOpacity
           activeOpacity={0.85}
-          onPress={() => showUpgradePrompt('household_department_management')}
+          disabled={!isPrimaryAdmin}
+          onPress={() => router.push('/billing/manage-seats')}
           style={{
             backgroundColor: '#113E55',
             height: 50,
             borderRadius: 25,
             alignItems: 'center',
             justifyContent: 'center',
+            opacity: isPrimaryAdmin ? 1 : 0.45,
           }}
         >
           <Text
@@ -236,9 +240,23 @@ export default function ManageSeatsScreen() {
               color: '#FFFFFF',
             }}
           >
-            Request Additional Seats
+            Add Seats
           </Text>
         </TouchableOpacity>
+        {!isPrimaryAdmin && (
+          <Text
+            allowFontScaling={false}
+            style={{
+              textAlign: 'center',
+              marginTop: 10,
+              fontFamily: Inter.regular,
+              fontSize: 12,
+              color: '#878686',
+            }}
+          >
+            Only the primary admin can add seats.
+          </Text>
+        )}
       </ScrollView>
     </SafeAreaView>
   );

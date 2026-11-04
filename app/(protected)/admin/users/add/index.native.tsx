@@ -11,6 +11,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  Pressable,
   View,
   Modal,
 } from 'react-native';
@@ -25,6 +26,7 @@ import { useAndroidBottomInset } from '@/src/hooks/useAndroidBottomInset';
 import { Feather } from '@expo/vector-icons';
 import { getEstateById } from '@/src/lib/api/estate';
 import { useEstateEntitlements } from '@/src/lib/api/entitlements';
+import { useEstateSubscription } from '@/src/hooks/useBillingQueries';
 import HouseholdSelectorSheet from '@/src/components/mobile/HouseholdSelectorSheet';
 import type { Household } from '@/src/types/household';
 import {
@@ -71,7 +73,15 @@ const RegisterUser = () => {
   const [householdSelectorVisible, setHouseholdSelectorVisible] = useState(false);
 
   const { data: estateEntitlements } = useEstateEntitlements();
+  const { data: subscriptionData } = useEstateSubscription();
+  const subscription = subscriptionData?.subscription;
+  const estateUserCapacity =
+    estateEntitlements?.coveredUsers ?? subscription?.covered_users ?? null;
+  const pendingCoveredUsers = subscription?.pending_covered_users ?? null;
   const hasPendingSeatReduction = Boolean(
+    (pendingCoveredUsers !== null &&
+      estateUserCapacity !== null &&
+      pendingCoveredUsers < estateUserCapacity) ||
     (estateEntitlements as any)?.pending_seat_reduction ||
     (estateEntitlements as any)?.has_pending_seat_reduction ||
     (estateEntitlements as any)?.seat_reduction_pending ||
@@ -722,7 +732,8 @@ const RegisterUser = () => {
         animationType="fade"
         onRequestClose={handleDismissSeatReduction}
       >
-        <View
+        <Pressable
+          onPress={handleDismissSeatReduction}
           style={{
             flex: 1,
             backgroundColor: 'rgba(0, 0, 0, 0.55)',
@@ -731,7 +742,8 @@ const RegisterUser = () => {
             paddingHorizontal: 24,
           }}
         >
-          <View
+          <Pressable
+            onPress={() => {}}
             style={{
               backgroundColor: '#FFFFFF',
               borderRadius: 24,
@@ -770,7 +782,7 @@ const RegisterUser = () => {
                 marginBottom: 12,
               }}
             >
-              Action Not Allowed
+              Registration Blocked
             </Text>
 
             <Text
@@ -808,11 +820,11 @@ const RegisterUser = () => {
                   color: '#FFFFFF',
                 }}
               >
-                Understood
+                Done
               </Text>
             </TouchableOpacity>
-          </View>
-        </View>
+          </Pressable>
+        </Pressable>
       </Modal>
     </SafeAreaView>
   );

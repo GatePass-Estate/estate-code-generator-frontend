@@ -20,6 +20,7 @@ type SeatCapacitySheetProps = {
   residentsCount: number;
   securityPersonnelCount: number;
   onManageSeats?: () => void;
+  canManageSeats?: boolean;
 };
 
 const TOTAL_TICKS = 54;
@@ -136,6 +137,7 @@ export default function SeatCapacitySheet({
   residentsCount,
   securityPersonnelCount,
   onManageSeats,
+  canManageSeats = true,
 }: SeatCapacitySheetProps) {
   const insets = useSafeAreaInsets();
   const panY = useRef(new RNAnimated.Value(0)).current;
@@ -478,6 +480,7 @@ export default function SeatCapacitySheet({
             {onManageSeats && (
               <TouchableOpacity
                 activeOpacity={0.85}
+                disabled={canManageSeats === false}
                 onPress={() => {
                   onClose();
                   onManageSeats();
@@ -488,6 +491,7 @@ export default function SeatCapacitySheet({
                   borderRadius: 25,
                   alignItems: 'center',
                   justifyContent: 'center',
+                  opacity: canManageSeats === false ? 0.45 : 1,
                 }}
               >
                 <Text
@@ -498,7 +502,7 @@ export default function SeatCapacitySheet({
                     color: '#FFFFFF',
                   }}
                 >
-                  Manage Seats
+                  Add Seats
                 </Text>
               </TouchableOpacity>
             )}

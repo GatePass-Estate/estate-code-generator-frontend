@@ -224,6 +224,7 @@ export default function DataInsightModal({ visible, onClose, dataInsight }: Data
   const progress = useSharedValue(0);
   const [isPaused, setIsPaused] = useState(false);
   const [showInsightsList, setShowInsightsList] = useState(false);
+  const lastPageRef = useRef<number>(-1);
 
   const goToNextPage = React.useCallback(() => {
     cancelAnimation(progress);
@@ -248,6 +249,8 @@ export default function DataInsightModal({ visible, onClose, dataInsight }: Data
     setCurrentPage(0);
     setIsPaused(false);
     setShowInsightsList(false);
+    lastPageRef.current = -1;
+    cancelAnimation(progress);
     progress.value = 0;
   }, [visible, progress]);
 
@@ -257,11 +260,23 @@ export default function DataInsightModal({ visible, onClose, dataInsight }: Data
       cancelAnimation(progress);
       return;
     }
-    const from = progress.value >= 1 ? 0 : progress.value;
+
+    const isPageChange = lastPageRef.current !== currentPage;
+    lastPageRef.current = currentPage;
+
+    let from = 0;
+    if (!isPageChange) {
+      // Resuming from pause on the same page
+      from = progress.value >= 1 || progress.value < 0 ? 0 : progress.value;
+    }
+
+    cancelAnimation(progress);
     progress.value = from;
+
+    const remainingDuration = Math.max(100, DURATION * (1 - from));
     progress.value = withTiming(
       1,
-      { duration: DURATION * (1 - from), easing: Easing.linear },
+      { duration: remainingDuration, easing: Easing.linear },
       (finished) => {
         if (finished) runOnJS(goToNextPage)();
       }

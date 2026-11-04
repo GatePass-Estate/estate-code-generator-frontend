@@ -2,6 +2,7 @@ export type IncidentReportReturnTo =
   | '/user'
   | '/user/guests'
   | '/user/history'
+  | '/profile'
   | '/settings'
   | '/security'
   | '/security/history'
@@ -20,6 +21,7 @@ export function parseIncidentReportReturnTo(
   if (
     value === '/user/guests' ||
     value === '/user/history' ||
+    value === '/profile' ||
     value === '/settings' ||
     value === '/security' ||
     value === '/security/history' ||
@@ -40,14 +42,11 @@ type ReportRouter = {
 };
 
 export function leaveIncidentReport(returnTo: IncidentReportReturnTo, router: ReportRouter): void {
-  if (
-    router.canGoBack?.() &&
-    (returnTo === '/admin' || returnTo === '/settings' || returnTo === '/security/more')
-  ) {
-    router.back?.();
-    return;
-  }
   if (returnTo === '/admin') {
+    if (router.canGoBack?.()) {
+      router.back?.();
+      return;
+    }
     router.replace({ pathname: '/admin', params: { returnTo: '/settings' } });
     return;
   }
