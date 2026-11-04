@@ -40,6 +40,7 @@ import {
   uninstallAiFeature,
   cancelMarketplaceSubscription,
 } from '@/src/lib/api/aiMarketplace';
+import { refreshEstateEntitlements } from '@/src/lib/api/entitlements';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import {
   useContactAdminNoticeStore,
@@ -185,8 +186,11 @@ export default function IncidentReportPreviewScreen() {
   /** Tier entitlements changed → drop cached summaries so Result can't show a removed tier. */
   const refreshAfterTierChange = async () => {
     queryClient.removeQueries({ queryKey: ['incident-reports', 'summary'] });
-    void queryClient.invalidateQueries({ queryKey: ['incident-reports', 'overview'] });
-    if (featureDetail?.id) await loadFeature(featureDetail.id);
+    void queryClient.invalidateQueries({ queryKey: ['incident-reports'] });
+    await Promise.all([
+      refreshEstateEntitlements(),
+      featureDetail?.id ? loadFeature(featureDetail.id) : undefined,
+    ]);
   };
 
   useEffect(() => {
@@ -470,13 +474,24 @@ export default function IncidentReportPreviewScreen() {
 
   const scrollViewRef = useRef<ScrollView>(null);
 
-  // Result is only for estates whose plan includes incident insights. Entitlements are loaded at
-  // sign-in, so a locked estate sees the tab switch and the plan prompt together, with nothing
+  // Result needs one of the incident insight tiers. The entitlements endpoint doesn't list the AI
+  // tiers, so the marketplace status (the same data behind Install / Uninstall) is what decides.
+  // While it's still loading the tab opens; the server's 402/403 is then handled by the Result
+  // view itself. A locked estate sees the tab switch and the plan prompt together, with nothing
   // fetched; closing the prompt takes the tab back to Preview, where the plans are.
-  const { requestAccessWhenReady: requestResultAccess } = useFeatureGate(
-    'incident_report_summary_tier_1',
-    { notice: 'floating', onUpgrade: () => setActiveTab('Preview') }
-  );
+  const hasInsightTier = featureDetail
+    ? sortedTiers.some(
+        (tier) =>
+          !!tier.is_installed ||
+          !!tier.purchased ||
+          ['active', 'purchased', 'subscribed', 'installed'].includes(tier.status ?? '')
+      )
+    : undefined;
+  const resultAllowed = hasInsightTier !== false;
+  const { showDenied: showResultDenied } = useFeatureGate('incident_report_summary_tier_1', {
+    notice: 'floating',
+    onUpgrade: () => setActiveTab('Preview'),
+  });
   const [resultLocked, setResultLocked] = useState(false);
   const promptVisible = useUpgradePromptStore((s) => s.visible);
   const noticeVisible = useContactAdminNoticeStore((s) => s.visible);
@@ -488,21 +503,15 @@ export default function IncidentReportPreviewScreen() {
     }
   }, [resultLocked, promptVisible, noticeVisible]);
 
-  // Arriving with `?tab=Result` skips the tap, so apply the same check.
+  // Also covers arriving with `?tab=Result` and the tiers finishing loading while on Result.
   useEffect(() => {
-    if (activeTab !== 'Result' || resultLocked) return;
-    let cancelled = false;
-    void requestResultAccess(() => !cancelled).then((allowed) => {
-      if (!allowed && !cancelled) setResultLocked(true);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [activeTab, resultLocked, requestResultAccess]);
+    if (activeTab !== 'Result' || resultLocked || resultAllowed) return;
+    setResultLocked(true);
+    showResultDenied();
+  }, [activeTab, resultLocked, resultAllowed, showResultDenied]);
 
-  const handleTabChange = async (tab: 'Preview' | 'Result') => {
+  const handleTabChange = (tab: 'Preview' | 'Result') => {
     if (tab === activeTab) return;
-    if (tab === 'Result' && !(await requestResultAccess())) setResultLocked(true);
     setActiveTab(tab);
     scrollViewRef.current?.scrollTo({ y: 0, animated: false });
   };
@@ -551,7 +560,7 @@ export default function IncidentReportPreviewScreen() {
           </Pressable>
         </View>
 
-        {activeTab === 'Result' && resultLocked ? (
+        {activeTab === 'Result' && (resultLocked || !resultAllowed) ? (
           <View style={{ flex: 1, backgroundColor: '#F6F7F7' }} />
         ) : activeTab === 'Result' ? (
           <IncidentResultView

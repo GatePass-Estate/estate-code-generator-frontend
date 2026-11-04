@@ -35,7 +35,7 @@ import IncidentAISummaryCard, {
   type InsightMode,
 } from './IncidentAISummaryCard';
 import { isAxiosError } from 'axios';
-import { useFeatureGate } from '@/src/hooks/usePlan';
+import { useFeatureAccess, useFeatureGate } from '@/src/hooks/usePlan';
 import IncidentFilterModal, {
   type IncidentFilterCategory,
   type IncidentFilterUserType,
@@ -313,6 +313,7 @@ export default function IncidentResultView({
   } = useIncidentSummary(estate_id, fromDate, toDate, fetchSummary);
   // Primary admin: Upgrade Plan modal whose button opens the AI store preview. Everyone else: the
   // floating "Contact Admin" notice (this screen has no inline notice slot).
+  const incidentReportAccess = useFeatureAccess('incident_report');
   const { showDenied: showSummaryDenied } = useFeatureGate('incident_report_summary_tier_1', {
     notice: 'floating',
     onUpgrade: () =>
@@ -568,13 +569,28 @@ export default function IncidentResultView({
 
   useEffect(() => {
     if (!overviewError && !reportsError) return;
-    console.warn('[incident-reports] boot query failed', {
-      overviewError,
-      reportsError,
-      overview: overviewErr,
-      reports: reportsErr,
-    });
-  }, [overviewError, reportsError, overviewErr, reportsErr]);
+    const axiosBits = (err: unknown) =>
+      isAxiosError(err)
+        ? {
+            status: err.response?.status ?? null,
+            data: err.response?.data ?? null,
+            message: err.message,
+          }
+        : { message: err instanceof Error ? err.message : String(err) };
+    console.log('\n================== [incident-reports] boot query failed ==================');
+    console.log(
+      JSON.stringify(
+        {
+          overview: axiosBits(overviewErr),
+          reports: axiosBits(reportsErr),
+          entitlements_incident_report: incidentReportAccess,
+        },
+        null,
+        2
+      )
+    );
+    console.log('=========================================================================\n');
+  }, [overviewError, reportsError, overviewErr, reportsErr, incidentReportAccess]);
 
   const isBootLoading = !!estate_id && (overviewLoading || reportsLoading);
   // Only blank the page when both boot queries failed with no usable payload.
@@ -582,7 +598,9 @@ export default function IncidentResultView({
   // The estate's plan doesn't include incident reports: the server refuses with 402/403 ("Estate is
   // not entitled to ..."). That is a plan prompt, not a load failure.
   const bootEntitlementDenied =
-    bootFailed && (isEntitlementDenied(overviewErr) || isEntitlementDenied(reportsErr));
+    bootFailed &&
+    incidentReportAccess !== 'granted' &&
+    (isEntitlementDenied(overviewErr) || isEntitlementDenied(reportsErr));
 
   useEffect(() => {
     if (bootEntitlementDenied && isActive) showSummaryDenied();

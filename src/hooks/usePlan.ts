@@ -4,7 +4,7 @@ import { useUserStore } from '@/src/lib/stores/userStore';
 import {
   EntitlementsDeniedError,
   ensureEstateEntitlements,
-  refreshEstateEntitlementsIfOlderThan,
+  refetchEstateEntitlements,
   useEstateEntitlements,
 } from '@/src/lib/api/entitlements';
 import {
@@ -16,8 +16,6 @@ import {
 } from '@/src/lib/plans';
 
 const CONTACT_ADMIN_NOTICE_MS = 3000;
-/** A cached "no" older than this is refreshed in the background, in case the plan was upgraded. */
-const DENIAL_MAX_AGE_MS = 30_000;
 
 type UpgradePromptStore = {
   feature: PlanFeature | null;
@@ -193,7 +191,9 @@ export function useFeatureGate(
           // Instant when cached; only waits on the network if nothing is cached yet.
           entitlements = await ensureEstateEntitlements(estateId);
           if (resolveFeatureAccess(entitlements, role, feature) !== 'granted') {
-            refreshEstateEntitlementsIfOlderThan(estateId, DENIAL_MAX_AGE_MS);
+            // A cached "no" may predate an upgrade or payment, so confirm it with the server
+            // before refusing. If that fails, the cached answer stands.
+            entitlements = await refetchEstateEntitlements(estateId);
           }
         } catch (error) {
           // A refusal (e.g. ID not approved) is reported as-is. Otherwise the plan service is
