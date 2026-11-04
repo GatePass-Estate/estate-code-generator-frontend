@@ -35,7 +35,7 @@ import {
   removeCachedUserDocument,
 } from '@/src/lib/userDocumentCache';
 import { Feather } from '@expo/vector-icons';
-import IdDocumentDownload from '@/src/components/mobile/IdDocumentDownload';
+import IdDocumentPreview from '@/src/components/mobile/IdDocumentPreview';
 import ResidentProfileFallback from '@/src/assets/icons/user-profile-placeholder.svg';
 import PrimaryAdminPromotionIcon from '@/src/assets/icons/primary-admin-promotion.svg';
 import PromotionCancelIcon from '@/src/assets/icons/promotion-cancel.svg';
@@ -77,6 +77,7 @@ export default function SingleUserMobile() {
   const [deactivating, setDeactivating] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [actionError, setActionError] = useState('');
+  const [promotionError, setPromotionError] = useState('');
   const [pendingAction, setPendingAction] = useState<
     'deactivate' | 'promote' | 'demote' | 'transferPrimary' | null
   >(null);
@@ -341,15 +342,29 @@ export default function SingleUserMobile() {
   const handlePromoteOrDemote = async (action: 'promote' | 'demote') => {
     setProcessing(true);
     setActionError('');
+    if (action === 'promote') setPromotionError('');
     try {
       if (action === 'promote') {
+        const { documents } = await getUserDocuments(userId as string, 'id_card', ['active']);
+        const hasApprovedId = documents.some(
+          (document) =>
+            document.document_type === 'id_card' && document.document_status === 'active'
+        );
+        if (!hasApprovedId) {
+          setPromotionError('User must have an approved ID before they can be made an admin.');
+          return false;
+        }
         await promoteToAdmin(userId as string);
       } else {
         await demoteToResident(userId as string);
       }
       setUserData((current) => ({ ...current, role: action === 'promote' ? 'admin' : 'resident' }));
+      return true;
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Failed to update user role.');
+      const message = err instanceof Error ? err.message : 'Failed to update user role.';
+      if (action === 'promote') setPromotionError(message);
+      else setActionError(message);
+      return false;
     } finally {
       setProcessing(false);
     }
@@ -706,7 +721,10 @@ export default function SingleUserMobile() {
                         }}
                       >
                         {identificationUri && identificationContentType === 'application/pdf' ? (
-                          <IdDocumentDownload uri={identificationUri} />
+                          <IdDocumentPreview
+                            uri={identificationUri}
+                            contentType={identificationContentType}
+                          />
                         ) : identificationUri ? (
                           <Image
                             source={{ uri: identificationUri }}
@@ -774,7 +792,10 @@ export default function SingleUserMobile() {
 
                     {showRoleAction && (
                       <TouchableOpacity
-                        onPress={() => setPendingAction(isAdminProfile ? 'demote' : 'promote')}
+                        onPress={() => {
+                          setPromotionError('');
+                          setPendingAction(isAdminProfile ? 'demote' : 'promote');
+                        }}
                         disabled={deactivating || processing}
                         className={`h-12 items-center justify-center rounded-3xl border border-primary bg-primary ${
                           deactivating || processing ? 'opacity-70' : ''
@@ -950,6 +971,49 @@ export default function SingleUserMobile() {
                     </View>
                   </View>
                 )}
+              </View>
+            </Modal>
+            <Modal
+              visible={Boolean(promotionError)}
+              transparent
+              animationType="fade"
+              statusBarTranslucent
+              onRequestClose={() => setPromotionError('')}
+            >
+              <View className="flex-1 items-center justify-center bg-black/60 px-[19px]">
+                <Pressable
+                  onPress={() => setPromotionError('')}
+                  accessibilityRole="button"
+                  accessibilityLabel="Dismiss Make Admin error"
+                  style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
+                />
+                <View className="min-h-[205px] w-full max-w-[337px] items-center justify-between rounded-[24px] border-[0.5px] border-[#CEE5ED] bg-white px-4 py-10">
+                  <Text className="max-w-[257px] text-center font-inter-regular text-[14px] leading-[21px] text-[#646B70]">
+                    {promotionError}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => setPromotionError('')}
+                    accessibilityRole="button"
+                    accessibilityLabel="Acknowledge Make Admin error"
+                    className="mt-6 h-11 w-full max-w-[278px] items-center justify-center rounded-3xl border border-primary bg-primary"
+                  >
+                    <Text
+                      className="font-ubuntu-semibold text-[14px] leading-[17px] text-[#F6F7F7]"
+                      style={{ letterSpacing: -0.24 }}
+                    >
+                      Got it
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+                <TouchableOpacity
+                  onPress={() => setPromotionError('')}
+                  accessibilityRole="button"
+                  accessibilityLabel="Dismiss Make Admin error"
+                  hitSlop={6}
+                  className="mt-8 h-8 w-8 items-center justify-center"
+                >
+                  <PromotionCancelIcon width={32} height={32} />
+                </TouchableOpacity>
               </View>
             </Modal>
           </>

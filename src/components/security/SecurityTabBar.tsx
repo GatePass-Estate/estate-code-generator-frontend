@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import { HistoryIcon, HomeTabIcon } from '@/src/assets/svgs';
 import { useFeatureGate } from '@/src/hooks/usePlan';
+import { useVerificationGate } from '@/src/hooks/useAccountVerification';
 
 type SecurityTab = 'home' | 'report' | 'history';
 
@@ -35,9 +36,11 @@ export default function SecurityTabBar({ activeTab }: { activeTab: SecurityTab }
   const insets = useSafeAreaInsets();
   const openingReport = useRef(false);
   const { requestAccessWhenReady } = useFeatureGate('incident_report', { notice: 'floating' });
+  const { requireVerifiedWhenReady } = useVerificationGate();
 
   const openReport = async () => {
     if (activeTab === 'report' || openingReport.current) return;
+    if (!(await requireVerifiedWhenReady())) return;
     openingReport.current = true;
     try {
       const allowed = await requestAccessWhenReady(() => navigation.isFocused());
@@ -92,7 +95,13 @@ export default function SecurityTabBar({ activeTab }: { activeTab: SecurityTab }
         accessibilityRole="button"
         accessibilityLabel="History"
         accessibilityState={{ selected: activeTab === 'history' }}
-        onPress={() => activeTab !== 'history' && router.replace('/security/history')}
+        onPress={() => {
+          if (activeTab === 'history') return;
+          void requireVerifiedWhenReady().then((verified) => {
+            if (!verified) return;
+            router.replace('/security/history');
+          });
+        }}
         style={styles.history}
       >
         <HistoryIcon

@@ -320,7 +320,7 @@ export default function MoreMenuScreen({
               ) : null}
               <MoreMenuRow
                 icon={<IncidentReportIcon color={iconColor} />}
-                label="Report Incident"
+                label="Incident Report"
                 onPress={() => void handleOpenIncidentReport()}
               />
               <MoreMenuRow
