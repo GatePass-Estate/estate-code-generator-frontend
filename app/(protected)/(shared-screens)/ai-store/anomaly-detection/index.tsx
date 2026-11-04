@@ -4,7 +4,6 @@ import {
   Text,
   Pressable,
   ScrollView,
-  StyleSheet,
   ActivityIndicator,
   Alert,
   Image,
@@ -15,16 +14,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialIcons } from '@expo/vector-icons';
 import Svg, { Path } from 'react-native-svg';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-  interpolateColor,
-  runOnJS,
-  FadeIn,
-  FadeOut,
-} from 'react-native-reanimated';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
+import AnimatedPillTabs from '@/src/components/mobile/AnimatedPillTabs';
 import BiInfoSvg from '@/src/assets/icons/bi_info.svg';
 import ValidationBackSvg from '@/src/assets/icons/validation-back.svg';
 import AnomalyRadarChart from '@/src/components/anomaly/AnomalyRadarChart';
@@ -75,18 +66,6 @@ import {
   AiCheckoutDuration,
   AiQuoteResponse,
 } from '@/src/types/aiMarketplace';
-
-const PILL_WIDTH = 228;
-const PILL_HEIGHT = 40;
-const PADDING = 3;
-const TAB_WIDTH = (PILL_WIDTH - PADDING * 2) / 2; // 111
-const TAB_HEIGHT = PILL_HEIGHT - PADDING * 2; // 34
-
-const SPRING_CONFIG = {
-  damping: 15,
-  stiffness: 150,
-  mass: 0.7,
-};
 
 export default function AnomalyDetectionPreviewScreen() {
   const params = useLocalSearchParams<{ featureId?: string; title?: string; tab?: string }>();
@@ -784,13 +763,10 @@ export default function AnomalyDetectionPreviewScreen() {
   };
 
   const scrollViewRef = useRef<ScrollView>(null);
-  const translateX = useSharedValue(params.tab === 'Result' && hasResultAccess ? TAB_WIDTH : 0);
-  const startX = useSharedValue(0);
 
   const handleUpgradeFlow = () => {
     setUpgradeModalVisible(false);
     setActiveTab('Overview');
-    translateX.value = withSpring(0, SPRING_CONFIG);
     setExpandedTier('Tier Two');
     if (tierTwoYRef.current) {
       scrollViewRef.current?.scrollTo({ y: Math.max(0, tierTwoYRef.current - 16), animated: true });
@@ -804,8 +780,8 @@ export default function AnomalyDetectionPreviewScreen() {
   };
 
   const handleTabPress = (tab: 'Overview' | 'Result') => {
+    if (tab === activeTab) return;
     if (tab === 'Result' && !hasResultAccess) {
-      translateX.value = withSpring(0, SPRING_CONFIG);
       if (userRole === 'primary_admin') {
         setUpgradeModalVisible(true);
       } else {
@@ -817,18 +793,13 @@ export default function AnomalyDetectionPreviewScreen() {
       return;
     }
 
-    if (tab !== activeTab) {
-      setActiveTab(tab);
-      const targetX = tab === 'Result' ? TAB_WIDTH : 0;
-      translateX.value = withSpring(targetX, SPRING_CONFIG);
-      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
-    }
+    setActiveTab(tab);
+    scrollViewRef.current?.scrollTo({ y: 0, animated: false });
   };
 
   useEffect(() => {
     if (params.tab === 'Result' && !hasResultAccess) {
       setActiveTab('Overview');
-      translateX.value = withSpring(0, SPRING_CONFIG);
       if (userRole === 'primary_admin') {
         setUpgradeModalVisible(true);
       } else {
@@ -838,53 +809,11 @@ export default function AnomalyDetectionPreviewScreen() {
         );
       }
     }
-  }, [params.tab, hasResultAccess, userRole, showContactAdminNotice, translateX]);
-
-  const panGesture = Gesture.Pan()
-    .activeOffsetX([-8, 8])
-    .onStart(() => {
-      'worklet';
-      startX.value = translateX.value;
-    })
-    .onUpdate((e) => {
-      'worklet';
-      const raw = startX.value + e.translationX;
-      if (raw < 0) {
-        translateX.value = raw * 0.25;
-      } else if (raw > TAB_WIDTH) {
-        translateX.value = TAB_WIDTH + (raw - TAB_WIDTH) * 0.25;
-      } else {
-        translateX.value = raw;
-      }
-    })
-    .onEnd((e) => {
-      'worklet';
-      let targetTab: 'Overview' | 'Result' = 'Overview';
-      if (e.velocityX > 250) {
-        targetTab = 'Result';
-      } else if (e.velocityX < -250) {
-        targetTab = 'Overview';
-      } else {
-        targetTab = translateX.value > TAB_WIDTH / 2 ? 'Result' : 'Overview';
-      }
-
-      runOnJS(handleTabPress)(targetTab);
-    });
-
-  const tapGesture = Gesture.Tap()
-    .maxDuration(250)
-    .onEnd((e) => {
-      'worklet';
-      const targetTab: 'Overview' | 'Result' = e.x < PILL_WIDTH / 2 ? 'Overview' : 'Result';
-      runOnJS(handleTabPress)(targetTab);
-    });
-
-  const pillGesture = Gesture.Race(panGesture, tapGesture);
+  }, [params.tab, hasResultAccess, userRole, showContactAdminNotice]);
 
   useEffect(() => {
     if (activeTab === 'Result' && featureDetail && !isLoading && !hasResultAccess) {
       setActiveTab('Overview');
-      translateX.value = withSpring(0, SPRING_CONFIG);
       if (userRole === 'primary_admin') {
         if (tierTwoApi) {
           setSelectedTierForActivation(tierTwoApi);
@@ -905,59 +834,23 @@ export default function AnomalyDetectionPreviewScreen() {
     userRole,
     tierTwoApi,
     showContactAdminNotice,
-    translateX,
   ]);
 
-  useEffect(() => {
-    const targetX = activeTab === 'Result' ? TAB_WIDTH : 0;
-    translateX.value = withSpring(targetX, SPRING_CONFIG);
-    scrollViewRef.current?.scrollTo({ y: 0, animated: false });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab]);
-
-  const animatedIndicatorStyle = useAnimatedStyle(() => {
-    'worklet';
-    return {
-      transform: [{ translateX: translateX.value }],
-    };
-  });
-
-  const animatedHeaderBgStyle = useAnimatedStyle(() => {
-    'worklet';
-    return {
-      backgroundColor: interpolateColor(translateX.value, [0, TAB_WIDTH], ['#FFFFFF', '#F6F7F7']),
-    };
-  });
-
-  const overviewTextStyle = useAnimatedStyle(() => {
-    'worklet';
-    return {
-      color: interpolateColor(translateX.value, [0, TAB_WIDTH], ['#113E55', '#8A9A9D']),
-    };
-  });
-
-  const resultTextStyle = useAnimatedStyle(() => {
-    'worklet';
-    return {
-      color: interpolateColor(translateX.value, [0, TAB_WIDTH], ['#8A9A9D', '#113E55']),
-    };
-  });
+  const isResultTab = activeTab === 'Result';
 
   return (
-    <Animated.View style={[{ flex: 1 }, animatedHeaderBgStyle]}>
+    <View style={{ flex: 1, backgroundColor: isResultTab ? '#F6F7F7' : '#FFFFFF' }}>
       <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1 }}>
         {/* Header: matches Figma top 55px to 109px (height 54px) */}
-        <Animated.View
-          style={[
-            {
-              height: 54,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              paddingHorizontal: 20,
-            },
-            animatedHeaderBgStyle,
-          ]}
+        <View
+          style={{
+            height: 54,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingHorizontal: 20,
+            backgroundColor: isResultTab ? '#F6F7F7' : '#FFFFFF',
+          }}
         >
           <Pressable
             onPress={() => router.back()}
@@ -967,27 +860,14 @@ export default function AnomalyDetectionPreviewScreen() {
             <ValidationBackSvg width={30} height={30} />
           </Pressable>
 
-          <GestureDetector gesture={pillGesture}>
-            <View style={styles.pillContainer}>
-              <Animated.View style={[styles.pillIndicator, animatedIndicatorStyle]} />
-              <Pressable
-                accessibilityRole="tab"
-                accessibilityState={{ selected: activeTab === 'Overview' }}
-                onPress={() => handleTabPress('Overview')}
-                style={styles.pillTab}
-              >
-                <Animated.Text style={[styles.pillText, overviewTextStyle]}>Overview</Animated.Text>
-              </Pressable>
-              <Pressable
-                accessibilityRole="tab"
-                accessibilityState={{ selected: activeTab === 'Result' }}
-                onPress={() => handleTabPress('Result')}
-                style={styles.pillTab}
-              >
-                <Animated.Text style={[styles.pillText, resultTextStyle]}>Result</Animated.Text>
-              </Pressable>
-            </View>
-          </GestureDetector>
+          <AnimatedPillTabs
+            options={[
+              { value: 'Overview', label: 'Overview' },
+              { value: 'Result', label: 'Result' },
+            ]}
+            value={activeTab}
+            onChange={handleTabPress}
+          />
 
           <Pressable
             className="h-[30px] w-[30px] items-center justify-center"
@@ -1001,7 +881,7 @@ export default function AnomalyDetectionPreviewScreen() {
               <BiInfoSvg width={24} height={24} />
             </View>
           </Pressable>
-        </Animated.View>
+        </View>
 
         {activeTab === 'Result' && hasResultAccess ? (
           <AnomalyResultView />
@@ -1693,40 +1573,6 @@ export default function AnomalyDetectionPreviewScreen() {
         onClose={() => setUpgradeModalVisible(false)}
         onUpgrade={handleUpgradeFlow}
       />
-    </Animated.View>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  pillContainer: {
-    width: PILL_WIDTH,
-    height: PILL_HEIGHT,
-    backgroundColor: '#EFF1F1',
-    borderRadius: PILL_HEIGHT / 2,
-    padding: PADDING,
-    flexDirection: 'row',
-    position: 'relative',
-  },
-  pillIndicator: {
-    position: 'absolute',
-    top: PADDING,
-    left: PADDING,
-    width: TAB_WIDTH,
-    height: TAB_HEIGHT,
-    backgroundColor: '#DFEBF1',
-    borderRadius: TAB_HEIGHT / 2,
-  },
-  pillTab: {
-    width: TAB_WIDTH,
-    height: TAB_HEIGHT,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 1,
-  },
-  pillText: {
-    fontFamily: 'Inter_18pt-Regular',
-    fontSize: 11.2,
-    lineHeight: 11.2,
-    textAlign: 'center',
-  },
-});
