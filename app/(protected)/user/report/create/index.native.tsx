@@ -203,7 +203,7 @@ export default function IncidentReportCreateScreen() {
               maxLength={1000}
               multiline
               textAlignVertical="top"
-              className="ml-[1px] mt-[16px] h-[289px] rounded-[16px] bg-[#EFF1F1] p-4 font-inter-light text-[14px] leading-[17px] text-[#0A1F29]"
+              className="ml-[1px] mt-[16px] h-[289px] rounded-[16px] bg-[#EFF1F1] p-4 font-inter-light text-[14px] leading-[20px] text-[#0A1F29]"
             />
             <Text className="mr-[4px] mt-[6px] text-right font-inter-light text-[11.2px] leading-[14px] text-[#878686]">
               {narrative.length}/1000

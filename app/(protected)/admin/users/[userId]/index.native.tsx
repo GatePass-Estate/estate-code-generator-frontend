@@ -39,6 +39,7 @@ import IdDocumentPreview from '@/src/components/mobile/IdDocumentPreview';
 import ResidentProfileFallback from '@/src/assets/icons/user-profile-placeholder.svg';
 import PrimaryAdminPromotionIcon from '@/src/assets/icons/primary-admin-promotion.svg';
 import PromotionCancelIcon from '@/src/assets/icons/promotion-cancel.svg';
+import AlertIcon from '@/src/assets/icons/alert.svg';
 import { useAuthStore } from '@/src/lib/stores/authStore';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { useAuth } from '@/src/hooks/useAuthContext';
@@ -988,7 +989,8 @@ export default function SingleUserMobile() {
                   style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
                 />
                 <View className="min-h-[205px] w-full max-w-[337px] items-center justify-between rounded-[24px] border-[0.5px] border-[#CEE5ED] bg-white px-4 py-10">
-                  <Text className="max-w-[257px] text-center font-inter-regular text-[14px] leading-[21px] text-[#646B70]">
+                  <AlertIcon width={44} height={44} />
+                  <Text className="mt-3 max-w-[257px] text-center font-inter-regular text-[14px] leading-[21px] text-[#646B70]">
                     {promotionError}
                   </Text>
                   <TouchableOpacity

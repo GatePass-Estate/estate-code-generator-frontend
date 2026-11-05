@@ -12,10 +12,20 @@ import { RequestItem } from '@/src/types/requests';
 import { User } from '@/src/types/user';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Image,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import IdDocumentDownload from '@/src/components/mobile/IdDocumentDownload';
+import IdDocumentPreview from '@/src/components/mobile/IdDocumentPreview';
 
 type IdPreview = { uri: string; contentType: string } | null;
 
@@ -101,9 +111,11 @@ export default function EditSingleRequestMobile() {
   const [requestingUser, setRequestingUser] = useState<User | null>(null);
   const [currentId, setCurrentId] = useState<IdPreview>(null);
   const [newId, setNewId] = useState<IdPreview>(null);
+  const [previewId, setPreviewId] = useState<'current' | 'new' | null>(null);
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<ToastType>('success');
+  const selectedId = previewId === 'current' ? currentId : previewId === 'new' ? newId : null;
 
   useEffect(() => {
     const loadRequest = async () => {
@@ -332,7 +344,12 @@ export default function EditSingleRequestMobile() {
               >
                 Current User ID
               </Text>
-              <View
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Preview current user ID"
+                accessibilityState={{ disabled: !currentId }}
+                disabled={!currentId}
+                onPress={() => setPreviewId('current')}
                 style={{
                   alignItems: 'center',
                   backgroundColor: '#FFFFFF',
@@ -345,7 +362,7 @@ export default function EditSingleRequestMobile() {
                 }}
               >
                 {currentId?.contentType === 'application/pdf' ? (
-                  <IdDocumentDownload uri={currentId.uri} />
+                  <Feather name="file-text" size={40} color="#878686" />
                 ) : currentId ? (
                   <Image
                     source={{ uri: currentId.uri }}
@@ -356,7 +373,12 @@ export default function EditSingleRequestMobile() {
                 ) : (
                   <Feather name="credit-card" size={40} color="#C8CECE" />
                 )}
-              </View>
+                {currentId ? (
+                  <View className="absolute right-3 top-3 h-9 w-9 items-center justify-center rounded-full bg-white">
+                    <Feather name="eye" size={18} color="#113E55" />
+                  </View>
+                ) : null}
+              </Pressable>
               <Text
                 style={{
                   color: '#878686',
@@ -371,7 +393,12 @@ export default function EditSingleRequestMobile() {
               >
                 New User ID
               </Text>
-              <View
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Preview new user ID"
+                accessibilityState={{ disabled: !newId }}
+                disabled={!newId}
+                onPress={() => setPreviewId('new')}
                 style={{
                   alignItems: 'center',
                   backgroundColor: '#FFFFFF',
@@ -384,7 +411,7 @@ export default function EditSingleRequestMobile() {
                 }}
               >
                 {newId?.contentType === 'application/pdf' ? (
-                  <IdDocumentDownload uri={newId.uri} />
+                  <Feather name="file-text" size={40} color="#878686" />
                 ) : newId ? (
                   <Image
                     source={{ uri: newId.uri }}
@@ -395,7 +422,12 @@ export default function EditSingleRequestMobile() {
                 ) : (
                   <Feather name="credit-card" size={40} color="#C8CECE" />
                 )}
-              </View>
+                {newId ? (
+                  <View className="absolute right-3 top-3 h-9 w-9 items-center justify-center rounded-full bg-white">
+                    <Feather name="eye" size={18} color="#113E55" />
+                  </View>
+                ) : null}
+              </Pressable>
               <View
                 style={{
                   flexDirection: 'row',
@@ -624,6 +656,37 @@ export default function EditSingleRequestMobile() {
           )}
         </ScrollView>
       ) : null}
+
+      <Modal
+        visible={Boolean(selectedId)}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={() => setPreviewId(null)}
+      >
+        <View className="flex-1 items-center justify-center bg-black/60 px-5">
+          <Pressable
+            onPress={() => setPreviewId(null)}
+            accessibilityRole="button"
+            accessibilityLabel="Close identification preview"
+            style={StyleSheet.absoluteFill}
+          />
+          <View className="h-[70%] w-full max-w-[360px] overflow-hidden rounded-[24px] bg-white p-4">
+            {selectedId ? (
+              <View className="flex-1 overflow-hidden rounded-[16px]">
+                <IdDocumentPreview uri={selectedId.uri} contentType={selectedId.contentType} />
+              </View>
+            ) : null}
+            <Pressable
+              onPress={() => setPreviewId(null)}
+              accessibilityRole="button"
+              className="mt-4 h-11 items-center justify-center rounded-3xl bg-primary"
+            >
+              <Text className="font-ubuntu-semibold text-[14px] text-white">Close</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
