@@ -21,8 +21,10 @@ type UpgradePromptStore = {
   feature: PlanFeature | null;
   /** Replaces where "Upgrade Your Plan" goes (default: the billing plan picker). */
   onUpgrade: (() => void) | null;
+  /** Replaces the feature's upgrade copy, e.g. when upgrading isn't what will fix the refusal. */
+  message: string | null;
   visible: boolean;
-  show: (feature: PlanFeature, onUpgrade?: (() => void) | null) => void;
+  show: (feature: PlanFeature, onUpgrade?: (() => void) | null, message?: string | null) => void;
   dismiss: () => void;
   reset: () => void;
 };
@@ -31,11 +33,13 @@ type UpgradePromptStore = {
 export const useUpgradePromptStore = create<UpgradePromptStore>((set) => ({
   feature: null,
   onUpgrade: null,
+  message: null,
   visible: false,
-  show: (feature, onUpgrade = null) => set({ feature, onUpgrade, visible: true }),
+  show: (feature, onUpgrade = null, message = null) =>
+    set({ feature, onUpgrade, message, visible: true }),
   // Keeps `feature` so the modal copy doesn't blank out while it fades away.
   dismiss: () => set({ visible: false }),
-  reset: () => set({ feature: null, onUpgrade: null, visible: false }),
+  reset: () => set({ feature: null, onUpgrade: null, message: null, visible: false }),
 }));
 
 type ContactAdminNoticeStore = {
@@ -158,14 +162,18 @@ export function useFeatureGate(
   }, []);
 
   const promptFor = useCallback(
-    (next: FeatureAccess, blockedReason: string | null = null): boolean => {
+    (
+      next: FeatureAccess,
+      blockedReason: string | null = null,
+      customMessage: string | null = null
+    ): boolean => {
       if (next === 'granted') return true;
       if (next === 'upgrade') {
-        showUpgradePrompt(feature, onUpgradeRef.current ?? null);
+        showUpgradePrompt(feature, onUpgradeRef.current ?? null, customMessage);
         return false;
       }
       // `contact_admin` shows the feature's copy; `blocked` shows the server's reason instead.
-      const message = next === 'blocked' ? blockedReason : null;
+      const message = next === 'blocked' ? blockedReason : customMessage;
       if (notice === 'floating') {
         showFloatingNotice(feature, message);
       } else {
@@ -210,9 +218,18 @@ export function useFeatureGate(
     [estateId, feature, promptFor, role]
   );
 
-  const showDenied = useCallback(() => {
-    promptFor(canManagePlan(role) ? 'upgrade' : 'contact_admin');
-  }, [promptFor, role]);
+  // `message` replaces the feature's usual copy. Ignores non-string arguments so the function can
+  // still be used directly as a press handler.
+  const showDenied = useCallback(
+    (message?: unknown) => {
+      promptFor(
+        canManagePlan(role) ? 'upgrade' : 'contact_admin',
+        null,
+        typeof message === 'string' ? message : null
+      );
+    },
+    [promptFor, role]
+  );
 
   const noticeProps = useMemo(
     () => ({ visible: noticeVisible, feature, message: noticeMessage }),

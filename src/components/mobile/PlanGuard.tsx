@@ -36,6 +36,7 @@ export default function PlanGuard() {
   const visible = useUpgradePromptStore((s) => s.visible);
   const dismiss = useUpgradePromptStore((s) => s.dismiss);
   const customUpgrade = useUpgradePromptStore((s) => s.onUpgrade);
+  const upgradeMessage = useUpgradePromptStore((s) => s.message);
   const role = useUserStore((s) => s.role);
   const noticeFeature = useContactAdminNoticeStore((s) => s.feature);
   const noticeMessage = useContactAdminNoticeStore((s) => s.message);
@@ -62,6 +63,7 @@ export default function PlanGuard() {
         <UpgradePlanModal
           visible={visible}
           feature={feature}
+          message={upgradeMessage}
           onClose={dismiss}
           onUpgrade={handleUpgrade}
         />

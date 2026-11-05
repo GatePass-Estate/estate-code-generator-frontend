@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated, { FadeIn } from 'react-native-reanimated';
@@ -230,11 +230,17 @@ function IncidentListRow({ row }: { row: IncidentRow }) {
 
 export default function IncidentResultView({
   isActive = true,
+  onAccessDenied,
   hasAiReviewTier,
   inHouseInstalled,
   thirdPartyInstalled,
 }: {
   isActive?: boolean;
+  /**
+   * Called when the server refuses the estate's plan. The parent then decides what to show; without
+   * it the plan prompt is shown here.
+   */
+  onAccessDenied?: () => void;
   /** False when neither tier 2 nor tier 3 is installed → show the Upgrade Plan card. */
   hasAiReviewTier?: boolean;
   /** False hides the In-house summary even if the API still returns `tier1`. */
@@ -602,8 +608,13 @@ export default function IncidentResultView({
     incidentReportAccess !== 'granted' &&
     (isEntitlementDenied(overviewErr) || isEntitlementDenied(reportsErr));
 
+  const onAccessDeniedRef = useRef(onAccessDenied);
+  onAccessDeniedRef.current = onAccessDenied;
+
   useEffect(() => {
-    if (bootEntitlementDenied && isActive) showSummaryDenied();
+    if (!bootEntitlementDenied || !isActive) return;
+    if (onAccessDeniedRef.current) onAccessDeniedRef.current();
+    else showSummaryDenied();
   }, [bootEntitlementDenied, isActive, showSummaryDenied]);
 
   const bootErrorDetail = (() => {

@@ -59,6 +59,10 @@ const PRODUCT_FEATURE_ICONS = [Pf1Svg, Pf2Svg, Pf3Svg];
 
 const tierNumber = (tier: string) => tier.replace(/\D/g, '') || tier;
 
+/** Shown when the server refuses the Result data although an incident tier is active. */
+const SUBSCRIPTION_NOT_LINKED_MESSAGE =
+  'Your subscription is active, but it isn’t linked to Incident Report Insights yet. Please contact support.';
+
 /** Separate from anomaly's `cancelledTiers-*` key, which is keyed by its own tier names. */
 const cancelledTiersStorageKey = (estateId: string) => `incidentCancelledTiers-${estateId}`;
 
@@ -87,6 +91,8 @@ export default function IncidentReportPreviewScreen() {
   const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
   const [justPurchasedTiers, setJustPurchasedTiers] = useState<Record<string, boolean>>({});
   const [justCancelledTiers, setJustCancelledTiers] = useState<Record<string, boolean>>({});
+  // The server refused the Result data; remembered so the next tap shows the prompt straight away.
+  const [serverDenied, setServerDenied] = useState(false);
   // Duration quote → Paystack → payment check, the same flow as the anomaly product.
   const [activationModalVisible, setActivationModalVisible] = useState(false);
   const [selectedTierForActivation, setSelectedTierForActivation] =
@@ -185,6 +191,7 @@ export default function IncidentReportPreviewScreen() {
   const queryClient = useQueryClient();
   /** Tier entitlements changed → drop cached summaries so Result can't show a removed tier. */
   const refreshAfterTierChange = async () => {
+    setServerDenied(false);
     queryClient.removeQueries({ queryKey: ['incident-reports', 'summary'] });
     void queryClient.invalidateQueries({ queryKey: ['incident-reports'] });
     await Promise.all([
@@ -487,7 +494,7 @@ export default function IncidentReportPreviewScreen() {
           ['active', 'purchased', 'subscribed', 'installed'].includes(tier.status ?? '')
       )
     : undefined;
-  const resultAllowed = hasInsightTier !== false;
+  const resultAllowed = hasInsightTier !== false && !serverDenied;
   const { showDenied: showResultDenied } = useFeatureGate('incident_report_summary_tier_1', {
     notice: 'floating',
     onUpgrade: () => setActiveTab('Preview'),
@@ -507,8 +514,9 @@ export default function IncidentReportPreviewScreen() {
   useEffect(() => {
     if (activeTab !== 'Result' || resultLocked || resultAllowed) return;
     setResultLocked(true);
-    showResultDenied();
-  }, [activeTab, resultLocked, resultAllowed, showResultDenied]);
+    // With a tier active, upgrading isn't the fix: the server hasn't linked the subscription.
+    showResultDenied(hasInsightTier ? SUBSCRIPTION_NOT_LINKED_MESSAGE : undefined);
+  }, [activeTab, resultLocked, resultAllowed, hasInsightTier, showResultDenied]);
 
   const handleTabChange = (tab: 'Preview' | 'Result') => {
     if (tab === activeTab) return;
@@ -565,6 +573,7 @@ export default function IncidentReportPreviewScreen() {
         ) : activeTab === 'Result' ? (
           <IncidentResultView
             isActive={activeTab === 'Result'}
+            onAccessDenied={() => setServerDenied(true)}
             hasAiReviewTier={hasAiReviewTier}
             inHouseInstalled={inHouseInstalled}
             thirdPartyInstalled={thirdPartyInstalled}
