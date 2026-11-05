@@ -17,7 +17,7 @@ import SetTimeSheet from '@/src/components/mobile/SetTimeSheet';
 import ToggleSwitch from '@/src/components/mobile/ToggleSwitch';
 import { generateCode } from '@/src/lib/api/codes';
 import { createGuest } from '@/src/lib/api/guests';
-import { formatInvitePeriodDisplay, parseLogDate } from '@/src/lib/helpers';
+import { formatInvitePeriodDisplay, parseLogDate, toUtcClock } from '@/src/lib/helpers';
 import { useAndroidBottomInset } from '@/src/hooks/useAndroidBottomInset';
 import { useFeatureGate } from '@/src/hooks/usePlan';
 import { useUserStore } from '@/src/lib/stores/userStore';
@@ -39,9 +39,6 @@ const formatClock = (date: Date) => {
 };
 
 const HOUR_MS = 3_600_000;
-/** Server rejects start <= now; cover clock skew and request latency. */
-const START_NOW_BUFFER_MS = 5_000;
-
 /** Drop seconds so a wheel pick of 11:43 is not treated as the past at 11:43:31. */
 const atMinute = (date: Date) => {
   const next = new Date(date);
@@ -54,7 +51,9 @@ const formatDurationHours = (start: Date | null, end: Date | null) => {
   return Math.max(1, Math.round((end.getTime() - start.getTime()) / HOUR_MS));
 };
 
-type Period = { start: Date; end: Date };
+/** `start: null` means "now": the server fills in its own clock, which a phone-side "now" can
+ *  never match (by the time it arrives it is in the past, and the server rejects that). */
+type Period = { start: Date | null; end: Date };
 type PeriodResult = { period: Period } | { error: { title: string; message: string } };
 
 const resolveCustomPeriod = (start: Date | null, end: Date | null, now: Date): PeriodResult => {
@@ -66,17 +65,14 @@ const resolveCustomPeriod = (start: Date | null, end: Date | null, now: Date): P
       error: { title: 'Invalid start time', message: 'Start date/time cannot be in the past.' },
     };
   }
-  // This minute / "now" must be strictly after the server clock, not 11:43:00 vs 11:43:40.
-  const periodStart =
-    start.getTime() <= now.getTime() + START_NOW_BUFFER_MS
-      ? new Date(now.getTime() + START_NOW_BUFFER_MS)
-      : start;
-  if (end.getTime() <= periodStart.getTime()) {
+  // The current minute is "now": the picker has no seconds, so it can't be told apart from it.
+  const startsNow = atMinute(start) === atMinute(now);
+  if (end.getTime() <= (startsNow ? now : start).getTime()) {
     return {
       error: { title: 'Invalid end time', message: 'End date/time must be after the start.' },
     };
   }
-  return { period: { start: periodStart, end } };
+  return { period: { start: startsNow ? null : start, end } };
 };
 
 const atCurrentClock = () => {
@@ -91,16 +87,13 @@ const oneHourLaterClock = () => {
   return d;
 };
 
-/**
- * Cache service expects ``YYYY-MM-DD HH:MM:SS.mmm+0000``.
- * Digits are local wall time (14:32 stays 14:32). Do not convert to UTC.
- */
+/** Cache service expects ``YYYY-MM-DD HH:MM:SS.mmm+0000``: a real UTC instant. */
 const toBackendUtc = (date: Date) => {
   const pad = (n: number, len = 2) => String(n).padStart(len, '0');
   return (
-    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ` +
-    `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}.` +
-    `${pad(date.getMilliseconds(), 3)}+0000`
+    `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())} ` +
+    `${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}:${pad(date.getUTCSeconds())}.` +
+    `${pad(date.getUTCMilliseconds(), 3)}+0000`
   );
 };
 
@@ -260,12 +253,16 @@ export default function SetAccessCodeDurationScreen() {
           relationship_with_resident: relationship,
           gender,
           validity_period: customPeriod
-            ? { start: toBackendUtc(customPeriod.start), end: toBackendUtc(customPeriod.end) }
+            ? {
+                start: customPeriod.start ? toBackendUtc(customPeriod.start) : null,
+                end: toBackendUtc(customPeriod.end),
+              }
             : null,
           validity_window: usesValidityWindow
             ? {
-                start: formatClock(windowEdited ? windowStart : atCurrentClock()),
-                end: formatClock(windowEdited ? windowEnd : oneHourLaterClock()),
+                // The server compares the window with the UTC time of day.
+                start: toUtcClock(windowEdited ? windowStart : atCurrentClock()),
+                end: toUtcClock(windowEdited ? windowEnd : oneHourLaterClock()),
               }
             : null,
         },

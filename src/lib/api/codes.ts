@@ -106,7 +106,8 @@ export const generateCode = async (
     visitor_fullname?: string;
     relationship_with_resident?: RelationshipType;
     gender?: GenderType;
-    validity_period?: { start: string; end: string } | null;
+    /** A `null` start means "now" on the server. */
+    validity_period?: { start: string | null; end: string } | null;
     validity_window?: { start: string; end: string } | null;
   },
   type: 'visitor' | 'resident' = 'visitor'

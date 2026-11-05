@@ -65,6 +65,8 @@ import {
   sortMarketplaceTiers,
   resolveMarketplaceFeatureId,
 } from '@/src/lib/api/aiMarketplace';
+import { useFeatureGate } from '@/src/hooks/usePlan';
+import { scrollCardIntoView } from '@/src/lib/scrollIntoView';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import {
   MarketplaceDetailResponse,
@@ -298,6 +300,7 @@ export default function AnomalyDetectionPreviewScreen() {
   };
 
   const handlePressActivate = (tierPayload: MarketplaceTier) => {
+    if (requireTierOne(tierPayload.tier)) return;
     if (tierPayload.is_free) {
       handleActivateFreeTier(tierPayload);
       return;
@@ -494,6 +497,7 @@ export default function AnomalyDetectionPreviewScreen() {
     tier: string;
     feature_key?: string | null;
   }) => {
+    if (requireTierOne(tierPayload.tier)) return;
     if (!estateId) {
       Alert.alert('Error', 'Estate ID not found');
       return;
@@ -561,6 +565,47 @@ export default function AnomalyDetectionPreviewScreen() {
   const tierOneApi = sortedTiers[0];
   const tierTwoApi = sortedTiers[1];
   const tierThreeApi = sortedTiers[2];
+
+  // Tier One is the base product; Tiers Two and Three are add-ons that need it installed. Paying
+  // makes a tier "installed" on the server before the user has chosen to install it, so a tier
+  // just purchased still counts as not installed (as the Install / Uninstall button does). Until
+  // the tiers load there is nothing to judge, so nothing is blocked.
+  const tierOneInstalled = featureDetail
+    ? !!tierOneApi && !!tierOneApi.is_installed && !justPurchasedTiers[tierOneApi.tier]
+    : undefined;
+  const tierOneSubscribed = featureDetail
+    ? !!tierOneApi &&
+      (!!tierOneApi.is_installed ||
+        !!tierOneApi.purchased ||
+        ['active', 'purchased', 'subscribed', 'installed'].includes(tierOneApi.status ?? ''))
+    : undefined;
+  const tierOneRef = useRef<View>(null);
+  const viewportHeightRef = useRef(0);
+
+  /** "Upgrade" goes to the Overview tab with Tier One opened and in view. */
+  const showTierOne = () => {
+    setExpandedTier('Tier One');
+    handleTabPress('Overview');
+    // The card grows when opened, so let it lay out first.
+    setTimeout(
+      () =>
+        scrollCardIntoView(scrollViewRef.current, tierOneRef.current, viewportHeightRef.current),
+      450
+    );
+  };
+  const { showDenied: showTierOneRequired } = useFeatureGate('access_anomaly_detection_tier_1', {
+    notice: 'floating',
+    onUpgrade: showTierOne,
+  });
+  /** True (after prompting) when a Tier Two or Three action needs Tier One first. */
+  const requireTierOne = (tierName: string) => {
+    const order = Number.parseInt(tierName.replace(/\D/g, ''), 10) || 0;
+    if (order <= 1 || tierOneInstalled !== false) return false;
+    showTierOneRequired(
+      `${tierOneSubscribed ? 'Install' : 'Subscribe to'} Tier One first. Tiers Two and Three build on it.`
+    );
+    return true;
+  };
 
   const renderTierButtons = (tierApi: any, fallbackTier: string) => {
     const api: MarketplaceTier = tierApi || { tier: fallbackTier };
@@ -902,6 +947,9 @@ export default function AnomalyDetectionPreviewScreen() {
             showsVerticalScrollIndicator={false}
             style={{ flex: 1, backgroundColor: '#F6F7F7' }}
             contentContainerStyle={{ flexGrow: 1 }}
+            onLayout={(e) => {
+              viewportHeightRef.current = e.nativeEvent.layout.height;
+            }}
           >
             <Animated.View entering={FadeIn.duration(280)}>
               {/* Top Hero Container with split background */}
@@ -1076,6 +1124,7 @@ export default function AnomalyDetectionPreviewScreen() {
                 </Text>
 
                 <View
+                  ref={tierOneRef}
                   className={`rounded-[16px] p-5 mb-4 ${expandedTier === 'Tier One' ? (tierOneApi?.is_installed ? 'bg-[#F2FAF9] border border-[#1B998B]' : 'bg-white border border-[#113E55]') : 'bg-white border border-[#EFF1F3]'}`}
                 >
                   <View className="flex-row justify-between items-start mb-1.5">

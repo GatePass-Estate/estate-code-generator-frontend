@@ -5,7 +5,7 @@ import {
   SecurityHistoryEntry,
   VisitorLogEntry,
 } from '@/src/types/accessLogs';
-import { parseLogDate } from '@/src/lib/helpers';
+import { compareLogDatesDesc } from '@/src/lib/helpers';
 
 export function mapResidentLogToAccessLog(entry: ResidentLogEntry): ResidentAccessLog {
   return {
@@ -37,7 +37,7 @@ export function mapResidentCodeHistoryToEvents(
   }
 
   return events
-    .sort((a, b) => parseLogDate(b.timestamp).getTime() - parseLogDate(a.timestamp).getTime())
+    .sort((a, b) => compareLogDatesDesc(a.timestamp, b.timestamp))
     .map((event, index) => ({
       id: `${event.type}-${index}`,
       type: event.type,

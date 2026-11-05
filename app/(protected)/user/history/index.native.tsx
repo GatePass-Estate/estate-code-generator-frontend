@@ -20,6 +20,7 @@ import { useUserStore } from '@/src/lib/stores/userStore';
 import { VisitorLogEntry } from '@/src/types/accessLogs';
 import { Codes } from '@/src/types/codes';
 import {
+  compareLogDatesDesc,
   formatPastHistoryVisitDate,
   formatUpcomingInviteCardDate,
   groupLogsByMonth,
@@ -222,10 +223,7 @@ export default function HistoryTabScreen() {
   );
 
   const pastLogs = useMemo(
-    () =>
-      dedupeByCode(logs).sort(
-        (a, b) => parseLogDate(b.visit_time).getTime() - parseLogDate(a.visit_time).getTime()
-      ),
+    () => dedupeByCode(logs).sort((a, b) => compareLogDatesDesc(a.visit_time, b.visit_time)),
     [logs]
   );
 

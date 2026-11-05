@@ -7,7 +7,7 @@ import AccessHistoryDetail, {
 } from '@/src/components/mobile/AccessHistoryDetail';
 import { getMyVisitorAccessLogByCode } from '@/src/lib/api/accessLogs';
 import { deleteCode } from '@/src/lib/api/codes';
-import { formatAccessLogTimestamp, parseLogDate } from '@/src/lib/helpers';
+import { compareLogDatesDesc, formatAccessLogTimestamp, parseLogDate } from '@/src/lib/helpers';
 import { useAndroidBottomInset } from '@/src/hooks/useAndroidBottomInset';
 import { GenderType } from '@/src/types/general';
 import { sharedStyles } from '@/src/theme/styles';
@@ -72,9 +72,7 @@ export default function HistoryDetailScreen() {
 
       setEvents(
         [...history.items]
-          .sort(
-            (a, b) => parseLogDate(b.visit_time).getTime() - parseLogDate(a.visit_time).getTime()
-          )
+          .sort((a, b) => compareLogDatesDesc(a.visit_time, b.visit_time))
           .map((item, index) => ({
             id: item.id || `visit-${index}`,
             title: 'Access Granted',
