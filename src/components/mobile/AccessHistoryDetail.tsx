@@ -35,8 +35,6 @@ type AccessHistoryDetailProps = {
   bottomInset?: number;
   /** Gap between timeline items. Default 24. */
   timelineGap?: number;
-  /** Trailing line below last non-expired item. Default 59. */
-  timelineLastOverflow?: number;
 };
 
 function getInitials(name: string) {
@@ -60,7 +58,6 @@ export default function AccessHistoryDetail({
   activeCodeActions,
   bottomInset = 0,
   timelineGap = 24,
-  timelineLastOverflow = 59,
 }: AccessHistoryDetailProps) {
   const displayName = name.trim() || 'Unknown';
   const initials = getInitials(displayName);
@@ -118,13 +115,7 @@ export default function AccessHistoryDetail({
             }}
             showsVerticalScrollIndicator={false}
           >
-            <AccessTimeline
-              className="w-full"
-              events={events}
-              error={error}
-              gap={timelineGap}
-              lastOverflow={timelineLastOverflow}
-            />
+            <AccessTimeline className="w-full" events={events} error={error} gap={timelineGap} />
           </ScrollView>
 
           {activeCodeActions ? (

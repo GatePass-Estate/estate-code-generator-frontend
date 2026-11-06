@@ -6,6 +6,8 @@ import { PlanFeature, getUpgradeCopy } from '@/src/lib/plans';
 type UpgradePlanModalProps = {
   visible: boolean;
   feature: PlanFeature;
+  /** Replaces the feature's upgrade copy. */
+  message?: string | null;
   onClose: () => void;
   onUpgrade?: () => void;
 };
@@ -13,10 +15,11 @@ type UpgradePlanModalProps = {
 export default function UpgradePlanModal({
   visible,
   feature,
+  message,
   onClose,
   onUpgrade,
 }: UpgradePlanModalProps) {
-  const body = getUpgradeCopy(feature);
+  const body = message || getUpgradeCopy(feature);
 
   return (
     <Modal transparent animationType="fade" visible={visible} onRequestClose={onClose}>

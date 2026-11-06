@@ -6,6 +6,7 @@ import { sharedStyles } from '@/src/theme/styles';
 import ScreenHeader from '@/src/components/mobile/ScreenHeader';
 import AnimatedPillTabs from '@/src/components/mobile/AnimatedPillTabs';
 import {
+  compareLogDatesDesc,
   formatAccessCodeWithSpace,
   formatPastHistoryVisitDate,
   groupLogsByMonth,
@@ -83,7 +84,7 @@ export default function AccessLogScreen() {
               mapResidentLogToSecurityEntry
             );
 
-      setLogs(mapped);
+      setLogs([...mapped].sort((a, b) => compareLogDatesDesc(a.timestamp, b.timestamp)));
     } catch (e: any) {
       setError(e?.message?.trim() || 'Could not load access history.');
       setLogs([]);

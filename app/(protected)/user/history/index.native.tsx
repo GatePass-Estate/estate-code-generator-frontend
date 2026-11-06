@@ -20,6 +20,7 @@ import { useUserStore } from '@/src/lib/stores/userStore';
 import { VisitorLogEntry } from '@/src/types/accessLogs';
 import { Codes } from '@/src/types/codes';
 import {
+  compareLogDatesDesc,
   formatPastHistoryVisitDate,
   formatUpcomingInviteCardDate,
   groupLogsByMonth,
@@ -222,10 +223,7 @@ export default function HistoryTabScreen() {
   );
 
   const pastLogs = useMemo(
-    () =>
-      dedupeByCode(logs).sort(
-        (a, b) => parseLogDate(b.visit_time).getTime() - parseLogDate(a.visit_time).getTime()
-      ),
+    () => dedupeByCode(logs).sort((a, b) => compareLogDatesDesc(a.visit_time, b.visit_time)),
     [logs]
   );
 
@@ -254,6 +252,11 @@ export default function HistoryTabScreen() {
       },
     });
   }, []);
+
+  const showingMessageOnly =
+    mode === 'past'
+      ? !!pastError || groupedPast.length === 0
+      : !!upcomingError || sortedUpcoming.length === 0;
 
   return (
     <SafeAreaView
@@ -284,7 +287,9 @@ export default function HistoryTabScreen() {
             style={{ flex: 1 }}
             contentContainerStyle={{
               flexGrow: 1,
-              paddingTop: mode === 'upcoming' ? 35 : 31,
+              // Lists keep their per-tab offsets; the empty/error message sits at one shared offset so
+              // it lines up when switching tabs.
+              paddingTop: showingMessageOnly ? 31 : mode === 'upcoming' ? 35 : 31,
               paddingBottom: tabContentPadding + 40,
               gap: 38,
             }}
