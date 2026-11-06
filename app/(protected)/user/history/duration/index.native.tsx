@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { View, Text, Pressable, ScrollView, Alert } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router, useFocusEffect, useLocalSearchParams, useNavigation } from 'expo-router';
@@ -17,7 +17,7 @@ import SetTimeSheet from '@/src/components/mobile/SetTimeSheet';
 import ToggleSwitch from '@/src/components/mobile/ToggleSwitch';
 import { generateCode } from '@/src/lib/api/codes';
 import { createGuest } from '@/src/lib/api/guests';
-import { formatInvitePeriodDisplay, parseLogDate } from '@/src/lib/helpers';
+import { formatInvitePeriodDisplay, parseLogDate, toUtcClock } from '@/src/lib/helpers';
 import { useAndroidBottomInset } from '@/src/hooks/useAndroidBottomInset';
 import { useFeatureGate } from '@/src/hooks/usePlan';
 import { useUserStore } from '@/src/lib/stores/userStore';
@@ -39,33 +39,40 @@ const formatClock = (date: Date) => {
 };
 
 const HOUR_MS = 3_600_000;
-/** How far in the past a chosen start may be before it's rejected (it's then clamped to now). */
-const START_GRACE_MS = 30_000;
+/** Drop seconds so a wheel pick of 11:43 is not treated as the past at 11:43:31. */
+const atMinute = (date: Date) => {
+  const next = new Date(date);
+  next.setSeconds(0, 0);
+  return next.getTime();
+};
 
 const formatDurationHours = (start: Date | null, end: Date | null) => {
   if (!start || !end || end.getTime() <= start.getTime()) return null;
   return Math.max(1, Math.round((end.getTime() - start.getTime()) / HOUR_MS));
 };
 
-type Period = { start: Date; end: Date };
+/** `start: null` means "now": the server fills in its own clock, which a phone-side "now" can
+ *  never match (by the time it arrives it is in the past, and the server rejects that). */
+type Period = { start: Date | null; end: Date };
 type PeriodResult = { period: Period } | { error: { title: string; message: string } };
 
 const resolveCustomPeriod = (start: Date | null, end: Date | null, now: Date): PeriodResult => {
   if (!start || !end) {
     return { error: { title: 'Missing duration', message: 'Select a start and end date/time.' } };
   }
-  if (start.getTime() < now.getTime() - START_GRACE_MS) {
+  if (atMinute(start) < atMinute(now)) {
     return {
       error: { title: 'Invalid start time', message: 'Start date/time cannot be in the past.' },
     };
   }
-  const periodStart = start.getTime() < now.getTime() ? now : start;
-  if (end.getTime() <= periodStart.getTime()) {
+  // The current minute is "now": the picker has no seconds, so it can't be told apart from it.
+  const startsNow = atMinute(start) === atMinute(now);
+  if (end.getTime() <= (startsNow ? now : start).getTime()) {
     return {
       error: { title: 'Invalid end time', message: 'End date/time must be after the start.' },
     };
   }
-  return { period: { start: periodStart, end } };
+  return { period: { start: startsNow ? null : start, end } };
 };
 
 const atCurrentClock = () => {
@@ -80,7 +87,7 @@ const oneHourLaterClock = () => {
   return d;
 };
 
-/** Cache service expects ``YYYY-MM-DD HH:MM:SS.mmm+0000`` (UTC). */
+/** Cache service expects ``YYYY-MM-DD HH:MM:SS.mmm+0000``: a real UTC instant. */
 const toBackendUtc = (date: Date) => {
   const pad = (n: number, len = 2) => String(n).padStart(len, '0');
   return (
@@ -142,24 +149,56 @@ export default function SetAccessCodeDurationScreen() {
 
   const [durationEnabled, setDurationEnabled] = useState(false);
   const [startDate, setStartDate] = useState<Date | null>(null);
+  // "Now" is resolved when the code is generated, so a start picked earlier can't have passed.
+  const [startNow, setStartNow] = useState(true);
   const [endDate, setEndDate] = useState<Date | null>(null);
+  // Until the user picks an end, a start-now duration is "an hour from now" and follows the clock.
+  const [endEdited, setEndEdited] = useState(false);
   const [windowEnabled, setWindowEnabled] = useState(false);
   const [windowStart, setWindowStart] = useState(atCurrentClock);
   const [windowEnd, setWindowEnd] = useState(oneHourLaterClock);
+  // Until the user picks times, the window is "from now for an hour" and follows the clock.
+  const [windowEdited, setWindowEdited] = useState(false);
   const [dateTarget, setDateTarget] = useState<DateTarget | null>(null);
   const [timeSheetVisible, setTimeSheetVisible] = useState(false);
   const [generating, setGenerating] = useState(false);
 
-  const durationHours = formatDurationHours(startDate, endDate);
+  const effectiveStart = startNow ? new Date() : startDate;
+  const durationHours = formatDurationHours(effectiveStart, endDate);
   const windowTimesDiffer = formatClock(windowStart) !== formatClock(windowEnd);
   const usesValidityWindow = windowEnabled && windowTimesDiffer;
   const canGenerate = Boolean(user_id && estate_id);
 
   const datePickerValue = useMemo(() => {
-    if (dateTarget === 'start') return startDate ?? new Date();
-    if (dateTarget === 'end') return endDate ?? startDate ?? new Date();
+    if (dateTarget === 'start') return (startNow ? null : startDate) ?? new Date();
+    if (dateTarget === 'end') return endDate ?? (startNow ? null : startDate) ?? new Date();
     return new Date();
-  }, [dateTarget, endDate, startDate]);
+  }, [dateTarget, endDate, startDate, startNow]);
+
+  useEffect(() => {
+    // Paused while the time sheet is open: it re-reads these values and would reset a pick.
+    if (!windowEnabled || windowEdited || timeSheetVisible) return;
+    const sync = () => {
+      const start = atCurrentClock();
+      const end = oneHourLaterClock();
+      setWindowStart((prev) => (formatClock(prev) === formatClock(start) ? prev : start));
+      setWindowEnd((prev) => (formatClock(prev) === formatClock(end) ? prev : end));
+    };
+    sync();
+    const id = setInterval(sync, 5_000);
+    return () => clearInterval(id);
+  }, [windowEnabled, windowEdited, timeSheetVisible]);
+
+  useEffect(() => {
+    if (!durationEnabled || !startNow || endEdited || dateTarget) return;
+    const sync = () => {
+      const next = new Date(Date.now() + HOUR_MS);
+      setEndDate((prev) => (prev && formatClock(prev) === formatClock(next) ? prev : next));
+    };
+    sync();
+    const id = setInterval(sync, 5_000);
+    return () => clearInterval(id);
+  }, [durationEnabled, startNow, endEdited, dateTarget]);
 
   const handleDurationToggle = (next: boolean) => {
     if (!next) {
@@ -168,6 +207,8 @@ export default function SetAccessCodeDurationScreen() {
     }
     if (!requestCodeAccess()) return;
     setDurationEnabled(true);
+    setStartNow(true);
+    setEndEdited(false);
     if (!startDate || !endDate) {
       const start = new Date();
       const end = new Date(start.getTime() + HOUR_MS);
@@ -193,7 +234,8 @@ export default function SetAccessCodeDurationScreen() {
     const now = new Date();
     let customPeriod: Period | null = null;
     if (durationEnabled) {
-      const resolved = resolveCustomPeriod(startDate, endDate, now);
+      const end = startNow && !endEdited ? new Date(now.getTime() + HOUR_MS) : endDate;
+      const resolved = resolveCustomPeriod(startNow ? now : startDate, end, now);
       if ('error' in resolved) {
         Alert.alert(resolved.error.title, resolved.error.message);
         return;
@@ -211,10 +253,17 @@ export default function SetAccessCodeDurationScreen() {
           relationship_with_resident: relationship,
           gender,
           validity_period: customPeriod
-            ? { start: toBackendUtc(customPeriod.start), end: toBackendUtc(customPeriod.end) }
+            ? {
+                start: customPeriod.start ? toBackendUtc(customPeriod.start) : null,
+                end: toBackendUtc(customPeriod.end),
+              }
             : null,
           validity_window: usesValidityWindow
-            ? { start: formatClock(windowStart), end: formatClock(windowEnd) }
+            ? {
+                // The server compares the window with the UTC time of day.
+                start: toUtcClock(windowEdited ? windowStart : atCurrentClock()),
+                end: toUtcClock(windowEdited ? windowEnd : oneHourLaterClock()),
+              }
             : null,
         },
         'visitor'
@@ -255,6 +304,7 @@ export default function SetAccessCodeDurationScreen() {
   }, [
     durationEnabled,
     endDate,
+    endEdited,
     estate_id,
     estate_name,
     gender,
@@ -263,9 +313,11 @@ export default function SetAccessCodeDurationScreen() {
     requestCodeAccess,
     shouldSaveGuest,
     startDate,
+    startNow,
     user_id,
     usesValidityWindow,
     visitorName,
+    windowEdited,
     windowEnd,
     windowStart,
   ]);
@@ -275,14 +327,19 @@ export default function SetAccessCodeDurationScreen() {
       <CodeDateTimePicker
         mode={dateTarget}
         value={datePickerValue}
-        minDate={dateTarget === 'end' ? startDate : null}
+        minDate={dateTarget === 'end' ? effectiveStart : null}
         onBack={() => setDateTarget(null)}
         onSet={(next) => {
           const target = dateTarget;
           setDateTarget(null);
           requestAnimationFrame(() => {
-            if (target === 'start') setStartDate(next);
-            else setEndDate(next);
+            if (target === 'start') {
+              setStartDate(next);
+              setStartNow(false);
+            } else {
+              setEndEdited(true);
+              setEndDate(next);
+            }
           });
         }}
       />
@@ -332,9 +389,18 @@ export default function SetAccessCodeDurationScreen() {
           <View className="mt-[30px]">
             <DateTimeRow
               date={startDate}
+              isNow={startNow}
               placeholder="Enter Start Date"
               onPress={() => setDateTarget('start')}
             />
+            {!startNow ? (
+              <Pressable
+                onPress={() => setStartNow(true)}
+                className="mt-2 self-end rounded-full bg-[#E5F6FF] px-3 py-1.5"
+              >
+                <Text className="text-[11.2px] font-inter-medium text-[#113E55]">Start now</Text>
+              </Pressable>
+            ) : null}
 
             <View className="mt-2 mb-4 flex-row items-center px-[41px]">
               <View className="h-px flex-1 bg-[#878686]/30" />
@@ -437,6 +503,7 @@ export default function SetAccessCodeDurationScreen() {
         onDone={(nextStart, nextEnd) => {
           setTimeSheetVisible(false);
           requestAnimationFrame(() => {
+            setWindowEdited(true);
             setWindowStart(nextStart);
             setWindowEnd(nextEnd);
           });
@@ -472,10 +539,13 @@ function DateTimeRow({
   date,
   placeholder,
   onPress,
+  isNow = false,
 }: {
   date: Date | null;
   placeholder: string;
   onPress: () => void;
+  /** Shows "Now" instead of a date (the start is the moment the code is generated). */
+  isNow?: boolean;
 }) {
   return (
     <Pressable
@@ -484,7 +554,9 @@ function DateTimeRow({
     >
       <View className="min-w-0 flex-1 flex-row items-center gap-4">
         <UpcomingCalendarIcon width={16} height={16} />
-        {date ? (
+        {isNow ? (
+          <Text className="flex-1 text-sm font-inter-medium text-[#113E55]">Now</Text>
+        ) : date ? (
           <Text className="flex-1 text-sm font-inter-light text-[#113E55]" numberOfLines={1}>
             {formatDatePart(date)}
           </Text>
@@ -493,7 +565,7 @@ function DateTimeRow({
         )}
       </View>
       <View className="ml-2 flex-row items-center">
-        {date ? (
+        {date && !isNow ? (
           <Text className="mr-1 text-sm font-inter-medium text-[#113E55]">{formatClock(date)}</Text>
         ) : null}
         <FormChevronRightIcon width={20} height={20} />

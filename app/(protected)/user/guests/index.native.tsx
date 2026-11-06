@@ -13,7 +13,8 @@ import {
 } from 'react-native';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import UserIcon from '@/src/components/mobile/UserIcon';
-import NotificationBell from '@/src/components/common/NotificationBell';
+import ScreenHeader from '@/src/components/mobile/ScreenHeader';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEffect, useRef, useState } from 'react';
 import images from '@/src/constants/images';
 import { deleteMyGuest, getMyGuests } from '@/src/lib/api/guests';
@@ -146,24 +147,20 @@ const MyGuestMobile = () => {
   }, [bounceValue]);
 
   return (
-    <View style={sharedStyles.container}>
+    <SafeAreaView
+      style={sharedStyles.container}
+      edges={Platform.OS === 'web' ? [] : ['top', 'left', 'right']}
+    >
       {Platform.OS !== 'web' ? (
-        <Stack.Screen
-          options={{
-            headerShown: true,
-            title: 'My Guests',
-            headerShadowVisible: false,
-            headerTitleAlign: 'left',
-            headerStyle: sharedStyles.header,
-            headerTitleStyle: sharedStyles.title,
-            headerRight: () => (
-              <View className="flex-row items-center">
-                <NotificationBell />
-                <UserIcon />
-              </View>
-            ),
-          }}
-        />
+        <>
+          <Stack.Screen options={{ headerShown: false }} />
+          <ScreenHeader
+            title="My Guests"
+            showActions
+            containerClassName="z-10"
+            titleClassName="text-[27.34px]"
+          />
+        </>
       ) : (
         <>
           <WebSidebar routes={menuRoutes} onNavigate={(route) => router.push(route as any)} />
@@ -354,7 +351,7 @@ const MyGuestMobile = () => {
           actionText={'Delete'}
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 };
 

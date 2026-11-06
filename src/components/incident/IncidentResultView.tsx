@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated, { FadeIn } from 'react-native-reanimated';
@@ -34,6 +34,8 @@ import IncidentAISummaryCard, {
   type AISummarySlide,
   type InsightMode,
 } from './IncidentAISummaryCard';
+import { isAxiosError } from 'axios';
+import { useFeatureAccess, useFeatureGate } from '@/src/hooks/usePlan';
 import IncidentFilterModal, {
   type IncidentFilterCategory,
   type IncidentFilterUserType,
@@ -55,6 +57,14 @@ import {
   resolveCategorySection,
 } from './mapIncidentApi';
 import { type IncidentCategoryId, type IncidentRow } from './incidentTypes';
+
+/** True when the server refused because the estate's plan doesn't include the feature. */
+function isEntitlementDenied(err: unknown): boolean {
+  if (!isAxiosError(err)) return false;
+  if ([402, 403].includes(err.response?.status ?? 0)) return true;
+  const detail = (err.response?.data as { detail?: unknown } | undefined)?.detail;
+  return typeof detail === 'string' && /not entitled/i.test(detail);
+}
 
 function ShareBar({
   pct,
@@ -157,6 +167,8 @@ function TrendCard({
 }
 
 function IncidentListRow({ row }: { row: IncidentRow }) {
+  const reportedBySecurity = row.reporter === 'Security';
+
   return (
     <Pressable
       onPress={() => {
@@ -169,8 +181,16 @@ function IncidentListRow({ row }: { row: IncidentRow }) {
       className="w-full flex-row items-center gap-[15px] py-2"
     >
       <View className="w-[126px] flex-row items-start">
-        <View className="mt-[5px] h-6 w-6 items-center justify-center rounded-full bg-[#FFF8F5]">
-          <IncidentReporterHomeIcon size={14} color="#F46036" />
+        <View
+          className={`mt-[5px] h-6 w-6 items-center justify-center rounded-full ${
+            reportedBySecurity ? 'bg-[#F4FFFE]' : 'bg-[#FFF8F5]'
+          }`}
+        >
+          {reportedBySecurity ? (
+            <ShareBarSecurityIcon width={14} height={14} />
+          ) : (
+            <IncidentReporterHomeIcon size={14} color="#F46036" />
+          )}
         </View>
         <View className="ml-2 flex-1 gap-1">
           <Text
@@ -210,11 +230,17 @@ function IncidentListRow({ row }: { row: IncidentRow }) {
 
 export default function IncidentResultView({
   isActive = true,
+  onAccessDenied,
   hasAiReviewTier,
   inHouseInstalled,
   thirdPartyInstalled,
 }: {
   isActive?: boolean;
+  /**
+   * Called when the server refuses the estate's plan. The parent then decides what to show; without
+   * it the plan prompt is shown here.
+   */
+  onAccessDenied?: () => void;
   /** False when neither tier 2 nor tier 3 is installed → show the Upgrade Plan card. */
   hasAiReviewTier?: boolean;
   /** False hides the In-house summary even if the API still returns `tier1`. */
@@ -289,7 +315,19 @@ export default function IncidentResultView({
     data: rawSummary,
     isFetching: summaryLoading,
     isError: summaryError,
+    error: summaryErr,
   } = useIncidentSummary(estate_id, fromDate, toDate, fetchSummary);
+  // Primary admin: Upgrade Plan modal whose button opens the AI store preview. Everyone else: the
+  // floating "Contact Admin" notice (this screen has no inline notice slot).
+  const incidentReportAccess = useFeatureAccess('incident_report');
+  const { showDenied: showSummaryDenied } = useFeatureGate('incident_report_summary_tier_1', {
+    notice: 'floating',
+    onUpgrade: () =>
+      router.push({
+        pathname: '/(protected)/(shared-screens)/ai-store/incident-report',
+        params: { tab: 'Preview' },
+      }),
+  });
   const summary = useMemo(() => {
     if (!rawSummary) return rawSummary;
     return {
@@ -432,12 +470,7 @@ export default function IncidentResultView({
     }
   };
 
-  const handleUpgradePress = () => {
-    router.push({
-      pathname: '/(protected)/(shared-screens)/ai-store/incident-report',
-      params: { tab: 'Preview' },
-    });
-  };
+  const handleUpgradePress = showSummaryDenied;
 
   useEffect(() => {
     setFetchSummary(false);
@@ -453,13 +486,27 @@ export default function IncidentResultView({
     if (summaryError) {
       setFetchSummary(false);
       setInsightMode('idle');
+      // The server refused because of the plan (payment required / forbidden): show the payment
+      // prompt rather than a generic failure the user can't act on.
+      if (isAxiosError(summaryErr) && [402, 403].includes(summaryErr.response?.status ?? 0)) {
+        showSummaryDenied();
+        return;
+      }
       Alert.alert('Unable to generate insight', 'Please try again in a moment.');
       return;
     }
     if (summary && !summary.tier1 && !summary.tier2) {
       setInsightMode('locked');
     }
-  }, [fetchSummary, summary, summaryLoading, summaryError, hasSummaryPayload]);
+  }, [
+    fetchSummary,
+    summary,
+    summaryLoading,
+    summaryError,
+    summaryErr,
+    showSummaryDenied,
+    hasSummaryPayload,
+  ]);
 
   useEffect(() => {
     if (!fetchSummary || !rawSummary) return;
@@ -528,17 +575,47 @@ export default function IncidentResultView({
 
   useEffect(() => {
     if (!overviewError && !reportsError) return;
-    console.warn('[incident-reports] boot query failed', {
-      overviewError,
-      reportsError,
-      overview: overviewErr,
-      reports: reportsErr,
-    });
-  }, [overviewError, reportsError, overviewErr, reportsErr]);
+    const axiosBits = (err: unknown) =>
+      isAxiosError(err)
+        ? {
+            status: err.response?.status ?? null,
+            data: err.response?.data ?? null,
+            message: err.message,
+          }
+        : { message: err instanceof Error ? err.message : String(err) };
+    console.log('\n================== [incident-reports] boot query failed ==================');
+    console.log(
+      JSON.stringify(
+        {
+          overview: axiosBits(overviewErr),
+          reports: axiosBits(reportsErr),
+          entitlements_incident_report: incidentReportAccess,
+        },
+        null,
+        2
+      )
+    );
+    console.log('=========================================================================\n');
+  }, [overviewError, reportsError, overviewErr, reportsErr, incidentReportAccess]);
 
   const isBootLoading = !!estate_id && (overviewLoading || reportsLoading);
   // Only blank the page when both boot queries failed with no usable payload.
   const bootFailed = !!estate_id && overviewError && reportsError && !overview && !reports;
+  // The estate's plan doesn't include incident reports: the server refuses with 402/403 ("Estate is
+  // not entitled to ..."). That is a plan prompt, not a load failure.
+  const bootEntitlementDenied =
+    bootFailed &&
+    incidentReportAccess !== 'granted' &&
+    (isEntitlementDenied(overviewErr) || isEntitlementDenied(reportsErr));
+
+  const onAccessDeniedRef = useRef(onAccessDenied);
+  onAccessDeniedRef.current = onAccessDenied;
+
+  useEffect(() => {
+    if (!bootEntitlementDenied || !isActive) return;
+    if (onAccessDeniedRef.current) onAccessDeniedRef.current();
+    else showSummaryDenied();
+  }, [bootEntitlementDenied, isActive, showSummaryDenied]);
 
   const bootErrorDetail = (() => {
     const err = (overviewErr || reportsErr) as
@@ -583,6 +660,11 @@ export default function IncidentResultView({
         <ActivityIndicator size="large" color="#113E55" />
       </View>
     );
+  }
+
+  if (bootEntitlementDenied) {
+    // The Upgrade Plan modal (or the contact-admin notice) carries the message.
+    return <View className="flex-1 bg-[#F6F7F7]" />;
   }
 
   if (bootFailed) {

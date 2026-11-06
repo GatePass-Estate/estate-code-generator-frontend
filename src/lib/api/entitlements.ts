@@ -21,13 +21,60 @@ const entitlementKeys = {
  */
 export class EntitlementsDeniedError extends Error {}
 
+const INCIDENT_ENTITLEMENT_KEYS = [
+  'incident_report',
+  'incident_report_summary_tier_1',
+  'incident_report_summary_tier_2',
+  'incident_report_summary_tier_3',
+] as const;
+
 async function fetchEstateEntitlements(estateId: string): Promise<Entitlements> {
   try {
     const { data } = await Api('revenue').get<EstateEntitlementsResponse>(
       `/entitlements/estate/${estateId}`
     );
-    return parseEntitlements(data);
+    const parsed = parseEntitlements(data);
+    console.log('\n================== [entitlements] estate response ==================');
+    console.log(
+      JSON.stringify(
+        {
+          estate_id: data.estate_id,
+          locked: data.locked ?? false,
+          reason: data.reason ?? null,
+          subscription_status: data.subscription_status ?? null,
+          tier_slug: data.tier_slug ?? null,
+          incident: Object.fromEntries(
+            INCIDENT_ENTITLEMENT_KEYS.map((key) => [
+              key,
+              {
+                raw: data.entitlements?.[key] ?? null,
+                granted: parsed.services.get(key) ?? false,
+              },
+            ])
+          ),
+        },
+        null,
+        2
+      )
+    );
+    console.log('===================================================================\n');
+    return parsed;
   } catch (error: any) {
+    if (isAxiosError(error)) {
+      console.log('\n================== [entitlements] estate error ==================');
+      console.log(
+        JSON.stringify(
+          {
+            status: error.response?.status ?? null,
+            data: error.response?.data ?? null,
+            message: error.message,
+          },
+          null,
+          2
+        )
+      );
+      console.log('===================================================================\n');
+    }
     const message = getErrorMessage(error) || 'Could not load plan entitlements';
     if (isAxiosError(error) && error.response?.status === 403) {
       throw new EntitlementsDeniedError(message);
@@ -78,14 +125,24 @@ export function ensureEstateEntitlements(estateId: string): Promise<Entitlements
   return queryClient.ensureQueryData(estateEntitlementsQuery(estateId));
 }
 
-/** Refetches in the background if the cached copy is older than `maxAgeMs`; never blocks. */
-export function refreshEstateEntitlementsIfOlderThan(estateId: string, maxAgeMs: number) {
-  void queryClient.prefetchQuery({ ...estateEntitlementsQuery(estateId), staleTime: maxAgeMs });
+/**
+ * Fetches the estate's entitlements from the server now, ignoring how fresh the cache is, and
+ * stores the answer. For confirming a cached "no" before refusing the user.
+ */
+export function refetchEstateEntitlements(estateId: string): Promise<Entitlements> {
+  return queryClient.fetchQuery({
+    ...estateEntitlementsQuery(estateId),
+    staleTime: 0,
+    retry: false,
+  });
 }
 
-/** Call when the server rejects a feature the cache said was allowed, so the cache catches up. */
-export function refreshEstateEntitlements() {
-  void queryClient.invalidateQueries({ queryKey: entitlementKeys.all });
+/**
+ * Call when the plan may have changed (a payment or upgrade) or the server rejects a feature the
+ * cache said was allowed, so the cache catches up. Resolves once the refetch has finished.
+ */
+export function refreshEstateEntitlements(): Promise<void> {
+  return queryClient.invalidateQueries({ queryKey: entitlementKeys.all });
 }
 
 export function clearEstateEntitlements() {

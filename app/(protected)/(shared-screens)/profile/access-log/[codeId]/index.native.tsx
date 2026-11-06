@@ -22,7 +22,6 @@ const EVENT_LABELS: Record<AccessLogEvent['type'], string> = {
 
 /** Profile usage log keeps its tighter 16px item spacing. */
 const PROFILE_TIMELINE_GAP = 26;
-const PROFILE_TIMELINE_LAST_OVERFLOW = 34;
 
 export default function UsageLogScreen() {
   const navigation = useNavigation();
@@ -162,7 +161,6 @@ export default function UsageLogScreen() {
           className="w-full pb-10"
           events={timelineEvents}
           gap={PROFILE_TIMELINE_GAP}
-          lastOverflow={PROFILE_TIMELINE_LAST_OVERFLOW}
           dashStyle={{ marginTop: 2 }}
         />
       </ScrollView>

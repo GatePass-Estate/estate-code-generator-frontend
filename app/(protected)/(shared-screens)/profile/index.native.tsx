@@ -193,10 +193,11 @@ export default function ProfileScreen() {
   }, [navigation, fetchMyCode, showAccessCode]);
 
   // The admin may have approved or rejected the ID since the last visit: refresh on every visit.
-  // Approved users' documents still come from the cache.
+  // `force` skips the 10-minute freshness window (a rejection would otherwise stay hidden for that
+  // long); approved users' document images still come from the cache.
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
-      if (user_id) void syncDocuments(user_id);
+      if (user_id) void syncDocuments(user_id, { force: true });
     });
     return unsubscribe;
   }, [navigation, user_id, syncDocuments]);
@@ -303,10 +304,12 @@ export default function ProfileScreen() {
           })
         );
         // The server says the ID now waits for an admin: reflect that straight away so this screen
-        // shows "Waiting Approval" and the Complete KYC modal sends the user back here.
+        // shows "Waiting Approval" and the Complete KYC modal sends the user back here. A user whose
+        // ID is already approved is only changing it: they stay verified while the request is open.
+        const alreadyApproved = useProfileDocumentsStore.getState().idApproval === 'approved';
         useProfileDocumentsStore.setState({
           pendingIdDocumentId: result.document_id,
-          idApproval: 'pending',
+          idApproval: alreadyApproved ? 'approved' : 'pending',
           // A just-uploaded ID hasn't been reviewed, so it can't be rejected yet.
           idRejected: false,
           idRejectionDocumentId: result.document_id,

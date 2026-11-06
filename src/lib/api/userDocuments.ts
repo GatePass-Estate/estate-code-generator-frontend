@@ -1,5 +1,6 @@
 import Api from '.';
 import {
+  assertDocumentUploadSize,
   fetchAuthenticatedDocumentUri,
   getFilenameFromUri,
   getMimeTypeFromUri,
@@ -17,6 +18,7 @@ export async function uploadUserDocument(
   documentType: DocumentType
 ): Promise<UploadDocumentResponse> {
   try {
+    await assertDocumentUploadSize(uri);
     const api = Api();
     const formData = new FormData();
     const filename = getFilenameFromUri(
