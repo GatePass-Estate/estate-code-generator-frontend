@@ -3,6 +3,7 @@ import { Redirect, Stack } from 'expo-router';
 import PlanGuard from '@/src/components/mobile/PlanGuard';
 import VerifyAccountGuard from '@/src/components/mobile/VerifyAccountGuard';
 import { useAuth } from '@/src/hooks/useAuthContext';
+import { useEstatePlanFreshness } from '@/src/hooks/useEstatePlanFreshness';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import BroadcastPopupHost from '@/src/components/common/BroadcastPopupHost';
 import PushNotificationsHost from '@/src/components/common/PushNotificationsHost';
@@ -13,6 +14,8 @@ export const unstable_home_settings = {
 
 export default function ProtectedLayout() {
   const { isReady } = useAuth();
+  // Before the early returns below, so the hook order never changes.
+  useEstatePlanFreshness();
 
   const status = useUserStore((state) => state.status);
 

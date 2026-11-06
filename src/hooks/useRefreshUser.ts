@@ -1,12 +1,12 @@
 import { useCallback } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { fetchMe } from '@/src/lib/api/auth';
-import { useAuthStore } from '@/src/lib/stores/authStore';
+import { getValidAccessToken } from '@/src/lib/authRefresh';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { User } from '@/src/types/user';
 
 export async function refreshCurrentUser() {
-  const accessToken = useAuthStore.getState().access_token;
+  const accessToken = await getValidAccessToken();
   if (!accessToken) return;
 
   try {

@@ -283,8 +283,6 @@ export default function ResetPassword() {
                 onChangeText={setNewPassword}
                 editable={!isLoading}
                 className="bg-[#F7F9F9] border border-[#D1D5DB] rounded-lg px-4 py-5 mt-1 pr-12"
-                contextMenuHidden={true}
-                selectTextOnFocus={false}
               />
               <Pressable
                 onPress={() => setShowNewPassword(!showNewPassword)}
@@ -312,8 +310,6 @@ export default function ResetPassword() {
                 onChangeText={setConfirmPassword}
                 editable={!isLoading}
                 className="bg-[#F7F9F9] border border-[#D1D5DB] rounded-lg px-4 py-5 mt-1 pr-12"
-                contextMenuHidden={true}
-                selectTextOnFocus={false}
               />
               <Pressable
                 onPress={() => setShowConfirmPassword(!showConfirmPassword)}

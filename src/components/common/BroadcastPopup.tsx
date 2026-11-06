@@ -4,6 +4,7 @@ import {
   Modal,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -23,6 +24,8 @@ type BroadcastPopupProps = {
 };
 
 const CARD_MAX_WIDTH = 337;
+/** Matches the backdrop's `px-[19px]`. */
+const SIDE_GUTTER = 19;
 
 /**
  * Full-screen broadcast announcement.
@@ -44,15 +47,17 @@ export default function BroadcastPopup({
   const [index, setIndex] = useState(0);
   const [acknowledging, setAcknowledging] = useState(false);
 
-  const pageWidth = useMemo(() => Math.min(width, CARD_MAX_WIDTH + 38), [width]);
-  const cardWidth = Math.min(CARD_MAX_WIDTH, width - 38);
+  // One page is exactly one card, and the pager is exactly one page wide: paging snaps by the
+  // viewport width, so any difference between the two makes each swipe drift by that much.
+  const pageWidth = useMemo(() => Math.min(CARD_MAX_WIDTH, width - SIDE_GUTTER * 2), [width]);
 
   const handleScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      const next = Math.round(event.nativeEvent.contentOffset.x / pageWidth);
+      const raw = Math.round(event.nativeEvent.contentOffset.x / pageWidth);
+      const next = Math.max(0, Math.min(raw, broadcasts.length - 1));
       setIndex((current) => (current === next ? current : next));
     },
-    [pageWidth]
+    [broadcasts.length, pageWidth]
   );
 
   // The list can also shrink from outside (a broadcast opened on its own page),
@@ -109,15 +114,18 @@ export default function BroadcastPopup({
           pagingEnabled
           showsHorizontalScrollIndicator={false}
           onMomentumScrollEnd={handleScroll}
+          // react-native-web never fires momentum events, so track the offset as it scrolls there.
+          onScroll={Platform.OS === 'web' ? handleScroll : undefined}
+          scrollEventThrottle={Platform.OS === 'web' ? 32 : undefined}
           scrollEnabled={broadcasts.length > 1}
-          style={{ maxHeight: '70%', flexGrow: 0 }}
+          style={{ width: pageWidth, maxHeight: '70%', flexGrow: 0 }}
         >
           {broadcasts.map((item) => {
             return (
-              <View key={item.id} style={{ width: pageWidth }} className="items-center">
+              <View key={item.id} style={{ width: pageWidth }}>
                 <View
                   className="rounded-[24px] border bg-white px-5 py-7"
-                  style={{ width: cardWidth, borderColor: '#CEE5ED' }}
+                  style={{ borderColor: '#CEE5ED' }}
                 >
                   <View className="flex-row items-center gap-4 mb-5">
                     <PriorityBadge priority={item.priority} />

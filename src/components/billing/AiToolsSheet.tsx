@@ -56,7 +56,10 @@ function AiToolCard({ tool }: { tool: EstateAiTool }) {
   );
 }
 
-/** "Active AI Tools" bottom sheet: marketplace note, then one validity card per active tool. */
+/**
+ * "Active AI Tools" bottom sheet: marketplace note, then one validity card per active standalone
+ * AI tool (added in the AI marketplace; tools included in the plan are not listed).
+ */
 export default function AiToolsSheet({
   visible,
   onClose,
@@ -96,9 +99,19 @@ export default function AiToolsSheet({
     );
   } else if (activeTools.length === 0) {
     content = (
-      <Text className="py-6 text-center font-inter-regular text-sm text-[#878686]">
-        No active AI tools.
-      </Text>
+      <View className="items-center gap-4 py-6">
+        <Text className="text-center font-inter-regular text-sm text-[#878686]">
+          No standalone AI tools. AI tools included in your plan are not listed here; add more from
+          the AI marketplace.
+        </Text>
+        <Pressable
+          onPress={openMarketplace}
+          accessibilityRole="button"
+          className="rounded-[24px] bg-primary px-5 py-3"
+        >
+          <Text className="font-ubuntu-semibold text-sm text-white">Go to AI marketplace</Text>
+        </Pressable>
+      </View>
     );
   } else {
     content = (

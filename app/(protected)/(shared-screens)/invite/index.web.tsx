@@ -1,4 +1,3 @@
-import QRCode from 'react-native-qrcode-svg';
 import WebSidebar from '@/src/components/web/WebSidebar';
 import { menuRoutes } from '../../user/_layout';
 import { useRouter, useLocalSearchParams, useNavigation } from 'expo-router';
@@ -10,6 +9,7 @@ import icons from '@/src/constants/icons';
 import { getWidthBreakpoint } from '@/src/lib/helpers';
 import Back from '@/src/components/mobile/Back';
 import { deleteCode } from '@/src/lib/api/codes';
+import BrandedQRCode from '@/src/components/common/BrandedQRCode';
 
 export default function ShareInvitePage() {
   const router = useRouter();
@@ -133,13 +133,15 @@ export default function ShareInvitePage() {
 
           <div className={`flex ${!isLargeScreen ? 'flex-col mt-8' : 'mt-14'} gap-12 mt-14`}>
             <div className="flex flex-col items-center">
-              <div className="bg-[#F15A29] p-6 mb-5 rounded-md shadow-[4px_4px_36px_0px_#D6CFCB]">
-                <QRCode
-                  value={codeParam as string}
-                  size={isLargeScreen ? 350 : 200}
-                  backgroundColor="#F15A29"
-                  color="#fff"
-                />
+              <div className="bg-[#F15A29] p-3 mb-5 rounded-[28px] shadow-[4px_4px_36px_0px_#D6CFCB]">
+                <div className="rounded-[16px] bg-[#F6F7F7] p-3">
+                  <BrandedQRCode
+                    value={codeParam as string}
+                    size={isLargeScreen ? 350 : 200}
+                    backgroundColor="#F6F7F7"
+                    accessibilityLabel="Guest invite QR code"
+                  />
+                </div>
               </div>
 
               <div className="flex items-center mt-2">

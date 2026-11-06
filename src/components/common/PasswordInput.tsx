@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { View, TextInput, Text, Pressable, Image, TextInputProps, Platform } from 'react-native';
+import { View, TextInput, Text, Pressable, Image, TextInputProps } from 'react-native';
 import icons from '@/src/constants/icons';
 
 interface PasswordInputProps extends TextInputProps {
@@ -19,10 +19,8 @@ const PasswordInput = memo(
             className="bg-[#F7F9F9] rounded-lg px-5 py-3 h-16 text-base pr-12"
             secureTextEntry={!show}
             autoCapitalize="none"
-            // Disable copy and paste on native platforms
-            contextMenuHidden={true}
-            // Also disable text selection
-            selectTextOnFocus={false}
+            // No contextMenuHidden: it also takes away the native cursor and selection
+            // controls. secureTextEntry already stops a hidden password being copied.
             {...textInputProps}
           />
           <Pressable

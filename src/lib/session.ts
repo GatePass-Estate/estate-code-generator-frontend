@@ -13,12 +13,13 @@ export function setUnauthorizedHandler(handler: UnauthorizedHandler | null) {
 }
 
 /**
- * Paths that may return 401 for bad credentials — do not force logout. The 2FA
- * endpoints answer a wrong code with 401, and password update does the same
- * for a wrong current password.
+ * Paths that may return 401 for bad credentials — do not force logout or try a
+ * token refresh. The 2FA endpoints answer a wrong code with 401, and password
+ * update does the same for a wrong current password. /auth/refresh reports its
+ * own failures, and /auth/logout is best-effort during sign-out.
  */
 const AUTH_EXEMPT_PATH =
-  /\/auth\/(login|forgot-password|reset-password|accept-tos|set-password|verify|biometric\/login|2fa\/(verify|recover|enable|disable|regenerate-codes))|\/users\/password\/update/i;
+  /\/auth\/(login|logout|refresh|forgot-password|reset-password|accept-tos|set-password|verify|biometric\/login|2fa\/(verify|recover|enable|disable|regenerate-codes))|\/users\/password\/update/i;
 
 export function shouldForceLogoutOn401(requestUrl?: string): boolean {
   if (!requestUrl) return true;

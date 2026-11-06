@@ -1,6 +1,12 @@
 import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { router } from 'expo-router';
 import ActivityIcon from '@/src/components/common/ActivityIcon';
-import { formatFullTimestamp, metadataRows } from '@/src/lib/notificationDetail';
+import {
+  ANOMALY_NOTIFICATION_TYPE,
+  anomalyRoute,
+  formatFullTimestamp,
+  metadataRows,
+} from '@/src/lib/notificationDetail';
 import type { NotificationItem } from '@/src/types/notification';
 
 /**
@@ -20,6 +26,13 @@ export default function ActivityDetailModal({
   if (!activity) return null;
 
   const rows = metadataRows(activity.metadata);
+  const isAnomaly = activity.type === ANOMALY_NOTIFICATION_TYPE;
+
+  const viewAnomaly = () => {
+    const route = anomalyRoute(activity.metadata);
+    onClose();
+    router.push(route);
+  };
 
   return (
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
@@ -61,12 +74,29 @@ export default function ActivityDetailModal({
             )}
           </ScrollView>
 
-          <Pressable
-            onPress={onClose}
-            className="bg-primary rounded-[24px] h-11 items-center justify-center mt-6"
-          >
-            <Text className="text-[#F6F7F7] font-ubuntu-semibold text-sm">Close</Text>
-          </Pressable>
+          {isAnomaly ? (
+            <>
+              <Pressable
+                onPress={viewAnomaly}
+                className="bg-primary rounded-[24px] h-11 items-center justify-center mt-6"
+              >
+                <Text className="text-[#F6F7F7] font-ubuntu-semibold text-sm">View anomaly</Text>
+              </Pressable>
+              <Pressable
+                onPress={onClose}
+                className="rounded-[24px] h-11 items-center justify-center mt-2"
+              >
+                <Text className="text-primary font-ubuntu-semibold text-sm">Close</Text>
+              </Pressable>
+            </>
+          ) : (
+            <Pressable
+              onPress={onClose}
+              className="bg-primary rounded-[24px] h-11 items-center justify-center mt-6"
+            >
+              <Text className="text-[#F6F7F7] font-ubuntu-semibold text-sm">Close</Text>
+            </Pressable>
+          )}
         </Pressable>
       </Pressable>
     </Modal>

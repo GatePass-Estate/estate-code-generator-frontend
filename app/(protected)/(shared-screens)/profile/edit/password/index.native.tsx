@@ -32,8 +32,6 @@ const PasswordInput = memo(
           editable={!disabled}
           autoCapitalize="none"
           pointerEvents={disabled ? 'none' : 'auto'}
-          contextMenuHidden
-          selectTextOnFocus={false}
         />
         <Pressable
           onPress={() => setShow(!show)}
