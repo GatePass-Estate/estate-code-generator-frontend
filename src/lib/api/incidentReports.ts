@@ -1,3 +1,4 @@
+import { isAxiosError } from 'axios';
 import Api from './index';
 
 /** Shared query window for incident result-page endpoints. */
@@ -168,6 +169,22 @@ function logJson(label: string, payload: unknown) {
   console.log('===================================================================\n');
 }
 
+function logHttpError(label: string, extra: Record<string, unknown>, error: unknown) {
+  if (isAxiosError(error)) {
+    logJson(label, {
+      ...extra,
+      status: error.response?.status ?? null,
+      data: error.response?.data ?? null,
+      message: error.message,
+    });
+    return;
+  }
+  logJson(label, {
+    ...extra,
+    message: error instanceof Error ? error.message : String(error),
+  });
+}
+
 export const incidentReportsApi = {
   getOverview: async ({
     estate_id,
@@ -186,11 +203,7 @@ export const incidentReportsApi = {
       logJson('[incident-reports] overview response', { path, params, data });
       return data;
     } catch (error) {
-      logJson('[incident-reports] overview error', {
-        path,
-        params,
-        message: error instanceof Error ? error.message : String(error),
-      });
+      logHttpError('[incident-reports] overview error', { path, params }, error);
       throw error;
     }
   },
@@ -238,11 +251,7 @@ export const incidentReportsApi = {
         limit: data?.limit ?? limit,
       };
     } catch (error) {
-      logJson('[incident-reports] reports error', {
-        path,
-        params,
-        message: error instanceof Error ? error.message : String(error),
-      });
+      logHttpError('[incident-reports] reports error', { path, params }, error);
       throw error;
     }
   },
@@ -277,11 +286,7 @@ export const incidentReportsApi = {
       });
       return data;
     } catch (error) {
-      logJson('[incident-reports] summary error', {
-        path,
-        params,
-        message: error instanceof Error ? error.message : String(error),
-      });
+      logHttpError('[incident-reports] summary error', { path, params }, error);
       throw error;
     }
   },

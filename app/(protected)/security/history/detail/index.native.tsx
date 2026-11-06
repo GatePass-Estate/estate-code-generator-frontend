@@ -16,7 +16,7 @@ import AccessTimeline, { AccessTimelineEvent } from '@/src/components/mobile/Acc
 import { mapResidentCodeHistoryToEvents } from '@/src/lib/accessLogMappers';
 import { getEstateResidentLogByCode, getEstateVisitorLogByCode } from '@/src/lib/api/accessLogs';
 import { getUserDocumentViewUri } from '@/src/lib/api/userDocuments';
-import { formatAccessLogTimestamp, parseLogDate } from '@/src/lib/helpers';
+import { compareLogDatesDesc, formatAccessLogTimestamp, parseLogDate } from '@/src/lib/helpers';
 import { ReceiverType } from '@/src/types/codes';
 
 const capitalizeWords = (value: string) =>
@@ -83,10 +83,8 @@ export default function AccessLogDetailScreen() {
         }
       } else {
         const history = await getEstateVisitorLogByCode(hashedCode, { page: 1, limit: 100 });
-        const mapped = history.items
-          .sort(
-            (a, b) => parseLogDate(a.visit_time).getTime() - parseLogDate(b.visit_time).getTime()
-          )
+        const mapped = [...history.items]
+          .sort((a, b) => compareLogDatesDesc(a.visit_time, b.visit_time))
           .map((item) => ({
             id: item.id,
             title: 'Access Granted',
@@ -170,7 +168,6 @@ export default function AccessLogDetailScreen() {
             events={timelineEvents}
             error={error}
             gap={24}
-            lastOverflow={56}
           />
         </ScrollView>
       )}

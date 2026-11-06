@@ -55,6 +55,8 @@ import {
   sortMarketplaceTiers,
   resolveMarketplaceFeatureId,
 } from '@/src/lib/api/aiMarketplace';
+import { useFeatureGate } from '@/src/hooks/usePlan';
+import { scrollCardIntoView } from '@/src/lib/scrollIntoView';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { useContactAdminNoticeStore } from '@/src/hooks/usePlan';
 import {
@@ -278,6 +280,7 @@ export default function AnomalyDetectionPreviewScreen() {
       );
       return;
     }
+    if (requireTierOne(tierPayload.tier)) return;
     if (tierPayload.is_free) {
       if (!isPlanIncludingResults) {
         setUpgradeModalVisible(true);
@@ -545,6 +548,7 @@ export default function AnomalyDetectionPreviewScreen() {
       );
       return;
     }
+    if (requireTierOne(tierPayload.tier)) return;
     if (!estateId) {
       Alert.alert('Error', 'Estate ID not found');
       return;
@@ -591,6 +595,47 @@ export default function AnomalyDetectionPreviewScreen() {
     },
     [justCancelledTiers]
   );
+
+  // Tier One is the base product; Tiers Two and Three are add-ons that need it installed. Paying
+  // makes a tier "installed" on the server before the user has chosen to install it, so a tier
+  // just purchased still counts as not installed (as the Install / Uninstall button does). Until
+  // the tiers load there is nothing to judge, so nothing is blocked.
+  const tierOneInstalled = featureDetail
+    ? !!tierOneApi && !!tierOneApi.is_installed && !justPurchasedTiers[tierOneApi.tier]
+    : undefined;
+  const tierOneSubscribed = featureDetail
+    ? !!tierOneApi &&
+      (!!tierOneApi.is_installed ||
+        !!tierOneApi.purchased ||
+        ['active', 'purchased', 'subscribed', 'installed'].includes(tierOneApi.status ?? ''))
+    : undefined;
+  const tierOneRef = useRef<View>(null);
+  const viewportHeightRef = useRef(0);
+
+  /** "Upgrade" goes to the Overview tab with Tier One opened and in view. */
+  const showTierOne = () => {
+    setExpandedTier(tierOneApi?.tier || 'Tier One');
+    handleTabPress('Overview');
+    // The card grows when opened, so let it lay out first.
+    setTimeout(
+      () =>
+        scrollCardIntoView(scrollViewRef.current, tierOneRef.current, viewportHeightRef.current),
+      450
+    );
+  };
+  const { showDenied: showTierOneRequired } = useFeatureGate('access_anomaly_detection_tier_1', {
+    notice: 'floating',
+    onUpgrade: showTierOne,
+  });
+  /** True (after prompting) when a Tier Two or Three action needs Tier One first. */
+  const requireTierOne = (tierName: string) => {
+    const order = Number.parseInt(tierName.replace(/\D/g, ''), 10) || 0;
+    if (order <= 1 || tierOneInstalled !== false) return false;
+    showTierOneRequired(
+      `${tierOneSubscribed ? 'Install' : 'Subscribe to'} Tier One first. Tiers Two and Three build on it.`
+    );
+    return true;
+  };
 
   const planSlug = subscriptionData?.tier?.slug ?? entitlements?.tierSlug;
   const isPlanIncludingResults = planSlug === 'sentinel' || planSlug === 'command';
@@ -762,6 +807,9 @@ export default function AnomalyDetectionPreviewScreen() {
             showsVerticalScrollIndicator={false}
             style={{ flex: 1, backgroundColor: '#F6F7F7' }}
             contentContainerStyle={{ flexGrow: 1 }}
+            onLayout={(e) => {
+              viewportHeightRef.current = e.nativeEvent.layout.height;
+            }}
           >
             <Animated.View entering={FadeIn.duration(280)}>
               {/* Top Hero Container with split background */}
@@ -969,12 +1017,15 @@ export default function AnomalyDetectionPreviewScreen() {
                           !!tier.purchased);
                       const isInstalled =
                         isFreeTierAllowed && !!tier.is_installed && !justPurchasedTiers[tierKey];
-                      const isTierTwo =
-                        (Number.parseInt(tier.tier.replace(/\D/g, ''), 10) || 0) === 2;
+                      const order = Number.parseInt(tier.tier.replace(/\D/g, ''), 10) || 0;
+                      const isTierOne = order === 1;
+                      const isTierTwo = order === 2;
 
                       return (
                         <View
                           key={tier.ai_feature_id || tierKey}
+                          ref={isTierOne ? tierOneRef : undefined}
+                          collapsable={false}
                           onLayout={
                             isTierTwo
                               ? (e) => {

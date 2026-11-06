@@ -4,7 +4,7 @@ import { useUserStore } from '@/src/lib/stores/userStore';
 import {
   EntitlementsDeniedError,
   ensureEstateEntitlements,
-  refreshEstateEntitlementsIfOlderThan,
+  refetchEstateEntitlements,
   useEstateEntitlements,
 } from '@/src/lib/api/entitlements';
 import {
@@ -16,13 +16,15 @@ import {
 } from '@/src/lib/plans';
 
 const CONTACT_ADMIN_NOTICE_MS = 3000;
-/** A cached "no" older than this is refreshed in the background, in case the plan was upgraded. */
-const DENIAL_MAX_AGE_MS = 30_000;
 
 type UpgradePromptStore = {
   feature: PlanFeature | null;
+  /** Replaces where "Upgrade Your Plan" goes (default: the billing plan picker). */
+  onUpgrade: (() => void) | null;
+  /** Replaces the feature's upgrade copy, e.g. when upgrading isn't what will fix the refusal. */
+  message: string | null;
   visible: boolean;
-  show: (feature: PlanFeature) => void;
+  show: (feature: PlanFeature, onUpgrade?: (() => void) | null, message?: string | null) => void;
   dismiss: () => void;
   reset: () => void;
 };
@@ -30,11 +32,14 @@ type UpgradePromptStore = {
 /** Drives the single app-wide Upgrade Plan modal rendered by `PlanGuard`. */
 export const useUpgradePromptStore = create<UpgradePromptStore>((set) => ({
   feature: null,
+  onUpgrade: null,
+  message: null,
   visible: false,
-  show: (feature) => set({ feature, visible: true }),
+  show: (feature, onUpgrade = null, message = null) =>
+    set({ feature, onUpgrade, message, visible: true }),
   // Keeps `feature` so the modal copy doesn't blank out while it fades away.
   dismiss: () => set({ visible: false }),
-  reset: () => set({ feature: null, visible: false }),
+  reset: () => set({ feature: null, onUpgrade: null, message: null, visible: false }),
 }));
 
 type ContactAdminNoticeStore = {
@@ -111,6 +116,8 @@ type FeatureGateOptions = {
    *   to sit above (icons, swipe actions, cards).
    */
   notice?: 'inline' | 'floating';
+  /** Where the Upgrade Plan modal's button goes, instead of the billing plan picker. */
+  onUpgrade?: () => void;
 };
 
 /**
@@ -133,7 +140,7 @@ type FeatureGateOptions = {
  */
 export function useFeatureGate(
   feature: PlanFeature,
-  { notice = 'inline' }: FeatureGateOptions = {}
+  { notice = 'inline', onUpgrade }: FeatureGateOptions = {}
 ) {
   const { access, reason } = useFeatureAccessWithReason(feature);
   const role = useUserStore((s) => s.role);
@@ -143,6 +150,9 @@ export function useFeatureGate(
   const [noticeVisible, flashInlineNotice] = useTimedFlag(CONTACT_ADMIN_NOTICE_MS);
   const [noticeMessage, setNoticeMessage] = useState<string | null>(null);
   const mountedRef = useRef(true);
+  // Read through a ref so an inline `onUpgrade` doesn't change `promptFor` on every render.
+  const onUpgradeRef = useRef(onUpgrade);
+  onUpgradeRef.current = onUpgrade;
 
   useEffect(() => {
     mountedRef.current = true;
@@ -152,14 +162,18 @@ export function useFeatureGate(
   }, []);
 
   const promptFor = useCallback(
-    (next: FeatureAccess, blockedReason: string | null = null): boolean => {
+    (
+      next: FeatureAccess,
+      blockedReason: string | null = null,
+      customMessage: string | null = null
+    ): boolean => {
       if (next === 'granted') return true;
       if (next === 'upgrade') {
-        showUpgradePrompt(feature);
+        showUpgradePrompt(feature, onUpgradeRef.current ?? null, customMessage);
         return false;
       }
       // `contact_admin` shows the feature's copy; `blocked` shows the server's reason instead.
-      const message = next === 'blocked' ? blockedReason : null;
+      const message = next === 'blocked' ? blockedReason : customMessage;
       if (notice === 'floating') {
         showFloatingNotice(feature, message);
       } else {
@@ -185,7 +199,9 @@ export function useFeatureGate(
           // Instant when cached; only waits on the network if nothing is cached yet.
           entitlements = await ensureEstateEntitlements(estateId);
           if (resolveFeatureAccess(entitlements, role, feature) !== 'granted') {
-            refreshEstateEntitlementsIfOlderThan(estateId, DENIAL_MAX_AGE_MS);
+            // A cached "no" may predate an upgrade or payment, so confirm it with the server
+            // before refusing. If that fails, the cached answer stands.
+            entitlements = await refetchEstateEntitlements(estateId);
           }
         } catch (error) {
           // A refusal (e.g. ID not approved) is reported as-is. Otherwise the plan service is
@@ -202,9 +218,18 @@ export function useFeatureGate(
     [estateId, feature, promptFor, role]
   );
 
-  const showDenied = useCallback(() => {
-    promptFor(canManagePlan(role) ? 'upgrade' : 'contact_admin');
-  }, [promptFor, role]);
+  // `message` replaces the feature's usual copy. Ignores non-string arguments so the function can
+  // still be used directly as a press handler.
+  const showDenied = useCallback(
+    (message?: unknown) => {
+      promptFor(
+        canManagePlan(role) ? 'upgrade' : 'contact_admin',
+        null,
+        typeof message === 'string' ? message : null
+      );
+    },
+    [promptFor, role]
+  );
 
   const noticeProps = useMemo(
     () => ({ visible: noticeVisible, feature, message: noticeMessage }),

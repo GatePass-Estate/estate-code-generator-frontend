@@ -7,6 +7,7 @@ import { AccessLogCard } from '@/src/components/mobile/AccessLogCard';
 import ScreenHeader from '@/src/components/mobile/ScreenHeader';
 import { mapResidentLogToAccessLog } from '@/src/lib/accessLogMappers';
 import { getMyResidentAccessLogs } from '@/src/lib/api/accessLogs';
+import { compareLogDatesDesc } from '@/src/lib/helpers';
 import { ResidentAccessLog } from '@/src/types/accessLog';
 import { sharedStyles } from '@/src/theme/styles';
 
@@ -21,7 +22,11 @@ export default function AccessLogScreen() {
     setError(null);
     try {
       const result = await getMyResidentAccessLogs({ page: 1, limit: 50 });
-      setLogs(result.items.map(mapResidentLogToAccessLog));
+      setLogs(
+        result.items
+          .map(mapResidentLogToAccessLog)
+          .sort((a, b) => compareLogDatesDesc(a.generatedAt, b.generatedAt))
+      );
     } catch (e: any) {
       setError(e?.message?.trim() || 'Could not load access history.');
       setLogs([]);

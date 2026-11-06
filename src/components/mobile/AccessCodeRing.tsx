@@ -1,7 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { View, Text } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
-import Animated, { useAnimatedProps, useSharedValue, withTiming } from 'react-native-reanimated';
+import Animated, {
+  useAnimatedProps,
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -35,20 +42,37 @@ export default function AccessCodeRing({ startAt = null, expiresAt, dimmed = fal
   );
 
   const [remainingMs, setRemainingMs] = useState(computeRemaining);
+  const remainingRef = useRef(remainingMs);
   const progress = useSharedValue(Math.min(1, remainingMs / totalMsRef.current));
+  const pop = useSharedValue(1);
 
   useEffect(() => {
-    const update = () => {
+    const update = (fromExtend = false) => {
       const remaining = computeRemaining();
+      const grew = remaining > remainingRef.current + 15_000;
+      remainingRef.current = remaining;
+      if (grew) {
+        totalMsRef.current = remaining;
+        pop.value = withSequence(
+          withTiming(1.14, { duration: 160 }),
+          withSpring(1, { damping: 10, stiffness: 240 })
+        );
+      }
       setRemainingMs(remaining);
-      progress.value = withTiming(Math.min(1, remaining / totalMsRef.current), { duration: 500 });
+      progress.value = withTiming(Math.min(1, remaining / totalMsRef.current), {
+        duration: fromExtend || grew ? 700 : 500,
+      });
     };
 
-    update();
-    const interval = setInterval(update, 30000);
+    update(true);
+    const interval = setInterval(() => update(false), 30000);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [expiresAt]);
+
+  const ringPopStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: pop.value }],
+  }));
 
   const totalMinutes = Math.floor(remainingMs / 60000);
   const hours = Math.floor(totalMinutes / 60);
@@ -68,7 +92,7 @@ export default function AccessCodeRing({ startAt = null, expiresAt, dimmed = fal
     : 'absolute top-[41px] w-[19px] text-center font-inter-semibold text-[5px] leading-[7px] text-[#9B9797]';
 
   return (
-    <View className="h-[71px] w-[71px]">
+    <Animated.View className="h-[71px] w-[71px]" style={ringPopStyle}>
       {dimmed ? (
         <Svg width={SIZE} height={SIZE} viewBox="0 0 71 71" className="absolute">
           <Path d={FROZEN_RING_PATH} fill="#F1F8FB" fillOpacity={0.6} />
@@ -116,6 +140,6 @@ export default function AccessCodeRing({ startAt = null, expiresAt, dimmed = fal
       <Text className={timeClass}>{timeLabel}</Text>
       <Text className={`${labelClass} left-[12px]`}>HOUR</Text>
       <Text className={`${labelClass} left-[41px]`}>MINS</Text>
-    </View>
+    </Animated.View>
   );
 }

@@ -18,4 +18,9 @@ describe('incident type selection', () => {
     expect(toggleIncidentType(['Other'], 'Other')).toEqual([]);
     expect(toggleIncidentType(['Violence', 'Vandalism'], 'Violence')).toEqual(['Vandalism']);
   });
+
+  it('supports the lowercase other slug returned by the categories endpoint', () => {
+    expect(toggleIncidentType(['security', 'theft'], 'other')).toEqual(['other']);
+    expect(toggleIncidentType(['other'], 'security')).toEqual(['security']);
+  });
 });

@@ -4,6 +4,10 @@ import { Feather } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import Svg, { Path } from 'react-native-svg';
 import type { RegistrationIdDocument } from '@/src/types/registration';
+import {
+  documentUploadTooLargeMessage,
+  isDocumentUploadTooLarge,
+} from '@/src/lib/userDocumentHelpers';
 
 type RegistrationIdPickerProps = {
   value: RegistrationIdDocument | null;
@@ -47,6 +51,10 @@ export default function RegistrationIdPicker({
 
       if (!result.canceled && result.assets[0]) {
         const asset = result.assets[0];
+        if (isDocumentUploadTooLarge(asset.size)) {
+          setPickerError(documentUploadTooLargeMessage());
+          return;
+        }
         onChange({
           uri: asset.uri,
           name: asset.name || 'Identification document',

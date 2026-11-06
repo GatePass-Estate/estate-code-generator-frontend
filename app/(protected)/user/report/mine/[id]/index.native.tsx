@@ -127,7 +127,7 @@ export default function MyIncidentReportDetailScreen() {
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 24 }}
           >
-            <Text className="text-[14px] leading-[14px] text-[#0A1F29] font-inter-light">
+            <Text className="text-[14px] leading-[20px] text-[#0A1F29] font-inter-light">
               {report.narrative}
             </Text>
           </ScrollView>

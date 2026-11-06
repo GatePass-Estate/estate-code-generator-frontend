@@ -22,6 +22,10 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { CheckIcon } from '@/src/assets/svgs';
+import {
+  assertDocumentUploadSize,
+  documentUploadTooLargeMessage,
+} from '@/src/lib/userDocumentHelpers';
 // @ts-ignore
 import uploadIdIcon from '@/src/assets/images/upload-id.png';
 
@@ -129,10 +133,15 @@ export default function IdentificationSheet({
       });
 
       if (!result.canceled && result.assets[0]?.uri) {
-        await onIdentificationSelected(result.assets[0].uri);
+        const asset = result.assets[0];
+        await assertDocumentUploadSize(asset.uri, asset.size);
+        await onIdentificationSelected(asset.uri);
       }
-    } catch {
-      Alert.alert('Could not open documents', 'Please try again.');
+    } catch (error) {
+      Alert.alert(
+        'Could not open documents',
+        error instanceof Error ? error.message : 'Please try again.'
+      );
     }
   };
 
@@ -152,7 +161,16 @@ export default function IdentificationSheet({
     });
 
     if (!result.canceled && result.assets[0]?.uri) {
-      await onIdentificationSelected(result.assets[0].uri);
+      const asset = result.assets[0];
+      try {
+        await assertDocumentUploadSize(asset.uri, asset.fileSize);
+        await onIdentificationSelected(asset.uri);
+      } catch (error) {
+        Alert.alert(
+          'File too large',
+          error instanceof Error ? error.message : documentUploadTooLargeMessage()
+        );
+      }
     }
   };
 

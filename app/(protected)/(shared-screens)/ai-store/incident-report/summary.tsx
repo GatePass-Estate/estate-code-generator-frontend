@@ -131,7 +131,7 @@ export default function IncidentReportSummaryScreen() {
 
         <AnimatedPillTabs
           options={[
-            { value: 'Preview', label: 'Preview' },
+            { value: 'Preview', label: 'Overview' },
             { value: 'Result', label: 'Result' },
           ]}
           value={hasResultAccess ? 'Result' : 'Preview'}
