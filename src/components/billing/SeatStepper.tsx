@@ -1,13 +1,5 @@
-import { useEffect, useId, useRef, useState } from 'react';
-import {
-  InputAccessoryView,
-  Platform,
-  Pressable,
-  Text,
-  TextInput,
-  View,
-  type LayoutChangeEvent,
-} from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Platform, Pressable, Text, TextInput, View, type LayoutChangeEvent } from 'react-native';
 import Animated, {
   cancelAnimation,
   Easing,
@@ -158,7 +150,6 @@ export default function SeatStepper({
   const inputRef = useRef<TextInput>(null);
   // Count when the field was focused: restored if it is left empty.
   const focusValueRef = useRef(value);
-  const accessoryId = `seat-stepper-${useId()}`;
   // Only meaningful while focused; when idle the field always shows `value`, so external changes
   // are reflected immediately and there is no draft/value hand-off to flicker on blur.
   const [draft, setDraft] = useState(String(value));
@@ -261,10 +252,12 @@ export default function SeatStepper({
             onSubmitEditing={() => inputRef.current?.blur()}
             editable={!disabled}
             keyboardType="number-pad"
+            // On iOS this makes React Native add its native Done toolbar above the number pad. Don't
+            // swap it for <InputAccessoryView backgroundColor=...>: on the new architecture its empty
+            // outer view gets un-hidden on mount and paints a band over this row, blocking taps.
             returnKeyType="done"
             selectTextOnFocus
             maxLength={maxLength}
-            inputAccessoryViewID={Platform.OS === 'ios' ? accessoryId : undefined}
             accessibilityLabel={accessibilityLabel}
             accessibilityHint={
               bounded ? `Enter a number from ${min} to ${max}` : `Enter a number of at least ${min}`
@@ -298,24 +291,6 @@ export default function SeatStepper({
       <View className="pt-[5px]">
         <StepButton kind="increase" disabled={!canIncrease} onPress={() => step(1)} />
       </View>
-
-      {Platform.OS === 'ios' ? (
-        <InputAccessoryView nativeID={accessoryId} backgroundColor="#F6F7F7">
-          <View className="flex-row justify-end border-t border-[#E3E6E8] bg-[#F6F7F7] px-4 py-2">
-            <Pressable
-              onPress={() => inputRef.current?.blur()}
-              hitSlop={8}
-              accessibilityRole="button"
-              accessibilityLabel="Done"
-              className="px-2 py-1 active:opacity-60"
-            >
-              <Text className="font-inter-medium text-[16px] leading-[19.4px] text-[#113E55]">
-                Done
-              </Text>
-            </Pressable>
-          </View>
-        </InputAccessoryView>
-      ) : null}
     </View>
   );
 }

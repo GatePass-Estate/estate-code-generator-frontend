@@ -90,25 +90,12 @@ export default function InvitePage() {
         contentContainerStyle={{ paddingBottom: BUTTON_MARGIN_BOTTOM + insets.bottom }}
       >
         <View className="items-center mt-8 gap-4">
-          <View
-            className="rounded-[28px] bg-tertiary p-3"
-            style={{
-              shadowColor: '#000',
-              shadowOffset: { width: -1, height: 1 },
-              shadowOpacity: 0.06,
-              shadowRadius: 12.9,
-              elevation: 3,
-            }}
-          >
-            <View className="rounded-[16px] bg-[#F6F7F7] p-3">
-              <BrandedQRCode
-                value={code}
-                size={176}
-                backgroundColor="#F6F7F7"
-                accessibilityLabel="Guest invite QR code"
-              />
-            </View>
-          </View>
+          <BrandedQRCode
+            value={code}
+            size={220}
+            backgroundColor="#F6F7F7"
+            accessibilityLabel="Guest invite QR code"
+          />
 
           <View className="flex-row items-center gap-1">
             <Text className="text-[23.04px] font-ubuntu-extrabold text-primary tracking-[10px] ">
