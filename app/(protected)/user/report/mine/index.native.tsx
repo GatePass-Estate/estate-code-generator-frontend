@@ -111,7 +111,7 @@ export default function MyIncidentReportsScreen() {
         onPress={() => leaveIncidentReport(returnTo, router)}
       />
       <Text className="mt-[13px] ml-[4px] text-[27.34px] leading-[33px] text-[#113E55] font-ubuntu-medium">
-        Incident Report
+        Reported Incidents
       </Text>
       <Text className="mt-[12px] ml-[3px] text-[14px] leading-[17px] text-[#878686] font-inter-light">
         View all reports observed in your space.

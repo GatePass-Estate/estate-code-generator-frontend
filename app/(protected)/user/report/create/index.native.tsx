@@ -17,7 +17,10 @@ import Back from '@/src/components/mobile/Back';
 import ActionConfirmModal from '@/src/components/mobile/ActionConfirmModal';
 import { useFeatureGate } from '@/src/hooks/usePlan';
 import { incidentManagementApi } from '@/src/lib/api/incidentManagement';
-import { parseIncidentReportReturnTo } from '@/src/lib/incidentReportNavigation';
+import {
+  leaveIncidentReport,
+  parseIncidentReportReturnTo,
+} from '@/src/lib/incidentReportNavigation';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import SecurityTabBar from '@/src/components/security/SecurityTabBar';
 
@@ -35,12 +38,18 @@ function parseCategories(value: string | string[] | undefined): string[] {
 
 export default function IncidentReportCreateScreen() {
   const router = useRouter();
-  const { categories: categoryParam, returnTo: returnToParam } = useLocalSearchParams<{
+  const {
+    categories: categoryParam,
+    customCategory: customCategoryParam,
+    returnTo: returnToParam,
+  } = useLocalSearchParams<{
     categories?: string;
+    customCategory?: string;
     returnTo?: string;
   }>();
   const returnTo = parseIncidentReportReturnTo(returnToParam);
   const categories = useMemo(() => parseCategories(categoryParam), [categoryParam]);
+  const customCategory = typeof customCategoryParam === 'string' ? customCategoryParam.trim() : '';
   const role = useUserStore((state) => state.role);
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
@@ -72,12 +81,12 @@ export default function IncidentReportCreateScreen() {
         const allowed = await requestAccessWhenReady(() => active);
         if (!active) return;
         if (allowed) setCheckingAccess(false);
-        else router.replace('/user');
+        else leaveIncidentReport(returnTo, router);
       })();
       return () => {
         active = false;
       };
-    }, [requestAccessWhenReady, role, router])
+    }, [requestAccessWhenReady, returnTo, role, router])
   );
 
   useFocusEffect(
@@ -107,7 +116,7 @@ export default function IncidentReportCreateScreen() {
 
   const requestSubmit = () => {
     if (submitting || checkingAccess) return;
-    if (categories.length === 0 || !title.trim() || !narrative.trim()) {
+    if ((categories.length === 0 && !customCategory) || !title.trim() || !narrative.trim()) {
       setError('Enter a title and details before submitting your report.');
       return;
     }
@@ -122,13 +131,13 @@ export default function IncidentReportCreateScreen() {
     try {
       await incidentManagementApi.create({
         title: title.trim(),
-        category: [],
-        custom_category: categories.join(', '),
+        category: categories,
+        custom_category: customCategory || null,
         narrative: narrative.trim(),
         occurred_at: new Date().toISOString(),
       });
       setConfirmSubmit(false);
-      router.replace('/user');
+      leaveIncidentReport(returnTo, router);
     } catch {
       setConfirmSubmit(false);
       setError('Unable to submit your report. Please try again.');
@@ -191,10 +200,14 @@ export default function IncidentReportCreateScreen() {
               placeholder="Give more details about the incident"
               placeholderTextColor="#878686"
               accessibilityLabel="Incident details"
+              maxLength={1000}
               multiline
               textAlignVertical="top"
-              className="ml-[1px] mt-[16px] h-[289px] rounded-[16px] bg-[#EFF1F1] p-4 font-inter-light text-[14px] leading-[17px] text-[#0A1F29]"
+              className="ml-[1px] mt-[16px] h-[289px] rounded-[16px] bg-[#EFF1F1] p-4 font-inter-light text-[14px] leading-[20px] text-[#0A1F29]"
             />
+            <Text className="mr-[4px] mt-[6px] text-right font-inter-light text-[11.2px] leading-[14px] text-[#878686]">
+              {narrative.length}/1000
+            </Text>
             {error ? (
               <Text className="mt-3 font-inter-regular text-[13px] text-[#B42318]">{error}</Text>
             ) : null}

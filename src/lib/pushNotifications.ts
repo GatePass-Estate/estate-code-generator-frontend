@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
+import * as Device from 'expo-device';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   registerDeviceToken,
@@ -50,7 +51,8 @@ const isExpoGo =
   Constants.appOwnership === 'expo';
 
 /** True when this runtime can register for remote notifications at all. */
-export const pushSupported = Platform.OS !== 'web' && !isExpoGo;
+export const pushSupported =
+  Platform.OS !== 'web' && !isExpoGo && !(Platform.OS === 'ios' && !Device.isDevice);
 
 let cachedModule: NotificationsModule | null = null;
 let handlerConfigured = false;
@@ -122,11 +124,8 @@ export async function registerForPushNotifications(
 
   try {
     // Android emulators with Google Play services get real FCM tokens (ones
-    // without it throw below and land in the catch). The iOS simulator is
-    // still skipped.
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const Device = require('expo-device') as typeof import('expo-device');
-    if (Platform.OS === 'ios' && !Device.isDevice) return null;
+    // without it throw below and land in the catch). iOS simulators are
+    // excluded by `pushSupported` before expo-notifications is imported.
 
     await ensureAndroidChannel(Notifications);
 
