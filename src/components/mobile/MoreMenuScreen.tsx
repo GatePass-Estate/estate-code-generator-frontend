@@ -183,7 +183,7 @@ export default function MoreMenuScreen({
       const allowed = await requestIncidentReportAccess(() => navigation.isFocused());
       if (!allowed || !navigation.isFocused()) return;
       router.push({
-        pathname: '/user/report/mine',
+        pathname: '/incident-report',
         params: { returnTo: role === 'security' ? '/security/more' : '/settings' },
       });
     } finally {
@@ -195,6 +195,10 @@ export default function MoreMenuScreen({
     if (useUpgradePromptStore.getState().visible) return;
     if (Platform.OS === 'web') {
       navigation.goBack();
+      return;
+    }
+    if (router.canGoBack()) {
+      router.back();
       return;
     }
     router.replace(role === 'security' ? '/security' : '/user');

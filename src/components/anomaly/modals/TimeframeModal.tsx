@@ -30,6 +30,7 @@ export default function TimeframeModal({
     }
 
     const end = new Date();
+    end.setHours(23, 59, 59, 999);
     const start = new Date();
 
     if (opt === 'Last Week') {
@@ -39,6 +40,7 @@ export default function TimeframeModal({
     } else if (opt === 'Last Quarter') {
       start.setMonth(end.getMonth() - 3);
     }
+    start.setHours(0, 0, 0, 0);
 
     onSelect(opt, start, end);
     onClose();

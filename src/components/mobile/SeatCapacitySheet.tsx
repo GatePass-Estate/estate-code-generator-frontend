@@ -4,6 +4,7 @@ import {
   Modal,
   PanResponder,
   Pressable,
+  ScrollView,
   Text,
   TouchableOpacity,
   View,
@@ -19,6 +20,8 @@ type SeatCapacitySheetProps = {
   maxCapacity: number;
   residentsCount: number;
   securityPersonnelCount: number;
+  onManageSeats?: () => void;
+  canManageSeats?: boolean;
 };
 
 const TOTAL_TICKS = 54;
@@ -134,6 +137,8 @@ export default function SeatCapacitySheet({
   maxCapacity,
   residentsCount,
   securityPersonnelCount,
+  onManageSeats,
+  canManageSeats = true,
 }: SeatCapacitySheetProps) {
   const insets = useSafeAreaInsets();
   const panY = useRef(new RNAnimated.Value(0)).current;
@@ -213,11 +218,13 @@ export default function SeatCapacitySheet({
       >
         <RNAnimated.View
           {...panResponder.panHandlers}
+          onStartShouldSetResponder={() => true}
           style={{
             transform: [{ translateY: panY }],
             backgroundColor: '#F8F9FA',
             borderTopLeftRadius: 36,
             borderTopRightRadius: 36,
+            maxHeight: '90%',
             paddingHorizontal: 20,
             paddingTop: 8,
             paddingBottom: Math.max(insets.bottom, 16) + 16,
@@ -243,258 +250,291 @@ export default function SeatCapacitySheet({
             />
           </View>
 
-          {/* Radial Meter Gauge */}
-          <RadialSeatGauge
-            totalSeats={maxCapacity}
-            residentsCount={residentsCount}
-            securityCount={securityPersonnelCount}
-            vacantCount={vacantSeats}
-          />
+          <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
+            {/* Radial Meter Gauge */}
+            <RadialSeatGauge
+              totalSeats={maxCapacity}
+              residentsCount={residentsCount}
+              securityCount={securityPersonnelCount}
+              vacantCount={vacantSeats}
+            />
 
-          {/* Side by Side Capacity Cards */}
-          <View
-            style={{
-              flexDirection: 'row',
-              gap: 12,
-              marginTop: 14,
-            }}
-          >
-            {/* Current Seat Capacity */}
+            {/* Side by Side Capacity Cards */}
             <View
               style={{
-                flex: 1,
+                flexDirection: 'row',
+                gap: 12,
+                marginTop: 14,
+              }}
+            >
+              {/* Current Seat Capacity */}
+              <View
+                style={{
+                  flex: 1,
+                  backgroundColor: '#FFFFFF',
+                  borderRadius: 16,
+                  padding: 16,
+                }}
+              >
+                <Text
+                  allowFontScaling={false}
+                  style={{
+                    fontFamily: 'Inter_18pt-Medium',
+                    fontSize: 12,
+                    color: '#878686',
+                    marginBottom: 6,
+                  }}
+                >
+                  Current Seat Capacity
+                </Text>
+                <Text
+                  allowFontScaling={false}
+                  style={{
+                    fontFamily: UbuntuSans.bold,
+                    fontSize: 24,
+                    color: '#0A1F29',
+                  }}
+                >
+                  {occupiedSeats.toLocaleString()}
+                </Text>
+              </View>
+
+              {/* Max Seat Capacity */}
+              <View
+                style={{
+                  flex: 1,
+                  backgroundColor: '#FFFFFF',
+                  borderRadius: 16,
+                  padding: 16,
+                }}
+              >
+                <Text
+                  allowFontScaling={false}
+                  style={{
+                    fontFamily: 'Inter_18pt-Medium',
+                    fontSize: 12,
+                    color: '#878686',
+                    marginBottom: 6,
+                  }}
+                >
+                  Max Seat Capacity
+                </Text>
+                <Text
+                  allowFontScaling={false}
+                  style={{
+                    fontFamily: UbuntuSans.bold,
+                    fontSize: 24,
+                    color: '#0A1F29',
+                  }}
+                >
+                  {maxCapacity.toLocaleString()}
+                </Text>
+              </View>
+            </View>
+
+            {/* Seat Allocation Card */}
+            <View
+              style={{
                 backgroundColor: '#FFFFFF',
                 borderRadius: 16,
                 padding: 16,
+                marginTop: 12,
               }}
             >
               <Text
                 allowFontScaling={false}
                 style={{
-                  fontFamily: 'Inter_18pt-Medium',
-                  fontSize: 12,
-                  color: '#878686',
-                  marginBottom: 6,
-                }}
-              >
-                Current Seat Capacity
-              </Text>
-              <Text
-                allowFontScaling={false}
-                style={{
-                  fontFamily: UbuntuSans.bold,
-                  fontSize: 24,
+                  fontFamily: 'Inter_18pt-SemiBold',
+                  fontSize: 13,
                   color: '#0A1F29',
+                  marginBottom: 14,
                 }}
               >
-                {occupiedSeats.toLocaleString()}
+                Seat Allocation
               </Text>
-            </View>
 
-            {/* Max Seat Capacity */}
-            <View
-              style={{
-                flex: 1,
-                backgroundColor: '#FFFFFF',
-                borderRadius: 16,
-                padding: 16,
-              }}
-            >
-              <Text
-                allowFontScaling={false}
+              {/* Residents Row */}
+              <View
                 style={{
-                  fontFamily: 'Inter_18pt-Medium',
-                  fontSize: 12,
-                  color: '#878686',
-                  marginBottom: 6,
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: 12,
                 }}
               >
-                Max Seat Capacity
-              </Text>
-              <Text
-                allowFontScaling={false}
-                style={{
-                  fontFamily: UbuntuSans.bold,
-                  fontSize: 24,
-                  color: '#0A1F29',
-                }}
-              >
-                {maxCapacity.toLocaleString()}
-              </Text>
-            </View>
-          </View>
-
-          {/* Seat Allocation Card */}
-          <View
-            style={{
-              backgroundColor: '#FFFFFF',
-              borderRadius: 16,
-              padding: 16,
-              marginTop: 12,
-            }}
-          >
-            <Text
-              allowFontScaling={false}
-              style={{
-                fontFamily: 'Inter_18pt-SemiBold',
-                fontSize: 13,
-                color: '#0A1F29',
-                marginBottom: 14,
-              }}
-            >
-              Seat Allocation
-            </Text>
-
-            {/* Residents Row */}
-            <View
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: 12,
-              }}
-            >
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <View
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: 4,
-                    backgroundColor: '#EE5D32',
-                    marginRight: 10,
-                  }}
-                />
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <View
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: 4,
+                      backgroundColor: '#EE5D32',
+                      marginRight: 10,
+                    }}
+                  />
+                  <Text
+                    allowFontScaling={false}
+                    style={{
+                      fontFamily: 'Inter_18pt-Regular',
+                      fontSize: 14,
+                      color: '#6B7280',
+                    }}
+                  >
+                    Residents
+                  </Text>
+                </View>
                 <Text
                   allowFontScaling={false}
                   style={{
-                    fontFamily: 'Inter_18pt-Regular',
+                    fontFamily: 'Inter_18pt-Medium',
                     fontSize: 14,
-                    color: '#6B7280',
+                    color: '#0A1F29',
                   }}
                 >
-                  Residents
+                  {residentsCount.toLocaleString()}
                 </Text>
               </View>
-              <Text
-                allowFontScaling={false}
+
+              {/* Security Row */}
+              <View
                 style={{
-                  fontFamily: 'Inter_18pt-Medium',
-                  fontSize: 14,
-                  color: '#0A1F29',
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: 12,
                 }}
               >
-                {residentsCount.toLocaleString()}
-              </Text>
-            </View>
-
-            {/* Security Row */}
-            <View
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: 12,
-              }}
-            >
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <View
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: 4,
-                    backgroundColor: '#0D7F77',
-                    marginRight: 10,
-                  }}
-                />
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <View
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: 4,
+                      backgroundColor: '#0D7F77',
+                      marginRight: 10,
+                    }}
+                  />
+                  <Text
+                    allowFontScaling={false}
+                    style={{
+                      fontFamily: 'Inter_18pt-Regular',
+                      fontSize: 14,
+                      color: '#6B7280',
+                    }}
+                  >
+                    Security
+                  </Text>
+                </View>
                 <Text
                   allowFontScaling={false}
                   style={{
-                    fontFamily: 'Inter_18pt-Regular',
+                    fontFamily: 'Inter_18pt-Medium',
                     fontSize: 14,
-                    color: '#6B7280',
+                    color: '#0A1F29',
                   }}
                 >
-                  Security
+                  {securityPersonnelCount.toLocaleString()}
                 </Text>
               </View>
-              <Text
-                allowFontScaling={false}
+
+              {/* Vacant Seats Row */}
+              <View
                 style={{
-                  fontFamily: 'Inter_18pt-Medium',
-                  fontSize: 14,
-                  color: '#0A1F29',
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
                 }}
               >
-                {securityPersonnelCount.toLocaleString()}
-              </Text>
-            </View>
-
-            {/* Vacant Seats Row */}
-            <View
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-              }}
-            >
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <View
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: 4,
-                    backgroundColor: '#D1D5DB',
-                    marginRight: 10,
-                  }}
-                />
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <View
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: 4,
+                      backgroundColor: '#D1D5DB',
+                      marginRight: 10,
+                    }}
+                  />
+                  <Text
+                    allowFontScaling={false}
+                    style={{
+                      fontFamily: 'Inter_18pt-Regular',
+                      fontSize: 14,
+                      color: '#6B7280',
+                    }}
+                  >
+                    Vacant Seats
+                  </Text>
+                </View>
                 <Text
                   allowFontScaling={false}
                   style={{
-                    fontFamily: 'Inter_18pt-Regular',
+                    fontFamily: 'Inter_18pt-Medium',
                     fontSize: 14,
-                    color: '#6B7280',
+                    color: '#0A1F29',
                   }}
                 >
-                  Vacant Seats
+                  {vacantSeats.toLocaleString()}
                 </Text>
               </View>
-              <Text
-                allowFontScaling={false}
+            </View>
+
+            {/* Action Buttons */}
+            <View style={{ gap: 10, marginTop: 24 }}>
+              {onManageSeats && (
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  disabled={canManageSeats === false}
+                  onPress={() => {
+                    onClose();
+                    onManageSeats();
+                  }}
+                  style={{
+                    backgroundColor: '#113E55',
+                    height: 50,
+                    borderRadius: 25,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    opacity: canManageSeats === false ? 0.45 : 1,
+                  }}
+                >
+                  <Text
+                    allowFontScaling={false}
+                    style={{
+                      fontFamily: UbuntuSans.medium,
+                      fontSize: 15,
+                      color: '#FFFFFF',
+                    }}
+                  >
+                    Manage Seats
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={onClose}
                 style={{
-                  fontFamily: 'Inter_18pt-Medium',
-                  fontSize: 14,
-                  color: '#0A1F29',
+                  backgroundColor: onManageSeats ? '#EFF1F3' : '#113E55',
+                  height: 50,
+                  borderRadius: 25,
+                  alignItems: 'center',
+                  justifyContent: 'center',
                 }}
               >
-                {vacantSeats.toLocaleString()}
-              </Text>
+                <Text
+                  allowFontScaling={false}
+                  style={{
+                    fontFamily: UbuntuSans.medium,
+                    fontSize: 15,
+                    color: onManageSeats ? '#113E55' : '#FFFFFF',
+                  }}
+                >
+                  Done
+                </Text>
+              </TouchableOpacity>
             </View>
-          </View>
-
-          {/* Done Action Button */}
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={onClose}
-            style={{
-              backgroundColor: '#113E55',
-              height: 50,
-              borderRadius: 25,
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginTop: 24,
-            }}
-          >
-            <Text
-              allowFontScaling={false}
-              style={{
-                fontFamily: UbuntuSans.medium,
-                fontSize: 15,
-                color: '#FFFFFF',
-              }}
-            >
-              Done
-            </Text>
-          </TouchableOpacity>
+          </ScrollView>
         </RNAnimated.View>
       </Pressable>
     </Modal>

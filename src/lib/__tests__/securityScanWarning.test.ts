@@ -5,6 +5,14 @@ describe('getScanWarningSeverity', () => {
     expect(getScanWarningSeverity({ is_anomalous: true, severity })).toBe(severity);
   });
 
+  it('normalizes uppercase and abbreviated medium/high severity values', () => {
+    expect(getScanWarningSeverity({ is_anomalous: true, severity: 'MEDIUM' as any })).toBe(
+      'medium'
+    );
+    expect(getScanWarningSeverity({ is_anomalous: true, severity: 'HIGH' as any })).toBe('high');
+    expect(getScanWarningSeverity({ is_anomalous: true, severity: 'med' as any })).toBe('medium');
+  });
+
   it.each([
     { is_anomalous: false, severity: 'high' as const },
     { is_anomalous: null, severity: 'medium' as const },

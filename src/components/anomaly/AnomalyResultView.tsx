@@ -13,11 +13,12 @@ import {
   Modal,
   Platform,
   StyleSheet,
+  RefreshControl,
 } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { BlurView } from 'expo-blur';
 
-import { router, Link } from 'expo-router';
+import { router, Link, useFocusEffect } from 'expo-router';
 import { MaterialIcons, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import AnomalyRadarChart from './AnomalyRadarChart';
 import AnomalyDonutChart from './AnomalyDonutChart';
@@ -47,9 +48,14 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
   const [startDate, setStartDate] = useState<Date | null>(() => {
     const d = new Date();
     d.setDate(d.getDate() - 7);
+    d.setHours(0, 0, 0, 0);
     return d;
   });
-  const [endDate, setEndDate] = useState<Date | null>(() => new Date());
+  const [endDate, setEndDate] = useState<Date | null>(() => {
+    const d = new Date();
+    d.setHours(23, 59, 59, 999);
+    return d;
+  });
   const [activeEvidenceDot, setActiveEvidenceDot] = useState(0);
   const [sortAscending, setSortAscending] = useState(false);
   const [gaugesInView, setGaugesInView] = useState(false);
@@ -83,23 +89,30 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
       .filter((p) => p.length > 0);
     return parts.length > 0 ? parts[0] : 'N/A';
   };
+  const isCustomTimeframe = selectedTimeframe === 'Custom';
+  const effectiveToDate =
+    isCustomTimeframe && endDate
+      ? new Date(new Date(endDate).setHours(23, 59, 59, 999)).toISOString()
+      : undefined;
+  const effectiveFromDate = startDate
+    ? new Date(new Date(startDate).setHours(0, 0, 0, 0)).toISOString()
+    : undefined;
+
   const {
     data: rawOverview,
     isLoading: overviewLoading,
     isError: overviewError,
-  } = useAnomalyOverview(
-    estate_id,
-    startDate ? startDate.toISOString() : undefined,
-    endDate ? endDate.toISOString() : undefined
-  );
+    refetch: refetchOverview,
+  } = useAnomalyOverview(estate_id, effectiveFromDate, effectiveToDate);
 
   const {
     data: predictionsData,
     isLoading: predictionsLoading,
     isFetching: predictionsFetching,
+    refetch: refetchPredictions,
   } = useAnomalyPredictions(estate_id, {
-    from_date: startDate ? startDate.toISOString() : undefined,
-    to_date: endDate ? endDate.toISOString() : undefined,
+    from_date: effectiveFromDate,
+    to_date: effectiveToDate,
     severity: filterSeverity.length > 0 ? filterSeverity.map((s) => s.toLowerCase()) : undefined,
     gender: filterGender.length > 0 ? filterGender.map((g) => g.toLowerCase()) : undefined,
     user_type: filterUserType.length > 0 ? filterUserType.map((u) => u.toLowerCase()) : undefined,
@@ -107,6 +120,32 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
     limit: paginationLimit,
     page: 1,
   });
+
+  React.useEffect(() => {
+    if (isActive && estate_id) {
+      void refetchOverview();
+      void refetchPredictions();
+    }
+  }, [isActive, estate_id, refetchOverview, refetchPredictions]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      if (isActive && estate_id) {
+        void refetchOverview();
+        void refetchPredictions();
+      }
+    }, [isActive, estate_id, refetchOverview, refetchPredictions])
+  );
+
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([refetchOverview(), refetchPredictions()]);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const isLoading = overviewLoading || predictionsLoading;
   const overview = (rawOverview as any)?.data || rawOverview;
@@ -230,6 +269,14 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
         contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 100 }}
         onScroll={handleScroll}
         scrollEventThrottle={16}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor="#113E55"
+            colors={['#113E55']}
+          />
+        }
       >
         {/* Title & Export Row */}
         <View className="flex-row items-start justify-between mb-1.5">
@@ -280,14 +327,16 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
         <Pressable
           onPress={handleCycleRange}
           style={{
-            width: 93,
-            height: 28,
+            minWidth: 93,
+            minHeight: 28,
+            maxWidth: '100%',
             borderRadius: 16,
             backgroundColor: '#167A6F', // #1B998B + 20% black overlay
-            paddingTop: 4,
-            paddingRight: 8,
-            paddingBottom: 4,
-            paddingLeft: 8,
+            paddingTop: 5,
+            paddingRight: 10,
+            paddingBottom: 5,
+            paddingLeft: 10,
+            gap: 6,
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -296,10 +345,20 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
           }}
           hitSlop={8}
         >
-          <Text allowFontScaling={false} className="text-[12px] font-inter-medium text-white">
+          <Text
+            allowFontScaling={false}
+            numberOfLines={1}
+            style={{ flexShrink: 1 }}
+            className="text-[12px] font-inter-medium text-white"
+          >
             {selectedRangeText}
           </Text>
-          <MaterialIcons name="keyboard-arrow-down" size={16} color="white" />
+          <MaterialIcons
+            name="keyboard-arrow-down"
+            size={16}
+            color="white"
+            style={{ flexShrink: 0 }}
+          />
         </Pressable>
 
         {/* Name & Location Chips */}
@@ -1320,16 +1379,14 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
               className="bg-[#113E55] mr-3"
               style={{
                 width: 211,
-                minHeight: 152,
+                minHeight: 168,
                 borderRadius: 16,
-                paddingTop: 8,
-                paddingRight: 16,
-                paddingBottom: 8,
-                paddingLeft: 16,
+                padding: 16,
+                justifyContent: 'space-between',
                 gap: 8,
               }}
             >
-              <View className="flex-row items-start justify-between">
+              <View className="flex-row items-center justify-between" style={{ minHeight: 44 }}>
                 <Text
                   allowFontScaling={false}
                   style={{
@@ -1338,7 +1395,6 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
                     lineHeight: 18,
                     color: '#DFEBF1',
                     letterSpacing: 0.5,
-                    marginTop: 8,
                   }}
                 >
                   ACCESS{'\n'}LOGS
@@ -1347,7 +1403,7 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
                   <EstateSvg width={20} height={20} />
                 </View>
               </View>
-              <View style={{ flex: 1, justifyContent: 'flex-end', gap: 4 }}>
+              <View style={{ gap: 4 }}>
                 <View className="flex-row items-baseline gap-1.5">
                   <Text
                     allowFontScaling={false}
@@ -1379,6 +1435,7 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
                     fontSize: 13,
                     color: '#DFEBF1',
                     lineHeight: 18,
+                    minHeight: 36,
                   }}
                 >
                   Anomalous entry time was detected in{' '}
@@ -1393,16 +1450,14 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
               className="bg-[#113E55]"
               style={{
                 width: 211,
-                minHeight: 152,
+                minHeight: 168,
                 borderRadius: 16,
-                paddingTop: 8,
-                paddingRight: 16,
-                paddingBottom: 8,
-                paddingLeft: 16,
+                padding: 16,
+                justifyContent: 'space-between',
                 gap: 8,
               }}
             >
-              <View className="flex-row items-start justify-between">
+              <View className="flex-row items-center justify-between" style={{ minHeight: 44 }}>
                 <Text
                   allowFontScaling={false}
                   style={{
@@ -1411,13 +1466,15 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
                     lineHeight: 18,
                     color: '#DFEBF1',
                     letterSpacing: 0.5,
-                    marginTop: 8,
                   }}
                 >
                   VISITORS{'\n'}LOGS
                 </Text>
+                <View className="w-11 h-11 rounded-full bg-[#2A566E] items-center justify-center">
+                  <TotalUsersSvg width={20} height={20} />
+                </View>
               </View>
-              <View style={{ flex: 1, justifyContent: 'flex-end', gap: 4 }}>
+              <View style={{ gap: 4 }}>
                 <View className="flex-row items-baseline gap-1.5">
                   <Text
                     allowFontScaling={false}
@@ -1449,6 +1506,7 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
                     fontSize: 13,
                     color: '#DFEBF1',
                     lineHeight: 18,
+                    minHeight: 36,
                   }}
                 >
                   Anomalous entry time was detected in{' '}

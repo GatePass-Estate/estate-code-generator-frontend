@@ -1,5 +1,6 @@
 import Api from '.';
 import { getErrorMessage } from '../helpers';
+import { formatKoboAmount } from '../currency';
 import {
   MarketplaceListParams,
   MarketplaceListResponse,
@@ -59,9 +60,7 @@ export function formatTierSubtitle(tier: MarketplaceTier): string {
   }
   if (tier.is_free) return 'FREE';
   if (tier.price != null) {
-    const prefix =
-      tier.currency_code === 'NGN' ? '₦' : tier.currency_code ? `${tier.currency_code} ` : '';
-    return `${prefix}${tier.price}`;
+    return formatKoboAmount(tier.price, { currency: tier.currency_code });
   }
   return '';
 }
@@ -252,6 +251,11 @@ export async function cancelMarketplaceSubscription(
     const body = featureKey ? { feature_key: featureKey } : {};
     await api.post(`/ai-features/estate/${encodeURIComponent(estateId)}/cancel`, body);
   } catch (error: any) {
+    if (error?.response?.status === 403) {
+      throw new Error(
+        "Only the primary admin can cancel an AI subscription. Please contact your estate's primary admin."
+      );
+    }
     throw new Error(getErrorMessage(error) || 'Failed to cancel subscription');
   }
 }
