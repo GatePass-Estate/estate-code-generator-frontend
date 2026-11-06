@@ -10,7 +10,7 @@ import {
   TouchableOpacity,
   Platform,
 } from 'react-native';
-import { router, Stack, useNavigation } from 'expo-router';
+import { router, Stack, useFocusEffect, useNavigation } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons, Feather, MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -20,7 +20,12 @@ import { useAuth } from '@/src/hooks/useAuthContext';
 import { useVerificationGate } from '@/src/hooks/useAccountVerification';
 import { useFeatureGate, useUpgradePromptStore } from '@/src/hooks/usePlan';
 import { useUserStore } from '@/src/lib/stores/userStore';
-import { useEstateEntitlements, useEstateTier } from '@/src/lib/api/entitlements';
+import {
+  refreshEstateEntitlementsIfOlderThan,
+  useEstateEntitlements,
+  useEstateTier,
+} from '@/src/lib/api/entitlements';
+import { planBannerCopy } from '@/src/lib/planAvailability';
 import { canViewBilling } from '@/src/lib/billing';
 import { revokeAllSessions } from '@/src/lib/api/auth';
 import { sharedStyles } from '@/src/theme/styles';
@@ -45,6 +50,9 @@ import {
   TermsOfServiceIcon,
 } from '@/src/assets/svgs';
 import { MoreMenuRow, SectionTitle } from '@/src/components/mobile/MoreMenuRow';
+
+/** Back-to-back focus changes (e.g. closing a sheet) reuse a plan fetched this recently. */
+const PLAN_FOCUS_MAX_AGE_MS = 5_000;
 
 type MoreMenuScreenProps = {
   title?: string;
@@ -200,16 +208,22 @@ export default function MoreMenuScreen({
     router.replace(role === 'security' ? '/security' : '/user');
   }, [navigation, role]);
 
-  const { data: entitlements } = useEstateEntitlements();
-  const { data: tier } = useEstateTier();
-  const planName =
-    tier?.name ||
-    (entitlements?.tierSlug
-      ? entitlements.tierSlug.charAt(0).toUpperCase() + entitlements.tierSlug.slice(1)
-      : 'Free');
-  const planDescription =
-    tier?.description ||
-    'Upgrade your account plan to get exclusive features including Freeze, Scheduling and more';
+  const estateId = useUserStore((s) => s.estate_id);
+  const { data: entitlements, error: entitlementsError } = useEstateEntitlements();
+  const { data: tier, error: tierError } = useEstateTier();
+  const plan = planBannerCopy({
+    tier,
+    tierSlug: entitlements?.tierSlug,
+    error: tierError ?? entitlementsError,
+  });
+
+  // The plan can change on another device (an upgrade, an ID approval), so re-check it each time
+  // this screen comes into view rather than trusting what was cached at sign-in.
+  useFocusEffect(
+    useCallback(() => {
+      if (estateId) refreshEstateEntitlementsIfOlderThan(estateId, PLAN_FOCUS_MAX_AGE_MS);
+    }, [estateId])
+  );
 
   const confirmLogOutAllDevices = () => {
     Alert.alert(
@@ -268,8 +282,8 @@ export default function MoreMenuScreen({
           <BannerCard
             colors={['#185A75', '#5796AB']}
             icon={<Ionicons name="diamond-outline" size={24} color="white" />}
-            title={`${planName} Plan`}
-            subtitle={planDescription}
+            title={plan.title}
+            subtitle={plan.subtitle}
             onPress={canOpenBilling ? () => router.push('/billing') : undefined}
           />
           {isAdmin && (

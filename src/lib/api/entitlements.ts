@@ -6,6 +6,7 @@ import { useUserStore } from '@/src/lib/stores/userStore';
 import { Entitlements, parseEntitlements } from '@/src/lib/plans';
 import { EstateEntitlementsResponse } from '@/src/types/entitlements';
 import { BillingTier } from '@/src/types/billing';
+import { EntitlementsDeniedError } from '@/src/lib/planAvailability';
 import { getErrorMessage } from '../helpers';
 
 const entitlementKeys = {
@@ -14,12 +15,27 @@ const entitlementKeys = {
   tier: (estateId: string) => ['entitlements', 'tier', estateId] as const,
 };
 
+export { EntitlementsDeniedError };
+
 /**
- * The revenue service refused to share the estate's plan with this user (403) — e.g. their ID
- * isn't approved yet. `message` is the server's reason, worth showing as-is: unlike a network
- * failure, this says nothing about what the plan includes.
+ * How long a cached plan counts as current. The plan can change on another device (the paying
+ * admin upgrades), so plan-gated screens refetch on mount after this, and `useEstatePlanFreshness`
+ * refreshes on app resume.
  */
-export class EntitlementsDeniedError extends Error {}
+export const PLAN_STALE_MS = 60_000;
+
+/** A 403 stays an `EntitlementsDeniedError` (e.g. ID not approved), so it never reads as "free". */
+function planRequestError(error: unknown, fallback: string): Error {
+  const message = getErrorMessage(error) || fallback;
+  if (isAxiosError(error) && error.response?.status === 403) {
+    return new EntitlementsDeniedError(message);
+  }
+  return new Error(message);
+}
+
+// A refusal won't change on retry; other failures keep the client default of 2 retries.
+const retryUnlessDenied = (failureCount: number, error: Error) =>
+  !(error instanceof EntitlementsDeniedError) && failureCount < 2;
 
 async function fetchEstateEntitlements(estateId: string): Promise<Entitlements> {
   try {
@@ -27,21 +43,16 @@ async function fetchEstateEntitlements(estateId: string): Promise<Entitlements> 
       `/entitlements/estate/${estateId}`
     );
     return parseEntitlements(data);
-  } catch (error: any) {
-    const message = getErrorMessage(error) || 'Could not load plan entitlements';
-    if (isAxiosError(error) && error.response?.status === 403) {
-      throw new EntitlementsDeniedError(message);
-    }
-    throw new Error(message);
+  } catch (error) {
+    throw planRequestError(error, 'Could not load plan entitlements');
   }
 }
 
 const estateEntitlementsQuery = (estateId: string) => ({
   queryKey: entitlementKeys.estate(estateId),
   queryFn: () => fetchEstateEntitlements(estateId),
-  // A refusal won't change on retry; other failures keep the client default of 2 retries.
-  retry: (failureCount: number, error: Error) =>
-    !(error instanceof EntitlementsDeniedError) && failureCount < 2,
+  staleTime: PLAN_STALE_MS,
+  retry: retryUnlessDenied,
 });
 
 /** The caller's estate tier (any role); `null` when the estate has no running subscription. */
@@ -49,8 +60,8 @@ async function fetchMyTier(): Promise<BillingTier | null> {
   try {
     const { data } = await Api('revenue').get<BillingTier | null>('/subscriptions/tiers/my-tier');
     return data ?? null;
-  } catch (error: any) {
-    throw new Error(getErrorMessage(error) || 'Could not load plan details');
+  } catch (error) {
+    throw planRequestError(error, 'Could not load plan details');
   }
 }
 
@@ -58,9 +69,8 @@ async function fetchMyTier(): Promise<BillingTier | null> {
 const myTierQuery = (estateId: string) => ({
   queryKey: entitlementKeys.tier(estateId),
   queryFn: fetchMyTier,
-  // Kept for the whole session; billing changes refresh it via `refreshEstateEntitlements`.
-  staleTime: Infinity,
-  gcTime: Infinity,
+  staleTime: PLAN_STALE_MS,
+  retry: retryUnlessDenied,
 });
 
 /** Call right after sign-in so plan checks are ready before the user taps anything. */
@@ -78,12 +88,20 @@ export function ensureEstateEntitlements(estateId: string): Promise<Entitlements
   return queryClient.ensureQueryData(estateEntitlementsQuery(estateId));
 }
 
-/** Refetches in the background if the cached copy is older than `maxAgeMs`; never blocks. */
+/**
+ * Refetches the entitlements and the tier in the background if either cached copy is older than
+ * `maxAgeMs` (or failed); never blocks.
+ */
 export function refreshEstateEntitlementsIfOlderThan(estateId: string, maxAgeMs: number) {
   void queryClient.prefetchQuery({ ...estateEntitlementsQuery(estateId), staleTime: maxAgeMs });
+  void queryClient.prefetchQuery({ ...myTierQuery(estateId), staleTime: maxAgeMs });
 }
 
-/** Call when the server rejects a feature the cache said was allowed, so the cache catches up. */
+/**
+ * Refetches the entitlements and the tier (both live under `entitlementKeys.all`). Call when the
+ * plan may have changed: a billing action, a server rejection the cache said was allowed, an ID
+ * approval.
+ */
 export function refreshEstateEntitlements() {
   void queryClient.invalidateQueries({ queryKey: entitlementKeys.all });
 }

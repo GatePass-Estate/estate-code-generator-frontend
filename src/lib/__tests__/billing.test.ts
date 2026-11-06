@@ -10,10 +10,12 @@ import {
   formatBillingDate,
   formatMoney,
   getAmountFontSize,
+  getBilledCaption,
   getBillingEntry,
   getCurrentPlanQuoteParams,
   getCurrentPlanState,
   getCycleProgress,
+  getNextBillingQuoteParams,
   getPlanDirection,
   getRenewalBlockMessage,
   getSeatOccupancy,
@@ -435,6 +437,90 @@ describe('getCurrentPlanQuoteParams', () => {
         administrative_fee: true,
       },
     });
+  });
+});
+
+describe('getNextBillingQuoteParams', () => {
+  // A 90-day period: the backend's infer_period_months gives 3.
+  const baseSub = {
+    id: 's1',
+    estate_id: 'e1',
+    tier_id: 't1',
+    status: 'active',
+    period_start: '2026-01-01T00:00:00Z',
+    period_end: '2026-03-31T00:00:00Z',
+    auto_renew: true,
+    covered_users: 50,
+    over_cap_locked: false,
+    entitlements: null,
+    pending_tier_slug: null,
+    pending_covered_users: null,
+    cancelled_at: null,
+    created_at: '2026-01-01T00:00:00Z',
+    updated_at: '2026-01-01T00:00:00Z',
+  } as EstateSubscription;
+  const tier = (slug: string, isCustom = false) =>
+    ({ slug, name: slug, display_order: 1, is_custom: isCustom }) as unknown as BillingTier;
+
+  it('prices the whole billing cycle at the current tier and seats', () => {
+    expect(getNextBillingQuoteParams(baseSub, tier('watch'))).toEqual({
+      tier_slug: 'watch',
+      covered_users: 50,
+      period_months: 3,
+    });
+    const monthly = { ...baseSub, period_end: '2026-01-30T00:00:00Z' } as EstateSubscription;
+    expect(getNextBillingQuoteParams(monthly, tier('watch'))?.period_months).toBe(1);
+  });
+
+  it('uses a scheduled seat reduction and tier change, like next_billing_amount', () => {
+    const sub = {
+      ...baseSub,
+      pending_covered_users: 40,
+      pending_tier_slug: 'sentinel',
+    } as EstateSubscription;
+    expect(getNextBillingQuoteParams(sub, tier('watch'))).toEqual({
+      tier_slug: 'sentinel',
+      covered_users: 40,
+      period_months: 3,
+    });
+  });
+
+  it('lets the caller override the seats and the tier', () => {
+    const sub = { ...baseSub, pending_covered_users: 40 } as EstateSubscription;
+    expect(getNextBillingQuoteParams(sub, tier('watch'), { seats: 60 })).toEqual({
+      tier_slug: 'watch',
+      covered_users: 60,
+      period_months: 3,
+    });
+    expect(getNextBillingQuoteParams(sub, tier('watch'), { nextTier: tier('command') })).toEqual({
+      tier_slug: 'command',
+      covered_users: 40,
+      period_months: 3,
+    });
+  });
+
+  it('prices a custom plan from its snapshot', () => {
+    const sub = { ...baseSub, entitlements: { guest_management: true } } as EstateSubscription;
+    expect(getNextBillingQuoteParams(sub, tier('custom', true))).toEqual({
+      tier_slug: 'custom',
+      covered_users: 50,
+      period_months: 3,
+      entitlements: { guest_management: true, administrative_fee: true },
+    });
+  });
+
+  it('returns null without a paid plan to price', () => {
+    expect(getNextBillingQuoteParams(null, tier('watch'))).toBeNull();
+    expect(getNextBillingQuoteParams(baseSub, null)).toBeNull();
+    expect(getNextBillingQuoteParams(baseSub, tier('access'))).toBeNull();
+  });
+});
+
+describe('getBilledCaption', () => {
+  it('describes the billing period', () => {
+    expect(getBilledCaption(1)).toBe('Billed Monthly');
+    expect(getBilledCaption(3)).toBe('Billed every 3 months');
+    expect(getBilledCaption(12)).toBe('Billed every 12 months');
   });
 });
 

@@ -1,59 +1,14 @@
-import { View, Text, Share, Alert, Image, Pressable, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, Share, Alert, Image, Pressable, ScrollView } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
-import QRCode from 'react-native-qrcode-svg';
-import Svg, { Path } from 'react-native-svg';
 import { sharedStyles } from '@/src/theme/styles';
 import icons from '@/src/constants/icons';
 import { deleteCode } from '@/src/lib/api/codes';
 import Button, { BUTTON_MARGIN_BOTTOM } from '@/src/components/mobile/Button';
+import BrandedQRCode from '@/src/components/common/BrandedQRCode';
 import { useState } from 'react';
-
-const QR_FRAME_W = 184;
-const QR_FRAME_H = 176;
-const QR_FRAME_RADIUS = 8;
-const QR_FRAME_STROKE = 2;
-const QR_FRAME_GAP = 80;
-
-function QrDashFrame() {
-  const inset = QR_FRAME_STROKE / 2;
-  const x0 = inset;
-  const y0 = inset;
-  const x1 = QR_FRAME_W - inset;
-  const y1 = QR_FRAME_H - inset;
-  const r = QR_FRAME_RADIUS;
-  const armW = (QR_FRAME_W - QR_FRAME_STROKE - 2 * r - QR_FRAME_GAP) / 2;
-  const armH = (QR_FRAME_H - QR_FRAME_STROKE - 2 * r - QR_FRAME_GAP) / 2;
-
-  const corners = [
-    `M ${x0 + r + armW} ${y0} H ${x0 + r} A ${r} ${r} 0 0 0 ${x0} ${y0 + r} V ${y0 + r + armH}`,
-    `M ${x1 - r - armW} ${y0} H ${x1 - r} A ${r} ${r} 0 0 1 ${x1} ${y0 + r} V ${y0 + r + armH}`,
-    `M ${x1} ${y1 - r - armH} V ${y1 - r} A ${r} ${r} 0 0 1 ${x1 - r} ${y1} H ${x1 - r - armW}`,
-    `M ${x0} ${y1 - r - armH} V ${y1 - r} A ${r} ${r} 0 0 0 ${x0 + r} ${y1} H ${x0 + r + armW}`,
-  ];
-
-  return (
-    <Svg
-      width={QR_FRAME_W}
-      height={QR_FRAME_H}
-      style={StyleSheet.absoluteFill}
-      pointerEvents="none"
-    >
-      {corners.map((d) => (
-        <Path
-          key={d}
-          d={d}
-          fill="none"
-          stroke="#F6F7F7"
-          strokeWidth={QR_FRAME_STROKE}
-          strokeLinecap="butt"
-        />
-      ))}
-    </Svg>
-  );
-}
 
 function DetailRow({ label, value }: { label: string; value: string | null | undefined }) {
   return (
@@ -136,7 +91,7 @@ export default function InvitePage() {
       >
         <View className="items-center mt-8 gap-4">
           <View
-            className="h-[201px] w-[210px] items-center justify-center rounded-lg bg-tertiary"
+            className="rounded-[28px] bg-tertiary p-3"
             style={{
               shadowColor: '#000',
               shadowOffset: { width: -1, height: 1 },
@@ -145,16 +100,13 @@ export default function InvitePage() {
               elevation: 3,
             }}
           >
-            <View
-              style={{
-                width: QR_FRAME_W,
-                height: QR_FRAME_H,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <QrDashFrame />
-              <QRCode value={code} size={124} backgroundColor="transparent" color="#F6F7F7" />
+            <View className="rounded-[16px] bg-[#F6F7F7] p-3">
+              <BrandedQRCode
+                value={code}
+                size={176}
+                backgroundColor="#F6F7F7"
+                accessibilityLabel="Guest invite QR code"
+              />
             </View>
           </View>
 

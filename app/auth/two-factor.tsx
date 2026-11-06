@@ -6,9 +6,9 @@ import Back from '@/src/components/mobile/Back';
 import CodeInput from '@/src/components/common/CodeInput';
 import { sharedStyles } from '@/src/theme/styles';
 import { fetchMe, recoverTwoFactor, verifyTwoFactor } from '@/src/lib/api/auth';
-import { useAuthStore } from '@/src/lib/stores/authStore';
+import { applySession } from '@/src/lib/authRefresh';
 import { useAuth } from '@/src/hooks/useAuthContext';
-import { broadcastLogin, storeAuthState } from '@/src/lib/helpers';
+import { broadcastLogin } from '@/src/lib/helpers';
 import { writeTwoFactorFlag } from '@/src/lib/twoFactorState';
 import type { User } from '@/src/types/user';
 
@@ -94,15 +94,11 @@ export default function TwoFactorChallengeScreen() {
       // means it is on, while a recovery code disables it server-side.
       await writeTwoFactorFlag(user.user_id, !useRecovery);
 
-      useAuthStore.setState({
+      await applySession({
         access_token: result.access_token,
+        refresh_token: result.refresh_token,
         role: user.role,
-        session_id: result.session_id ?? null,
-      });
-      await storeAuthState({
-        access_token: result.access_token,
-        role: user.role,
-        session_id: result.session_id ?? null,
+        session_id: result.session_id,
       });
       broadcastLogin(result.access_token, user.role);
       signIn(user);

@@ -5,6 +5,13 @@ import {
   pushSupported,
   registerForPushNotifications,
 } from '@/src/lib/pushNotifications';
+import { refreshEstateEntitlements } from '@/src/lib/api/entitlements';
+import { markNotificationRead } from '@/src/lib/api/notifications';
+import {
+  ANOMALY_NOTIFICATION_TYPE,
+  anomalyRoute,
+  isPlanChangeNotification,
+} from '@/src/lib/notificationDetail';
 import { markBroadcastOpened } from '@/src/lib/readBroadcasts';
 import { useAuthStore } from '@/src/lib/stores/authStore';
 import { useNotificationStore } from '@/src/lib/stores/notificationStore';
@@ -46,11 +53,27 @@ export default function PushNotificationsHost() {
     if (!pushSupported) return;
 
     return addPushListeners({
-      // Arriving in the foreground: keep the bell badge honest.
-      onReceived: () => void refreshCounts(),
-      // Broadcasts open their message; everything else is an activity, so land
-      // on the Activities tab with that entry's detail open.
-      onResponse: ({ broadcast_id, notification_id }) => {
+      // Arriving in the foreground: keep the bell badge honest, and pick up a
+      // plan change (subscription lapse, renewal, ...) straight away.
+      onReceived: ({ type }) => {
+        void refreshCounts();
+        if (isPlanChangeNotification(type)) refreshEstateEntitlements();
+      },
+      // Broadcasts open their message and anomaly alerts the flagged scan;
+      // everything else is an activity, so land on the Activities tab with that
+      // entry's detail open.
+      onResponse: (payload) => {
+        const { broadcast_id, notification_id, type } = payload;
+        if (isPlanChangeNotification(type)) refreshEstateEntitlements();
+        if (type === ANOMALY_NOTIFICATION_TYPE) {
+          // Skipping the Info Board skips the read-on-open it does, so mark it here.
+          const markRead = notification_id
+            ? markNotificationRead(notification_id).catch(() => {})
+            : Promise.resolve();
+          void markRead.finally(() => void refreshCounts());
+          router.push(anomalyRoute(payload));
+          return;
+        }
         void refreshCounts();
         if (broadcast_id) {
           markBroadcastOpened(broadcast_id);

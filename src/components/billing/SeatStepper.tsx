@@ -20,6 +20,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { cn } from '@/src/lib/cn';
+import { selectInputText } from '@/src/lib/selectInputText';
 
 export type SeatStepperProps = {
   value: number;
@@ -138,9 +139,10 @@ function BlinkingCaret({ left }: { left: number }) {
 
 /**
  * −  1200|  +  seat picker from the Choose Plan / Manage Seats designs.
- * The number is a real number-pad TextInput: tapping it selects the number so typing replaces
- * it. In-range values are reported live while typing; the field is clamped and committed on
- * blur / Done. The grey pipe is a caret that blinks while idle; on focus the native caret
+ * The number is a real number-pad TextInput: tapping it (or its caption) selects the whole
+ * number so typing replaces it and backspace clears it. In-range values are reported live while
+ * typing; the field is clamped and committed on blur / Done (an empty field restores the count
+ * it had on focus). The grey pipe is a caret that blinks while idle; on focus the native caret
  * (same colour) takes over.
  */
 export default function SeatStepper({
@@ -154,6 +156,8 @@ export default function SeatStepper({
   className,
 }: SeatStepperProps) {
   const inputRef = useRef<TextInput>(null);
+  // Count when the field was focused: restored if it is left empty.
+  const focusValueRef = useRef(value);
   const accessoryId = `seat-stepper-${useId()}`;
   // Only meaningful while focused; when idle the field always shows `value`, so external changes
   // are reflected immediately and there is no draft/value hand-off to flicker on blur.
@@ -169,7 +173,7 @@ export default function SeatStepper({
   const slotWidth = Math.ceil(measuredWidth) + INPUT_SLACK;
 
   const commit = (n: number) => {
-    const next = clamp(Number.isFinite(n) ? Math.trunc(n) : value, min, max);
+    const next = clamp(Number.isFinite(n) ? Math.trunc(n) : focusValueRef.current, min, max);
     setDraft(String(next));
     if (next !== value) onChange(next);
   };
@@ -182,9 +186,25 @@ export default function SeatStepper({
     if (Number.isFinite(n) && n >= min && n <= max && n !== value) onChange(n);
   };
 
+  // Select the whole number once the field is focused. iOS (Fabric) only honours
+  // `selectTextOnFocus` for a programmatic focus(), so a tap could leave the caret at index 0,
+  // where backspace deletes nothing. setSelection works on iOS and Android (web uses select()).
+  const selectAll = (length: number) => {
+    requestAnimationFrame(() => selectInputText(inputRef.current, length));
+  };
+
   const handleFocus = () => {
+    focusValueRef.current = value;
     setDraft(String(value));
     setFocused(true);
+    selectAll(String(value).length);
+  };
+
+  // Taps on the number slot never reach the native field (it is narrow and centred, so a tap
+  // often lands before the text): focus it, or re-select the number when it already has focus.
+  const handlePressNumber = () => {
+    if (inputRef.current?.isFocused()) selectAll(draft.length);
+    else inputRef.current?.focus();
   };
 
   const handleBlur = () => {
@@ -223,8 +243,15 @@ export default function SeatStepper({
         <StepButton kind="decrease" disabled={!canDecrease} onPress={() => step(-1)} />
       </View>
 
-      <View className="items-center gap-2">
-        <View style={{ width: slotWidth, height: NUMBER_HEIGHT }}>
+      <Pressable
+        onPress={handlePressNumber}
+        disabled={disabled}
+        hitSlop={{ top: 8, bottom: 8 }}
+        // The TextInput inside stays the accessible element.
+        accessible={false}
+        className="items-center gap-2"
+      >
+        <View pointerEvents="none" style={{ width: slotWidth, height: NUMBER_HEIGHT }}>
           <TextInput
             ref={inputRef}
             value={text}
@@ -266,7 +293,7 @@ export default function SeatStepper({
         <Text className="font-inter-regular text-[11.2px] leading-[13.6px] text-[#878686]">
           {caption}
         </Text>
-      </View>
+      </Pressable>
 
       <View className="pt-[5px]">
         <StepButton kind="increase" disabled={!canIncrease} onPress={() => step(1)} />

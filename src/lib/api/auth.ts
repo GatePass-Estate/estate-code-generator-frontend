@@ -119,6 +119,7 @@ export async function loginBiometric(
   role?: string | null;
   token_type?: string;
   session_id?: string | null;
+  refresh_token?: string | null;
   biometric_token?: string | null;
   requires_full_reauth?: boolean;
 }> {

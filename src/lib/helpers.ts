@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { AuthState } from './stores/authStore';
 import { isAxiosError } from 'axios';
 import { AuthBroadcastMessage, UserRolesType } from '../types/general';
@@ -7,6 +8,10 @@ import icons from '../constants/icons';
 import { Platform } from 'react-native';
 
 const authStorageKey = 'auth-key';
+// Native keeps the refresh token in the keychain/keystore; web has only localStorage, which
+// also lets other tabs pick up a rotated pair (see authRefresh.ts).
+const refreshTokenSecureKey = 'gatepass-refresh-token';
+const keepsRefreshTokenInSecureStore = Platform.OS !== 'web';
 
 const BROADCAST_CHANNEL_NAME = 'gatepass-auth-sync';
 
@@ -95,13 +100,33 @@ export const broadcastLogout = (): void => {
 
 export const storeAuthState = async (userData: AuthState): Promise<boolean> => {
   try {
-    const jsonValue = JSON.stringify(userData);
-    await AsyncStorage.setItem(authStorageKey, jsonValue);
+    const { refresh_token, ...rest } = userData;
+    if (keepsRefreshTokenInSecureStore) {
+      try {
+        if (refresh_token) await SecureStore.setItemAsync(refreshTokenSecureKey, refresh_token);
+        else await SecureStore.deleteItemAsync(refreshTokenSecureKey);
+      } catch (error) {
+        // A stale refresh token would be reported as reuse and revoke the session, so drop it.
+        console.log('Error saving refresh token', error);
+        await SecureStore.deleteItemAsync(refreshTokenSecureKey).catch(() => {});
+      }
+    }
+    const stored: AuthState = keepsRefreshTokenInSecureStore
+      ? rest
+      : { ...rest, refresh_token: refresh_token ?? null };
+    await AsyncStorage.setItem(authStorageKey, JSON.stringify(stored));
     return true;
   } catch (error) {
     console.log('Error saving auth state', error);
     return false;
   }
+};
+
+const clearStoredRefreshToken = async (): Promise<void> => {
+  if (!keepsRefreshTokenInSecureStore) return;
+  await SecureStore.deleteItemAsync(refreshTokenSecureKey).catch((error) => {
+    console.log('Error clearing refresh token', error);
+  });
 };
 
 export const clearAuthState = async (): Promise<void> => {
@@ -110,6 +135,7 @@ export const clearAuthState = async (): Promise<void> => {
   } catch (error) {
     console.log('Error clearing auth state', error);
   }
+  await clearStoredRefreshToken();
 };
 
 export const clearAccessToken = async (): Promise<void> => {
@@ -118,12 +144,19 @@ export const clearAccessToken = async (): Promise<void> => {
   } catch (error) {
     console.log('Error clearing access token', error);
   }
+  await clearStoredRefreshToken();
 };
 
+/** Stored session, or null. `refresh_token` is null for sessions saved before refresh tokens. */
 export const getAuthState = async (): Promise<AuthState | null> => {
   try {
     const jsonValue = await AsyncStorage.getItem(authStorageKey);
-    return jsonValue != null ? JSON.parse(jsonValue) : null;
+    if (jsonValue == null) return null;
+    const state: AuthState = JSON.parse(jsonValue);
+    if (keepsRefreshTokenInSecureStore) {
+      state.refresh_token = await SecureStore.getItemAsync(refreshTokenSecureKey).catch(() => null);
+    }
+    return { ...state, refresh_token: state.refresh_token ?? null };
   } catch (error) {
     console.log('Error retrieving auth state', error);
     return null;

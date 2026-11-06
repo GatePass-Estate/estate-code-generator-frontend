@@ -17,11 +17,10 @@ import { useAuth } from '@/src/hooks/useAuthContext';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { enableBiometricLogin, fetchMe, loginBiometric, loginUser } from '@/src/lib/api/auth';
 import { User } from '@/src/types/user';
-import { useAuthStore } from '@/src/lib/stores/authStore';
+import { applySession } from '@/src/lib/authRefresh';
 import {
   broadcastLogin,
   getWidthBreakpoint,
-  storeAuthState,
   getLastLoginInstitution,
   getSelectedInstitution,
   setLastLoginInstitution,
@@ -124,12 +123,19 @@ export default function Login() {
   const finishSignIn = useCallback(
     async (
       token: string,
-      options?: { skipRouting?: boolean; sessionId?: string | null }
+      options?: {
+        skipRouting?: boolean;
+        sessionId?: string | null;
+        refreshToken?: string | null;
+      }
     ): Promise<User> => {
       const user = await fetchMe(token);
-      const session_id = options?.sessionId ?? null;
-      useAuthStore.setState({ access_token: token, role: user.role, session_id });
-      await storeAuthState({ access_token: token, role: user.role, session_id });
+      await applySession({
+        access_token: token,
+        refresh_token: options?.refreshToken,
+        role: user.role,
+        session_id: options?.sessionId,
+      });
       broadcastLogin(token, user.role);
       signIn(user);
 
@@ -200,6 +206,7 @@ export default function Login() {
       const user = await finishSignIn(result.access_token, {
         skipRouting: true,
         sessionId: result.session_id,
+        refreshToken: result.refresh_token,
       });
       setIsLoading(false);
       await setLastLoginInstitution(estate ?? null);
@@ -280,6 +287,7 @@ export default function Login() {
         const user = await finishSignIn(response.access_token, {
           skipRouting: true,
           sessionId: response.session_id,
+          refreshToken: response.refresh_token,
         });
         if (response.biometric_token) {
           await saveBiometricCredentials(response.biometric_token, user.user_id, user.estate_id);
@@ -478,8 +486,6 @@ export default function Login() {
                     autoCapitalize="none"
                     editable={!isLoading}
                     className="bg-light-grey rounded-xl px-4 h-14 pr-12 font-Inter text-base text-black"
-                    contextMenuHidden={true}
-                    selectTextOnFocus={false}
                   />
                   <Pressable
                     onPress={() => setShowPassword(!showPassword)}

@@ -29,9 +29,12 @@ import { showCheckoutOutcomeAlert, usePaystackCheckout } from '@/src/lib/billing
 import {
   formatBillingDate,
   formatMoney,
+  getBilledCaption,
+  getNextBillingQuoteParams,
   getPlanDirection,
   getPlanRenewalFootnote,
   getTierFeatureRows,
+  inferPeriodMonths,
 } from '@/src/lib/billing';
 import { sharedStyles } from '@/src/theme/styles';
 
@@ -94,10 +97,15 @@ export default function ChangePlanScreen() {
       ? 'next_cycle'
       : null;
 
+  // What the first renewal on the new plan charges: the whole cycle at the seats it renews with,
+  // priced like Your Current Plan's billing amount once the change is scheduled.
   const nextCycleQuote = useBillingQuote(
-    target && subscription && !isCustomTarget && !isFreeTarget
-      ? { tier_slug: target.slug, covered_users: subscription.covered_users, period_months: 1 }
+    target && !isCustomTarget && !isFreeTarget
+      ? getNextBillingQuoteParams(subscription, currentTier, { nextTier: target })
       : null
+  );
+  const nextCycleCaption = getBilledCaption(
+    inferPeriodMonths(subscription?.period_start, subscription?.period_end)
   );
   const nextCycleAmount = isFreeTarget
     ? 'Free'
@@ -228,6 +236,7 @@ export default function ChangePlanScreen() {
               title="Upgrade next billing cycle"
               description={nextCycleDescription}
               amount={nextCycleAmount}
+              footnote={nextCycleCaption}
             />
           </>
         ) : (
@@ -238,6 +247,7 @@ export default function ChangePlanScreen() {
             title="Downgrade next billing cycle"
             description={nextCycleDescription}
             amount={nextCycleAmount}
+            footnote={isFreeTarget ? null : nextCycleCaption}
           />
         )}
       </View>

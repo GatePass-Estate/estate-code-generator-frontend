@@ -1,7 +1,6 @@
-import { Modal, Pressable, View, Image } from 'react-native';
-import QRCode from 'react-native-qrcode-svg';
+import { Modal, Pressable, View } from 'react-native';
 import { CloseCircleIcon } from '@/src/assets/svgs';
-import images from '@/src/constants/images';
+import BrandedQRCode from '@/src/components/common/BrandedQRCode';
 
 type ResidentAccessCodeQRModalProps = {
   visible: boolean;
@@ -23,29 +22,12 @@ export default function ResidentAccessCodeQRModal({
       >
         <Pressable onPress={(event) => event.stopPropagation()} className="w-full items-center">
           <View className="h-[337px] w-full max-w-[331px] items-center justify-center rounded-[24px] bg-[#F6F7F7] px-6 py-[51px]">
-            <View
-              style={{ width: 234, height: 234, alignItems: 'center', justifyContent: 'center' }}
-            >
-              <QRCode value={code} size={234} backgroundColor="white" color="#5b5e61" ecl="H" />
-
-              <View
-                style={{
-                  position: 'absolute',
-                  width: 80,
-                  height: 80,
-                  borderRadius: 40,
-                  backgroundColor: 'white',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Image
-                  source={images.logo}
-                  style={{ width: 70, height: 70, marginTop: 5 }}
-                  resizeMode="contain"
-                />
-              </View>
-            </View>
+            <BrandedQRCode
+              value={code}
+              size={234}
+              backgroundColor="#F6F7F7"
+              accessibilityLabel="Access code QR code"
+            />
           </View>
 
           <Pressable

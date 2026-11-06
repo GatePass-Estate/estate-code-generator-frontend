@@ -406,7 +406,7 @@ export function createIdempotencyKey(): string {
  */
 export function getCurrentPlanQuoteParams(
   subscription: EstateSubscription | null | undefined,
-  tier: BillingTier | null | undefined,
+  tier: Pick<BillingTier, 'slug' | 'is_custom'> | null | undefined,
   seats: number,
   months: PeriodMonths = 1
 ): Omit<CheckoutQuoteRequest, 'estate_id'> | null {
@@ -422,6 +422,38 @@ export function getCurrentPlanQuoteParams(
     tier_slug: 'custom',
     entitlements: { ...entitlements, administrative_fee: true },
   };
+}
+
+/**
+ * Quote body (minus `estate_id`) for the plan's next renewal charge, priced on the same basis as
+ * the backend's billing-cycle `next_billing_amount` (revenue_service
+ * `SubscriptionService.get_billing_cycle`): the whole cycle (`inferPeriodMonths` of the current
+ * period), the scheduled tier when a tier change is pending, and the scheduled seat count when a
+ * seat reduction is pending. `seats` overrides the seat count (the count picked on Manage Seats;
+ * a seat add clears a pending reduction, a reduction replaces it) and `nextTier` the tier (the
+ * plan picked on Change Plan). `null` when there is nothing to price (see
+ * `getCurrentPlanQuoteParams`).
+ */
+export function getNextBillingQuoteParams(
+  subscription: EstateSubscription | null | undefined,
+  currentTier: BillingTier | null | undefined,
+  { seats, nextTier }: { seats?: number; nextTier?: BillingTier | null } = {}
+): Omit<CheckoutQuoteRequest, 'estate_id'> | null {
+  if (!subscription) return null;
+  const pendingSlug = subscription.pending_tier_slug;
+  // Tier changes can't be scheduled to a Custom plan, so a pending slug is a standard tier.
+  const tier = nextTier ?? (pendingSlug ? { slug: pendingSlug, is_custom: false } : currentTier);
+  return getCurrentPlanQuoteParams(
+    subscription,
+    tier,
+    seats ?? subscription.pending_covered_users ?? subscription.covered_users,
+    inferPeriodMonths(subscription.period_start, subscription.period_end)
+  );
+}
+
+/** 'Billed Monthly' for 1 month, else 'Billed every 3 months' etc. */
+export function getBilledCaption(months: PeriodMonths): string {
+  return months === 1 ? 'Billed Monthly' : `Billed every ${months} months`;
 }
 
 /**

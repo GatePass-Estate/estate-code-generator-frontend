@@ -32,7 +32,7 @@ import {
   regenerateRecoveryCodes,
 } from '@/src/lib/api/auth';
 import { setPendingRecoveryCodes } from '@/src/lib/recoveryCodes';
-import { useAuthStore } from '@/src/lib/stores/authStore';
+import { getValidAccessToken } from '@/src/lib/authRefresh';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { useTwoFactorStatus } from '@/src/hooks/useTwoFactorStatus';
 
@@ -103,7 +103,7 @@ export default function AccountSecurityScreen() {
           return;
         }
 
-        const token = useAuthStore.getState().access_token;
+        const token = await getValidAccessToken();
         if (!token || !user_id) {
           setBiometricEnabled(false);
           return;
@@ -119,7 +119,7 @@ export default function AccountSecurityScreen() {
         }
       } else {
         try {
-          const token = useAuthStore.getState().access_token;
+          const token = await getValidAccessToken();
           if (token) {
             await disableBiometricLogin(token);
           }
