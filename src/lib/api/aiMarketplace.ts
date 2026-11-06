@@ -251,6 +251,11 @@ export async function cancelMarketplaceSubscription(
     const body = featureKey ? { feature_key: featureKey } : {};
     await api.post(`/ai-features/estate/${encodeURIComponent(estateId)}/cancel`, body);
   } catch (error: any) {
+    if (error?.response?.status === 403) {
+      throw new Error(
+        "Only the primary admin can cancel an AI subscription. Please contact your estate's primary admin."
+      );
+    }
     throw new Error(getErrorMessage(error) || 'Failed to cancel subscription');
   }
 }

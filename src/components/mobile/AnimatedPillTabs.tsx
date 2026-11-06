@@ -54,13 +54,21 @@ export default function AnimatedPillTabs<T extends string>({
   const translateX = useSharedValue(isRight ? resultX : 0);
   const startX = useSharedValue(0);
 
-  useEffect(() => {
+  const syncToControlledValue = () => {
     translateX.value = withTiming(value === right.value ? resultX : 0, GLIDE_CONFIG);
+  };
+
+  useEffect(() => {
+    syncToControlledValue();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only sync when tab value changes
   }, [value, resultX, right.value]);
 
   const setValue = (next: T) => {
-    if (next !== value) onChange(next);
+    if (next !== value) {
+      onChange(next);
+    }
+    // If parent rejects the tab change (e.g. subscription gate), ensure indicator stays on `value`.
+    syncToControlledValue();
   };
 
   const panGesture = Gesture.Pan()
@@ -91,8 +99,6 @@ export default function AnimatedPillTabs<T extends string>({
         nextRight = translateX.value > resultX / 2;
       }
 
-      const targetX = nextRight ? resultX : 0;
-      translateX.value = withTiming(targetX, GLIDE_CONFIG);
       runOnJS(setValue)(nextRight ? right.value : left.value);
     });
 
@@ -101,8 +107,6 @@ export default function AnimatedPillTabs<T extends string>({
     .onEnd((e) => {
       'worklet';
       const nextRight = e.x >= activeWidth;
-      const targetX = nextRight ? resultX : 0;
-      translateX.value = withTiming(targetX, GLIDE_CONFIG);
       runOnJS(setValue)(nextRight ? right.value : left.value);
     });
 
@@ -138,7 +142,6 @@ export default function AnimatedPillTabs<T extends string>({
           accessibilityRole="tab"
           accessibilityState={{ selected: value === left.value }}
           onPress={() => {
-            translateX.value = withTiming(0, GLIDE_CONFIG);
             setValue(left.value);
           }}
           style={[styles.tab, { width: activeWidth, height }]}
@@ -151,7 +154,6 @@ export default function AnimatedPillTabs<T extends string>({
           accessibilityRole="tab"
           accessibilityState={{ selected: value === right.value }}
           onPress={() => {
-            translateX.value = withTiming(resultX, GLIDE_CONFIG);
             setValue(right.value);
           }}
           style={[styles.tab, { width: resultX, height }]}

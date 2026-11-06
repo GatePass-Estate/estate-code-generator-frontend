@@ -1,4 +1,5 @@
 import {
+  ActivityIndicator,
   View,
   Text,
   ScrollView,
@@ -38,6 +39,7 @@ export default function AdminUsersMobilePage() {
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
   const [users, setUsers] = useState<AllUsers>({ total: 0, page: 1, limit: 30, items: [] });
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [seatModalVisible, setSeatModalVisible] = useState(false);
   const router = useRouter();
@@ -120,6 +122,7 @@ export default function AdminUsersMobilePage() {
     } catch {
       // Preserve the last successfully loaded totals when refreshing fails.
     } finally {
+      setIsInitialLoading(false);
       if (showLoading) setRefreshing(false);
     }
   };
@@ -665,7 +668,23 @@ export default function AdminUsersMobilePage() {
 
           {/* Users List */}
           <View>
-            {limitedUsers.length === 0 ? (
+            {isInitialLoading ? (
+              <View style={{ paddingVertical: 32, alignItems: 'center' }}>
+                <ActivityIndicator color="#113E55" />
+                <Text
+                  allowFontScaling={false}
+                  style={{
+                    fontFamily: 'Inter_18pt-Regular',
+                    fontSize: 14,
+                    color: '#8A9A9D',
+                    textAlign: 'center',
+                    marginTop: 10,
+                  }}
+                >
+                  Loading users...
+                </Text>
+              </View>
+            ) : limitedUsers.length === 0 ? (
               <View style={{ paddingVertical: 32, alignItems: 'center' }}>
                 <Text
                   allowFontScaling={false}

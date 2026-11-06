@@ -70,6 +70,8 @@ export const billingKeys = {
 /** Refetch every billing query and the estate's entitlements (after a plan/seat change or payment). */
 export function refreshBillingData(): Promise<void> {
   refreshEstateEntitlements();
+  void queryClient.invalidateQueries({ queryKey: ['anomaly'] });
+  void queryClient.invalidateQueries({ queryKey: ['incident-reports'] });
   return queryClient.invalidateQueries({ queryKey: billingKeys.all });
 }
 

@@ -44,6 +44,8 @@ import {
 } from '@/src/lib/api/aiMarketplace';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { useContactAdminNoticeStore } from '@/src/hooks/usePlan';
+import { useEstateEntitlements } from '@/src/lib/api/entitlements';
+import { hasEntitlement } from '@/src/lib/plans';
 import {
   AiCheckoutDuration,
   MarketplaceDetailResponse,
@@ -65,6 +67,7 @@ export default function IncidentReportPreviewScreen() {
   const userRole = useUserStore((s) => s.role);
   const showContactAdminNotice = useContactAdminNoticeStore((s) => s.show);
   const { data: subscriptionData } = useEstateSubscription();
+  const { data: entitlements } = useEstateEntitlements();
   const tierTwoYRef = useRef<number>(0);
   const [upgradeModalVisible, setUpgradeModalVisible] = useState(false);
   const [activeTab, setActiveTab] = useState<'Preview' | 'Result'>('Preview');
@@ -198,6 +201,13 @@ export default function IncidentReportPreviewScreen() {
   }, [featureDetail]);
 
   const handleRate = async (rating: number) => {
+    if (!hasFeatureEntitlement) {
+      Alert.alert(
+        'Rating Unavailable',
+        'You need an active subscription or entitlement to this AI feature before you can rate it.'
+      );
+      return;
+    }
     const targetId = featureDetail?.id;
     if (!targetId) return;
     try {
@@ -214,8 +224,13 @@ export default function IncidentReportPreviewScreen() {
     if (userRole !== 'primary_admin') {
       showContactAdminNotice(
         'incident_report_summary_tier_2',
-        'Only the primary admin can purchase AI subscriptions and features.'
+        "Only the primary admin can purchase or activate AI subscriptions. Please contact your estate's primary admin."
       );
+      return;
+    }
+
+    if (tier.is_free && !isPlanIncludingResults) {
+      setUpgradeModalVisible(true);
       return;
     }
 
@@ -369,7 +384,7 @@ export default function IncidentReportPreviewScreen() {
     if (userRole !== 'primary_admin') {
       showContactAdminNotice(
         'incident_report_summary_tier_2',
-        'Only the primary admin can manage AI subscriptions.'
+        "Only the primary admin can cancel an AI subscription. Please contact your estate's primary admin."
       );
       return;
     }
@@ -414,7 +429,7 @@ export default function IncidentReportPreviewScreen() {
     if (userRole !== 'primary_admin') {
       showContactAdminNotice(
         'incident_report_summary_tier_2',
-        'Only the primary admin can manage AI subscriptions.'
+        "Only the primary admin can cancel an AI subscription. Please contact your estate's primary admin."
       );
       return;
     }
@@ -458,7 +473,7 @@ export default function IncidentReportPreviewScreen() {
     if (userRole !== 'primary_admin') {
       showContactAdminNotice(
         'incident_report_summary_tier_2',
-        'Only the primary admin can manage AI subscriptions.'
+        "Only the primary admin can cancel an AI subscription. Please contact your estate's primary admin."
       );
       return;
     }
@@ -511,10 +526,18 @@ export default function IncidentReportPreviewScreen() {
     [justCancelledTiers]
   );
 
-  const planSlug = subscriptionData?.tier?.slug;
+  const planSlug = subscriptionData?.tier?.slug ?? entitlements?.tierSlug;
   const isPlanIncludingResults = planSlug === 'sentinel' || planSlug === 'command';
+  const hasPaidTierEntitlement =
+    hasEntitlement(entitlements, 'incident_report_summary_tier_2') ||
+    hasEntitlement(entitlements, 'incident_report_summary_tier_3');
   const hasResultAccess =
-    isPlanIncludingResults || isTierSubscribed(tierTwoApi) || isTierSubscribed(tierThreeApi);
+    isPlanIncludingResults ||
+    hasPaidTierEntitlement ||
+    isTierSubscribed(tierTwoApi) ||
+    isTierSubscribed(tierThreeApi);
+
+  const hasFeatureEntitlement = hasResultAccess;
 
   /** Tier 2 = In-house summary, tier 3 = Third-party summary; undefined until tiers load. */
   const isTierInstalled = (num: number) =>
@@ -709,7 +732,16 @@ export default function IncidentReportPreviewScreen() {
                       {featureDetail.name || ''}
                     </Text>
                     <Pressable
-                      onPress={() => setIsRatingModalVisible(true)}
+                      onPress={() => {
+                        if (!hasFeatureEntitlement) {
+                          Alert.alert(
+                            'Rating Unavailable',
+                            'You need an active subscription or entitlement to this AI feature before you can rate it.'
+                          );
+                          return;
+                        }
+                        setIsRatingModalVisible(true);
+                      }}
                       className="flex-row items-center gap-1"
                     >
                       <RatingStarIcon width={17} height={16} />
@@ -815,13 +847,16 @@ export default function IncidentReportPreviewScreen() {
                       const description = tier.description?.trim() || '';
                       // The tier's name, like anomaly; the price shows in the quote sheet on Activate.
                       const subtitle = tier.name?.trim() || formatTierSubtitle(tier);
+                      const isFreeTierAllowed = !tier.is_free || isPlanIncludingResults;
                       const isSubscribed =
-                        tier.status === 'active' ||
-                        tier.status === 'purchased' ||
-                        tier.status === 'subscribed' ||
-                        tier.status === 'installed' ||
-                        !!tier.purchased;
-                      const isInstalled = !!tier.is_installed && !justPurchasedTiers[tierKey];
+                        isFreeTierAllowed &&
+                        (tier.status === 'active' ||
+                          tier.status === 'purchased' ||
+                          tier.status === 'subscribed' ||
+                          tier.status === 'installed' ||
+                          !!tier.purchased);
+                      const isInstalled =
+                        isFreeTierAllowed && !!tier.is_installed && !justPurchasedTiers[tierKey];
 
                       const isTierTwo =
                         (Number.parseInt(tier.tier.replace(/\D/g, ''), 10) || 0) === 2;

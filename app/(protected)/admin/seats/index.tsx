@@ -48,7 +48,7 @@ export default function ManageSeatsScreen() {
             marginTop: 24,
           }}
         >
-          Add Seats
+          Manage Seats
         </Text>
         <Text
           allowFontScaling={false}
@@ -214,11 +214,12 @@ export default function ManageSeatsScreen() {
             }}
           >
             Each seat represents one registered user (resident or security personnel) in your
-            estate. To increase your seat capacity, upgrade your plan or request additional seats.
+            estate. You can add seats immediately or schedule a seat reduction for your next
+            renewal.
           </Text>
         </View>
 
-        {/* Add Seats Action */}
+        {/* Manage Seats Action */}
         <TouchableOpacity
           activeOpacity={0.85}
           disabled={!isPrimaryAdmin}
@@ -240,7 +241,7 @@ export default function ManageSeatsScreen() {
               color: '#FFFFFF',
             }}
           >
-            Add Seats
+            Manage Seats
           </Text>
         </TouchableOpacity>
         {!isPrimaryAdmin && (
@@ -254,7 +255,7 @@ export default function ManageSeatsScreen() {
               color: '#878686',
             }}
           >
-            Only the primary admin can add seats.
+            Only the primary admin can manage seats.
           </Text>
         )}
       </ScrollView>

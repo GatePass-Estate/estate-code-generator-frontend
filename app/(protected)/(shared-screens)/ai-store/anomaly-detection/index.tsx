@@ -9,23 +9,17 @@ import {
   Image,
   Modal,
 } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useQueryClient } from '@tanstack/react-query';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialIcons } from '@expo/vector-icons';
 import Svg, { Path } from 'react-native-svg';
-import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import AnimatedPillTabs from '@/src/components/mobile/AnimatedPillTabs';
+import SubscriptionTierCard from '@/src/components/incident/SubscriptionTierCard';
 import BiInfoSvg from '@/src/assets/icons/bi_info.svg';
 import ValidationBackSvg from '@/src/assets/icons/validation-back.svg';
-import AnomalyRadarChart from '@/src/components/anomaly/AnomalyRadarChart';
-import AnomalyDonutChart from '@/src/components/anomaly/AnomalyDonutChart';
-import SemiCircleGauge from '@/src/components/anomaly/SemiCircleGauge';
-import FilterModal from '@/src/components/anomaly/modals/FilterModal';
-import OrderModal from '@/src/components/anomaly/modals/OrderModal';
-import GaugeDetailModal, { GaugeData } from '@/src/components/anomaly/modals/GaugeDetailModal';
-import DatePickerModal from '@/src/components/anomaly/modals/DatePickerModal';
-import TimeframeModal from '@/src/components/anomaly/modals/TimeframeModal';
 
 import Pf1Svg from '@/src/assets/icons/pf_1.svg';
 import Pf2Svg from '@/src/assets/icons/pf_2.svg';
@@ -43,10 +37,13 @@ import PaymentVerificationModal, {
 import UpgradePlanModal from '@/src/components/mobile/UpgradePlanModal';
 import AnomalyResultView from '@/src/components/anomaly/AnomalyResultView';
 import { useEstateSubscription } from '@/src/hooks/useBillingQueries';
+import { refreshEstateEntitlements, useEstateEntitlements } from '@/src/lib/api/entitlements';
+import { hasEntitlement } from '@/src/lib/plans';
 import { WebView } from 'react-native-webview';
 import {
+  formatTierLabel,
+  formatTierSubtitle,
   getMarketplaceFeatureById,
-  getMarketplaceFeatures,
   subscribeMarketplaceFeature,
   getFeaturePictureUrl,
   rateMarketplaceFeature,
@@ -67,18 +64,13 @@ import {
   AiQuoteResponse,
 } from '@/src/types/aiMarketplace';
 
+const tierNumber = (tier: string) => tier.replace(/\D/g, '') || tier;
+
 export default function AnomalyDetectionPreviewScreen() {
   const params = useLocalSearchParams<{ featureId?: string; title?: string; tab?: string }>();
-  const [activeTab, setActiveTab] = useState<'Overview' | 'Result'>(
-    params.tab === 'Result' ? 'Result' : 'Overview'
-  );
-  const [prevParamTab, setPrevParamTab] = useState(params.tab);
-  if (params.tab !== prevParamTab) {
-    setPrevParamTab(params.tab);
-    const newTab = params.tab === 'Result' ? 'Result' : 'Overview';
-    setActiveTab(newTab);
-  }
-  const [expandedTier, setExpandedTier] = useState<string | null>('Tier Two');
+  const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState<'Overview' | 'Result'>('Overview');
+  const [expandedTier, setExpandedTier] = useState<string | null>(null);
   const [featureDetail, setFeatureDetail] = useState<MarketplaceDetailResponse | null>(null);
   const [isSubscribing, setIsSubscribing] = useState(false);
   const [subscribingTierKey, setSubscribingTierKey] = useState<string | null>(null);
@@ -105,32 +97,8 @@ export default function AnomalyDetectionPreviewScreen() {
   const [verificationState, setVerificationState] = useState<PaymentVerificationState>('verifying');
   const pollingTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const [activeCancelBubbleTier, setActiveCancelBubbleTier] = useState<string | null>(null);
-  const cancelBubbleTimerRef = useRef<NodeJS.Timeout | null>(null);
   const tierTwoYRef = useRef<number>(0);
   const [upgradeModalVisible, setUpgradeModalVisible] = useState(false);
-
-  const showCancelInfoBubble = (tier: string) => {
-    if (cancelBubbleTimerRef.current) {
-      clearTimeout(cancelBubbleTimerRef.current);
-    }
-    if (activeCancelBubbleTier === tier) {
-      setActiveCancelBubbleTier(null);
-      return;
-    }
-    setActiveCancelBubbleTier(tier);
-    cancelBubbleTimerRef.current = setTimeout(() => {
-      setActiveCancelBubbleTier(null);
-    }, 3500);
-  };
-
-  useEffect(() => {
-    return () => {
-      if (cancelBubbleTimerRef.current) {
-        clearTimeout(cancelBubbleTimerRef.current);
-      }
-    };
-  }, []);
 
   const [confirmModalVisible, setConfirmModalVisible] = useState(false);
   const [confirmModalConfig, setConfirmModalConfig] = useState<{
@@ -154,15 +122,14 @@ export default function AnomalyDetectionPreviewScreen() {
   const userRole = useUserStore((state) => state.role);
   const showContactAdminNotice = useContactAdminNoticeStore((s) => s.show);
 
-  const formatTierName = (tier: string) => {
-    const map: Record<string, string> = { '1': 'One', '2': 'Two', '3': 'Three' };
-    return tier
-      .split('_')
-      .map((w) => map[w] || w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-      .join(' ');
-  };
-
   const handleRate = async (rating: number) => {
+    if (!hasFeatureEntitlement) {
+      Alert.alert(
+        'Rating Unavailable',
+        'You need an active subscription or entitlement to this AI feature before you can rate it.'
+      );
+      return;
+    }
     const targetId = featureDetail?.id || params.featureId;
     if (!targetId) return;
     try {
@@ -190,6 +157,10 @@ export default function AnomalyDetectionPreviewScreen() {
         if (targetId) {
           const detail = await getMarketplaceFeatureById(targetId);
           setFeatureDetail(detail);
+          const sorted = sortMarketplaceTiers(detail.tiers ?? []);
+          setExpandedTier((prev) =>
+            prev && sorted.some((tier) => tier.tier === prev) ? prev : null
+          );
           if (estateId && detail.tiers) {
             detail.tiers.forEach((t) => {
               if (t.feature_key && !t.is_free) {
@@ -205,6 +176,22 @@ export default function AnomalyDetectionPreviewScreen() {
       }
     },
     [params.featureId, estateId, featureDetail]
+  );
+
+  const refreshAfterTierChange = useCallback(
+    async (id?: string) => {
+      refreshEstateEntitlements();
+      void queryClient.invalidateQueries({ queryKey: ['anomaly'] });
+      await loadFeature(id ?? featureDetail?.id);
+    },
+    [queryClient, loadFeature, featureDetail?.id]
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshEstateEntitlements();
+      void queryClient.invalidateQueries({ queryKey: ['anomaly'] });
+    }, [queryClient])
   );
 
   useEffect(() => {
@@ -286,12 +273,16 @@ export default function AnomalyDetectionPreviewScreen() {
   const handlePressActivate = (tierPayload: MarketplaceTier) => {
     if (userRole !== 'primary_admin') {
       showContactAdminNotice(
-        'guest_management',
-        'Only the primary admin can purchase AI subscriptions and features.'
+        'access_anomaly_detection_tier_2',
+        "Only the primary admin can purchase or activate AI subscriptions. Please contact your estate's primary admin."
       );
       return;
     }
     if (tierPayload.is_free) {
+      if (!isPlanIncludingResults) {
+        setUpgradeModalVisible(true);
+        return;
+      }
       handleActivateFreeTier(tierPayload);
       return;
     }
@@ -442,7 +433,7 @@ export default function AnomalyDetectionPreviewScreen() {
     if (userRole !== 'primary_admin') {
       showContactAdminNotice(
         'access_anomaly_detection_tier_2',
-        'Only the primary admin can manage AI subscriptions.'
+        "Only the primary admin can cancel an AI subscription. Please contact your estate's primary admin."
       );
       return;
     }
@@ -467,7 +458,7 @@ export default function AnomalyDetectionPreviewScreen() {
               );
             return next;
           });
-          loadFeature(featureDetail?.id);
+          await refreshAfterTierChange(featureDetail?.id);
         } catch (err: any) {
           const errorMessage = err?.message || 'Failed to cancel subscription.';
           // If Paystack says it failed to disable, it's almost certainly because it's already cancelled
@@ -504,7 +495,7 @@ export default function AnomalyDetectionPreviewScreen() {
     if (userRole !== 'primary_admin') {
       showContactAdminNotice(
         'access_anomaly_detection_tier_2',
-        'Only the primary admin can manage AI subscriptions.'
+        "Only the primary admin can uninstall or manage AI subscriptions. Please contact your estate's primary admin."
       );
       return;
     }
@@ -530,7 +521,7 @@ export default function AnomalyDetectionPreviewScreen() {
         try {
           await uninstallAiFeature(estateId, tierPayload.feature_key!);
           Alert.alert('Success', 'Feature uninstalled successfully.');
-          loadFeature(featureDetail?.id);
+          await refreshAfterTierChange(featureDetail?.id);
         } catch (err: any) {
           Alert.alert('Uninstall Failed', err?.message || 'Failed to uninstall feature.');
         } finally {
@@ -547,6 +538,13 @@ export default function AnomalyDetectionPreviewScreen() {
     tier: string;
     feature_key?: string | null;
   }) => {
+    if (userRole !== 'primary_admin') {
+      showContactAdminNotice(
+        'access_anomaly_detection_tier_2',
+        "Only the primary admin can install or manage AI subscriptions. Please contact your estate's primary admin."
+      );
+      return;
+    }
     if (!estateId) {
       Alert.alert('Error', 'Estate ID not found');
       return;
@@ -562,7 +560,7 @@ export default function AnomalyDetectionPreviewScreen() {
       await installAiFeature(estateId, tierPayload.feature_key);
       Alert.alert('Success', 'Feature installed successfully.');
       setJustPurchasedTiers((prev) => ({ ...prev, [tierPayload.tier]: false }));
-      loadFeature(featureDetail?.id);
+      await refreshAfterTierChange(featureDetail?.id);
     } catch (err: any) {
       Alert.alert('Install Failed', err?.message || 'Failed to install feature.');
     } finally {
@@ -572,6 +570,7 @@ export default function AnomalyDetectionPreviewScreen() {
   };
 
   const { data: subscriptionData } = useEstateSubscription();
+  const { data: entitlements } = useEstateEntitlements();
   const sortedTiers = featureDetail?.tiers ? sortMarketplaceTiers(featureDetail.tiers) : [];
   const tierOneApi = sortedTiers[0];
   const tierTwoApi = sortedTiers[1];
@@ -593,181 +592,49 @@ export default function AnomalyDetectionPreviewScreen() {
     [justCancelledTiers]
   );
 
-  const planSlug = subscriptionData?.tier?.slug;
+  const planSlug = subscriptionData?.tier?.slug ?? entitlements?.tierSlug;
   const isPlanIncludingResults = planSlug === 'sentinel' || planSlug === 'command';
+  const hasPaidTierEntitlement =
+    hasEntitlement(entitlements, 'access_anomaly_detection_tier_2') ||
+    hasEntitlement(entitlements, 'access_anomaly_detection_tier_3');
   const hasResultAccess =
-    isPlanIncludingResults || isTierSubscribed(tierTwoApi) || isTierSubscribed(tierThreeApi);
+    isPlanIncludingResults ||
+    hasPaidTierEntitlement ||
+    isTierSubscribed(tierTwoApi) ||
+    isTierSubscribed(tierThreeApi);
 
-  const renderTierButtons = (tierApi: any, fallbackTier: string) => {
-    const api: MarketplaceTier = tierApi || { tier: fallbackTier };
-    const tierKey = api.tier || fallbackTier;
-    const isSubscribed =
-      api.status === 'active' ||
-      api.status === 'purchased' ||
-      api.status === 'subscribed' ||
-      api.status === 'installed' ||
-      api.purchased;
-    const isCancelledLocally = !!justCancelledTiers[tierKey];
-    const isInstalled = !!api.is_installed && !justPurchasedTiers[tierKey];
-    const isFromSubscriptionTier = api.payment_mode === 'subscription';
+  const hasFeatureEntitlement = hasResultAccess;
 
-    const showActivate = !isSubscribed;
-    const showCancel = isSubscribed && !api.is_free;
-    const showInstall = isSubscribed && !isInstalled;
-    const showUninstall = isInstalled;
-
-    return (
-      <View className="gap-3 mt-4">
-        {showActivate && (
-          <Pressable
-            disabled={isSubscribing}
-            onPress={() => handlePressActivate(api)}
-            className="w-full h-[48px] bg-[#113E55] rounded-full items-center justify-center"
-          >
-            {subscribingTierKey === tierKey ? (
-              <ActivityIndicator size="small" color="white" />
-            ) : (
-              <Text allowFontScaling={false} className="text-[14px] font-inter-medium text-white">
-                Activate
-              </Text>
-            )}
-          </Pressable>
-        )}
-
-        {showCancel && (
-          <View style={{ position: 'relative', width: '100%', zIndex: 10 }}>
-            {isFromSubscriptionTier && activeCancelBubbleTier === tierKey && (
-              <Animated.View
-                entering={FadeIn.duration(180)}
-                exiting={FadeOut.duration(180)}
-                pointerEvents="none"
-                style={{
-                  position: 'absolute',
-                  bottom: '100%',
-                  left: 0,
-                  right: 0,
-                  marginBottom: 6,
-                  alignItems: 'center',
-                  zIndex: 20,
-                  elevation: 5,
-                }}
-              >
-                <View
-                  style={{
-                    backgroundColor: '#113E55',
-                    borderRadius: 8,
-                    paddingHorizontal: 12,
-                    paddingVertical: 8,
-                    maxWidth: '92%',
-                  }}
-                >
-                  <Text
-                    allowFontScaling={false}
-                    style={{
-                      fontFamily: 'Inter_18pt-Medium',
-                      fontSize: 12,
-                      color: '#FFFFFF',
-                      textAlign: 'center',
-                      lineHeight: 16,
-                    }}
-                  >
-                    This feature is included in your estate subscription plan and cannot be
-                    cancelled separately.
-                  </Text>
-                </View>
-                <View
-                  style={{
-                    width: 10,
-                    height: 10,
-                    marginTop: -5,
-                    borderBottomRightRadius: 2,
-                    backgroundColor: '#113E55',
-                    transform: [{ rotate: '45deg' }],
-                  }}
-                />
-              </Animated.View>
-            )}
-
-            <Pressable
-              disabled={(!isFromSubscriptionTier && isCanceling) || isCancelledLocally}
-              style={{
-                opacity: isFromSubscriptionTier || isCancelledLocally ? 0.6 : 1,
-                backgroundColor: isFromSubscriptionTier ? '#E2E8F0' : '#113E55',
-              }}
-              className="w-full h-[48px] rounded-full items-center justify-center"
-              onPress={() => {
-                if (isFromSubscriptionTier) {
-                  showCancelInfoBubble(tierKey);
-                } else {
-                  handleCancelSubscription(api);
-                }
-              }}
-            >
-              {cancelTierKey === tierKey ? (
-                <ActivityIndicator
-                  size="small"
-                  color={isFromSubscriptionTier ? '#64748B' : 'white'}
-                />
-              ) : (
-                <Text
-                  allowFontScaling={false}
-                  className="text-[14px] font-inter-medium"
-                  style={{ color: isFromSubscriptionTier ? '#64748B' : '#FFFFFF' }}
-                >
-                  {isCancelledLocally ? 'Cancelled' : 'Cancel Subscription'}
-                </Text>
-              )}
-            </Pressable>
-          </View>
-        )}
-
-        {showInstall && (
-          <Pressable
-            disabled={isInstalling}
-            className="w-full h-[48px] bg-[#E3F5FC] rounded-full items-center justify-center"
-            onPress={() => handleInstall(api)}
-          >
-            {installingTierKey === api.tier ? (
-              <ActivityIndicator size="small" color="#113E55" />
-            ) : (
-              <Text
-                allowFontScaling={false}
-                className="text-[14px] font-inter-medium text-[#113E55]"
-              >
-                Install
-              </Text>
-            )}
-          </Pressable>
-        )}
-
-        {showUninstall && (
-          <Pressable
-            disabled={isUninstalling}
-            className="w-full h-[48px] bg-[#E3F5FC] rounded-full items-center justify-center"
-            onPress={() => handleUninstall(api)}
-          >
-            {uninstallingTierKey === api.tier ? (
-              <ActivityIndicator size="small" color="#113E55" />
-            ) : (
-              <Text
-                allowFontScaling={false}
-                className="text-[14px] font-inter-medium text-[#113E55]"
-              >
-                Uninstall
-              </Text>
-            )}
-          </Pressable>
-        )}
-      </View>
-    );
-  };
+  // Ensure subscription-included Tier 1 is installed when the estate is on Sentinel/Command so scans trigger.
+  const autoInstalledTierOneRef = useRef(false);
+  useEffect(() => {
+    if (
+      autoInstalledTierOneRef.current ||
+      !estateId ||
+      !isPlanIncludingResults ||
+      !tierOneApi?.feature_key ||
+      tierOneApi.is_installed
+    ) {
+      return;
+    }
+    autoInstalledTierOneRef.current = true;
+    installAiFeature(estateId, tierOneApi.feature_key)
+      .then(() => {
+        refreshEstateEntitlements();
+        if (featureDetail?.id) void loadFeature(featureDetail.id);
+      })
+      .catch(() => {
+        // Ignore if already installed or not needed by backend
+      });
+  }, [estateId, isPlanIncludingResults, tierOneApi, featureDetail?.id, loadFeature]);
 
   const scrollViewRef = useRef<ScrollView>(null);
 
   const handleUpgradeFlow = () => {
     setUpgradeModalVisible(false);
     setActiveTab('Overview');
-    setExpandedTier('Tier Two');
+    const tierTwoKey = tierTwoApi?.tier || 'Tier Two';
+    setExpandedTier(tierTwoKey);
     if (tierTwoYRef.current) {
       scrollViewRef.current?.scrollTo({ y: Math.max(0, tierTwoYRef.current - 16), animated: true });
     }
@@ -798,7 +665,25 @@ export default function AnomalyDetectionPreviewScreen() {
   };
 
   useEffect(() => {
-    if (params.tab === 'Result' && !hasResultAccess) {
+    if (params.tab === 'Result') {
+      if (hasResultAccess) {
+        setActiveTab('Result');
+      } else if (!isLoading) {
+        setActiveTab('Overview');
+        if (userRole === 'primary_admin') {
+          setUpgradeModalVisible(true);
+        } else {
+          showContactAdminNotice(
+            'access_anomaly_detection_tier_2',
+            'Upgrade to Sentinel or activate Anomaly Detection Tier Two to view results. Contact Admin to upgrade.'
+          );
+        }
+      }
+    }
+  }, [params.tab, hasResultAccess, isLoading, userRole, showContactAdminNotice]);
+
+  useEffect(() => {
+    if (activeTab === 'Result' && featureDetail && !isLoading && !hasResultAccess) {
       setActiveTab('Overview');
       if (userRole === 'primary_admin') {
         setUpgradeModalVisible(true);
@@ -809,32 +694,7 @@ export default function AnomalyDetectionPreviewScreen() {
         );
       }
     }
-  }, [params.tab, hasResultAccess, userRole, showContactAdminNotice]);
-
-  useEffect(() => {
-    if (activeTab === 'Result' && featureDetail && !isLoading && !hasResultAccess) {
-      setActiveTab('Overview');
-      if (userRole === 'primary_admin') {
-        if (tierTwoApi) {
-          setSelectedTierForActivation(tierTwoApi);
-          setActivationModalVisible(true);
-        }
-      } else {
-        showContactAdminNotice(
-          'access_anomaly_detection_tier_2',
-          'Upgrade to Sentinel or activate Anomaly Detection Tier Two to view results. Contact Admin to upgrade.'
-        );
-      }
-    }
-  }, [
-    activeTab,
-    featureDetail,
-    isLoading,
-    hasResultAccess,
-    userRole,
-    tierTwoApi,
-    showContactAdminNotice,
-  ]);
+  }, [activeTab, featureDetail, isLoading, hasResultAccess, userRole, showContactAdminNotice]);
 
   const isResultTab = activeTab === 'Result';
 
@@ -964,7 +824,16 @@ export default function AnomalyDetectionPreviewScreen() {
                       {featureDetail?.name || 'Anomaly Detection'}
                     </Text>
                     <Pressable
-                      onPress={() => setIsRatingModalVisible(true)}
+                      onPress={() => {
+                        if (!hasFeatureEntitlement) {
+                          Alert.alert(
+                            'Rating Unavailable',
+                            'You need an active subscription or entitlement to this AI feature before you can rate it.'
+                          );
+                          return;
+                        }
+                        setIsRatingModalVisible(true);
+                      }}
                       className="flex-row items-center gap-1.5"
                     >
                       <Svg
@@ -1006,7 +875,7 @@ export default function AnomalyDetectionPreviewScreen() {
                         allowFontScaling={false}
                         className="text-[11.2px] font-inter-medium text-[#8A9A9D]"
                       >
-                        0
+                        {sortedTiers.filter((tier) => tier.is_installed).length}
                       </Text>
                     </View>
                     <View className="flex-row items-center gap-1.5">
@@ -1075,259 +944,80 @@ export default function AnomalyDetectionPreviewScreen() {
                   Choose Subscription Plan
                 </Text>
 
-                <View
-                  className={`rounded-[16px] p-5 mb-4 ${expandedTier === 'Tier One' ? (tierOneApi?.is_installed ? 'bg-[#F2FAF9] border border-[#1B998B]' : 'bg-white border border-[#113E55]') : 'bg-white border border-[#EFF1F3]'}`}
-                >
-                  <View className="flex-row justify-between items-start mb-1.5">
-                    <View className="flex-1 pr-2">
-                      <Text
-                        allowFontScaling={false}
-                        className={`text-[17.5px] font-inter-regular leading-[17.5px] mb-1.5 ${tierOneApi?.is_installed && expandedTier === 'Tier One' ? 'text-[#1B998B]' : 'text-[#113E55]'}`}
-                      >
-                        {tierOneApi?.tier ? formatTierName(tierOneApi.tier) : 'Tier One'}
-                      </Text>
-                      {tierOneApi?.name && (
-                        <Text
-                          allowFontScaling={false}
-                          className={`text-[15px] font-inter-medium leading-[22px] mb-2.5 ${tierOneApi?.is_installed && expandedTier === 'Tier One' ? 'text-[#1B998B]' : 'text-[#113E55]'}`}
-                        >
-                          {tierOneApi?.name}
-                        </Text>
-                      )}
-                    </View>
-                    {tierOneApi?.is_installed && expandedTier === 'Tier One' && (
-                      <View className="bg-[#D9EAE8] px-[22px] py-[10px] rounded-[14px]">
-                        <Text
-                          allowFontScaling={false}
-                          className="text-[#1B998B] font-inter-medium text-[13px]"
-                        >
-                          ACTIVE
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                  <Text
-                    allowFontScaling={false}
-                    className="text-[11.2px] font-inter-regular text-[#8A9A9D] leading-[16px] text-justify"
-                  >
-                    {tierOneApi?.description}
-                  </Text>
-
-                  <Pressable
-                    onPress={() => setExpandedTier(expandedTier === 'Tier One' ? null : 'Tier One')}
-                    className={`flex-row items-center gap-1 mt-5 ${expandedTier === 'Tier One' ? 'mb-5' : ''}`}
-                  >
-                    <Text
-                      allowFontScaling={false}
-                      className="text-[13px] font-inter-medium text-[#8A9A9D]"
-                    >
-                      See benefits
+                <View className="flex-col gap-6">
+                  {sortedTiers.length === 0 ? (
+                    <Text className="text-center text-[11.2px] font-inter-regular text-[#878686]">
+                      No subscription tiers returned for this product.
                     </Text>
-                    <MaterialIcons
-                      name={
-                        expandedTier === 'Tier One' ? 'keyboard-arrow-down' : 'keyboard-arrow-right'
-                      }
-                      size={18}
-                      color="#8A9A9D"
-                    />
-                  </Pressable>
+                  ) : (
+                    sortedTiers.map((tier) => {
+                      const tierKey = tier.tier;
+                      const benefits = tier.benefits?.length
+                        ? tier.benefits
+                        : (featureDetail?.tier_benefits?.find(
+                            (group) => tierNumber(group.tier) === tierNumber(tierKey)
+                          )?.benefits ?? []);
+                      const description = tier.description?.trim() || '';
+                      const subtitle = tier.name?.trim() || formatTierSubtitle(tier);
+                      const isFreeTierAllowed = !tier.is_free || isPlanIncludingResults;
+                      const isSubscribed =
+                        isFreeTierAllowed &&
+                        (tier.status === 'active' ||
+                          tier.status === 'purchased' ||
+                          tier.status === 'subscribed' ||
+                          tier.status === 'installed' ||
+                          !!tier.purchased);
+                      const isInstalled =
+                        isFreeTierAllowed && !!tier.is_installed && !justPurchasedTiers[tierKey];
+                      const isTierTwo =
+                        (Number.parseInt(tier.tier.replace(/\D/g, ''), 10) || 0) === 2;
 
-                  {expandedTier === 'Tier One' && (
-                    <View className="space-y-3">
-                      {(tierOneApi?.benefits || []).map((benefit, index) => (
-                        <View key={index} className="flex-row items-start gap-2 mb-3">
-                          <View
-                            className={`${tierOneApi?.is_installed ? 'bg-[#D9EAE8]' : 'bg-[#CEE5ED]'} rounded-full p-[2px] mt-[2px]`}
-                          >
-                            <MaterialIcons
-                              name="check"
-                              size={12}
-                              color={tierOneApi?.is_installed ? '#1B998B' : '#113E55'}
-                            />
-                          </View>
-                          <Text
-                            allowFontScaling={false}
-                            className="text-[11.2px] font-inter-regular text-[#8A9A9D] flex-1 leading-[16px] text-justify"
-                          >
-                            {benefit}
-                          </Text>
+                      return (
+                        <View
+                          key={tier.ai_feature_id || tierKey}
+                          onLayout={
+                            isTierTwo
+                              ? (e) => {
+                                  tierTwoYRef.current = e.nativeEvent.layout.y;
+                                }
+                              : undefined
+                          }
+                        >
+                          <SubscriptionTierCard
+                            tierLabel={formatTierLabel(tierKey)}
+                            subtitle={subtitle}
+                            subtitleUppercase={false}
+                            description={description}
+                            benefits={benefits}
+                            expanded={expandedTier === tierKey}
+                            onToggle={() =>
+                              setExpandedTier(expandedTier === tierKey ? null : tierKey)
+                            }
+                            onActivate={() => handlePressActivate(tier)}
+                            onCancelSubscription={() => void handleCancelSubscription(tier)}
+                            onUninstall={() => void handleUninstall(tier)}
+                            onInstall={() => void handleInstall(tier)}
+                            isSubscribing={subscribingTierKey === tierKey}
+                            isCanceling={cancelTierKey === tierKey}
+                            isUninstalling={uninstallingTierKey === tierKey}
+                            isInstalling={installingTierKey === tierKey}
+                            subscribeDisabled={isSubscribing}
+                            cancelDisabled={isCanceling}
+                            installDisabled={isInstalling}
+                            uninstallDisabled={isUninstalling}
+                            isCancelledLocally={!!justCancelledTiers[tierKey]}
+                            cancelLockedMessage={
+                              tier.payment_mode === 'subscription'
+                                ? 'This feature is included in your estate subscription plan and cannot be cancelled separately.'
+                                : undefined
+                            }
+                            isFree={!!tier.is_free}
+                            isInstalled={isInstalled}
+                            isSubscribed={isSubscribed}
+                          />
                         </View>
-                      ))}
-                      {renderTierButtons(tierOneApi, 'Tier One')}
-                    </View>
-                  )}
-                </View>
-
-                <View
-                  onLayout={(e) => {
-                    tierTwoYRef.current = e.nativeEvent.layout.y;
-                  }}
-                  className={`rounded-[16px] p-5 mb-4 ${expandedTier === 'Tier Two' ? (tierTwoApi?.is_installed ? 'bg-[#F2FAF9] border border-[#1B998B]' : 'bg-white border border-[#113E55]') : 'bg-white border border-[#EFF1F3]'}`}
-                >
-                  <View className="flex-row justify-between items-start mb-1.5">
-                    <View className="flex-1 pr-2">
-                      <Text
-                        allowFontScaling={false}
-                        className={`text-[17.5px] font-inter-regular leading-[17.5px] mb-1.5 ${tierTwoApi?.is_installed && expandedTier === 'Tier Two' ? 'text-[#1B998B]' : 'text-[#113E55]'}`}
-                      >
-                        {tierTwoApi?.tier ? formatTierName(tierTwoApi.tier) : 'Tier Two'}
-                      </Text>
-                      {tierTwoApi?.name && (
-                        <Text
-                          allowFontScaling={false}
-                          className={`text-[15px] font-inter-medium leading-[22px] mb-2.5 ${tierTwoApi?.is_installed && expandedTier === 'Tier Two' ? 'text-[#1B998B]' : 'text-[#113E55]'}`}
-                        >
-                          {tierTwoApi?.name}
-                        </Text>
-                      )}
-                    </View>
-                    {tierTwoApi?.is_installed && expandedTier === 'Tier Two' && (
-                      <View className="bg-[#D9EAE8] px-[22px] py-[10px] rounded-[14px]">
-                        <Text
-                          allowFontScaling={false}
-                          className="text-[#1B998B] font-inter-medium text-[13px]"
-                        >
-                          ACTIVE
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                  <Text
-                    allowFontScaling={false}
-                    className="text-[11.2px] font-inter-regular text-[#8A9A9D] leading-[16px] text-justify"
-                  >
-                    {tierTwoApi?.description}
-                  </Text>
-
-                  <Pressable
-                    onPress={() => setExpandedTier(expandedTier === 'Tier Two' ? null : 'Tier Two')}
-                    className={`flex-row items-center gap-1 mt-5 ${expandedTier === 'Tier Two' ? 'mb-5' : ''}`}
-                  >
-                    <Text
-                      allowFontScaling={false}
-                      className="text-[13px] font-inter-medium text-[#8A9A9D]"
-                    >
-                      See benefits
-                    </Text>
-                    <MaterialIcons
-                      name={
-                        expandedTier === 'Tier Two' ? 'keyboard-arrow-down' : 'keyboard-arrow-right'
-                      }
-                      size={18}
-                      color="#8A9A9D"
-                    />
-                  </Pressable>
-
-                  {expandedTier === 'Tier Two' && (
-                    <View className="space-y-3">
-                      {(tierTwoApi?.benefits || []).map((benefit, index) => (
-                        <View key={index} className="flex-row items-start gap-2 mb-3">
-                          <View
-                            className={`${tierTwoApi?.is_installed ? 'bg-[#D9EAE8]' : 'bg-[#CEE5ED]'} rounded-full p-[2px] mt-[2px]`}
-                          >
-                            <MaterialIcons
-                              name="check"
-                              size={12}
-                              color={tierTwoApi?.is_installed ? '#1B998B' : '#113E55'}
-                            />
-                          </View>
-                          <Text
-                            allowFontScaling={false}
-                            className="text-[11.2px] font-inter-regular text-[#8A9A9D] flex-1 leading-[16px] text-justify"
-                          >
-                            {benefit}
-                          </Text>
-                        </View>
-                      ))}
-                      {renderTierButtons(tierTwoApi, 'Tier Two')}
-                    </View>
-                  )}
-                </View>
-
-                <View
-                  className={`rounded-[16px] p-5 mb-4 ${expandedTier === 'Tier Three' ? (tierThreeApi?.is_installed ? 'bg-[#F2FAF9] border border-[#1B998B]' : 'bg-white border border-[#113E55]') : 'bg-white border border-[#EFF1F3]'}`}
-                >
-                  <View className="flex-row justify-between items-start mb-1.5">
-                    <View className="flex-1 pr-2">
-                      <Text
-                        allowFontScaling={false}
-                        className={`text-[17.5px] font-inter-regular leading-[17.5px] mb-1.5 ${tierThreeApi?.is_installed && expandedTier === 'Tier Three' ? 'text-[#1B998B]' : 'text-[#113E55]'}`}
-                      >
-                        {tierThreeApi?.tier ? formatTierName(tierThreeApi.tier) : 'Tier Three'}
-                      </Text>
-                      {tierThreeApi?.name && (
-                        <Text
-                          allowFontScaling={false}
-                          className={`text-[15px] font-inter-medium leading-[22px] mb-2.5 ${tierThreeApi?.is_installed && expandedTier === 'Tier Three' ? 'text-[#1B998B]' : 'text-[#113E55]'}`}
-                        >
-                          {tierThreeApi?.name}
-                        </Text>
-                      )}
-                    </View>
-                    {tierThreeApi?.is_installed && expandedTier === 'Tier Three' && (
-                      <View className="bg-[#D9EAE8] px-[22px] py-[10px] rounded-[14px]">
-                        <Text
-                          allowFontScaling={false}
-                          className="text-[#1B998B] font-inter-medium text-[13px]"
-                        >
-                          ACTIVE
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                  <Text
-                    allowFontScaling={false}
-                    className="text-[11.2px] font-inter-regular text-[#8A9A9D] leading-[16px] text-justify"
-                  >
-                    {tierThreeApi?.description}
-                  </Text>
-
-                  <Pressable
-                    onPress={() =>
-                      setExpandedTier(expandedTier === 'Tier Three' ? null : 'Tier Three')
-                    }
-                    className={`flex-row items-center gap-1 mt-5 ${expandedTier === 'Tier Three' ? 'mb-5' : ''}`}
-                  >
-                    <Text
-                      allowFontScaling={false}
-                      className="text-[13px] font-inter-medium text-[#8A9A9D]"
-                    >
-                      See benefits
-                    </Text>
-                    <MaterialIcons
-                      name={
-                        expandedTier === 'Tier Three'
-                          ? 'keyboard-arrow-down'
-                          : 'keyboard-arrow-right'
-                      }
-                      size={18}
-                      color="#8A9A9D"
-                    />
-                  </Pressable>
-
-                  {expandedTier === 'Tier Three' && (
-                    <View className="space-y-3">
-                      {(tierThreeApi?.benefits || []).map((benefit, index) => (
-                        <View key={index} className="flex-row items-start gap-2 mb-3">
-                          <View
-                            className={`${tierThreeApi?.is_installed ? 'bg-[#D9EAE8]' : 'bg-[#CEE5ED]'} rounded-full p-[2px] mt-[2px]`}
-                          >
-                            <MaterialIcons
-                              name="check"
-                              size={12}
-                              color={tierThreeApi?.is_installed ? '#1B998B' : '#113E55'}
-                            />
-                          </View>
-                          <Text
-                            allowFontScaling={false}
-                            className="text-[11.2px] font-inter-regular text-[#8A9A9D] flex-1 leading-[16px] text-justify"
-                          >
-                            {benefit}
-                          </Text>
-                        </View>
-                      ))}
-                      {renderTierButtons(tierThreeApi, 'Tier Three')}
-                    </View>
+                      );
+                    })
                   )}
                 </View>
               </View>
