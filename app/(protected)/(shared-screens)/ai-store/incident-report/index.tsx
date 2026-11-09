@@ -22,12 +22,10 @@ import ActivationQuoteModal, {
 import PaymentVerificationModal, {
   PaymentVerificationState,
 } from '@/src/components/anomaly/modals/PaymentVerificationModal';
-import UpgradePlanModal from '@/src/components/mobile/UpgradePlanModal';
 import IncidentDataInsightModal from '@/src/components/incident/IncidentDataInsightModal';
 import IncidentResultView from '@/src/components/incident/IncidentResultView';
 import SubscriptionTierCard from '@/src/components/incident/SubscriptionTierCard';
 import AnimatedPillTabs from '@/src/components/mobile/AnimatedPillTabs';
-import { useEstateSubscription } from '@/src/hooks/useBillingQueries';
 import {
   formatTierLabel,
   formatTierSubtitle,
@@ -42,10 +40,10 @@ import {
   uninstallAiFeature,
   cancelMarketplaceSubscription,
 } from '@/src/lib/api/aiMarketplace';
-import { refreshEstateEntitlements, useEstateEntitlements } from '@/src/lib/api/entitlements';
-import { hasEntitlement } from '@/src/lib/plans';
+import { refreshEstateEntitlements } from '@/src/lib/api/entitlements';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { scrollCardIntoView } from '@/src/lib/scrollIntoView';
+import { createIdempotencyKey } from '@/src/lib/billing';
 import {
   useContactAdminNoticeStore,
   useFeatureGate,
@@ -92,11 +90,14 @@ export default function IncidentReportPreviewScreen() {
   const estateId = useUserStore((s) => s.estate_id);
   const userRole = useUserStore((s) => s.role);
   const showContactAdminNotice = useContactAdminNoticeStore((s) => s.show);
-  const { data: subscriptionData } = useEstateSubscription();
-  const { data: entitlements } = useEstateEntitlements();
-  const tierTwoYRef = useRef<number>(0);
-  const [upgradeModalVisible, setUpgradeModalVisible] = useState(false);
-  const [activeTab, setActiveTab] = useState<'Preview' | 'Result'>('Preview');
+  const [activeTab, setActiveTab] = useState<'Preview' | 'Result'>(
+    params.tab === 'Result' ? 'Result' : 'Preview'
+  );
+  const [prevParamTab, setPrevParamTab] = useState(params.tab);
+  if (params.tab !== prevParamTab) {
+    setPrevParamTab(params.tab);
+    setActiveTab(params.tab === 'Result' ? 'Result' : 'Preview');
+  }
   const [expandedTier, setExpandedTier] = useState<string | null>(null);
   const [featureDetail, setFeatureDetail] = useState<MarketplaceDetailResponse | null>(null);
   const email = useUserStore((s) => s.email) || '';
@@ -123,6 +124,7 @@ export default function IncidentReportPreviewScreen() {
   const [verificationModalVisible, setVerificationModalVisible] = useState(false);
   const [verificationState, setVerificationState] = useState<PaymentVerificationState>('verifying');
   const pollingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const checkoutIdempotencyKeyRef = useRef<{ signature: string; key: string } | null>(null);
 
   const [confirmModalVisible, setConfirmModalVisible] = useState(false);
   const [confirmModalConfig, setConfirmModalConfig] = useState<{
@@ -145,10 +147,11 @@ export default function IncidentReportPreviewScreen() {
   const [cardHeight, setCardHeight] = useState<number>(120);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const hasLoadedFeatureRef = useRef(false);
 
   const loadFeature = useCallback(
     async (id?: string) => {
-      if (!featureDetail) setIsLoading(true);
+      if (!hasLoadedFeatureRef.current) setIsLoading(true);
       setLoadError(null);
       try {
         const targetId = await resolveMarketplaceFeatureId(
@@ -156,7 +159,7 @@ export default function IncidentReportPreviewScreen() {
           isIncidentProduct
         );
         if (!targetId) {
-          if (!featureDetail) {
+          if (!hasLoadedFeatureRef.current) {
             setFeatureDetail(null);
             setLoadError('No marketplace product returned for this feature.');
           }
@@ -164,6 +167,7 @@ export default function IncidentReportPreviewScreen() {
         }
 
         const detail = await getMarketplaceFeatureById(targetId);
+        hasLoadedFeatureRef.current = true;
         setFeatureDetail(detail);
         if (estateId) {
           detail.tiers?.forEach((t) => {
@@ -176,7 +180,7 @@ export default function IncidentReportPreviewScreen() {
         );
       } catch (err: any) {
         console.log('Error loading feature details:', err?.message || err);
-        if (!featureDetail) {
+        if (!hasLoadedFeatureRef.current) {
           setFeatureDetail(null);
           setLoadError(err?.message || 'Failed to load feature details');
         }
@@ -184,7 +188,7 @@ export default function IncidentReportPreviewScreen() {
         setIsLoading(false);
       }
     },
-    [params.featureId, estateId, featureDetail]
+    [params.featureId, estateId]
   );
 
   useEffect(() => {
@@ -261,11 +265,6 @@ export default function IncidentReportPreviewScreen() {
       return;
     }
 
-    if (tier.is_free && !isPlanIncludingResults) {
-      setUpgradeModalVisible(true);
-      return;
-    }
-
     if (requireTierOne(tier)) return;
     if (!featureDetail?.id || (!tier.ai_feature_id && !tier.feature_key)) {
       return;
@@ -319,18 +318,31 @@ export default function IncidentReportPreviewScreen() {
       return;
     }
 
+    const signature = `${estateId || ''}:${tier.feature_key}:${duration}`;
+    if (checkoutIdempotencyKeyRef.current?.signature !== signature) {
+      checkoutIdempotencyKeyRef.current = {
+        signature,
+        key: createIdempotencyKey(),
+      };
+    }
+    const idempotencyKey = checkoutIdempotencyKeyRef.current.key;
+
     setIsConfirmingActivation(true);
     try {
-      const response = await initializeCheckout({
-        estate_id: estateId || '',
-        customer_email: email,
-        checkout_kind: 'ai_only',
-        ai_feature_keys: [tier.feature_key],
-        ai_feature_ids: tier.ai_feature_id ? [tier.ai_feature_id] : undefined,
-        period_months: duration,
-      });
+      const response = await initializeCheckout(
+        {
+          estate_id: estateId || '',
+          customer_email: email,
+          checkout_kind: 'ai_only',
+          ai_feature_keys: [tier.feature_key],
+          ai_feature_ids: tier.ai_feature_id ? [tier.ai_feature_id] : undefined,
+          period_months: duration,
+        },
+        idempotencyKey
+      );
 
       if (response?.authorization_url) {
+        checkoutIdempotencyKeyRef.current = null;
         setActivePaystackReference(response.paystack_reference);
         setActiveCheckoutToken(response.checkout_token);
         setActivationModalVisible(false);
@@ -340,7 +352,24 @@ export default function IncidentReportPreviewScreen() {
         Alert.alert('Error', 'No checkout authorization URL returned.');
       }
     } catch (err: any) {
-      Alert.alert('Checkout Failed', err?.message || 'Failed to initialize checkout.');
+      const status = err?.status ?? err?.response?.status;
+      if (status === 409) {
+        checkoutIdempotencyKeyRef.current = null;
+        void refreshAfterTierChange();
+        Alert.alert(
+          'Checkout Conflict',
+          err?.message ||
+            'A checkout or subscription update is already in progress, or this tier is already active.'
+        );
+      } else if (status === 422) {
+        checkoutIdempotencyKeyRef.current = null;
+        Alert.alert(
+          'Invalid Checkout Request',
+          err?.message || 'Please check your subscription selection and try again.'
+        );
+      } else {
+        Alert.alert('Checkout Failed', err?.message || 'Failed to initialize checkout.');
+      }
     } finally {
       setIsConfirmingActivation(false);
     }
@@ -540,9 +569,6 @@ export default function IncidentReportPreviewScreen() {
     () => sortMarketplaceTiers(featureDetail?.tiers ?? []),
     [featureDetail?.tiers]
   );
-  const tierOneApi = sortedTiers[0];
-  const tierTwoApi = sortedTiers[1];
-  const tierThreeApi = sortedTiers[2];
 
   const isTierSubscribed = useCallback(
     (tier?: MarketplaceTier | null) => {
@@ -559,19 +585,6 @@ export default function IncidentReportPreviewScreen() {
     },
     [justCancelledTiers]
   );
-
-  const planSlug = subscriptionData?.tier?.slug ?? entitlements?.tierSlug;
-  const isPlanIncludingResults = planSlug === 'sentinel' || planSlug === 'command';
-  const hasPaidTierEntitlement =
-    hasEntitlement(entitlements, 'incident_report_summary_tier_2') ||
-    hasEntitlement(entitlements, 'incident_report_summary_tier_3');
-  const hasResultAccess =
-    isPlanIncludingResults ||
-    hasPaidTierEntitlement ||
-    isTierSubscribed(tierTwoApi) ||
-    isTierSubscribed(tierThreeApi);
-
-  const hasFeatureEntitlement = hasResultAccess;
 
   /** Tier 2 = In-house summary, tier 3 = Third-party summary; undefined until tiers load. */
   const isTierInstalled = (num: number) =>
@@ -669,56 +682,18 @@ export default function IncidentReportPreviewScreen() {
     showResultDenied,
   ]);
 
-  const handleUpgradeFlow = () => {
-    setUpgradeModalVisible(false);
-    setActiveTab('Preview');
-    const tierTwoKey = tierTwoApi?.tier || 'Tier Two';
-    setExpandedTier(tierTwoKey);
-    if (tierTwoYRef.current) {
-      scrollViewRef.current?.scrollTo({ y: Math.max(0, tierTwoYRef.current - 16), animated: true });
-    }
-    setTimeout(() => {
-      if (tierTwoApi) {
-        setSelectedTierForActivation(tierTwoApi);
-        setActivationModalVisible(true);
-      }
-    }, 400);
-  };
+  const hasFeatureEntitlement =
+    Boolean(tierOneInstalled) ||
+    sortedTiers.some(
+      (tier) =>
+        (Boolean(tier.is_installed) || isTierSubscribed(tier)) && !justCancelledTiers[tier.tier]
+    );
 
   const handleTabChange = (tab: 'Preview' | 'Result') => {
     if (tab === activeTab) return;
-    if (tab === 'Result' && !hasResultAccess) {
-      if (userRole === 'primary_admin') {
-        setUpgradeModalVisible(true);
-      } else {
-        showContactAdminNotice(
-          'incident_report_summary_tier_2',
-          'Upgrade to Sentinel or activate Incident Report Tier Two to view results. Contact Admin to upgrade.'
-        );
-      }
-      return;
-    }
     setActiveTab(tab);
     scrollViewRef.current?.scrollTo({ y: 0, animated: false });
   };
-
-  useEffect(() => {
-    if (params.tab === 'Result') {
-      if (hasResultAccess) {
-        setActiveTab('Result');
-      } else {
-        setActiveTab('Preview');
-        if (userRole === 'primary_admin') {
-          setUpgradeModalVisible(true);
-        } else {
-          showContactAdminNotice(
-            'incident_report_summary_tier_2',
-            'Upgrade to Sentinel or activate Incident Report Tier Two to view results. Contact Admin to upgrade.'
-          );
-        }
-      }
-    }
-  }, [params.tab, hasResultAccess, userRole, showContactAdminNotice]);
 
   return (
     <View style={{ flex: 1, backgroundColor: activeTab === 'Result' ? '#F6F7F7' : '#FFFFFF' }}>
@@ -764,7 +739,7 @@ export default function IncidentReportPreviewScreen() {
           </Pressable>
         </View>
 
-        {activeTab === 'Result' && (!hasResultAccess || resultLocked || !resultAllowed) ? (
+        {activeTab === 'Result' && (resultLocked || !resultAllowed) ? (
           <View style={{ flex: 1, backgroundColor: '#F6F7F7' }} />
         ) : activeTab === 'Result' ? (
           <IncidentResultView
@@ -964,32 +939,19 @@ export default function IncidentReportPreviewScreen() {
                       const description = tier.description?.trim() || '';
                       // The tier's name, like anomaly; the price shows in the quote sheet on Activate.
                       const subtitle = tier.name?.trim() || formatTierSubtitle(tier);
-                      const isFreeTierAllowed = !tier.is_free || isPlanIncludingResults;
                       const isSubscribed =
-                        isFreeTierAllowed &&
-                        (tier.status === 'active' ||
-                          tier.status === 'purchased' ||
-                          tier.status === 'subscribed' ||
-                          tier.status === 'installed' ||
-                          !!tier.purchased);
-                      const isInstalled =
-                        isFreeTierAllowed && !!tier.is_installed && !justPurchasedTiers[tierKey];
-
-                      const isTierTwo =
-                        (Number.parseInt(tier.tier.replace(/\D/g, ''), 10) || 0) === 2;
+                        tier.status === 'active' ||
+                        tier.status === 'purchased' ||
+                        tier.status === 'subscribed' ||
+                        tier.status === 'installed' ||
+                        !!tier.purchased;
+                      const isInstalled = !!tier.is_installed && !justPurchasedTiers[tierKey];
 
                       return (
                         <View
                           key={tier.ai_feature_id || tierKey}
                           ref={tierOrder(tier) === 1 ? tierOneCardRef : undefined}
                           collapsable={false}
-                          onLayout={
-                            isTierTwo
-                              ? (e) => {
-                                  tierTwoYRef.current = e.nativeEvent.layout.y;
-                                }
-                              : undefined
-                          }
                         >
                           <SubscriptionTierCard
                             tierLabel={formatTierLabel(tierKey)}
@@ -1229,7 +1191,10 @@ export default function IncidentReportPreviewScreen() {
 
       <ActivationQuoteModal
         visible={activationModalVisible}
-        onClose={() => setActivationModalVisible(false)}
+        onClose={() => {
+          checkoutIdempotencyKeyRef.current = null;
+          setActivationModalVisible(false);
+        }}
         tier={selectedTierForActivation}
         estateId={estateId || ''}
         onConfirm={(duration) => handleConfirmActivation(duration)}
@@ -1246,13 +1211,6 @@ export default function IncidentReportPreviewScreen() {
           setActiveCheckoutToken(null);
           void refreshAfterTierChange();
         }}
-      />
-
-      <UpgradePlanModal
-        visible={upgradeModalVisible}
-        feature="incident_report_summary_tier_2"
-        onClose={() => setUpgradeModalVisible(false)}
-        onUpgrade={handleUpgradeFlow}
       />
     </View>
   );

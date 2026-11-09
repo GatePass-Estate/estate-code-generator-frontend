@@ -1,15 +1,12 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
   Pressable,
   ScrollView,
-  Alert,
-  Share,
   NativeSyntheticEvent,
   NativeScrollEvent,
   ActivityIndicator,
-  Image,
   Modal,
   Platform,
   StyleSheet,
@@ -17,9 +14,10 @@ import {
 } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { BlurView } from 'expo-blur';
+import { isAxiosError } from 'axios';
 
-import { router, Link, useFocusEffect } from 'expo-router';
-import { MaterialIcons, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { router, useFocusEffect } from 'expo-router';
+import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import AnomalyRadarChart from './AnomalyRadarChart';
 import AnomalyDonutChart from './AnomalyDonutChart';
 import SemiCircleGauge from './SemiCircleGauge';
@@ -31,6 +29,7 @@ import TimeframeModal from './modals/TimeframeModal';
 import EstateSvg from '@/src/assets/icons/estate.svg';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { useAnomalyOverview, useAnomalyPredictions } from '@/src/hooks/useAnomalyQueries';
+import { useFeatureGate } from '@/src/hooks/usePlan';
 import LocationSvg from '@/src/assets/icons/location.svg';
 import TotalUsersSvg from '@/src/assets/icons/totalusers.svg';
 import UserWarningSvg from '@/src/assets/icons/userwarning.svg';
@@ -38,7 +37,21 @@ import AlertSvg from '@/src/assets/icons/alert.svg';
 import UpAndDownSvg from '@/src/assets/icons/upanddown.svg';
 import ExportSvg from '@/src/assets/images/export.svg';
 
-export default function AnomalyResultView({ isActive = true }: { isActive?: boolean }) {
+/** True when the server refused because the estate's plan doesn't include the feature. */
+function isEntitlementDenied(err: unknown): boolean {
+  if (!isAxiosError(err)) return false;
+  if ([402, 403].includes(err.response?.status ?? 0)) return true;
+  const detail = (err.response?.data as { detail?: unknown } | undefined)?.detail;
+  return typeof detail === 'string' && /not entitled/i.test(detail);
+}
+
+export default function AnomalyResultView({
+  isActive = true,
+  onAccessDenied,
+}: {
+  isActive?: boolean;
+  onAccessDenied?: () => void;
+}) {
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [orderModalVisible, setOrderModalVisible] = useState(false);
   const [timeframeVisible, setTimeframeVisible] = useState(false);
@@ -102,6 +115,7 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
     data: rawOverview,
     isLoading: overviewLoading,
     isError: overviewError,
+    error: overviewErr,
     refetch: refetchOverview,
   } = useAnomalyOverview(estate_id, effectiveFromDate, effectiveToDate);
 
@@ -109,6 +123,8 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
     data: predictionsData,
     isLoading: predictionsLoading,
     isFetching: predictionsFetching,
+    isError: predictionsError,
+    error: predictionsErr,
     refetch: refetchPredictions,
   } = useAnomalyPredictions(estate_id, {
     from_date: effectiveFromDate,
@@ -120,6 +136,31 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
     limit: paginationLimit,
     page: 1,
   });
+
+  const { showDenied: showAnomalyDenied } = useFeatureGate('access_anomaly_detection_tier_1', {
+    notice: 'floating',
+    onUpgrade: () =>
+      router.push({
+        pathname: '/(protected)/(shared-screens)/ai-store/anomaly-detection',
+        params: { tab: 'Overview' },
+      }),
+  });
+
+  const onAccessDeniedRef = useRef(onAccessDenied);
+  onAccessDeniedRef.current = onAccessDenied;
+
+  const bootEntitlementDenied =
+    !!estate_id &&
+    (overviewError || predictionsError) &&
+    !rawOverview &&
+    !predictionsData &&
+    (isEntitlementDenied(overviewErr) || isEntitlementDenied(predictionsErr));
+
+  React.useEffect(() => {
+    if (!bootEntitlementDenied || !isActive) return;
+    if (onAccessDeniedRef.current) onAccessDeniedRef.current();
+    else showAnomalyDenied();
+  }, [bootEntitlementDenied, isActive, showAnomalyDenied]);
 
   React.useEffect(() => {
     if (isActive && estate_id) {

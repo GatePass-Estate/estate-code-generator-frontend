@@ -277,18 +277,24 @@ export const getErrorMessage = (error: any): string => {
     const data = error.response.data;
 
     if (Array.isArray(data.detail)) {
-      const first = data.detail[0];
-      if (first?.msg) {
-        return first.msg;
+      const messages = data.detail
+        .map((item: any) => (typeof item === 'string' ? item : item?.msg))
+        .filter((msg: unknown): msg is string => typeof msg === 'string' && msg.trim().length > 0);
+      if (messages.length > 0) {
+        return messages.join('. ');
       }
     }
 
-    if (typeof data.detail === 'string') {
+    if (typeof data.detail === 'string' && data.detail.trim().length > 0) {
       return data.detail;
     }
 
     if (data.detail && typeof data.detail === 'object' && typeof data.detail.message === 'string') {
       return data.detail.message;
+    }
+
+    if (typeof data.message === 'string' && data.message.trim().length > 0) {
+      return data.message;
     }
   }
 
@@ -304,6 +310,12 @@ export const getErrorMessage = (error: any): string => {
 
     if (error.message === 'Request failed with status code 404')
       return 'Not Found - the requested resource could not be found.';
+
+    if (error.message === 'Request failed with status code 409')
+      return 'A conflicting request or subscription state already exists. Please refresh and try again.';
+
+    if (error.message === 'Request failed with status code 422')
+      return 'Invalid checkout or request details. Please verify your selection and try again.';
 
     if (error.message === 'Request failed with status code 500')
       return 'Server error - please try again later.';

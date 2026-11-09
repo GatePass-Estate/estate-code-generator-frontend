@@ -34,11 +34,8 @@ import ActivationQuoteModal, {
 import PaymentVerificationModal, {
   PaymentVerificationState,
 } from '@/src/components/anomaly/modals/PaymentVerificationModal';
-import UpgradePlanModal from '@/src/components/mobile/UpgradePlanModal';
 import AnomalyResultView from '@/src/components/anomaly/AnomalyResultView';
-import { useEstateSubscription } from '@/src/hooks/useBillingQueries';
-import { refreshEstateEntitlements, useEstateEntitlements } from '@/src/lib/api/entitlements';
-import { hasEntitlement } from '@/src/lib/plans';
+import { refreshEstateEntitlements } from '@/src/lib/api/entitlements';
 import { WebView } from 'react-native-webview';
 import {
   formatTierLabel,
@@ -55,10 +52,14 @@ import {
   sortMarketplaceTiers,
   resolveMarketplaceFeatureId,
 } from '@/src/lib/api/aiMarketplace';
-import { useFeatureGate } from '@/src/hooks/usePlan';
+import {
+  useFeatureGate,
+  useContactAdminNoticeStore,
+  useUpgradePromptStore,
+} from '@/src/hooks/usePlan';
 import { scrollCardIntoView } from '@/src/lib/scrollIntoView';
+import { createIdempotencyKey } from '@/src/lib/billing';
 import { useUserStore } from '@/src/lib/stores/userStore';
-import { useContactAdminNoticeStore } from '@/src/hooks/usePlan';
 import {
   MarketplaceDetailResponse,
   MarketplaceTier,
@@ -68,10 +69,38 @@ import {
 
 const tierNumber = (tier: string) => tier.replace(/\D/g, '') || tier;
 
+/** Tier One is the base product: it unlocks the Result page. Tiers Two and Three add to it. */
+const TIER_ONE_FOR_RESULT_MESSAGE =
+  'Subscribe to Tier One (Anomaly Detection and Insights) to view your results.';
+const INSTALL_TIER_ONE_FOR_RESULT_MESSAGE =
+  'Install Tier One (Anomaly Detection and Insights) to view your results.';
+const TIER_ONE_FIRST_MESSAGE =
+  'Subscribe to Tier One (Anomaly Detection and Insights) first. Tiers Two and Three build on it.';
+const INSTALL_TIER_ONE_FIRST_MESSAGE =
+  'Install Tier One (Anomaly Detection and Insights) first. Tiers Two and Three build on it.';
+
+const tierOrder = (tier: MarketplaceTier) => Number.parseInt(tier.tier.replace(/\D/g, ''), 10) || 0;
+
+const isTierActive = (tier: MarketplaceTier) =>
+  !!tier.is_installed ||
+  !!tier.purchased ||
+  ['active', 'purchased', 'subscribed', 'installed'].includes(tier.status ?? '');
+
+/** Shown when the server refuses the Result data although Tier One is active. */
+const SUBSCRIPTION_NOT_LINKED_MESSAGE =
+  'Your subscription is active, but it isn’t linked to Anomaly Detection Insights yet. Please contact support.';
+
 export default function AnomalyDetectionPreviewScreen() {
   const params = useLocalSearchParams<{ featureId?: string; title?: string; tab?: string }>();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<'Overview' | 'Result'>('Overview');
+  const [activeTab, setActiveTab] = useState<'Overview' | 'Result'>(
+    params.tab === 'Result' ? 'Result' : 'Overview'
+  );
+  const [prevParamTab, setPrevParamTab] = useState(params.tab);
+  if (params.tab !== prevParamTab) {
+    setPrevParamTab(params.tab);
+    setActiveTab(params.tab === 'Result' ? 'Result' : 'Overview');
+  }
   const [expandedTier, setExpandedTier] = useState<string | null>(null);
   const [featureDetail, setFeatureDetail] = useState<MarketplaceDetailResponse | null>(null);
   const [isSubscribing, setIsSubscribing] = useState(false);
@@ -89,6 +118,8 @@ export default function AnomalyDetectionPreviewScreen() {
   const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
   const [justPurchasedTiers, setJustPurchasedTiers] = useState<Record<string, boolean>>({});
   const [justCancelledTiers, setJustCancelledTiers] = useState<Record<string, boolean>>({});
+  // The server refused the Result data; remembered so the next tap shows the prompt straight away.
+  const [serverDenied, setServerDenied] = useState(false);
   const [activationModalVisible, setActivationModalVisible] = useState(false);
   const [selectedTierForActivation, setSelectedTierForActivation] =
     useState<MarketplaceTier | null>(null);
@@ -98,9 +129,7 @@ export default function AnomalyDetectionPreviewScreen() {
   const [verificationModalVisible, setVerificationModalVisible] = useState(false);
   const [verificationState, setVerificationState] = useState<PaymentVerificationState>('verifying');
   const pollingTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-  const tierTwoYRef = useRef<number>(0);
-  const [upgradeModalVisible, setUpgradeModalVisible] = useState(false);
+  const checkoutIdempotencyKeyRef = useRef<{ signature: string; key: string } | null>(null);
 
   const [confirmModalVisible, setConfirmModalVisible] = useState(false);
   const [confirmModalConfig, setConfirmModalConfig] = useState<{
@@ -146,18 +175,20 @@ export default function AnomalyDetectionPreviewScreen() {
   };
 
   const [isLoading, setIsLoading] = useState(true);
+  const hasLoadedFeatureRef = useRef(false);
 
   const isAnomalyProduct = (name: string) => name.toLowerCase().includes('anomaly');
 
   const loadFeature = useCallback(
     async (id?: string) => {
-      if (!featureDetail) setIsLoading(true);
+      if (!hasLoadedFeatureRef.current) setIsLoading(true);
       try {
         const rawId = id || (typeof params.featureId === 'string' ? params.featureId : undefined);
         const targetId = await resolveMarketplaceFeatureId(rawId, isAnomalyProduct);
 
         if (targetId) {
           const detail = await getMarketplaceFeatureById(targetId);
+          hasLoadedFeatureRef.current = true;
           setFeatureDetail(detail);
           const sorted = sortMarketplaceTiers(detail.tiers ?? []);
           setExpandedTier((prev) =>
@@ -177,11 +208,12 @@ export default function AnomalyDetectionPreviewScreen() {
         setIsLoading(false);
       }
     },
-    [params.featureId, estateId, featureDetail]
+    [params.featureId, estateId]
   );
 
   const refreshAfterTierChange = useCallback(
     async (id?: string) => {
+      setServerDenied(false);
       refreshEstateEntitlements();
       void queryClient.invalidateQueries({ queryKey: ['anomaly'] });
       await loadFeature(id ?? featureDetail?.id);
@@ -199,7 +231,7 @@ export default function AnomalyDetectionPreviewScreen() {
   useEffect(() => {
     let isMounted = true;
     async function init() {
-      if (!featureDetail) setIsLoading(true);
+      if (!hasLoadedFeatureRef.current) setIsLoading(true);
       try {
         if (estateId) {
           try {
@@ -218,6 +250,7 @@ export default function AnomalyDetectionPreviewScreen() {
         if (targetId && isMounted) {
           const detail = await getMarketplaceFeatureById(targetId);
           if (isMounted) {
+            hasLoadedFeatureRef.current = true;
             setFeatureDetail(detail);
             if (estateId && detail.tiers) {
               detail.tiers.forEach((t) => {
@@ -282,10 +315,6 @@ export default function AnomalyDetectionPreviewScreen() {
     }
     if (requireTierOne(tierPayload.tier)) return;
     if (tierPayload.is_free) {
-      if (!isPlanIncludingResults) {
-        setUpgradeModalVisible(true);
-        return;
-      }
       handleActivateFreeTier(tierPayload);
       return;
     }
@@ -306,20 +335,33 @@ export default function AnomalyDetectionPreviewScreen() {
       return;
     }
 
+    const signature = `${estateId}:${selectedTierForActivation.feature_key}:${duration}`;
+    if (checkoutIdempotencyKeyRef.current?.signature !== signature) {
+      checkoutIdempotencyKeyRef.current = {
+        signature,
+        key: createIdempotencyKey(),
+      };
+    }
+    const idempotencyKey = checkoutIdempotencyKeyRef.current.key;
+
     setIsConfirmingActivation(true);
     try {
-      const response = await initializeCheckout({
-        estate_id: estateId,
-        customer_email: email,
-        checkout_kind: 'ai_only',
-        ai_feature_keys: [selectedTierForActivation.feature_key],
-        ai_feature_ids: selectedTierForActivation.ai_feature_id
-          ? [selectedTierForActivation.ai_feature_id]
-          : undefined,
-        period_months: duration,
-      });
+      const response = await initializeCheckout(
+        {
+          estate_id: estateId,
+          customer_email: email,
+          checkout_kind: 'ai_only',
+          ai_feature_keys: [selectedTierForActivation.feature_key],
+          ai_feature_ids: selectedTierForActivation.ai_feature_id
+            ? [selectedTierForActivation.ai_feature_id]
+            : undefined,
+          period_months: duration,
+        },
+        idempotencyKey
+      );
 
       if (response?.authorization_url) {
+        checkoutIdempotencyKeyRef.current = null;
         setActivePaystackReference(response.paystack_reference);
         setActiveCheckoutToken(response.checkout_token);
         setActivationModalVisible(false);
@@ -337,7 +379,26 @@ export default function AnomalyDetectionPreviewScreen() {
         Alert.alert('Error', 'No checkout authorization URL returned.');
       }
     } catch (err: any) {
-      Alert.alert('Checkout Failed', err?.message || 'Failed to initialize checkout.');
+      const status = err?.status ?? err?.response?.status;
+      if (status === 409) {
+        checkoutIdempotencyKeyRef.current = null;
+        if (featureDetail?.id) {
+          void loadFeature(featureDetail.id);
+        }
+        Alert.alert(
+          'Checkout Conflict',
+          err?.message ||
+            'A checkout or subscription update is already in progress, or this tier is already active.'
+        );
+      } else if (status === 422) {
+        checkoutIdempotencyKeyRef.current = null;
+        Alert.alert(
+          'Invalid Checkout Request',
+          err?.message || 'Please check your subscription selection and try again.'
+        );
+      } else {
+        Alert.alert('Checkout Failed', err?.message || 'Failed to initialize checkout.');
+      }
     } finally {
       setIsConfirmingActivation(false);
     }
@@ -573,12 +634,8 @@ export default function AnomalyDetectionPreviewScreen() {
     }
   };
 
-  const { data: subscriptionData } = useEstateSubscription();
-  const { data: entitlements } = useEstateEntitlements();
   const sortedTiers = featureDetail?.tiers ? sortMarketplaceTiers(featureDetail.tiers) : [];
-  const tierOneApi = sortedTiers[0];
-  const tierTwoApi = sortedTiers[1];
-  const tierThreeApi = sortedTiers[2];
+  const tierOne = sortedTiers.find((tier) => tierOrder(tier) === 1);
 
   const isTierSubscribed = useCallback(
     (tier?: MarketplaceTier | null) => {
@@ -601,21 +658,23 @@ export default function AnomalyDetectionPreviewScreen() {
   // just purchased still counts as not installed (as the Install / Uninstall button does). Until
   // the tiers load there is nothing to judge, so nothing is blocked.
   const tierOneInstalled = featureDetail
-    ? !!tierOneApi && !!tierOneApi.is_installed && !justPurchasedTiers[tierOneApi.tier]
+    ? !!tierOne &&
+      (!!tierOne.is_installed || tierOne.status === 'installed') &&
+      !justPurchasedTiers[tierOne.tier]
     : undefined;
-  const tierOneSubscribed = featureDetail
-    ? !!tierOneApi &&
-      (!!tierOneApi.is_installed ||
-        !!tierOneApi.purchased ||
-        ['active', 'purchased', 'subscribed', 'installed'].includes(tierOneApi.status ?? ''))
-    : undefined;
+  const tierOneSubscribed = featureDetail ? !!tierOne && isTierActive(tierOne) : undefined;
+  const resultAllowed = tierOneInstalled !== false && !serverDenied;
   const tierOneRef = useRef<View>(null);
   const viewportHeightRef = useRef(0);
+  const scrollViewRef = useRef<ScrollView>(null);
 
   /** "Upgrade" goes to the Overview tab with Tier One opened and in view. */
   const showTierOne = () => {
-    setExpandedTier(tierOneApi?.tier || 'Tier One');
-    handleTabPress('Overview');
+    const firstTier = sortedTiers.find(
+      (tier) => (Number.parseInt(tier.tier.replace(/\D/g, ''), 10) || 0) === 1
+    );
+    if (firstTier) setExpandedTier(firstTier.tier);
+    setActiveTab('Overview');
     // The card grows when opened, so let it lay out first.
     setTimeout(
       () =>
@@ -623,7 +682,7 @@ export default function AnomalyDetectionPreviewScreen() {
       450
     );
   };
-  const { showDenied: showTierOneRequired } = useFeatureGate('access_anomaly_detection_tier_1', {
+  const { showDenied: showResultDenied } = useFeatureGate('access_anomaly_detection_tier_1', {
     notice: 'floating',
     onUpgrade: showTierOne,
   });
@@ -631,115 +690,53 @@ export default function AnomalyDetectionPreviewScreen() {
   const requireTierOne = (tierName: string) => {
     const order = Number.parseInt(tierName.replace(/\D/g, ''), 10) || 0;
     if (order <= 1 || tierOneInstalled !== false) return false;
-    showTierOneRequired(
-      `${tierOneSubscribed ? 'Install' : 'Subscribe to'} Tier One first. Tiers Two and Three build on it.`
-    );
+    showResultDenied(tierOneSubscribed ? INSTALL_TIER_ONE_FIRST_MESSAGE : TIER_ONE_FIRST_MESSAGE);
     return true;
   };
+  const [resultLocked, setResultLocked] = useState(false);
+  const promptVisible = useUpgradePromptStore((s) => s.visible);
+  const noticeVisible = useContactAdminNoticeStore((s) => s.visible);
 
-  const planSlug = subscriptionData?.tier?.slug ?? entitlements?.tierSlug;
-  const isPlanIncludingResults = planSlug === 'sentinel' || planSlug === 'command';
-  const hasPaidTierEntitlement =
-    hasEntitlement(entitlements, 'access_anomaly_detection_tier_2') ||
-    hasEntitlement(entitlements, 'access_anomaly_detection_tier_3');
-  const hasResultAccess =
-    isPlanIncludingResults ||
-    hasPaidTierEntitlement ||
-    isTierSubscribed(tierTwoApi) ||
-    isTierSubscribed(tierThreeApi);
-
-  const hasFeatureEntitlement = hasResultAccess;
-
-  // Ensure subscription-included Tier 1 is installed when the estate is on Sentinel/Command so scans trigger.
-  const autoInstalledTierOneRef = useRef(false);
   useEffect(() => {
-    if (
-      autoInstalledTierOneRef.current ||
-      !estateId ||
-      !isPlanIncludingResults ||
-      !tierOneApi?.feature_key ||
-      tierOneApi.is_installed
-    ) {
-      return;
+    if (resultLocked && !promptVisible && !noticeVisible) {
+      setResultLocked(false);
+      setActiveTab('Overview');
     }
-    autoInstalledTierOneRef.current = true;
-    installAiFeature(estateId, tierOneApi.feature_key)
-      .then(() => {
-        refreshEstateEntitlements();
-        if (featureDetail?.id) void loadFeature(featureDetail.id);
-      })
-      .catch(() => {
-        // Ignore if already installed or not needed by backend
-      });
-  }, [estateId, isPlanIncludingResults, tierOneApi, featureDetail?.id, loadFeature]);
+  }, [resultLocked, promptVisible, noticeVisible]);
 
-  const scrollViewRef = useRef<ScrollView>(null);
+  // Also covers arriving with `?tab=Result` and the tiers finishing loading while on Result.
+  useEffect(() => {
+    if (activeTab !== 'Result' || resultLocked || resultAllowed) return;
+    setResultLocked(true);
+    // With a tier active, upgrading isn't the fix: the server hasn't linked the subscription.
+    showResultDenied(
+      tierOneInstalled
+        ? SUBSCRIPTION_NOT_LINKED_MESSAGE
+        : tierOneSubscribed
+          ? INSTALL_TIER_ONE_FOR_RESULT_MESSAGE
+          : TIER_ONE_FOR_RESULT_MESSAGE
+    );
+  }, [
+    activeTab,
+    resultLocked,
+    resultAllowed,
+    tierOneInstalled,
+    tierOneSubscribed,
+    showResultDenied,
+  ]);
 
-  const handleUpgradeFlow = () => {
-    setUpgradeModalVisible(false);
-    setActiveTab('Overview');
-    const tierTwoKey = tierTwoApi?.tier || 'Tier Two';
-    setExpandedTier(tierTwoKey);
-    if (tierTwoYRef.current) {
-      scrollViewRef.current?.scrollTo({ y: Math.max(0, tierTwoYRef.current - 16), animated: true });
-    }
-    setTimeout(() => {
-      if (tierTwoApi) {
-        setSelectedTierForActivation(tierTwoApi);
-        setActivationModalVisible(true);
-      }
-    }, 400);
-  };
+  const hasFeatureEntitlement =
+    Boolean(tierOneInstalled) ||
+    sortedTiers.some(
+      (tier) =>
+        (Boolean(tier.is_installed) || isTierSubscribed(tier)) && !justCancelledTiers[tier.tier]
+    );
 
   const handleTabPress = (tab: 'Overview' | 'Result') => {
     if (tab === activeTab) return;
-    if (tab === 'Result' && !hasResultAccess) {
-      if (userRole === 'primary_admin') {
-        setUpgradeModalVisible(true);
-      } else {
-        showContactAdminNotice(
-          'access_anomaly_detection_tier_2',
-          'Upgrade to Sentinel or activate Anomaly Detection Tier Two to view results. Contact Admin to upgrade.'
-        );
-      }
-      return;
-    }
-
     setActiveTab(tab);
     scrollViewRef.current?.scrollTo({ y: 0, animated: false });
   };
-
-  useEffect(() => {
-    if (params.tab === 'Result') {
-      if (hasResultAccess) {
-        setActiveTab('Result');
-      } else if (!isLoading) {
-        setActiveTab('Overview');
-        if (userRole === 'primary_admin') {
-          setUpgradeModalVisible(true);
-        } else {
-          showContactAdminNotice(
-            'access_anomaly_detection_tier_2',
-            'Upgrade to Sentinel or activate Anomaly Detection Tier Two to view results. Contact Admin to upgrade.'
-          );
-        }
-      }
-    }
-  }, [params.tab, hasResultAccess, isLoading, userRole, showContactAdminNotice]);
-
-  useEffect(() => {
-    if (activeTab === 'Result' && featureDetail && !isLoading && !hasResultAccess) {
-      setActiveTab('Overview');
-      if (userRole === 'primary_admin') {
-        setUpgradeModalVisible(true);
-      } else {
-        showContactAdminNotice(
-          'access_anomaly_detection_tier_2',
-          'Upgrade to Sentinel or activate Anomaly Detection Tier Two to view results. Contact Admin to upgrade.'
-        );
-      }
-    }
-  }, [activeTab, featureDetail, isLoading, hasResultAccess, userRole, showContactAdminNotice]);
 
   const isResultTab = activeTab === 'Result';
 
@@ -788,8 +785,13 @@ export default function AnomalyDetectionPreviewScreen() {
           </Pressable>
         </View>
 
-        {activeTab === 'Result' && hasResultAccess ? (
-          <AnomalyResultView />
+        {activeTab === 'Result' && (resultLocked || !resultAllowed) ? (
+          <View style={{ flex: 1, backgroundColor: '#F6F7F7' }} />
+        ) : activeTab === 'Result' ? (
+          <AnomalyResultView
+            isActive={activeTab === 'Result'}
+            onAccessDenied={() => setServerDenied(true)}
+          />
         ) : isLoading && !featureDetail ? (
           <View
             style={{
@@ -1007,32 +1009,19 @@ export default function AnomalyDetectionPreviewScreen() {
                           )?.benefits ?? []);
                       const description = tier.description?.trim() || '';
                       const subtitle = tier.name?.trim() || formatTierSubtitle(tier);
-                      const isFreeTierAllowed = !tier.is_free || isPlanIncludingResults;
                       const isSubscribed =
-                        isFreeTierAllowed &&
-                        (tier.status === 'active' ||
-                          tier.status === 'purchased' ||
-                          tier.status === 'subscribed' ||
-                          tier.status === 'installed' ||
-                          !!tier.purchased);
-                      const isInstalled =
-                        isFreeTierAllowed && !!tier.is_installed && !justPurchasedTiers[tierKey];
-                      const order = Number.parseInt(tier.tier.replace(/\D/g, ''), 10) || 0;
-                      const isTierOne = order === 1;
-                      const isTierTwo = order === 2;
+                        tier.status === 'active' ||
+                        tier.status === 'purchased' ||
+                        tier.status === 'subscribed' ||
+                        tier.status === 'installed' ||
+                        !!tier.purchased;
+                      const isInstalled = !!tier.is_installed && !justPurchasedTiers[tierKey];
 
                       return (
                         <View
                           key={tier.ai_feature_id || tierKey}
-                          ref={isTierOne ? tierOneRef : undefined}
+                          ref={tierOrder(tier) === 1 ? tierOneRef : undefined}
                           collapsable={false}
-                          onLayout={
-                            isTierTwo
-                              ? (e) => {
-                                  tierTwoYRef.current = e.nativeEvent.layout.y;
-                                }
-                              : undefined
-                          }
                         >
                           <SubscriptionTierCard
                             tierLabel={formatTierLabel(tierKey)}
@@ -1287,7 +1276,10 @@ export default function AnomalyDetectionPreviewScreen() {
 
       <ActivationQuoteModal
         visible={activationModalVisible}
-        onClose={() => setActivationModalVisible(false)}
+        onClose={() => {
+          checkoutIdempotencyKeyRef.current = null;
+          setActivationModalVisible(false);
+        }}
         tier={selectedTierForActivation}
         estateId={estateId}
         onConfirm={handleConfirmActivation}
@@ -1306,13 +1298,6 @@ export default function AnomalyDetectionPreviewScreen() {
             loadFeature(featureDetail.id);
           }
         }}
-      />
-
-      <UpgradePlanModal
-        visible={upgradeModalVisible}
-        feature="access_anomaly_detection_tier_2"
-        onClose={() => setUpgradeModalVisible(false)}
-        onUpgrade={handleUpgradeFlow}
       />
     </View>
   );
