@@ -1,4 +1,5 @@
 /** Pure billing helpers (no React) shared by the billing screens. */
+import * as Crypto from 'expo-crypto';
 import { UserRolesType } from '@/src/types/general';
 import type { AllUsers } from '@/src/types/user';
 import {
@@ -386,17 +387,24 @@ export function getTierFeatureRows(tier: BillingTier | null | undefined): TierFe
 }
 
 /**
- * Unique key for the `Idempotency-Key` header. Uses `crypto.randomUUID` when the runtime has it
- * (Hermes does not; `expo-crypto` is not installed), else a timestamp + random v4-style id.
+ * Unique UUID v4 key for the `Idempotency-Key` header. Uses `expo-crypto` (`Crypto.randomUUID`),
+ * falling back to `globalThis.crypto.randomUUID` or a 36-character RFC 4122 v4 UUID.
  */
 export function createIdempotencyKey(): string {
+  try {
+    if (typeof Crypto.randomUUID === 'function') {
+      const uuid = Crypto.randomUUID();
+      if (typeof uuid === 'string' && uuid.length === 36) return uuid;
+    }
+  } catch {
+    // Fall through if native module is unavailable in test environment
+  }
   const cryptoApi = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto;
   if (typeof cryptoApi?.randomUUID === 'function') return cryptoApi.randomUUID();
-  const random = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (char) => {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (char) => {
     const r = Math.floor(Math.random() * 16);
     return (char === 'x' ? r : (r & 0x3) | 0x8).toString(16);
   });
-  return `${Date.now().toString(36)}-${random}`;
 }
 
 /**
@@ -545,4 +553,99 @@ export function getRenewalBlockMessage(
     title: 'Renewal unavailable',
     message: eligibility.reason || 'This plan cannot be renewed. Choose a plan to subscribe again.',
   };
+}
+
+/** A failed billing request; `status` is the HTTP status when the server answered (e.g. 409, 422). */
+export class BillingApiError extends Error {
+  status?: number;
+
+  constructor(message: string, status?: number) {
+    super(message);
+    this.name = 'BillingApiError';
+    this.status = status;
+  }
+}
+
+function extractApiErrorDetail(error: any): string | null {
+  const data = error?.response?.data;
+  if (!data) return null;
+
+  if (Array.isArray(data.detail)) {
+    const messages = data.detail
+      .map((item: any) => (typeof item === 'string' ? item : item?.msg))
+      .filter((msg: unknown): msg is string => typeof msg === 'string' && msg.trim().length > 0);
+    if (messages.length > 0) return messages.join('. ');
+  }
+
+  if (typeof data.detail === 'string' && data.detail.trim().length > 0) {
+    return data.detail;
+  }
+
+  if (data.detail && typeof data.detail === 'object' && typeof data.detail.message === 'string') {
+    return data.detail.message;
+  }
+
+  if (typeof data.message === 'string' && data.message.trim().length > 0) {
+    return data.message;
+  }
+
+  return null;
+}
+
+export function toBillingError(error: unknown, fallback: string): BillingApiError {
+  const err = error as any;
+  const status: number | undefined =
+    typeof err?.response?.status === 'number'
+      ? err.response.status
+      : typeof err?.status === 'number'
+        ? err.status
+        : undefined;
+
+  // 5xx details describe internal services (e.g. "Upstream returned HTTP 500 for GET
+  // http://db-service…"): show the plain fallback instead. 4xx messages are meant for the user.
+  if (status !== undefined && status >= 500) {
+    return new BillingApiError(`${fallback}. Please try again.`, status);
+  }
+
+  const detail = extractApiErrorDetail(err);
+
+  if (status === 409) {
+    return new BillingApiError(
+      detail ||
+        'A conflicting checkout or subscription request already exists. Please refresh and try again.',
+      409
+    );
+  }
+
+  if (status === 422) {
+    return new BillingApiError(
+      detail || 'Invalid checkout details. Please check your selection and try again.',
+      422
+    );
+  }
+
+  if (detail) {
+    return new BillingApiError(detail, status);
+  }
+
+  if (typeof err?.message === 'string' && err.message.trim().length > 0) {
+    if (err.message === 'Network Error') {
+      return new BillingApiError('Network error - please check your internet connection.', status);
+    }
+    if (
+      err.message.includes('timeout') ||
+      err.message.includes('timed out') ||
+      err.message.includes('exceeded')
+    ) {
+      return new BillingApiError(
+        'Request timed out - please check your network connection and try again.',
+        status
+      );
+    }
+    if (!err.message.startsWith('Request failed with status code ')) {
+      return new BillingApiError(err.message, status);
+    }
+  }
+
+  return new BillingApiError(fallback, status);
 }

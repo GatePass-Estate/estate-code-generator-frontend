@@ -14,11 +14,11 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
   Easing,
-  runOnJS,
   cancelAnimation,
   SharedValue,
   FadeIn,
   FadeOut,
+  ReduceMotion,
 } from 'react-native-reanimated';
 import { MaterialIcons } from '@expo/vector-icons';
 import Info1Svg from '@/src/assets/images/info1.svg';
@@ -224,65 +224,105 @@ export default function DataInsightModal({ visible, onClose, dataInsight }: Data
   const progress = useSharedValue(0);
   const [isPaused, setIsPaused] = useState(false);
   const [showInsightsList, setShowInsightsList] = useState(false);
+  const lastPageRef = useRef<number>(-1);
+  const elapsedMsRef = useRef<number>(0);
+  const openedAtRef = useRef<number>(0);
+  const pressInAtRef = useRef<number>(0);
 
-  useEffect(() => {
-    if (visible) {
-      setCurrentPage(0);
-      progress.value = 0;
-      setIsPaused(false);
-      setShowInsightsList(false);
-      startAnimation();
-    } else {
-      progress.value = 0;
-      cancelAnimation(progress);
-    }
-  }, [visible]);
-
-  useEffect(() => {
-    if (visible) {
-      if (isPaused) {
-        cancelAnimation(progress);
-      } else {
-        startAnimation();
-      }
-    }
-  }, [isPaused, currentPage, visible]);
-
-  const startAnimation = () => {
-    const currentProgress = progress.value >= 1 ? 0 : progress.value;
-    progress.value = currentProgress;
-    const remainingDuration = DURATION * (1 - currentProgress);
-
-    progress.value = withTiming(
-      1,
-      { duration: remainingDuration, easing: Easing.linear },
-      (finished) => {
-        if (finished) {
-          runOnJS(goToNextPage)();
-        }
-      }
-    );
-  };
-
-  const goToNextPage = () => {
+  const goToNextPage = React.useCallback(() => {
     cancelAnimation(progress);
     progress.value = 0;
-    if (currentPage < PAGES.length - 1) {
-      setCurrentPage((prev) => prev + 1);
-    } else {
+    elapsedMsRef.current = 0;
+    setCurrentPage((prev) => {
+      if (prev < PAGES.length - 1) {
+        return prev + 1;
+      }
       setShowInsightsList(true);
-    }
-  };
+      return prev;
+    });
+  }, [progress]);
 
-  const goToPrevPage = () => {
+  const goToPrevPage = React.useCallback(() => {
     cancelAnimation(progress);
     progress.value = 0;
-    if (currentPage > 0) {
-      setCurrentPage((prev) => prev - 1);
-    } else {
-      startAnimation();
+    elapsedMsRef.current = 0;
+    setCurrentPage((prev) => (prev > 0 ? prev - 1 : prev));
+  }, [progress]);
+
+  const handleTapPrev = React.useCallback(() => {
+    const now = Date.now();
+    if (now - openedAtRef.current < 300) return;
+    if (pressInAtRef.current > 0 && now - pressInAtRef.current > 250) return;
+    goToPrevPage();
+  }, [goToPrevPage]);
+
+  const handleTapNext = React.useCallback(() => {
+    const now = Date.now();
+    if (now - openedAtRef.current < 300) return;
+    if (pressInAtRef.current > 0 && now - pressInAtRef.current > 250) return;
+    goToNextPage();
+  }, [goToNextPage]);
+
+  useEffect(() => {
+    if (!visible) return;
+    openedAtRef.current = Date.now();
+    pressInAtRef.current = 0;
+    elapsedMsRef.current = 0;
+    setCurrentPage(0);
+    setIsPaused(false);
+    setShowInsightsList(false);
+    lastPageRef.current = -1;
+    cancelAnimation(progress);
+    progress.value = 0;
+  }, [visible, progress]);
+
+  useEffect(() => {
+    if (!visible || showInsightsList) return;
+
+    const isPageChange = lastPageRef.current !== currentPage;
+    if (isPageChange) {
+      lastPageRef.current = currentPage;
+      elapsedMsRef.current = 0;
+      cancelAnimation(progress);
+      progress.value = 0;
     }
-  };
+
+    if (isPaused) {
+      cancelAnimation(progress);
+      return;
+    }
+
+    const from = Math.min(1, Math.max(0, elapsedMsRef.current / DURATION));
+    const remainingDuration = Math.max(100, DURATION - elapsedMsRef.current);
+
+    cancelAnimation(progress);
+    progress.value = from;
+    progress.value = withTiming(1, {
+      duration: remainingDuration,
+      easing: Easing.linear,
+      reduceMotion: ReduceMotion.Never,
+    });
+
+    let lastTick = Date.now();
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const delta = Math.max(0, now - lastTick);
+      lastTick = now;
+      elapsedMsRef.current += delta;
+      const nextRatio = Math.min(1, elapsedMsRef.current / DURATION);
+      progress.value = nextRatio;
+
+      if (elapsedMsRef.current >= DURATION) {
+        clearInterval(interval);
+        goToNextPage();
+      }
+    }, 50);
+
+    return () => {
+      clearInterval(interval);
+      cancelAnimation(progress);
+    };
+  }, [visible, showInsightsList, isPaused, currentPage, goToNextPage, progress]);
 
   if (!visible) return null;
 
@@ -427,7 +467,13 @@ export default function DataInsightModal({ visible, onClose, dataInsight }: Data
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      transparent
+      statusBarTranslucent
+      animationType="fade"
+      onRequestClose={onClose}
+    >
       {showInsightsList ? (
         <View
           style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
@@ -540,14 +586,20 @@ export default function DataInsightModal({ visible, onClose, dataInsight }: Data
             >
               <Pressable
                 style={{ flex: 0.3 }}
-                onPress={goToPrevPage}
-                onPressIn={() => setIsPaused(true)}
+                onPress={handleTapPrev}
+                onPressIn={() => {
+                  pressInAtRef.current = Date.now();
+                  setIsPaused(true);
+                }}
                 onPressOut={() => setIsPaused(false)}
               />
               <Pressable
                 style={{ flex: 0.7 }}
-                onPress={goToNextPage}
-                onPressIn={() => setIsPaused(true)}
+                onPress={handleTapNext}
+                onPressIn={() => {
+                  pressInAtRef.current = Date.now();
+                  setIsPaused(true);
+                }}
                 onPressOut={() => setIsPaused(false)}
               />
             </View>

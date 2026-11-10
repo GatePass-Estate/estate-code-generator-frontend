@@ -37,9 +37,12 @@ export type SeatStepperProps = {
   className?: string;
 };
 
-const ICON_COLOR = '#9B9797';
-// duo-icons add-circle: #EFF1F1 disc at 30% opacity.
-const BUTTON_BG = 'rgba(239, 241, 241, 0.3)';
+const ICON_COLOR = '#113E55';
+const ICON_COLOR_DISABLED = '#9B9797';
+const BUTTON_BG = '#DCE8EC';
+const BUTTON_BG_DISABLED = '#EFF1F3';
+const BUTTON_BORDER = '#B8CED6';
+const BUTTON_BORDER_DISABLED = '#E2E6E9';
 const CARET_COLOR = '#878686';
 // Ubuntu Sans 500 @ 27.34pt: Figma sizes "1200" at 62pt, i.e. ~15.5pt per digit.
 const DIGIT_WIDTH = 16;
@@ -69,6 +72,7 @@ function StepButton({
   disabled: boolean;
   onPress: () => void;
 }) {
+  const barColor = disabled ? ICON_COLOR_DISABLED : ICON_COLOR;
   return (
     <Pressable
       onPress={onPress}
@@ -77,14 +81,19 @@ function StepButton({
       accessibilityRole="button"
       accessibilityLabel={kind === 'decrease' ? 'Decrease seats' : 'Increase seats'}
       accessibilityState={{ disabled }}
-      className="h-6 w-6 items-center justify-center rounded-full active:opacity-60"
-      style={{ backgroundColor: BUTTON_BG, opacity: disabled ? 0.4 : 1 }}
+      className="h-9 w-9 items-center justify-center rounded-full active:opacity-60"
+      style={{
+        backgroundColor: disabled ? BUTTON_BG_DISABLED : BUTTON_BG,
+        borderWidth: 1,
+        borderColor: disabled ? BUTTON_BORDER_DISABLED : BUTTON_BORDER,
+        opacity: disabled ? 0.55 : 1,
+      }}
     >
-      <View className="h-[2px] w-[10px] rounded-[2px]" style={{ backgroundColor: ICON_COLOR }} />
+      <View className="h-[2px] w-[12px] rounded-[2px]" style={{ backgroundColor: barColor }} />
       {kind === 'increase' ? (
         <View
-          className="absolute h-[10px] w-[2px] rounded-[2px]"
-          style={{ backgroundColor: ICON_COLOR }}
+          className="absolute h-[12px] w-[2px] rounded-[2px]"
+          style={{ backgroundColor: barColor }}
         />
       ) : null}
     </Pressable>
@@ -160,6 +169,12 @@ export default function SeatStepper({
   const [draft, setDraft] = useState(String(value));
   const [focused, setFocused] = useState(false);
   const [textWidth, setTextWidth] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!focused) {
+      setDraft(String(value));
+    }
+  }, [value, focused]);
 
   const text = focused ? draft : String(value);
   const parsedDraft = Number.parseInt(draft, 10);

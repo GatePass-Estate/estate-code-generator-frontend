@@ -6,6 +6,8 @@ export const useAnomalyOverview = (estate_id: string, from_date?: string, to_dat
     queryKey: ['anomaly', 'overview', estate_id, from_date, to_date],
     queryFn: () => anomalyApi.getOverview({ estate_id, from_date, to_date }),
     enabled: !!estate_id,
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 };
 
@@ -26,13 +28,24 @@ export const useAnomalyPredictions = (
     queryKey: ['anomaly', 'predictions', estate_id, params],
     queryFn: () => anomalyApi.getPredictions({ estate_id, ...params }),
     enabled: !!estate_id,
+    staleTime: 0,
+    refetchOnMount: 'always',
     placeholderData: keepPreviousData,
     select: (data: any) => {
       const actualData = data?.data || data;
+      const items = Array.isArray(actualData)
+        ? actualData
+        : actualData?.items || actualData?.predictions || actualData?.results || [];
+      const total =
+        typeof actualData?.total === 'number'
+          ? actualData.total
+          : typeof actualData?.count === 'number'
+            ? actualData.count
+            : items.length;
 
       return {
-        predictionsArray: actualData?.items || [],
-        totalPredictionsCount: actualData?.total || 0,
+        predictionsArray: items,
+        totalPredictionsCount: total,
       };
     },
   });
@@ -43,6 +56,8 @@ export const useAnomalyCaseDemographic = (estate_id: string, prediction_id: stri
     queryKey: ['anomaly', 'case-demographic', estate_id, prediction_id],
     queryFn: () => anomalyApi.getCaseDemographic(estate_id, prediction_id),
     enabled: !!estate_id && !!prediction_id,
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 };
 
@@ -51,6 +66,8 @@ export const useAnomalyCaseHistory = (estate_id: string, prediction_id: string) 
     queryKey: ['anomaly', 'case-history', estate_id, prediction_id],
     queryFn: () => anomalyApi.getCaseHistory(estate_id, prediction_id),
     enabled: !!estate_id && !!prediction_id,
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 };
 
@@ -76,5 +93,7 @@ export const useAnomalyCaseResults = (
     queryKey: ['anomaly', 'case-results', estate_id, prediction_id, from_date, to_date],
     queryFn: () => anomalyApi.getCaseResults(estate_id, prediction_id, from_date, to_date),
     enabled: !!estate_id && !!prediction_id,
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 };

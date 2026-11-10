@@ -68,15 +68,23 @@ export default function MyIncidentReportsScreen() {
     }
   }, []);
 
+  const handleBack = useCallback(() => {
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
+    leaveIncidentReport(returnTo, router);
+  }, [returnTo, router]);
+
   useFocusEffect(
     useCallback(() => {
       if (Platform.OS !== 'android') return;
       const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
-        leaveIncidentReport(returnTo, router);
+        handleBack();
         return true;
       });
       return () => subscription.remove();
-    }, [returnTo, router])
+    }, [handleBack])
   );
 
   useFocusEffect(
@@ -88,12 +96,12 @@ export default function MyIncidentReportsScreen() {
         if (allowed) {
           setCheckingAccess(false);
           await load();
-        } else router.replace('/user');
+        } else handleBack();
       })();
       return () => {
         active = false;
       };
-    }, [load, requestAccessWhenReady, router])
+    }, [handleBack, load, requestAccessWhenReady])
   );
 
   return (
@@ -108,7 +116,7 @@ export default function MyIncidentReportsScreen() {
         showBorder
         borderSize={30}
         leftOffset={-3}
-        onPress={() => leaveIncidentReport(returnTo, router)}
+        onPress={handleBack}
       />
       <Text className="mt-[13px] ml-[4px] text-[27.34px] leading-[33px] text-[#113E55] font-ubuntu-medium">
         Reported Incidents
