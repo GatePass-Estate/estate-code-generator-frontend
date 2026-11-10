@@ -4,7 +4,6 @@ import {
   Text,
   Pressable,
   ScrollView,
-  StyleSheet,
   ActivityIndicator,
   Alert,
   Image,
@@ -14,19 +13,10 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialIcons } from '@expo/vector-icons';
-import Svg, { Path } from 'react-native-svg';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-  interpolateColor,
-  runOnJS,
-  FadeIn,
-  FadeOut,
-} from 'react-native-reanimated';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import BiInfoSvg from '@/src/assets/icons/bi_info.svg';
-import ValidationBackSvg from '@/src/assets/icons/validation-back.svg';
+import Back from '@/src/components/mobile/Back';
+import AnimatedPillTabs from '@/src/components/mobile/AnimatedPillTabs';
 import AnomalyRadarChart from '@/src/components/anomaly/AnomalyRadarChart';
 import AnomalyDonutChart from '@/src/components/anomaly/AnomalyDonutChart';
 import SemiCircleGauge from '@/src/components/anomaly/SemiCircleGauge';
@@ -36,11 +26,13 @@ import GaugeDetailModal, { GaugeData } from '@/src/components/anomaly/modals/Gau
 import DatePickerModal from '@/src/components/anomaly/modals/DatePickerModal';
 import TimeframeModal from '@/src/components/anomaly/modals/TimeframeModal';
 
-import Pf1Svg from '@/src/assets/icons/pf_1.svg';
-import Pf2Svg from '@/src/assets/icons/pf_2.svg';
-import Pf3Svg from '@/src/assets/icons/pf_3.svg';
-import DownloadSvg from '@/src/assets/icons/download.svg';
 import AnomalySvg from '@/src/assets/images/anomaly.svg';
+import {
+  MarketplaceProductFeatureList,
+  MarketplaceProductInfoCard,
+  MarketplaceSectionTitle,
+} from '@/src/components/incident/MarketplaceProductSummary';
+import SubscriptionTierCard from '@/src/components/incident/SubscriptionTierCard';
 import RatingModal from '@/src/components/anomaly/modals/RatingModal';
 import DataInsightModal from '@/src/components/anomaly/modals/DataInsightModal';
 import ActivationQuoteModal, {
@@ -64,6 +56,8 @@ import {
   cancelMarketplaceSubscription,
   sortMarketplaceTiers,
   resolveMarketplaceFeatureId,
+  formatTierLabel,
+  formatTierSubtitle,
 } from '@/src/lib/api/aiMarketplace';
 import { useFeatureGate } from '@/src/hooks/usePlan';
 import { scrollCardIntoView } from '@/src/lib/scrollIntoView';
@@ -75,17 +69,7 @@ import {
   AiQuoteResponse,
 } from '@/src/types/aiMarketplace';
 
-const PILL_WIDTH = 228;
-const PILL_HEIGHT = 40;
-const PADDING = 3;
-const TAB_WIDTH = (PILL_WIDTH - PADDING * 2) / 2; // 111
-const TAB_HEIGHT = PILL_HEIGHT - PADDING * 2; // 34
-
-const SPRING_CONFIG = {
-  damping: 15,
-  stiffness: 150,
-  mass: 0.7,
-};
+const tierNumber = (tier: string) => tier.replace(/\D/g, '') || tier;
 
 export default function AnomalyDetectionPreviewScreen() {
   const params = useLocalSearchParams<{ featureId?: string; title?: string; tab?: string }>();
@@ -98,7 +82,7 @@ export default function AnomalyDetectionPreviewScreen() {
     const newTab = params.tab === 'Result' ? 'Result' : 'Overview';
     setActiveTab(newTab);
   }
-  const [expandedTier, setExpandedTier] = useState<string | null>('Tier Two');
+  const [expandedTier, setExpandedTier] = useState<string | null>(null);
   const [featureDetail, setFeatureDetail] = useState<MarketplaceDetailResponse | null>(null);
   const [isSubscribing, setIsSubscribing] = useState(false);
   const [subscribingTierKey, setSubscribingTierKey] = useState<string | null>(null);
@@ -125,31 +109,6 @@ export default function AnomalyDetectionPreviewScreen() {
   const [verificationState, setVerificationState] = useState<PaymentVerificationState>('verifying');
   const pollingTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const [activeCancelBubbleTier, setActiveCancelBubbleTier] = useState<string | null>(null);
-  const cancelBubbleTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-  const showCancelInfoBubble = (tier: string) => {
-    if (cancelBubbleTimerRef.current) {
-      clearTimeout(cancelBubbleTimerRef.current);
-    }
-    if (activeCancelBubbleTier === tier) {
-      setActiveCancelBubbleTier(null);
-      return;
-    }
-    setActiveCancelBubbleTier(tier);
-    cancelBubbleTimerRef.current = setTimeout(() => {
-      setActiveCancelBubbleTier(null);
-    }, 3500);
-  };
-
-  useEffect(() => {
-    return () => {
-      if (cancelBubbleTimerRef.current) {
-        clearTimeout(cancelBubbleTimerRef.current);
-      }
-    };
-  }, []);
-
   const [confirmModalVisible, setConfirmModalVisible] = useState(false);
   const [confirmModalConfig, setConfirmModalConfig] = useState<{
     title: string;
@@ -169,14 +128,6 @@ export default function AnomalyDetectionPreviewScreen() {
 
   const estateId = useUserStore((state) => state.estate_id) || '';
   const email = useUserStore((state) => state.email) || '';
-
-  const formatTierName = (tier: string) => {
-    const map: Record<string, string> = { '1': 'One', '2': 'Two', '3': 'Three' };
-    return tier
-      .split('_')
-      .map((w) => map[w] || w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-      .join(' ');
-  };
 
   const handleRate = async (rating: number) => {
     const targetId = featureDetail?.id || params.featureId;
@@ -563,8 +514,6 @@ export default function AnomalyDetectionPreviewScreen() {
 
   const sortedTiers = featureDetail?.tiers ? sortMarketplaceTiers(featureDetail.tiers) : [];
   const tierOneApi = sortedTiers[0];
-  const tierTwoApi = sortedTiers[1];
-  const tierThreeApi = sortedTiers[2];
 
   // Tier One is the base product; Tiers Two and Three are add-ons that need it installed. Paying
   // makes a tier "installed" on the server before the user has chosen to install it, so a tier
@@ -584,7 +533,7 @@ export default function AnomalyDetectionPreviewScreen() {
 
   /** "Upgrade" goes to the Overview tab with Tier One opened and in view. */
   const showTierOne = () => {
-    setExpandedTier('Tier One');
+    setExpandedTier(tierOneApi?.tier ?? null);
     handleTabPress('Overview');
     // The card grows when opened, so let it lay out first.
     setTimeout(
@@ -607,326 +556,51 @@ export default function AnomalyDetectionPreviewScreen() {
     return true;
   };
 
-  const renderTierButtons = (tierApi: any, fallbackTier: string) => {
-    const api: MarketplaceTier = tierApi || { tier: fallbackTier };
-    const tierKey = api.tier || fallbackTier;
-    const isSubscribed =
-      api.status === 'active' ||
-      api.status === 'purchased' ||
-      api.status === 'subscribed' ||
-      api.status === 'installed' ||
-      api.purchased;
-    const isCancelledLocally = !!justCancelledTiers[tierKey];
-    const isInstalled = !!api.is_installed && !justPurchasedTiers[tierKey];
-    const isFromSubscriptionTier = api.payment_mode === 'subscription';
-
-    const showActivate = !isSubscribed;
-    const showCancel = isSubscribed && !api.is_free;
-    const showInstall = isSubscribed && !isInstalled;
-    const showUninstall = isInstalled;
-
-    return (
-      <View className="gap-3 mt-4">
-        {showActivate && (
-          <Pressable
-            disabled={isSubscribing}
-            onPress={() => handlePressActivate(api)}
-            className="w-full h-[48px] bg-[#113E55] rounded-full items-center justify-center"
-          >
-            {subscribingTierKey === tierKey ? (
-              <ActivityIndicator size="small" color="white" />
-            ) : (
-              <Text allowFontScaling={false} className="text-[14px] font-inter-medium text-white">
-                Activate
-              </Text>
-            )}
-          </Pressable>
-        )}
-
-        {showCancel && (
-          <View style={{ position: 'relative', width: '100%', zIndex: 10 }}>
-            {isFromSubscriptionTier && activeCancelBubbleTier === tierKey && (
-              <Animated.View
-                entering={FadeIn.duration(180)}
-                exiting={FadeOut.duration(180)}
-                pointerEvents="none"
-                style={{
-                  position: 'absolute',
-                  bottom: '100%',
-                  left: 0,
-                  right: 0,
-                  marginBottom: 6,
-                  alignItems: 'center',
-                  zIndex: 20,
-                  elevation: 5,
-                }}
-              >
-                <View
-                  style={{
-                    backgroundColor: '#113E55',
-                    borderRadius: 8,
-                    paddingHorizontal: 12,
-                    paddingVertical: 8,
-                    maxWidth: '92%',
-                  }}
-                >
-                  <Text
-                    allowFontScaling={false}
-                    style={{
-                      fontFamily: 'Inter_18pt-Medium',
-                      fontSize: 12,
-                      color: '#FFFFFF',
-                      textAlign: 'center',
-                      lineHeight: 16,
-                    }}
-                  >
-                    This feature is included in your estate subscription plan and cannot be
-                    cancelled separately.
-                  </Text>
-                </View>
-                <View
-                  style={{
-                    width: 10,
-                    height: 10,
-                    marginTop: -5,
-                    borderBottomRightRadius: 2,
-                    backgroundColor: '#113E55',
-                    transform: [{ rotate: '45deg' }],
-                  }}
-                />
-              </Animated.View>
-            )}
-
-            <Pressable
-              disabled={(!isFromSubscriptionTier && isCanceling) || isCancelledLocally}
-              style={{
-                opacity: isFromSubscriptionTier || isCancelledLocally ? 0.6 : 1,
-                backgroundColor: isFromSubscriptionTier ? '#E2E8F0' : '#113E55',
-              }}
-              className="w-full h-[48px] rounded-full items-center justify-center"
-              onPress={() => {
-                if (isFromSubscriptionTier) {
-                  showCancelInfoBubble(tierKey);
-                } else {
-                  handleCancelSubscription(api);
-                }
-              }}
-            >
-              {cancelTierKey === tierKey ? (
-                <ActivityIndicator
-                  size="small"
-                  color={isFromSubscriptionTier ? '#64748B' : 'white'}
-                />
-              ) : (
-                <Text
-                  allowFontScaling={false}
-                  className="text-[14px] font-inter-medium"
-                  style={{ color: isFromSubscriptionTier ? '#64748B' : '#FFFFFF' }}
-                >
-                  {isCancelledLocally ? 'Cancelled' : 'Cancel Subscription'}
-                </Text>
-              )}
-            </Pressable>
-          </View>
-        )}
-
-        {showInstall && (
-          <Pressable
-            disabled={isInstalling}
-            className="w-full h-[48px] bg-[#E3F5FC] rounded-full items-center justify-center"
-            onPress={() => handleInstall(api)}
-          >
-            {installingTierKey === api.tier ? (
-              <ActivityIndicator size="small" color="#113E55" />
-            ) : (
-              <Text
-                allowFontScaling={false}
-                className="text-[14px] font-inter-medium text-[#113E55]"
-              >
-                Install
-              </Text>
-            )}
-          </Pressable>
-        )}
-
-        {showUninstall && (
-          <Pressable
-            disabled={isUninstalling}
-            className="w-full h-[48px] bg-[#E3F5FC] rounded-full items-center justify-center"
-            onPress={() => handleUninstall(api)}
-          >
-            {uninstallingTierKey === api.tier ? (
-              <ActivityIndicator size="small" color="#113E55" />
-            ) : (
-              <Text
-                allowFontScaling={false}
-                className="text-[14px] font-inter-medium text-[#113E55]"
-              >
-                Uninstall
-              </Text>
-            )}
-          </Pressable>
-        )}
-      </View>
-    );
-  };
-
   const scrollViewRef = useRef<ScrollView>(null);
-  const translateX = useSharedValue(params.tab === 'Result' ? TAB_WIDTH : 0);
-  const startX = useSharedValue(0);
 
   const handleTabPress = (tab: 'Overview' | 'Result') => {
-    if (tab !== activeTab) {
-      setActiveTab(tab);
-      const targetX = tab === 'Result' ? TAB_WIDTH : 0;
-      translateX.value = withSpring(targetX, SPRING_CONFIG);
-      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
-    }
+    if (tab === activeTab) return;
+    setActiveTab(tab);
+    scrollViewRef.current?.scrollTo({ y: 0, animated: false });
   };
 
-  const panGesture = Gesture.Pan()
-    .activeOffsetX([-8, 8])
-    .onStart(() => {
-      'worklet';
-      startX.value = translateX.value;
-    })
-    .onUpdate((e) => {
-      'worklet';
-      const raw = startX.value + e.translationX;
-      if (raw < 0) {
-        translateX.value = raw * 0.25;
-      } else if (raw > TAB_WIDTH) {
-        translateX.value = TAB_WIDTH + (raw - TAB_WIDTH) * 0.25;
-      } else {
-        translateX.value = raw;
-      }
-    })
-    .onEnd((e) => {
-      'worklet';
-      let targetTab: 'Overview' | 'Result' = 'Overview';
-      if (e.velocityX > 250) {
-        targetTab = 'Result';
-      } else if (e.velocityX < -250) {
-        targetTab = 'Overview';
-      } else {
-        targetTab = translateX.value > TAB_WIDTH / 2 ? 'Result' : 'Overview';
-      }
-
-      const targetX = targetTab === 'Result' ? TAB_WIDTH : 0;
-      translateX.value = withSpring(targetX, {
-        ...SPRING_CONFIG,
-        velocity: e.velocityX,
-      });
-
-      runOnJS(setActiveTab)(targetTab);
-    });
-
-  const tapGesture = Gesture.Tap()
-    .maxDuration(250)
-    .onEnd((e) => {
-      'worklet';
-      const targetTab: 'Overview' | 'Result' = e.x < PILL_WIDTH / 2 ? 'Overview' : 'Result';
-      const targetX = targetTab === 'Result' ? TAB_WIDTH : 0;
-      translateX.value = withSpring(targetX, SPRING_CONFIG);
-      runOnJS(setActiveTab)(targetTab);
-    });
-
-  const pillGesture = Gesture.Race(panGesture, tapGesture);
-
-  useEffect(() => {
-    const targetX = activeTab === 'Result' ? TAB_WIDTH : 0;
-    translateX.value = withSpring(targetX, SPRING_CONFIG);
-    scrollViewRef.current?.scrollTo({ y: 0, animated: false });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab]);
-
-  const animatedIndicatorStyle = useAnimatedStyle(() => {
-    'worklet';
-    return {
-      transform: [{ translateX: translateX.value }],
-    };
-  });
-
-  const animatedHeaderBgStyle = useAnimatedStyle(() => {
-    'worklet';
-    return {
-      backgroundColor: interpolateColor(translateX.value, [0, TAB_WIDTH], ['#FFFFFF', '#F6F7F7']),
-    };
-  });
-
-  const overviewTextStyle = useAnimatedStyle(() => {
-    'worklet';
-    return {
-      color: interpolateColor(translateX.value, [0, TAB_WIDTH], ['#113E55', '#8A9A9D']),
-    };
-  });
-
-  const resultTextStyle = useAnimatedStyle(() => {
-    'worklet';
-    return {
-      color: interpolateColor(translateX.value, [0, TAB_WIDTH], ['#8A9A9D', '#113E55']),
-    };
-  });
-
   return (
-    <Animated.View style={[{ flex: 1 }, animatedHeaderBgStyle]}>
+    <View style={{ flex: 1, backgroundColor: activeTab === 'Result' ? '#F6F7F7' : '#FFFFFF' }}>
       <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1 }}>
-        {/* Header: matches Figma top 55px to 109px (height 54px) */}
-        <Animated.View
-          style={[
-            {
-              height: 54,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              paddingHorizontal: 20,
-            },
-            animatedHeaderBgStyle,
-          ]}
+        <View
+          style={{
+            height: 54,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingHorizontal: 20,
+            backgroundColor: activeTab === 'Result' ? '#F6F7F7' : '#FFFFFF',
+          }}
         >
-          <Pressable
-            onPress={() => router.back()}
-            className="h-[30px] w-[30px] items-center justify-center"
-            hitSlop={8}
-          >
-            <ValidationBackSvg width={30} height={30} />
-          </Pressable>
+          <Back type="short-arrow" onPress={() => router.back()} />
 
-          <GestureDetector gesture={pillGesture}>
-            <View style={styles.pillContainer}>
-              <Animated.View style={[styles.pillIndicator, animatedIndicatorStyle]} />
-              <Pressable
-                accessibilityRole="tab"
-                accessibilityState={{ selected: activeTab === 'Overview' }}
-                onPress={() => handleTabPress('Overview')}
-                style={styles.pillTab}
-              >
-                <Animated.Text style={[styles.pillText, overviewTextStyle]}>Overview</Animated.Text>
-              </Pressable>
-              <Pressable
-                accessibilityRole="tab"
-                accessibilityState={{ selected: activeTab === 'Result' }}
-                onPress={() => handleTabPress('Result')}
-                style={styles.pillTab}
-              >
-                <Animated.Text style={[styles.pillText, resultTextStyle]}>Result</Animated.Text>
-              </Pressable>
-            </View>
-          </GestureDetector>
+          <AnimatedPillTabs
+            options={[
+              { value: 'Overview', label: 'Overview' },
+              { value: 'Result', label: 'Result' },
+            ]}
+            value={activeTab}
+            onChange={handleTabPress}
+          />
 
           <Pressable
+            onPress={() => setDataInsightVisible(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Data insight"
             className="h-[30px] w-[30px] items-center justify-center"
             hitSlop={20}
-            onPress={() => {
-              setDataInsightVisible(true);
-            }}
             style={{ zIndex: 100 }}
           >
             <View pointerEvents="none">
               <BiInfoSvg width={24} height={24} />
             </View>
           </Pressable>
-        </Animated.View>
+        </View>
 
         {activeTab === 'Result' ? (
           <AnomalyResultView />
@@ -961,7 +635,7 @@ export default function AnomalyDetectionPreviewScreen() {
                     top: -500,
                     left: 0,
                     right: 0,
-                    height: 500 + 274 + 16 + (cardHeight ? cardHeight / 2 : 60),
+                    height: 500 + 37 + 274 + 16 + (cardHeight ? cardHeight / 2 : 60),
                     backgroundColor: '#FFFFFF',
                   }}
                 />
@@ -971,6 +645,7 @@ export default function AnomalyDetectionPreviewScreen() {
                   style={{
                     width: 302,
                     height: 274,
+                    marginTop: 37,
                     alignSelf: 'center',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -988,392 +663,89 @@ export default function AnomalyDetectionPreviewScreen() {
                   )}
                 </View>
 
-                {/* Details Card: sitting over the split line between #FFFFFF and #F6F7F7 */}
-                <View
+                <MarketplaceProductInfoCard
+                  name={featureDetail?.name || 'Anomaly Detection'}
+                  rating={featureDetail?.rating ?? 0}
+                  description={featureDetail?.description}
+                  installedCount={sortedTiers.filter((tier) => tier.is_installed).length}
+                  ratingCount={featureDetail?.rating_count ?? 0}
+                  onPressRating={() => setIsRatingModalVisible(true)}
                   onLayout={(e) => {
                     const h = e.nativeEvent.layout.height;
-                    if (h && Math.abs(h - cardHeight) > 1) {
-                      setCardHeight(h);
-                    }
+                    if (h && Math.abs(h - cardHeight) > 1) setCardHeight(h);
                   }}
-                  className="bg-white rounded-[16px] p-[16px] gap-[8px] justify-between border border-[#EFF1F3]"
-                  style={{
-                    minHeight: 118,
-                    marginTop: 16,
-                    marginHorizontal: 20,
-                  }}
-                >
-                  {/* Title and Rating */}
-                  <View className="flex-row justify-between items-center">
-                    <Text
-                      allowFontScaling={false}
-                      className="text-[21.88px] font-ubuntu-semibold text-[#113E55] leading-[21.88px]"
-                    >
-                      {featureDetail?.name || 'Anomaly Detection'}
-                    </Text>
-                    <Pressable
-                      onPress={() => setIsRatingModalVisible(true)}
-                      className="flex-row items-center gap-1.5"
-                    >
-                      <Svg
-                        width={17}
-                        height={16}
-                        viewBox="0 0 24 24"
-                        fill="#F46036"
-                        stroke="#F46036"
-                        strokeWidth={2.5}
-                      >
-                        <Path
-                          d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"
-                          strokeLinejoin="round"
-                          strokeLinecap="round"
-                        />
-                      </Svg>
-                      <Text
-                        allowFontScaling={false}
-                        className="text-[21.88px] font-ubuntu-semibold text-[#6B7280] leading-[21.88px] text-center"
-                      >
-                        {featureDetail?.rating != null ? featureDetail.rating.toFixed(1) : '0.0'}
-                      </Text>
-                    </Pressable>
-                  </View>
-
-                  {/* Description */}
-                  <Text
-                    allowFontScaling={false}
-                    className="text-[11.2px] font-inter-regular text-[#8A9A9D] leading-[16px]"
-                  >
-                    {featureDetail?.description}
-                  </Text>
-
-                  {/* Stats */}
-                  <View className="flex-row items-center gap-6 mt-1">
-                    <View className="flex-row items-center gap-1.5">
-                      <DownloadSvg width={14} height={14} />
-                      <Text
-                        allowFontScaling={false}
-                        className="text-[11.2px] font-inter-medium text-[#8A9A9D]"
-                      >
-                        0
-                      </Text>
-                    </View>
-                    <View className="flex-row items-center gap-1.5">
-                      <MaterialIcons name="people" size={16} color="#0E706B" />
-                      <Text
-                        allowFontScaling={false}
-                        className="text-[11.2px] font-inter-medium text-[#8A9A9D]"
-                      >
-                        {featureDetail?.rating_count || 0}
-                      </Text>
-                    </View>
-                  </View>
-                </View>
+                />
               </View>
 
-              {/* Lower Body Section on #F6F7F7 */}
-              <View
-                style={{
-                  flex: 1,
-                  backgroundColor: '#F6F7F7',
-                  paddingHorizontal: 20,
-                  paddingTop: 24,
-                  paddingBottom: 100,
-                }}
-              >
-                {/* Product Feature */}
-                <Text
-                  allowFontScaling={false}
-                  className="text-[14px] font-inter-medium text-[#113E55] mb-3 leading-[14px]"
-                >
-                  Product Feature
-                </Text>
+              <View className="flex-1 bg-[#F6F7F7] px-5 pb-[100px] pt-[44px]">
+                <MarketplaceProductFeatureList features={featureDetail?.product_features ?? []} />
 
-                {featureDetail?.product_features && featureDetail.product_features.length > 0 && (
-                  <View className="mb-5">
-                    {featureDetail.product_features.map((feature, idx) => (
-                      <View
-                        key={idx}
-                        className="bg-white rounded-[16px] px-[16px] py-[8px] mb-3 flex-row items-center gap-[12px] min-h-[44px] border border-[#EFF1F3]"
-                      >
-                        <View className="w-[16px] h-[16px] items-center justify-center">
-                          {idx % 3 === 0 ? (
-                            <Pf1Svg width={16} height={16} />
-                          ) : idx % 3 === 1 ? (
-                            <Pf2Svg width={16} height={16} />
-                          ) : (
-                            <Pf3Svg width={16} height={16} />
-                          )}
-                        </View>
-                        <Text
-                          allowFontScaling={false}
-                          className="text-[12px] font-inter-regular text-[#8A9A9D] flex-1 leading-[18px]"
-                        >
-                          {feature}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                )}
+                <MarketplaceSectionTitle>Choose Subscription Plan</MarketplaceSectionTitle>
 
-                {/* Choose Subscription Plan */}
-                <Text
-                  allowFontScaling={false}
-                  className="text-[14px] font-inter-medium text-[#113E55] mb-4 leading-[14px]"
-                >
-                  Choose Subscription Plan
-                </Text>
-
-                <View
-                  ref={tierOneRef}
-                  className={`rounded-[16px] p-5 mb-4 ${expandedTier === 'Tier One' ? (tierOneApi?.is_installed ? 'bg-[#F2FAF9] border border-[#1B998B]' : 'bg-white border border-[#113E55]') : 'bg-white border border-[#EFF1F3]'}`}
-                >
-                  <View className="flex-row justify-between items-start mb-1.5">
-                    <View className="flex-1 pr-2">
-                      <Text
-                        allowFontScaling={false}
-                        className={`text-[17.5px] font-inter-regular leading-[17.5px] mb-1.5 ${tierOneApi?.is_installed && expandedTier === 'Tier One' ? 'text-[#1B998B]' : 'text-[#113E55]'}`}
-                      >
-                        {tierOneApi?.tier ? formatTierName(tierOneApi.tier) : 'Tier One'}
-                      </Text>
-                      {tierOneApi?.name && (
-                        <Text
-                          allowFontScaling={false}
-                          className={`text-[15px] font-inter-medium leading-[22px] mb-2.5 ${tierOneApi?.is_installed && expandedTier === 'Tier One' ? 'text-[#1B998B]' : 'text-[#113E55]'}`}
-                        >
-                          {tierOneApi?.name}
-                        </Text>
-                      )}
-                    </View>
-                    {tierOneApi?.is_installed && expandedTier === 'Tier One' && (
-                      <View className="bg-[#D9EAE8] px-[22px] py-[10px] rounded-[14px]">
-                        <Text
-                          allowFontScaling={false}
-                          className="text-[#1B998B] font-inter-medium text-[13px]"
-                        >
-                          ACTIVE
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                  <Text
-                    allowFontScaling={false}
-                    className="text-[11.2px] font-inter-regular text-[#8A9A9D] leading-[16px] text-justify"
-                  >
-                    {tierOneApi?.description}
-                  </Text>
-
-                  <Pressable
-                    onPress={() => setExpandedTier(expandedTier === 'Tier One' ? null : 'Tier One')}
-                    className={`flex-row items-center gap-1 mt-5 ${expandedTier === 'Tier One' ? 'mb-5' : ''}`}
-                  >
-                    <Text
-                      allowFontScaling={false}
-                      className="text-[13px] font-inter-medium text-[#8A9A9D]"
-                    >
-                      See benefits
+                <View className="flex-col gap-6">
+                  {sortedTiers.length === 0 ? (
+                    <Text className="text-center text-[11.2px] font-inter-regular text-[#878686]">
+                      No subscription tiers returned for this product.
                     </Text>
-                    <MaterialIcons
-                      name={
-                        expandedTier === 'Tier One' ? 'keyboard-arrow-down' : 'keyboard-arrow-right'
-                      }
-                      size={18}
-                      color="#8A9A9D"
-                    />
-                  </Pressable>
+                  ) : (
+                    sortedTiers.map((tier) => {
+                      const tierKey = tier.tier;
+                      const benefits = tier.benefits?.length
+                        ? tier.benefits
+                        : (featureDetail?.tier_benefits?.find(
+                            (group) => tierNumber(group.tier) === tierNumber(tierKey)
+                          )?.benefits ?? []);
+                      const description = tier.description?.trim() || '';
+                      const subtitle = tier.name?.trim() || formatTierSubtitle(tier);
+                      const isSubscribed =
+                        tier.status === 'active' ||
+                        tier.status === 'purchased' ||
+                        tier.status === 'subscribed' ||
+                        tier.status === 'installed' ||
+                        !!tier.purchased;
+                      const isInstalled = !!tier.is_installed && !justPurchasedTiers[tierKey];
 
-                  {expandedTier === 'Tier One' && (
-                    <View className="space-y-3">
-                      {(tierOneApi?.benefits || []).map((benefit, index) => (
-                        <View key={index} className="flex-row items-start gap-2 mb-3">
-                          <View
-                            className={`${tierOneApi?.is_installed ? 'bg-[#D9EAE8]' : 'bg-[#CEE5ED]'} rounded-full p-[2px] mt-[2px]`}
-                          >
-                            <MaterialIcons
-                              name="check"
-                              size={12}
-                              color={tierOneApi?.is_installed ? '#1B998B' : '#113E55'}
-                            />
-                          </View>
-                          <Text
-                            allowFontScaling={false}
-                            className="text-[11.2px] font-inter-regular text-[#8A9A9D] flex-1 leading-[16px] text-justify"
-                          >
-                            {benefit}
-                          </Text>
+                      return (
+                        <View
+                          key={tier.ai_feature_id || tierKey}
+                          ref={tierNumber(tierKey) === '1' ? tierOneRef : undefined}
+                          collapsable={false}
+                        >
+                          <SubscriptionTierCard
+                            tierLabel={formatTierLabel(tierKey)}
+                            subtitle={subtitle}
+                            subtitleUppercase={false}
+                            description={description}
+                            benefits={benefits}
+                            expanded={expandedTier === tierKey}
+                            onToggle={() =>
+                              setExpandedTier(expandedTier === tierKey ? null : tierKey)
+                            }
+                            onActivate={() => handlePressActivate(tier)}
+                            onCancelSubscription={() => handleCancelSubscription(tier)}
+                            onUninstall={() => handleUninstall(tier)}
+                            onInstall={() => void handleInstall(tier)}
+                            isSubscribing={subscribingTierKey === tierKey}
+                            isCanceling={cancelTierKey === tierKey}
+                            isUninstalling={uninstallingTierKey === tierKey}
+                            isInstalling={installingTierKey === tierKey}
+                            subscribeDisabled={isSubscribing}
+                            cancelDisabled={isCanceling}
+                            installDisabled={isInstalling}
+                            uninstallDisabled={isUninstalling}
+                            isCancelledLocally={!!justCancelledTiers[tierKey]}
+                            cancelLockedMessage={
+                              tier.payment_mode === 'subscription'
+                                ? 'This feature is included in your estate subscription plan and cannot be cancelled separately.'
+                                : undefined
+                            }
+                            isFree={!!tier.is_free}
+                            isInstalled={isInstalled}
+                            isSubscribed={isSubscribed}
+                          />
                         </View>
-                      ))}
-                      {renderTierButtons(tierOneApi, 'Tier One')}
-                    </View>
-                  )}
-                </View>
-
-                <View
-                  className={`rounded-[16px] p-5 mb-4 ${expandedTier === 'Tier Two' ? (tierTwoApi?.is_installed ? 'bg-[#F2FAF9] border border-[#1B998B]' : 'bg-white border border-[#113E55]') : 'bg-white border border-[#EFF1F3]'}`}
-                >
-                  <View className="flex-row justify-between items-start mb-1.5">
-                    <View className="flex-1 pr-2">
-                      <Text
-                        allowFontScaling={false}
-                        className={`text-[17.5px] font-inter-regular leading-[17.5px] mb-1.5 ${tierTwoApi?.is_installed && expandedTier === 'Tier Two' ? 'text-[#1B998B]' : 'text-[#113E55]'}`}
-                      >
-                        {tierTwoApi?.tier ? formatTierName(tierTwoApi.tier) : 'Tier Two'}
-                      </Text>
-                      {tierTwoApi?.name && (
-                        <Text
-                          allowFontScaling={false}
-                          className={`text-[15px] font-inter-medium leading-[22px] mb-2.5 ${tierTwoApi?.is_installed && expandedTier === 'Tier Two' ? 'text-[#1B998B]' : 'text-[#113E55]'}`}
-                        >
-                          {tierTwoApi?.name}
-                        </Text>
-                      )}
-                    </View>
-                    {tierTwoApi?.is_installed && expandedTier === 'Tier Two' && (
-                      <View className="bg-[#D9EAE8] px-[22px] py-[10px] rounded-[14px]">
-                        <Text
-                          allowFontScaling={false}
-                          className="text-[#1B998B] font-inter-medium text-[13px]"
-                        >
-                          ACTIVE
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                  <Text
-                    allowFontScaling={false}
-                    className="text-[11.2px] font-inter-regular text-[#8A9A9D] leading-[16px] text-justify"
-                  >
-                    {tierTwoApi?.description}
-                  </Text>
-
-                  <Pressable
-                    onPress={() => setExpandedTier(expandedTier === 'Tier Two' ? null : 'Tier Two')}
-                    className={`flex-row items-center gap-1 mt-5 ${expandedTier === 'Tier Two' ? 'mb-5' : ''}`}
-                  >
-                    <Text
-                      allowFontScaling={false}
-                      className="text-[13px] font-inter-medium text-[#8A9A9D]"
-                    >
-                      See benefits
-                    </Text>
-                    <MaterialIcons
-                      name={
-                        expandedTier === 'Tier Two' ? 'keyboard-arrow-down' : 'keyboard-arrow-right'
-                      }
-                      size={18}
-                      color="#8A9A9D"
-                    />
-                  </Pressable>
-
-                  {expandedTier === 'Tier Two' && (
-                    <View className="space-y-3">
-                      {(tierTwoApi?.benefits || []).map((benefit, index) => (
-                        <View key={index} className="flex-row items-start gap-2 mb-3">
-                          <View
-                            className={`${tierTwoApi?.is_installed ? 'bg-[#D9EAE8]' : 'bg-[#CEE5ED]'} rounded-full p-[2px] mt-[2px]`}
-                          >
-                            <MaterialIcons
-                              name="check"
-                              size={12}
-                              color={tierTwoApi?.is_installed ? '#1B998B' : '#113E55'}
-                            />
-                          </View>
-                          <Text
-                            allowFontScaling={false}
-                            className="text-[11.2px] font-inter-regular text-[#8A9A9D] flex-1 leading-[16px] text-justify"
-                          >
-                            {benefit}
-                          </Text>
-                        </View>
-                      ))}
-                      {renderTierButtons(tierTwoApi, 'Tier Two')}
-                    </View>
-                  )}
-                </View>
-
-                <View
-                  className={`rounded-[16px] p-5 mb-4 ${expandedTier === 'Tier Three' ? (tierThreeApi?.is_installed ? 'bg-[#F2FAF9] border border-[#1B998B]' : 'bg-white border border-[#113E55]') : 'bg-white border border-[#EFF1F3]'}`}
-                >
-                  <View className="flex-row justify-between items-start mb-1.5">
-                    <View className="flex-1 pr-2">
-                      <Text
-                        allowFontScaling={false}
-                        className={`text-[17.5px] font-inter-regular leading-[17.5px] mb-1.5 ${tierThreeApi?.is_installed && expandedTier === 'Tier Three' ? 'text-[#1B998B]' : 'text-[#113E55]'}`}
-                      >
-                        {tierThreeApi?.tier ? formatTierName(tierThreeApi.tier) : 'Tier Three'}
-                      </Text>
-                      {tierThreeApi?.name && (
-                        <Text
-                          allowFontScaling={false}
-                          className={`text-[15px] font-inter-medium leading-[22px] mb-2.5 ${tierThreeApi?.is_installed && expandedTier === 'Tier Three' ? 'text-[#1B998B]' : 'text-[#113E55]'}`}
-                        >
-                          {tierThreeApi?.name}
-                        </Text>
-                      )}
-                    </View>
-                    {tierThreeApi?.is_installed && expandedTier === 'Tier Three' && (
-                      <View className="bg-[#D9EAE8] px-[22px] py-[10px] rounded-[14px]">
-                        <Text
-                          allowFontScaling={false}
-                          className="text-[#1B998B] font-inter-medium text-[13px]"
-                        >
-                          ACTIVE
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                  <Text
-                    allowFontScaling={false}
-                    className="text-[11.2px] font-inter-regular text-[#8A9A9D] leading-[16px] text-justify"
-                  >
-                    {tierThreeApi?.description}
-                  </Text>
-
-                  <Pressable
-                    onPress={() =>
-                      setExpandedTier(expandedTier === 'Tier Three' ? null : 'Tier Three')
-                    }
-                    className={`flex-row items-center gap-1 mt-5 ${expandedTier === 'Tier Three' ? 'mb-5' : ''}`}
-                  >
-                    <Text
-                      allowFontScaling={false}
-                      className="text-[13px] font-inter-medium text-[#8A9A9D]"
-                    >
-                      See benefits
-                    </Text>
-                    <MaterialIcons
-                      name={
-                        expandedTier === 'Tier Three'
-                          ? 'keyboard-arrow-down'
-                          : 'keyboard-arrow-right'
-                      }
-                      size={18}
-                      color="#8A9A9D"
-                    />
-                  </Pressable>
-
-                  {expandedTier === 'Tier Three' && (
-                    <View className="space-y-3">
-                      {(tierThreeApi?.benefits || []).map((benefit, index) => (
-                        <View key={index} className="flex-row items-start gap-2 mb-3">
-                          <View
-                            className={`${tierThreeApi?.is_installed ? 'bg-[#D9EAE8]' : 'bg-[#CEE5ED]'} rounded-full p-[2px] mt-[2px]`}
-                          >
-                            <MaterialIcons
-                              name="check"
-                              size={12}
-                              color={tierThreeApi?.is_installed ? '#1B998B' : '#113E55'}
-                            />
-                          </View>
-                          <Text
-                            allowFontScaling={false}
-                            className="text-[11.2px] font-inter-regular text-[#8A9A9D] flex-1 leading-[16px] text-justify"
-                          >
-                            {benefit}
-                          </Text>
-                        </View>
-                      ))}
-                      {renderTierButtons(tierThreeApi, 'Tier Three')}
-                    </View>
+                      );
+                    })
                   )}
                 </View>
               </View>
@@ -1612,40 +984,6 @@ export default function AnomalyDetectionPreviewScreen() {
           }
         }}
       />
-    </Animated.View>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  pillContainer: {
-    width: PILL_WIDTH,
-    height: PILL_HEIGHT,
-    backgroundColor: '#EFF1F1',
-    borderRadius: PILL_HEIGHT / 2,
-    padding: PADDING,
-    flexDirection: 'row',
-    position: 'relative',
-  },
-  pillIndicator: {
-    position: 'absolute',
-    top: PADDING,
-    left: PADDING,
-    width: TAB_WIDTH,
-    height: TAB_HEIGHT,
-    backgroundColor: '#DFEBF1',
-    borderRadius: TAB_HEIGHT / 2,
-  },
-  pillTab: {
-    width: TAB_WIDTH,
-    height: TAB_HEIGHT,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 1,
-  },
-  pillText: {
-    fontFamily: 'Inter_18pt-Regular',
-    fontSize: 11.2,
-    lineHeight: 11.2,
-    textAlign: 'center',
-  },
-});

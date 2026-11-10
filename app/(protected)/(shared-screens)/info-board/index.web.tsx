@@ -54,7 +54,7 @@ export default function InfoBoardWeb() {
       )}
       <div className="web-body">
         <div className={`flex flex-col ${isLargeScreen ? 'mt-20 px-4 w-full' : 'mt-5 md:px-5'}`}>
-          <Back type="short-arrow" />
+          <Back type="short-arrow" showText={false} showBorder />
 
           <div className="mt-10 max-w-2xl">
             <h1 className={`${isLargeScreen ? 'text-4xl' : 'text-2xl font-ubuntu-medium'}`}>

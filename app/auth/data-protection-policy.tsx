@@ -453,7 +453,7 @@ export default function DataProtectionPolicy() {
   return (
     <SafeAreaView className="flex-1 bg-white">
       <View className="px-5 pt-4">
-        <Back type="short-arrow" />
+        <Back type="short-arrow" showText={false} showBorder />
       </View>
 
       <ScrollView

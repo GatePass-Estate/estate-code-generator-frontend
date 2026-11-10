@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import ValidationBackSvg from '@/src/assets/icons/validation-back.svg';
+import Back from '@/src/components/mobile/Back';
 import IncidentResultView from '@/src/components/incident/IncidentResultView';
 import AnimatedPillTabs from '@/src/components/mobile/AnimatedPillTabs';
 
@@ -19,7 +19,8 @@ export default function IncidentReportSummaryScreen() {
           backgroundColor: '#F6F7F7',
         }}
       >
-        <Pressable
+        <Back
+          type="short-arrow"
           onPress={() => {
             if (router.canGoBack()) {
               router.back();
@@ -27,11 +28,7 @@ export default function IncidentReportSummaryScreen() {
               router.replace('/(protected)/(shared-screens)/ai-store/incident-report');
             }
           }}
-          className="h-[30px] w-[30px] items-center justify-center"
-          hitSlop={8}
-        >
-          <ValidationBackSvg width={30} height={30} />
-        </Pressable>
+        />
 
         <AnimatedPillTabs
           options={[

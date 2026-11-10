@@ -7,14 +7,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialIcons } from '@expo/vector-icons';
 import { WebView } from 'react-native-webview';
 import Animated, { FadeIn } from 'react-native-reanimated';
-import ValidationBackSvg from '@/src/assets/icons/validation-back.svg';
+import Back from '@/src/components/mobile/Back';
 import BiInfoSvg from '@/src/assets/icons/bi_info.svg';
 
 import IncidentReportSvg from '@/src/assets/images/incident-report.svg';
-import Pf1Svg from '@/src/assets/icons/pf_1.svg';
-import Pf2Svg from '@/src/assets/icons/pf_2.svg';
-import Pf3Svg from '@/src/assets/icons/pf_3.svg';
-import { FeatureDownloadIcon, FeatureUsersIcon, RatingStarIcon } from '@/src/assets/svgs';
 import RatingModal from '@/src/components/anomaly/modals/RatingModal';
 import ActivationQuoteModal, {
   prefetchAiQuotes,
@@ -24,6 +20,11 @@ import PaymentVerificationModal, {
 } from '@/src/components/anomaly/modals/PaymentVerificationModal';
 import IncidentDataInsightModal from '@/src/components/incident/IncidentDataInsightModal';
 import IncidentResultView from '@/src/components/incident/IncidentResultView';
+import {
+  MarketplaceProductFeatureList,
+  MarketplaceProductInfoCard,
+  MarketplaceSectionTitle,
+} from '@/src/components/incident/MarketplaceProductSummary';
 import SubscriptionTierCard from '@/src/components/incident/SubscriptionTierCard';
 import AnimatedPillTabs from '@/src/components/mobile/AnimatedPillTabs';
 import {
@@ -55,8 +56,6 @@ import {
 } from '@/src/types/aiMarketplace';
 
 const isIncidentProduct = (name: string) => name.toLowerCase().includes('incident');
-
-const PRODUCT_FEATURE_ICONS = [Pf1Svg, Pf2Svg, Pf3Svg];
 
 const tierNumber = (tier: string) => tier.replace(/\D/g, '') || tier;
 
@@ -597,13 +596,7 @@ export default function IncidentReportPreviewScreen() {
             backgroundColor: activeTab === 'Result' ? '#F6F7F7' : '#FFFFFF',
           }}
         >
-          <Pressable
-            onPress={() => router.back()}
-            className="h-[30px] w-[30px] items-center justify-center"
-            hitSlop={8}
-          >
-            <ValidationBackSvg width={30} height={30} />
-          </Pressable>
+          <Back type="short-arrow" onPress={() => router.back()} />
 
           <AnimatedPillTabs
             options={[
@@ -697,111 +690,24 @@ export default function IncidentReportPreviewScreen() {
                   <IncidentReportSvg width={302} height={274} />
                 </View>
 
-                <View
+                <MarketplaceProductInfoCard
+                  name={featureDetail.name || ''}
+                  rating={featureDetail.rating ?? 0}
+                  description={featureDetail.description}
+                  installedCount={sortedTiers.filter((tier) => tier.is_installed).length}
+                  ratingCount={featureDetail.rating_count ?? 0}
+                  onPressRating={() => setIsRatingModalVisible(true)}
                   onLayout={(e) => {
                     const h = e.nativeEvent.layout.height;
                     if (h && Math.abs(h - cardHeight) > 1) setCardHeight(h);
                   }}
-                  className="justify-between gap-2 rounded-[16px] bg-white p-4"
-                  style={{ minHeight: 118, marginTop: 36, marginHorizontal: 20 }}
-                >
-                  <View className="flex-row items-center justify-between">
-                    <Text
-                      allowFontScaling={false}
-                      className="text-[21.88px] font-ubuntu-semibold leading-[21.88px] text-[#113E55]"
-                    >
-                      {featureDetail.name || ''}
-                    </Text>
-                    <Pressable
-                      onPress={() => setIsRatingModalVisible(true)}
-                      className="flex-row items-center gap-1"
-                    >
-                      <RatingStarIcon width={17} height={16} />
-                      <Text
-                        allowFontScaling={false}
-                        className="w-[39px] text-center text-[21.88px] font-ubuntu-semibold leading-[26px] text-[#6B7280]"
-                      >
-                        {(featureDetail.rating ?? 0).toFixed(1)}
-                      </Text>
-                    </Pressable>
-                  </View>
-
-                  {!!featureDetail.description?.trim() && (
-                    <Text
-                      allowFontScaling={false}
-                      className="text-[11.2px] font-inter-regular text-[#878686]"
-                    >
-                      {featureDetail.description}
-                    </Text>
-                  )}
-
-                  <View className="mt-1 flex-row items-center gap-2">
-                    <View className="flex-row items-center">
-                      <FeatureDownloadIcon width={13} height={13} />
-                      <Text
-                        allowFontScaling={false}
-                        className="px-1 text-[8.96px] font-inter-medium text-[#878686]"
-                      >
-                        {sortedTiers.filter((tier) => tier.is_installed).length}
-                      </Text>
-                    </View>
-                    <View className="flex-row items-center">
-                      <FeatureUsersIcon width={16} height={16} />
-                      <Text
-                        allowFontScaling={false}
-                        className="px-1 text-[8.96px] font-inter-medium text-[#878686]"
-                      >
-                        {featureDetail.rating_count ?? 0}
-                      </Text>
-                    </View>
-                  </View>
-                </View>
+                />
               </View>
 
               <View className="flex-1 bg-[#F6F7F7] px-5 pb-[100px] pt-[44px]">
-                {productFeatures.length > 0 ? (
-                  <>
-                    <View className="px-[17px]">
-                      <Text
-                        allowFontScaling={false}
-                        className="mb-4 text-[14px] font-inter-medium leading-[14px] text-[#113E55]"
-                      >
-                        Product Feature
-                      </Text>
-                    </View>
+                <MarketplaceProductFeatureList features={productFeatures} />
 
-                    <View className="mb-[44px] gap-2">
-                      {productFeatures.map((text, index) => {
-                        const Icon = PRODUCT_FEATURE_ICONS[index % PRODUCT_FEATURE_ICONS.length];
-                        return (
-                          <View
-                            key={`${index}-${text.slice(0, 24)}`}
-                            className="flex-row items-center gap-3 rounded-[16px] bg-white px-4 py-2"
-                          >
-                            <View className="h-4 w-4 shrink-0 items-center justify-center">
-                              <Icon width={16} height={16} />
-                            </View>
-                            <Text
-                              allowFontScaling={false}
-                              className="flex-1 text-[11.2px] font-inter-regular leading-[18px] text-[#878686]"
-                            >
-                              {text}
-                            </Text>
-                          </View>
-                        );
-                      })}
-                    </View>
-                  </>
-                ) : null}
-
-                <View className="px-[17px]">
-                  <Text
-                    allowFontScaling={false}
-                    className="mb-4 text-[14px] font-inter-medium leading-[14px] text-[#113E55]"
-                  >
-                    Choose Subscription Plan
-                  </Text>
-                </View>
+                <MarketplaceSectionTitle>Choose Subscription Plan</MarketplaceSectionTitle>
 
                 <View className="flex-col gap-6">
                   {sortedTiers.length === 0 ? (

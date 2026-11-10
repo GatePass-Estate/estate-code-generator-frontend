@@ -11,6 +11,8 @@ import { cacheIncidentDetailFromRow } from '@/src/components/incident/incidentDe
 import { getIncidentReportsListFilters } from '@/src/components/incident/incidentReportsListFilters';
 import type { IncidentRow } from '@/src/components/incident/incidentTypes';
 import { mapListItemToRow } from '@/src/components/incident/mapIncidentApi';
+import TableEmptyState from '@/src/components/mobile/TableEmptyState';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 function ReportListCard({ row }: { row: IncidentRow }) {
   return (
@@ -93,12 +95,15 @@ export default function IncidentReportsListScreen() {
             </Pressable>
           </View>
         ) : rows.length === 0 ? (
-          <Text
-            allowFontScaling={false}
-            className="mt-10 text-center text-[11.2px] font-inter-regular text-[#878686]"
-          >
-            No reports yet.
-          </Text>
+          <View className="mt-16">
+            <TableEmptyState
+              icon={
+                <MaterialCommunityIcons name="clipboard-text-outline" size={22} color="#878686" />
+              }
+              title="No incident reports"
+              subtitle="Nothing was reported in this window. Try another date range."
+            />
+          </View>
         ) : (
           <ScrollView
             className="mt-6 flex-1"

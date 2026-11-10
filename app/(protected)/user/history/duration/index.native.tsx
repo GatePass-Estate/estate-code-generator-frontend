@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { View, Text, Pressable, ScrollView, Alert } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import Back from '@/src/components/mobile/Back';
 import { router, useFocusEffect, useLocalSearchParams, useNavigation } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -351,12 +351,7 @@ export default function SetAccessCodeDurationScreen() {
       style={[sharedStyles.container, sharedStyles.modalContainer, { backgroundColor: '#F6F7F7' }]}
       edges={['top']}
     >
-      <Pressable
-        onPress={() => navigation.goBack()}
-        className="h-[30px] w-[30px] items-center justify-center rounded-full bg-[#EFF1F1]"
-      >
-        <MaterialIcons name="keyboard-arrow-left" size={24} color="#113E55" />
-      </Pressable>
+      <Back type="short-arrow" onPress={() => navigation.goBack()} />
 
       <ScreenHeader
         title="Set Duration"

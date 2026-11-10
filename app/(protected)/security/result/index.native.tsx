@@ -21,7 +21,7 @@ import { useAuthStore } from '@/src/lib/stores/authStore';
 import { getUserDocumentViewUri } from '@/src/lib/api/userDocuments';
 import AnomalousScanOverlay from '@/src/components/security/AnomalousScanOverlay';
 import { parseScanWarningSeverity, type ScanWarningSeverity } from '@/src/lib/securityScanWarning';
-import { MaterialIcons } from '@expo/vector-icons';
+import Back from '@/src/components/mobile/Back';
 
 const getParam = (value: string | string[] | undefined, fallback = 'N/A') => {
   const rawValue = Array.isArray(value) ? value[0] : value;
@@ -238,9 +238,9 @@ export default function ValidationResult() {
           className="relative self-center"
           style={[{ width: '100%' }, isResidentCode ? styles.residentCanvas : styles.guestCanvas]}
         >
-          <Pressable onPress={handleBack} style={styles.backButton}>
-            <MaterialIcons name="keyboard-arrow-left" size={24} color="#113E55" />
-          </Pressable>
+          <View style={styles.backButton}>
+            <Back type="short-arrow" onPress={handleBack} />
+          </View>
 
           <View style={styles.resultContent}>
             <View style={styles.accessBlock}>
@@ -424,14 +424,8 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   backButton: {
-    alignItems: 'center',
-    backgroundColor: '#EFF1F1',
-    borderRadius: 10000,
-    height: 30,
-    justifyContent: 'center',
     marginLeft: 17,
     marginTop: 44,
-    width: 30,
   },
   backButtonIconFrame: {
     height: 24,

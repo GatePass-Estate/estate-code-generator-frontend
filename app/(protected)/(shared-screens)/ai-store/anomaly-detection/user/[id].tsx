@@ -18,6 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
 import Reanimated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { MaterialIcons, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import Back from '@/src/components/mobile/Back';
 import { sharedStyles } from '@/src/theme/styles';
 import AnomalyRadarChart from '@/src/components/anomaly/AnomalyRadarChart';
 import SemiCircleGauge from '@/src/components/anomaly/SemiCircleGauge';
@@ -400,19 +401,7 @@ export default function AnomalyDetectionUserDetailsScreen() {
     >
       {/* Header */}
       <View className="flex-row items-center justify-between mt-2 mb-6">
-        <Pressable
-          onPress={() => router.back()}
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: 16,
-            backgroundColor: '#EFF1F3',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <MaterialIcons name="keyboard-arrow-left" size={20} color="#113E55" />
-        </Pressable>
+        <Back type="short-arrow" onPress={() => router.back()} />
         <Text
           allowFontScaling={false}
           style={{ fontFamily: 'UbuntuSans-Medium', fontSize: 16, color: '#113E55' }}

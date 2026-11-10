@@ -13,6 +13,7 @@ import {
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
+import Back from '@/src/components/mobile/Back';
 import { useFeatureGate } from '@/src/hooks/usePlan';
 import {
   leaveIncidentReport,
@@ -108,7 +109,13 @@ export default function IncidentReportCategoryScreen() {
           }}
         >
           <View className="pl-[21px] pr-[30px]">
-            <Text className="ml-[5px] font-ubuntu-medium text-[27.34px] leading-[33px] text-[#113E55]">
+            <Back
+              type="short-arrow"
+              showText={false}
+              showBorder
+              onPress={() => leaveIncidentReport(returnTo, router)}
+            />
+            <Text className="ml-[5px] mt-[13px] font-ubuntu-medium text-[27.34px] leading-[33px] text-[#113E55]">
               Incident Report
             </Text>
             <Text className="ml-[7px] mt-[8px] font-inter-light text-[14px] leading-[17px] text-[#878686]">

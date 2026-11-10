@@ -6,10 +6,12 @@ import {
   type StyleProp,
   Text,
   TouchableOpacity,
+  Pressable,
 } from 'react-native';
 import { Ionicons as Icon } from '@expo/vector-icons';
 import icons from '@/src/constants/icons';
 import { cn } from '@/src/lib/cn';
+import ValidationBackSvg from '@/src/assets/icons/validation-back.svg';
 
 const Back = ({
   type = 'long-arrow',
@@ -32,6 +34,21 @@ const Back = ({
 }) => {
   const router = useRouter();
   const handlePress = onPress ?? (() => router.back());
+
+  // Circle + left chevron from Figma (`validation-back.svg`).
+  if (type === 'short-arrow') {
+    return (
+      <Pressable
+        onPress={handlePress}
+        accessibilityRole="button"
+        accessibilityLabel="Back"
+        hitSlop={12}
+        className="h-[30px] w-[30px] items-center justify-center"
+      >
+        <ValidationBackSvg width={30} height={30} />
+      </Pressable>
+    );
+  }
 
   return (
     <TouchableOpacity

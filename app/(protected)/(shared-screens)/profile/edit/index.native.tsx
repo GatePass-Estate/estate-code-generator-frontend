@@ -3,21 +3,37 @@ import {
   View,
   Text,
   TextInput,
-  TouchableOpacity,
   ScrollView,
   ActivityIndicator,
+  type TextInputProps,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Back from '@/src/components/mobile/Back';
 import { Toast, ToastType } from '@/src/components/mobile/Toast';
+import Back from '@/src/components/mobile/Back';
+import Button, { BUTTON_MARGIN_BOTTOM } from '@/src/components/mobile/Button';
+import ScreenHeader from '@/src/components/mobile/ScreenHeader';
 import { sharedStyles } from '@/src/theme/styles';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { createRequest, checkPendingRequests, updatePendingRequest } from '@/src/lib/api/requests';
 import { updateUserPhone } from '@/src/lib/api/user';
 import { RequestType, PendingRequestsResponse } from '@/src/types/requests';
-import { useRouter } from 'expo-router';
+import { Stack, useNavigation, useRouter } from 'expo-router';
 import { refreshCurrentUser } from '@/src/hooks/useRefreshUser';
 import { fetchProfilePendingFields } from '@/src/lib/profilePendingFields';
+
+function EditField({ label, ...inputProps }: { label: string } & TextInputProps) {
+  return (
+    <View className="gap-2">
+      <Text className="text-[8.96px] font-inter-medium text-[#878686]">{label}</Text>
+      <TextInput
+        className="rounded-[16px] bg-[#EFF1F1] px-4 py-4 font-inter-light text-[#113E55]"
+        style={{ fontSize: 14 }}
+        placeholderTextColor="#878686"
+        {...inputProps}
+      />
+    </View>
+  );
+}
 
 interface ChangedField {
   type: RequestType;
@@ -28,6 +44,7 @@ interface ChangedField {
 
 export default function EditRequest() {
   const router = useRouter();
+  const navigation = useNavigation();
   const user = useUserStore.getState();
 
   const [formData, setFormData] = useState({
@@ -234,8 +251,12 @@ export default function EditRequest() {
   };
 
   return (
-    <SafeAreaView style={[sharedStyles.container, sharedStyles.modalContainer]}>
-      <Back type="short-arrow" />
+    <SafeAreaView
+      style={[sharedStyles.container, sharedStyles.modalContainer, { backgroundColor: '#F6F7F7' }]}
+    >
+      <Stack.Screen options={{ headerShown: false }} />
+
+      <Back type="short-arrow" showText={false} showBorder onPress={() => navigation.goBack()} />
 
       <Toast
         message={toastMessage}
@@ -246,82 +267,66 @@ export default function EditRequest() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 20 }}
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: BUTTON_MARGIN_BOTTOM }}
+        keyboardShouldPersistTaps="handled"
       >
         {loadingPending ? (
           <View className="mt-12 items-center">
-            <ActivityIndicator color="#1B998B" />
+            <ActivityIndicator color="#113E55" />
           </View>
         ) : (
           <>
-            <Text className="text-grey mt-12 text-base font-inter font-medium mb-3">
-              Send a request to change your details
-            </Text>
-
-            <Text style={sharedStyles.label}>First Name</Text>
-            <TextInput
-              style={sharedStyles.input}
-              placeholder="Enter your first name"
-              value={formData.firstName}
-              onChangeText={(text) => setFormData({ ...formData, firstName: text })}
-              editable={!loading}
+            <ScreenHeader
+              title="Edit Profile"
+              subtitle="Send a request to change your details"
+              titleClassName="text-[27.34px]"
+              subtitleClassName="text-[#878686]"
+              containerClassName="mb-[19px] mt-6"
             />
 
-            <Text style={sharedStyles.label}>Last Name</Text>
-            <TextInput
-              style={sharedStyles.input}
-              placeholder="Enter your last name"
-              value={formData.lastName}
-              onChangeText={(text) => setFormData({ ...formData, lastName: text })}
-              editable={!loading}
-            />
+            <View style={{ gap: 19 }}>
+              <EditField
+                label="First Name"
+                placeholder="Enter your first name"
+                value={formData.firstName}
+                onChangeText={(text) => setFormData({ ...formData, firstName: text })}
+                editable={!loading}
+              />
+              <EditField
+                label="Last Name"
+                placeholder="Enter your last name"
+                value={formData.lastName}
+                onChangeText={(text) => setFormData({ ...formData, lastName: text })}
+                editable={!loading}
+              />
+              <EditField
+                label="Email Address"
+                placeholder="Enter your email"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                value={formData.email}
+                onChangeText={(text) => setFormData({ ...formData, email: text })}
+                editable={!loading}
+              />
+              <EditField
+                label="Address"
+                placeholder="Enter your address"
+                value={formData.address}
+                onChangeText={(text) => setFormData({ ...formData, address: text })}
+                editable={!loading}
+              />
+              <EditField
+                label="Phone Number"
+                placeholder="Enter your phone number"
+                keyboardType="phone-pad"
+                value={formData.phoneNumber}
+                onChangeText={(text) => setFormData({ ...formData, phoneNumber: text })}
+                editable={!loading}
+              />
+            </View>
 
-            <Text style={sharedStyles.label}>Email Address</Text>
-            <TextInput
-              style={sharedStyles.input}
-              placeholder="Enter your email"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              value={formData.email}
-              onChangeText={(text) => setFormData({ ...formData, email: text })}
-              editable={!loading}
-            />
-
-            <Text style={sharedStyles.label}>Address</Text>
-            <TextInput
-              style={sharedStyles.input}
-              placeholder="Enter your address"
-              value={formData.address}
-              onChangeText={(text) => setFormData({ ...formData, address: text })}
-              editable={!loading}
-            />
-
-            <Text style={sharedStyles.label}>Phone Number</Text>
-            <TextInput
-              style={sharedStyles.input}
-              placeholder="Enter your phone number"
-              keyboardType="phone-pad"
-              value={formData.phoneNumber}
-              onChangeText={(text) => setFormData({ ...formData, phoneNumber: text })}
-              editable={!loading}
-            />
-
-            <View className="items-center mt-12 flex-row gap-3">
-              {/* <TouchableOpacity className={`flex-1 px-6 bg-teal justify-center items-center py-5 rounded-xl ${loading ? 'opacity-70' : ''}`} onPress={() => router.back()} disabled={loading}>
-						<Text className="text-white font-semibold text-md">Cancel</Text>
-					</TouchableOpacity> */}
-
-              <TouchableOpacity
-                className={`flex-1 px-6 bg-primary justify-center items-center py-5 rounded-xl ${loading ? 'opacity-70' : ''}`}
-                onPress={handleSendRequest}
-                disabled={loading}
-              >
-                {loading ? (
-                  <ActivityIndicator color="#fff" size="small" />
-                ) : (
-                  <Text className="text-white font-semibold text-md">Send Request</Text>
-                )}
-              </TouchableOpacity>
+            <View className="mt-auto w-full items-center pt-10">
+              <Button label="Send Request" loading={loading} onPress={handleSendRequest} />
             </View>
           </>
         )}

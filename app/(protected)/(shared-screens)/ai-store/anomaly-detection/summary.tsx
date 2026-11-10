@@ -3,7 +3,7 @@ import { View, Pressable, ScrollView, Text, StyleSheet } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import BiInfoSvg from '@/src/assets/icons/bi_info.svg';
-import ValidationBackSvg from '@/src/assets/icons/validation-back.svg';
+import Back from '@/src/components/mobile/Back';
 import AnomalyResultView from '@/src/components/anomaly/AnomalyResultView';
 import DataInsightModal from '@/src/components/anomaly/modals/DataInsightModal';
 import { getMarketplaceFeatures, getMarketplaceFeatureById } from '@/src/lib/api/aiMarketplace';
@@ -63,7 +63,8 @@ export default function AnomalyDetectionSummaryScreen() {
           backgroundColor: '#F6F7F7',
         }}
       >
-        <Pressable
+        <Back
+          type="short-arrow"
           onPress={() => {
             if (router.canGoBack()) {
               router.back();
@@ -71,11 +72,7 @@ export default function AnomalyDetectionSummaryScreen() {
               router.replace('/(protected)/(shared-screens)/ai-store/anomaly-detection');
             }
           }}
-          className="h-[30px] w-[30px] items-center justify-center"
-          hitSlop={8}
-        >
-          <ValidationBackSvg width={30} height={30} />
-        </Pressable>
+        />
 
         <View style={styles.pillContainer}>
           <View style={[styles.pillIndicator, { left: PADDING + TAB_WIDTH }]} />
