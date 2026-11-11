@@ -45,6 +45,7 @@ import { refreshEstateEntitlements } from '@/src/lib/api/entitlements';
 import { useBillingAccess } from '@/src/hooks/useBillingQueries';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { scrollCardIntoView } from '@/src/lib/scrollIntoView';
+import { createIdempotencyKey } from '@/src/lib/billing';
 import {
   useContactAdminNoticeStore,
   useFeatureGate,
@@ -119,6 +120,7 @@ export default function IncidentReportPreviewScreen() {
   const [verificationModalVisible, setVerificationModalVisible] = useState(false);
   const [verificationState, setVerificationState] = useState<PaymentVerificationState>('verifying');
   const pollingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const checkoutIdempotencyKeyRef = useRef<{ signature: string; key: string } | null>(null);
 
   const [confirmModalVisible, setConfirmModalVisible] = useState(false);
   const [confirmModalConfig, setConfirmModalConfig] = useState<{
@@ -141,10 +143,11 @@ export default function IncidentReportPreviewScreen() {
   const [cardHeight, setCardHeight] = useState<number>(120);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const hasLoadedFeatureRef = useRef(false);
 
   const loadFeature = useCallback(
     async (id?: string) => {
-      setIsLoading(true);
+      if (!hasLoadedFeatureRef.current) setIsLoading(true);
       setLoadError(null);
       try {
         const targetId = await resolveMarketplaceFeatureId(
@@ -152,12 +155,15 @@ export default function IncidentReportPreviewScreen() {
           isIncidentProduct
         );
         if (!targetId) {
-          setFeatureDetail(null);
-          setLoadError('No marketplace product returned for this feature.');
+          if (!hasLoadedFeatureRef.current) {
+            setFeatureDetail(null);
+            setLoadError('No marketplace product returned for this feature.');
+          }
           return;
         }
 
         const detail = await getMarketplaceFeatureById(targetId);
+        hasLoadedFeatureRef.current = true;
         setFeatureDetail(detail);
         if (estateId) {
           detail.tiers?.forEach((t) => {
@@ -170,8 +176,10 @@ export default function IncidentReportPreviewScreen() {
         );
       } catch (err: any) {
         console.log('Error loading feature details:', err?.message || err);
-        setFeatureDetail(null);
-        setLoadError(err?.message || 'Failed to load feature details');
+        if (!hasLoadedFeatureRef.current) {
+          setFeatureDetail(null);
+          setLoadError(err?.message || 'Failed to load feature details');
+        }
       } finally {
         setIsLoading(false);
       }
@@ -225,6 +233,13 @@ export default function IncidentReportPreviewScreen() {
   }, [featureDetail]);
 
   const handleRate = async (rating: number) => {
+    if (!hasFeatureEntitlement) {
+      Alert.alert(
+        'Rating Unavailable',
+        'You need an active subscription or entitlement to this AI feature before you can rate it.'
+      );
+      return;
+    }
     const targetId = featureDetail?.id;
     if (!targetId) return;
     try {
@@ -285,18 +300,31 @@ export default function IncidentReportPreviewScreen() {
       return;
     }
 
+    const signature = `${estateId || ''}:${tier.feature_key}:${duration}`;
+    if (checkoutIdempotencyKeyRef.current?.signature !== signature) {
+      checkoutIdempotencyKeyRef.current = {
+        signature,
+        key: createIdempotencyKey(),
+      };
+    }
+    const idempotencyKey = checkoutIdempotencyKeyRef.current.key;
+
     setIsConfirmingActivation(true);
     try {
-      const response = await initializeCheckout({
-        estate_id: estateId || '',
-        customer_email: email,
-        checkout_kind: 'ai_only',
-        ai_feature_keys: [tier.feature_key],
-        ai_feature_ids: tier.ai_feature_id ? [tier.ai_feature_id] : undefined,
-        period_months: duration,
-      });
+      const response = await initializeCheckout(
+        {
+          estate_id: estateId || '',
+          customer_email: email,
+          checkout_kind: 'ai_only',
+          ai_feature_keys: [tier.feature_key],
+          ai_feature_ids: tier.ai_feature_id ? [tier.ai_feature_id] : undefined,
+          period_months: duration,
+        },
+        idempotencyKey
+      );
 
       if (response?.authorization_url) {
+        checkoutIdempotencyKeyRef.current = null;
         setActivePaystackReference(response.paystack_reference);
         setActiveCheckoutToken(response.checkout_token);
         setActivationModalVisible(false);
@@ -306,7 +334,26 @@ export default function IncidentReportPreviewScreen() {
         Alert.alert('Error', 'No checkout authorization URL returned.');
       }
     } catch (err: any) {
-      notifyActionError('Checkout Failed', err, 'Failed to initialize checkout.');
+      const status = err?.status ?? err?.response?.status;
+      if (status === 409) {
+        checkoutIdempotencyKeyRef.current = null;
+        void refreshAfterTierChange();
+      } else if (status === 422) {
+        checkoutIdempotencyKeyRef.current = null;
+      }
+      notifyActionError(
+        status === 409
+          ? 'Checkout Conflict'
+          : status === 422
+            ? 'Invalid Checkout Request'
+            : 'Checkout Failed',
+        err,
+        status === 409
+          ? 'A checkout or subscription update is already in progress, or this tier is already active.'
+          : status === 422
+            ? 'Please check your subscription selection and try again.'
+            : 'Failed to initialize checkout.'
+      );
     } finally {
       setIsConfirmingActivation(false);
     }
@@ -380,6 +427,8 @@ export default function IncidentReportPreviewScreen() {
   };
 
   const handleCancelSubscription = (tier: MarketplaceTier) => {
+    if (denyIfUnauthorized()) return;
+
     setConfirmModalConfig({
       title: 'Cancel Subscription',
       message: 'Are you sure you want to cancel your subscription to this AI feature?',
@@ -484,6 +533,23 @@ export default function IncidentReportPreviewScreen() {
     () => sortMarketplaceTiers(featureDetail?.tiers ?? []),
     [featureDetail?.tiers]
   );
+
+  const isTierSubscribed = useCallback(
+    (tier?: MarketplaceTier | null) => {
+      if (!tier) return false;
+      const tierKey = tier.tier;
+      if (justCancelledTiers[tierKey]) return false;
+      return (
+        tier.status === 'active' ||
+        tier.status === 'purchased' ||
+        tier.status === 'subscribed' ||
+        tier.status === 'installed' ||
+        Boolean(tier.purchased)
+      );
+    },
+    [justCancelledTiers]
+  );
+
   /** Tier 2 = In-house summary, tier 3 = Third-party summary; undefined until tiers load. */
   const isTierInstalled = (num: number) =>
     featureDetail
@@ -580,6 +646,13 @@ export default function IncidentReportPreviewScreen() {
     showResultDenied,
   ]);
 
+  const hasFeatureEntitlement =
+    Boolean(tierOneInstalled) ||
+    sortedTiers.some(
+      (tier) =>
+        (Boolean(tier.is_installed) || isTierSubscribed(tier)) && !justCancelledTiers[tier.tier]
+    );
+
   const handleTabChange = (tab: 'Preview' | 'Result') => {
     if (tab === activeTab) return;
     setActiveTab(tab);
@@ -634,7 +707,7 @@ export default function IncidentReportPreviewScreen() {
             inHouseInstalled={inHouseInstalled}
             thirdPartyInstalled={thirdPartyInstalled}
           />
-        ) : isLoading ? (
+        ) : isLoading && !featureDetail ? (
           <View
             style={{
               flex: 1,
@@ -980,7 +1053,10 @@ export default function IncidentReportPreviewScreen() {
 
       <ActivationQuoteModal
         visible={activationModalVisible}
-        onClose={() => setActivationModalVisible(false)}
+        onClose={() => {
+          checkoutIdempotencyKeyRef.current = null;
+          setActivationModalVisible(false);
+        }}
         tier={selectedTierForActivation}
         estateId={estateId || ''}
         onConfirm={(duration) => handleConfirmActivation(duration)}

@@ -114,6 +114,13 @@ export default function ChoosePlanScreen() {
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
   const [durationOpen, setDurationOpen] = useState(false);
 
+  useEffect(() => {
+    return () => {
+      setSeatsInput(null);
+      setSelectedSlug(null);
+    };
+  }, []);
+
   const tabTiers = useMemo(
     () => (tiersQuery.data ?? []).filter((tier) => tier.slug !== 'access' && tier.is_active),
     [tiersQuery.data]

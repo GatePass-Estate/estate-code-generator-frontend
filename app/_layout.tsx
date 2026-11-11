@@ -35,16 +35,17 @@ function RootLayoutContent() {
         key={resetKey}
         screenOptions={{
           headerShown: false,
+          animation: 'slide_from_right',
         }}
       >
-        <Stack.Screen name="auth/institution" options={{ animation: 'none' }} />
-        <Stack.Screen name="auth/login" options={{ animation: 'none' }} />
-        <Stack.Screen name="auth/two-factor" options={{ animation: 'none' }} />
-        <Stack.Screen name="auth/tos" options={{ animation: 'none' }} />
+        <Stack.Screen name="auth/institution" />
+        <Stack.Screen name="auth/login" />
+        <Stack.Screen name="auth/two-factor" />
+        <Stack.Screen name="auth/tos" />
         <Stack.Screen name="auth/set-password" />
-        <Stack.Screen name="auth/forgot-password" options={{ animation: 'none' }} />
-        <Stack.Screen name="auth/reset-password" options={{ animation: 'none' }} />
-        <Stack.Screen name="auth/data-protection-policy" options={{ animation: 'none' }} />
+        <Stack.Screen name="auth/forgot-password" />
+        <Stack.Screen name="auth/reset-password" />
+        <Stack.Screen name="auth/data-protection-policy" />
         <Stack.Screen name="activate" />
         <Stack.Screen name="auth/email-activation-status" />
         <Stack.Screen name="(protected)" />

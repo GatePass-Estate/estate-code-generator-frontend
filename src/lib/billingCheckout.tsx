@@ -10,6 +10,7 @@ import {
   useInitializeCheckout,
   type InitializeCheckoutParams,
 } from '@/src/hooks/useBillingQueries';
+import { createIdempotencyKey } from '@/src/lib/billing';
 import type { CheckoutSessionStatus } from '@/src/types/billing';
 
 export type CheckoutOutcome = CheckoutSessionStatus | 'cancelled' | 'error';
@@ -78,6 +79,7 @@ export function usePaystackCheckout() {
   // State updates are async; the ref blocks a second tap that lands before the re-render.
   const runningRef = useRef(false);
   const finishRef = useRef<((result: PaystackCheckoutResult) => void) | null>(null);
+  const idempotencyRef = useRef<{ signature: string; key: string } | null>(null);
 
   const handleFinish = useCallback((result: PaystackCheckoutResult) => {
     const finish = finishRef.current;
@@ -93,11 +95,37 @@ export function usePaystackCheckout() {
       runningRef.current = true;
       setIsRunning(true);
       try {
+        const { idempotencyKey: explicitKey, ...restParams } = params;
+        const signature = JSON.stringify(restParams);
+        if (!explicitKey && idempotencyRef.current?.signature !== signature) {
+          idempotencyRef.current = { signature, key: createIdempotencyKey() };
+        }
+        const idempotencyKey = explicitKey ?? idempotencyRef.current?.key;
+
         let session;
         try {
-          session = await initializeCheckout(params);
+          session = await initializeCheckout({ ...params, idempotencyKey });
+          idempotencyRef.current = null;
         } catch (error: any) {
-          notifyActionError('Checkout failed', error, 'Could not start checkout.');
+          const status = error?.status ?? error?.response?.status;
+          if (status === 409) {
+            idempotencyRef.current = null;
+            void refreshBillingData();
+            notifyActionError(
+              'Checkout conflict',
+              error,
+              'A conflicting checkout or subscription request already exists. Your billing details have been refreshed.'
+            );
+          } else if (status === 422) {
+            idempotencyRef.current = null;
+            notifyActionError(
+              'Invalid checkout details',
+              error,
+              'Please review your plan selection and try again.'
+            );
+          } else {
+            notifyActionError('Checkout failed', error, 'Could not start checkout.');
+          }
           return 'error';
         }
 

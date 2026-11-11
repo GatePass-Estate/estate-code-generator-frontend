@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Alert,
   Keyboard,
@@ -70,6 +70,12 @@ export default function ManageSeatsScreen() {
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [pendingVisible, setPendingVisible] = useState(false);
 
+  useEffect(() => {
+    return () => {
+      setSeats(null);
+    };
+  }, []);
+
   const newSeats = seats ?? currentSeats;
   const delta = newSeats - currentSeats;
   const isReduction = delta < 0;
@@ -84,7 +90,12 @@ export default function ManageSeatsScreen() {
   );
   const prorateQuery = useSeatProrate(confirmVisible && delta > 0 ? delta : null);
 
-  const minSeats = Math.max(1, eligibility?.min_allowed_seats ?? 1);
+  const minSeats = Math.max(
+    1,
+    eligibility?.can_reduce
+      ? (eligibility.min_allowed_seats ?? eligibility.active_users ?? 1)
+      : (eligibility?.active_users ?? 1)
+  );
   const reductionBlocked = isReduction && eligibility?.can_reduce !== true;
   const reductionBlockedReason =
     !reductionBlocked || eligibilityQuery.isPending

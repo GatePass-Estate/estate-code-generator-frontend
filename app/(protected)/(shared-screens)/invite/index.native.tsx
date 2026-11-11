@@ -55,11 +55,23 @@ function QrDashFrame() {
   );
 }
 
-function DetailRow({ label, value }: { label: string; value: string | null | undefined }) {
+function DetailRow({
+  label,
+  value,
+  truncate = false,
+}: {
+  label: string;
+  value: string | null | undefined;
+  truncate?: boolean;
+}) {
   return (
     <View className="flex-row items-center justify-between rounded-2xl bg-white px-4 py-3">
       <Text className="text-sm font-inter-medium text-[#878686]">{label}</Text>
-      <Text className="text-sm font-inter-light text-[#878686] text-right" numberOfLines={2}>
+      <Text
+        className={`${truncate ? 'max-w-[65%]' : ''} text-right text-sm font-inter-light text-[#878686]`}
+        numberOfLines={truncate ? 1 : 2}
+        ellipsizeMode={truncate ? 'tail' : undefined}
+      >
         {value ?? ''}
       </Text>
     </View>
@@ -95,7 +107,7 @@ export default function InvitePage() {
       await Share.share({
         message: `You're invited!\n\nName: ${name}\nAddress: ${address}\nDate: ${date}\nTime: ${timeframe}\nCode: ${code}`,
       });
-    } catch (error) {
+    } catch {
       Alert.alert('Failed to share');
     }
   };
@@ -167,7 +179,7 @@ export default function InvitePage() {
 
         <View className="mt-[17.5px] gap-1.5">
           <DetailRow label="Name" value={name as string} />
-          <DetailRow label="Address" value={address as string} />
+          <DetailRow label="Address" value={address as string} truncate />
           <DetailRow label="Date" value={date as string} />
           <DetailRow label="Time" value={timeframe as string} />
           <DetailRow label="Access Code" value={code.toUpperCase()} />

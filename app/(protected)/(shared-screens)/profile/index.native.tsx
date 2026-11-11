@@ -8,8 +8,10 @@ import {
   Alert,
   StyleSheet,
   Image,
+  Modal,
   TouchableOpacity,
 } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { router, Stack, useNavigation } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -55,6 +57,7 @@ import {
   ProfileOnboardingStep,
 } from '@/src/components/mobile/ProfileOnboardingBanner';
 import { CopiedToast } from '@/src/components/mobile/CopiedToast';
+import IdDocumentPreview from '@/src/components/mobile/IdDocumentPreview';
 
 function formatAccessCode(code: string) {
   return code.replace(/\s+/g, '').toUpperCase();
@@ -112,6 +115,7 @@ export default function ProfileScreen() {
   const [showQrModal, setShowQrModal] = useState(false);
   const [showPhotoSheet, setShowPhotoSheet] = useState(false);
   const [showIdentificationSheet, setShowIdentificationSheet] = useState(false);
+  const [showIdentificationPreview, setShowIdentificationPreview] = useState(false);
   const profilePhotoUri = useProfileDocumentsStore((state) => state.profilePhotoUri);
   const identificationUri = useProfileDocumentsStore((state) => state.identificationUri);
   const identificationPendingRequest = useProfileDocumentsStore(
@@ -381,6 +385,9 @@ export default function ProfileScreen() {
       Alert.alert('Download unavailable', 'No identification file is available to download yet.');
     }
   };
+
+  const identificationPreviewUri =
+    identificationPendingRequest?.newFileUri ?? identificationUri ?? null;
 
   const closePendingRequestSheet = () => {
     setShowPendingRequestSheet(false);
@@ -710,7 +717,7 @@ export default function ProfileScreen() {
             <ProfileFieldRow
               label="Identification"
               value={identificationDisplayValue}
-              pendingValue={identificationPendingRequest?.newFileName}
+              pendingValue={identificationPendingRequest ? 'Awaiting approval' : undefined}
               onEdit={handleIdentificationPress}
               onPendingPress={() => {
                 if (identificationPendingRequest) {
@@ -721,12 +728,25 @@ export default function ProfileScreen() {
             />
           </View>
 
-          <Pressable
-            onPress={handleIdentificationDownload}
-            className="h-10 w-10 items-center justify-center rounded-full bg-white"
-          >
-            <DownloadIcon width={10} height={12} />
-          </Pressable>
+          <View className="flex-row gap-2">
+            <Pressable
+              onPress={() => setShowIdentificationPreview(true)}
+              disabled={!identificationPreviewUri}
+              accessibilityRole="button"
+              accessibilityLabel="Preview identification"
+              className={`h-10 w-10 items-center justify-center rounded-full bg-white ${!identificationPreviewUri ? 'opacity-40' : ''}`}
+            >
+              <MaterialIcons name="visibility" size={17} color="#113E55" />
+            </Pressable>
+            <Pressable
+              onPress={handleIdentificationDownload}
+              accessibilityRole="button"
+              accessibilityLabel="Download identification"
+              className="h-10 w-10 items-center justify-center rounded-full bg-white"
+            >
+              <DownloadIcon width={10} height={12} />
+            </Pressable>
+          </View>
         </View>
       </View>
     </>
@@ -824,6 +844,37 @@ export default function ProfileScreen() {
         onIdentificationSelected={handleIdentificationSelected}
         uploading={uploadingIdentification}
       />
+
+      <Modal
+        visible={showIdentificationPreview && Boolean(identificationPreviewUri)}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={() => setShowIdentificationPreview(false)}
+      >
+        <View className="flex-1 items-center justify-center bg-black/60 px-5">
+          <Pressable
+            onPress={() => setShowIdentificationPreview(false)}
+            accessibilityRole="button"
+            accessibilityLabel="Close identification preview"
+            style={StyleSheet.absoluteFill}
+          />
+          <View className="h-[70%] w-full max-w-[360px] overflow-hidden rounded-[24px] bg-white p-4">
+            {identificationPreviewUri ? (
+              <View className="flex-1 overflow-hidden rounded-[16px]">
+                <IdDocumentPreview uri={identificationPreviewUri} />
+              </View>
+            ) : null}
+            <Pressable
+              onPress={() => setShowIdentificationPreview(false)}
+              accessibilityRole="button"
+              className="mt-4 h-11 items-center justify-center rounded-3xl bg-primary"
+            >
+              <Text className="font-ubuntu-semibold text-[14px] text-white">Close</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
 
       <PendingRequestSheet
         visible={showPendingRequestSheet}

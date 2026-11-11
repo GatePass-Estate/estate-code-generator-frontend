@@ -11,7 +11,6 @@ import {
   PanResponder,
   ActivityIndicator,
   RefreshControl,
-  Platform,
   Image,
 } from 'react-native';
 import { router, Stack } from 'expo-router';
@@ -24,6 +23,7 @@ import Svg, { Path } from 'react-native-svg';
 import { ReactNode, useState, useMemo, useEffect, useCallback } from 'react';
 import { BlurView } from 'expo-blur';
 import { getMarketplaceFeatures, getFeaturePictureUrl } from '@/src/lib/api/aiMarketplace';
+import { formatKoboAmount } from '@/src/lib/currency';
 import { MarketplaceListItem } from '@/src/types/aiMarketplace';
 
 import IncidentReportSvg from '@/src/assets/images/incidentreportsummary.svg';
@@ -134,7 +134,7 @@ function mapMarketplaceItem(item: MarketplaceListItem): AITool {
     price: item.purchased
       ? undefined
       : item.price != null
-        ? `${item.currency_code === 'NGN' ? '₦' : '$'}${item.price}`
+        ? formatKoboAmount(item.price, { currency: item.currency_code })
         : undefined,
     rating: item.rating != null ? Math.round(item.rating) : 0,
     icon: iconUrl ? (

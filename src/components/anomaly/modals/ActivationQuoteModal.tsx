@@ -3,6 +3,7 @@ import { View, Text, Pressable, Modal, StyleSheet, ActivityIndicator } from 'rea
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { getAiQuote } from '@/src/lib/api/aiMarketplace';
+import { formatKoboAmount } from '@/src/lib/currency';
 import { AiCheckoutDuration, AiQuoteResponse, MarketplaceTier } from '@/src/types/aiMarketplace';
 
 interface ActivationQuoteModalProps {
@@ -22,17 +23,7 @@ const DURATION_OPTIONS: { duration: AiCheckoutDuration; label: string }[] = [
 ];
 
 function formatQuotePrice(amount?: number | null, currency?: string | null): string {
-  if (amount == null) return '--';
-  const cleanCurrency = (currency || '').toUpperCase();
-  const prefix =
-    cleanCurrency === 'NGN'
-      ? '₦'
-      : cleanCurrency === 'USD'
-        ? '$'
-        : cleanCurrency
-          ? `${cleanCurrency} `
-          : '$';
-  return `${prefix}${amount.toLocaleString()}`;
+  return formatKoboAmount(amount, { currency });
 }
 
 const quoteMemoryCache = new Map<string, AiQuoteResponse>();

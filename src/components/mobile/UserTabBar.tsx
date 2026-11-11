@@ -1,6 +1,7 @@
 import { Platform, Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
 import { useRef } from 'react';
 import { Tabs, router, useIsFocused, usePathname } from 'expo-router';
+import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFeatureGate } from '@/src/hooks/usePlan';
 import { useVerificationGate } from '@/src/hooks/useAccountVerification';
@@ -21,14 +22,17 @@ function isTabBarHidden(style: unknown) {
   return flattened?.display === 'none';
 }
 
-type UserTabBarProps = Parameters<NonNullable<React.ComponentProps<typeof Tabs>['tabBar']>>[0];
+type ExpoTabBarProps = Parameters<NonNullable<React.ComponentProps<typeof Tabs>['tabBar']>>[0];
 
-export default function UserTabBar({
-  state,
-  descriptors,
-  emitter,
-  navigateToTab,
-}: UserTabBarProps) {
+export type UserTabBarProps = ExpoTabBarProps & {
+  navigation?: any;
+};
+
+export default function UserTabBar(props: UserTabBarProps) {
+  const { state, descriptors } = props;
+  const navigation = (props as any).navigation;
+  const navigateToTab = (props as any).navigateToTab;
+  const emitter = (props as any).emitter;
   const insets = useSafeAreaInsets();
   const isScreenFocused = useIsFocused();
   const isScreenFocusedRef = useRef(isScreenFocused);
@@ -81,11 +85,19 @@ export default function UserTabBar({
           const onPress = () => {
             // Home stays open; every other tab needs an approved ID.
             if (route.name !== 'index' && !requireVerified()) return;
-            const event = emitter.emit({
-              type: 'tabPress',
-              target: route.key,
-              canPreventDefault: true,
-            });
+            const event = navigation?.emit
+              ? navigation.emit({
+                  type: 'tabPress',
+                  target: route.key,
+                  canPreventDefault: true,
+                })
+              : emitter?.emit
+                ? emitter.emit({
+                    type: 'tabPress',
+                    target: route.key,
+                    canPreventDefault: true,
+                  })
+                : { defaultPrevented: false };
 
             if (route.name === 'report' && !event.defaultPrevented) {
               if (focused && onIncidentCategory) return;
@@ -116,7 +128,11 @@ export default function UserTabBar({
             }
 
             if (!focused && !event.defaultPrevented) {
-              navigateToTab(route.key);
+              if (navigation?.navigate) {
+                navigation.navigate(route.name, route.params);
+              } else if (typeof navigateToTab === 'function') {
+                navigateToTab(route.key);
+              }
             }
           };
 
@@ -154,14 +170,26 @@ export default function UserTabBar({
             onPress={() => {
               if (!requireVerified()) return;
               const focused = state.routes[state.index].key === addRoute.key;
-              const event = emitter.emit({
-                type: 'tabPress',
-                target: addRoute.key,
-                canPreventDefault: true,
-              });
+              const event = navigation?.emit
+                ? navigation.emit({
+                    type: 'tabPress',
+                    target: addRoute.key,
+                    canPreventDefault: true,
+                  })
+                : emitter?.emit
+                  ? emitter.emit({
+                      type: 'tabPress',
+                      target: addRoute.key,
+                      canPreventDefault: true,
+                    })
+                  : { defaultPrevented: false };
 
               if (!focused && !event.defaultPrevented) {
-                navigateToTab(addRoute.key);
+                if (navigation?.navigate) {
+                  navigation.navigate(addRoute.name, addRoute.params);
+                } else if (typeof navigateToTab === 'function') {
+                  navigateToTab(addRoute.key);
+                }
               }
             }}
             style={styles.fabHit}

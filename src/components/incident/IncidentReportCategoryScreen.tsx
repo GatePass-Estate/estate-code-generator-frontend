@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   KeyboardAvoidingView,
   BackHandler,
@@ -22,15 +22,11 @@ import {
 import { toggleIncidentType } from '@/src/lib/incidentTypeSelection';
 import SecurityTabBar from '@/src/components/security/SecurityTabBar';
 import { useUserStore } from '@/src/lib/stores/userStore';
-
-const INCIDENT_TYPES = [
-  'Break In and Theft',
-  'Vandalism',
-  'Environmental Hazards',
-  'Unsecured Entry Points',
-  'Violence',
-  'Other',
-] as const;
+import { formatApiCategoryLabel } from '@/src/components/incident/categoryIcons';
+import {
+  INCIDENT_CATEGORY_PLACEHOLDER,
+  useIncidentCategories,
+} from '@/src/hooks/useIncidentQueries';
 
 export default function IncidentReportCategoryScreen() {
   const router = useRouter();
@@ -44,6 +40,11 @@ export default function IncidentReportCategoryScreen() {
   const [checkingAccess, setCheckingAccess] = useState(true);
   const [error, setError] = useState('');
   const isSecurity = useUserStore((state) => state.role === 'security');
+  const { data: categoryIds = [] } = useIncidentCategories();
+  const incidentTypes = useMemo(
+    () => (categoryIds.length > 0 ? categoryIds : INCIDENT_CATEGORY_PLACEHOLDER),
+    [categoryIds]
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -73,7 +74,7 @@ export default function IncidentReportCategoryScreen() {
 
   const toggle = (label: string) => {
     setError('');
-    if (label !== 'Other') setOther('');
+    if (label !== 'other') setOther('');
     setSelected((current) => toggleIncidentType(current, label));
   };
 
@@ -82,14 +83,17 @@ export default function IncidentReportCategoryScreen() {
       setError('Select at least one incident type.');
       return;
     }
-    if (selected.includes('Other') && !other.trim()) {
+    if (selected.includes('other') && !other.trim()) {
       setError('Describe the other incident type.');
       return;
     }
-    const categories = selected.map((label) => (label === 'Other' ? other.trim() : label));
     router.push({
       pathname: '/(protected)/user/report/create',
-      params: { categories: JSON.stringify(categories), returnTo },
+      params: {
+        categories: JSON.stringify(selected.includes('other') ? [] : selected),
+        customCategory: selected.includes('other') ? other.trim() : '',
+        returnTo,
+      },
     });
   };
 
@@ -104,7 +108,7 @@ export default function IncidentReportCategoryScreen() {
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={{
             flexGrow: 1,
-            paddingTop: Math.max(24, 88 - insets.top) + 53,
+            paddingTop: Math.max(16, 44 - insets.top),
             paddingBottom: Math.max(isSecurity ? 96 : 32, height * (157 / 921) - insets.bottom),
           }}
         >
@@ -113,9 +117,11 @@ export default function IncidentReportCategoryScreen() {
               type="short-arrow"
               showText={false}
               showBorder
+              borderSize={30}
+              leftOffset={-3}
               onPress={() => leaveIncidentReport(returnTo, router)}
             />
-            <Text className="ml-[5px] mt-[13px] font-ubuntu-medium text-[27.34px] leading-[33px] text-[#113E55]">
+            <Text className="ml-[5px] mt-[16px] font-ubuntu-medium text-[27.34px] leading-[33px] text-[#113E55]">
               Incident Report
             </Text>
             <Text className="ml-[7px] mt-[8px] font-inter-light text-[14px] leading-[17px] text-[#878686]">
@@ -123,12 +129,12 @@ export default function IncidentReportCategoryScreen() {
               incident type
             </Text>
             <View className="mt-[40px] gap-[16px]">
-              {INCIDENT_TYPES.map((label) => {
-                const checked = selected.includes(label);
+              {incidentTypes.map((categoryId) => {
+                const checked = selected.includes(categoryId);
                 return (
                   <TouchableOpacity
-                    key={label}
-                    onPress={() => toggle(label)}
+                    key={categoryId}
+                    onPress={() => toggle(categoryId)}
                     accessibilityRole="checkbox"
                     accessibilityState={{ checked }}
                     className="h-6 flex-row items-center"
@@ -139,7 +145,7 @@ export default function IncidentReportCategoryScreen() {
                       {checked && <Feather name="check" size={12} color="#F6F7F7" />}
                     </View>
                     <Text className="ml-[22px] font-ubuntu-regular text-[15px] leading-[18px] text-[#0A1F29]">
-                      {label}
+                      {formatApiCategoryLabel(categoryId)}
                     </Text>
                   </TouchableOpacity>
                 );
@@ -152,9 +158,9 @@ export default function IncidentReportCategoryScreen() {
             onChangeText={(value) => {
               setOther(value);
               setError('');
-              if (value.trim()) setSelected(['Other']);
+              if (value.trim()) setSelected(['other']);
             }}
-            placeholder={selected.includes('Other') ? 'Describe the incident type' : ''}
+            placeholder={selected.includes('other') ? 'Describe the incident type' : ''}
             placeholderTextColor="#878686"
             accessibilityLabel="Other incident type"
             className="mx-[21px] h-[43px] rounded-[8px] bg-[#EFF1F1] px-4 font-inter-regular text-[14px] text-[#0A1F29]"

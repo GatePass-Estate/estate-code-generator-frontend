@@ -70,8 +70,10 @@ export function useAccountVerification(): { approval: IdApproval; blocked: boole
  * go ahead; otherwise it opens the Verify Account modal and returns `false`.
  */
 export function useVerificationGate() {
+  const role = useUserStore((s) => s.role);
   const { blocked } = useAccountVerification();
   const show = useVerifyAccountPromptStore((s) => s.show);
+  const verificationRequired = !!role && VERIFICATION_REQUIRED_ROLES.includes(role);
 
   const requireVerified = useCallback(() => {
     if (!blocked) return true;
@@ -83,5 +85,20 @@ export function useVerificationGate() {
     return false;
   }, [blocked, show]);
 
-  return { blocked, requireVerified };
+  const requireVerifiedWhenReady = useCallback(async () => {
+    if (!verificationRequired) return true;
+
+    const documents = useProfileDocumentsStore.getState();
+    const userId = useUserStore.getState().user_id;
+    if (documents.idApproval === null && userId) {
+      await documents.syncDocuments(userId, { force: true });
+    }
+
+    if (useProfileDocumentsStore.getState().idApproval === 'approved') return true;
+
+    show();
+    return false;
+  }, [show, verificationRequired]);
+
+  return { blocked, requireVerified, requireVerifiedWhenReady };
 }

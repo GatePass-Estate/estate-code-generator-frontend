@@ -1,10 +1,13 @@
 import Api from '.';
 import {
   canManageBilling,
+  createIdempotencyKey,
   featureActionErrorForRole,
   PRIMARY_ADMIN_FEATURE_ACTION_MESSAGE,
 } from '../billing';
 import { getErrorMessage } from '../helpers';
+import { toBillingError } from './billing';
+import { formatKoboAmount } from '../currency';
 import { useUserStore } from '../stores/userStore';
 import {
   MarketplaceListParams,
@@ -81,9 +84,7 @@ export function formatTierSubtitle(tier: MarketplaceTier): string {
   }
   if (tier.is_free) return 'FREE';
   if (tier.price != null) {
-    const prefix =
-      tier.currency_code === 'NGN' ? '₦' : tier.currency_code ? `${tier.currency_code} ` : '';
-    return `${prefix}${tier.price}`;
+    return formatKoboAmount(tier.price, { currency: tier.currency_code });
   }
   return '';
 }
@@ -277,6 +278,11 @@ export async function cancelMarketplaceSubscription(
     const body = featureKey ? { feature_key: featureKey } : {};
     await api.post(`/ai-features/estate/${encodeURIComponent(estateId)}/cancel`, body);
   } catch (error: any) {
+    if (error?.response?.status === 403) {
+      throw new Error(
+        "Only the primary admin can cancel an AI subscription. Please contact your estate's primary admin."
+      );
+    }
     throw new Error(getErrorMessage(error) || 'Failed to cancel subscription');
   }
 }
@@ -316,14 +322,17 @@ export async function installAiFeature(estateId: string, featureKey: string): Pr
   }
 }
 
-export async function initializeCheckout(payload: {
-  estate_id: string;
-  customer_email: string;
-  checkout_kind: string;
-  ai_feature_keys?: string[];
-  ai_feature_ids?: string[];
-  period_months?: number;
-}): Promise<{
+export async function initializeCheckout(
+  payload: {
+    estate_id: string;
+    customer_email: string;
+    checkout_kind: string;
+    ai_feature_keys?: string[];
+    ai_feature_ids?: string[];
+    period_months?: number;
+  },
+  idempotencyKey: string = createIdempotencyKey()
+): Promise<{
   authorization_url: string;
   checkout_session_id: string;
   paystack_reference: string;
@@ -334,12 +343,20 @@ export async function initializeCheckout(payload: {
     const api = Api('revenue');
     const response = await api.post('/checkout/initialize', payload, {
       headers: {
-        'Idempotency-Key': `${payload.estate_id}-${Date.now()}`,
+        'Idempotency-Key': idempotencyKey,
       },
     });
     return response.data;
   } catch (error: any) {
-    throwFeatureActionError(error, 'Failed to initialize checkout');
+    const mapped = featureActionErrorForRole(
+      useUserStore.getState().role,
+      { message: getErrorMessage(error) },
+      'Failed to initialize checkout'
+    );
+    if (mapped === PRIMARY_ADMIN_FEATURE_ACTION_MESSAGE) {
+      throw new Error(mapped);
+    }
+    throw toBillingError(error, 'Failed to initialize checkout');
   }
 }
 
@@ -363,7 +380,7 @@ export async function getAiQuote(payload: AiQuoteRequest): Promise<AiQuoteRespon
       data: error?.response?.data,
       message: getErrorMessage(error) || String(error),
     });
-    throw new Error(getErrorMessage(error) || 'Failed to fetch AI subscription quote');
+    throw toBillingError(error, 'Failed to fetch AI subscription quote');
   }
 }
 
