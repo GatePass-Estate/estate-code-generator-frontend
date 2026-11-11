@@ -42,6 +42,7 @@ import {
   cancelMarketplaceSubscription,
 } from '@/src/lib/api/aiMarketplace';
 import { refreshEstateEntitlements } from '@/src/lib/api/entitlements';
+import { useBillingAccess } from '@/src/hooks/useBillingQueries';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { scrollCardIntoView } from '@/src/lib/scrollIntoView';
 import {
@@ -64,10 +65,7 @@ const TIER_ONE_FOR_RESULT_MESSAGE =
   'Subscribe to Tier One (Incident Report Summary and Insights) to view your results.';
 const INSTALL_TIER_ONE_FOR_RESULT_MESSAGE =
   'Install Tier One (Incident Report Summary and Insights) to view your results.';
-const TIER_ONE_FIRST_MESSAGE =
-  'Subscribe to Tier One (Incident Report Summary and Insights) first. Tiers Two and Three build on it.';
-const INSTALL_TIER_ONE_FIRST_MESSAGE =
-  'Install Tier One (Incident Report Summary and Insights) first. Tiers Two and Three build on it.';
+const TIER_ONE_FIRST_MESSAGE = 'Tier One is required for Tier 2 and Tier 3 activation.';
 
 const tierOrder = (tier: MarketplaceTier) => Number.parseInt(tier.tier.replace(/\D/g, ''), 10) || 0;
 
@@ -86,6 +84,7 @@ const cancelledTiersStorageKey = (estateId: string) => `incidentCancelledTiers-$
 export default function IncidentReportPreviewScreen() {
   const params = useLocalSearchParams<{ featureId?: string; title?: string; tab?: string }>();
   const estateId = useUserStore((s) => s.estate_id);
+  const { denyIfUnauthorized, notifyActionError } = useBillingAccess();
   const [activeTab, setActiveTab] = useState<'Preview' | 'Result'>(
     params.tab === 'Result' ? 'Result' : 'Preview'
   );
@@ -239,6 +238,7 @@ export default function IncidentReportPreviewScreen() {
   };
 
   const handleSubscribe = async (tier: MarketplaceTier) => {
+    if (denyIfUnauthorized()) return;
     if (requireTierOne(tier)) return;
     if (!featureDetail?.id || (!tier.ai_feature_id && !tier.feature_key)) {
       return;
@@ -270,7 +270,7 @@ export default function IncidentReportPreviewScreen() {
         Alert.alert('Success', 'Subscription quote created successfully.');
       }
     } catch (err: any) {
-      Alert.alert('Subscription Failed', err?.message || 'Failed to activate tier.');
+      notifyActionError('Subscription Failed', err, 'Failed to activate tier.');
     } finally {
       setIsSubscribing(false);
       setSubscribingTierKey(null);
@@ -278,6 +278,7 @@ export default function IncidentReportPreviewScreen() {
   };
 
   const handleConfirmActivation = async (duration: AiCheckoutDuration) => {
+    if (denyIfUnauthorized()) return;
     const tier = selectedTierForActivation;
     if (!tier?.feature_key) {
       Alert.alert('Error', 'Feature key is missing for this tier.');
@@ -305,7 +306,7 @@ export default function IncidentReportPreviewScreen() {
         Alert.alert('Error', 'No checkout authorization URL returned.');
       }
     } catch (err: any) {
-      Alert.alert('Checkout Failed', err?.message || 'Failed to initialize checkout.');
+      notifyActionError('Checkout Failed', err, 'Failed to initialize checkout.');
     } finally {
       setIsConfirmingActivation(false);
     }
@@ -416,6 +417,7 @@ export default function IncidentReportPreviewScreen() {
   };
 
   const handleUninstall = (tier: MarketplaceTier) => {
+    if (denyIfUnauthorized()) return;
     if (!estateId) {
       Alert.alert('Error', 'Estate ID not found');
       return;
@@ -441,7 +443,7 @@ export default function IncidentReportPreviewScreen() {
           Alert.alert('Success', 'Feature uninstalled successfully.');
           await refreshAfterTierChange();
         } catch (err: any) {
-          Alert.alert('Uninstall Failed', err?.message || 'Failed to uninstall feature.');
+          notifyActionError('Uninstall Failed', err, 'Failed to uninstall feature.');
         } finally {
           setIsUninstalling(false);
           setUninstallingTierKey(null);
@@ -452,6 +454,7 @@ export default function IncidentReportPreviewScreen() {
   };
 
   const handleInstall = async (tier: MarketplaceTier) => {
+    if (denyIfUnauthorized()) return;
     if (requireTierOne(tier)) return;
     if (!estateId) {
       Alert.alert('Error', 'Estate ID not found');
@@ -470,7 +473,7 @@ export default function IncidentReportPreviewScreen() {
       setJustPurchasedTiers((prev) => ({ ...prev, [tier.tier]: false }));
       await refreshAfterTierChange();
     } catch (err: any) {
-      Alert.alert('Install Failed', err?.message || 'Failed to install feature.');
+      notifyActionError('Install Failed', err, 'Failed to install feature.');
     } finally {
       setIsInstalling(false);
       setInstallingTierKey(null);
@@ -542,7 +545,7 @@ export default function IncidentReportPreviewScreen() {
   /** True (after prompting) when a Tier Two or Three action needs Tier One first. */
   const requireTierOne = (tier: MarketplaceTier) => {
     if (tierOrder(tier) <= 1 || tierOneInstalled !== false) return false;
-    showResultDenied(tierOneSubscribed ? INSTALL_TIER_ONE_FIRST_MESSAGE : TIER_ONE_FIRST_MESSAGE);
+    showResultDenied(TIER_ONE_FIRST_MESSAGE);
     return true;
   };
   const [resultLocked, setResultLocked] = useState(false);

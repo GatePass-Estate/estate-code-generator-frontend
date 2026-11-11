@@ -59,6 +59,7 @@ import {
   formatTierLabel,
   formatTierSubtitle,
 } from '@/src/lib/api/aiMarketplace';
+import { useBillingAccess } from '@/src/hooks/useBillingQueries';
 import { useFeatureGate } from '@/src/hooks/usePlan';
 import { scrollCardIntoView } from '@/src/lib/scrollIntoView';
 import { useUserStore } from '@/src/lib/stores/userStore';
@@ -128,6 +129,7 @@ export default function AnomalyDetectionPreviewScreen() {
 
   const estateId = useUserStore((state) => state.estate_id) || '';
   const email = useUserStore((state) => state.email) || '';
+  const { denyIfUnauthorized, notifyActionError } = useBillingAccess();
 
   const handleRate = async (rating: number) => {
     const targetId = featureDetail?.id || params.featureId;
@@ -221,6 +223,7 @@ export default function AnomalyDetectionPreviewScreen() {
   }, [params.featureId, estateId]);
 
   const handleActivateFreeTier = async (tierPayload: MarketplaceTier) => {
+    if (denyIfUnauthorized()) return;
     if (!featureDetail?.id || (!tierPayload.ai_feature_id && !tierPayload.feature_key)) {
       return;
     }
@@ -243,7 +246,7 @@ export default function AnomalyDetectionPreviewScreen() {
       Alert.alert('Success', 'Free feature tier activated successfully!');
       loadFeature(featureDetail.id);
     } catch (err: any) {
-      Alert.alert('Activation Failed', err?.message || 'Failed to activate tier.');
+      notifyActionError('Activation Failed', err, 'Failed to activate tier.');
     } finally {
       setIsSubscribing(false);
       setSubscribingTierKey(null);
@@ -251,6 +254,7 @@ export default function AnomalyDetectionPreviewScreen() {
   };
 
   const handlePressActivate = (tierPayload: MarketplaceTier) => {
+    if (denyIfUnauthorized()) return;
     if (requireTierOne(tierPayload.tier)) return;
     if (tierPayload.is_free) {
       handleActivateFreeTier(tierPayload);
@@ -261,6 +265,7 @@ export default function AnomalyDetectionPreviewScreen() {
   };
 
   const handleConfirmActivation = async (duration: AiCheckoutDuration, _quote: AiQuoteResponse) => {
+    if (denyIfUnauthorized()) return;
     if (!selectedTierForActivation?.feature_key) {
       Alert.alert('Error', 'Feature key is missing for this tier.');
       return;
@@ -297,7 +302,7 @@ export default function AnomalyDetectionPreviewScreen() {
         Alert.alert('Error', 'No checkout authorization URL returned.');
       }
     } catch (err: any) {
-      Alert.alert('Checkout Failed', err?.message || 'Failed to initialize checkout.');
+      notifyActionError('Checkout Failed', err, 'Failed to initialize checkout.');
     } finally {
       setIsConfirmingActivation(false);
     }
@@ -448,6 +453,7 @@ export default function AnomalyDetectionPreviewScreen() {
     tier: string;
     feature_key?: string | null;
   }) => {
+    if (denyIfUnauthorized()) return;
     if (requireTierOne(tierPayload.tier)) return;
     if (!estateId) {
       Alert.alert('Error', 'Estate ID not found');
@@ -473,7 +479,7 @@ export default function AnomalyDetectionPreviewScreen() {
           Alert.alert('Success', 'Feature uninstalled successfully.');
           loadFeature(featureDetail?.id);
         } catch (err: any) {
-          Alert.alert('Uninstall Failed', err?.message || 'Failed to uninstall feature.');
+          notifyActionError('Uninstall Failed', err, 'Failed to uninstall feature.');
         } finally {
           setIsUninstalling(false);
           setUninstallingTierKey(null);
@@ -488,6 +494,7 @@ export default function AnomalyDetectionPreviewScreen() {
     tier: string;
     feature_key?: string | null;
   }) => {
+    if (denyIfUnauthorized()) return;
     if (!estateId) {
       Alert.alert('Error', 'Estate ID not found');
       return;
@@ -505,7 +512,7 @@ export default function AnomalyDetectionPreviewScreen() {
       setJustPurchasedTiers((prev) => ({ ...prev, [tierPayload.tier]: false }));
       loadFeature(featureDetail?.id);
     } catch (err: any) {
-      Alert.alert('Install Failed', err?.message || 'Failed to install feature.');
+      notifyActionError('Install Failed', err, 'Failed to install feature.');
     } finally {
       setIsInstalling(false);
       setInstallingTierKey(null);
@@ -550,9 +557,7 @@ export default function AnomalyDetectionPreviewScreen() {
   const requireTierOne = (tierName: string) => {
     const order = Number.parseInt(tierName.replace(/\D/g, ''), 10) || 0;
     if (order <= 1 || tierOneInstalled !== false) return false;
-    showTierOneRequired(
-      `${tierOneSubscribed ? 'Install' : 'Subscribe to'} Tier One first. Tiers Two and Three build on it.`
-    );
+    showTierOneRequired('Tier One is required for Tier 2 and Tier 3 activation.');
     return true;
   };
 

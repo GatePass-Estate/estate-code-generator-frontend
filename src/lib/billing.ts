@@ -293,6 +293,36 @@ export function getPlanRenewalFootnote(
 /** Shown on billing screens to admins who can view but not change the subscription. */
 export const BILLING_VIEW_ONLY_NOTE = 'Only the primary admin can change the subscription.';
 
+export const PRIMARY_ADMIN_REQUIRED_TITLE = 'Primary admin required';
+
+/** Pay, install, and uninstall are estate-owner actions. */
+export const PRIMARY_ADMIN_FEATURE_ACTION_MESSAGE =
+  'Only the primary admin can pay for, install, or uninstall features. Please ask your estate’s primary admin to complete this.';
+
+export function isPermissionDeniedMessage(message: string | undefined): boolean {
+  if (!message) return false;
+  const text = message.toLowerCase();
+  return (
+    text.includes('forbidden') ||
+    text.includes('permission') ||
+    text.includes('not allowed') ||
+    text.includes('primary admin') ||
+    text.includes('only the owner')
+  );
+}
+
+/** Prefer a clear primary-admin explanation over a raw 403 for view-only admins. */
+export function featureActionErrorForRole(
+  role: UserRolesType | undefined,
+  err: { message?: string } | undefined,
+  fallback: string
+): string {
+  if (!canManageBilling(role) && isPermissionDeniedMessage(err?.message)) {
+    return PRIMARY_ADMIN_FEATURE_ACTION_MESSAGE;
+  }
+  return err?.message || fallback;
+}
+
 /** Which billing screen to open: 'choose' (pick a plan) or 'current' (Your Current Plan). */
 export function getBillingEntry(
   subscription: EstateSubscription | null | undefined,

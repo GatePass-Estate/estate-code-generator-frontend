@@ -6,6 +6,8 @@ type ActionConfirmModalProps = {
   message: string;
   confirmLabel: string;
   busy?: boolean;
+  /** Hide Cancel and use a single OK-style action. */
+  hideCancel?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 };
@@ -16,6 +18,7 @@ export default function ActionConfirmModal({
   message,
   confirmLabel,
   busy = false,
+  hideCancel = false,
   onConfirm,
   onCancel,
 }: ActionConfirmModalProps) {
@@ -36,14 +39,16 @@ export default function ActionConfirmModal({
             {message}
           </Text>
           <View className="mt-7 flex-row gap-[10px]">
-            <TouchableOpacity
-              accessibilityRole="button"
-              onPress={onCancel}
-              disabled={busy}
-              className="h-12 flex-1 items-center justify-center rounded-3xl bg-[#E5F6FF]"
-            >
-              <Text className="font-ubuntu-semibold text-[14px] text-[#113E55]">Cancel</Text>
-            </TouchableOpacity>
+            {hideCancel ? null : (
+              <TouchableOpacity
+                accessibilityRole="button"
+                onPress={onCancel}
+                disabled={busy}
+                className="h-12 flex-1 items-center justify-center rounded-3xl bg-[#E5F6FF]"
+              >
+                <Text className="font-ubuntu-semibold text-[14px] text-[#113E55]">Cancel</Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
               accessibilityRole="button"
               onPress={onConfirm}

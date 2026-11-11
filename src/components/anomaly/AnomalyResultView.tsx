@@ -793,23 +793,7 @@ export default function AnomalyResultView({ isActive = true }: { isActive?: bool
             ) : null}
           </View>
 
-          {/* Table: width 100%, border-radius 16, padding-top/bottom 16, gap 14 */}
-          <View
-            style={{
-              width: '100%',
-              minHeight: predictions.length === 0 ? 220 : undefined,
-              alignSelf: 'center',
-              borderRadius: 16,
-              backgroundColor: '#FFFFFF',
-              borderWidth: 1,
-              borderColor: '#EFF1F3',
-              paddingTop: 16,
-              paddingBottom: 16,
-              paddingHorizontal: 16,
-              gap: 14,
-              opacity: 1,
-            }}
-          >
+          <View className="w-full gap-3.5 rounded-[16px] bg-white p-4">
             {predictions.length === 0 ? (
               <TableEmptyState
                 icon={

@@ -6,6 +6,7 @@ import PaystackCheckoutSheet, {
 import {
   fetchCheckoutStatus,
   refreshBillingData,
+  useBillingAccess,
   useInitializeCheckout,
   type InitializeCheckoutParams,
 } from '@/src/hooks/useBillingQueries';
@@ -70,6 +71,7 @@ type ActiveCheckout = { url: string; reference: string };
  * `'error'` without doing anything (double-tap protection).
  */
 export function usePaystackCheckout() {
+  const { denyIfUnauthorized, notifyActionError } = useBillingAccess();
   const { mutateAsync: initializeCheckout } = useInitializeCheckout();
   const [isRunning, setIsRunning] = useState(false);
   const [active, setActive] = useState<ActiveCheckout | null>(null);
@@ -86,6 +88,7 @@ export function usePaystackCheckout() {
 
   const startCheckout = useCallback(
     async (params: InitializeCheckoutParams): Promise<CheckoutOutcome> => {
+      if (denyIfUnauthorized()) return 'error';
       if (runningRef.current) return 'error';
       runningRef.current = true;
       setIsRunning(true);
@@ -94,7 +97,7 @@ export function usePaystackCheckout() {
         try {
           session = await initializeCheckout(params);
         } catch (error: any) {
-          Alert.alert('Checkout failed', error?.message || 'Could not start checkout.');
+          notifyActionError('Checkout failed', error, 'Could not start checkout.');
           return 'error';
         }
 
@@ -116,7 +119,7 @@ export function usePaystackCheckout() {
         setIsRunning(false);
       }
     },
-    [initializeCheckout]
+    [denyIfUnauthorized, initializeCheckout, notifyActionError]
   );
 
   const checkoutSheet = (

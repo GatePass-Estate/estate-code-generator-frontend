@@ -1,5 +1,11 @@
 import Api from '.';
+import {
+  canManageBilling,
+  featureActionErrorForRole,
+  PRIMARY_ADMIN_FEATURE_ACTION_MESSAGE,
+} from '../billing';
 import { getErrorMessage } from '../helpers';
+import { useUserStore } from '../stores/userStore';
 import {
   MarketplaceListParams,
   MarketplaceListResponse,
@@ -13,6 +19,22 @@ import {
   AiQuoteResponse,
   CheckoutStatusResponse,
 } from '@/src/types/aiMarketplace';
+
+function requirePrimaryAdminForFeatureAction() {
+  if (!canManageBilling(useUserStore.getState().role)) {
+    throw new Error(PRIMARY_ADMIN_FEATURE_ACTION_MESSAGE);
+  }
+}
+
+function throwFeatureActionError(error: unknown, fallback: string): never {
+  throw new Error(
+    featureActionErrorForRole(
+      useUserStore.getState().role,
+      { message: getErrorMessage(error) },
+      fallback
+    )
+  );
+}
 
 export function isLocalMarketplaceId(id?: string | null): boolean {
   return !id || id.startsWith('local-') || id === '1' || id === '2' || !id.includes('-');
@@ -169,6 +191,7 @@ export async function subscribeMarketplaceFeature(
   id: string,
   payload: SubscribeRequest
 ): Promise<SubscribeResponse> {
+  requirePrimaryAdminForFeatureAction();
   const path = `/ai-marketplace/${encodeURIComponent(id)}/subscribe`;
   try {
     const api = Api('ai');
@@ -183,7 +206,7 @@ export async function subscribeMarketplaceFeature(
       data: error?.response?.data,
       message: getErrorMessage(error) || String(error),
     });
-    throw new Error(getErrorMessage(error) || 'Failed to subscribe to feature');
+    throwFeatureActionError(error, 'Failed to subscribe to feature');
   }
 }
 
@@ -211,13 +234,14 @@ export async function installMarketplaceFeature(
   estateId: string,
   featureKey: string
 ): Promise<void> {
+  requirePrimaryAdminForFeatureAction();
   try {
     const api = Api('revenue');
     await api.post(`/ai-features/estate/${encodeURIComponent(estateId)}/install`, {
       feature_key: featureKey,
     });
   } catch (error: any) {
-    throw new Error(getErrorMessage(error) || 'Failed to install feature');
+    throwFeatureActionError(error, 'Failed to install feature');
   }
 }
 
@@ -229,13 +253,14 @@ export async function uninstallMarketplaceFeature(
   estateId: string,
   featureKey: string
 ): Promise<void> {
+  requirePrimaryAdminForFeatureAction();
   try {
     const api = Api('revenue');
     await api.post(`/ai-features/estate/${encodeURIComponent(estateId)}/uninstall`, {
       feature_key: featureKey,
     });
   } catch (error: any) {
-    throw new Error(getErrorMessage(error) || 'Failed to uninstall feature');
+    throwFeatureActionError(error, 'Failed to uninstall feature');
   }
 }
 
@@ -268,24 +293,26 @@ export function getFeaturePictureUrl(path: string): string {
  * Uninstall an AI feature via the revenue service.
  */
 export async function uninstallAiFeature(estateId: string, featureKey: string): Promise<void> {
+  requirePrimaryAdminForFeatureAction();
   try {
     const api = Api('revenue');
     await api.post(`/ai-features/estate/${encodeURIComponent(estateId)}/uninstall`, {
       feature_key: featureKey,
     });
   } catch (error: any) {
-    throw new Error(getErrorMessage(error) || 'Failed to uninstall feature');
+    throwFeatureActionError(error, 'Failed to uninstall feature');
   }
 }
 
 export async function installAiFeature(estateId: string, featureKey: string): Promise<void> {
+  requirePrimaryAdminForFeatureAction();
   try {
     const api = Api('revenue');
     await api.post(`/ai-features/estate/${encodeURIComponent(estateId)}/install`, {
       feature_key: featureKey,
     });
   } catch (error: any) {
-    throw new Error(getErrorMessage(error) || 'Failed to install feature');
+    throwFeatureActionError(error, 'Failed to install feature');
   }
 }
 
@@ -302,6 +329,7 @@ export async function initializeCheckout(payload: {
   paystack_reference: string;
   checkout_token: string;
 }> {
+  requirePrimaryAdminForFeatureAction();
   try {
     const api = Api('revenue');
     const response = await api.post('/checkout/initialize', payload, {
@@ -311,7 +339,7 @@ export async function initializeCheckout(payload: {
     });
     return response.data;
   } catch (error: any) {
-    throw new Error(getErrorMessage(error) || 'Failed to initialize checkout');
+    throwFeatureActionError(error, 'Failed to initialize checkout');
   }
 }
 
