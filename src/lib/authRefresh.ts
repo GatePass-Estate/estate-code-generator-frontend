@@ -15,6 +15,7 @@ import axios, { isAxiosError } from 'axios';
 import { Platform } from 'react-native';
 import { getAuthState, storeAuthState } from './helpers';
 import { handleUnauthorizedResponse } from './session';
+import { errorDetail, signOutReasonFromRefreshFailure } from './signOutReason';
 import { useAuthStore, type AuthState } from './stores/authStore';
 import { attachDeviceId } from './deviceId';
 import type { UserRolesType } from '../types/general';
@@ -188,7 +189,11 @@ async function exchangeRefreshToken(crossTab: boolean): Promise<string> {
       rejectedRefreshToken = sentRefreshToken;
       // Sign out only if this is still the session we tried to refresh (not a newer login).
       if (useAuthStore.getState().refresh_token === sentRefreshToken) {
-        await handleUnauthorizedResponse();
+        const reason = signOutReasonFromRefreshFailure(
+          errorDetail(isAxiosError(error) ? error.response?.data : undefined),
+          getTokenExpiryMs(sentRefreshToken)
+        );
+        await handleUnauthorizedResponse(undefined, reason);
       }
       throw new RefreshError('Session expired', true);
     }

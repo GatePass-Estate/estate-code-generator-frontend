@@ -12,6 +12,7 @@ import {
   initAuthSync,
 } from '@/src/lib/helpers';
 import { setUnauthorizedHandler } from '@/src/lib/session';
+import type { SignOutReason } from '@/src/lib/signOutReason';
 import {
   adoptStoredSession,
   getValidAccessToken,
@@ -95,13 +96,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [router]);
 
   const performSignOut = useCallback(
-    async (options?: { sessionExpired?: boolean }) => {
+    /** `signedOutBecause`: the server refused the session, so the login screen explains why. */
+    async (options?: { signedOutBecause?: SignOutReason }) => {
       setIsReady(false);
       // Done first, while the access token is still valid.
       await unregisterForPushNotifications();
       // A user-initiated sign-out also ends the session server-side. An expired session has
       // nothing left to end (and its token would only be refused).
-      if (!options?.sessionExpired) await revokeCurrentSession();
+      if (!options?.signedOutBecause) await revokeCurrentSession();
       clearUserData();
       useAuthStore.getState().clearAuth();
       resetBroadcastPopupSuppression();
@@ -113,8 +115,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const institution = await getSelectedInstitution();
       const target = getPostAuthRedirectRoute(institution);
 
-      if (options?.sessionExpired && target === '/auth/login') {
-        router.replace({ pathname: target, params: { session_expired: 'true' } });
+      if (options?.signedOutBecause && target === '/auth/login') {
+        router.replace({ pathname: target, params: { signed_out: options.signedOutBecause } });
         return;
       }
       router.replace(target);
@@ -122,12 +124,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [router]
   );
 
-  // A session revoked or expired elsewhere invalidates this device too, so the
-  // API layer reports any 401 here and we sign out (with the login screen's
-  // "session expired" notice) rather than leaving every request failing.
+  // When the server refuses the session (inactivity, end of its lifetime, or ended), the API
+  // layer reports it here with the reason, and we sign out with a login-screen notice that says
+  // which, rather than leaving every request failing.
   useEffect(() => {
-    setUnauthorizedHandler(() => {
-      void performSignOut({ sessionExpired: true });
+    setUnauthorizedHandler((reason) => {
+      void performSignOut({ signedOutBecause: reason });
     });
     return () => setUnauthorizedHandler(null);
   }, [performSignOut]);

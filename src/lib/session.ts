@@ -3,7 +3,9 @@
  * AuthProvider registers the logout callback; API clients invoke it on 401.
  */
 
-type UnauthorizedHandler = () => void | Promise<void>;
+import type { SignOutReason } from './signOutReason';
+
+type UnauthorizedHandler = (reason: SignOutReason) => void | Promise<void>;
 
 let unauthorizedHandler: UnauthorizedHandler | null = null;
 let handlingUnauthorized = false;
@@ -26,14 +28,18 @@ export function shouldForceLogoutOn401(requestUrl?: string): boolean {
   return !AUTH_EXEMPT_PATH.test(requestUrl);
 }
 
-export async function handleUnauthorizedResponse(requestUrl?: string): Promise<void> {
+/** Signs the user out (once) for a refused session; `reason` picks the login screen's notice. */
+export async function handleUnauthorizedResponse(
+  requestUrl?: string,
+  reason: SignOutReason = 'ended'
+): Promise<void> {
   if (!shouldForceLogoutOn401(requestUrl)) return;
   if (handlingUnauthorized) return;
   if (!unauthorizedHandler) return;
 
   handlingUnauthorized = true;
   try {
-    await unauthorizedHandler();
+    await unauthorizedHandler(reason);
   } catch (error) {
     console.log('Error handling unauthorized session', error);
   } finally {

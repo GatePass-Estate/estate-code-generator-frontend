@@ -186,10 +186,22 @@ it('signs out when the server refuses the refresh token', async () => {
   expect(outcomes.every((o) => o.status === 'rejected')).toBe(true);
   expect(m.refreshCalls()).toHaveLength(1);
   expect(m.onUnauthorized).toHaveBeenCalledTimes(1);
+  // An expired refresh token means the app sat unused, not that another device ended the session.
+  expect(m.onUnauthorized).toHaveBeenCalledWith('inactive');
 
   // The rejected token is never sent again (it would count as reuse).
   await expect(m.Api().get('/things/3')).rejects.toMatchObject({ response: { status: 401 } });
   expect(m.refreshCalls()).toHaveLength(1);
+});
+
+it('reports an ended session when the server no longer has it', async () => {
+  const m = loadModules(
+    rotatingServer({ status: 401, data: { detail: 'Session is invalid or expired.' } })
+  );
+  await signIn(m);
+
+  await expect(m.Api().get('/things/1')).rejects.toMatchObject({ response: { status: 401 } });
+  expect(m.onUnauthorized).toHaveBeenCalledWith('ended');
 });
 
 it('keeps the session on a transient refresh failure', async () => {

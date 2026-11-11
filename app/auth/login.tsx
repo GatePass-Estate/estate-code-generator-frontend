@@ -42,6 +42,7 @@ import {
 } from '@/src/lib/biometricAuth';
 import { BiometricPromptModal } from '@/src/components/mobile/BiometricPromptModal';
 import Back from '@/src/components/mobile/Back';
+import { parseSignOutReason, signOutNotice } from '@/src/lib/signOutReason';
 
 export default function Login() {
   const { signIn } = useAuth();
@@ -56,9 +57,9 @@ export default function Login() {
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showTosRejected, setShowTosRejected] = useState(searchParams.tos_rejected === 'true');
-  // Set when a session was revoked or expired elsewhere and we signed this
-  // device out; explains why the user is suddenly back on the login screen.
-  const sessionExpired = searchParams.session_expired === 'true';
+  // Set when the app signed this device out on its own (inactivity, an expired sign-in, an ended
+  // session); explains why the user is suddenly back on the login screen.
+  const signedOutBecause = parseSignOutReason(searchParams.signed_out);
   const [sessionNoticeDismissed, setSessionNoticeDismissed] = useState(false);
   const [showBiometric, setShowBiometric] = useState(false);
   const [showBiometricPrompt, setShowBiometricPrompt] = useState(false);
@@ -383,7 +384,7 @@ export default function Login() {
         >
           <Back type="short-arrow" onPress={handleBackPress} showText={false} showBorder={true} />
 
-          {sessionExpired && !sessionNoticeDismissed && (
+          {signedOutBecause && !sessionNoticeDismissed && (
             // Floats over the empty space under the back button (column padding 24 + back button 40
             // + 12) so showing or dismissing it never moves the form.
             <View
@@ -393,7 +394,7 @@ export default function Login() {
             >
               <View className="flex-row items-center gap-3 rounded-2xl border-mini border-[#FFCDD2] bg-[#FFF0F0] py-3 pl-5 pr-3">
                 <Text className="flex-shrink text-center font-inter-regular text-xs text-[#B3261E]">
-                  You were signed out because this session was ended on another device.
+                  {signOutNotice(signedOutBecause)}
                 </Text>
                 <Pressable
                   onPress={() => setSessionNoticeDismissed(true)}

@@ -1,6 +1,7 @@
 import axios, { type AxiosError, type AxiosInstance, type InternalAxiosRequestConfig } from 'axios';
 import { useAuthStore } from '../stores/authStore';
 import { handleUnauthorizedResponse, shouldForceLogoutOn401 } from '../session';
+import { errorDetail, signOutReasonFromRequestFailure } from '../signOutReason';
 import { attachDeviceId } from '../deviceId';
 import { getValidAccessToken, isOwnAccessToken, refreshSession } from '../authRefresh';
 
@@ -68,7 +69,10 @@ function sessionUnauthorizedInterceptor(client: AxiosInstance) {
     if (!shouldForceLogoutOn401(requestUrl)) return Promise.reject(error);
 
     if (config._authRetried || !refresh_token) {
-      await handleUnauthorizedResponse(requestUrl);
+      await handleUnauthorizedResponse(
+        requestUrl,
+        signOutReasonFromRequestFailure(errorDetail(error.response?.data))
+      );
       return Promise.reject(error);
     }
 
