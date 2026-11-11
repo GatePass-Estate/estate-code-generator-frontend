@@ -1,5 +1,8 @@
 import { describe, expect, it } from '@jest/globals';
 import {
+  formatMonthlyCharge,
+  formatPlanName,
+  withOneMonth,
   buildCustomEntitlements,
   buildPendingRequests,
   classifyCheckoutNavigation,
@@ -748,5 +751,41 @@ describe('getRenewalBlockMessage', () => {
       now
     );
     expect(block?.message).toBe('No active subscription for estate');
+  });
+});
+
+describe('withOneMonth', () => {
+  it('prices the same plan and seats for one month', () => {
+    expect(withOneMonth({ tier_slug: 'sentinel', covered_users: 10, period_months: 6 })).toEqual({
+      tier_slug: 'sentinel',
+      covered_users: 10,
+      period_months: 1,
+    });
+    expect(withOneMonth(null)).toBeNull();
+  });
+});
+
+describe('formatMonthlyCharge', () => {
+  it("shows a 1-month quote's VAT-inclusive total, not the per-seat price", () => {
+    // Sentinel at 10 seats: 630 x 10 + 7,500 AI = 13,800, + 7.5% VAT.
+    expect(
+      formatMonthlyCharge({ client_total: 14835, currency_code: 'NGN', period_months: 1 })
+    ).toBe(formatMoney(14835, 'NGN'));
+  });
+
+  it('is null until a one-month quote has loaded', () => {
+    expect(formatMonthlyCharge(null)).toBeNull();
+    expect(
+      formatMonthlyCharge({ client_total: 89010, currency_code: 'NGN', period_months: 6 })
+    ).toBeNull();
+  });
+});
+
+describe('formatPlanName', () => {
+  it('capitalises each word without upper-casing the whole name', () => {
+    expect(formatPlanName('sentinel')).toBe('Sentinel');
+    expect(formatPlanName('Sentinel')).toBe('Sentinel');
+    expect(formatPlanName('watch plus')).toBe('Watch Plus');
+    expect(formatPlanName(undefined)).toBe('');
   });
 });

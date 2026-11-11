@@ -277,8 +277,6 @@ export type TierFeatureRow = {
   state: 'included' | 'locked';
 };
 
-export type TierSeatPrice = { pricePerSeat: number; currency: string };
-
 /** GET /subscriptions/estate/{id}/renewal-eligibility */
 export type RenewalEligibility = {
   estate_id: string;

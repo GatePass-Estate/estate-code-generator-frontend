@@ -3,6 +3,7 @@ import { UserRolesType } from '@/src/types/general';
 import type { AllUsers } from '@/src/types/user';
 import {
   BillingTier,
+  CheckoutQuote,
   CheckoutQuoteRequest,
   EstateSubscription,
   PendingRequest,
@@ -397,6 +398,37 @@ export function createIdempotencyKey(): string {
     return (char === 'x' ? r : (r & 0x3) | 0x8).toString(16);
   });
   return `${Date.now().toString(36)}-${random}`;
+}
+
+/**
+ * The same quote body priced for a single month, for a plan card's "/month" figure. A quote's
+ * `price_per_seat` is not that figure: it leaves out the seat count and the plan's flat monthly AI
+ * price, so it reads the same on every plan.
+ */
+export function withOneMonth<T extends { period_months: PeriodMonths }>(
+  params: T | null
+): T | null {
+  return params ? { ...params, period_months: 1 } : null;
+}
+
+/**
+ * A plan card's "/month" figure: what the estate is charged per month at its seat count, VAT
+ * included (the `client_total` of a 1-month quote, see `withOneMonth`). `null` until it loads.
+ */
+export function formatMonthlyCharge(
+  quote: Pick<CheckoutQuote, 'client_total' | 'currency_code' | 'period_months'> | null | undefined
+): string | null {
+  if (!quote || quote.period_months !== 1) return null;
+  return formatMoney(quote.client_total, quote.currency_code) || null;
+}
+
+/** "Sentinel", "Watch": capitalises each word of a plan name without shouting it in capitals. */
+export function formatPlanName(name: string | null | undefined): string {
+  return (name ?? '')
+    .trim()
+    .split(/\s+/)
+    .map((word) => (word ? word.charAt(0).toUpperCase() + word.slice(1) : word))
+    .join(' ');
 }
 
 /**

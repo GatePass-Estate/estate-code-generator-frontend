@@ -22,14 +22,16 @@ import {
   useBillingQuote,
   useBillingTiers,
   useScheduleTierChange,
-  useTierSeatPrices,
 } from '@/src/hooks/useBillingQueries';
 import { useBillingScreenGuard } from '@/src/hooks/useBillingScreenGuard';
 import { showCheckoutOutcomeAlert, usePaystackCheckout } from '@/src/lib/billingCheckout';
 import {
   formatBillingDate,
   formatMoney,
+  formatMonthlyCharge,
+  formatPlanName,
   getBilledCaption,
+  getCurrentPlanQuoteParams,
   getNextBillingQuoteParams,
   getPlanDirection,
   getPlanRenewalFootnote,
@@ -55,7 +57,6 @@ export default function ChangePlanScreen() {
   const pendingRequests = usePendingRequests();
 
   const tiers = tiersQuery.data;
-  const seatPrices = useTierSeatPrices(tiers);
 
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
   const [timing, setTiming] = useState<ChangeTiming | null>(null);
@@ -102,6 +103,12 @@ export default function ChangePlanScreen() {
   const nextCycleQuote = useBillingQuote(
     target && !isCustomTarget && !isFreeTarget
       ? getNextBillingQuoteParams(subscription, currentTier, { nextTier: target })
+      : null
+  );
+  // The card's "/month" figure: the selected plan's monthly charge at the estate's current seats.
+  const monthlyQuote = useBillingQuote(
+    target && !isCustomTarget && !isFreeTarget
+      ? getCurrentPlanQuoteParams(subscription, target, subscription?.covered_users ?? 0, 1)
       : null
   );
   const nextCycleCaption = getBilledCaption(
@@ -270,11 +277,11 @@ export default function ChangePlanScreen() {
 
     if (loading) return <BillingLoading />;
 
-    const seatPrice = target ? seatPrices[target.slug] : undefined;
+    // Placeholder data is another plan's figure (kept while switching tabs), so it isn't shown.
     const priceLabel = isFreeTarget
       ? 'Free'
-      : seatPrice
-        ? formatMoney(seatPrice.pricePerSeat, seatPrice.currency)
+      : monthlyQuote.data?.tier_slug === target?.slug
+        ? formatMonthlyCharge(monthlyQuote.data)
         : null;
     // Figma: the card carries the current subscription's renew/expiry line, as on Your Current Plan.
     const footnote = isCustomTarget ? 'Custom pricing' : getPlanRenewalFootnote(subscription);
@@ -289,7 +296,11 @@ export default function ChangePlanScreen() {
           Change Plan
         </Text>
         <Text className="mt-2 font-inter-regular text-[11.2px] leading-[13.6px] text-[#878686]">
-          {`You are currently on ${(currentTier?.name ?? '').toUpperCase()} PLAN, select another to upgrade or downgrade.`}
+          {'You are currently on the '}
+          <Text className="font-inter-semibold text-[#5B5E61]">
+            {formatPlanName(currentTier?.name)}
+          </Text>
+          {' plan, select another to upgrade or downgrade.'}
         </Text>
 
         {otherTiers.length > 0 ? (

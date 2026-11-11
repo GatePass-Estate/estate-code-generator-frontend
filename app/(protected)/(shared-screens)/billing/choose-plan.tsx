@@ -36,18 +36,19 @@ import {
   useBillingTiers,
   useRenewalEligibility,
   useSeatReductionEligibility,
-  useTierSeatPrices,
 } from '@/src/hooks/useBillingQueries';
 import { useBillingScreenGuard } from '@/src/hooks/useBillingScreenGuard';
 import { getCheckoutQuote } from '@/src/lib/api/billing';
 import {
   buildCustomEntitlements,
   formatMoney,
+  formatMonthlyCharge,
   getAmountFontSize,
   getBilledCaption,
   getCurrentPlanQuoteParams,
   getPlanRenewalFootnote,
   getRenewalBlockMessage,
+  withOneMonth,
   getTierFeatureRows,
   inferPeriodMonths,
   isPaidActiveSubscription,
@@ -113,7 +114,6 @@ export default function ChoosePlanScreen() {
 
   const tiersQuery = useBillingTiers();
   const eligibilityQuery = useSeatReductionEligibility();
-  const seatPrices = useTierSeatPrices(tiersQuery.data);
   const { startCheckout, isRunning, checkoutSheet } = usePaystackCheckout();
   const queryClient = useQueryClient();
   const { estateId } = useBillingAccess();
@@ -241,6 +241,13 @@ export default function ChoosePlanScreen() {
     [debouncedKey]
   );
   const quoteQuery = useBillingQuote(quoteParams);
+  // The card's "/month" figure: the same plan, seats and features priced for one month (shares the
+  // cache entry with the main quote when the duration is already one month).
+  const monthlyQuoteQuery = useBillingQuote(withOneMonth(quoteParams));
+  const monthlyQuote =
+    liveParams && monthlyQuoteQuery.data?.tier_slug === liveParams.tier_slug
+      ? monthlyQuoteQuery.data
+      : null;
   // Keep the previous figure while seats/duration/features refetch, but never show another tab's.
   const quote =
     liveParams && quoteQuery.data?.tier_slug === liveParams.tier_slug ? quoteQuery.data : null;
@@ -314,12 +321,7 @@ export default function ChoosePlanScreen() {
   const loading = redirecting || tiersQuery.isLoading || subscriptionQuery.isLoading;
   const loadError = tiersQuery.error ?? subscriptionQuery.error;
 
-  const seatPrice = activeSlug ? seatPrices[activeSlug] : undefined;
-  const planPriceLabel = isCustom
-    ? quote
-      ? formatMoney(quote.price_per_seat, quote.currency_code)
-      : null
-    : formatMoney(seatPrice?.pricePerSeat, seatPrice?.currency);
+  const planPriceLabel = formatMonthlyCharge(monthlyQuote);
   const duration = PLAN_DURATIONS.find((option) => option.months === months) ?? PLAN_DURATIONS[0];
   const billedCaption = getBilledCaption(months);
   // Not disabled while the price only refreshes after a seat/duration change: `subscribe` waits

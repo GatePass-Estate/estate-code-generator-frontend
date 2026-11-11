@@ -1,4 +1,4 @@
-import { keepPreviousData, useMutation, useQueries, useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query';
 import { useCallback, useMemo } from 'react';
 import { queryClient } from '@/lib/queryClient';
 import {
@@ -31,11 +31,9 @@ import { useUserStore } from '@/src/lib/stores/userStore';
 import {
   BillingTier,
   BillingTierListResponse,
-  CheckoutQuote,
   CheckoutQuoteRequest,
   CheckoutStatusResponse,
   InitializeCheckoutRequest,
-  TierSeatPrice,
 } from '@/src/types/billing';
 
 /** Quote params; `estate_id` defaults to the signed-in user's estate. */
@@ -161,46 +159,6 @@ export function usePrefetchBillingQuote() {
     },
     [estateId, canView]
   );
-}
-
-const combineSeatPrices = (results: { data?: CheckoutQuote }[]): Record<string, TierSeatPrice> => {
-  const prices: Record<string, TierSeatPrice> = {};
-  for (const { data } of results) {
-    if (data?.tier_slug) {
-      prices[data.tier_slug] = { pricePerSeat: data.price_per_seat, currency: data.currency_code };
-    }
-  }
-  return prices;
-};
-
-/**
- * Per-seat monthly price for each paid, non-custom tier (one quote each: 1 seat, 1 month), keyed
- * by slug. A slug is missing until its quote loads (or if it failed).
- *
- * These share `useBillingQuote`'s cache key (e.g. Choose Plan at 1 seat / 30 days), so the cached
- * value must stay the full quote; the per-seat price is derived in `combine`.
- */
-export function useTierSeatPrices(
-  tiers: readonly BillingTier[] | null | undefined
-): Record<string, TierSeatPrice> {
-  const { estateId, canView } = useBillingAccess();
-  const paidTiers = (tiers ?? []).filter((tier) => !tier.is_custom && tier.slug !== 'access');
-  return useQueries({
-    queries: paidTiers.map((tier) => {
-      const body: CheckoutQuoteRequest = {
-        estate_id: estateId ?? '',
-        tier_slug: tier.slug,
-        covered_users: 1,
-        period_months: 1,
-      };
-      return {
-        queryKey: billingKeys.quote(body),
-        queryFn: () => getCheckoutQuote(body),
-        enabled: Boolean(estateId) && canView,
-      };
-    }),
-    combine: combineSeatPrices,
-  });
 }
 
 /** `null` data when the subscription isn't active/trialing (the API answers 404). */
