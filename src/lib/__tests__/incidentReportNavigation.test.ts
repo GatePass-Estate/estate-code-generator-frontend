@@ -27,14 +27,16 @@ describe('incident report return navigation', () => {
     const calls: string[] = [];
     leaveIncidentReport('/security/more', {
       replace: (path) => calls.push(`replace:${path}`),
+      dismissTo: (path) => calls.push(`dismissTo:${path}`),
     });
-    expect(calls).toEqual(['replace:/security/more']);
+    expect(calls).toEqual(['dismissTo:/security/more']);
   });
 
   it('returns to each explicit entry destination', () => {
     const calls: unknown[] = [];
     const router = {
-      replace: (path: unknown) => calls.push(path),
+      replace: (path: unknown) => calls.push(`replace:${JSON.stringify(path)}`),
+      dismissTo: (path: unknown) => calls.push(`dismissTo:${path}`),
     };
     leaveIncidentReport('/security/more', router);
     leaveIncidentReport('/security', router);
@@ -42,11 +44,11 @@ describe('incident report return navigation', () => {
     leaveIncidentReport('/admin', router);
     leaveIncidentReport('/user', router);
     expect(calls).toEqual([
-      '/security/more',
-      '/security',
-      '/settings',
-      { pathname: '/admin', params: { returnTo: '/settings' } },
-      '/user',
+      'dismissTo:/security/more',
+      'dismissTo:/security',
+      'dismissTo:/settings',
+      'replace:{"pathname":"/admin","params":{"returnTo":"/settings"}}',
+      'dismissTo:/user',
     ]);
   });
 
@@ -56,6 +58,7 @@ describe('incident report return navigation', () => {
       canGoBack: () => true,
       back: () => calls.push('back'),
       replace: (path: unknown) => calls.push(`replace:${JSON.stringify(path)}`),
+      dismissTo: (path: unknown) => calls.push(`dismissTo:${path}`),
     };
 
     leaveIncidentReport('/admin', router);
@@ -65,9 +68,9 @@ describe('incident report return navigation', () => {
 
     expect(calls).toEqual([
       'back',
-      'replace:"/settings"',
-      'replace:"/profile"',
-      'replace:"/security/more"',
+      'dismissTo:/settings',
+      'dismissTo:/profile',
+      'dismissTo:/security/more',
     ]);
   });
 });

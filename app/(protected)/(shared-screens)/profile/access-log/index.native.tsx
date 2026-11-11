@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { View, Pressable, ScrollView, ActivityIndicator, Text } from 'react-native';
 import { Stack, router, useNavigation } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MaterialIcons } from '@expo/vector-icons';
+import Back from '@/src/components/mobile/Back';
 import { AccessLogCard } from '@/src/components/mobile/AccessLogCard';
 import ScreenHeader from '@/src/components/mobile/ScreenHeader';
 import { mapResidentLogToAccessLog } from '@/src/lib/accessLogMappers';
@@ -45,12 +45,7 @@ export default function AccessLogScreen() {
     >
       <Stack.Screen options={{ headerShown: false }} />
 
-      <Pressable
-        onPress={() => navigation.goBack()}
-        className="h-[30px] w-[30px] items-center justify-center rounded-full bg-[#EFF1F1]"
-      >
-        <MaterialIcons name="keyboard-arrow-left" size={24} color="#113E55" />
-      </Pressable>
+      <Back type="short-arrow" onPress={() => navigation.goBack()} />
 
       <ScreenHeader
         subtitleClassName="text-[#0A1F29] font-inter-light"

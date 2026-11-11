@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, Platform } from 'react-native';
+import { Platform } from 'react-native';
 import PaystackCheckoutSheet, {
   type PaystackCheckoutResult,
 } from '@/src/components/billing/PaystackCheckoutSheet';
@@ -10,6 +10,7 @@ import PaymentProcessingModal, {
 import {
   fetchCheckoutStatus,
   refreshBillingData,
+  useBillingAccess,
   useInitializeCheckout,
   type InitializeCheckoutParams,
 } from '@/src/hooks/useBillingQueries';
@@ -245,6 +246,7 @@ type OverlayState = {
  * unmounts mid-checkout, polling stops and the call resolves to `'cancelled'`.
  */
 export function usePaystackCheckout() {
+  const { denyIfUnauthorized, notifyActionError } = useBillingAccess();
   const { mutateAsync: initializeCheckout } = useInitializeCheckout();
   const [isRunning, setIsRunning] = useState(false);
   const [active, setActive] = useState<ActiveCheckout | null>(null);
@@ -291,6 +293,7 @@ export function usePaystackCheckout() {
 
   const startCheckout = useCallback(
     async (params: InitializeCheckoutParams): Promise<CheckoutOutcome> => {
+      if (denyIfUnauthorized()) return 'error';
       if (runningRef.current) return 'error';
       const signal = signalRef.current ?? new AbortController().signal;
       runningRef.current = true;
@@ -316,18 +319,19 @@ export function usePaystackCheckout() {
           // Left the screen: no alert over whatever the user is looking at now.
           if (!signal.aborted) {
             if (status === 409) {
-              Alert.alert(
+              notifyActionError(
                 'Checkout conflict',
-                error?.message ||
-                  'A conflicting checkout or subscription request already exists. Your billing details have been refreshed.'
+                error,
+                'A conflicting checkout or subscription request already exists. Your billing details have been refreshed.'
               );
             } else if (status === 422) {
-              Alert.alert(
+              notifyActionError(
                 'Invalid checkout details',
-                error?.message || 'Please review your plan selection and try again.'
+                error,
+                'Please review your plan selection and try again.'
               );
             } else {
-              Alert.alert('Checkout failed', error?.message || 'Could not start checkout.');
+              notifyActionError('Checkout failed', error, 'Could not start checkout.');
             }
           }
           return 'error';
@@ -393,7 +397,7 @@ export function usePaystackCheckout() {
         }
       }
     },
-    [initializeCheckout]
+    [denyIfUnauthorized, initializeCheckout, notifyActionError]
   );
 
   // iOS drops a modal presented while another is still dismissing. If the overlay hasn't shown up

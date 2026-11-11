@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useLocalSearchParams, useNavigation } from 'expo-router';
-import { MaterialIcons } from '@expo/vector-icons';
+import Back from '@/src/components/mobile/Back';
 import { sharedStyles } from '@/src/theme/styles';
 import AccessTimeline, { AccessTimelineEvent } from '@/src/components/mobile/AccessTimeline';
 import { mapResidentCodeHistoryToEvents } from '@/src/lib/accessLogMappers';
@@ -123,12 +123,7 @@ export default function AccessLogDetailScreen() {
     >
       <Stack.Screen options={{ headerShown: false }} />
 
-      <Pressable
-        onPress={() => navigation.goBack()}
-        className="h-[30px] w-[30px] items-center justify-center rounded-full bg-[#EFF1F1]"
-      >
-        <MaterialIcons name="keyboard-arrow-left" size={24} color="#113E55" />
-      </Pressable>
+      <Back type="short-arrow" onPress={() => navigation.goBack()} />
 
       {loading ? (
         <View className="flex-1 items-center justify-center">

@@ -29,7 +29,13 @@ export default function ProtectedLayout() {
 
   return (
     <>
-      <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          animation: 'slide_from_right',
+          animationTypeForReplace: 'pop',
+        }}
+      >
         <Stack.Screen name="user" />
       </Stack>
       <PlanGuard />

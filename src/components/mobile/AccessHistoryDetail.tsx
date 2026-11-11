@@ -7,7 +7,7 @@ import {
   Image,
   StyleSheet,
 } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import Back from '@/src/components/mobile/Back';
 import AccessTimeline, { AccessTimelineEvent } from '@/src/components/mobile/AccessTimeline';
 import Button from '@/src/components/mobile/Button';
 
@@ -64,12 +64,7 @@ export default function AccessHistoryDetail({
 
   return (
     <View className="flex-1">
-      <Pressable
-        onPress={onBack}
-        className="h-[30px] w-[30px] items-center justify-center rounded-full bg-[#EFF1F1]"
-      >
-        <MaterialIcons name="keyboard-arrow-left" size={24} color="#113E55" />
-      </Pressable>
+      <Back type="short-arrow" onPress={onBack} />
 
       {loading ? (
         <View className="flex-1 items-center justify-center">

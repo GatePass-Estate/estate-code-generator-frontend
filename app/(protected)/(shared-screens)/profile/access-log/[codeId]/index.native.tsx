@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, Pressable, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { Stack, useLocalSearchParams, useNavigation, router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MaterialIcons } from '@expo/vector-icons';
+import Back from '@/src/components/mobile/Back';
 import ScreenHeader from '@/src/components/mobile/ScreenHeader';
 import AccessTimeline, { AccessTimelineEvent } from '@/src/components/mobile/AccessTimeline';
 import { mapResidentCodeHistoryToEvents } from '@/src/lib/accessLogMappers';
@@ -116,12 +116,7 @@ export default function UsageLogScreen() {
         ]}
       >
         <Stack.Screen options={{ headerShown: false }} />
-        <Pressable
-          onPress={() => navigation.goBack()}
-          className="h-[30px] w-[30px] items-center justify-center rounded-full bg-[#EFF1F1]"
-        >
-          <MaterialIcons name="keyboard-arrow-left" size={24} color="#113E55" />
-        </Pressable>
+        <Back type="short-arrow" onPress={() => navigation.goBack()} />
         <Text className="mt-6 text-base font-inter-regular text-[#6C6C6C]">{error}</Text>
       </SafeAreaView>
     );
@@ -138,12 +133,7 @@ export default function UsageLogScreen() {
       <Stack.Screen options={{ headerShown: false }} />
 
       <View className="bg-[#F6F7F7]" style={{ zIndex: 1 }}>
-        <Pressable
-          onPress={() => navigation.goBack()}
-          className="h-[30px] w-[30px] items-center justify-center rounded-full bg-[#EFF1F1]"
-        >
-          <MaterialIcons name="keyboard-arrow-left" size={24} color="#113E55" />
-        </Pressable>
+        <Back type="short-arrow" onPress={() => navigation.goBack()} />
 
         <ScreenHeader
           subtitleClassName="text-[#0A1F29] font-inter-light"

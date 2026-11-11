@@ -2,7 +2,7 @@ import { View, Text, Share, Alert, Image, Pressable, ScrollView } from 'react-na
 import * as Clipboard from 'expo-clipboard';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { MaterialIcons } from '@expo/vector-icons';
+import Back from '@/src/components/mobile/Back';
 import { sharedStyles } from '@/src/theme/styles';
 import icons from '@/src/constants/icons';
 import { deleteCode } from '@/src/lib/api/codes';
@@ -90,12 +90,7 @@ export default function InvitePage() {
         }}
       />
 
-      <Pressable
-        onPress={handleBack}
-        className="h-[30px] w-[30px] items-center justify-center rounded-full bg-[#EFF1F1]"
-      >
-        <MaterialIcons name="keyboard-arrow-left" size={24} color="#113E55" />
-      </Pressable>
+      <Back type="short-arrow" onPress={handleBack} />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
