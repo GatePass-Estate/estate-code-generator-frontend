@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   BackHandler,
@@ -23,6 +23,11 @@ import {
 } from '@/src/lib/incidentReportNavigation';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import SecurityTabBar from '@/src/components/security/SecurityTabBar';
+import {
+  clearIncidentReportDraft,
+  loadIncidentReportDraft,
+  saveIncidentReportDraft,
+} from '@/src/lib/incidentReportDraft';
 
 function parseCategories(value: string | string[] | undefined): string[] {
   if (typeof value !== 'string') return [];
@@ -51,6 +56,7 @@ export default function IncidentReportCreateScreen() {
   const categories = useMemo(() => parseCategories(categoryParam), [categoryParam]);
   const customCategory = typeof customCategoryParam === 'string' ? customCategoryParam.trim() : '';
   const role = useUserStore((state) => state.role);
+  const userId = useUserStore((state) => state.user_id);
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
   const { requestAccessWhenReady } = useFeatureGate('incident_report', { notice: 'floating' });
@@ -60,8 +66,47 @@ export default function IncidentReportCreateScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [confirmSubmit, setConfirmSubmit] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const [draftLoaded, setDraftLoaded] = useState(false);
+  const [savingDraft, setSavingDraft] = useState(false);
   const [error, setError] = useState('');
+  const clearedDraft = useRef(false);
   const hasDraft = Boolean(title.trim() || narrative.trim());
+
+  useEffect(() => {
+    let active = true;
+    void loadIncidentReportDraft(userId)
+      .then((draft) => {
+        if (!active || !draft) return;
+        setTitle(draft.title);
+        setNarrative(draft.narrative);
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (active) setDraftLoaded(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, [userId]);
+
+  const saveDraft = useCallback(
+    () =>
+      saveIncidentReportDraft(userId, {
+        categories,
+        customCategory,
+        title,
+        narrative,
+      }),
+    [categories, customCategory, narrative, title, userId]
+  );
+
+  useEffect(() => {
+    if (!draftLoaded || clearedDraft.current || !userId) return;
+    const timer = setTimeout(() => {
+      void saveDraft().catch(() => setError('Unable to save your draft. Please try again.'));
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [draftLoaded, saveDraft, userId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -89,29 +134,46 @@ export default function IncidentReportCreateScreen() {
     }, [requestAccessWhenReady, returnTo, role, router])
   );
 
+  const requestExit = useCallback(async () => {
+    if (submitting || savingDraft || !draftLoaded) return;
+    if (!userId) {
+      setError('Unable to save your draft. Please sign in again.');
+      return;
+    }
+    try {
+      await saveDraft();
+      router.replace({ pathname: '/user/report/category', params: { returnTo } });
+    } catch {
+      setError('Unable to save your draft. Please try again.');
+    }
+  }, [draftLoaded, returnTo, router, saveDraft, savingDraft, submitting, userId]);
+
   useFocusEffect(
     useCallback(() => {
       if (Platform.OS !== 'android') return;
       const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
-        if (submitting) return true;
-        if (!hasDraft) {
-          router.replace({ pathname: '/user/report/category', params: { returnTo } });
-          return true;
-        }
-        setConfirmDiscard(true);
+        void requestExit();
         return true;
       });
       return () => subscription.remove();
-    }, [hasDraft, returnTo, router, submitting])
+    }, [requestExit])
   );
 
-  const requestExit = () => {
-    if (submitting) return;
-    if (hasDraft) {
-      setConfirmDiscard(true);
+  const saveAndLeave = async () => {
+    if (submitting || savingDraft) return;
+    if (!userId) {
+      setError('Unable to save your draft. Please sign in again.');
       return;
     }
-    router.replace({ pathname: '/user/report/category', params: { returnTo } });
+    setSavingDraft(true);
+    try {
+      await saveDraft();
+      router.replace(returnTo);
+    } catch {
+      setError('Unable to save your draft. Please try again.');
+    } finally {
+      setSavingDraft(false);
+    }
   };
 
   const requestSubmit = () => {
@@ -122,6 +184,18 @@ export default function IncidentReportCreateScreen() {
     }
     setError('');
     setConfirmSubmit(true);
+  };
+
+  const discardDraft = async () => {
+    setConfirmDiscard(false);
+    clearedDraft.current = true;
+    try {
+      await clearIncidentReportDraft(userId);
+      router.replace({ pathname: '/user/report/category', params: { returnTo } });
+    } catch {
+      clearedDraft.current = false;
+      setError('Unable to discard your draft. Please try again.');
+    }
   };
 
   const submit = async () => {
@@ -136,6 +210,8 @@ export default function IncidentReportCreateScreen() {
         narrative: narrative.trim(),
         occurred_at: new Date().toISOString(),
       });
+      clearedDraft.current = true;
+      await clearIncidentReportDraft(userId).catch(() => undefined);
       setConfirmSubmit(false);
       leaveIncidentReport(returnTo, router);
     } catch {
@@ -171,7 +247,7 @@ export default function IncidentReportCreateScreen() {
               showBorder
               borderSize={30}
               leftOffset={-3}
-              onPress={requestExit}
+              onPress={() => void requestExit()}
             />
             <Text className="-ml-[3px] mt-[22px] font-ubuntu-medium text-[27.34px] leading-[33px] text-[#113E55]">
               Incident Report
@@ -215,8 +291,18 @@ export default function IncidentReportCreateScreen() {
 
           <View className="flex-1" />
           <TouchableOpacity
+            onPress={() => void saveAndLeave()}
+            disabled={submitting || savingDraft || !draftLoaded}
+            accessibilityRole="button"
+            className="mx-auto mb-3 h-[44px] w-[278px] max-w-[80%] items-center justify-center rounded-[24px] border border-[#113E55]"
+          >
+            <Text className="font-ubuntu-semibold text-[14px] leading-[18px] text-[#113E55]">
+              {savingDraft ? 'Saving Draft...' : 'Save Draft'}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
             onPress={requestSubmit}
-            disabled={submitting || checkingAccess}
+            disabled={submitting || checkingAccess || !draftLoaded}
             accessibilityRole="button"
             className="mx-auto h-[44px] w-[278px] max-w-[80%] items-center justify-center rounded-[24px] bg-[#113E55]"
           >
@@ -227,6 +313,14 @@ export default function IncidentReportCreateScreen() {
                 Submit
               </Text>
             )}
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setConfirmDiscard(true)}
+            disabled={submitting || savingDraft || !draftLoaded}
+            accessibilityRole="button"
+            className="mx-auto mt-3 items-center justify-center py-2"
+          >
+            <Text className="font-inter-regular text-[12px] text-[#878686]">Discard Draft</Text>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -242,13 +336,10 @@ export default function IncidentReportCreateScreen() {
       />
       <ActionConfirmModal
         visible={confirmDiscard}
-        title="Discard Report?"
-        message="Leave this screen? Your unsent report details will be lost."
-        confirmLabel="Discard"
-        onConfirm={() => {
-          setConfirmDiscard(false);
-          router.replace({ pathname: '/user/report/category', params: { returnTo } });
-        }}
+        title="Discard Draft?"
+        message="Remove this saved report draft?"
+        confirmLabel="Discard Draft"
+        onConfirm={() => void discardDraft()}
         onCancel={() => setConfirmDiscard(false)}
       />
     </SafeAreaView>

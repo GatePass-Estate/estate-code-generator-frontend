@@ -22,6 +22,7 @@ export type Estate = {
   location: string;
   estate_type?: string | null;
   lga?: string | null;
+  city?: string | null;
   state?: string | null;
   country?: string | null;
   postal_code?: string | null;

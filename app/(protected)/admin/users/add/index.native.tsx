@@ -1,9 +1,10 @@
 import Back from '@/src/components/mobile/Back';
 import { sharedStyles } from '@/src/theme/styles';
 import { Stack, useNavigation, useRouter } from 'expo-router';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   ActivityIndicator,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -12,6 +13,7 @@ import {
   TextInput,
   TouchableOpacity,
   Pressable,
+  useWindowDimensions,
   View,
   Modal,
 } from 'react-native';
@@ -40,11 +42,20 @@ import {
 
 const RegisterUser = () => {
   const insets = useSafeAreaInsets();
+  const { height: screenHeight } = useWindowDimensions();
   const router = useRouter();
   const navigation = useNavigation();
   const { systemBottom } = useAndroidBottomInset();
   const estateId = useUserStore((state) => state.estate_id) || '';
   const [currentStep, setCurrentStep] = useState(1);
+  const scrollViewRef = useRef<ScrollView>(null);
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [currentStep]);
   const [formData, setFormData] = useState<FormData>({
     firstName: '',
     lastName: '',
@@ -112,7 +123,7 @@ const RegisterUser = () => {
         if (!active) return;
         setFormData((current) => ({
           ...current,
-          city: estate.lga || estate.location || '',
+          city: estate.city || estate.lga || '',
           state: estate.state || '',
           postalCode: estate.postal_code || '',
         }));
@@ -163,6 +174,7 @@ const RegisterUser = () => {
     }
     if (currentStep === 1) {
       if (validateStep1()) {
+        Keyboard.dismiss();
         setCurrentStep(2);
         setErrors({});
       }
@@ -315,6 +327,8 @@ const RegisterUser = () => {
         style={{ flex: 1 }}
       >
         <ScrollView
+          ref={scrollViewRef}
+          keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: systemBottom + 40 }}
         >
@@ -464,7 +478,7 @@ const RegisterUser = () => {
                 )}
               </View>
 
-              <View className="mb-[68px] min-h-[68px]">
+              <View className="min-h-[68px]" style={{ marginBottom: screenHeight < 900 ? 24 : 68 }}>
                 <Text
                   style={[
                     sharedStyles.registrationLabel,
