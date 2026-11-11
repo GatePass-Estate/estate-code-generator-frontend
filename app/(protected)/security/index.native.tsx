@@ -518,7 +518,7 @@ export default function SecurityVerificationMobile() {
           className="absolute right-0 top-0 flex-row items-start gap-[10px]"
           style={styles.headerIconGroup}
         >
-          <NotificationBell className="mt-[3px]" securityHeader />
+          <NotificationBell className="mt-[3px]" />
           <Pressable
             accessibilityLabel="Open more options"
             hitSlop={8}

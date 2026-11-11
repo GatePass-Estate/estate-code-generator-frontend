@@ -23,14 +23,16 @@ function grant(overrides: Partial<AiFeatureGrant>): AiFeatureGrant {
 }
 
 describe('isStandaloneAiGrant', () => {
-  it('keeps marketplace purchases and free installs', () => {
+  it('keeps AI tools subscribed to on their own in the marketplace', () => {
     expect(isStandaloneAiGrant({ source: 'standalone_purchase' })).toBe(true);
-    expect(isStandaloneAiGrant({ source: 'free_install' })).toBe(true);
+    expect(isStandaloneAiGrant({ source: 'STANDALONE_PURCHASE' })).toBe(true);
   });
 
-  it('leaves out AI tools that come with the estate plan', () => {
+  it('leaves out plan-included tools, free installs and unknown sources', () => {
     expect(isStandaloneAiGrant({ source: 'subscription_tier' })).toBe(false);
-    expect(isStandaloneAiGrant({ source: 'SUBSCRIPTION_TIER' })).toBe(false);
+    expect(isStandaloneAiGrant({ source: 'free_install' })).toBe(false);
+    expect(isStandaloneAiGrant({ source: 'admin_grant' })).toBe(false);
+    expect(isStandaloneAiGrant({ source: '' })).toBe(false);
   });
 });
 
@@ -40,7 +42,7 @@ describe('buildStandaloneAiTools', () => {
     { id: 'p2', name: 'Incident Reports', ai_feature_ids: ['f2'] },
   ];
 
-  it('lists only standalone grants, named from the marketplace', () => {
+  it('lists only standalone subscriptions, named from the marketplace', () => {
     const tools = buildStandaloneAiTools(
       [
         grant({ id: 'a', ai_feature_id: 'f1', source: 'standalone_purchase' }),
@@ -56,7 +58,7 @@ describe('buildStandaloneAiTools', () => {
       products,
       NOW
     );
-    expect(tools.map((tool) => tool.name)).toEqual(['Anomaly Detection', 'Smart Alerts']);
+    expect(tools.map((tool) => tool.name)).toEqual(['Anomaly Detection']);
   });
 
   it('is empty when every grant comes with the plan', () => {

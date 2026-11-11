@@ -30,15 +30,40 @@ describe('planBannerCopy', () => {
     expect(planBannerCopy({ tier: premium, tierSlug: 'premium', error: null })).toEqual({
       title: 'Premium Plan',
       subtitle: 'Everything included',
+      state: 'known',
     });
   });
 
-  it('falls back to the entitlements slug, then Free, when there is no tier', () => {
+  it('falls back to the entitlements slug when there is no tier', () => {
     expect(planBannerCopy({ tier: null, tierSlug: 'basic', error: null })).toEqual({
       title: 'Basic Plan',
       subtitle: FREE_PLAN_DESCRIPTION,
+      state: 'known',
     });
-    expect(planBannerCopy({ tier: null, tierSlug: null, error: null }).title).toBe('Free Plan');
+  });
+
+  it('says Free only when the server answered that there is no paid plan', () => {
+    expect(planBannerCopy({ tier: null, tierSlug: null, error: null })).toEqual({
+      title: 'Free Plan',
+      subtitle: FREE_PLAN_DESCRIPTION,
+      state: 'known',
+    });
+  });
+
+  it('does not call a plan that is still loading "Free"', () => {
+    const copy = planBannerCopy({ tier: undefined, tierSlug: undefined, error: null });
+    expect(copy.state).toBe('loading');
+    expect(copy.title).not.toMatch(/Free/);
+  });
+
+  it('does not call a plan that failed to load "Free"', () => {
+    const copy = planBannerCopy({
+      tier: undefined,
+      tierSlug: undefined,
+      error: new Error('Network'),
+    });
+    expect(copy.state).toBe('failed');
+    expect(copy.title).not.toMatch(/Free/);
   });
 
   it('does not call an unapproved user "Free"', () => {
@@ -50,6 +75,7 @@ describe('planBannerCopy', () => {
     expect(copy).toEqual({
       title: 'Plan Unavailable',
       subtitle: 'Plan unavailable until your ID is approved.',
+      state: 'denied',
     });
   });
 
@@ -59,10 +85,10 @@ describe('planBannerCopy', () => {
       tierSlug: undefined,
       error: new EntitlementsDeniedError('Not allowed'),
     });
-    expect(copy).toEqual({ title: 'Plan Unavailable', subtitle: 'Not allowed' });
+    expect(copy).toEqual({ title: 'Plan Unavailable', subtitle: 'Not allowed', state: 'denied' });
   });
 
-  it('keeps a cached tier over a later refusal, and treats network failures as before', () => {
+  it('keeps a cached tier over a later failure', () => {
     expect(
       planBannerCopy({
         tier: premium,
@@ -71,7 +97,7 @@ describe('planBannerCopy', () => {
       }).title
     ).toBe('Premium Plan');
     expect(
-      planBannerCopy({ tier: undefined, tierSlug: undefined, error: new Error('Network') }).title
-    ).toBe('Free Plan');
+      planBannerCopy({ tier: premium, tierSlug: 'premium', error: new Error('Network') }).title
+    ).toBe('Premium Plan');
   });
 });

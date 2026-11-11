@@ -5,18 +5,20 @@ import type { AiFeatureGrant, AiFeatureGrantStatus, EstateAiTool } from '@/src/t
 export type AiToolProduct = { id: string; name: string; ai_feature_ids?: string[] };
 
 /**
- * Grant source for AI tools that come with the estate plan (revenue_service ai_grant_sync). Every
- * other source (`standalone_purchase`, `free_install`) was added on its own in the AI marketplace.
+ * Grant source of an AI tool subscribed to on its own in the AI marketplace (revenue_service
+ * ai_grant_sync `activate_standalone_ai_grant`). The other sources are not subscriptions:
+ * `subscription_tier` comes with the estate plan, and `free_install` is a free tier switched on
+ * in the marketplace. Only standalone purchases can be cancelled there (`cancel_ai_feature`).
  */
-const PLAN_INCLUDED_SOURCE = 'subscription_tier';
+const STANDALONE_SUBSCRIPTION_SOURCE = 'standalone_purchase';
 
 /**
- * True for an AI tool the estate added on its own in the AI marketplace (bought or free install),
- * false for one that comes with the estate plan. Those are managed in the marketplace, not with
- * the plan.
+ * True only for an AI tool the estate subscribed to separately from the estate plan, which is
+ * what Billing's "Active AI Tools" lists. Plan-included tools and free installs are left out, as
+ * are grants with a missing or unknown source.
  */
 export function isStandaloneAiGrant(grant: Pick<AiFeatureGrant, 'source'>): boolean {
-  return (grant.source ?? '').toLowerCase() !== PLAN_INCLUDED_SOURCE;
+  return (grant.source ?? '').toLowerCase() === STANDALONE_SUBSCRIPTION_SOURCE;
 }
 
 /**
@@ -43,7 +45,8 @@ function isMoreRelevantGrant(candidate: EstateAiTool, current: EstateAiTool): bo
 }
 
 /**
- * The estate's standalone AI tools (plan-included grants left out), named via the AI marketplace
+ * The estate's standalone AI subscriptions (plan-included tools and free installs left out), named
+ * via the AI marketplace
  * (fallback: humanised feature key). One row per tool: a product's tiers are separate grants, so
  * they are grouped and the most relevant grant is kept (active first, then latest expiry).
  */

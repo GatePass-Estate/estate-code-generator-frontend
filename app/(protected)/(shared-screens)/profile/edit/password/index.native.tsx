@@ -112,9 +112,9 @@ export default function ChangePasswordScreen() {
   return (
     <SafeAreaView style={[sharedStyles.container, sharedStyles.modalContainer]}>
       <View className="flex-1 flex flex-col">
-        <Back type="short-arrow" />
+        <Back type="short-arrow" showText={false} showBorder />
 
-        <Text className="text-primary mt-10 text-3xl font-ubuntu-semibold mb-6">
+        <Text className="text-primary mt-[18px] text-3xl font-ubuntu-semibold mb-6">
           Change Password
         </Text>
 

@@ -58,7 +58,7 @@ function AiToolCard({ tool }: { tool: EstateAiTool }) {
 
 /**
  * "Active AI Tools" bottom sheet: marketplace note, then one validity card per active standalone
- * AI tool (added in the AI marketplace; tools included in the plan are not listed).
+ * AI subscription (subscribed to in the AI marketplace; plan-included and free tools not listed).
  */
 export default function AiToolsSheet({
   visible,
@@ -101,8 +101,8 @@ export default function AiToolsSheet({
     content = (
       <View className="items-center gap-4 py-6">
         <Text className="text-center font-inter-regular text-sm text-[#878686]">
-          No standalone AI tools. AI tools included in your plan are not listed here; add more from
-          the AI marketplace.
+          No standalone AI subscriptions. AI tools included in your plan and free AI tools are not
+          listed here; subscribe to more in the AI marketplace.
         </Text>
         <Pressable
           onPress={openMarketplace}

@@ -237,10 +237,10 @@ export function useSeatProrate(seatsAdded: number | null) {
 }
 
 /**
- * The estate's standalone AI tools for Billing's "Active AI Tools": the ones added on their own in
- * the AI marketplace (bought or free installs). AI tools that come with the estate plan are left
- * out; they are managed with the plan, and the standalone ones in the AI marketplace. Named via the
- * AI marketplace (fallback: humanised feature key). See `buildStandaloneAiTools`.
+ * The estate's standalone AI subscriptions for Billing's "Active AI Tools": AI tools subscribed to
+ * separately from the estate plan, which are managed (and cancelled) in the AI marketplace. AI
+ * tools included in the plan and free installs are left out. Named via the AI marketplace
+ * (fallback: humanised feature key). See `buildStandaloneAiTools`.
  */
 export function useEstateAiTools() {
   const { estateId, canView } = useBillingAccess();

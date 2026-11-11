@@ -21,6 +21,7 @@ import { useVerificationGate } from '@/src/hooks/useAccountVerification';
 import { useFeatureGate, useUpgradePromptStore } from '@/src/hooks/usePlan';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import {
+  refreshEstateEntitlements,
   refreshEstateEntitlementsIfOlderThan,
   useEstateEntitlements,
   useEstateTier,
@@ -284,7 +285,13 @@ export default function MoreMenuScreen({
             icon={<Ionicons name="diamond-outline" size={24} color="white" />}
             title={plan.title}
             subtitle={plan.subtitle}
-            onPress={canOpenBilling ? () => router.push('/billing') : undefined}
+            onPress={
+              plan.state === 'failed'
+                ? () => refreshEstateEntitlements()
+                : canOpenBilling
+                  ? () => router.push('/billing')
+                  : undefined
+            }
           />
           {isAdmin && (
             <View className="flex-row gap-2">
