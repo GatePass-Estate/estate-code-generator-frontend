@@ -39,6 +39,8 @@ export default function NavigationContainer({
           tabBarShowLabel: false,
           tabBarActiveTintColor: '#113E55',
           tabBarInactiveTintColor: '#6F91A0',
+          // Home is the leftmost tab: returning to it should shift in from the left.
+          animation: 'shift',
         }}
       >
         {routes &&

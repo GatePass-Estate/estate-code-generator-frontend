@@ -11,10 +11,11 @@ import {
   Modal,
   TouchableOpacity,
 } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { router, Stack, useNavigation } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MaterialIcons } from '@expo/vector-icons';
+import Back from '@/src/components/mobile/Back';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { useProfileDocumentsStore } from '@/src/lib/stores/profileDocumentsStore';
 import { ProfileFieldRow } from '@/src/components/mobile/ProfileFieldRow';
@@ -764,12 +765,7 @@ export default function ProfileScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View className="flex-row items-center justify-between">
-          <Pressable
-            onPress={() => navigation.goBack()}
-            className="h-[30px] w-[30px] items-center justify-center rounded-full bg-[#EFF1F1]"
-          >
-            <MaterialIcons name="keyboard-arrow-left" size={24} color="#113E55" />
-          </Pressable>
+          <Back type="short-arrow" onPress={() => navigation.goBack()} />
 
           {isProfileLocked ? (
             <Text className="text-[11px] font-inter-regular text-[#0A1F29]">

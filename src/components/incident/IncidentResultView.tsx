@@ -8,7 +8,7 @@ import AISummaryModal, {
 } from '@/src/components/incident/IncidentAISummaryModal';
 import AnomalyDonutChart from '@/src/components/anomaly/AnomalyDonutChart';
 import EstateSvg from '@/src/assets/icons/estate.svg';
-import ExportSvg from '@/src/assets/icons/incident-export.svg';
+import ExportButton from '@/src/components/mobile/ExportButton';
 import DurationExpandSvg from '@/src/assets/icons/incident-duration-expand.svg';
 import LocationSvg from '@/src/assets/icons/location.svg';
 import TotalUsersSvg from '@/src/assets/icons/totalusers.svg';
@@ -36,6 +36,7 @@ import IncidentAISummaryCard, {
 } from './IncidentAISummaryCard';
 import { isAxiosError } from 'axios';
 import { useFeatureAccess, useFeatureGate } from '@/src/hooks/usePlan';
+import TableEmptyState from '@/src/components/mobile/TableEmptyState';
 import IncidentFilterModal, {
   type IncidentFilterCategory,
   type IncidentFilterUserType,
@@ -711,19 +712,10 @@ export default function IncidentResultView({
           >
             Your Incident{'\n'}Report{'\n'}Summary
           </Text>
-          <Pressable
+          <ExportButton
+            className="mt-1.5"
             onPress={() => Alert.alert('Coming Soon', 'This feature is not yet active.')}
-            className="mt-1.5 flex-row items-center justify-center gap-1 overflow-hidden rounded-full border border-[#113E55] bg-[#113E55] p-4 min-h-11"
-            hitSlop={8}
-          >
-            <ExportSvg width={23} height={23} />
-            <Text
-              allowFontScaling={false}
-              className="text-center text-sm font-ubuntu-semibold tracking-[-0.24px] text-[#F6F7F7]"
-            >
-              Export
-            </Text>
-          </Pressable>
+          />
         </View>
 
         <Pressable
@@ -892,33 +884,18 @@ export default function IncidentResultView({
               Incident Reported
             </Text>
           </Pressable>
-          <Pressable
-            onPress={() => setFilterModalVisible(true)}
-            className="h-[36px] w-[52px] items-center justify-center rounded-[16px] bg-[#113E55] "
-            hitSlop={8}
-          >
-            <IncidentFilterIcon size={20} color="#F6F7F7" />
-          </Pressable>
+          {!reportsListLoading && rows.length > 0 ? (
+            <Pressable
+              onPress={() => setFilterModalVisible(true)}
+              className="h-[36px] w-[52px] items-center justify-center rounded-[16px] bg-[#113E55] "
+              hitSlop={8}
+            >
+              <IncidentFilterIcon size={20} color="#F6F7F7" />
+            </Pressable>
+          ) : null}
         </View>
 
         <View className="mt-3 gap-2 rounded-[16px] bg-white p-4">
-          <View className="h-7 w-full flex-row items-center">
-            <Text
-              allowFontScaling={false}
-              className="text-[8.96px] font-inter-medium text-[#878686]"
-            >
-              REPORTED BY
-            </Text>
-            <Text
-              allowFontScaling={false}
-              className="absolute left-[126px] text-[8.96px] font-inter-medium text-[#878686]"
-            >
-              DESCRIPTION
-            </Text>
-            <Pressable onPress={() => setOrderModalVisible(true)} hitSlop={8} className="ml-auto">
-              <IncidentSortIcon size={25} />
-            </Pressable>
-          </View>
           {reportsListLoading ? (
             <View className="items-center justify-center py-8">
               <ActivityIndicator size="small" color="#113E55" />
@@ -930,18 +907,42 @@ export default function IncidentResultView({
               </Text>
             </View>
           ) : rows.length === 0 ? (
-            <Text
-              allowFontScaling={false}
-              className="py-6 text-center text-[11.2px] font-inter-regular text-[#878686]"
-            >
-              No incident reports in this window.
-            </Text>
+            <TableEmptyState
+              icon={
+                <MaterialCommunityIcons name="clipboard-text-outline" size={22} color="#878686" />
+              }
+              title="No incident reports"
+              subtitle="Nothing was reported in this window. Try another date range."
+            />
           ) : (
-            <View className="flex-col gap-2">
-              {rows.slice(0, visibleCount).map((row) => (
-                <IncidentListRow key={row.id} row={row} />
-              ))}
-            </View>
+            <>
+              <View className="h-7 w-full flex-row items-center">
+                <Text
+                  allowFontScaling={false}
+                  className="text-[8.96px] font-inter-medium text-[#878686]"
+                >
+                  REPORTED BY
+                </Text>
+                <Text
+                  allowFontScaling={false}
+                  className="absolute left-[126px] text-[8.96px] font-inter-medium text-[#878686]"
+                >
+                  DESCRIPTION
+                </Text>
+                <Pressable
+                  onPress={() => setOrderModalVisible(true)}
+                  hitSlop={8}
+                  className="ml-auto"
+                >
+                  <IncidentSortIcon size={25} />
+                </Pressable>
+              </View>
+              <View className="flex-col gap-2">
+                {rows.slice(0, visibleCount).map((row) => (
+                  <IncidentListRow key={row.id} row={row} />
+                ))}
+              </View>
+            </>
           )}
 
           {!reportsListLoading && visibleCount < rows.length ? (

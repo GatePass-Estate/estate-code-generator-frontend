@@ -14,18 +14,18 @@ import { useQueryClient } from '@tanstack/react-query';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialIcons } from '@expo/vector-icons';
-import Svg, { Path } from 'react-native-svg';
 import Animated, { FadeIn } from 'react-native-reanimated';
-import AnimatedPillTabs from '@/src/components/mobile/AnimatedPillTabs';
-import SubscriptionTierCard from '@/src/components/incident/SubscriptionTierCard';
 import BiInfoSvg from '@/src/assets/icons/bi_info.svg';
-import ValidationBackSvg from '@/src/assets/icons/validation-back.svg';
+import Back from '@/src/components/mobile/Back';
+import AnimatedPillTabs from '@/src/components/mobile/AnimatedPillTabs';
 
-import Pf1Svg from '@/src/assets/icons/pf_1.svg';
-import Pf2Svg from '@/src/assets/icons/pf_2.svg';
-import Pf3Svg from '@/src/assets/icons/pf_3.svg';
-import DownloadSvg from '@/src/assets/icons/download.svg';
 import AnomalySvg from '@/src/assets/images/anomaly.svg';
+import {
+  MarketplaceProductFeatureList,
+  MarketplaceProductInfoCard,
+  MarketplaceSectionTitle,
+} from '@/src/components/incident/MarketplaceProductSummary';
+import SubscriptionTierCard from '@/src/components/incident/SubscriptionTierCard';
 import RatingModal from '@/src/components/anomaly/modals/RatingModal';
 import DataInsightModal from '@/src/components/anomaly/modals/DataInsightModal';
 import ActivationQuoteModal, {
@@ -52,6 +52,7 @@ import {
   sortMarketplaceTiers,
   resolveMarketplaceFeatureId,
 } from '@/src/lib/api/aiMarketplace';
+import { useBillingAccess } from '@/src/hooks/useBillingQueries';
 import {
   useFeatureGate,
   useContactAdminNoticeStore,
@@ -74,10 +75,8 @@ const TIER_ONE_FOR_RESULT_MESSAGE =
   'Subscribe to Tier One (Anomaly Detection and Insights) to view your results.';
 const INSTALL_TIER_ONE_FOR_RESULT_MESSAGE =
   'Install Tier One (Anomaly Detection and Insights) to view your results.';
-const TIER_ONE_FIRST_MESSAGE =
-  'Subscribe to Tier One (Anomaly Detection and Insights) first. Tiers Two and Three build on it.';
-const INSTALL_TIER_ONE_FIRST_MESSAGE =
-  'Install Tier One (Anomaly Detection and Insights) first. Tiers Two and Three build on it.';
+const TIER_ONE_FIRST_MESSAGE = 'Tier One is required for Tier 2 and Tier 3 activation.';
+const INSTALL_TIER_ONE_FIRST_MESSAGE = 'Tier One is required for Tier 2 and Tier 3 activation.';
 
 const tierOrder = (tier: MarketplaceTier) => Number.parseInt(tier.tier.replace(/\D/g, ''), 10) || 0;
 
@@ -150,8 +149,7 @@ export default function AnomalyDetectionPreviewScreen() {
 
   const estateId = useUserStore((state) => state.estate_id) || '';
   const email = useUserStore((state) => state.email) || '';
-  const userRole = useUserStore((state) => state.role);
-  const showContactAdminNotice = useContactAdminNoticeStore((s) => s.show);
+  const { denyIfUnauthorized, notifyActionError } = useBillingAccess();
 
   const handleRate = async (rating: number) => {
     if (!hasFeatureEntitlement) {
@@ -276,6 +274,7 @@ export default function AnomalyDetectionPreviewScreen() {
   }, [params.featureId, estateId]);
 
   const handleActivateFreeTier = async (tierPayload: MarketplaceTier) => {
+    if (denyIfUnauthorized()) return;
     if (!featureDetail?.id || (!tierPayload.ai_feature_id && !tierPayload.feature_key)) {
       return;
     }
@@ -298,7 +297,7 @@ export default function AnomalyDetectionPreviewScreen() {
       Alert.alert('Success', 'Free feature tier activated successfully!');
       loadFeature(featureDetail.id);
     } catch (err: any) {
-      Alert.alert('Activation Failed', err?.message || 'Failed to activate tier.');
+      notifyActionError('Activation Failed', err, 'Failed to activate tier.');
     } finally {
       setIsSubscribing(false);
       setSubscribingTierKey(null);
@@ -306,13 +305,7 @@ export default function AnomalyDetectionPreviewScreen() {
   };
 
   const handlePressActivate = (tierPayload: MarketplaceTier) => {
-    if (userRole !== 'primary_admin') {
-      showContactAdminNotice(
-        'access_anomaly_detection_tier_2',
-        "Only the primary admin can purchase or activate AI subscriptions. Please contact your estate's primary admin."
-      );
-      return;
-    }
+    if (denyIfUnauthorized()) return;
     if (requireTierOne(tierPayload.tier)) return;
     if (tierPayload.is_free) {
       handleActivateFreeTier(tierPayload);
@@ -323,13 +316,7 @@ export default function AnomalyDetectionPreviewScreen() {
   };
 
   const handleConfirmActivation = async (duration: AiCheckoutDuration, _quote: AiQuoteResponse) => {
-    if (userRole !== 'primary_admin') {
-      showContactAdminNotice(
-        'guest_management',
-        'Only the primary admin can purchase AI subscriptions and features.'
-      );
-      return;
-    }
+    if (denyIfUnauthorized()) return;
     if (!selectedTierForActivation?.feature_key) {
       Alert.alert('Error', 'Feature key is missing for this tier.');
       return;
@@ -385,20 +372,22 @@ export default function AnomalyDetectionPreviewScreen() {
         if (featureDetail?.id) {
           void loadFeature(featureDetail.id);
         }
-        Alert.alert(
-          'Checkout Conflict',
-          err?.message ||
-            'A checkout or subscription update is already in progress, or this tier is already active.'
-        );
       } else if (status === 422) {
         checkoutIdempotencyKeyRef.current = null;
-        Alert.alert(
-          'Invalid Checkout Request',
-          err?.message || 'Please check your subscription selection and try again.'
-        );
-      } else {
-        Alert.alert('Checkout Failed', err?.message || 'Failed to initialize checkout.');
       }
+      notifyActionError(
+        status === 409
+          ? 'Checkout Conflict'
+          : status === 422
+            ? 'Invalid Checkout Request'
+            : 'Checkout Failed',
+        err,
+        status === 409
+          ? 'A checkout or subscription update is already in progress, or this tier is already active.'
+          : status === 422
+            ? 'Please check your subscription selection and try again.'
+            : 'Failed to initialize checkout.'
+      );
     } finally {
       setIsConfirmingActivation(false);
     }
@@ -494,13 +483,7 @@ export default function AnomalyDetectionPreviewScreen() {
     tier: string;
     feature_key?: string | null;
   }) => {
-    if (userRole !== 'primary_admin') {
-      showContactAdminNotice(
-        'access_anomaly_detection_tier_2',
-        "Only the primary admin can cancel an AI subscription. Please contact your estate's primary admin."
-      );
-      return;
-    }
+    if (denyIfUnauthorized()) return;
     setConfirmModalConfig({
       title: 'Cancel Subscription',
       message: 'Are you sure you want to cancel your subscription to this AI feature?',
@@ -556,13 +539,8 @@ export default function AnomalyDetectionPreviewScreen() {
     tier: string;
     feature_key?: string | null;
   }) => {
-    if (userRole !== 'primary_admin') {
-      showContactAdminNotice(
-        'access_anomaly_detection_tier_2',
-        "Only the primary admin can uninstall or manage AI subscriptions. Please contact your estate's primary admin."
-      );
-      return;
-    }
+    if (denyIfUnauthorized()) return;
+    if (requireTierOne(tierPayload.tier)) return;
     if (!estateId) {
       Alert.alert('Error', 'Estate ID not found');
       return;
@@ -587,7 +565,7 @@ export default function AnomalyDetectionPreviewScreen() {
           Alert.alert('Success', 'Feature uninstalled successfully.');
           await refreshAfterTierChange(featureDetail?.id);
         } catch (err: any) {
-          Alert.alert('Uninstall Failed', err?.message || 'Failed to uninstall feature.');
+          notifyActionError('Uninstall Failed', err, 'Failed to uninstall feature.');
         } finally {
           setIsUninstalling(false);
           setUninstallingTierKey(null);
@@ -602,13 +580,7 @@ export default function AnomalyDetectionPreviewScreen() {
     tier: string;
     feature_key?: string | null;
   }) => {
-    if (userRole !== 'primary_admin') {
-      showContactAdminNotice(
-        'access_anomaly_detection_tier_2',
-        "Only the primary admin can install or manage AI subscriptions. Please contact your estate's primary admin."
-      );
-      return;
-    }
+    if (denyIfUnauthorized()) return;
     if (requireTierOne(tierPayload.tier)) return;
     if (!estateId) {
       Alert.alert('Error', 'Estate ID not found');
@@ -627,7 +599,7 @@ export default function AnomalyDetectionPreviewScreen() {
       setJustPurchasedTiers((prev) => ({ ...prev, [tierPayload.tier]: false }));
       await refreshAfterTierChange(featureDetail?.id);
     } catch (err: any) {
-      Alert.alert('Install Failed', err?.message || 'Failed to install feature.');
+      notifyActionError('Install Failed', err, 'Failed to install feature.');
     } finally {
       setIsInstalling(false);
       setInstallingTierKey(null);
@@ -754,13 +726,7 @@ export default function AnomalyDetectionPreviewScreen() {
             backgroundColor: isResultTab ? '#F6F7F7' : '#FFFFFF',
           }}
         >
-          <Pressable
-            onPress={() => router.back()}
-            className="h-[30px] w-[30px] items-center justify-center"
-            hitSlop={8}
-          >
-            <ValidationBackSvg width={30} height={30} />
-          </Pressable>
+          <Back type="short-arrow" onPress={() => router.back()} />
 
           <AnimatedPillTabs
             options={[
@@ -772,11 +738,11 @@ export default function AnomalyDetectionPreviewScreen() {
           />
 
           <Pressable
+            onPress={() => setDataInsightVisible(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Data insight"
             className="h-[30px] w-[30px] items-center justify-center"
             hitSlop={20}
-            onPress={() => {
-              setDataInsightVisible(true);
-            }}
             style={{ zIndex: 100 }}
           >
             <View pointerEvents="none">
@@ -823,7 +789,7 @@ export default function AnomalyDetectionPreviewScreen() {
                     top: -500,
                     left: 0,
                     right: 0,
-                    height: 500 + 274 + 16 + (cardHeight ? cardHeight / 2 : 60),
+                    height: 500 + 37 + 274 + 16 + (cardHeight ? cardHeight / 2 : 60),
                     backgroundColor: '#FFFFFF',
                   }}
                 />
@@ -833,6 +799,7 @@ export default function AnomalyDetectionPreviewScreen() {
                   style={{
                     width: 302,
                     height: 274,
+                    marginTop: 37,
                     alignSelf: 'center',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -850,149 +817,24 @@ export default function AnomalyDetectionPreviewScreen() {
                   )}
                 </View>
 
-                {/* Details Card: sitting over the split line between #FFFFFF and #F6F7F7 */}
-                <View
+                <MarketplaceProductInfoCard
+                  name={featureDetail?.name || 'Anomaly Detection'}
+                  rating={featureDetail?.rating ?? 0}
+                  description={featureDetail?.description}
+                  installedCount={sortedTiers.filter((tier) => tier.is_installed).length}
+                  ratingCount={featureDetail?.rating_count ?? 0}
+                  onPressRating={() => setIsRatingModalVisible(true)}
                   onLayout={(e) => {
                     const h = e.nativeEvent.layout.height;
-                    if (h && Math.abs(h - cardHeight) > 1) {
-                      setCardHeight(h);
-                    }
+                    if (h && Math.abs(h - cardHeight) > 1) setCardHeight(h);
                   }}
-                  className="bg-white rounded-[16px] p-[16px] gap-[8px] justify-between border border-[#EFF1F3]"
-                  style={{
-                    minHeight: 118,
-                    marginTop: 16,
-                    marginHorizontal: 20,
-                  }}
-                >
-                  {/* Title and Rating */}
-                  <View className="flex-row justify-between items-center">
-                    <Text
-                      allowFontScaling={false}
-                      className="text-[21.88px] font-ubuntu-semibold text-[#113E55] leading-[21.88px]"
-                    >
-                      {featureDetail?.name || 'Anomaly Detection'}
-                    </Text>
-                    <Pressable
-                      onPress={() => {
-                        if (!hasFeatureEntitlement) {
-                          Alert.alert(
-                            'Rating Unavailable',
-                            'You need an active subscription or entitlement to this AI feature before you can rate it.'
-                          );
-                          return;
-                        }
-                        setIsRatingModalVisible(true);
-                      }}
-                      className="flex-row items-center gap-1.5"
-                    >
-                      <Svg
-                        width={17}
-                        height={16}
-                        viewBox="0 0 24 24"
-                        fill="#F46036"
-                        stroke="#F46036"
-                        strokeWidth={2.5}
-                      >
-                        <Path
-                          d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"
-                          strokeLinejoin="round"
-                          strokeLinecap="round"
-                        />
-                      </Svg>
-                      <Text
-                        allowFontScaling={false}
-                        className="text-[21.88px] font-ubuntu-semibold text-[#6B7280] leading-[21.88px] text-center"
-                      >
-                        {featureDetail?.rating != null ? featureDetail.rating.toFixed(1) : '0.0'}
-                      </Text>
-                    </Pressable>
-                  </View>
-
-                  {/* Description */}
-                  <Text
-                    allowFontScaling={false}
-                    className="text-[11.2px] font-inter-regular text-[#8A9A9D] leading-[16px]"
-                  >
-                    {featureDetail?.description}
-                  </Text>
-
-                  {/* Stats */}
-                  <View className="flex-row items-center gap-6 mt-1">
-                    <View className="flex-row items-center gap-1.5">
-                      <DownloadSvg width={14} height={14} />
-                      <Text
-                        allowFontScaling={false}
-                        className="text-[11.2px] font-inter-medium text-[#8A9A9D]"
-                      >
-                        {sortedTiers.filter((tier) => tier.is_installed).length}
-                      </Text>
-                    </View>
-                    <View className="flex-row items-center gap-1.5">
-                      <MaterialIcons name="people" size={16} color="#0E706B" />
-                      <Text
-                        allowFontScaling={false}
-                        className="text-[11.2px] font-inter-medium text-[#8A9A9D]"
-                      >
-                        {featureDetail?.rating_count || 0}
-                      </Text>
-                    </View>
-                  </View>
-                </View>
+                />
               </View>
 
-              {/* Lower Body Section on #F6F7F7 */}
-              <View
-                style={{
-                  flex: 1,
-                  backgroundColor: '#F6F7F7',
-                  paddingHorizontal: 20,
-                  paddingTop: 24,
-                  paddingBottom: 100,
-                }}
-              >
-                {/* Product Feature */}
-                <Text
-                  allowFontScaling={false}
-                  className="text-[14px] font-inter-medium text-[#113E55] mb-3 leading-[14px]"
-                >
-                  Product Feature
-                </Text>
+              <View className="flex-1 bg-[#F6F7F7] px-5 pb-[100px] pt-[44px]">
+                <MarketplaceProductFeatureList features={featureDetail?.product_features ?? []} />
 
-                {featureDetail?.product_features && featureDetail.product_features.length > 0 && (
-                  <View className="mb-5">
-                    {featureDetail.product_features.map((feature, idx) => (
-                      <View
-                        key={idx}
-                        className="bg-white rounded-[16px] px-[16px] py-[8px] mb-3 flex-row items-center gap-[12px] min-h-[44px] border border-[#EFF1F3]"
-                      >
-                        <View className="w-[16px] h-[16px] items-center justify-center">
-                          {idx % 3 === 0 ? (
-                            <Pf1Svg width={16} height={16} />
-                          ) : idx % 3 === 1 ? (
-                            <Pf2Svg width={16} height={16} />
-                          ) : (
-                            <Pf3Svg width={16} height={16} />
-                          )}
-                        </View>
-                        <Text
-                          allowFontScaling={false}
-                          className="text-[12px] font-inter-regular text-[#8A9A9D] flex-1 leading-[18px]"
-                        >
-                          {feature}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                )}
-
-                {/* Choose Subscription Plan */}
-                <Text
-                  allowFontScaling={false}
-                  className="text-[14px] font-inter-medium text-[#113E55] mb-4 leading-[14px]"
-                >
-                  Choose Subscription Plan
-                </Text>
+                <MarketplaceSectionTitle>Choose Subscription Plan</MarketplaceSectionTitle>
 
                 <View className="flex-col gap-6">
                   {sortedTiers.length === 0 ? (

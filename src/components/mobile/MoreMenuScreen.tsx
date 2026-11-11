@@ -12,7 +12,8 @@ import {
 } from 'react-native';
 import { router, Stack, useNavigation } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MaterialIcons, Feather, MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
+import { Feather, MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
+import Back from '@/src/components/mobile/Back';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
 import { useCallback, useRef, useState, ReactNode } from 'react';
@@ -197,11 +198,7 @@ export default function MoreMenuScreen({
       navigation.goBack();
       return;
     }
-    if (router.canGoBack()) {
-      router.back();
-      return;
-    }
-    router.replace(role === 'security' ? '/security' : '/user');
+    router.dismissTo(role === 'security' ? '/security' : '/user');
   }, [navigation, role]);
 
   const { data: entitlements } = useEstateEntitlements();
@@ -246,12 +243,7 @@ export default function MoreMenuScreen({
     >
       <Stack.Screen options={{ headerShown: false }} />
 
-      <Pressable
-        onPress={handleBack}
-        className="h-[30px] w-[30px] items-center justify-center rounded-full bg-[#EFF1F1]"
-      >
-        <MaterialIcons name="keyboard-arrow-left" size={24} color="#113E55" />
-      </Pressable>
+      <Back type="short-arrow" onPress={handleBack} />
 
       <ScreenHeader
         containerClassName="mt-11"

@@ -37,6 +37,7 @@ type ReportRouter = {
   replace: (
     path: IncidentReportReturnTo | { pathname: '/admin'; params: { returnTo: '/settings' } }
   ) => void;
+  dismissTo: (path: IncidentReportReturnTo) => void;
   back?: () => void;
   canGoBack?: () => boolean;
 };
@@ -50,5 +51,6 @@ export function leaveIncidentReport(returnTo: IncidentReportReturnTo, router: Re
     router.replace({ pathname: '/admin', params: { returnTo: '/settings' } });
     return;
   }
-  router.replace(returnTo);
+  // Pop back so Home (and other entry screens) slide in from the left, not as a new push from the right.
+  router.dismissTo(returnTo);
 }

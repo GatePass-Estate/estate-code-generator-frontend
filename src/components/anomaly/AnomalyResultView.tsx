@@ -17,7 +17,7 @@ import { BlurView } from 'expo-blur';
 import { isAxiosError } from 'axios';
 
 import { router, useFocusEffect } from 'expo-router';
-import { MaterialIcons, Ionicons } from '@expo/vector-icons';
+import { MaterialIcons, MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import AnomalyRadarChart from './AnomalyRadarChart';
 import AnomalyDonutChart from './AnomalyDonutChart';
 import SemiCircleGauge from './SemiCircleGauge';
@@ -35,7 +35,8 @@ import TotalUsersSvg from '@/src/assets/icons/totalusers.svg';
 import UserWarningSvg from '@/src/assets/icons/userwarning.svg';
 import AlertSvg from '@/src/assets/icons/alert.svg';
 import UpAndDownSvg from '@/src/assets/icons/upanddown.svg';
-import ExportSvg from '@/src/assets/images/export.svg';
+import ExportButton from '@/src/components/mobile/ExportButton';
+import TableEmptyState from '@/src/components/mobile/TableEmptyState';
 
 /** True when the server refused because the estate's plan doesn't include the feature. */
 function isEntitlementDenied(err: unknown): boolean {
@@ -338,30 +339,7 @@ export default function AnomalyResultView({
               Your Anomaly{'\n'}Detection{'\n'}Summary
             </Text>
           </View>
-          <Pressable
-            onPress={handleExport}
-            style={{
-              minWidth: 100,
-              minHeight: 44,
-              paddingHorizontal: 20,
-              maxWidth: 278,
-              borderRadius: 24,
-              borderWidth: 1,
-              borderColor: '#113E55',
-              backgroundColor: '#113E55',
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-              opacity: 1,
-            }}
-            hitSlop={8}
-          >
-            <ExportSvg width={18} height={18} />
-            <Text allowFontScaling={false} className="text-[13px] font-inter-medium text-white">
-              Export
-            </Text>
-          </Pressable>
+          <ExportButton onPress={handleExport} />
         </View>
 
         {/* Range Dropdown */}
@@ -891,216 +869,201 @@ export default function AnomalyResultView({
             >
               USER OVERVIEW
             </Text>
-            <Pressable
-              onPress={() => setFilterModalVisible(true)}
-              style={{
-                width: 52,
-                height: 36,
-                borderRadius: 16,
-                backgroundColor: '#113E55',
-                paddingTop: 4,
-                paddingRight: 16,
-                paddingBottom: 4,
-                paddingLeft: 16,
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 8,
-                opacity: 1,
-              }}
-              hitSlop={8}
-            >
-              <Ionicons name="options-outline" size={18} color="white" />
-            </Pressable>
+            {predictions.length > 0 ? (
+              <Pressable
+                onPress={() => setFilterModalVisible(true)}
+                style={{
+                  width: 52,
+                  height: 36,
+                  borderRadius: 16,
+                  backgroundColor: '#113E55',
+                  paddingTop: 4,
+                  paddingRight: 16,
+                  paddingBottom: 4,
+                  paddingLeft: 16,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  opacity: 1,
+                }}
+                hitSlop={8}
+              >
+                <Ionicons name="options-outline" size={18} color="white" />
+              </Pressable>
+            ) : null}
           </View>
 
-          {/* Table: width 100%, border-radius 16, padding-top/bottom 16, gap 14 */}
-          <View
-            style={{
-              width: '100%',
-              minHeight: predictions.length === 0 ? 150 : undefined,
-              alignSelf: 'center',
-              borderRadius: 16,
-              backgroundColor: '#FFFFFF',
-              borderWidth: 1,
-              borderColor: '#EFF1F3',
-              paddingTop: 16,
-              paddingBottom: 16,
-              paddingHorizontal: 16,
-              gap: 14,
-              opacity: 1,
-            }}
-          >
-            {/* Header Row */}
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                paddingBottom: 10,
-                borderBottomWidth: 1,
-                borderBottomColor: '#F0F2F4',
-              }}
-            >
-              <Text
-                style={{
-                  fontFamily: 'Inter_18pt-Medium',
-                  fontWeight: '500',
-                  fontSize: 8.96,
-                  lineHeight: 11,
-                  letterSpacing: 0,
-                  color: '#8A9A9D',
-                  width: 32,
-                }}
-              >
-                RANK
-              </Text>
-              <Text
-                style={{
-                  fontFamily: 'Inter_18pt-Medium',
-                  fontWeight: '500',
-                  fontSize: 8.96,
-                  lineHeight: 11,
-                  letterSpacing: 0,
-                  color: '#8A9A9D',
-                  flex: 1,
-                  marginLeft: 8,
-                }}
-              >
-                USER
-              </Text>
-              <Text
-                style={{
-                  fontFamily: 'Inter_18pt-Medium',
-                  fontWeight: '500',
-                  fontSize: 8.96,
-                  lineHeight: 11,
-                  letterSpacing: 0,
-                  color: '#8A9A9D',
-                  width: 90,
-                  textAlign: 'center',
-                }}
-              >
-                SEVERITY
-              </Text>
-              <Pressable
-                onPress={() => setOrderModalVisible(true)}
-                hitSlop={8}
-                style={{ width: 25, height: 25, alignItems: 'center', justifyContent: 'center' }}
-              >
-                <UpAndDownSvg width={25} height={25} />
-              </Pressable>
-            </View>
-
-            {/* User Rows */}
+          <View className="w-full gap-3.5 rounded-[16px] bg-white p-4">
             {predictions.length === 0 ? (
-              <View
-                style={{
-                  flex: 1,
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  paddingVertical: 20,
-                }}
-              >
-                <Text style={{ fontFamily: 'Inter_18pt-Regular', fontSize: 13, color: '#8A9A9D' }}>
-                  No suspicious users detected.
-                </Text>
-              </View>
-            ) : (
-              predictions.map((row: any, index: number) => {
-                const severityRaw = (row.severity || 'LOW').toUpperCase();
-                const severityStr = severityRaw === 'MEDIUM' ? 'MED' : severityRaw;
-                let badgeBg = 'bg-[#1B998B1F]';
-                let badgeText = '#1B998B';
-                if (severityStr === 'HIGH') {
-                  badgeBg = 'bg-[#F61C1C1F]';
-                  badgeText = '#E30404';
-                } else if (severityStr === 'MED') {
-                  badgeBg = 'bg-[#FBFBEE]';
-                  badgeText = '#D97706';
+              <TableEmptyState
+                icon={
+                  <MaterialCommunityIcons name="account-search-outline" size={22} color="#878686" />
                 }
-
-                return (
-                  <Pressable
-                    key={row.prediction_id || row.id || row.user_id || index}
-                    onPress={() => {
-                      const idToUse = row.prediction_id || row.id || row.user_id;
-                      if (!idToUse) return;
-                      router.push({
-                        pathname: `/(protected)/(shared-screens)/ai-store/anomaly-detection/user/${idToUse}`,
-                        params: {
-                          gender: row.gender || '',
-                          user_type: row.user_type || row.role || '',
-                          display_name: row.display_name || row.name || '',
-                          date_from: startDate ? startDate.toISOString() : '',
-                          date_to: endDate ? endDate.toISOString() : '',
-                        },
-                      });
-                    }}
+                title="No suspicious users"
+                subtitle="No anomalous access was detected in this period. Try another date range."
+              />
+            ) : (
+              <>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    paddingBottom: 10,
+                    borderBottomWidth: 1,
+                    borderBottomColor: '#F0F2F4',
+                  }}
+                >
+                  <Text
                     style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
+                      fontFamily: 'Inter_18pt-Medium',
+                      fontWeight: '500',
+                      fontSize: 8.96,
+                      lineHeight: 11,
+                      letterSpacing: 0,
+                      color: '#8A9A9D',
+                      width: 32,
                     }}
                   >
-                    <Text
+                    RANK
+                  </Text>
+                  <Text
+                    style={{
+                      fontFamily: 'Inter_18pt-Medium',
+                      fontWeight: '500',
+                      fontSize: 8.96,
+                      lineHeight: 11,
+                      letterSpacing: 0,
+                      color: '#8A9A9D',
+                      flex: 1,
+                      marginLeft: 8,
+                    }}
+                  >
+                    USER
+                  </Text>
+                  <Text
+                    style={{
+                      fontFamily: 'Inter_18pt-Medium',
+                      fontWeight: '500',
+                      fontSize: 8.96,
+                      lineHeight: 11,
+                      letterSpacing: 0,
+                      color: '#8A9A9D',
+                      width: 90,
+                      textAlign: 'center',
+                    }}
+                  >
+                    SEVERITY
+                  </Text>
+                  <Pressable
+                    onPress={() => setOrderModalVisible(true)}
+                    hitSlop={8}
+                    style={{
+                      width: 25,
+                      height: 25,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <UpAndDownSvg width={25} height={25} />
+                  </Pressable>
+                </View>
+                {predictions.map((row: any, index: number) => {
+                  const severityRaw = (row.severity || 'LOW').toUpperCase();
+                  const severityStr = severityRaw === 'MEDIUM' ? 'MED' : severityRaw;
+                  let badgeBg = 'bg-[#1B998B1F]';
+                  let badgeText = '#1B998B';
+                  if (severityStr === 'HIGH') {
+                    badgeBg = 'bg-[#F61C1C1F]';
+                    badgeText = '#E30404';
+                  } else if (severityStr === 'MED') {
+                    badgeBg = 'bg-[#FBFBEE]';
+                    badgeText = '#D97706';
+                  }
+
+                  return (
+                    <Pressable
+                      key={row.prediction_id || row.id || row.user_id || index}
+                      onPress={() => {
+                        const idToUse = row.prediction_id || row.id || row.user_id;
+                        if (!idToUse) return;
+                        router.push({
+                          pathname: `/(protected)/(shared-screens)/ai-store/anomaly-detection/user/${idToUse}`,
+                          params: {
+                            gender: row.gender || '',
+                            user_type: row.user_type || row.role || '',
+                            display_name: row.display_name || row.name || '',
+                            date_from: startDate ? startDate.toISOString() : '',
+                            date_to: endDate ? endDate.toISOString() : '',
+                          },
+                        });
+                      }}
                       style={{
-                        fontFamily: 'Inter_18pt-Regular',
-                        fontSize: 11.2,
-                        color: '#8A9A9D',
-                        width: 32,
-                        marginLeft: 12,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
                       }}
                     >
-                      {index + 1}
-                    </Text>
-
-                    <View style={{ flex: 1, marginLeft: 2 }}>
                       <Text
                         style={{
                           fontFamily: 'Inter_18pt-Regular',
-                          fontSize: 13,
-                          color: '#113E55',
-                        }}
-                      >
-                        {row.display_name || row.name || 'Unknown User'}
-                      </Text>
-                      <Text
-                        style={{
-                          fontFamily: 'Inter_18pt-Regular',
-                          fontSize: 10.5,
+                          fontSize: 11.2,
                           color: '#8A9A9D',
-                          textTransform: 'capitalize',
+                          width: 32,
+                          marginLeft: 12,
                         }}
                       >
-                        {(row.user_type || row.role || 'Guest').toLowerCase() === 'visitor'
-                          ? 'Guest'
-                          : row.user_type || row.role || 'Guest'}
+                        {index + 1}
                       </Text>
-                    </View>
-                    <View style={{ width: 90, alignItems: 'center' }}>
-                      <View
-                        className={`px-4 h-[28px] items-center justify-center rounded-full ${badgeBg}`}
-                      >
+
+                      <View style={{ flex: 1, marginLeft: 2 }}>
                         <Text
-                          allowFontScaling={false}
                           style={{
                             fontFamily: 'Inter_18pt-Regular',
-                            fontSize: 11.2,
-                            lineHeight: 11.2,
-                            color: badgeText,
-                            textTransform: 'uppercase',
+                            fontSize: 13,
+                            color: '#113E55',
                           }}
                         >
-                          {severityStr}
+                          {row.display_name || row.name || 'Unknown User'}
+                        </Text>
+                        <Text
+                          style={{
+                            fontFamily: 'Inter_18pt-Regular',
+                            fontSize: 10.5,
+                            color: '#8A9A9D',
+                            textTransform: 'capitalize',
+                          }}
+                        >
+                          {(row.user_type || row.role || 'Guest').toLowerCase() === 'visitor'
+                            ? 'Guest'
+                            : row.user_type || row.role || 'Guest'}
                         </Text>
                       </View>
-                    </View>
-                    <View style={{ width: 25, alignItems: 'center' }}>
-                      <MaterialIcons name="chevron-right" size={18} color="#8A9A9D" />
-                    </View>
-                  </Pressable>
-                );
-              })
+                      <View style={{ width: 90, alignItems: 'center' }}>
+                        <View
+                          className={`px-4 h-[28px] items-center justify-center rounded-full ${badgeBg}`}
+                        >
+                          <Text
+                            allowFontScaling={false}
+                            style={{
+                              fontFamily: 'Inter_18pt-Regular',
+                              fontSize: 11.2,
+                              lineHeight: 11.2,
+                              color: badgeText,
+                              textTransform: 'uppercase',
+                            }}
+                          >
+                            {severityStr}
+                          </Text>
+                        </View>
+                      </View>
+                      <View style={{ width: 25, alignItems: 'center' }}>
+                        <MaterialIcons name="chevron-right" size={18} color="#8A9A9D" />
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </>
             )}
 
             {/* Load More */}

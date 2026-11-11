@@ -94,7 +94,7 @@ export default function RatingFeedbackNative() {
 
   const handleBackPress = () => {
     if (suggestionStep === 4) {
-      router.push('/user'); // Success screen -> go home
+      router.dismissTo('/user');
       return;
     }
 
@@ -245,7 +245,7 @@ export default function RatingFeedbackNative() {
 
           <TouchableOpacity
             style={[styles.submitButton, { marginTop: 64, width: 260 }]}
-            onPress={() => router.push('/user')}
+            onPress={() => router.dismissTo('/user')}
           >
             <Text style={styles.submitButtonText}>Back to Home</Text>
           </TouchableOpacity>

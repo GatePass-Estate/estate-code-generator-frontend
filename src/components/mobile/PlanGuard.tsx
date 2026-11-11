@@ -1,13 +1,19 @@
 import { useEffect } from 'react';
 import { router } from 'expo-router';
+import ActionConfirmModal from './ActionConfirmModal';
 import UpgradePlanModal from './UpgradePlanModal';
 import { FloatingPlanNotice } from './FreePlanNotice';
+import { usePrimaryAdminNoticeStore } from '@/src/hooks/useBillingQueries';
 import {
   useContactAdminNoticeStore,
   useFeatureAccess,
   useUpgradePromptStore,
 } from '@/src/hooks/usePlan';
-import { canViewBilling } from '@/src/lib/billing';
+import {
+  canViewBilling,
+  PRIMARY_ADMIN_FEATURE_ACTION_MESSAGE,
+  PRIMARY_ADMIN_REQUIRED_TITLE,
+} from '@/src/lib/billing';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import type { PlanFeature } from '@/src/lib/plans';
 
@@ -41,6 +47,8 @@ export default function PlanGuard() {
   const noticeFeature = useContactAdminNoticeStore((s) => s.feature);
   const noticeMessage = useContactAdminNoticeStore((s) => s.message);
   const noticeVisible = useContactAdminNoticeStore((s) => s.visible);
+  const primaryAdminNoticeVisible = usePrimaryAdminNoticeStore((s) => s.visible);
+  const dismissPrimaryAdminNotice = usePrimaryAdminNoticeStore((s) => s.dismiss);
 
   // A feature can send the upgrade elsewhere (e.g. the AI store). Otherwise billing viewers go
   // straight to "Choose your plan" and anyone else just closes the modal.
@@ -75,6 +83,15 @@ export default function PlanGuard() {
           message={noticeMessage}
         />
       )}
+      <ActionConfirmModal
+        visible={primaryAdminNoticeVisible}
+        title={PRIMARY_ADMIN_REQUIRED_TITLE}
+        message={PRIMARY_ADMIN_FEATURE_ACTION_MESSAGE}
+        confirmLabel="OK"
+        hideCancel
+        onConfirm={dismissPrimaryAdminNotice}
+        onCancel={dismissPrimaryAdminNotice}
+      />
     </>
   );
 }

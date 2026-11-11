@@ -1,5 +1,7 @@
 import { keepPreviousData, useMutation, useQueries, useQuery } from '@tanstack/react-query';
 import { useCallback, useMemo } from 'react';
+import { Alert } from 'react-native';
+import { create } from 'zustand';
 import { queryClient } from '@/lib/queryClient';
 import {
   cancelSeatReduction,
@@ -24,6 +26,8 @@ import {
   canManageBilling,
   canViewBilling,
   createIdempotencyKey,
+  featureActionErrorForRole,
+  PRIMARY_ADMIN_FEATURE_ACTION_MESSAGE,
   humaniseFeatureKey,
   sortTiers,
 } from '@/src/lib/billing';
@@ -80,15 +84,49 @@ export function clearBillingData() {
   queryClient.removeQueries({ queryKey: billingKeys.all });
 }
 
+/** App-wide ActionConfirmModal for non-primary-admin pay/install/uninstall. */
+export const usePrimaryAdminNoticeStore = create<{
+  visible: boolean;
+  show: () => void;
+  dismiss: () => void;
+}>((set) => ({
+  visible: false,
+  show: () => set({ visible: true }),
+  dismiss: () => set({ visible: false }),
+}));
+
+function presentPrimaryAdminNotice() {
+  usePrimaryAdminNoticeStore.getState().show();
+}
+
 /** Signed-in user's billing permissions. Admin-only queries stay disabled unless `canView`. */
 export function useBillingAccess() {
   const role = useUserStore((s) => s.role);
   const estateId = useUserStore((s) => s.estate_id);
   const email = useUserStore((s) => s.email);
+  const canManage = canManageBilling(role);
+  const denyIfUnauthorized = useCallback(() => {
+    if (canManage) return false;
+    presentPrimaryAdminNotice();
+    return true;
+  }, [canManage]);
+  const notifyActionError = useCallback(
+    (title: string, err: { message?: string } | undefined, fallback: string) => {
+      const message = featureActionErrorForRole(role, err, fallback);
+      if (message === PRIMARY_ADMIN_FEATURE_ACTION_MESSAGE) {
+        presentPrimaryAdminNotice();
+        return;
+      }
+      Alert.alert(title, message);
+    },
+    [role]
+  );
   return {
     role,
     canView: canViewBilling(role),
-    canManage: canManageBilling(role),
+    canManage,
+    denyIfUnauthorized,
+    notifyActionError,
     estateId,
     email,
   };
@@ -378,9 +416,12 @@ export function useCancelSeatReduction() {
  * refresh billing data — call `refreshBillingData()` once `fetchCheckoutStatus` reports `paid`.
  */
 export function useInitializeCheckout() {
-  const { estateId, email } = useBillingAccess();
+  const { estateId, email, canManage } = useBillingAccess();
   return useMutation({
     mutationFn: ({ idempotencyKey, ...params }: InitializeCheckoutParams) => {
+      if (!canManage) {
+        throw new Error(PRIMARY_ADMIN_FEATURE_ACTION_MESSAGE);
+      }
       const customerEmail = params.customer_email ?? email;
       if (!customerEmail) {
         throw new Error('Add an email address to your profile before paying.');

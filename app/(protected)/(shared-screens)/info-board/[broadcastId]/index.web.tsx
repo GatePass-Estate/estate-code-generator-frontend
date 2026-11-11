@@ -61,7 +61,7 @@ export default function BroadcastDetailWeb() {
       )}
       <div className="web-body">
         <div className={`flex flex-col ${isLargeScreen ? 'mt-20 px-4 w-full' : 'mt-5 md:px-5'}`}>
-          <Back type="short-arrow" />
+          <Back type="short-arrow" showText={false} showBorder />
 
           {loading ? (
             <p className="text-sm font-inter-regular text-[#878686] mt-10">Loading…</p>

@@ -13,6 +13,7 @@ import {
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
+import Back from '@/src/components/mobile/Back';
 import { useFeatureGate } from '@/src/hooks/usePlan';
 import {
   leaveIncidentReport,
@@ -20,7 +21,6 @@ import {
 } from '@/src/lib/incidentReportNavigation';
 import { toggleIncidentType } from '@/src/lib/incidentTypeSelection';
 import SecurityTabBar from '@/src/components/security/SecurityTabBar';
-import Back from '@/src/components/mobile/Back';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { formatApiCategoryLabel } from '@/src/components/incident/categoryIcons';
 import {

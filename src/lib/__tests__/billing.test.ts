@@ -7,6 +7,8 @@ import {
   canCancelSubscription,
   canManageBilling,
   canViewBilling,
+  featureActionErrorForRole,
+  PRIMARY_ADMIN_FEATURE_ACTION_MESSAGE,
   createIdempotencyKey,
   formatBillingDate,
   formatMoney,
@@ -356,6 +358,26 @@ describe('billing roles', () => {
     expect(canViewBilling('resident')).toBe(false);
     expect(canViewBilling('security')).toBe(false);
     expect(canViewBilling(undefined)).toBe(false);
+  });
+
+  it('explains pay/install/uninstall denials for non-primary admins', () => {
+    expect(
+      featureActionErrorForRole(
+        'admin',
+        { message: 'Forbidden - you do not have permission to access this resource.' },
+        'Failed to install feature.'
+      )
+    ).toBe(PRIMARY_ADMIN_FEATURE_ACTION_MESSAGE);
+    expect(
+      featureActionErrorForRole(
+        'primary_admin',
+        { message: 'Forbidden - you do not have permission to access this resource.' },
+        'Failed.'
+      )
+    ).toBe('Forbidden - you do not have permission to access this resource.');
+    expect(featureActionErrorForRole('admin', { message: 'Network error' }, 'Failed.')).toBe(
+      'Network error'
+    );
   });
 });
 

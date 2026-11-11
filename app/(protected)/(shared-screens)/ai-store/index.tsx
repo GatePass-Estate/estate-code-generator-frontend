@@ -15,7 +15,8 @@ import {
 } from 'react-native';
 import { router, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MaterialIcons, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import Back from '@/src/components/mobile/Back';
 import { sharedStyles } from '@/src/theme/styles';
 import ScreenHeader from '@/src/components/mobile/ScreenHeader';
 import Svg, { Path } from 'react-native-svg';
@@ -284,12 +285,9 @@ export default function AIStoreScreen() {
     >
       <Stack.Screen options={{ headerShown: false }} />
 
-      <Pressable
-        onPress={() => router.back()}
-        className="h-[30px] w-[30px] items-center justify-center rounded-full bg-[#EFF1F1] mt-2"
-      >
-        <MaterialIcons name="keyboard-arrow-left" size={24} color="#113E55" />
-      </Pressable>
+      <View className="mt-2">
+        <Back type="short-arrow" onPress={() => router.back()} />
+      </View>
 
       <ScreenHeader
         containerClassName="mt-6 mb-4"

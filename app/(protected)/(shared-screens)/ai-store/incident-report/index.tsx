@@ -7,14 +7,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialIcons } from '@expo/vector-icons';
 import { WebView } from 'react-native-webview';
 import Animated, { FadeIn } from 'react-native-reanimated';
-import ValidationBackSvg from '@/src/assets/icons/validation-back.svg';
+import Back from '@/src/components/mobile/Back';
 import BiInfoSvg from '@/src/assets/icons/bi_info.svg';
 
 import IncidentReportSvg from '@/src/assets/images/incident-report.svg';
-import Pf1Svg from '@/src/assets/icons/pf_1.svg';
-import Pf2Svg from '@/src/assets/icons/pf_2.svg';
-import Pf3Svg from '@/src/assets/icons/pf_3.svg';
-import { FeatureDownloadIcon, FeatureUsersIcon, RatingStarIcon } from '@/src/assets/svgs';
 import RatingModal from '@/src/components/anomaly/modals/RatingModal';
 import ActivationQuoteModal, {
   prefetchAiQuotes,
@@ -24,6 +20,11 @@ import PaymentVerificationModal, {
 } from '@/src/components/anomaly/modals/PaymentVerificationModal';
 import IncidentDataInsightModal from '@/src/components/incident/IncidentDataInsightModal';
 import IncidentResultView from '@/src/components/incident/IncidentResultView';
+import {
+  MarketplaceProductFeatureList,
+  MarketplaceProductInfoCard,
+  MarketplaceSectionTitle,
+} from '@/src/components/incident/MarketplaceProductSummary';
 import SubscriptionTierCard from '@/src/components/incident/SubscriptionTierCard';
 import AnimatedPillTabs from '@/src/components/mobile/AnimatedPillTabs';
 import {
@@ -41,6 +42,7 @@ import {
   cancelMarketplaceSubscription,
 } from '@/src/lib/api/aiMarketplace';
 import { refreshEstateEntitlements } from '@/src/lib/api/entitlements';
+import { useBillingAccess } from '@/src/hooks/useBillingQueries';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { scrollCardIntoView } from '@/src/lib/scrollIntoView';
 import { createIdempotencyKey } from '@/src/lib/billing';
@@ -57,8 +59,6 @@ import {
 
 const isIncidentProduct = (name: string) => name.toLowerCase().includes('incident');
 
-const PRODUCT_FEATURE_ICONS = [Pf1Svg, Pf2Svg, Pf3Svg];
-
 const tierNumber = (tier: string) => tier.replace(/\D/g, '') || tier;
 
 /** Tier One is the base product: it unlocks the Result page. Tiers Two and Three add to it. */
@@ -66,10 +66,7 @@ const TIER_ONE_FOR_RESULT_MESSAGE =
   'Subscribe to Tier One (Incident Report Summary and Insights) to view your results.';
 const INSTALL_TIER_ONE_FOR_RESULT_MESSAGE =
   'Install Tier One (Incident Report Summary and Insights) to view your results.';
-const TIER_ONE_FIRST_MESSAGE =
-  'Subscribe to Tier One (Incident Report Summary and Insights) first. Tiers Two and Three build on it.';
-const INSTALL_TIER_ONE_FIRST_MESSAGE =
-  'Install Tier One (Incident Report Summary and Insights) first. Tiers Two and Three build on it.';
+const TIER_ONE_FIRST_MESSAGE = 'Tier One is required for Tier 2 and Tier 3 activation.';
 
 const tierOrder = (tier: MarketplaceTier) => Number.parseInt(tier.tier.replace(/\D/g, ''), 10) || 0;
 
@@ -88,8 +85,7 @@ const cancelledTiersStorageKey = (estateId: string) => `incidentCancelledTiers-$
 export default function IncidentReportPreviewScreen() {
   const params = useLocalSearchParams<{ featureId?: string; title?: string; tab?: string }>();
   const estateId = useUserStore((s) => s.estate_id);
-  const userRole = useUserStore((s) => s.role);
-  const showContactAdminNotice = useContactAdminNoticeStore((s) => s.show);
+  const { denyIfUnauthorized, notifyActionError } = useBillingAccess();
   const [activeTab, setActiveTab] = useState<'Preview' | 'Result'>(
     params.tab === 'Result' ? 'Result' : 'Preview'
   );
@@ -257,14 +253,7 @@ export default function IncidentReportPreviewScreen() {
   };
 
   const handleSubscribe = async (tier: MarketplaceTier) => {
-    if (userRole !== 'primary_admin') {
-      showContactAdminNotice(
-        'incident_report_summary_tier_2',
-        "Only the primary admin can purchase or activate AI subscriptions. Please contact your estate's primary admin."
-      );
-      return;
-    }
-
+    if (denyIfUnauthorized()) return;
     if (requireTierOne(tier)) return;
     if (!featureDetail?.id || (!tier.ai_feature_id && !tier.feature_key)) {
       return;
@@ -296,7 +285,7 @@ export default function IncidentReportPreviewScreen() {
         Alert.alert('Success', 'Subscription quote created successfully.');
       }
     } catch (err: any) {
-      Alert.alert('Subscription Failed', err?.message || 'Failed to activate tier.');
+      notifyActionError('Subscription Failed', err, 'Failed to activate tier.');
     } finally {
       setIsSubscribing(false);
       setSubscribingTierKey(null);
@@ -304,14 +293,7 @@ export default function IncidentReportPreviewScreen() {
   };
 
   const handleConfirmActivation = async (duration: AiCheckoutDuration) => {
-    if (userRole !== 'primary_admin') {
-      showContactAdminNotice(
-        'incident_report_summary_tier_2',
-        'Only the primary admin can purchase AI subscriptions and features.'
-      );
-      return;
-    }
-
+    if (denyIfUnauthorized()) return;
     const tier = selectedTierForActivation;
     if (!tier?.feature_key) {
       Alert.alert('Error', 'Feature key is missing for this tier.');
@@ -356,20 +338,22 @@ export default function IncidentReportPreviewScreen() {
       if (status === 409) {
         checkoutIdempotencyKeyRef.current = null;
         void refreshAfterTierChange();
-        Alert.alert(
-          'Checkout Conflict',
-          err?.message ||
-            'A checkout or subscription update is already in progress, or this tier is already active.'
-        );
       } else if (status === 422) {
         checkoutIdempotencyKeyRef.current = null;
-        Alert.alert(
-          'Invalid Checkout Request',
-          err?.message || 'Please check your subscription selection and try again.'
-        );
-      } else {
-        Alert.alert('Checkout Failed', err?.message || 'Failed to initialize checkout.');
       }
+      notifyActionError(
+        status === 409
+          ? 'Checkout Conflict'
+          : status === 422
+            ? 'Invalid Checkout Request'
+            : 'Checkout Failed',
+        err,
+        status === 409
+          ? 'A checkout or subscription update is already in progress, or this tier is already active.'
+          : status === 422
+            ? 'Please check your subscription selection and try again.'
+            : 'Failed to initialize checkout.'
+      );
     } finally {
       setIsConfirmingActivation(false);
     }
@@ -443,13 +427,7 @@ export default function IncidentReportPreviewScreen() {
   };
 
   const handleCancelSubscription = (tier: MarketplaceTier) => {
-    if (userRole !== 'primary_admin') {
-      showContactAdminNotice(
-        'incident_report_summary_tier_2',
-        "Only the primary admin can cancel an AI subscription. Please contact your estate's primary admin."
-      );
-      return;
-    }
+    if (denyIfUnauthorized()) return;
 
     setConfirmModalConfig({
       title: 'Cancel Subscription',
@@ -488,14 +466,7 @@ export default function IncidentReportPreviewScreen() {
   };
 
   const handleUninstall = (tier: MarketplaceTier) => {
-    if (userRole !== 'primary_admin') {
-      showContactAdminNotice(
-        'incident_report_summary_tier_2',
-        "Only the primary admin can cancel an AI subscription. Please contact your estate's primary admin."
-      );
-      return;
-    }
-
+    if (denyIfUnauthorized()) return;
     if (!estateId) {
       Alert.alert('Error', 'Estate ID not found');
       return;
@@ -521,7 +492,7 @@ export default function IncidentReportPreviewScreen() {
           Alert.alert('Success', 'Feature uninstalled successfully.');
           await refreshAfterTierChange();
         } catch (err: any) {
-          Alert.alert('Uninstall Failed', err?.message || 'Failed to uninstall feature.');
+          notifyActionError('Uninstall Failed', err, 'Failed to uninstall feature.');
         } finally {
           setIsUninstalling(false);
           setUninstallingTierKey(null);
@@ -532,14 +503,7 @@ export default function IncidentReportPreviewScreen() {
   };
 
   const handleInstall = async (tier: MarketplaceTier) => {
-    if (userRole !== 'primary_admin') {
-      showContactAdminNotice(
-        'incident_report_summary_tier_2',
-        "Only the primary admin can cancel an AI subscription. Please contact your estate's primary admin."
-      );
-      return;
-    }
-
+    if (denyIfUnauthorized()) return;
     if (requireTierOne(tier)) return;
     if (!estateId) {
       Alert.alert('Error', 'Estate ID not found');
@@ -558,7 +522,7 @@ export default function IncidentReportPreviewScreen() {
       setJustPurchasedTiers((prev) => ({ ...prev, [tier.tier]: false }));
       await refreshAfterTierChange();
     } catch (err: any) {
-      Alert.alert('Install Failed', err?.message || 'Failed to install feature.');
+      notifyActionError('Install Failed', err, 'Failed to install feature.');
     } finally {
       setIsInstalling(false);
       setInstallingTierKey(null);
@@ -647,7 +611,7 @@ export default function IncidentReportPreviewScreen() {
   /** True (after prompting) when a Tier Two or Three action needs Tier One first. */
   const requireTierOne = (tier: MarketplaceTier) => {
     if (tierOrder(tier) <= 1 || tierOneInstalled !== false) return false;
-    showResultDenied(tierOneSubscribed ? INSTALL_TIER_ONE_FIRST_MESSAGE : TIER_ONE_FIRST_MESSAGE);
+    showResultDenied(TIER_ONE_FIRST_MESSAGE);
     return true;
   };
   const [resultLocked, setResultLocked] = useState(false);
@@ -708,13 +672,7 @@ export default function IncidentReportPreviewScreen() {
             backgroundColor: activeTab === 'Result' ? '#F6F7F7' : '#FFFFFF',
           }}
         >
-          <Pressable
-            onPress={() => router.back()}
-            className="h-[30px] w-[30px] items-center justify-center"
-            hitSlop={8}
-          >
-            <ValidationBackSvg width={30} height={30} />
-          </Pressable>
+          <Back type="short-arrow" onPress={() => router.back()} />
 
           <AnimatedPillTabs
             options={[
@@ -808,120 +766,24 @@ export default function IncidentReportPreviewScreen() {
                   <IncidentReportSvg width={302} height={274} />
                 </View>
 
-                <View
+                <MarketplaceProductInfoCard
+                  name={featureDetail.name || ''}
+                  rating={featureDetail.rating ?? 0}
+                  description={featureDetail.description}
+                  installedCount={sortedTiers.filter((tier) => tier.is_installed).length}
+                  ratingCount={featureDetail.rating_count ?? 0}
+                  onPressRating={() => setIsRatingModalVisible(true)}
                   onLayout={(e) => {
                     const h = e.nativeEvent.layout.height;
                     if (h && Math.abs(h - cardHeight) > 1) setCardHeight(h);
                   }}
-                  className="justify-between gap-2 rounded-[16px] bg-white p-4"
-                  style={{ minHeight: 118, marginTop: 36, marginHorizontal: 20 }}
-                >
-                  <View className="flex-row items-center justify-between">
-                    <Text
-                      allowFontScaling={false}
-                      className="text-[21.88px] font-ubuntu-semibold leading-[21.88px] text-[#113E55]"
-                    >
-                      {featureDetail.name || ''}
-                    </Text>
-                    <Pressable
-                      onPress={() => {
-                        if (!hasFeatureEntitlement) {
-                          Alert.alert(
-                            'Rating Unavailable',
-                            'You need an active subscription or entitlement to this AI feature before you can rate it.'
-                          );
-                          return;
-                        }
-                        setIsRatingModalVisible(true);
-                      }}
-                      className="flex-row items-center gap-1"
-                    >
-                      <RatingStarIcon width={17} height={16} />
-                      <Text
-                        allowFontScaling={false}
-                        className="w-[39px] text-center text-[21.88px] font-ubuntu-semibold leading-[26px] text-[#6B7280]"
-                      >
-                        {(featureDetail.rating ?? 0).toFixed(1)}
-                      </Text>
-                    </Pressable>
-                  </View>
-
-                  {!!featureDetail.description?.trim() && (
-                    <Text
-                      allowFontScaling={false}
-                      className="text-[11.2px] font-inter-regular text-[#878686]"
-                    >
-                      {featureDetail.description}
-                    </Text>
-                  )}
-
-                  <View className="mt-1 flex-row items-center gap-2">
-                    <View className="flex-row items-center">
-                      <FeatureDownloadIcon width={13} height={13} />
-                      <Text
-                        allowFontScaling={false}
-                        className="px-1 text-[8.96px] font-inter-medium text-[#878686]"
-                      >
-                        {sortedTiers.filter((tier) => tier.is_installed).length}
-                      </Text>
-                    </View>
-                    <View className="flex-row items-center">
-                      <FeatureUsersIcon width={16} height={16} />
-                      <Text
-                        allowFontScaling={false}
-                        className="px-1 text-[8.96px] font-inter-medium text-[#878686]"
-                      >
-                        {featureDetail.rating_count ?? 0}
-                      </Text>
-                    </View>
-                  </View>
-                </View>
+                />
               </View>
 
               <View className="flex-1 bg-[#F6F7F7] px-5 pb-[100px] pt-[44px]">
-                {productFeatures.length > 0 ? (
-                  <>
-                    <View className="px-[17px]">
-                      <Text
-                        allowFontScaling={false}
-                        className="mb-4 text-[14px] font-inter-medium leading-[14px] text-[#113E55]"
-                      >
-                        Product Feature
-                      </Text>
-                    </View>
+                <MarketplaceProductFeatureList features={productFeatures} />
 
-                    <View className="mb-[44px] gap-2">
-                      {productFeatures.map((text, index) => {
-                        const Icon = PRODUCT_FEATURE_ICONS[index % PRODUCT_FEATURE_ICONS.length];
-                        return (
-                          <View
-                            key={`${index}-${text.slice(0, 24)}`}
-                            className="flex-row items-center gap-3 rounded-[16px] bg-white px-4 py-2"
-                          >
-                            <View className="h-4 w-4 shrink-0 items-center justify-center">
-                              <Icon width={16} height={16} />
-                            </View>
-                            <Text
-                              allowFontScaling={false}
-                              className="flex-1 text-[11.2px] font-inter-regular leading-[18px] text-[#878686]"
-                            >
-                              {text}
-                            </Text>
-                          </View>
-                        );
-                      })}
-                    </View>
-                  </>
-                ) : null}
-
-                <View className="px-[17px]">
-                  <Text
-                    allowFontScaling={false}
-                    className="mb-4 text-[14px] font-inter-medium leading-[14px] text-[#113E55]"
-                  >
-                    Choose Subscription Plan
-                  </Text>
-                </View>
+                <MarketplaceSectionTitle>Choose Subscription Plan</MarketplaceSectionTitle>
 
                 <View className="flex-col gap-6">
                   {sortedTiers.length === 0 ? (

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { View, Text, Pressable, ScrollView, ActivityIndicator, Alert } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import Back from '@/src/components/mobile/Back';
 import { useFocusEffect, useLocalSearchParams, useNavigation, router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -153,12 +153,7 @@ export default function UpcomingInviteScreen() {
     <SafeAreaView
       style={[sharedStyles.container, sharedStyles.modalContainer, { backgroundColor: '#F6F7F7' }]}
     >
-      <Pressable
-        onPress={() => navigation.goBack()}
-        className="h-[30px] w-[30px] items-center justify-center rounded-full bg-[#EFF1F1]"
-      >
-        <MaterialIcons name="keyboard-arrow-left" size={24} color="#113E55" />
-      </Pressable>
+      <Back type="short-arrow" onPress={() => navigation.goBack()} />
 
       <ScreenHeader title="Upcoming Invite" containerClassName="mt-[35px]" />
 
