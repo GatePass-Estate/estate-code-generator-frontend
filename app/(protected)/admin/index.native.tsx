@@ -1,13 +1,16 @@
 import {
+  ActivityIndicator,
   View,
   Text,
   ScrollView,
   TouchableOpacity,
+  Pressable,
   Image,
   RefreshControl,
   BackHandler,
   useWindowDimensions,
   StyleSheet,
+  Modal,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Stack, useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
@@ -22,11 +25,8 @@ import icons from '@/src/constants/icons';
 import { getRoleIcon, isDataEqual } from '@/src/lib/helpers';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useEstateEntitlements } from '@/src/lib/api/entitlements';
-import {
-  useContactAdminNoticeStore,
-  useFeatureGate,
-  useUpgradePromptStore,
-} from '@/src/hooks/usePlan';
+import { useEstateSubscription } from '@/src/hooks/useBillingQueries';
+import { useContactAdminNoticeStore, useFeatureGate } from '@/src/hooks/usePlan';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import AdminToolsSvg from '@/src/assets/images/admintools.svg';
 import AdminResidentsSvg from '@/src/assets/images/adminresidents.svg';
@@ -39,13 +39,13 @@ export default function AdminUsersMobilePage() {
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
   const [users, setUsers] = useState<AllUsers>({ total: 0, page: 1, limit: 30, items: [] });
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [seatModalVisible, setSeatModalVisible] = useState(false);
   const router = useRouter();
   const navigation = useNavigation();
   const usersRef = useRef<AllUsers>(users);
   const { data: estateEntitlements } = useEstateEntitlements();
-  const showUpgradePrompt = useUpgradePromptStore((s) => s.show);
   const showContactAdminNotice = useContactAdminNoticeStore((s) => s.show);
   const userRole = useUserStore((s) => s.role);
 
@@ -122,6 +122,7 @@ export default function AdminUsersMobilePage() {
     } catch {
       // Preserve the last successfully loaded totals when refreshing fails.
     } finally {
+      setIsInitialLoading(false);
       if (showLoading) setRefreshing(false);
     }
   };
@@ -172,26 +173,42 @@ export default function AdminUsersMobilePage() {
     occupied: occupiedSeats,
   } = getSeatOccupancy(users);
   const totalUsersCount = users.total;
-  const registeredUsersCount = users.total;
-  const estateUserCapacity = estateEntitlements?.coveredUsers ?? null;
+  const { data: subscriptionData } = useEstateSubscription();
+  const subscription = subscriptionData?.subscription;
+  const isPrimaryAdmin = userRole === 'primary_admin' || userRole === 'root';
+  const estateUserCapacity =
+    estateEntitlements?.coveredUsers ?? subscription?.covered_users ?? null;
   const isRegistrationAtCapacity =
     estateUserCapacity !== null && occupiedSeats >= estateUserCapacity;
+  const pendingCoveredUsers = subscription?.pending_covered_users ?? null;
+  const hasPendingSeatReduction =
+    pendingCoveredUsers !== null &&
+    estateUserCapacity !== null &&
+    pendingCoveredUsers < estateUserCapacity;
+  const isBlockedByPendingReduction =
+    hasPendingSeatReduction && pendingCoveredUsers <= occupiedSeats;
+
+  const [blockedRegistrationReason, setBlockedRegistrationReason] = useState<
+    'capacity' | 'pending_reduction' | null
+  >(null);
   const limitedUsers = verifiedUsers.slice(0, 3);
 
   const handleOpenAddSeats = () => {
-    if (userRole === 'primary_admin') {
-      router.push('/admin/seats');
+    if (isPrimaryAdmin) {
+      router.push('/billing/manage-seats');
     } else {
-      showContactAdminNotice(
-        'guest_management',
-        'Only the primary admin can manage seat capacity.'
-      );
+      showContactAdminNotice('guest_management', 'Only the primary admin can add seats.');
     }
   };
 
   const handleRegisterUser = () => {
+    // Check order: first if capacity is reached, then if capacity minus pending drop is at or below registered users
     if (isRegistrationAtCapacity) {
-      showUpgradePrompt('household_department_management');
+      setBlockedRegistrationReason('capacity');
+      return;
+    }
+    if (isBlockedByPendingReduction) {
+      setBlockedRegistrationReason('pending_reduction');
       return;
     }
     router.push('/admin/users/add');
@@ -293,6 +310,7 @@ export default function AdminUsersMobilePage() {
                   borderRadius: 8,
                   paddingHorizontal: 14,
                   paddingVertical: 6,
+                  opacity: isPrimaryAdmin ? 1 : 0.45,
                 }}
               >
                 <Text
@@ -520,7 +538,7 @@ export default function AdminUsersMobilePage() {
                 </Text>
               </TouchableOpacity>
 
-              {/* Broadcast (Greyed out for upgrade) */}
+              {/* Broadcast */}
               <TouchableOpacity
                 style={{ alignItems: 'center', flex: 1 }}
                 onPress={handleOpenBroadcast}
@@ -531,7 +549,7 @@ export default function AdminUsersMobilePage() {
                 >
                   <Image
                     source={icons.broadcastIcon}
-                    style={{ width: 22, height: 22, tintColor: '#9DA9AF', opacity: 0.6 }}
+                    style={{ width: 22, height: 22 }}
                     resizeMode="contain"
                   />
                 </View>
@@ -540,7 +558,7 @@ export default function AdminUsersMobilePage() {
                   style={{
                     fontFamily: 'Inter_18pt-Medium',
                     fontSize: 10,
-                    color: '#9DA9AF',
+                    color: '#113E55',
                     marginTop: 6,
                     textAlign: 'center',
                   }}
@@ -650,7 +668,23 @@ export default function AdminUsersMobilePage() {
 
           {/* Users List */}
           <View>
-            {limitedUsers.length === 0 ? (
+            {isInitialLoading ? (
+              <View style={{ paddingVertical: 32, alignItems: 'center' }}>
+                <ActivityIndicator color="#113E55" />
+                <Text
+                  allowFontScaling={false}
+                  style={{
+                    fontFamily: 'Inter_18pt-Regular',
+                    fontSize: 14,
+                    color: '#8A9A9D',
+                    textAlign: 'center',
+                    marginTop: 10,
+                  }}
+                >
+                  Loading users...
+                </Text>
+              </View>
+            ) : limitedUsers.length === 0 ? (
               <View style={{ paddingVertical: 32, alignItems: 'center' }}>
                 <Text
                   allowFontScaling={false}
@@ -737,7 +771,115 @@ export default function AdminUsersMobilePage() {
         maxCapacity={estateUserCapacity ?? totalUsersCount}
         residentsCount={seatResidentsCount}
         securityPersonnelCount={securityPersonnelCount}
+        onManageSeats={handleOpenAddSeats}
+        canManageSeats={isPrimaryAdmin}
       />
+
+      {/* Blocked Registration Overlay (Capacity reached or Pending reduction) */}
+      <Modal
+        visible={blockedRegistrationReason !== null}
+        transparent
+        statusBarTranslucent
+        animationType="fade"
+        onRequestClose={() => setBlockedRegistrationReason(null)}
+      >
+        <Pressable
+          onPress={() => setBlockedRegistrationReason(null)}
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0, 0, 0, 0.55)',
+            justifyContent: 'center',
+            alignItems: 'center',
+            paddingHorizontal: 24,
+          }}
+        >
+          <Pressable
+            onPress={() => {}}
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: 24,
+              padding: 24,
+              width: '100%',
+              maxWidth: 340,
+              alignItems: 'center',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.15,
+              shadowRadius: 12,
+              elevation: 6,
+            }}
+          >
+            <View
+              style={{
+                width: 56,
+                height: 56,
+                borderRadius: 28,
+                backgroundColor: '#FEE2E2',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 16,
+              }}
+            >
+              <Feather name="alert-triangle" size={26} color="#DC2626" />
+            </View>
+
+            <Text
+              allowFontScaling={false}
+              style={{
+                fontFamily: 'UbuntuSans-Bold',
+                fontSize: 18,
+                color: '#113E55',
+                textAlign: 'center',
+                marginBottom: 12,
+              }}
+            >
+              {blockedRegistrationReason === 'capacity'
+                ? 'Capacity Reached'
+                : 'Registration Blocked'}
+            </Text>
+
+            <Text
+              allowFontScaling={false}
+              style={{
+                fontFamily: 'Inter_18pt-Regular',
+                fontSize: 14,
+                lineHeight: 20,
+                color: '#64748B',
+                textAlign: 'center',
+                marginBottom: 24,
+              }}
+            >
+              {blockedRegistrationReason === 'capacity'
+                ? 'You have reached the maximum user capacity for your current plan. Please add seats to register more users.'
+                : 'A seat reduction request prevents addition of new users. To add users, the request has to be cancelled.'}
+            </Text>
+
+            <TouchableOpacity
+              onPress={() => setBlockedRegistrationReason(null)}
+              activeOpacity={0.8}
+              style={{
+                width: '100%',
+                backgroundColor: '#113E55',
+                borderRadius: 28,
+                paddingVertical: 14,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Text
+                allowFontScaling={false}
+                style={{
+                  fontFamily: 'Inter_18pt-Medium',
+                  fontSize: 15,
+                  color: '#FFFFFF',
+                }}
+              >
+                Done
+              </Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }

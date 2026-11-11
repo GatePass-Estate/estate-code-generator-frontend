@@ -1,9 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
-import { View, Text, ScrollView, Platform, useWindowDimensions, Pressable } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  Platform,
+  useWindowDimensions,
+  Pressable,
+  Image,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { getWidthBreakpoint } from '@/src/lib/helpers';
 import Back from '@/src/components/mobile/Back';
+import Images from '@/src/constants/images';
 
 type PolicySection = {
   id: string;
@@ -452,14 +461,15 @@ export default function DataProtectionPolicy() {
 
   return (
     <SafeAreaView className="flex-1 bg-white">
-      <View className="px-5 pt-4">
-        <Back type="short-arrow" />
+      <View className="flex-row justify-between items-center px-5 pt-4">
+        <Back type="short-arrow" showText={false} showBorder={true} />
+        <Image source={Images.logo} style={{ width: 50, height: 50 }} resizeMode="contain" />
       </View>
 
       <ScrollView
         ref={scrollViewRef}
         className="flex-1"
-        contentContainerStyle={{ padding: 20, paddingBottom: 60 }}
+        contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}
       >
         <Text className="font-UbuntuSans text-3xl text-primary">Privacy Policy</Text>
@@ -527,17 +537,6 @@ export default function DataProtectionPolicy() {
               )}
             </View>
           ))}
-        </View>
-
-        <View className="mt-10 mb-8 w-full">
-          <Pressable
-            onPress={() => router.back()}
-            className="bg-primary rounded-lg py-4 w-full items-center justify-center flex-row"
-          >
-            <Text className="text-white font-UbuntuSans font-semibold text-base">
-              {fromSettings ? 'Back' : 'Return to Terms'}
-            </Text>
-          </Pressable>
         </View>
       </ScrollView>
     </SafeAreaView>

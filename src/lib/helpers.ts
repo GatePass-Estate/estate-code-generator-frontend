@@ -310,18 +310,24 @@ export const getErrorMessage = (error: any): string => {
     const data = error.response.data;
 
     if (Array.isArray(data.detail)) {
-      const first = data.detail[0];
-      if (first?.msg) {
-        return first.msg;
+      const messages = data.detail
+        .map((item: any) => (typeof item === 'string' ? item : item?.msg))
+        .filter((msg: unknown): msg is string => typeof msg === 'string' && msg.trim().length > 0);
+      if (messages.length > 0) {
+        return messages.join('. ');
       }
     }
 
-    if (typeof data.detail === 'string') {
+    if (typeof data.detail === 'string' && data.detail.trim().length > 0) {
       return data.detail;
     }
 
     if (data.detail && typeof data.detail === 'object' && typeof data.detail.message === 'string') {
       return data.detail.message;
+    }
+
+    if (typeof data.message === 'string' && data.message.trim().length > 0) {
+      return data.message;
     }
   }
 
@@ -337,6 +343,12 @@ export const getErrorMessage = (error: any): string => {
 
     if (error.message === 'Request failed with status code 404')
       return 'Not Found - the requested resource could not be found.';
+
+    if (error.message === 'Request failed with status code 409')
+      return 'A conflicting request or subscription state already exists. Please refresh and try again.';
+
+    if (error.message === 'Request failed with status code 422')
+      return 'Invalid checkout or request details. Please verify your selection and try again.';
 
     if (error.message === 'Request failed with status code 500')
       return 'Server error - please try again later.';
@@ -398,6 +410,14 @@ export const parseLogDate = (value: string): Date => {
   return new Date(iso);
 };
 
+export const logDateMs = (value: string): number => {
+  const time = parseLogDate(value).getTime();
+  return Number.isFinite(time) ? time : 0;
+};
+
+/** Newest timestamp first. Equal (or unparseable) times keep their original order. */
+export const compareLogDatesDesc = (a: string, b: string): number => logDateMs(b) - logDateMs(a);
+
 /**
  * Past history card — UTC calendar day from ``visit_time`` (date only; time is on details)
  * e.g. ``2026-07-14T23:35:33.854563Z`` → ``14th July 2026``
@@ -413,63 +433,85 @@ export const formatPastHistoryVisitDate = (value?: string | null): string => {
 };
 
 /**
- * Upcoming history card — UTC from ``validity_period.start``
- * e.g. ``2026-07-25 14:00:00.000+0000`` → ``25 July 14:00``
+ * Upcoming history card — local time of ``validity_period.start``
+ * e.g. ``2026-07-25 13:00:00.000+0000`` → ``25 July 14:00`` in WAT
  */
 export const formatUpcomingInviteCardDate = (value?: string | null): string => {
   if (!value) return 'Scheduled';
   const date = parseLogDate(value);
   if (Number.isNaN(date.getTime())) return value;
-  const day = date.getUTCDate();
-  const month = date.toLocaleString('en-GB', { month: 'long', timeZone: 'UTC' });
-  const hours = String(date.getUTCHours()).padStart(2, '0');
-  const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+  const day = date.getDate();
+  const month = date.toLocaleString('en-GB', { month: 'long' });
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
   return `${day} ${month} ${hours}:${minutes}`;
+};
+
+/** ``HH:MM`` of a local time, as the UTC time of day the server compares validity windows with. */
+export const toUtcClock = (date: Date): string =>
+  `${String(date.getUTCHours()).padStart(2, '0')}:${String(date.getUTCMinutes()).padStart(2, '0')}`;
+
+/** A server ``HH:MM`` (UTC time of day) shown as the local ``HH:MM``. */
+export const utcClockToLocal = (value: string): string => {
+  const [h, m] = value.split(':').map(Number);
+  const date = new Date();
+  date.setUTCHours(h, m, 0, 0);
+  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
 };
 
 /** True when the invite's validity window has not started yet (History → Upcoming). */
 export function isUpcomingCode(code: Codes, now = Date.now()): boolean {
-  const start = code.validity_period?.start ?? code.validity_window?.start;
+  const start = code.validity_period?.start;
   if (!start) return false;
   const startMs = parseLogDate(start).getTime();
   return Number.isFinite(startMs) && startMs > now;
 }
 
 /**
- * Upcoming invite detail — calendar date in UTC
- * e.g. ``2026-07-25 14:00:00.000+0000`` → ``Saturday, 25 July 2026``
+ * Upcoming invite detail — local calendar date
+ * e.g. ``2026-07-25 13:00:00.000+0000`` → ``Saturday, 25 July 2026``
  */
 export const formatInviteScheduleDate = (value?: string | null): string => {
   if (!value) return '—';
   const date = parseLogDate(value);
   if (Number.isNaN(date.getTime())) return value;
-  const weekday = date.toLocaleString('en-GB', { weekday: 'long', timeZone: 'UTC' });
-  const day = date.getUTCDate();
-  const month = date.toLocaleString('en-GB', { month: 'long', timeZone: 'UTC' });
-  const year = date.getUTCFullYear();
+  const weekday = date.toLocaleString('en-GB', { weekday: 'long' });
+  const day = date.getDate();
+  const month = date.toLocaleString('en-GB', { month: 'long' });
+  const year = date.getFullYear();
   return `${weekday}, ${day} ${month} ${year}`;
 };
 
 /**
- * Upcoming invite clock — keep ``HH:MM`` windows as-is; datetimes in UTC
- * e.g. ``14:00`` or ``2026-07-25 14:00:00.000+0000`` → ``14:00``
+ * Upcoming invite clock, in local time. A bare ``HH:MM`` is a validity-window bound (UTC time of
+ * day); a datetime is a UTC instant.
+ * e.g. ``13:00`` or ``2026-07-25 13:00:00.000+0000`` → ``14:00`` in WAT
  */
 export const formatInviteClockTime = (value?: string | null): string => {
   if (!value) return '—';
   const trimmed = value.trim();
-  if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(trimmed)) {
-    const [h, m] = trimmed.split(':');
-    return `${h.padStart(2, '0')}:${m.padStart(2, '0')}`;
-  }
+  if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(trimmed)) return utcClockToLocal(trimmed);
   const date = parseLogDate(trimmed);
   if (Number.isNaN(date.getTime())) return trimmed;
-  return `${String(date.getUTCHours()).padStart(2, '0')}:${String(date.getUTCMinutes()).padStart(2, '0')}`;
+  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
 };
 
 export type MonthGroup<T> = {
   label: string;
   items: T[];
 };
+
+function monthGroupKey(date: Date, utc: boolean): string {
+  const year = utc ? date.getUTCFullYear() : date.getFullYear();
+  const month = utc ? date.getUTCMonth() : date.getMonth();
+  return `${year}-${String(month).padStart(2, '0')}`;
+}
+
+function compareMonthKeysDesc(a: string, b: string): number {
+  const [aYear, aMonth] = a.split('-').map(Number);
+  const [bYear, bMonth] = b.split('-').map(Number);
+  return bYear - aYear || bMonth - aMonth;
+}
 
 /** Group items by calendar month (newest month first; items newest-first within each month). */
 export function groupLogsByMonth<T>(
@@ -481,17 +523,14 @@ export function groupLogsByMonth<T>(
   const groups = new Map<string, T[]>();
 
   logs.forEach((log) => {
-    const date = parseLogDate(getDate(log));
-    const key = useUtc
-      ? `${date.getUTCFullYear()}-${date.getUTCMonth()}`
-      : `${date.getFullYear()}-${date.getMonth()}`;
+    const key = monthGroupKey(parseLogDate(getDate(log)), useUtc);
     const existing = groups.get(key) ?? [];
     existing.push(log);
     groups.set(key, existing);
   });
 
   return Array.from(groups.entries())
-    .sort(([a], [b]) => b.localeCompare(a))
+    .sort(([a], [b]) => compareMonthKeysDesc(a, b))
     .map(([key, items]) => {
       const [year, month] = key.split('-').map(Number);
       const label = useUtc
@@ -502,9 +541,7 @@ export function groupLogsByMonth<T>(
 
       return {
         label,
-        items: items.sort(
-          (a, b) => parseLogDate(getDate(b)).getTime() - parseLogDate(getDate(a)).getTime()
-        ),
+        items: [...items].sort((a, b) => compareLogDatesDesc(getDate(a), getDate(b))),
       };
     });
 }

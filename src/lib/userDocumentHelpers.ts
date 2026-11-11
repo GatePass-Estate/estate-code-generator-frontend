@@ -2,6 +2,29 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { getValidAccessToken } from '@/src/lib/authRefresh';
 import { DocumentType } from '@/src/types/userDocuments';
 
+/** Keep ID/photo uploads small so admin/profile preview pages stay fast. */
+export const MAX_DOCUMENT_UPLOAD_BYTES = 5 * 1024 * 1024;
+export const MAX_DOCUMENT_UPLOAD_LABEL = '5 MB';
+
+export function documentUploadTooLargeMessage() {
+  return `Choose a file of ${MAX_DOCUMENT_UPLOAD_LABEL} or smaller so document previews load quickly.`;
+}
+
+export function isDocumentUploadTooLarge(sizeBytes: number | null | undefined) {
+  return typeof sizeBytes === 'number' && sizeBytes > MAX_DOCUMENT_UPLOAD_BYTES;
+}
+
+export async function assertDocumentUploadSize(uri: string, knownSize?: number | null) {
+  let size = knownSize ?? null;
+  if (size == null || size <= 0) {
+    const info = await FileSystem.getInfoAsync(uri);
+    size = 'size' in info && typeof info.size === 'number' ? info.size : null;
+  }
+  if (isDocumentUploadTooLarge(size)) {
+    throw new Error(documentUploadTooLargeMessage());
+  }
+}
+
 export function getFilenameFromUri(uri: string, fallback = 'upload.jpg') {
   const name = uri.split('/').pop();
   if (name && name.includes('.')) {

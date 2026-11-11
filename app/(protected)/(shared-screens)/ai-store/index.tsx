@@ -11,7 +11,6 @@ import {
   PanResponder,
   ActivityIndicator,
   RefreshControl,
-  Platform,
   Image,
 } from 'react-native';
 import { router, Stack } from 'expo-router';
@@ -23,6 +22,7 @@ import Svg, { Path } from 'react-native-svg';
 import { ReactNode, useState, useMemo, useEffect, useCallback } from 'react';
 import { BlurView } from 'expo-blur';
 import { getMarketplaceFeatures, getFeaturePictureUrl } from '@/src/lib/api/aiMarketplace';
+import { formatKoboAmount } from '@/src/lib/currency';
 import { MarketplaceListItem } from '@/src/types/aiMarketplace';
 
 import IncidentReportSvg from '@/src/assets/images/incidentreportsummary.svg';
@@ -122,28 +122,6 @@ const toggleFilter = (currentSelection: string[], value: string, allValues: stri
 const PURCHASE_OPTIONS = ['purchased', 'not_purchased'];
 const CATEGORY_OPTIONS = ['Access Anomaly Detection', 'Incident Report Insights'];
 
-/** Local shop cards so anomaly + incident always appear even if the API omits them. */
-const LOCAL_SHOP_TOOLS: AITool[] = [
-  {
-    id: 'local-anomaly-detection',
-    title: 'Access Anomaly Detection',
-    rating: 0,
-    icon: getToolIllustration('anomaly'),
-    category: 'Access Anomaly Detection',
-    isPurchased: true,
-    isVerified: true,
-  },
-  {
-    id: 'local-incident-report',
-    title: 'Incident Report Insights',
-    rating: 0,
-    icon: getToolIllustration('incident report'),
-    category: 'Incident Report Insights',
-    isPurchased: true,
-    isVerified: true,
-  },
-];
-
 function mapMarketplaceItem(item: MarketplaceListItem): AITool {
   const cat = item.category || 'Access Anomaly Detection';
   const iconUrl = (item as any).display_picture_url || item.picture_path;
@@ -155,7 +133,7 @@ function mapMarketplaceItem(item: MarketplaceListItem): AITool {
     price: item.purchased
       ? undefined
       : item.price != null
-        ? `${item.currency_code === 'NGN' ? '₦' : '$'}${item.price}`
+        ? formatKoboAmount(item.price, { currency: item.currency_code })
         : undefined,
     rating: item.rating != null ? Math.round(item.rating) : 0,
     icon: iconUrl ? (
@@ -171,19 +149,6 @@ function mapMarketplaceItem(item: MarketplaceListItem): AITool {
     category: cat,
     isPurchased: item.purchased,
   };
-}
-
-function withLocalShopFallback(liveTools: AITool[]): AITool[] {
-  const titles = liveTools.map((t) => t.title.toLowerCase());
-  const hasAnomaly = titles.some((t) => t.includes('anomaly'));
-  const hasIncident = titles.some(
-    (t) => t.includes('incident') || (t.includes('report') && !t.includes('anomaly'))
-  );
-
-  const merged = [...liveTools];
-  if (!hasAnomaly) merged.push(LOCAL_SHOP_TOOLS[0]);
-  if (!hasIncident) merged.push(LOCAL_SHOP_TOOLS[1]);
-  return merged.length > 0 ? merged : LOCAL_SHOP_TOOLS;
 }
 
 export default function AIStoreScreen() {
@@ -213,13 +178,12 @@ export default function AIStoreScreen() {
         console.log('===================================================================\n');
 
         if (isMounted) {
-          const liveTools = (data?.items ?? []).map(mapMarketplaceItem);
-          setTools(withLocalShopFallback(liveTools));
+          setTools((data?.items ?? []).map(mapMarketplaceItem));
         }
       } catch (err: any) {
         console.log('AI Marketplace API note:', err?.message || err);
         if (isMounted) {
-          setTools(LOCAL_SHOP_TOOLS);
+          setTools([]);
         }
       } finally {
         if (isMounted) {
@@ -246,11 +210,10 @@ export default function AIStoreScreen() {
         params.category = categoryFilters;
       }
       const data = await getMarketplaceFeatures(params);
-      const liveTools = (data?.items ?? []).map(mapMarketplaceItem);
-      setTools(withLocalShopFallback(liveTools));
+      setTools((data?.items ?? []).map(mapMarketplaceItem));
     } catch (err: any) {
       console.log('AI Marketplace API refresh note:', err?.message || err);
-      setTools(LOCAL_SHOP_TOOLS);
+      setTools([]);
     } finally {
       setRefreshing(false);
     }
@@ -401,6 +364,12 @@ export default function AIStoreScreen() {
         {isLoading && tools.length === 0 ? (
           <View className="py-16 items-center justify-center">
             <ActivityIndicator size="small" color="#113E55" />
+          </View>
+        ) : filteredTools.length === 0 ? (
+          <View className="py-16 items-center justify-center">
+            <Text className="text-center text-sm font-inter-regular text-[#6C6C6C]">
+              No AI tools to show.
+            </Text>
           </View>
         ) : (
           <View style={styles.grid}>

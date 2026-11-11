@@ -13,10 +13,8 @@ const TIMELINE_INNER_DOT_SIZE = 20;
 
 type AccessTimelineProps = {
   events: AccessTimelineEvent[];
-  /** Gap between consecutive items; dashed connector fills this space. */
+  /** Gap between consecutive items; dashed connector fills this space. Events are newest first. */
   gap?: number;
-  /** Trailing dashed line below the last item when the code has not expired. */
-  lastOverflow?: number;
   error?: string | null;
   emptyMessage?: string;
   className?: string;
@@ -80,7 +78,6 @@ function TimelineItem({
 export default function AccessTimeline({
   events,
   gap = 24,
-  lastOverflow = 56,
   error = null,
   emptyMessage = 'No timeline events found.',
   className,
@@ -99,20 +96,16 @@ export default function AccessTimeline({
 
   return (
     <View className={className} style={style}>
-      {events.map((event, index) => {
-        const isLast = index === events.length - 1;
-        const endsWithExpired = isLast && !!event.isExpired;
-
-        return (
-          <TimelineItem
-            key={event.id}
-            event={event}
-            showLine={!endsWithExpired}
-            lineHeight={isLast ? lastOverflow : gap}
-            dashStyle={dashStyle}
-          />
-        );
-      })}
+      {/* Newest first: the connector only runs between events, never below the oldest one. */}
+      {events.map((event, index) => (
+        <TimelineItem
+          key={event.id}
+          event={event}
+          showLine={index < events.length - 1}
+          lineHeight={gap}
+          dashStyle={dashStyle}
+        />
+      ))}
     </View>
   );
 }

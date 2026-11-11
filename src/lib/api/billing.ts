@@ -1,7 +1,6 @@
 import { isAxiosError } from 'axios';
 import Api from '.';
-import { getErrorMessage } from '../helpers';
-import { koboToNaira } from '../billing';
+import { BillingApiError, createIdempotencyKey, koboToNaira, toBillingError } from '../billing';
 import {
   BillingCycleResponse,
   BillingTierListParams,
@@ -23,26 +22,7 @@ import {
   SeatReductionEligibility,
 } from '@/src/types/billing';
 
-/** A failed billing request; `status` is the HTTP status when the server answered (e.g. 409). */
-export class BillingApiError extends Error {
-  status?: number;
-
-  constructor(message: string, status?: number) {
-    super(message);
-    this.name = 'BillingApiError';
-    this.status = status;
-  }
-}
-
-function toBillingError(error: unknown, fallback: string): BillingApiError {
-  const status = isAxiosError(error) ? error.response?.status : undefined;
-  // 5xx details describe internal services (e.g. "Upstream returned HTTP 500 for GET
-  // http://db-service…"): show the plain fallback instead. 4xx messages are meant for the user.
-  if (status !== undefined && status >= 500) {
-    return new BillingApiError(`${fallback}. Please try again.`, status);
-  }
-  return new BillingApiError(getErrorMessage(error) || fallback, status);
-}
+export { BillingApiError, toBillingError };
 
 const estatePath = (estateId: string) => `/subscriptions/estate/${encodeURIComponent(estateId)}`;
 
@@ -273,7 +253,7 @@ export async function cancelSubscription(estateId: string): Promise<CancelSubscr
 /** POST /checkout/initialize — starts a Paystack checkout. `idempotencyKey` is required by the API. */
 export async function initializeCheckout(
   body: InitializeCheckoutRequest,
-  idempotencyKey: string
+  idempotencyKey: string = createIdempotencyKey()
 ): Promise<InitializeCheckoutResponse> {
   try {
     const { data } = await Api('revenue').post<InitializeCheckoutResponse>(

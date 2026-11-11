@@ -127,6 +127,13 @@ export default function ChoosePlanScreen() {
   // Fetching the price of the latest seats/duration before checkout (the on-screen one lagged).
   const [pricing, setPricing] = useState(false);
 
+  useEffect(() => {
+    return () => {
+      setSeatsInput(null);
+      setSelectedSlug(null);
+    };
+  }, []);
+
   const tabTiers = useMemo(
     () => (tiersQuery.data ?? []).filter((tier) => tier.slug !== 'access' && tier.is_active),
     [tiersQuery.data]

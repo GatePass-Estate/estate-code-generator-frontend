@@ -98,12 +98,24 @@ export function refreshEstateEntitlementsIfOlderThan(estateId: string, maxAgeMs:
 }
 
 /**
+ * Fetches the estate's entitlements from the server now, ignoring how fresh the cache is, and
+ * stores the answer. For confirming a cached "no" before refusing the user.
+ */
+export function refetchEstateEntitlements(estateId: string): Promise<Entitlements> {
+  return queryClient.fetchQuery({
+    ...estateEntitlementsQuery(estateId),
+    staleTime: 0,
+    retry: false,
+  });
+}
+
+/**
  * Refetches the entitlements and the tier (both live under `entitlementKeys.all`). Call when the
  * plan may have changed: a billing action, a server rejection the cache said was allowed, an ID
- * approval.
+ * approval. Resolves once the refetch has finished.
  */
-export function refreshEstateEntitlements() {
-  void queryClient.invalidateQueries({ queryKey: entitlementKeys.all });
+export function refreshEstateEntitlements(): Promise<void> {
+  return queryClient.invalidateQueries({ queryKey: entitlementKeys.all });
 }
 
 export function clearEstateEntitlements() {

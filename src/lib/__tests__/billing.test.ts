@@ -1,4 +1,5 @@
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it, jest } from '@jest/globals';
+import * as Crypto from 'expo-crypto';
 import {
   formatMonthlyCharge,
   formatPlanName,
@@ -32,6 +33,7 @@ import {
   koboToNaira,
   isPaidActiveSubscription,
   sortTiers,
+  toBillingError,
 } from '@/src/lib/billing';
 import { BillingTier, EstateSubscription } from '@/src/types/billing';
 
@@ -380,12 +382,65 @@ describe('misc helpers', () => {
     ]);
   });
 
-  it('creates distinct idempotency keys', () => {
+  it('creates distinct 36-character UUID v4 idempotency keys', () => {
+    const uuidV4Regex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     const a = createIdempotencyKey();
     const b = createIdempotencyKey();
-    expect(a).toEqual(expect.any(String));
-    expect(a.length).toBeGreaterThan(16);
+    expect(a).toHaveLength(36);
+    expect(b).toHaveLength(36);
+    expect(a).toMatch(uuidV4Regex);
+    expect(b).toMatch(uuidV4Regex);
     expect(a).not.toBe(b);
+  });
+
+  it('falls back to a 36-character UUID v4 when crypto.randomUUID is unavailable', () => {
+    const uuidV4Regex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    const spy = jest.spyOn(Crypto, 'randomUUID').mockImplementation(() => {
+      throw new Error('Native module unavailable');
+    });
+    const originalCrypto = globalThis.crypto;
+    Object.defineProperty(globalThis, 'crypto', { value: undefined, configurable: true });
+    try {
+      const fallbackKey = createIdempotencyKey();
+      expect(fallbackKey).toHaveLength(36);
+      expect(fallbackKey).toMatch(uuidV4Regex);
+    } finally {
+      spy.mockRestore();
+      Object.defineProperty(globalThis, 'crypto', { value: originalCrypto, configurable: true });
+    }
+  });
+
+  it('maps 409 and 422 responses to BillingApiError with status and details', () => {
+    const conflictError = {
+      isAxiosError: true,
+      message: 'Request failed with status code 409',
+      response: {
+        status: 409,
+        data: { detail: 'Idempotency key is already being processed.' },
+      },
+    };
+    const mapped409 = toBillingError(conflictError, 'Could not start checkout');
+    expect(mapped409.status).toBe(409);
+    expect(mapped409.message).toBe('Idempotency key is already being processed.');
+
+    const validationError = {
+      isAxiosError: true,
+      message: 'Request failed with status code 422',
+      response: {
+        status: 422,
+        data: {
+          detail: [
+            { loc: ['header', 'Idempotency-Key'], msg: 'String should have at most 36 characters' },
+            { loc: ['body', 'period_months'], msg: 'Input should be 1, 3, 6 or 12' },
+          ],
+        },
+      },
+    };
+    const mapped422 = toBillingError(validationError, 'Could not start checkout');
+    expect(mapped422.status).toBe(422);
+    expect(mapped422.message).toBe(
+      'String should have at most 36 characters. Input should be 1, 3, 6 or 12'
+    );
   });
 });
 

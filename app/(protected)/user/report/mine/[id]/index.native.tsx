@@ -5,6 +5,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Back from '@/src/components/mobile/Back';
 import { useFeatureGate } from '@/src/hooks/usePlan';
 import { incidentManagementApi, type IncidentReport } from '@/src/lib/api/incidentManagement';
+import {
+  leaveIncidentReport,
+  parseIncidentReportReturnTo,
+} from '@/src/lib/incidentReportNavigation';
 
 function displayDate(value: string): string {
   const date = new Date(value);
@@ -28,7 +32,11 @@ function categoryLabel(report: IncidentReport): string {
 }
 
 export default function MyIncidentReportDetailScreen() {
-  const { id, returnTo } = useLocalSearchParams<{ id?: string; returnTo?: string }>();
+  const { id, returnTo: returnToParam } = useLocalSearchParams<{
+    id?: string;
+    returnTo?: string;
+  }>();
+  const returnTo = parseIncidentReportReturnTo(returnToParam);
   const router = useRouter();
   const { requestAccessWhenReady } = useFeatureGate('incident_report', { notice: 'floating' });
   const [report, setReport] = useState<IncidentReport | null>(null);
@@ -53,6 +61,14 @@ export default function MyIncidentReportDetailScreen() {
     }
   }, [id]);
 
+  const handleBack = useCallback(() => {
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
+    leaveIncidentReport(returnTo, router);
+  }, [returnTo, router]);
+
   useFocusEffect(
     useCallback(() => {
       let active = true;
@@ -60,12 +76,12 @@ export default function MyIncidentReportDetailScreen() {
         const allowed = await requestAccessWhenReady(() => active);
         if (!active) return;
         if (allowed) await load();
-        else router.replace('/user');
+        else handleBack();
       })();
       return () => {
         active = false;
       };
-    }, [load, requestAccessWhenReady, router])
+    }, [handleBack, load, requestAccessWhenReady])
   );
 
   return (
@@ -79,12 +95,7 @@ export default function MyIncidentReportDetailScreen() {
             showBorder
             borderSize={30}
             leftOffset={-3}
-            onPress={() =>
-              router.replace({
-                pathname: '/user/report/mine',
-                params: { returnTo: returnTo || '/user' },
-              })
-            }
+            onPress={handleBack}
           />
         </View>
         {report ? (
@@ -116,7 +127,7 @@ export default function MyIncidentReportDetailScreen() {
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 24 }}
           >
-            <Text className="text-[14px] leading-[14px] text-[#0A1F29] font-inter-light">
+            <Text className="text-[14px] leading-[20px] text-[#0A1F29] font-inter-light">
               {report.narrative}
             </Text>
           </ScrollView>

@@ -189,6 +189,17 @@ export const useProfileDocumentsStore = create<ProfileDocumentsStore>((set, get)
       const { documents } = await getMyDocuments();
       ({ activePhoto, activeId, pendingId } = findProfileDocuments(documents));
 
+      // A rejected ID change stays `pending` in the documents, so ask the request itself. Once the
+      // admin has rejected it, the user's approved ID stands and nothing is waiting any more.
+      if (activeId && pendingId?.document_id) {
+        try {
+          const { items } = await getMyRequests(1, 20);
+          if (isPendingIdRejected(items, pendingId.document_id)) pendingId = undefined;
+        } catch {
+          // Requests unavailable: keep showing it as pending.
+        }
+      }
+
       const onboarding = buildOnboardingState(activePhoto, activeId, pendingId);
       const previousApproval = get().idApproval;
       const idApproval = idApprovalOf(activeId, pendingId);

@@ -13,6 +13,7 @@ import {
   useInitializeCheckout,
   type InitializeCheckoutParams,
 } from '@/src/hooks/useBillingQueries';
+import { createIdempotencyKey } from '@/src/lib/billing';
 import type { CheckoutKind, CheckoutSessionStatus } from '@/src/types/billing';
 
 export type CheckoutOutcome = CheckoutSessionStatus | 'cancelled' | 'error';
@@ -256,6 +257,8 @@ export function usePaystackCheckout() {
   const signalRef = useRef<AbortSignal | null>(null);
   const overlayShownKeyRef = useRef<number | null>(null);
   const overlayRetriesRef = useRef(0);
+  // One key per distinct checkout request, reused on retry so the server can deduplicate it.
+  const idempotencyRef = useRef<{ signature: string; key: string } | null>(null);
 
   // Aborted on unmount: stops polling and timers and unwinds a running checkout without state
   // updates. Created in the effect so a StrictMode remount gets a fresh controller.
@@ -294,12 +297,38 @@ export function usePaystackCheckout() {
       setIsRunning(true);
       let leavingPage = false;
       try {
+        const { idempotencyKey: explicitKey, ...restParams } = params;
+        const signature = JSON.stringify(restParams);
+        if (!explicitKey && idempotencyRef.current?.signature !== signature) {
+          idempotencyRef.current = { signature, key: createIdempotencyKey() };
+        }
+        const idempotencyKey = explicitKey ?? idempotencyRef.current?.key;
+
         let session;
         try {
-          session = await initializeCheckout(params);
+          session = await initializeCheckout({ ...params, idempotencyKey });
+          idempotencyRef.current = null;
         } catch (error: any) {
+          const status = error?.status ?? error?.response?.status;
+          // The server settled this request one way or the other, so a retry gets a new key.
+          if (status === 409 || status === 422) idempotencyRef.current = null;
+          if (status === 409) void refreshBillingData();
+          // Left the screen: no alert over whatever the user is looking at now.
           if (!signal.aborted) {
-            Alert.alert('Checkout failed', error?.message || 'Could not start checkout.');
+            if (status === 409) {
+              Alert.alert(
+                'Checkout conflict',
+                error?.message ||
+                  'A conflicting checkout or subscription request already exists. Your billing details have been refreshed.'
+              );
+            } else if (status === 422) {
+              Alert.alert(
+                'Invalid checkout details',
+                error?.message || 'Please review your plan selection and try again.'
+              );
+            } else {
+              Alert.alert('Checkout failed', error?.message || 'Could not start checkout.');
+            }
           }
           return 'error';
         }

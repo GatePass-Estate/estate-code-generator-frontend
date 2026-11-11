@@ -11,6 +11,7 @@ import {
   Modal,
   Platform,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -18,12 +19,14 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useQueryClient } from '@tanstack/react-query';
 import { Ionicons as Icon } from '@expo/vector-icons';
 import NotificationBell from '@/src/components/common/NotificationBell';
 import InvalidCodeClose from '@/src/assets/icons/invalid-code-close.svg';
 import MoreFill from '@/src/assets/icons/more-fill.svg';
 import ScanFrame from '@/src/assets/icons/scan-frame.svg';
 import { validateCode } from '@/src/lib/api/codes';
+import { refreshEstateEntitlements } from '@/src/lib/api/entitlements';
 import { getScanWarningSeverity } from '@/src/lib/securityScanWarning';
 import { useVerificationGate } from '@/src/hooks/useAccountVerification';
 import { getUserById } from '@/src/lib/api/user';
@@ -144,12 +147,14 @@ function InvalidCodeOverlay({ onClose }: { onClose: () => void }) {
 }
 
 export default function SecurityVerificationMobile() {
+  const queryClient = useQueryClient();
   const params = useLocalSearchParams();
   const [mode, setMode] = useState<VerificationMode>(params.mode === 'scan' ? 'scan' : 'enter');
   const [code, setCode] = useState<string[]>(EMPTY_CODE);
   const [errorMessage, setErrorMessage] = useState('');
   const [invalidCode, setInvalidCode] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const { requireVerified } = useVerificationGate();
   const [permission, requestPermission] = useCameraPermissions();
   const inputs = useRef<InputRefsStorage>({});
@@ -172,9 +177,20 @@ export default function SecurityVerificationMobile() {
     scanNavigationInProgressRef.current = false;
   }, []);
 
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      refreshEstateEntitlements();
+      await queryClient.invalidateQueries({ queryKey: ['anomaly'] });
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [queryClient]);
+
   useFocusEffect(
     useCallback(() => {
       resetScanState();
+      refreshEstateEntitlements();
     }, [resetScanState])
   );
 
@@ -200,6 +216,7 @@ export default function SecurityVerificationMobile() {
 
     try {
       const result = await validateCode(entered);
+      void queryClient.invalidateQueries({ queryKey: ['anomaly'] });
       if (result.is_valid === false || result.is_expired) {
         showInvalidOverlay(entered, 'This code does not exist or has expired.');
         return;
@@ -582,6 +599,14 @@ export default function SecurityVerificationMobile() {
           contentContainerStyle={[styles.keyboardContent, { paddingTop: contentTopGap }]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={() => void handleRefresh()}
+              tintColor="#113E55"
+              colors={['#113E55']}
+            />
+          }
         >
           {mode === 'enter' ? renderEnterCode() : renderScanner()}
         </ScrollView>
