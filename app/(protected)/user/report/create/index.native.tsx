@@ -65,11 +65,13 @@ export default function IncidentReportCreateScreen() {
   const [narrative, setNarrative] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [confirmSubmit, setConfirmSubmit] = useState(false);
-  const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [draftLoaded, setDraftLoaded] = useState(false);
-  const [savingDraft, setSavingDraft] = useState(false);
   const [error, setError] = useState('');
   const clearedDraft = useRef(false);
+  const latestDraft = useRef({ categories, customCategory, title, narrative });
+  latestDraft.current = { categories, customCategory, title, narrative };
+  const draftReady = useRef(false);
+  draftReady.current = draftLoaded;
   const hasDraft = Boolean(title.trim() || narrative.trim());
 
   useEffect(() => {
@@ -110,6 +112,16 @@ export default function IncidentReportCreateScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      return () => {
+        if (draftReady.current && !clearedDraft.current && userId) {
+          void saveIncidentReportDraft(userId, latestDraft.current).catch(() => undefined);
+        }
+      };
+    }, [userId])
+  );
+
+  useFocusEffect(
+    useCallback(() => {
       let active = true;
       if (
         role !== 'resident' &&
@@ -135,7 +147,7 @@ export default function IncidentReportCreateScreen() {
   );
 
   const requestExit = useCallback(async () => {
-    if (submitting || savingDraft || !draftLoaded) return;
+    if (submitting || !draftLoaded) return;
     if (!userId) {
       setError('Unable to save your draft. Please sign in again.');
       return;
@@ -146,7 +158,7 @@ export default function IncidentReportCreateScreen() {
     } catch {
       setError('Unable to save your draft. Please try again.');
     }
-  }, [draftLoaded, returnTo, router, saveDraft, savingDraft, submitting, userId]);
+  }, [draftLoaded, returnTo, router, saveDraft, submitting, userId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -159,23 +171,6 @@ export default function IncidentReportCreateScreen() {
     }, [requestExit])
   );
 
-  const saveAndLeave = async () => {
-    if (submitting || savingDraft) return;
-    if (!userId) {
-      setError('Unable to save your draft. Please sign in again.');
-      return;
-    }
-    setSavingDraft(true);
-    try {
-      await saveDraft();
-      router.replace(returnTo);
-    } catch {
-      setError('Unable to save your draft. Please try again.');
-    } finally {
-      setSavingDraft(false);
-    }
-  };
-
   const requestSubmit = () => {
     if (submitting || checkingAccess) return;
     if ((categories.length === 0 && !customCategory) || !title.trim() || !narrative.trim()) {
@@ -184,18 +179,6 @@ export default function IncidentReportCreateScreen() {
     }
     setError('');
     setConfirmSubmit(true);
-  };
-
-  const discardDraft = async () => {
-    setConfirmDiscard(false);
-    clearedDraft.current = true;
-    try {
-      await clearIncidentReportDraft(userId);
-      router.replace({ pathname: '/user/report/category', params: { returnTo } });
-    } catch {
-      clearedDraft.current = false;
-      setError('Unable to discard your draft. Please try again.');
-    }
   };
 
   const submit = async () => {
@@ -291,16 +274,6 @@ export default function IncidentReportCreateScreen() {
 
           <View className="flex-1" />
           <TouchableOpacity
-            onPress={() => void saveAndLeave()}
-            disabled={submitting || savingDraft || !draftLoaded}
-            accessibilityRole="button"
-            className="mx-auto mb-3 h-[44px] w-[278px] max-w-[80%] items-center justify-center rounded-[24px] border border-[#113E55]"
-          >
-            <Text className="font-ubuntu-semibold text-[14px] leading-[18px] text-[#113E55]">
-              {savingDraft ? 'Saving Draft...' : 'Save Draft'}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
             onPress={requestSubmit}
             disabled={submitting || checkingAccess || !draftLoaded}
             accessibilityRole="button"
@@ -314,14 +287,6 @@ export default function IncidentReportCreateScreen() {
               </Text>
             )}
           </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setConfirmDiscard(true)}
-            disabled={submitting || savingDraft || !draftLoaded}
-            accessibilityRole="button"
-            className="mx-auto mt-3 items-center justify-center py-2"
-          >
-            <Text className="font-inter-regular text-[12px] text-[#878686]">Discard Draft</Text>
-          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
       {role === 'security' ? <SecurityTabBar activeTab="report" /> : null}
@@ -333,14 +298,6 @@ export default function IncidentReportCreateScreen() {
         busy={submitting}
         onConfirm={() => void submit()}
         onCancel={() => setConfirmSubmit(false)}
-      />
-      <ActionConfirmModal
-        visible={confirmDiscard}
-        title="Discard Draft?"
-        message="Remove this saved report draft?"
-        confirmLabel="Discard Draft"
-        onConfirm={() => void discardDraft()}
-        onCancel={() => setConfirmDiscard(false)}
       />
     </SafeAreaView>
   );
