@@ -20,6 +20,8 @@ export type LoginResponse = {
   success?: boolean;
   /** Session created for this sign-in; used to mark "this device" in Linked Devices. */
   session_id?: string | null;
+  /** Rotating refresh JWT (see src/lib/authRefresh.ts). Absent on 2FA/ToS-pending responses. */
+  refresh_token?: string | null;
 };
 
 export type VerifyEmailActivationResponse = {

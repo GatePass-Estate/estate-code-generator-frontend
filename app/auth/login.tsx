@@ -17,11 +17,10 @@ import { useAuth } from '@/src/hooks/useAuthContext';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { enableBiometricLogin, fetchMe, loginBiometric, loginUser } from '@/src/lib/api/auth';
 import { User } from '@/src/types/user';
-import { useAuthStore } from '@/src/lib/stores/authStore';
+import { applySession } from '@/src/lib/authRefresh';
 import {
   broadcastLogin,
   getWidthBreakpoint,
-  storeAuthState,
   getLastLoginInstitution,
   getSelectedInstitution,
   setLastLoginInstitution,
@@ -43,6 +42,7 @@ import {
 } from '@/src/lib/biometricAuth';
 import { BiometricPromptModal } from '@/src/components/mobile/BiometricPromptModal';
 import Back from '@/src/components/mobile/Back';
+import { parseSignOutReason, signOutNotice } from '@/src/lib/signOutReason';
 
 export default function Login() {
   const { signIn } = useAuth();
@@ -57,9 +57,9 @@ export default function Login() {
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showTosRejected, setShowTosRejected] = useState(searchParams.tos_rejected === 'true');
-  // Set when a session was revoked or expired elsewhere and we signed this
-  // device out; explains why the user is suddenly back on the login screen.
-  const sessionExpired = searchParams.session_expired === 'true';
+  // Set when the app signed this device out on its own (inactivity, an expired sign-in, an ended
+  // session); explains why the user is suddenly back on the login screen.
+  const signedOutBecause = parseSignOutReason(searchParams.signed_out);
   const [sessionNoticeDismissed, setSessionNoticeDismissed] = useState(false);
   const [showBiometric, setShowBiometric] = useState(false);
   const [showBiometricPrompt, setShowBiometricPrompt] = useState(false);
@@ -124,12 +124,19 @@ export default function Login() {
   const finishSignIn = useCallback(
     async (
       token: string,
-      options?: { skipRouting?: boolean; sessionId?: string | null }
+      options?: {
+        skipRouting?: boolean;
+        sessionId?: string | null;
+        refreshToken?: string | null;
+      }
     ): Promise<User> => {
       const user = await fetchMe(token);
-      const session_id = options?.sessionId ?? null;
-      useAuthStore.setState({ access_token: token, role: user.role, session_id });
-      await storeAuthState({ access_token: token, role: user.role, session_id });
+      await applySession({
+        access_token: token,
+        refresh_token: options?.refreshToken,
+        role: user.role,
+        session_id: options?.sessionId,
+      });
       broadcastLogin(token, user.role);
       signIn(user);
 
@@ -200,6 +207,7 @@ export default function Login() {
       const user = await finishSignIn(result.access_token, {
         skipRouting: true,
         sessionId: result.session_id,
+        refreshToken: result.refresh_token,
       });
       setIsLoading(false);
       await setLastLoginInstitution(estate ?? null);
@@ -280,6 +288,7 @@ export default function Login() {
         const user = await finishSignIn(response.access_token, {
           skipRouting: true,
           sessionId: response.session_id,
+          refreshToken: response.refresh_token,
         });
         if (response.biometric_token) {
           await saveBiometricCredentials(response.biometric_token, user.user_id, user.estate_id);
@@ -375,7 +384,7 @@ export default function Login() {
         >
           <Back type="short-arrow" onPress={handleBackPress} showText={false} showBorder={true} />
 
-          {sessionExpired && !sessionNoticeDismissed && (
+          {signedOutBecause && !sessionNoticeDismissed && (
             // Floats over the empty space under the back button (column padding 24 + back button 40
             // + 12) so showing or dismissing it never moves the form.
             <View
@@ -385,7 +394,7 @@ export default function Login() {
             >
               <View className="flex-row items-center gap-3 rounded-2xl border-mini border-[#FFCDD2] bg-[#FFF0F0] py-3 pl-5 pr-3">
                 <Text className="flex-shrink text-center font-inter-regular text-xs text-[#B3261E]">
-                  You were signed out because this session was ended on another device.
+                  {signOutNotice(signedOutBecause)}
                 </Text>
                 <Pressable
                   onPress={() => setSessionNoticeDismissed(true)}
@@ -478,8 +487,6 @@ export default function Login() {
                     autoCapitalize="none"
                     editable={!isLoading}
                     className="bg-light-grey rounded-xl px-4 h-14 pr-12 font-Inter text-base text-black"
-                    contextMenuHidden={true}
-                    selectTextOnFocus={false}
                   />
                   <Pressable
                     onPress={() => setShowPassword(!showPassword)}

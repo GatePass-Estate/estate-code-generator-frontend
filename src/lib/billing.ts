@@ -4,6 +4,7 @@ import { UserRolesType } from '@/src/types/general';
 import type { AllUsers } from '@/src/types/user';
 import {
   BillingTier,
+  CheckoutQuote,
   CheckoutQuoteRequest,
   EstateSubscription,
   PendingRequest,
@@ -438,13 +439,44 @@ export function createIdempotencyKey(): string {
 }
 
 /**
+ * The same quote body priced for a single month, for a plan card's "/month" figure. A quote's
+ * `price_per_seat` is not that figure: it leaves out the seat count and the plan's flat monthly AI
+ * price, so it reads the same on every plan.
+ */
+export function withOneMonth<T extends { period_months: PeriodMonths }>(
+  params: T | null
+): T | null {
+  return params ? { ...params, period_months: 1 } : null;
+}
+
+/**
+ * A plan card's "/month" figure: what the estate is charged per month at its seat count, VAT
+ * included (the `client_total` of a 1-month quote, see `withOneMonth`). `null` until it loads.
+ */
+export function formatMonthlyCharge(
+  quote: Pick<CheckoutQuote, 'client_total' | 'currency_code' | 'period_months'> | null | undefined
+): string | null {
+  if (!quote || quote.period_months !== 1) return null;
+  return formatMoney(quote.client_total, quote.currency_code) || null;
+}
+
+/** "Sentinel", "Watch": capitalises each word of a plan name without shouting it in capitals. */
+export function formatPlanName(name: string | null | undefined): string {
+  return (name ?? '')
+    .trim()
+    .split(/\s+/)
+    .map((word) => (word ? word.charAt(0).toUpperCase() + word.slice(1) : word))
+    .join(' ');
+}
+
+/**
  * Quote body (minus `estate_id`) that prices the estate's current plan at `seats` for `months`.
  * Custom plans are priced from the subscription's entitlements snapshot. `null` when there is no
  * paid plan to price (no subscription/tier, or the free Access tier).
  */
 export function getCurrentPlanQuoteParams(
   subscription: EstateSubscription | null | undefined,
-  tier: BillingTier | null | undefined,
+  tier: Pick<BillingTier, 'slug' | 'is_custom'> | null | undefined,
   seats: number,
   months: PeriodMonths = 1
 ): Omit<CheckoutQuoteRequest, 'estate_id'> | null {
@@ -460,6 +492,38 @@ export function getCurrentPlanQuoteParams(
     tier_slug: 'custom',
     entitlements: { ...entitlements, administrative_fee: true },
   };
+}
+
+/**
+ * Quote body (minus `estate_id`) for the plan's next renewal charge, priced on the same basis as
+ * the backend's billing-cycle `next_billing_amount` (revenue_service
+ * `SubscriptionService.get_billing_cycle`): the whole cycle (`inferPeriodMonths` of the current
+ * period), the scheduled tier when a tier change is pending, and the scheduled seat count when a
+ * seat reduction is pending. `seats` overrides the seat count (the count picked on Manage Seats;
+ * a seat add clears a pending reduction, a reduction replaces it) and `nextTier` the tier (the
+ * plan picked on Change Plan). `null` when there is nothing to price (see
+ * `getCurrentPlanQuoteParams`).
+ */
+export function getNextBillingQuoteParams(
+  subscription: EstateSubscription | null | undefined,
+  currentTier: BillingTier | null | undefined,
+  { seats, nextTier }: { seats?: number; nextTier?: BillingTier | null } = {}
+): Omit<CheckoutQuoteRequest, 'estate_id'> | null {
+  if (!subscription) return null;
+  const pendingSlug = subscription.pending_tier_slug;
+  // Tier changes can't be scheduled to a Custom plan, so a pending slug is a standard tier.
+  const tier = nextTier ?? (pendingSlug ? { slug: pendingSlug, is_custom: false } : currentTier);
+  return getCurrentPlanQuoteParams(
+    subscription,
+    tier,
+    seats ?? subscription.pending_covered_users ?? subscription.covered_users,
+    inferPeriodMonths(subscription.period_start, subscription.period_end)
+  );
+}
+
+/** 'Billed Monthly' for 1 month, else 'Billed every 3 months' etc. */
+export function getBilledCaption(months: PeriodMonths): string {
+  return months === 1 ? 'Billed Monthly' : `Billed every ${months} months`;
 }
 
 /**

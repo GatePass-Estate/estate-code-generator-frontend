@@ -18,10 +18,23 @@ const MATCHERS: Matcher[] = [
   { label: 'Linux', test: /linux|x11/i },
 ];
 
-/** Turns a stored User-Agent into a short, human device label. */
+// A raw User-Agent has product tokens ("okhttp/4.12", "Mozilla/5.0 (…)"); a name
+// the app sent in `X-Device-Name` ("iPhone 15 Pro", "Chrome on macOS") does not.
+const RAW_USER_AGENT = /\/|\(|;/;
+const MAX_NAME_LENGTH = 40;
+
+/**
+ * Short, human device label for a stored session `device_name`. Names the app sent
+ * itself (see deviceLabel.ts) are shown as they are; older sessions stored a raw
+ * User-Agent, which is reduced to a platform name.
+ */
 export function friendlyDeviceName(userAgent?: string | null): string {
   const ua = (userAgent ?? '').trim();
   if (!ua) return 'Unknown device';
+
+  if (!RAW_USER_AGENT.test(ua)) {
+    return ua.length > MAX_NAME_LENGTH ? `${ua.slice(0, MAX_NAME_LENGTH - 1)}…` : ua;
+  }
 
   for (const { label, test } of MATCHERS) {
     if (test.test(ua)) return label;

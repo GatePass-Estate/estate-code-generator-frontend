@@ -33,7 +33,13 @@ import {
 } from '@/src/hooks/useBillingQueries';
 import { useBillingScreenGuard } from '@/src/hooks/useBillingScreenGuard';
 import { usePaystackCheckout, showCheckoutOutcomeAlert } from '@/src/lib/billingCheckout';
-import { formatBillingDate, formatMoney, getCurrentPlanQuoteParams } from '@/src/lib/billing';
+import {
+  formatBillingDate,
+  formatMoney,
+  getBilledCaption,
+  getNextBillingQuoteParams,
+  inferPeriodMonths,
+} from '@/src/lib/billing';
 import { sharedStyles } from '@/src/theme/styles';
 import type { CheckoutQuote } from '@/src/types/billing';
 
@@ -81,12 +87,16 @@ export default function ManageSeatsScreen() {
   const isReduction = delta < 0;
   const busy = scheduleSeatReduction.isPending || checkoutRunning;
 
-  // Monthly totals and the prorated charge are only needed once the confirmation sheet is open.
-  const currentMonthlyQuote = useBillingQuote(
-    confirmVisible ? getCurrentPlanQuoteParams(subscription, tier, currentSeats, 1) : null
+  // Next-renewal totals and the prorated charge are only needed once the confirmation sheet is
+  // open. Both totals are priced like Your Current Plan's billing amount (whole cycle, scheduled
+  // tier/seat changes), so the new figure is what that screen shows after the change.
+  const periodMonths = inferPeriodMonths(subscription?.period_start, subscription?.period_end);
+  const renewsFree = subscription?.pending_tier_slug === 'access';
+  const currentCycleQuote = useBillingQuote(
+    confirmVisible ? getNextBillingQuoteParams(subscription, tier) : null
   );
-  const newMonthlyQuote = useBillingQuote(
-    confirmVisible ? getCurrentPlanQuoteParams(subscription, tier, newSeats, 1) : null
+  const newCycleQuote = useBillingQuote(
+    confirmVisible ? getNextBillingQuoteParams(subscription, tier, { seats: newSeats }) : null
   );
   const prorateQuery = useSeatProrate(confirmVisible && delta > 0 ? delta : null);
 
@@ -270,8 +280,10 @@ export default function ManageSeatsScreen() {
         onClose={() => setConfirmVisible(false)}
         currentSeats={currentSeats}
         newSeats={newSeats}
-        currentMonthly={quoteTotal(currentMonthlyQuote)}
-        newMonthly={quoteTotal(newMonthlyQuote)}
+        // A scheduled downgrade to the free Access plan renews at no charge (nothing to quote).
+        currentBillingAmount={renewsFree ? 'Free' : quoteTotal(currentCycleQuote)}
+        newBillingAmount={renewsFree ? 'Free' : quoteTotal(newCycleQuote)}
+        billedCaption={getBilledCaption(periodMonths)}
         proratedCharge={
           delta > 0
             ? prorateQuery.data && !prorateQuery.isPlaceholderData
