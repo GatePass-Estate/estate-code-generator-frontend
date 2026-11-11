@@ -1,9 +1,10 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   Modal,
   Pressable,
   ScrollView,
   Text,
+  useWindowDimensions,
   View,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
@@ -122,6 +123,12 @@ const BUBBLE_LAYOUT: { size: number; left: number; top: number }[] = [
   { size: 28, left: 64, top: 117 },
   { size: 25, left: 51, top: 80 },
 ];
+/** Right edge of the Figma bubble cluster (left + size). */
+const BUBBLE_CLUSTER_RIGHT = Math.max(...BUBBLE_LAYOUT.map((b) => b.left + b.size));
+const TOTAL_LABEL_LEFT = 107;
+const TOTAL_LABEL_TOP = 77;
+const SIDE_STACK_RIGHT_INSET = 26;
+const BUBBLE_TO_CARDS_GAP = 12;
 
 /** Chart + side cards: 3×52+2×16=188; Others stack grows with taller cards */
 const CHART_AREA_HEIGHT = 188;
@@ -752,9 +759,11 @@ export default function CategoryDistribution({
   categories,
   totalReports,
 }: CategoryDistributionProps) {
+  const { width: windowWidth } = useWindowDimensions();
   const catalog = categories.length > 0 ? categories : mapCategoryEdaToUi(null);
   const total = totalReports ?? 0;
   const [expanded, setExpanded] = useState(false);
+  const [chartWidth, setChartWidth] = useState(windowWidth);
   const [sideStackHeight, setSideStackHeight] = useState(0);
   const [sheetSubKey, setSheetSubKey] = useState<string | null>(null);
   const selected = catalog.find((item) => item.id === selectedId) ?? catalog[0];
@@ -773,8 +782,27 @@ export default function CategoryDistribution({
     subcategoryCount > 0
       ? subcategoryCount * SUBCATEGORY_CARD_HEIGHT + (subcategoryCount - 1) * SUBCATEGORY_GAP
       : 0;
+  const bubbleScale = useMemo(() => {
+    const cardsLeft = chartWidth - SIDE_STACK_RIGHT_INSET - SIDE_METRIC_CARD_WIDTH;
+    const maxClusterRight = cardsLeft - BUBBLE_TO_CARDS_GAP;
+    if (maxClusterRight <= 0) return 1;
+    return Math.min(1, Math.max(0.7, maxClusterRight / BUBBLE_CLUSTER_RIGHT));
+  }, [chartWidth]);
+  const scaledBubbles = useMemo(
+    () =>
+      BUBBLE_LAYOUT.map((slot) => ({
+        size: slot.size * bubbleScale,
+        left: slot.left * bubbleScale,
+        top: slot.top * bubbleScale,
+      })),
+    [bubbleScale]
+  );
   /** Grow with side cards / Others stack so Narrative stays 16px below (no absolute overflow). */
-  const chartAreaHeight = Math.max(CHART_AREA_HEIGHT, othersStackHeight, sideStackHeight);
+  const chartAreaHeight = Math.max(
+    CHART_AREA_HEIGHT * bubbleScale,
+    othersStackHeight,
+    sideStackHeight
+  );
   const animatedChartHeight = useSharedValue(chartAreaHeight);
   useEffect(() => {
     animatedChartHeight.value = withTiming(chartAreaHeight, {
@@ -822,9 +850,16 @@ export default function CategoryDistribution({
         </Pressable>
       </View>
 
-      <Animated.View className="relative w-full" style={chartHeightStyle}>
-        {catalog.slice(0, BUBBLE_LAYOUT.length).map((category, index) => {
-          const layout = BUBBLE_LAYOUT[index];
+      <Animated.View
+        className="relative w-full"
+        style={chartHeightStyle}
+        onLayout={(e) => {
+          const w = Math.round(e.nativeEvent.layout.width);
+          if (w > 0 && w !== chartWidth) setChartWidth(w);
+        }}
+      >
+        {catalog.slice(0, scaledBubbles.length).map((category, index) => {
+          const layout = scaledBubbles[index];
           if (!layout) return null;
           return (
             <CategoryBubble
@@ -837,7 +872,14 @@ export default function CategoryDistribution({
           );
         })}
 
-        <View className="absolute left-[107px] top-[77px] w-[48px] items-center">
+        <View
+          className="absolute items-center"
+          style={{
+            left: TOTAL_LABEL_LEFT * bubbleScale,
+            top: TOTAL_LABEL_TOP * bubbleScale,
+            width: 48 * bubbleScale,
+          }}
+        >
           <Text
             allowFontScaling={false}
             className="text-center text-[8.96px] font-inter-medium text-[#878686]"

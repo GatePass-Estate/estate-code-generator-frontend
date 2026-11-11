@@ -2,6 +2,7 @@ import { useUserStore } from '@/src/lib/stores/userStore';
 import { useRouter } from 'expo-router';
 import { View, Text, Pressable, Platform } from 'react-native';
 import { MoreDotsIcon } from '@/src/assets/svgs';
+import { allowAndroidAction } from '@/src/lib/androidActionLock';
 
 export default function UserIcon({ variant = 'initials' }: { variant?: 'initials' | 'dots' }) {
   const first_name = useUserStore((state) => state.first_name);
@@ -15,7 +16,13 @@ export default function UserIcon({ variant = 'initials' }: { variant?: 'initials
 
   return (
     <View className={`${isMobile && variant !== 'dots' ? 'mr-5' : ''}`}>
-      <Pressable onPress={() => router.push(morePath)} className="flex-row items-center gap-2">
+      <Pressable
+        onPress={() => {
+          if (!allowAndroidAction(`open:${morePath}`)) return;
+          router.push(morePath);
+        }}
+        className="flex-row items-center gap-2"
+      >
         {variant === 'dots' ? (
           <View className="h-[38px] w-[38px] items-center justify-center rounded-full bg-[#F6FCFF]">
             <MoreDotsIcon width={18} height={4} />

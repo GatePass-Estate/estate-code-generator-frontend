@@ -3,6 +3,7 @@ import { Image, Platform, Pressable, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import icons from '@/src/constants/icons';
 import { useNotificationStore, selectHasUnread } from '@/src/lib/stores/notificationStore';
+import { allowAndroidAction } from '@/src/lib/androidActionLock';
 
 /**
  * Header bell with an unread dot, opening the Info Board.
@@ -32,7 +33,10 @@ export default function NotificationBell({
 
   return (
     <Pressable
-      onPress={() => router.push('/info-board')}
+      onPress={() => {
+        if (!allowAndroidAction('open:/info-board')) return;
+        router.push('/info-board');
+      }}
       accessibilityRole="button"
       accessibilityLabel={hasUnread ? 'Info Board, unread items' : 'Info Board'}
       className={className}
