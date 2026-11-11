@@ -88,7 +88,7 @@ export default function MyIncidentReportsScreen() {
         if (allowed) {
           setCheckingAccess(false);
           await load();
-        } else router.replace('/user');
+        } else router.dismissTo('/user');
       })();
       return () => {
         active = false;

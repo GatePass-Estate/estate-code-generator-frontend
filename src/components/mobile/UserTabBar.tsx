@@ -111,7 +111,7 @@ export default function UserTabBar({
             }
 
             if (route.name === 'index' && role === 'security' && !event.defaultPrevented) {
-              router.replace('/security');
+              router.dismissTo('/security');
               return;
             }
 

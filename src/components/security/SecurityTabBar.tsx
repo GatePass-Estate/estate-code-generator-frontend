@@ -57,7 +57,7 @@ export default function SecurityTabBar({ activeTab }: { activeTab: SecurityTab }
         accessibilityRole="button"
         accessibilityLabel="Home"
         accessibilityState={{ selected: activeTab === 'home' }}
-        onPress={() => activeTab !== 'home' && router.replace('/security')}
+        onPress={() => activeTab !== 'home' && router.dismissTo('/security')}
         style={styles.home}
       >
         <HomeTabIcon

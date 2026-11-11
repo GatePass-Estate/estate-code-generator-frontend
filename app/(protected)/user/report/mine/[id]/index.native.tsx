@@ -60,7 +60,7 @@ export default function MyIncidentReportDetailScreen() {
         const allowed = await requestAccessWhenReady(() => active);
         if (!active) return;
         if (allowed) await load();
-        else router.replace('/user');
+        else router.dismissTo('/user');
       })();
       return () => {
         active = false;

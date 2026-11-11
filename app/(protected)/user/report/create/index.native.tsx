@@ -72,7 +72,7 @@ export default function IncidentReportCreateScreen() {
         const allowed = await requestAccessWhenReady(() => active);
         if (!active) return;
         if (allowed) setCheckingAccess(false);
-        else router.replace('/user');
+        else router.dismissTo('/user');
       })();
       return () => {
         active = false;
@@ -128,7 +128,7 @@ export default function IncidentReportCreateScreen() {
         occurred_at: new Date().toISOString(),
       });
       setConfirmSubmit(false);
-      router.replace('/user');
+      router.dismissTo('/user');
     } catch {
       setConfirmSubmit(false);
       setError('Unable to submit your report. Please try again.');

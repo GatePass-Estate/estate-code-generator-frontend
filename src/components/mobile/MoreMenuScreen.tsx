@@ -198,7 +198,7 @@ export default function MoreMenuScreen({
       navigation.goBack();
       return;
     }
-    router.replace(role === 'security' ? '/security' : '/user');
+    router.dismissTo(role === 'security' ? '/security' : '/user');
   }, [navigation, role]);
 
   const { data: entitlements } = useEstateEntitlements();
