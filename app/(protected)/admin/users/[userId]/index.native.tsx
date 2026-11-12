@@ -25,7 +25,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { User } from '@/src/types/user';
 import HouseholdSelectorSheet from '@/src/components/mobile/HouseholdSelectorSheet';
-import { transferUserHousehold } from '@/src/lib/api/households';
+import { getHouseholdById, transferUserHousehold } from '@/src/lib/api/households';
 import { transferPrimaryAdmin } from '@/src/lib/api/estate';
 import type { Household } from '@/src/types/household';
 import { getUserDocuments } from '@/src/lib/api/userDocuments';
@@ -195,6 +195,28 @@ export default function SingleUserMobile() {
 
     fetchUserData();
   }, [userId, userParam]);
+
+  useEffect(() => {
+    if (!userData.household_id || userData.household_name) return;
+
+    let active = true;
+    const householdId = userData.household_id;
+    void getHouseholdById(householdId)
+      .then((household) => {
+        if (active) {
+          setUserData((current) =>
+            current.household_id === householdId
+              ? { ...current, household_name: household.name }
+              : current
+          );
+        }
+      })
+      .catch(() => undefined);
+
+    return () => {
+      active = false;
+    };
+  }, [userData.household_id, userData.household_name]);
 
   useEffect(() => {
     if (!hasVerifiedDocuments || !userId) {

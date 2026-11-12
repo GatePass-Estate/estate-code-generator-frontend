@@ -59,7 +59,7 @@ function RegisterUserWeb() {
     void getEstateById(estateId)
       .then((estate) => {
         if (!active) return;
-        setCity((current) => current || estate.lga || estate.location || '');
+        setCity((current) => current || estate.city || estate.lga || '');
         setState((current) => current || estate.state || '');
         setPostalCode((current) => current || estate.postal_code || '');
       })

@@ -3,8 +3,8 @@ import { Toast, ToastType } from '@/src/components/mobile/Toast';
 import { getRequests } from '@/src/lib/api/requests';
 import { sharedStyles } from '@/src/theme/styles';
 import { EditRequestView, RequestType } from '@/src/types/requests';
-import { router, Stack } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { router, Stack, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -86,24 +86,34 @@ const EditRequestMobile = () => {
     }
   };
 
-  useEffect(() => {
-    const loadRequests = async () => {
-      try {
-        const data = await fetchEditRequests();
-        setRequests(data);
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : 'Failed to load edit requests';
-        setToastMessage(errorMessage);
-        setToastType('error');
-        setToastVisible(true);
-      } finally {
-        setLoading(false);
-      }
-    };
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      setLoading(true);
 
-    loadRequests();
-  }, []);
+      const loadRequests = async () => {
+        try {
+          const data = await fetchEditRequests();
+          if (active) setRequests(data);
+        } catch (error) {
+          if (!active) return;
+          const errorMessage =
+            error instanceof Error ? error.message : 'Failed to load edit requests';
+          setToastMessage(errorMessage);
+          setToastType('error');
+          setToastVisible(true);
+        } finally {
+          if (active) setLoading(false);
+        }
+      };
+
+      void loadRequests();
+
+      return () => {
+        active = false;
+      };
+    }, [])
+  );
 
   if (loading) {
     return (

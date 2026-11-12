@@ -32,7 +32,7 @@ export default function ProtectedLayout() {
       <Stack
         screenOptions={{
           headerShown: false,
-          animation: 'slide_from_right',
+          animation: 'none',
           animationTypeForReplace: 'pop',
         }}
       >
