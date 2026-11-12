@@ -37,6 +37,10 @@ export async function loadIncidentReportDraft(userId: string): Promise<IncidentR
     if (!Array.isArray(draft.categories) || typeof draft.title !== 'string') return null;
     if (typeof draft.narrative !== 'string' || typeof draft.customCategory !== 'string')
       return null;
+    if (!draft.title.trim() && !draft.narrative.trim()) {
+      await queueWrite(key, () => AsyncStorage.removeItem(key));
+      return null;
+    }
     return {
       categories: draft.categories.filter(
         (category): category is string => typeof category === 'string'
@@ -57,6 +61,10 @@ export async function saveIncidentReportDraft(
 ): Promise<void> {
   if (!userId) return;
   const key = draftKey(userId);
+  if (!draft.title.trim() && !draft.narrative.trim()) {
+    await queueWrite(key, () => AsyncStorage.removeItem(key));
+    return;
+  }
   await queueWrite(key, () =>
     AsyncStorage.setItem(key, JSON.stringify({ ...draft, updatedAt: new Date().toISOString() }))
   );

@@ -57,13 +57,7 @@ export default function IncidentReportCategoryScreen() {
     () => (categoryIds.length > 0 ? categoryIds : INCIDENT_CATEGORY_PLACEHOLDER),
     [categoryIds]
   );
-  const hasStoredDraft = Boolean(
-    storedDraft &&
-    (storedDraft.categories.length ||
-      storedDraft.customCategory ||
-      storedDraft.title ||
-      storedDraft.narrative)
-  );
+  const hasStoredDraft = Boolean(storedDraft);
 
   useEffect(() => {
     const subscription = Keyboard.addListener('keyboardDidShow', () => {
@@ -95,7 +89,7 @@ export default function IncidentReportCategoryScreen() {
 
   useEffect(() => {
     if (!draftLoaded || !userId) return;
-    if (!selected.length && !storedDraft?.title && !storedDraft?.narrative) return;
+    if (!storedDraft) return;
     const timer = setTimeout(() => {
       void saveIncidentReportDraft(userId, {
         categories: selected.includes('other') ? [] : selected,
@@ -152,16 +146,18 @@ export default function IncidentReportCategoryScreen() {
       setError('Describe the other incident type.');
       return;
     }
-    try {
-      await saveIncidentReportDraft(userId, {
-        categories: selected.includes('other') ? [] : selected,
-        customCategory: selected.includes('other') ? other.trim() : '',
-        title: storedDraft?.title ?? '',
-        narrative: storedDraft?.narrative ?? '',
-      });
-    } catch {
-      setError('Unable to save your draft. Please try again.');
-      return;
+    if (storedDraft) {
+      try {
+        await saveIncidentReportDraft(userId, {
+          categories: selected.includes('other') ? [] : selected,
+          customCategory: selected.includes('other') ? other.trim() : '',
+          title: storedDraft.title,
+          narrative: storedDraft.narrative,
+        });
+      } catch {
+        setError('Unable to save your draft. Please try again.');
+        return;
+      }
     }
     router.push({
       pathname: '/(protected)/user/report/create',

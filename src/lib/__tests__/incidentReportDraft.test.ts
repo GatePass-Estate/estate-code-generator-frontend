@@ -45,3 +45,28 @@ it('keeps a completed report cleared when an earlier automatic save is still pen
   await Promise.all([saving, clearing]);
   expect(await loadIncidentReportDraft('resident-1')).toBeNull();
 });
+
+it('does not keep a draft when only a category was selected or all details were removed', async () => {
+  const emptyDetails = {
+    categories: ['security_incident'],
+    customCategory: '',
+    title: ' ',
+    narrative: '',
+  };
+
+  await saveIncidentReportDraft('resident-1', emptyDetails);
+  expect(await AsyncStorage.getItem('gatepass-incident-draft:resident-1')).toBeNull();
+
+  await AsyncStorage.setItem(
+    'gatepass-incident-draft:resident-1',
+    JSON.stringify({ ...emptyDetails, updatedAt: new Date().toISOString() })
+  );
+  expect(await loadIncidentReportDraft('resident-1')).toBeNull();
+  expect(await AsyncStorage.getItem('gatepass-incident-draft:resident-1')).toBeNull();
+
+  await saveIncidentReportDraft('resident-1', { ...emptyDetails, title: 'A report started' });
+  expect(await loadIncidentReportDraft('resident-1')).not.toBeNull();
+
+  await saveIncidentReportDraft('resident-1', emptyDetails);
+  expect(await loadIncidentReportDraft('resident-1')).toBeNull();
+});
