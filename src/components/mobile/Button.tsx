@@ -1,4 +1,5 @@
-import { ActivityIndicator, Pressable, Text, type PressableProps } from 'react-native';
+import { useRef } from 'react';
+import { ActivityIndicator, Platform, Pressable, Text, type PressableProps } from 'react-native';
 import { cn } from '@/src/lib/cn';
 
 /** Space below a screen CTA, above the home indicator. */
@@ -24,10 +25,20 @@ export default function Button({
   loading = false,
   disabled,
   className,
+  onPress,
   ...props
 }: ButtonProps) {
   const isDisabled = Boolean(disabled || loading);
   const mutedPrimary = variant === 'primary' && isDisabled && !loading;
+  const lastPressAt = useRef(0);
+  const handlePress: PressableProps['onPress'] = (event) => {
+    if (Platform.OS === 'android') {
+      const now = Date.now();
+      if (now - lastPressAt.current < 700) return;
+      lastPressAt.current = now;
+    }
+    onPress?.(event);
+  };
 
   return (
     <Pressable
@@ -47,6 +58,7 @@ export default function Button({
         className
       )}
       {...props}
+      onPress={handlePress}
     >
       {loading ? (
         <ActivityIndicator color={variant === 'secondary' ? '#113E55' : '#F6F7F7'} />

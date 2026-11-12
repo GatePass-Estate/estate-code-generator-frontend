@@ -11,9 +11,12 @@ import './global.css';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { useEffect } from 'react';
+import { useEffect, useLayoutEffect } from 'react';
 import LoadingTransition from '@/src/components/common/LoadingTransition';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { patchAndroidDoubleNavigation } from '@/src/lib/androidActionLock';
+
+patchAndroidDoubleNavigation();
 
 ExpoSplashScreen.preventAutoHideAsync();
 
@@ -23,6 +26,10 @@ export const unstable_settings = {
 
 function RootLayoutContent() {
   const { resetKey, isReady } = useAuth();
+
+  useLayoutEffect(() => {
+    patchAndroidDoubleNavigation();
+  }, []);
 
   if (!isReady) {
     return <LoadingTransition />;

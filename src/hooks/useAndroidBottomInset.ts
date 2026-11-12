@@ -3,13 +3,11 @@ import { useMemo } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { sharedStyles, TAB_BAR_BASE_HEIGHT, TAB_BAR_FAB_OVERHANG } from '@/src/theme/styles';
 
-/** Typical 3-button nav bar height when safe-area insets are not reported. */
-const ANDROID_NAV_BAR_FALLBACK = 48;
-
 export function useAndroidBottomInset() {
   const { bottom } = useSafeAreaInsets();
-  const systemBottom =
-    Platform.OS === 'android' ? (bottom > 0 ? bottom : ANDROID_NAV_BAR_FALLBACK) : bottom;
+  // Only pad when the window actually reports an inset (gesture / edge-to-edge).
+  // Inventing 48px when bottom is 0 stacks a fake gap on top of the real 3-button nav.
+  const systemBottom = bottom;
 
   const visualHeight = TAB_BAR_BASE_HEIGHT + TAB_BAR_FAB_OVERHANG;
   // iOS: 49px strip + home-indicator inset only when present (0 on SE / 8 / etc.)

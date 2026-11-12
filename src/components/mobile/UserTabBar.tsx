@@ -7,6 +7,7 @@ import { useFeatureGate } from '@/src/hooks/usePlan';
 import { useVerificationGate } from '@/src/hooks/useAccountVerification';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { reportReturnToForTab } from '@/src/lib/incidentReportNavigation';
+import { allowAndroidAction } from '@/src/lib/androidActionLock';
 import { APP_TAB_BAR_COLOR, TAB_BAR_BASE_HEIGHT, TAB_BAR_FAB_OVERHANG } from '@/src/theme/styles';
 
 const FAB_WIDTH = 89;
@@ -50,8 +51,9 @@ export default function UserTabBar(props: UserTabBarProps) {
   const openingIncidentReportRef = useRef(false);
   const focusedOptions = descriptors[state.routes[state.index].key].options;
 
-  // Android: float above the system nav (3-button / gesture inset).
-  const androidBottom = Platform.OS === 'android' ? (insets.bottom > 0 ? insets.bottom : 48) : 0;
+  // Android: only lift for a real safe-area inset (gesture / edge-to-edge).
+  // A 48px fallback when inset is 0 leaves a grey strip above the 3-button nav.
+  const androidBottom = Platform.OS === 'android' ? insets.bottom : 0;
 
   // iOS: only pad when a home indicator exists. SE / 8 / etc. get 0 — bar sits flush, no empty gap.
   const iosHomeIndicator = Platform.OS === 'ios' ? insets.bottom : 0;
@@ -83,6 +85,7 @@ export default function UserTabBar(props: UserTabBarProps) {
           const { options } = descriptors[route.key];
           const focused = state.index === index;
           const onPress = () => {
+            if (!allowAndroidAction(`tab:${route.name}`)) return;
             // Home stays open; every other tab needs an approved ID.
             if (route.name !== 'index' && !requireVerified()) return;
             const event = navigation?.emit
