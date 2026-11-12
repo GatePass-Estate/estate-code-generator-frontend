@@ -21,7 +21,10 @@ export type PlanDurationSheetProps = {
   onClose: () => void;
   /** Duration currently applied on the screen; the sheet opens with it highlighted. */
   value: PeriodMonths;
-  /** Called with the highlighted duration when the user taps Confirm (the sheet then closes). */
+  /**
+   * Called as soon as an option is tapped, so closing the sheet any way (Confirm, backdrop,
+   * back button) keeps the choice. Confirm just closes the sheet.
+   */
   onConfirm: (months: PeriodMonths) => void;
   /** Quote body for a given duration; `null` when there is nothing to price yet. */
   quoteParams: (months: PeriodMonths) => BillingQuoteParams | null;
@@ -29,7 +32,7 @@ export type PlanDurationSheetProps = {
 
 /**
  * "Set Plan Duration" bottom sheet: total cost of the highlighted duration (live quote) and the
- * four 30/90/180/360-day options. Nothing is applied until Confirm.
+ * four 30/90/180/360-day options. Tapping an option applies it right away.
  *
  * Visual design mirrors the team's AI activation duration modal
  * (`src/components/anomaly/modals/ActivationQuoteModal.tsx` on phase-2): blurred backdrop,
@@ -66,8 +69,13 @@ export default function PlanDurationSheet({
   const hasError = Boolean(params) && !quote && quoteQuery.isError;
   const totalLabel = quote ? formatMoney(quote.client_total, quote.currency_code) : '--';
 
+  const select = (months: PeriodMonths) => {
+    setHighlighted(months);
+    if (months !== value) onConfirm(months);
+  };
+
   const confirm = () => {
-    onConfirm(highlighted);
+    if (highlighted !== value) onConfirm(highlighted);
     onClose();
   };
 
@@ -133,7 +141,7 @@ export default function PlanDurationSheet({
               return (
                 <Pressable
                   key={option.months}
-                  onPress={() => setHighlighted(option.months)}
+                  onPress={() => select(option.months)}
                   accessibilityRole="radio"
                   accessibilityState={{ selected: isSelected }}
                   accessibilityLabel={option.label}

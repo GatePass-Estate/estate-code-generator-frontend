@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -12,6 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useQueryClient } from '@tanstack/react-query';
 import Back from '@/src/components/mobile/Back';
 import Button, { BUTTON_MARGIN_BOTTOM } from '@/src/components/mobile/Button';
 import {
@@ -27,22 +29,29 @@ import {
 } from '@/src/components/billing';
 import PlanDurationSheet from '@/src/components/billing/PlanDurationSheet';
 import {
+  billingKeys,
   type BillingQuoteParams,
+  useBillingAccess,
   useBillingQuote,
   useBillingTiers,
   useRenewalEligibility,
   useSeatReductionEligibility,
-  useTierSeatPrices,
 } from '@/src/hooks/useBillingQueries';
 import { useBillingScreenGuard } from '@/src/hooks/useBillingScreenGuard';
+import { getCheckoutQuote } from '@/src/lib/api/billing';
 import {
   buildCustomEntitlements,
   formatMoney,
+  formatMonthlyCharge,
   getAmountFontSize,
+  getBilledCaption,
   getCurrentPlanQuoteParams,
   getPlanRenewalFootnote,
   getRenewalBlockMessage,
+  withOneMonth,
   getTierFeatureRows,
+  inferPeriodMonths,
+  isPaidActiveSubscription,
   PLAN_DURATIONS,
   type PeriodMonths,
 } from '@/src/lib/billing';
@@ -105,14 +114,18 @@ export default function ChoosePlanScreen() {
 
   const tiersQuery = useBillingTiers();
   const eligibilityQuery = useSeatReductionEligibility();
-  const seatPrices = useTierSeatPrices(tiersQuery.data);
   const { startCheckout, isRunning, checkoutSheet } = usePaystackCheckout();
+  const queryClient = useQueryClient();
+  const { estateId } = useBillingAccess();
 
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
   const [seatsInput, setSeatsInput] = useState<number | null>(null);
-  const [months, setMonths] = useState<PeriodMonths>(1);
+  // `null` until the user picks a duration (then it is kept across refetches and re-renders).
+  const [monthsInput, setMonths] = useState<PeriodMonths | null>(null);
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
   const [durationOpen, setDurationOpen] = useState(false);
+  // Fetching the price of the latest seats/duration before checkout (the on-screen one lagged).
+  const [pricing, setPricing] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -134,6 +147,17 @@ export default function ChoosePlanScreen() {
   const currentTier = subscriptionQuery.data?.tier ?? null;
   const renewalQuery = useRenewalEligibility({ enabled: isRenew });
   const renewBlock = isRenew ? getRenewalBlockMessage(renewalQuery.data) : null;
+  // A renewal defaults to the plan's current billing interval; a new subscription to one month.
+  const months: PeriodMonths =
+    monthsInput ??
+    (isRenew
+      ? inferPeriodMonths(currentSubscription?.period_start, currentSubscription?.period_end)
+      : 1);
+  // Manage Seats only opens on a running, non-cancelled paid plan (as on Your Current Plan).
+  const canOpenManageSeats =
+    canManage &&
+    isPaidActiveSubscription(currentSubscription, currentTier) &&
+    currentSubscription?.status !== 'cancelled';
 
   const preferredSlug = isRenew ? currentTier?.slug : plan;
   const initialSlug = tabTiers.some((tier) => tier.slug === preferredSlug)
@@ -224,10 +248,29 @@ export default function ChoosePlanScreen() {
     [debouncedKey]
   );
   const quoteQuery = useBillingQuote(quoteParams);
+  // The card's "/month" figure: the same plan, seats and features priced for one month (shares the
+  // cache entry with the main quote when the duration is already one month).
+  const monthlyQuoteQuery = useBillingQuote(withOneMonth(quoteParams));
+  const monthlyQuote =
+    liveParams && monthlyQuoteQuery.data?.tier_slug === liveParams.tier_slug
+      ? monthlyQuoteQuery.data
+      : null;
   // Keep the previous figure while seats/duration/features refetch, but never show another tab's.
   const quote =
     liveParams && quoteQuery.data?.tier_slug === liveParams.tier_slug ? quoteQuery.data : null;
   const quoteSettled = Boolean(quote) && !quoteQuery.isPlaceholderData && liveKey === debouncedKey;
+  // The quote for the current params failed (not merely an older one shown while a new one loads).
+  const quoteFailed = quoteQuery.isError && !quoteQuery.isFetching && liveKey === debouncedKey;
+
+  /** Quote for exactly `params`, skipping the debounce: from the cache when fresh, else fetched. */
+  const fetchQuote = (params: BillingQuoteParams) => {
+    if (!estateId) return Promise.resolve(null);
+    const body = { ...params, estate_id: params.estate_id ?? estateId };
+    return queryClient.fetchQuery({
+      queryKey: billingKeys.quote(body),
+      queryFn: () => getCheckoutQuote(body),
+    });
+  };
 
   const toggleFeature = useCallback((key: string) => {
     setSelectedKeys((current) =>
@@ -242,6 +285,22 @@ export default function ChoosePlanScreen() {
       return;
     }
     if (!liveParams) return;
+    // The price on screen may still be catching up with the latest seats/duration (debounce +
+    // refetch): price exactly what is about to be bought before opening checkout.
+    if (!quoteSettled) {
+      setPricing(true);
+      try {
+        await fetchQuote(liveParams);
+      } catch (error) {
+        Alert.alert(
+          'Could not get the price',
+          (error as Error)?.message || 'Please check your connection and try again.'
+        );
+        return;
+      } finally {
+        setPricing(false);
+      }
+    }
     if (isRenew) {
       // Plan and seats come from the subscription; the API rejects anything but the duration.
       const outcome = await startCheckout({ checkout_kind: 'renew', period_months: months });
@@ -269,17 +328,15 @@ export default function ChoosePlanScreen() {
   const loading = redirecting || tiersQuery.isLoading || subscriptionQuery.isLoading;
   const loadError = tiersQuery.error ?? subscriptionQuery.error;
 
-  const seatPrice = activeSlug ? seatPrices[activeSlug] : undefined;
-  const planPriceLabel = isCustom
-    ? quote
-      ? formatMoney(quote.price_per_seat, quote.currency_code)
-      : null
-    : formatMoney(seatPrice?.pricePerSeat, seatPrice?.currency);
+  const planPriceLabel = formatMonthlyCharge(monthlyQuote);
   const duration = PLAN_DURATIONS.find((option) => option.months === months) ?? PLAN_DURATIONS[0];
-  const billedCaption = months === 1 ? 'Billed Monthly' : `Billed every ${months} months`;
+  const billedCaption = getBilledCaption(months);
+  // Not disabled while the price only refreshes after a seat/duration change: `subscribe` waits
+  // for the up-to-date quote instead.
   const subscribeDisabled =
     !canManage ||
-    !quoteSettled ||
+    !liveParams ||
+    quoteFailed ||
     isRunning ||
     (isRenew ? Boolean(renewBlock) : isCustom && selectedKeys.length === 0);
 
@@ -401,14 +458,48 @@ export default function ChoosePlanScreen() {
                     : 'Set the total seats required'}
                 </Text>
               </View>
-              <SeatStepper
-                value={seats}
-                onChange={setSeatsInput}
-                min={isRenew ? seats : minSeats}
-                max={isRenew ? seats : MAX_SEATS}
-                disabled={isRenew}
-                accessibilityLabel="Total seats"
-              />
+              {isRenew ? (
+                // The `renew` checkout can't change seats (the API rejects `covered_users`), so
+                // the count is read-only here and seat changes go through Manage Seats.
+                <>
+                  <Text
+                    className="text-center font-ubuntu-medium text-[27px] leading-[32.8px] text-[#113E55]"
+                    accessibilityLabel={`${seats} ${seats === 1 ? 'seat' : 'seats'}`}
+                  >
+                    {seats}
+                  </Text>
+                  <InfoNote>
+                    <View className="flex-row items-center gap-2">
+                      <Text className="flex-1 font-inter-regular text-[11.2px] leading-[13.6px] text-[#113E55]">
+                        {canOpenManageSeats
+                          ? "Seats can't be changed during renewal. Add or remove them on Manage Seats."
+                          : "Seats can't be changed during renewal. Once your plan is renewed, you can change them on Manage Seats."}
+                      </Text>
+                      {canOpenManageSeats ? (
+                        <Pressable
+                          onPress={() => router.push('/billing/manage-seats')}
+                          hitSlop={8}
+                          accessibilityRole="link"
+                          accessibilityLabel="Manage Seats"
+                          className="active:opacity-60"
+                        >
+                          <Text className="font-ubuntu-semibold text-[12px] text-[#113E55] underline">
+                            Manage Seats
+                          </Text>
+                        </Pressable>
+                      ) : null}
+                    </View>
+                  </InfoNote>
+                </>
+              ) : (
+                <SeatStepper
+                  value={seats}
+                  onChange={setSeatsInput}
+                  min={minSeats}
+                  max={MAX_SEATS}
+                  accessibilityLabel="Total seats"
+                />
+              )}
             </View>
 
             {isCustom && !isRenew ? (
@@ -447,7 +538,7 @@ export default function ChoosePlanScreen() {
               label={isRenew ? 'Renew' : 'Subscribe'}
               onPress={subscribe}
               disabled={subscribeDisabled}
-              loading={isRunning}
+              loading={isRunning || pricing}
             />
           </View>
         </ScrollView>

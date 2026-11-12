@@ -1,6 +1,6 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import { getUserDocumentViewUri } from '@/src/lib/api/userDocuments';
-import { useAuthStore } from '@/src/lib/stores/authStore';
+import { useAuthStore, type AuthState } from '@/src/lib/stores/authStore';
 import type { DocumentMetadataItem, DocumentType } from '@/src/types/userDocuments';
 
 export type CachedUserDocument = {
@@ -11,7 +11,15 @@ export type CachedUserDocument = {
 
 const documents = new Map<string, CachedUserDocument>();
 const supersededFiles = new Set<string>();
-let accessToken = useAuthStore.getState().access_token;
+/**
+ * Which sign-in the cache belongs to. Keyed on the session, not the access token, which now
+ * rotates every 30 minutes; sessions without an id (legacy) fall back to their token.
+ */
+const accountKey = (state: Pick<AuthState, 'access_token' | 'session_id'>) =>
+  state.access_token ? (state.session_id ?? state.access_token) : null;
+const currentAccountKey = () => accountKey(useAuthStore.getState());
+
+let cachedAccount = currentAccountKey();
 
 const cacheKey = (userId: string, documentType: DocumentType) => `${userId}:${documentType}`;
 
@@ -28,8 +36,9 @@ const clearDocuments = () => {
 
 // Document previews belong to the signed-in account, never the next account on this device.
 useAuthStore.subscribe((state) => {
-  if (state.access_token === accessToken) return;
-  accessToken = state.access_token;
+  const account = accountKey(state);
+  if (account === cachedAccount) return;
+  cachedAccount = account;
   clearDocuments();
 });
 
@@ -53,7 +62,7 @@ export const loadUserDocument = async (
   documentType: DocumentType,
   metadata: DocumentMetadataItem
 ): Promise<CachedUserDocument> => {
-  const token = useAuthStore.getState().access_token;
+  const account = currentAccountKey();
   const key = cacheKey(userId, documentType);
   const previous = documents.get(key);
 
@@ -63,11 +72,11 @@ export const loadUserDocument = async (
     previous.contentType === metadata.content_type
   ) {
     const file = await FileSystem.getInfoAsync(previous.uri);
-    if (file.exists && useAuthStore.getState().access_token === token) return previous;
+    if (file.exists && currentAccountKey() === account) return previous;
   }
 
   const uri = await getUserDocumentViewUri(userId, documentType, metadata.content_type);
-  if (useAuthStore.getState().access_token !== token) {
+  if (currentAccountKey() !== account) {
     discardFile(uri);
     throw new Error('Account changed while loading document');
   }

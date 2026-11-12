@@ -1,11 +1,9 @@
-import axios, { type AxiosError } from 'axios';
+import axios, { type AxiosError, type AxiosInstance, type InternalAxiosRequestConfig } from 'axios';
 import { useAuthStore } from '../stores/authStore';
-import { handleUnauthorizedResponse } from '../session';
+import { handleUnauthorizedResponse, shouldForceLogoutOn401 } from '../session';
+import { errorDetail, signOutReasonFromRequestFailure } from '../signOutReason';
 import { attachDeviceId } from '../deviceId';
-
-// Direct `axios.post(...)` calls (2FA verify, biometric login, ToS) go through
-// the global instance, so tag those too. Installed once at module load.
-axios.interceptors.request.use(attachDeviceId);
+import { getValidAccessToken, isOwnAccessToken, refreshSession } from '../authRefresh';
 
 type Service = 'user' | 'code' | 'ai' | 'revenue';
 
@@ -16,25 +14,92 @@ const SERVICE_URLS: Record<Service, string | undefined> = {
   revenue: process.env.EXPO_PUBLIC_REVENUE_SERVICE_API_URL,
 };
 
-function attachUnauthorizedInterceptor(
-  client: ReturnType<typeof axios.create>
-): ReturnType<typeof axios.create> {
-  client.interceptors.response.use(
-    (response) => response,
-    async (error: AxiosError) => {
-      const status = error.response?.status;
-      const hadToken = !!useAuthStore.getState().access_token;
-      const requestUrl = error.config?.url ?? '';
+type AuthRequestConfig = InternalAxiosRequestConfig & {
+  /** Set when the Authorization header carries this session's token (we may swap it). */
+  _sessionAuth?: boolean;
+  /** Set once the request has been retried after a refresh. */
+  _authRetried?: boolean;
+};
 
-      if (status === 401 && hadToken) {
-        await handleUnauthorizedResponse(requestUrl);
-      }
+const bearerOf = (config: InternalAxiosRequestConfig): string | null => {
+  const header = config.headers?.get?.('Authorization');
+  if (typeof header !== 'string') return null;
+  const match = /^Bearer\s+(.+)$/i.exec(header.trim());
+  return match ? match[1] : null;
+};
 
+/**
+ * Request side: a request carrying this session's token (possibly one captured before a
+ * rotation) gets a valid token at send time, refreshing first when it is about to expire.
+ * Requests that deliberately carry another token (ToS-pending, 2FA-pending, or the token
+ * of a sign-in still being completed) are left alone. `addWhenMissing` is only for Api()
+ * clients, which always talk to our services; global axios calls without a header stay
+ * without one.
+ */
+function sessionTokenRequestInterceptor(addWhenMissing: boolean) {
+  return async (config: InternalAxiosRequestConfig) => {
+    const authConfig = config as AuthRequestConfig;
+    const sent = bearerOf(config);
+    const ours = sent ? isOwnAccessToken(sent) : addWhenMissing;
+    if (!ours) return config;
+
+    const token = await getValidAccessToken();
+    if (token) {
+      config.headers.set('Authorization', `Bearer ${token}`);
+      authConfig._sessionAuth = true;
+    }
+    return config;
+  };
+}
+
+/**
+ * Response side: a 401 on a session request refreshes once (shared with any concurrent
+ * 401s) and retries with the new token. Sessions without a refresh token, a second 401,
+ * or a refused refresh sign out as before; a transient refresh failure just rejects.
+ */
+function sessionUnauthorizedInterceptor(client: AxiosInstance) {
+  return async (error: AxiosError) => {
+    const config = error.config as AuthRequestConfig | undefined;
+    const requestUrl = config?.url ?? '';
+    const { access_token, refresh_token } = useAuthStore.getState();
+
+    if (error.response?.status !== 401 || !config?._sessionAuth || !access_token) {
       return Promise.reject(error);
     }
-  );
-  return client;
+    if (!shouldForceLogoutOn401(requestUrl)) return Promise.reject(error);
+
+    if (config._authRetried || !refresh_token) {
+      await handleUnauthorizedResponse(
+        requestUrl,
+        signOutReasonFromRequestFailure(errorDetail(error.response?.data))
+      );
+      return Promise.reject(error);
+    }
+
+    config._authRetried = true;
+    let token: string;
+    try {
+      // Rotated by another request since this one left: just resend with the new token.
+      const sent = bearerOf(config);
+      token = sent && sent !== access_token ? access_token : await refreshSession();
+    } catch {
+      // Refused refresh: refreshSession has already signed the user out.
+      return Promise.reject(error);
+    }
+    config.headers.set('Authorization', `Bearer ${token}`);
+    return client.request(config);
+  };
 }
+
+function installSessionInterceptors(client: AxiosInstance, addWhenMissing: boolean) {
+  client.interceptors.request.use(sessionTokenRequestInterceptor(addWhenMissing));
+  client.interceptors.response.use((response) => response, sessionUnauthorizedInterceptor(client));
+}
+
+// Direct `axios.post(...)` calls (2FA verify, biometric login, ToS) go through the global
+// instance, so tag those too and keep their session token fresh. Installed once at load.
+axios.interceptors.request.use(attachDeviceId);
+installSessionInterceptors(axios, false);
 
 const warnedMissingUrls = new Set<Service>();
 
@@ -59,14 +124,16 @@ const Api = (service: Service = 'user') => {
     baseURL: `${url}/api/v1`,
     timeout: 10000,
     headers: {
+      // Replaced at send time by the session interceptor; kept so callers see the shape.
       Authorization: access_token ? `Bearer ${access_token}` : undefined,
     },
   });
 
   // Instances made by axios.create do not inherit global interceptors.
   client.interceptors.request.use(attachDeviceId);
+  installSessionInterceptors(client, true);
 
-  return attachUnauthorizedInterceptor(client);
+  return client;
 };
 
 export default Api;

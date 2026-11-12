@@ -3,7 +3,9 @@
  * AuthProvider registers the logout callback; API clients invoke it on 401.
  */
 
-type UnauthorizedHandler = () => void | Promise<void>;
+import type { SignOutReason } from './signOutReason';
+
+type UnauthorizedHandler = (reason: SignOutReason) => void | Promise<void>;
 
 let unauthorizedHandler: UnauthorizedHandler | null = null;
 let handlingUnauthorized = false;
@@ -13,26 +15,31 @@ export function setUnauthorizedHandler(handler: UnauthorizedHandler | null) {
 }
 
 /**
- * Paths that may return 401 for bad credentials — do not force logout. The 2FA
- * endpoints answer a wrong code with 401, and password update does the same
- * for a wrong current password.
+ * Paths that may return 401 for bad credentials — do not force logout or try a
+ * token refresh. The 2FA endpoints answer a wrong code with 401, and password
+ * update does the same for a wrong current password. /auth/refresh reports its
+ * own failures, and /auth/logout is best-effort during sign-out.
  */
 const AUTH_EXEMPT_PATH =
-  /\/auth\/(login|forgot-password|reset-password|accept-tos|set-password|verify|biometric\/login|2fa\/(verify|recover|enable|disable|regenerate-codes))|\/users\/password\/update/i;
+  /\/auth\/(login|logout|refresh|forgot-password|reset-password|accept-tos|set-password|verify|biometric\/login|2fa\/(verify|recover|enable|disable|regenerate-codes))|\/users\/password\/update/i;
 
 export function shouldForceLogoutOn401(requestUrl?: string): boolean {
   if (!requestUrl) return true;
   return !AUTH_EXEMPT_PATH.test(requestUrl);
 }
 
-export async function handleUnauthorizedResponse(requestUrl?: string): Promise<void> {
+/** Signs the user out (once) for a refused session; `reason` picks the login screen's notice. */
+export async function handleUnauthorizedResponse(
+  requestUrl?: string,
+  reason: SignOutReason = 'ended'
+): Promise<void> {
   if (!shouldForceLogoutOn401(requestUrl)) return;
   if (handlingUnauthorized) return;
   if (!unauthorizedHandler) return;
 
   handlingUnauthorized = true;
   try {
-    await unauthorizedHandler();
+    await unauthorizedHandler(reason);
   } catch (error) {
     console.log('Error handling unauthorized session', error);
   } finally {

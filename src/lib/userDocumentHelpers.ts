@@ -1,5 +1,5 @@
 import * as FileSystem from 'expo-file-system/legacy';
-import { useAuthStore } from '@/src/lib/stores/authStore';
+import { getValidAccessToken } from '@/src/lib/authRefresh';
 import { DocumentType } from '@/src/types/userDocuments';
 
 /** Keep ID/photo uploads small so admin/profile preview pages stay fast. */
@@ -105,7 +105,8 @@ export async function fetchAuthenticatedDocumentUri(
   apiPath: string,
   options?: { contentType?: string | null }
 ) {
-  const token = useAuthStore.getState().access_token;
+  // Raw download, outside the axios interceptors: get a token that is not about to expire.
+  const token = await getValidAccessToken();
   const url = resolveDocumentApiUrl(apiPath);
   const extension = inferCacheFileExtension(apiPath, options?.contentType);
   const documentKey = apiPath

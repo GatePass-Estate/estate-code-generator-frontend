@@ -73,9 +73,7 @@ const SetPasswordForm = ({
           onChangeText={setPassword}
           editable={!isSubmitting}
           className="bg-[#F7F9F9] rounded-2xl px-4 py-5 mt-1 pr-12 text-primary"
-          contextMenuHidden
           placeholderTextColor="#9B9797"
-          selectTextOnFocus={false}
         />
         <Pressable
           onPress={() => setShowPassword(!showPassword)}
@@ -103,9 +101,7 @@ const SetPasswordForm = ({
           onChangeText={setConfirmPassword}
           editable={!isSubmitting}
           className="bg-[#F7F9F9] rounded-2xl px-4 py-5 mt-1 pr-12 text-primary"
-          contextMenuHidden
           placeholderTextColor="#9B9797"
-          selectTextOnFocus={false}
         />
         <Pressable
           onPress={() => setShowPassword(!showPassword)}

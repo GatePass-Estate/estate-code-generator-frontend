@@ -2,7 +2,7 @@ import PlanCard from '@/src/components/billing/PlanCard';
 import { useBillingQuote } from '@/src/hooks/useBillingQueries';
 import {
   FREE_PLAN_FOOTNOTE,
-  formatMoney,
+  formatMonthlyCharge,
   getCurrentPlanQuoteParams,
   getCurrentPlanState,
   getPlanExpiredFootnote,
@@ -14,10 +14,11 @@ const EYEBROW = 'Your Current Plan';
 
 /**
  * "Your Current Plan" banner (Current Plan + Manage Seats).
- * - Running paid plan: per-seat monthly price (1-seat, 1-month quote of the current plan) and the
- *   renew/expiry date.
+ * - Running paid plan: what the estate is charged per month (1-month quote of the current plan at
+ *   its seat count, VAT included) and the renew/expiry date.
  * - Free Access plan (or no plan at all): the Access card, 'Free', and an upgrade hint.
- * - Paid plan that has ended: the greyed "Your Previous Plan" card with its price and expiry date.
+ * - Paid plan that has ended: the greyed "Your Previous Plan" card with that monthly price and its
+ *   expiry date.
  */
 export default function CurrentPlanCard({
   subscription,
@@ -29,12 +30,13 @@ export default function CurrentPlanCard({
   className?: string;
 }) {
   const state = getCurrentPlanState(subscription, tier);
-  // Only a running paid plan has a price to quote.
-  // A paid plan (running or ended) shows its per-seat monthly price.
+  // A paid plan (running or ended) shows its monthly charge at the seats it covers.
   const { data: quote } = useBillingQuote(
-    state === 'free' ? null : getCurrentPlanQuoteParams(subscription, tier, 1, 1)
+    state === 'free'
+      ? null
+      : getCurrentPlanQuoteParams(subscription, tier, subscription?.covered_users ?? 0, 1)
   );
-  const priceLabel = quote ? formatMoney(quote.price_per_seat, quote.currency_code) : null;
+  const priceLabel = formatMonthlyCharge(quote);
 
   if (state === 'free') {
     return (

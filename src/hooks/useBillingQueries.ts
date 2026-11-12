@@ -1,4 +1,4 @@
-import { keepPreviousData, useMutation, useQueries, useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query';
 import { useCallback, useMemo } from 'react';
 import { Alert } from 'react-native';
 import { create } from 'zustand';
@@ -28,20 +28,16 @@ import {
   createIdempotencyKey,
   featureActionErrorForRole,
   PRIMARY_ADMIN_FEATURE_ACTION_MESSAGE,
-  humaniseFeatureKey,
   sortTiers,
 } from '@/src/lib/billing';
+import { buildStandaloneAiTools } from '@/src/lib/estateAiTools';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import {
-  AiFeatureGrantStatus,
   BillingTier,
   BillingTierListResponse,
-  CheckoutQuote,
   CheckoutQuoteRequest,
   CheckoutStatusResponse,
-  EstateAiTool,
   InitializeCheckoutRequest,
-  TierSeatPrice,
 } from '@/src/types/billing';
 
 /** Quote params; `estate_id` defaults to the signed-in user's estate. */
@@ -205,46 +201,6 @@ export function usePrefetchBillingQuote() {
   );
 }
 
-const combineSeatPrices = (results: { data?: CheckoutQuote }[]): Record<string, TierSeatPrice> => {
-  const prices: Record<string, TierSeatPrice> = {};
-  for (const { data } of results) {
-    if (data?.tier_slug) {
-      prices[data.tier_slug] = { pricePerSeat: data.price_per_seat, currency: data.currency_code };
-    }
-  }
-  return prices;
-};
-
-/**
- * Per-seat monthly price for each paid, non-custom tier (one quote each: 1 seat, 1 month), keyed
- * by slug. A slug is missing until its quote loads (or if it failed).
- *
- * These share `useBillingQuote`'s cache key (e.g. Choose Plan at 1 seat / 30 days), so the cached
- * value must stay the full quote; the per-seat price is derived in `combine`.
- */
-export function useTierSeatPrices(
-  tiers: readonly BillingTier[] | null | undefined
-): Record<string, TierSeatPrice> {
-  const { estateId, canView } = useBillingAccess();
-  const paidTiers = (tiers ?? []).filter((tier) => !tier.is_custom && tier.slug !== 'access');
-  return useQueries({
-    queries: paidTiers.map((tier) => {
-      const body: CheckoutQuoteRequest = {
-        estate_id: estateId ?? '',
-        tier_slug: tier.slug,
-        covered_users: 1,
-        period_months: 1,
-      };
-      return {
-        queryKey: billingKeys.quote(body),
-        queryFn: () => getCheckoutQuote(body),
-        enabled: Boolean(estateId) && canView,
-      };
-    }),
-    combine: combineSeatPrices,
-  });
-}
-
 /** `null` data when the subscription isn't active/trialing (the API answers 404). */
 export function useSeatReductionEligibility() {
   const { estateId, canView } = useBillingAccess();
@@ -279,8 +235,10 @@ export function useSeatProrate(seatsAdded: number | null) {
 }
 
 /**
- * The estate's AI grants named via the AI marketplace (fallback: humanised feature key).
- * `totalCount` is the marketplace product total (0 until it loads or if it fails).
+ * The estate's standalone AI subscriptions for Billing's "Active AI Tools": AI tools subscribed to
+ * separately from the estate plan, which are managed (and cancelled) in the AI marketplace. AI
+ * tools included in the plan and free installs are left out. Named via the AI marketplace
+ * (fallback: humanised feature key). See `buildStandaloneAiTools`.
  */
 export function useEstateAiTools() {
   const { estateId, canView } = useBillingAccess();
@@ -299,31 +257,7 @@ export function useEstateAiTools() {
 
   const grants = grantsQuery.data?.features;
   const products = marketplaceQuery.data?.items;
-  // One row per tool: a product's tiers (e.g. tier_1 + tier_2 from the Command plan) are separate
-  // grants, so group them and keep the most relevant grant (active first, then latest expiry).
-  const tools = useMemo<EstateAiTool[]>(() => {
-    const productByFeatureId = new Map<string, { id: string; name: string }>();
-    for (const product of products ?? []) {
-      for (const featureId of product.ai_feature_ids ?? [])
-        productByFeatureId.set(featureId, { id: product.id, name: product.name });
-    }
-    const byTool = new Map<string, EstateAiTool>();
-    for (const grant of grants ?? []) {
-      const product = productByFeatureId.get(grant.ai_feature_id);
-      const name = product?.name || humaniseFeatureKey(grant.feature_key) || 'AI tool';
-      const tool: EstateAiTool = {
-        featureKey: grant.feature_key ?? '',
-        name,
-        status: effectiveGrantStatus(grant.status, grant.expires_at),
-        startsAt: grant.starts_at,
-        expiresAt: grant.expires_at,
-      };
-      const groupKey = product?.id ?? name;
-      const existing = byTool.get(groupKey);
-      if (!existing || isMoreRelevantGrant(tool, existing)) byTool.set(groupKey, tool);
-    }
-    return Array.from(byTool.values());
-  }, [grants, products]);
+  const tools = useMemo(() => buildStandaloneAiTools(grants, products), [grants, products]);
 
   const { refetch: refetchGrants } = grantsQuery;
   const { refetch: refetchMarketplace } = marketplaceQuery;
@@ -331,33 +265,10 @@ export function useEstateAiTools() {
   return {
     tools,
     activeCount: tools.filter((tool) => tool.status === 'active').length,
-    totalCount: marketplaceQuery.data?.total ?? 0,
     isLoading: grantsQuery.isLoading || marketplaceQuery.isLoading,
     error: grantsQuery.error ?? null,
     refetch: () => Promise.all([refetchGrants(), refetchMarketplace()]),
   };
-}
-
-/**
- * The API can leave a grant `active` after its `expires_at` (e.g. plan-included AI tools after the
- * plan dropped back to Access), so treat a lapsed end date as expired.
- */
-function effectiveGrantStatus(
-  status: AiFeatureGrantStatus,
-  expiresAt: string | null
-): AiFeatureGrantStatus {
-  if (status !== 'active' || !expiresAt) return status;
-  const end = new Date(expiresAt).getTime();
-  return Number.isFinite(end) && end <= Date.now() ? 'expired' : status;
-}
-
-function isMoreRelevantGrant(candidate: EstateAiTool, current: EstateAiTool): boolean {
-  const candidateActive = candidate.status === 'active';
-  if (candidateActive !== (current.status === 'active')) return candidateActive;
-  // A missing expiry means a free install that never expires.
-  const expiry = (tool: EstateAiTool) =>
-    tool.expiresAt ? new Date(tool.expiresAt).getTime() : Number.POSITIVE_INFINITY;
-  return expiry(candidate) > expiry(current);
 }
 
 function requireEstateId(estateId: string | null): string {

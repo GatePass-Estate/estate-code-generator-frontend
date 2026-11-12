@@ -12,10 +12,15 @@ export type SeatConfirmationSheetProps = {
   currentSeats: number;
   /** Seats the user picked on Manage Seats. */
   newSeats: number;
-  /** Formatted monthly total at `currentSeats`, e.g. '₦49,900'. Missing → '—'. */
-  currentMonthly?: string | null;
-  /** Formatted monthly total at `newSeats`. Missing → '—'. */
-  newMonthly?: string | null;
+  /**
+   * Formatted next-renewal total without the change (whole billing cycle, as on Your Current
+   * Plan), e.g. '₦49,900'. Missing → '—'.
+   */
+  currentBillingAmount?: string | null;
+  /** Formatted next-renewal total at `newSeats`. Missing → '—'. */
+  newBillingAmount?: string | null;
+  /** Billing period of those totals, e.g. 'Billed every 3 months'. */
+  billedCaption?: string | null;
   /** Increases only: formatted prorated amount due today. The row is hidden when null/undefined. */
   proratedCharge?: string | null;
   /** ISO date the reduction takes effect (the current `period_end`). Reductions only. */
@@ -82,7 +87,7 @@ function SummaryRow({ label, value }: { label: string; value?: string | null }) 
 
 /**
  * "Confirm Seats" bottom sheet from Manage Seats: current → new seat capacity, a
- * monthly cost summary, and a timing note. Reductions are scheduled for the next
+ * next-billing summary, and a timing note. Reductions are scheduled for the next
  * billing cycle (designer annotation: the effective-date note shows only then);
  * increases are paid now (prorated), so they show the "Due today" row instead.
  * Presentational: the screen computes the figures and runs the confirm action.
@@ -92,8 +97,9 @@ export default function SeatConfirmationSheet({
   onClose,
   currentSeats,
   newSeats,
-  currentMonthly,
-  newMonthly,
+  currentBillingAmount,
+  newBillingAmount,
+  billedCaption,
   proratedCharge,
   effectiveDate,
   isReduction,
@@ -113,12 +119,19 @@ export default function SeatConfirmationSheet({
       </View>
 
       <View className="mt-6 gap-[14px] rounded-[16px] bg-white px-4 py-[30px]">
-        <Text className="font-inter-regular text-[11.2px] leading-[13.6px] text-[#0A1F29]">
-          Summary
-        </Text>
+        <View className="flex-row items-center justify-between gap-3">
+          <Text className="font-inter-regular text-[11.2px] leading-[13.6px] text-[#0A1F29]">
+            Summary
+          </Text>
+          {billedCaption ? (
+            <Text className="font-inter-regular text-[11.2px] leading-[13.6px] text-[#878686]">
+              {billedCaption}
+            </Text>
+          ) : null}
+        </View>
         <View className="gap-[17px]">
-          <SummaryRow label="Current monthly cost" value={currentMonthly} />
-          <SummaryRow label="New monthly cost" value={newMonthly} />
+          <SummaryRow label="Current billing amount" value={currentBillingAmount} />
+          <SummaryRow label="New billing amount" value={newBillingAmount} />
           {!isReduction && proratedCharge != null ? (
             <SummaryRow label="Due today (prorated)" value={proratedCharge} />
           ) : null}

@@ -8,15 +8,14 @@ import { useNotificationStore, selectHasUnread } from '@/src/lib/stores/notifica
  * Header bell with an unread dot, opening the Info Board.
  *
  * The dot reflects unread broadcasts OR unread activity, matching the single
- * badge in the design.
+ * badge in the design. One look on every home header (Figma: the security
+ * header's 24pt bell, dot over the top-right edge).
  */
 export default function NotificationBell({
   className = Platform.OS === 'web' ? 'mr-2' : 'mr-3',
-  securityHeader = false,
 }: {
   /** Outer spacing; pass '' when the parent already spaces its children. */
   className?: string;
-  securityHeader?: boolean;
 }) {
   const router = useRouter();
   const hasUnread = useNotificationStore(selectHasUnread);
@@ -41,13 +40,13 @@ export default function NotificationBell({
       <View className="h-[38px] w-[38px] items-center justify-center rounded-full bg-[#F6FCFF]">
         <Image
           source={icons.notificationBellIcon}
-          style={{ width: securityHeader ? 24 : 20, height: securityHeader ? 24 : 20 }}
+          style={{ width: 24, height: 24 }}
           resizeMode="contain"
         />
         {hasUnread && (
           <View
             className="absolute h-[9px] w-[9px] rounded-full bg-[#E30404]"
-            style={securityHeader ? { right: 4, top: -3 } : { right: 7, top: 7 }}
+            style={{ right: 4, top: -3 }}
           />
         )}
       </View>

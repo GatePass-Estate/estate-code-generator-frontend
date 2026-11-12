@@ -2,6 +2,7 @@ import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { InternalAxiosRequestConfig } from 'axios';
+import { getDeviceLabel } from './deviceLabel';
 
 /**
  * Stable per-install identifier, sent to the API as `X-Device-Id`.
@@ -83,7 +84,10 @@ function isOwnApi(config: InternalAxiosRequestConfig): boolean {
   return API_HOSTS.some((host) => target.startsWith(host));
 }
 
-/** Axios request interceptor: tags requests to our own API with the device id. */
+/**
+ * Axios request interceptor: tags requests to our own API with the device id and a
+ * readable device name (`X-Device-Name`, which the user service stores on new sessions).
+ */
 export async function attachDeviceId(
   config: InternalAxiosRequestConfig
 ): Promise<InternalAxiosRequestConfig> {
@@ -93,5 +97,8 @@ export async function attachDeviceId(
   } catch {
     // Never block a request over the device id.
   }
+  const deviceName = getDeviceLabel();
+  // Header values must be ASCII; the backend URL-decodes this one.
+  if (deviceName) config.headers.set('X-Device-Name', encodeURIComponent(deviceName));
   return config;
 }
