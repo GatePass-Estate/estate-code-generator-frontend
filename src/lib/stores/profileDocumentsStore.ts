@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { PendingRequestSheetData } from '@/src/components/mobile/PendingRequestSheet';
+import { refreshEstateEntitlements } from '@/src/lib/api/entitlements';
 import { checkPendingRequests, getMyRequests } from '@/src/lib/api/requests';
 import { isPendingIdRejected } from '@/src/lib/idRejection';
 import {
@@ -200,7 +201,17 @@ export const useProfileDocumentsStore = create<ProfileDocumentsStore>((set, get)
       }
 
       const onboarding = buildOnboardingState(activePhoto, activeId, pendingId);
-      set({ onboarding, idApproval: idApprovalOf(activeId, pendingId) });
+      const previousApproval = get().idApproval;
+      const idApproval = idApprovalOf(activeId, pendingId);
+      set({ onboarding, idApproval });
+      // The server withholds the estate plan until the ID is approved, so whatever was cached
+      // (a refusal) is out of date the moment it is.
+      if (
+        idApproval === 'approved' &&
+        (previousApproval === 'none' || previousApproval === 'pending')
+      ) {
+        refreshEstateEntitlements();
+      }
       void get().checkIdRejection(userId, activeId ? null : (pendingId?.document_id ?? null));
       await setProfileOnboardingCache(userId, onboarding);
 

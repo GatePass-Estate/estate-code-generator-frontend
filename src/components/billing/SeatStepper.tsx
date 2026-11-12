@@ -1,13 +1,5 @@
-import { useEffect, useId, useRef, useState } from 'react';
-import {
-  InputAccessoryView,
-  Platform,
-  Pressable,
-  Text,
-  TextInput,
-  View,
-  type LayoutChangeEvent,
-} from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Platform, Pressable, Text, TextInput, View, type LayoutChangeEvent } from 'react-native';
 import Animated, {
   cancelAnimation,
   Easing,
@@ -20,6 +12,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { cn } from '@/src/lib/cn';
+import { selectInputText } from '@/src/lib/selectInputText';
 
 export type SeatStepperProps = {
   value: number;
@@ -147,9 +140,10 @@ function BlinkingCaret({ left }: { left: number }) {
 
 /**
  * −  1200|  +  seat picker from the Choose Plan / Manage Seats designs.
- * The number is a real number-pad TextInput: tapping it selects the number so typing replaces
- * it. In-range values are reported live while typing; the field is clamped and committed on
- * blur / Done. The grey pipe is a caret that blinks while idle; on focus the native caret
+ * The number is a real number-pad TextInput: tapping it (or its caption) selects the whole
+ * number so typing replaces it and backspace clears it. In-range values are reported live while
+ * typing; the field is clamped and committed on blur / Done (an empty field restores the count
+ * it had on focus). The grey pipe is a caret that blinks while idle; on focus the native caret
  * (same colour) takes over.
  */
 export default function SeatStepper({
@@ -163,7 +157,8 @@ export default function SeatStepper({
   className,
 }: SeatStepperProps) {
   const inputRef = useRef<TextInput>(null);
-  const accessoryId = `seat-stepper-${useId()}`;
+  // Count when the field was focused: restored if it is left empty.
+  const focusValueRef = useRef(value);
   // Only meaningful while focused; when idle the field always shows `value`, so external changes
   // are reflected immediately and there is no draft/value hand-off to flicker on blur.
   const [draft, setDraft] = useState(String(value));
@@ -184,7 +179,7 @@ export default function SeatStepper({
   const slotWidth = Math.ceil(measuredWidth) + INPUT_SLACK;
 
   const commit = (n: number) => {
-    const next = clamp(Number.isFinite(n) ? Math.trunc(n) : value, min, max);
+    const next = clamp(Number.isFinite(n) ? Math.trunc(n) : focusValueRef.current, min, max);
     setDraft(String(next));
     if (next !== value) onChange(next);
   };
@@ -197,9 +192,25 @@ export default function SeatStepper({
     if (Number.isFinite(n) && n >= min && n <= max && n !== value) onChange(n);
   };
 
+  // Select the whole number once the field is focused. iOS (Fabric) only honours
+  // `selectTextOnFocus` for a programmatic focus(), so a tap could leave the caret at index 0,
+  // where backspace deletes nothing. setSelection works on iOS and Android (web uses select()).
+  const selectAll = (length: number) => {
+    requestAnimationFrame(() => selectInputText(inputRef.current, length));
+  };
+
   const handleFocus = () => {
+    focusValueRef.current = value;
     setDraft(String(value));
     setFocused(true);
+    selectAll(String(value).length);
+  };
+
+  // Taps on the number slot never reach the native field (it is narrow and centred, so a tap
+  // often lands before the text): focus it, or re-select the number when it already has focus.
+  const handlePressNumber = () => {
+    if (inputRef.current?.isFocused()) selectAll(draft.length);
+    else inputRef.current?.focus();
   };
 
   const handleBlur = () => {
@@ -238,8 +249,15 @@ export default function SeatStepper({
         <StepButton kind="decrease" disabled={!canDecrease} onPress={() => step(-1)} />
       </View>
 
-      <View className="items-center gap-2">
-        <View style={{ width: slotWidth, height: NUMBER_HEIGHT }}>
+      <Pressable
+        onPress={handlePressNumber}
+        disabled={disabled}
+        hitSlop={{ top: 8, bottom: 8 }}
+        // The TextInput inside stays the accessible element.
+        accessible={false}
+        className="items-center gap-2"
+      >
+        <View pointerEvents="none" style={{ width: slotWidth, height: NUMBER_HEIGHT }}>
           <TextInput
             ref={inputRef}
             value={text}
@@ -249,10 +267,12 @@ export default function SeatStepper({
             onSubmitEditing={() => inputRef.current?.blur()}
             editable={!disabled}
             keyboardType="number-pad"
+            // On iOS this makes React Native add its native Done toolbar above the number pad. Don't
+            // swap it for <InputAccessoryView backgroundColor=...>: on the new architecture its empty
+            // outer view gets un-hidden on mount and paints a band over this row, blocking taps.
             returnKeyType="done"
             selectTextOnFocus
             maxLength={maxLength}
-            inputAccessoryViewID={Platform.OS === 'ios' ? accessoryId : undefined}
             accessibilityLabel={accessibilityLabel}
             accessibilityHint={
               bounded ? `Enter a number from ${min} to ${max}` : `Enter a number of at least ${min}`
@@ -281,29 +301,11 @@ export default function SeatStepper({
         <Text className="font-inter-regular text-[11.2px] leading-[13.6px] text-[#878686]">
           {caption}
         </Text>
-      </View>
+      </Pressable>
 
       <View className="pt-[5px]">
         <StepButton kind="increase" disabled={!canIncrease} onPress={() => step(1)} />
       </View>
-
-      {Platform.OS === 'ios' ? (
-        <InputAccessoryView nativeID={accessoryId} backgroundColor="#F6F7F7">
-          <View className="flex-row justify-end border-t border-[#E3E6E8] bg-[#F6F7F7] px-4 py-2">
-            <Pressable
-              onPress={() => inputRef.current?.blur()}
-              hitSlop={8}
-              accessibilityRole="button"
-              accessibilityLabel="Done"
-              className="px-2 py-1 active:opacity-60"
-            >
-              <Text className="font-inter-medium text-[16px] leading-[19.4px] text-[#113E55]">
-                Done
-              </Text>
-            </Pressable>
-          </View>
-        </InputAccessoryView>
-      ) : null}
     </View>
   );
 }

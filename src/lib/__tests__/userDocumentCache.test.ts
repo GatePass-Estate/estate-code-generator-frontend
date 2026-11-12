@@ -76,3 +76,14 @@ it('clears cached previews when the signed-in account changes', async () => {
     idempotent: true,
   });
 });
+
+it('keeps cached previews when the access token rotates within the same session', async () => {
+  useAuthStore.setState({ access_token: 'access-1', refresh_token: 'r1', session_id: 'session-1' });
+  download.mockResolvedValueOnce('file:///kept-id.pdf');
+  await loadUserDocument('test-user', 'id_card', metadata('id-1'));
+
+  useAuthStore.setState({ access_token: 'access-2', refresh_token: 'r2', session_id: 'session-1' });
+
+  expect(getCachedUserDocument('test-user', 'id_card')?.uri).toBe('file:///kept-id.pdf');
+  expect(FileSystem.deleteAsync).not.toHaveBeenCalled();
+});

@@ -63,12 +63,14 @@ export default function SecurityTabBar({ activeTab }: { activeTab: SecurityTab }
         onPress={() => activeTab !== 'home' && router.dismissTo('/security')}
         style={styles.home}
       >
-        <HomeTabIcon
-          width={20}
-          height={20}
-          color={activeTab === 'home' ? '#113E55' : '#6F91A0'}
-          focused={activeTab === 'home'}
-        />
+        <View style={styles.iconContainer}>
+          <HomeTabIcon
+            width={20}
+            height={20}
+            color={activeTab === 'home' ? '#113E55' : '#6F91A0'}
+            focused={activeTab === 'home'}
+          />
+        </View>
         <Text
           allowFontScaling={false}
           style={[styles.label, activeTab === 'home' && styles.activeLabel]}
@@ -83,7 +85,9 @@ export default function SecurityTabBar({ activeTab }: { activeTab: SecurityTab }
         onPress={() => void openReport()}
         style={styles.report}
       >
-        <ReportIcon active={activeTab === 'report'} />
+        <View style={styles.iconContainer}>
+          <ReportIcon active={activeTab === 'report'} />
+        </View>
         <Text
           allowFontScaling={false}
           style={[styles.label, activeTab === 'report' && styles.activeLabel]}
@@ -104,14 +108,16 @@ export default function SecurityTabBar({ activeTab }: { activeTab: SecurityTab }
         }}
         style={styles.history}
       >
-        <HistoryIcon
-          width={18}
-          height={18}
-          color={activeTab === 'history' ? '#113E55' : '#6F91A0'}
-        />
+        <View style={styles.iconContainer}>
+          <HistoryIcon
+            width={18}
+            height={18}
+            color={activeTab === 'history' ? '#113E55' : '#6F91A0'}
+          />
+        </View>
         <Text
           allowFontScaling={false}
-          style={[styles.label, styles.historyLabel, activeTab === 'history' && styles.activeLabel]}
+          style={[styles.label, activeTab === 'history' && styles.activeLabel]}
         >
           History
         </Text>
@@ -127,21 +133,22 @@ const styles = StyleSheet.create({
     borderColor: '#CEE5ED',
     borderRadius: 24,
     borderWidth: 0.5,
-    height: 49,
+    flexDirection: 'row',
+    height: 60,
     position: 'absolute',
-    width: 227,
+    width: 240,
   },
-  home: { alignItems: 'center', left: 27, position: 'absolute', top: 7, width: 32 },
-  report: { alignItems: 'center', left: 99, position: 'absolute', top: 8, width: 29 },
-  history: { alignItems: 'center', left: 168, position: 'absolute', top: 9, width: 30 },
+  home: { alignItems: 'center', flex: 1, justifyContent: 'center' },
+  report: { alignItems: 'center', flex: 1, justifyContent: 'center' },
+  history: { alignItems: 'center', flex: 1, justifyContent: 'center' },
+  iconContainer: { alignItems: 'center', height: 20, justifyContent: 'center' },
   label: {
     color: '#6F91A0',
     fontFamily: 'UbuntuSans-Regular',
-    fontSize: 9,
-    lineHeight: 11,
+    fontSize: 11,
+    lineHeight: 14,
     marginTop: 4,
     textAlign: 'center',
   },
   activeLabel: { color: '#113E55', fontFamily: 'UbuntuSans-Medium' },
-  historyLabel: { marginTop: 2.67 },
 });

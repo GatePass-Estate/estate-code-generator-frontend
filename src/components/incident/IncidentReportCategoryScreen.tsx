@@ -1,5 +1,6 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Keyboard,
   KeyboardAvoidingView,
   BackHandler,
   Platform,
@@ -13,7 +14,6 @@ import {
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import Back from '@/src/components/mobile/Back';
 import { useFeatureGate } from '@/src/hooks/usePlan';
 import {
   leaveIncidentReport,
@@ -24,12 +24,20 @@ import SecurityTabBar from '@/src/components/security/SecurityTabBar';
 import { useUserStore } from '@/src/lib/stores/userStore';
 import { formatApiCategoryLabel } from '@/src/components/incident/categoryIcons';
 import {
+  type IncidentReportDraft,
+  clearIncidentReportDraft,
+  loadIncidentReportDraft,
+  saveIncidentReportDraft,
+} from '@/src/lib/incidentReportDraft';
+import {
   INCIDENT_CATEGORY_PLACEHOLDER,
   useIncidentCategories,
 } from '@/src/hooks/useIncidentQueries';
 
 export default function IncidentReportCategoryScreen() {
   const router = useRouter();
+  const scrollViewRef = useRef<ScrollView>(null);
+  const otherFocused = useRef(false);
   const { returnTo: returnToParam } = useLocalSearchParams<{ returnTo?: string }>();
   const returnTo = parseIncidentReportReturnTo(returnToParam);
   const insets = useSafeAreaInsets();
@@ -39,12 +47,59 @@ export default function IncidentReportCategoryScreen() {
   const [other, setOther] = useState('');
   const [checkingAccess, setCheckingAccess] = useState(true);
   const [error, setError] = useState('');
+  const [draftLoaded, setDraftLoaded] = useState(false);
+  const [deletingDraft, setDeletingDraft] = useState(false);
+  const [storedDraft, setStoredDraft] = useState<IncidentReportDraft | null>(null);
+  const userId = useUserStore((state) => state.user_id);
   const isSecurity = useUserStore((state) => state.role === 'security');
   const { data: categoryIds = [] } = useIncidentCategories();
   const incidentTypes = useMemo(
     () => (categoryIds.length > 0 ? categoryIds : INCIDENT_CATEGORY_PLACEHOLDER),
     [categoryIds]
   );
+  const hasStoredDraft = Boolean(storedDraft);
+
+  useEffect(() => {
+    const subscription = Keyboard.addListener('keyboardDidShow', () => {
+      if (otherFocused.current) scrollViewRef.current?.scrollToEnd({ animated: true });
+    });
+    return () => subscription.remove();
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      setDraftLoaded(false);
+      void loadIncidentReportDraft(userId)
+        .then((draft) => {
+          if (!active) return;
+          setStoredDraft(draft);
+          setSelected(draft?.customCategory ? ['other'] : (draft?.categories ?? []));
+          setOther(draft?.customCategory ?? '');
+        })
+        .catch(() => undefined)
+        .finally(() => {
+          if (active) setDraftLoaded(true);
+        });
+      return () => {
+        active = false;
+      };
+    }, [userId])
+  );
+
+  useEffect(() => {
+    if (!draftLoaded || !userId) return;
+    if (!storedDraft) return;
+    const timer = setTimeout(() => {
+      void saveIncidentReportDraft(userId, {
+        categories: selected.includes('other') ? [] : selected,
+        customCategory: selected.includes('other') ? other.trim() : '',
+        title: storedDraft?.title ?? '',
+        narrative: storedDraft?.narrative ?? '',
+      }).catch(() => setError('Unable to save your draft. Please try again.'));
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [draftLoaded, other, selected, storedDraft, userId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -78,7 +133,11 @@ export default function IncidentReportCategoryScreen() {
     setSelected((current) => toggleIncidentType(current, label));
   };
 
-  const continueToDetails = () => {
+  const continueToDetails = async () => {
+    if (!userId) {
+      setError('Unable to save your draft. Please sign in again.');
+      return;
+    }
     if (selected.length === 0) {
       setError('Select at least one incident type.');
       return;
@@ -86,6 +145,19 @@ export default function IncidentReportCategoryScreen() {
     if (selected.includes('other') && !other.trim()) {
       setError('Describe the other incident type.');
       return;
+    }
+    if (storedDraft) {
+      try {
+        await saveIncidentReportDraft(userId, {
+          categories: selected.includes('other') ? [] : selected,
+          customCategory: selected.includes('other') ? other.trim() : '',
+          title: storedDraft.title,
+          narrative: storedDraft.narrative,
+        });
+      } catch {
+        setError('Unable to save your draft. Please try again.');
+        return;
+      }
     }
     router.push({
       pathname: '/(protected)/user/report/create',
@@ -97,6 +169,24 @@ export default function IncidentReportCategoryScreen() {
     });
   };
 
+  const deleteDraft = async () => {
+    if (!userId || deletingDraft) return;
+    setDraftLoaded(false);
+    setDeletingDraft(true);
+    try {
+      await clearIncidentReportDraft(userId);
+      setStoredDraft(null);
+      setSelected([]);
+      setOther('');
+      setError('');
+    } catch {
+      setError('Unable to delete your draft. Please try again.');
+    } finally {
+      setDeletingDraft(false);
+      setDraftLoaded(true);
+    }
+  };
+
   return (
     <SafeAreaView className="flex-1 bg-[#F6F7F7]" edges={['top', 'bottom']}>
       <Stack.Screen options={{ headerShown: false, gestureEnabled: false }} />
@@ -105,6 +195,7 @@ export default function IncidentReportCategoryScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
+          ref={scrollViewRef}
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={{
             flexGrow: 1,
@@ -113,14 +204,6 @@ export default function IncidentReportCategoryScreen() {
           }}
         >
           <View className="pl-[21px] pr-[30px]">
-            <Back
-              type="short-arrow"
-              showText={false}
-              showBorder
-              borderSize={30}
-              leftOffset={-3}
-              onPress={() => leaveIncidentReport(returnTo, router)}
-            />
             <Text className="ml-[5px] mt-[16px] font-ubuntu-medium text-[27.34px] leading-[33px] text-[#113E55]">
               Incident Report
             </Text>
@@ -128,7 +211,21 @@ export default function IncidentReportCategoryScreen() {
               Report security related incidents that happened within your Estate. Please confirm
               incident type
             </Text>
-            <View className="mt-[40px] gap-[16px]">
+            {hasStoredDraft ? (
+              <View className="ml-[7px] mt-3 flex-row items-center justify-between">
+                <Text className="mr-3 flex-shrink font-inter-medium text-[12px] text-[#113E55]">
+                  Draft saved on this device
+                </Text>
+                <Text
+                  accessibilityRole="link"
+                  onPress={() => void deleteDraft()}
+                  className="font-inter-medium text-[12px] text-[#113E55] underline"
+                >
+                  Delete draft
+                </Text>
+              </View>
+            ) : null}
+            <View className={hasStoredDraft ? 'mt-[16px] gap-[12px]' : 'mt-[40px] gap-[16px]'}>
               {incidentTypes.map((categoryId) => {
                 const checked = selected.includes(categoryId);
                 return (
@@ -155,6 +252,12 @@ export default function IncidentReportCategoryScreen() {
 
           <TextInput
             value={other}
+            onFocus={() => {
+              otherFocused.current = true;
+            }}
+            onBlur={() => {
+              otherFocused.current = false;
+            }}
             onChangeText={(value) => {
               setOther(value);
               setError('');
@@ -163,7 +266,7 @@ export default function IncidentReportCategoryScreen() {
             placeholder={selected.includes('other') ? 'Describe the incident type' : ''}
             placeholderTextColor="#878686"
             accessibilityLabel="Other incident type"
-            className="mx-[21px] h-[43px] rounded-[8px] bg-[#EFF1F1] px-4 font-inter-regular text-[14px] text-[#0A1F29]"
+            className="mx-[21px] mt-3 h-[43px] rounded-[8px] bg-[#EFF1F1] px-4 font-inter-regular text-[14px] text-[#0A1F29]"
           />
 
           {error ? (
@@ -173,13 +276,13 @@ export default function IncidentReportCategoryScreen() {
           ) : null}
           <View className="flex-1" />
           <TouchableOpacity
-            onPress={continueToDetails}
-            disabled={checkingAccess}
+            onPress={() => void continueToDetails()}
+            disabled={checkingAccess || !draftLoaded || deletingDraft}
             accessibilityRole="button"
-            className="mx-auto h-[44px] w-[278px] max-w-[80%] items-center justify-center rounded-[24px] bg-[#113E55]"
+            className="mx-auto mt-5 h-[44px] w-[278px] max-w-[80%] items-center justify-center rounded-[24px] bg-[#113E55]"
           >
             <Text className="font-ubuntu-semibold text-[14px] leading-[18px] tracking-[-0.24px] text-[#F6F7F7]">
-              Continue
+              {hasStoredDraft ? 'Continue Draft' : 'Continue'}
             </Text>
           </TouchableOpacity>
         </ScrollView>

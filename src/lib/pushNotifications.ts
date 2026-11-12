@@ -171,10 +171,15 @@ export type PushPayload = {
   notification_id?: string;
   /** Present only on broadcast pushes. */
   broadcast_id?: string;
+  /**
+   * The rest of the notification's metadata, flattened in as strings (a null value arrives as
+   * "None") — e.g. `prediction_result_id` on `SPATIAL_ANOMALY_DETECTED`.
+   */
+  [key: string]: string | undefined;
 };
 
 export type PushListeners = {
-  onReceived: () => void;
+  onReceived: (payload: PushPayload) => void;
   onResponse: (payload: PushPayload) => void;
 };
 
@@ -206,7 +211,9 @@ export function addPushListeners({ onReceived, onResponse }: PushListeners): () 
     onResponse((response.notification.request.content.data ?? {}) as PushPayload);
   };
 
-  const receivedSub = Notifications.addNotificationReceivedListener(() => onReceived());
+  const receivedSub = Notifications.addNotificationReceivedListener((notification) =>
+    onReceived((notification.request.content.data ?? {}) as PushPayload)
+  );
   const responseSub = Notifications.addNotificationResponseReceivedListener(handleResponse);
 
   // A tap that launched the app from a killed state can land before this

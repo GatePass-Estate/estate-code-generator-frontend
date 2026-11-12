@@ -3,7 +3,9 @@ module.exports = {
   // NativeWind 4.2+ on web needs class mode so colorScheme.set doesn't crash.
   darkMode: 'class',
   // NOTE: Update this to include the paths to all files that contain Nativewind classes.
-  content: ['./app/**/*.{js,jsx,ts,tsx}', './src/**/*.{js,jsx,ts,tsx}'],
+  // Tests are excluded: Tailwind reads any class-shaped text as a class, so a regex like
+  // `h-[\\d.]+` in a test generates an invalid style and breaks the app bundle.
+  content: ['./app/**/*.{js,jsx,ts,tsx}', './src/**/*.{js,jsx,ts,tsx}', '!./src/**/__tests__/**'],
   presets: [require('nativewind/preset')],
   theme: {
     extend: {

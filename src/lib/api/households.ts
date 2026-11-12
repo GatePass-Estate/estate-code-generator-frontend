@@ -25,6 +25,15 @@ export async function searchHouseholds(
   }
 }
 
+export async function getHouseholdById(householdId: string): Promise<Household> {
+  try {
+    const response = await Api().get<Household>(`/households/${householdId}`);
+    return response.data;
+  } catch (error: unknown) {
+    throw new Error(getErrorMessage(error) || 'Could not load household');
+  }
+}
+
 export async function transferUserHousehold(
   payload: TransferHouseholdPayload
 ): Promise<TransferHouseholdResponse> {

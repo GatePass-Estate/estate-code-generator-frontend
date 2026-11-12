@@ -1,4 +1,4 @@
-import { Platform } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import { fetchMe } from '@/src/lib/api/auth';
 import { clearEstateEntitlements, prefetchEstateEntitlements } from '@/src/lib/api/entitlements';
 import { clearBillingData } from '@/src/hooks/useBillingQueries';
@@ -12,6 +12,12 @@ import {
   initAuthSync,
 } from '@/src/lib/helpers';
 import { setUnauthorizedHandler } from '@/src/lib/session';
+import type { SignOutReason } from '@/src/lib/signOutReason';
+import {
+  adoptStoredSession,
+  getValidAccessToken,
+  revokeCurrentSession,
+} from '@/src/lib/authRefresh';
 import { useAuthStore } from '@/src/lib/stores/authStore';
 import { useProfileDocumentsStore } from '@/src/lib/stores/profileDocumentsStore';
 import { useUserStore } from '@/src/lib/stores/userStore';
@@ -90,10 +96,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [router]);
 
   const performSignOut = useCallback(
-    async (options?: { sessionExpired?: boolean }) => {
+    /** `signedOutBecause`: the server refused the session, so the login screen explains why. */
+    async (options?: { signedOutBecause?: SignOutReason }) => {
       setIsReady(false);
       // Done first, while the access token is still valid.
       await unregisterForPushNotifications();
+      // A user-initiated sign-out also ends the session server-side. An expired session has
+      // nothing left to end (and its token would only be refused).
+      if (!options?.signedOutBecause) await revokeCurrentSession();
       clearUserData();
       useAuthStore.getState().clearAuth();
       resetBroadcastPopupSuppression();
@@ -105,8 +115,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const institution = await getSelectedInstitution();
       const target = getPostAuthRedirectRoute(institution);
 
-      if (options?.sessionExpired && target === '/auth/login') {
-        router.replace({ pathname: target, params: { session_expired: 'true' } });
+      if (options?.signedOutBecause && target === '/auth/login') {
+        router.replace({ pathname: target, params: { signed_out: options.signedOutBecause } });
         return;
       }
       router.replace(target);
@@ -114,15 +124,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [router]
   );
 
-  // A session revoked or expired elsewhere invalidates this device too, so the
-  // API layer reports any 401 here and we sign out (with the login screen's
-  // "session expired" notice) rather than leaving every request failing.
+  // When the server refuses the session (inactivity, end of its lifetime, or ended), the API
+  // layer reports it here with the reason, and we sign out with a login-screen notice that says
+  // which, rather than leaving every request failing.
   useEffect(() => {
-    setUnauthorizedHandler(() => {
-      void performSignOut({ sessionExpired: true });
+    setUnauthorizedHandler((reason) => {
+      void performSignOut({ signedOutBecause: reason });
     });
     return () => setUnauthorizedHandler(null);
   }, [performSignOut]);
+
+  // Coming back to the foreground after a while: refresh before the first request needs it,
+  // while the refresh token may still be valid. No-op when signed out or not near expiry.
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void getValidAccessToken();
+    });
+    return () => subscription.remove();
+  }, []);
 
   const routeForUser = useCallback(
     (user: User) => {
@@ -151,13 +171,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isProcessingRef.current = true;
 
       try {
-        useAuthStore.setState({ access_token: token, role });
+        // The broadcast carries only the access token; the refresh token and session id are
+        // read from the storage the tabs share, so they are never posted to every tab.
+        const stored = await getAuthState();
+        adoptStoredSession(
+          stored?.access_token === token
+            ? { ...stored, role }
+            : { access_token: token, refresh_token: null, role, session_id: null }
+        );
 
         const myProfile = (await fetchMe(token)) as User;
 
         if (myProfile && myProfile.status) {
           useUserStore.setState({ ...myProfile });
-          useAuthStore.setState({ access_token: token, role: myProfile.role });
+          useAuthStore.setState({ role: myProfile.role });
           setIsReady(true);
           prefetchUserData(myProfile);
           setTimeout(() => {
@@ -201,14 +228,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const localData = await getAuthState();
 
         if (localData?.access_token) {
-          useAuthStore.setState({ access_token: localData.access_token, role: localData.role });
+          adoptStoredSession(localData);
 
           try {
-            const myProfile = (await fetchMe(localData.access_token)) as User;
+            // An expired access token is refreshed first when a refresh token was stored. If
+            // that fails offline the stored session is kept, and fetchMe decides as before.
+            const token = (await getValidAccessToken()) ?? localData.access_token;
+            const myProfile = (await fetchMe(token)) as User;
 
             if (myProfile?.status) {
               useUserStore.setState({ ...myProfile });
-              useAuthStore.setState({ access_token: localData.access_token, role: myProfile.role });
+              useAuthStore.setState({ role: myProfile.role });
               setIsReady(true);
               prefetchUserData(myProfile);
               try {

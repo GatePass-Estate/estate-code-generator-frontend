@@ -33,11 +33,10 @@ import { useEstateEntitlements } from '@/src/lib/api/entitlements';
 import {
   formatBillingDate,
   formatMoney,
-  getCurrentPlanQuoteParams,
   getCurrentPlanState,
   getCycleProgress,
+  getNextBillingQuoteParams,
   getSeatOccupancy,
-  inferPeriodMonths,
   getRenewalBlockMessage,
   canCancelSubscription,
 } from '@/src/lib/billing';
@@ -61,17 +60,11 @@ export default function BillingScreen() {
   const isPaid = planState === 'paid';
   const isExpired = planState === 'expired';
 
-  // The cycle's total, as a fallback for the billing-cycle amount when the API has no
-  // `next_billing_amount`. A running or ended paid plan has one; the free plan doesn't.
+  // The next cycle's total, as a fallback for the billing-cycle amount when the API has no
+  // `next_billing_amount` (priced like the backend: whole cycle, pending tier and seats, as on
+  // Manage Seats and Change Plan). A running or ended paid plan has one; the free plan doesn't.
   const cycleQuote = useBillingQuote(
-    isPaid || isExpired
-      ? getCurrentPlanQuoteParams(
-          subscription,
-          tier,
-          subscription?.covered_users ?? 0,
-          inferPeriodMonths(subscription?.period_start, subscription?.period_end)
-        )
-      : null
+    isPaid || isExpired ? getNextBillingQuoteParams(subscription, tier) : null
   );
   const { data: billingCycle } = useBillingCycle();
   const renewalQuery = useRenewalEligibility({ enabled: isPaid || isExpired });
@@ -214,9 +207,8 @@ export default function BillingScreen() {
     const seatTrailing = hasUsage ? `${activeUsers}/${covered} Seats` : plural(covered, 'Seat');
     const seatUsage = hasUsage && covered > 0 ? activeUsers / covered : 0;
 
-    const { activeCount, totalCount } = aiTools;
-    const toolsTrailing =
-      totalCount > 0 ? `${activeCount}/${totalCount} Tools` : plural(activeCount, 'Tool');
+    // Standalone AI tools only (plan-included ones are part of the plan), so no "x/y" figure.
+    const toolsTrailing = plural(aiTools.activeCount, 'Tool');
 
     return (
       <ScrollView

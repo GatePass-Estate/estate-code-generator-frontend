@@ -18,8 +18,8 @@ import Back from '@/src/components/mobile/Back';
 import { useAuth } from '@/src/hooks/useAuthContext';
 import { acceptTos, fetchMe } from '@/src/lib/api/auth';
 import { User } from '@/src/types/user';
-import { useAuthStore } from '@/src/lib/stores/authStore';
-import { broadcastLogin, getWidthBreakpoint, storeAuthState } from '@/src/lib/helpers';
+import { applySession } from '@/src/lib/authRefresh';
+import { broadcastLogin, getWidthBreakpoint } from '@/src/lib/helpers';
 import {
   biometricTokenMatchesUser,
   deleteBiometricToken,
@@ -284,8 +284,12 @@ export default function TermsOfService() {
       const token = result.access_token;
       const role = result.role || (params.role as UserRolesType);
 
-      useAuthStore.setState({ access_token: token, role });
-      await storeAuthState({ access_token: token, role });
+      await applySession({
+        access_token: token,
+        refresh_token: result.refresh_token,
+        role,
+        session_id: result.session_id,
+      });
       broadcastLogin(token, role);
       const user = await fetchMe(token);
       signIn(user);
