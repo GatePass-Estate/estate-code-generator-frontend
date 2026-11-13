@@ -349,6 +349,20 @@ export default function EditSingleRequestMobile() {
             <>
               <Text
                 style={{
+                  color: '#113E55',
+                  fontFamily: 'UbuntuSans-Medium',
+                  fontSize: 16,
+                  lineHeight: 20,
+                  marginLeft: 6,
+                  marginBottom: 16,
+                }}
+              >
+                {[requestingUser?.first_name, requestingUser?.last_name]
+                  .filter(Boolean)
+                  .join(' ') || 'Unknown resident'}
+              </Text>
+              <Text
+                style={{
                   color: '#878686',
                   fontFamily: 'Inter_18pt-Light',
                   fontSize: 14,

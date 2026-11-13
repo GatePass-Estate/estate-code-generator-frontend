@@ -1,17 +1,8 @@
 import { errorMessage as thrownMessage } from '@/src/shared/services/api/errors';
-import {
-  View,
-  Text,
-  Pressable,
-  Image,
-  Switch,
-  Platform,
-  Alert,
-  Modal,
-  TextInput,
-} from 'react-native';
+import { View, Text, Pressable, Image, Platform, Alert, Modal, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, router, useFocusEffect } from 'expo-router';
+import ToggleSwitch from '@/src/features/access-codes/components/ToggleSwitch';
 import ScreenHeader from '@/src/shared/components/layout/ScreenHeader';
 import { sharedStyles } from '@/src/shared/theme/styles';
 import icons from '@/src/shared/constants/icons';
@@ -229,17 +220,12 @@ export default function AccountSecurityScreen() {
             >
               Face ID &amp; Biometrics
             </Text>
-            <View className="h-6 items-center justify-center">
-              <Switch
-                value={biometricEnabled}
-                onValueChange={(nextValue) => {
-                  void handleToggleBiometric(nextValue);
-                }}
-                trackColor={{ false: '#9B9797', true: '#1B998B' }}
-                thumbColor="#FFFFFF"
-                ios_backgroundColor="#9B9797"
-              />
-            </View>
+            <ToggleSwitch
+              value={biometricEnabled}
+              onValueChange={(nextValue) => {
+                void handleToggleBiometric(nextValue);
+              }}
+            />
           </View>
         )}
 
@@ -257,15 +243,7 @@ export default function AccountSecurityScreen() {
           >
             Google Authenticator
           </Text>
-          <View className="h-6 items-center justify-center">
-            <Switch
-              value={twoFactorEnabled}
-              onValueChange={handleToggleTwoFactor}
-              trackColor={{ false: '#9B9797', true: '#1B998B' }}
-              thumbColor="#FFFFFF"
-              ios_backgroundColor="#9B9797"
-            />
-          </View>
+          <ToggleSwitch value={twoFactorEnabled} onValueChange={handleToggleTwoFactor} />
         </View>
 
         {twoFactorEnabled && (

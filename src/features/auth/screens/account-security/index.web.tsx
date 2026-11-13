@@ -11,6 +11,7 @@ import { setPendingRecoveryCodes } from '@/src/features/auth/services/recoveryCo
 import Modal from '@/src/shared/components/feedback/Modal';
 import { getWidthBreakpoint } from '@/src/shared/utils/helpers';
 import UpdatePassword from '@/src/features/auth/components/UpdatePassword';
+import ToggleSwitch from '@/src/features/access-codes/components/ToggleSwitch';
 import Back from '@/src/shared/components/navigation/Back';
 import WebSidebar from '@/src/features/dashboard/components/WebSidebar';
 import { menuRoutes } from '@/src/features/dashboard/components/menuRoutes';
@@ -196,20 +197,10 @@ export default function AccountSecurityWeb() {
               <span className="text-[15px] font-ubuntu-regular text-[#0A1F29]">
                 Google Authenticator
               </span>
-              <button
-                role="switch"
-                aria-checked={twoFactorEnabled}
-                onClick={handleToggleTwoFactor}
-                className={`relative h-6 w-[52px] rounded-full transition ${
-                  twoFactorEnabled ? 'bg-primary' : 'bg-grey'
-                }`}
-              >
-                <span
-                  className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all ${
-                    twoFactorEnabled ? 'left-[28px]' : 'left-0.5'
-                  }`}
-                />
-              </button>
+              <ToggleSwitch
+                value={twoFactorEnabled}
+                onValueChange={() => handleToggleTwoFactor()}
+              />
             </div>
 
             {twoFactorEnabled && (
