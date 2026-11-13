@@ -1,3 +1,4 @@
+import { type ReactNode } from 'react';
 import { Modal, Text, TouchableOpacity, View } from 'react-native';
 import { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
 
@@ -9,6 +10,8 @@ type ActionConfirmModalProps = {
   busy?: boolean;
   /** Hide Cancel and use a single OK-style action. */
   hideCancel?: boolean;
+  /** Optional body under the message (e.g. a code input). */
+  children?: ReactNode;
   onConfirm: () => void;
   onCancel: () => void;
 };
@@ -20,6 +23,7 @@ export default function ActionConfirmModal({
   confirmLabel,
   busy = false,
   hideCancel = false,
+  children,
   onConfirm,
   onCancel,
 }: ActionConfirmModalProps) {
@@ -37,6 +41,7 @@ export default function ActionConfirmModal({
           <Text className="mt-3 text-center font-inter-regular text-[14px] leading-[21px] text-[#646B70]">
             {message}
           </Text>
+          {children ? <View className="mt-4">{children}</View> : null}
           <View className="mt-7 flex-row gap-[10px]">
             {hideCancel ? null : (
               <TouchableOpacity

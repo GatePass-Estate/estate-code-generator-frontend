@@ -1,8 +1,9 @@
 import { errorMessage as thrownMessage } from '@/src/shared/services/api/errors';
-import { View, Text, Pressable, Image, Platform, Alert, Modal, TextInput } from 'react-native';
+import { View, Text, Pressable, Image, Platform, Alert, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, router, useFocusEffect } from 'expo-router';
 import ToggleSwitch from '@/src/features/access-codes/components/ToggleSwitch';
+import ActionConfirmModal from '@/src/shared/components/feedback/ActionConfirmModal';
 import ScreenHeader from '@/src/shared/components/layout/ScreenHeader';
 import { sharedStyles } from '@/src/shared/theme/styles';
 import icons from '@/src/shared/constants/icons';
@@ -255,57 +256,40 @@ export default function AccountSecurityScreen() {
         )}
       </View>
 
-      <Modal visible={codePrompt !== null} transparent animationType="fade">
-        <View className="flex-1 bg-black/50 items-center justify-center px-6">
-          <View className="w-full bg-white rounded-2xl p-5">
-            <Text className="text-primary font-ubuntu-semibold text-lg mb-2">
-              {codePrompt === 'disable'
-                ? 'Turn off two-factor authentication'
-                : 'Regenerate recovery codes'}
-            </Text>
-            <Text className="text-[#3E424E] font-inter-light text-sm mb-4 leading-5">
-              {codePrompt === 'disable'
-                ? 'Enter the current code from your authenticator app to confirm.'
-                : 'Enter the current code from your authenticator app. Your previous recovery codes will stop working.'}
-            </Text>
-
-            <TextInput
-              value={promptCode}
-              onChangeText={(next) => setPromptCode(next.replace(/[^0-9]/g, '').slice(0, 6))}
-              placeholder="6-digit code"
-              placeholderTextColor="#878686"
-              keyboardType="number-pad"
-              maxLength={6}
-              className="bg-[#EFF1F1] rounded-[16px] h-12 px-5 text-sm font-inter-light text-[#0A1F29]"
-            />
-
-            {!!promptError && (
-              <Text className="text-danger font-inter-regular text-xs mt-3">{promptError}</Text>
-            )}
-
-            <View className="flex-row gap-3 mt-5">
-              <Pressable
-                onPress={() => {
-                  if (!promptBusy) setCodePrompt(null);
-                }}
-                className="flex-1 h-11 rounded-[24px] bg-[#EFF1F1] items-center justify-center"
-              >
-                <Text className="text-primary font-ubuntu-semibold text-sm">Cancel</Text>
-              </Pressable>
-              <Pressable
-                onPress={submitCodePrompt}
-                disabled={promptBusy}
-                className="flex-1 h-11 rounded-[24px] bg-primary items-center justify-center"
-                style={{ opacity: promptBusy ? 0.7 : 1 }}
-              >
-                <Text className="text-white font-ubuntu-semibold text-sm">
-                  {promptBusy ? 'Working…' : codePrompt === 'disable' ? 'Turn off' : 'Regenerate'}
-                </Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      <ActionConfirmModal
+        visible={codePrompt !== null}
+        title={
+          codePrompt === 'disable'
+            ? 'Turn off two-factor authentication'
+            : 'Regenerate recovery codes'
+        }
+        message={
+          codePrompt === 'disable'
+            ? 'Enter the current code from your authenticator app to confirm.'
+            : 'Enter the current code from your authenticator app. Your previous recovery codes will stop working.'
+        }
+        confirmLabel={codePrompt === 'disable' ? 'Turn off' : 'Regenerate'}
+        busy={promptBusy}
+        onCancel={() => {
+          if (!promptBusy) setCodePrompt(null);
+        }}
+        onConfirm={submitCodePrompt}
+      >
+        <TextInput
+          value={promptCode}
+          onChangeText={(next) => setPromptCode(next.replace(/[^0-9]/g, '').slice(0, 6))}
+          placeholder="6-digit code"
+          placeholderTextColor="#878686"
+          keyboardType="number-pad"
+          maxLength={6}
+          className="h-12 rounded-2xl bg-[#EFF1F1] px-5 text-sm font-inter-light text-[#0A1F29]"
+        />
+        {!!promptError && (
+          <Text className="mt-3 text-center text-xs font-inter-regular text-danger">
+            {promptError}
+          </Text>
+        )}
+      </ActionConfirmModal>
     </SafeAreaView>
   );
 }
