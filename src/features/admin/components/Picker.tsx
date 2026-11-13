@@ -1,0 +1,213 @@
+import React, { useState } from 'react';
+import { View, Text, Pressable, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { useAndroidBottomInset } from '@/src/shared/hooks/useAndroidBottomInset';
+import BottomSheet from '@/src/shared/components/feedback/BottomSheet';
+
+export interface PickerItem {
+  label: string;
+  value: string;
+}
+
+interface PickerProps {
+  label: string;
+  selectedValue: string | null;
+  onValueChange: (value: string) => void;
+  items: PickerItem[];
+  placeholder?: string;
+  enabled?: boolean;
+  variant?: 'default' | 'registration';
+  invalid?: boolean;
+  labelClassName?: string;
+  fieldClassName?: string;
+  textClassName?: string;
+  chevronColor?: string;
+  placeholderColor?: string;
+  chevron?: React.ReactNode;
+}
+
+/**
+ * Cross-platform Picker component with modal-based selection
+ * Uses a custom scrollable list that works consistently on iOS and Android
+ */
+export function Picker({
+  label,
+  selectedValue,
+  onValueChange,
+  items,
+  placeholder = 'Select an option',
+  enabled = true,
+  variant = 'default',
+  invalid = false,
+  labelClassName = 'input-label',
+  fieldClassName = 'input-style',
+  textClassName = 'text-sm font-inter-light',
+  chevronColor = '#9CA3AF',
+  placeholderColor = '#9CA3AF',
+  chevron,
+}: PickerProps) {
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const { bottom: safeBottom } = useSafeAreaInsets();
+  const { systemBottom } = useAndroidBottomInset();
+  const modalBottomInset = Math.max(safeBottom, systemBottom);
+
+  // Find the selected item's label for display
+  const selectedItem = items.find((item) => item.value === selectedValue);
+  const displayLabel = selectedItem?.label || placeholder;
+  const hasValue = !!selectedValue;
+
+  const handleSelect = (value: string) => {
+    onValueChange(value);
+    setIsModalVisible(false);
+  };
+
+  return (
+    <View>
+      {label ? <Text className={labelClassName}>{label}</Text> : null}
+      <Pressable
+        className={
+          variant === 'registration'
+            ? `mt-2 flex-row items-center justify-between rounded-2xl border-mini px-4 ${
+                invalid ? 'border-danger bg-[#FFF1F1]' : 'border-accent bg-[#F6F7F7]'
+              }`
+            : `${fieldClassName} flex-row items-center justify-between`
+        }
+        onPress={() => enabled && setIsModalVisible(true)}
+        disabled={!enabled}
+        style={{
+          opacity: enabled ? 1 : 0.5,
+          ...(variant === 'registration' && {
+            borderWidth: StyleSheet.hairlineWidth,
+            height: 48,
+          }),
+        }}
+      >
+        <Text
+          className={textClassName}
+          style={{
+            color: invalid
+              ? '#ED0808'
+              : hasValue
+                ? '#113E55'
+                : variant === 'registration'
+                  ? '#878686'
+                  : placeholderColor,
+            flex: 1,
+            flexShrink: 1,
+            fontFamily: variant === 'registration' ? 'Inter_18pt-Regular' : undefined,
+            fontSize: variant === 'registration' ? 14 : undefined,
+          }}
+        >
+          {displayLabel}
+        </Text>
+        {chevron ?? (
+          <Ionicons
+            name="chevron-down"
+            size={20}
+            color={invalid ? '#ED0808' : variant === 'registration' ? '#878686' : chevronColor}
+          />
+        )}
+      </Pressable>
+
+      <BottomSheet
+        visible={isModalVisible}
+        onClose={() => setIsModalVisible(false)}
+        scrimClassName="flex-1 justify-end bg-black/50"
+        panelStyle={[styles.pickerContainer, { paddingBottom: modalBottomInset }]}
+      >
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>{placeholder}</Text>
+          <TouchableOpacity onPress={() => setIsModalVisible(false)}>
+            <Text style={styles.doneButton}>Done</Text>
+          </TouchableOpacity>
+        </View>
+        <ScrollView style={styles.scrollView} contentContainerStyle={{ paddingBottom: 8 }}>
+          {items.map((item, index) => {
+            const isSelected = item.value === selectedValue;
+            const isLast = index === items.length - 1;
+            return (
+              <TouchableOpacity
+                key={item.value + index}
+                style={[
+                  styles.item,
+                  !isLast && styles.itemBorder,
+                  isSelected && styles.itemSelected,
+                ]}
+                onPress={() => handleSelect(item.value)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.itemText, isSelected && styles.itemTextSelected]}>
+                  {item.label}
+                </Text>
+                {isSelected && <Ionicons name="checkmark" size={22} color="#113E55" />}
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </BottomSheet>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  pickerContainer: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    maxHeight: '70%',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#D1D5DB',
+  },
+  headerTitle: {
+    color: '#113E55',
+    fontFamily: 'Inter_18pt-Medium',
+    fontSize: 14,
+  },
+  doneButton: {
+    color: '#113E55',
+    fontFamily: 'Inter_18pt-Medium',
+    fontSize: 16,
+  },
+  scrollView: {
+    maxHeight: 350,
+  },
+  item: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  itemBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  itemSelected: {
+    backgroundColor: '#CEE5ED',
+  },
+  itemText: {
+    color: '#113E55',
+    fontFamily: 'Inter_18pt-Regular',
+    fontSize: 16,
+    flex: 1,
+    flexShrink: 1,
+    paddingRight: 8,
+  },
+  itemTextSelected: {
+    color: '#113E55',
+    fontFamily: 'Inter_18pt-Medium',
+  },
+});
