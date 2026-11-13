@@ -1,0 +1,724 @@
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
+import ScreenLoading, { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Animated, { FadeIn } from 'react-native-reanimated';
+import { router } from 'expo-router';
+import AISummaryModal, {
+  type AISummaryVariant,
+} from '@/src/features/ai/components/incidents/modals/IncidentAISummaryModal';
+import { ResultPlaceCards } from '@/src/features/ai/components/shared/ResultPlaceCards';
+import ExportSvg from '@/src/assets/icons/incident-export.svg';
+import Button from '@/src/shared/components/Button';
+import ActionConfirmModal from '@/src/shared/components/feedback/ActionConfirmModal';
+import DurationExpandSvg from '@/src/assets/icons/incident-duration-expand.svg';
+import { IncidentFilterIcon, IncidentSortIcon, TrendDayIcon } from '@/src/assets/svgs';
+import { useUserStore } from '@/src/store/userStore';
+import {
+  useIncidentOverview,
+  useIncidentReports,
+  useIncidentSummary,
+  useIncidentCategories,
+} from '@/src/features/ai/hooks/incidents';
+import { toIncidentFromDate, toIncidentToDate } from '@/src/features/ai/services/incidentReports';
+import CategoryDistribution from '@/src/features/ai/components/incidents/result/CategoryDistribution';
+import IncidentAISummaryCard, {
+  type AISummarySlide,
+  type InsightMode,
+} from '@/src/features/ai/components/incidents/result/IncidentAISummaryCard';
+import { isAxiosError } from 'axios';
+import { useFeatureAccess, useFeatureGate } from '@/src/features/billing/hooks/usePlan';
+import TableEmptyState from '@/src/features/ai/components/shared/TableEmptyState';
+import IncidentFilterModal, {
+  type IncidentFilterCategory,
+  type IncidentFilterUserType,
+} from '@/src/features/ai/components/incidents/modals/IncidentFilterModal';
+import IncidentOrderModal from '@/src/features/ai/components/incidents/modals/IncidentOrderModal';
+import TimeframeRangeModal from '@/src/features/ai/components/shared/TimeframeRangeModal';
+import DateRangePickerModal from '@/src/features/ai/components/shared/DateRangePickerModal';
+import { setIncidentReportsListFilters } from '@/src/features/ai/components/incidents/report/incidentReportsListFilters';
+import {
+  demographicLocation,
+  formatReportCount,
+  mapCategoryEdaToUi,
+  findInhouseSummaryText,
+  mapInhouseInsightFromTopics,
+  mapListItemToRow,
+  mapTrendsFromEda,
+  ratioPercentage,
+  resolveCategorySection,
+} from '@/src/features/ai/components/incidents/mapIncidentApi';
+import { type IncidentCategoryId } from '@/src/features/ai/components/incidents/incidentTypes';
+import {
+  CarouselDots,
+  IncidentListRow,
+  ResultOverview,
+  TrendCard,
+} from '@/src/features/ai/components/incidents/result/IncidentResultCards';
+
+/** True when the server refused because the estate's plan doesn't include the feature. */
+function isEntitlementDenied(err: unknown): boolean {
+  if (!isAxiosError(err)) return false;
+  if ([402, 403].includes(err.response?.status ?? 0)) return true;
+  const detail = (err.response?.data as { detail?: unknown } | undefined)?.detail;
+  return typeof detail === 'string' && /not entitled/i.test(detail);
+}
+
+export default function IncidentResultView({
+  isActive = true,
+  onAccessDenied,
+  hasAiReviewTier,
+  inHouseInstalled,
+  thirdPartyInstalled,
+  onUpgradeAiSummary,
+}: {
+  isActive?: boolean;
+  /**
+   * Called when the server refuses the estate's plan. The parent then decides what to show; without
+   * it the plan prompt is shown here.
+   */
+  onAccessDenied?: () => void;
+  /** False when neither tier 2 nor tier 3 is installed → show the Upgrade Plan card. */
+  hasAiReviewTier?: boolean;
+  /** False hides the In-house summary even if the API still returns `tier1`. */
+  inHouseInstalled?: boolean;
+  /** False hides the Third-party summary even if the API still returns `tier2`. */
+  thirdPartyInstalled?: boolean;
+  /** Opens Overview on Tier Two (in-house) with Activate, the same way Result opens Tier One. */
+  onUpgradeAiSummary?: () => void;
+}) {
+  const estate_id = useUserStore((state) => state.estate_id) || '';
+  const estateName = useUserStore((state) => state.estate_name) || '';
+  const userHomeAddress = useUserStore((state) => state.home_address);
+  const [selectedTimeframe, setSelectedTimeframe] = useState('Last Week');
+  const [startDate, setStartDate] = useState<Date | null>(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 7);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  });
+  const [endDate, setEndDate] = useState<Date | null>(() => {
+    const d = new Date();
+    d.setHours(23, 59, 59, 999);
+    return d;
+  });
+  const [showComingSoon, setShowComingSoon] = useState(false);
+  const [timeframeVisible, setTimeframeVisible] = useState(false);
+  const [datePickerVisible, setDatePickerVisible] = useState(false);
+  const [filterModalVisible, setFilterModalVisible] = useState(false);
+  const [orderModalVisible, setOrderModalVisible] = useState(false);
+  const [openSummaryVariant, setOpenSummaryVariant] = useState<AISummaryVariant | null>(null);
+  const [sortAscending, setSortAscending] = useState(false);
+  const [insightMode, setInsightMode] = useState<InsightMode>('idle');
+  const [fetchSummary, setFetchSummary] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<IncidentCategoryId>('');
+  const [visibleCount, setVisibleCount] = useState(5);
+  const [trendIndex, setTrendIndex] = useState(0);
+  const [filterCategories, setFilterCategories] = useState<IncidentFilterCategory[]>([]);
+  const [filterUserTypes, setFilterUserTypes] = useState<IncidentFilterUserType[]>([]);
+
+  // OpenAPI: optional `from_date` / `to_date` as date-time on overview, reports, summary.
+  const fromDate = startDate ? toIncidentFromDate(startDate) : undefined;
+  const toDate = endDate ? toIncidentToDate(endDate) : undefined;
+
+  const reportsQueryParams = useMemo(() => {
+    // API user_type: resident | security | all.
+    const apiUserTypes = filterUserTypes;
+    return {
+      from_date: fromDate,
+      to_date: toDate,
+      // Empty selection = omit filter (same as category=all / user_type=all).
+      category: filterCategories.length ? [...filterCategories] : undefined,
+      user_type: apiUserTypes.length ? apiUserTypes : undefined,
+      page: 1,
+      limit: 20,
+    };
+  }, [fromDate, toDate, filterCategories, filterUserTypes]);
+
+  const {
+    data: overview,
+    isLoading: overviewLoading,
+    isError: overviewError,
+    error: overviewErr,
+    refetch: refetchOverview,
+  } = useIncidentOverview(estate_id, fromDate, toDate);
+  const {
+    data: reports,
+    isLoading: reportsLoading,
+    isFetching: reportsFetching,
+    isError: reportsError,
+    error: reportsErr,
+    refetch: refetchReports,
+    isPlaceholderData: reportsPlaceholder,
+  } = useIncidentReports(estate_id, reportsQueryParams);
+  const {
+    data: rawSummary,
+    isFetching: summaryLoading,
+    isError: summaryError,
+    error: summaryErr,
+  } = useIncidentSummary(estate_id, fromDate, toDate, fetchSummary);
+  // Primary admin: Upgrade Plan modal whose button opens the AI store preview. Everyone else: the
+  // floating "Contact Admin" notice (this screen has no inline notice slot).
+  const incidentReportAccess = useFeatureAccess('incident_report');
+  const { showDenied: showSummaryDenied } = useFeatureGate('incident_report_summary_tier_2', {
+    notice: 'floating',
+    onUpgrade: () => onUpgradeAiSummary?.(),
+  });
+  const summary = useMemo(() => {
+    if (!rawSummary) return rawSummary;
+    return {
+      ...rawSummary,
+      tier1: inHouseInstalled === false ? null : rawSummary.tier1,
+      tier2: thirdPartyInstalled === false ? null : rawSummary.tier2,
+    };
+  }, [rawSummary, inHouseInstalled, thirdPartyInstalled]);
+  // Warm categories cache so filter chips are instant when the modal opens.
+  useIncidentCategories(!!estate_id);
+
+  const demographic = overview?.demographic;
+  const displayEstateName = demographic?.estate_name || estateName;
+  const location = useMemo(() => {
+    const fromApi = demographicLocation(demographic);
+    if (fromApi !== 'N/A') return fromApi;
+    if (!userHomeAddress) return 'N/A';
+    const parts = userHomeAddress
+      .split(',')
+      .map((p) => p.trim())
+      .filter(Boolean);
+    return parts.slice(-2).join(', ') || userHomeAddress;
+  }, [demographic, userHomeAddress]);
+
+  const residentPct = ratioPercentage(demographic?.ratio, 'resident');
+  const securityPct = ratioPercentage(demographic?.ratio, 'security');
+  const totalReports = demographic?.total_reports ?? reports?.total ?? 0;
+  const displayResidentPct = demographic ? residentPct : 0;
+  const displaySecurityPct = demographic ? securityPct : 0;
+
+  const categories = useMemo(
+    () =>
+      mapCategoryEdaToUi(
+        resolveCategorySection(overview?.eda),
+        demographic?.total_reports ?? reports?.total
+      ),
+    [overview?.eda, demographic?.total_reports, reports?.total]
+  );
+
+  useEffect(() => {
+    if (!categories.length) return;
+    if (!categories.some((c) => c.id === selectedCategory)) {
+      setSelectedCategory(categories[0].id);
+    }
+  }, [categories, selectedCategory]);
+
+  const selectedRangeText =
+    selectedTimeframe === 'Custom' && startDate && endDate
+      ? `${startDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })} - ${endDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}`
+      : selectedTimeframe;
+
+  const rows = useMemo(() => {
+    const apiRows = (reports?.items ?? []).map(mapListItemToRow);
+    const sorted = [...apiRows];
+    if (sortAscending) sorted.reverse();
+    return sorted;
+  }, [reports?.items, sortAscending]);
+
+  const reportsListLoading = reportsFetching && (reportsLoading || reportsPlaceholder);
+  const trendCards = useMemo(() => mapTrendsFromEda(overview?.eda), [overview?.eda]);
+  const summaryVariant =
+    summary?.entitled_tier === 'tier1' && summary.tier1
+      ? ('in_house' as const)
+      : summary?.tier2
+        ? ('third_party' as const)
+        : summary?.tier1
+          ? ('in_house' as const)
+          : ('third_party' as const);
+  const summaryReadTime =
+    summary?.read_time?.trim() ||
+    summary?.tier2?.read_time?.trim() ||
+    summary?.tier1?.read_time?.trim() ||
+    '2 mins Read';
+  const summarySourceLabel =
+    summary?.source_label?.trim() || (summaryVariant === 'in_house' ? 'In house' : 'Third Party');
+  const inhouseExecutiveSummary = useMemo(
+    () => findInhouseSummaryText(summary?.tier1),
+    [summary?.tier1]
+  );
+  const inhouseInsight = useMemo(
+    () =>
+      mapInhouseInsightFromTopics(
+        (summary?.tier1?.topics as Record<string, unknown> | undefined) ?? null,
+        inhouseExecutiveSummary
+      ),
+    [summary?.tier1?.topics, inhouseExecutiveSummary]
+  );
+
+  const summarySlides = useMemo<AISummarySlide[]>(() => {
+    const slides: AISummarySlide[] = [];
+    if (summary?.tier1) {
+      slides.push({
+        variant: 'in_house',
+        text: inhouseExecutiveSummary || inhouseInsight.timelineSummary,
+        readTimeLabel: summary.tier1.read_time || summary.read_time,
+        sourceLabel: 'In house',
+      });
+    }
+    if (summary?.tier2) {
+      slides.push({
+        variant: 'third_party',
+        text: summary.tier2.executive_summary,
+        readTimeLabel: summary.tier2.read_time || summary.read_time,
+        sourceLabel: 'Third Party',
+      });
+    }
+    return slides;
+  }, [summary, inhouseExecutiveSummary, inhouseInsight.timelineSummary]);
+  const openSummaryReadTime =
+    openSummaryVariant === 'in_house'
+      ? summary?.tier1?.read_time || summary?.read_time
+      : summary?.tier2?.read_time || summary?.read_time;
+
+  // Cached summaries stay hidden until the user taps "view / generate" on this visit.
+  const hasSummaryPayload = fetchSummary && !!(summary?.tier1 || summary?.tier2);
+  const summaryAlreadyGenerated = !!(overview?.has_tier1_summary || overview?.has_tier2_summary);
+  const cardMode: InsightMode =
+    hasAiReviewTier === false
+      ? 'locked'
+      : hasSummaryPayload
+        ? 'generated'
+        : insightMode === 'locked'
+          ? 'locked'
+          : insightMode;
+
+  const handleInsightPress = () => {
+    if (cardMode === 'locked') return;
+    if (hasSummaryPayload || cardMode === 'generated') {
+      setOpenSummaryVariant(summaryVariant);
+      return;
+    }
+    if (cardMode === 'idle') {
+      if (!estate_id) {
+        Alert.alert('Unavailable', 'Switch to an estate to generate AI insight.');
+        return;
+      }
+      // Don't gate on overview.has_tier*_summary alone — marketplace install status can
+      // disagree. Call the summary API and lock only if it returns no tier payload.
+      setFetchSummary(true);
+    }
+  };
+
+  const handleUpgradePress = () => showSummaryDenied();
+
+  useEffect(() => {
+    setFetchSummary(false);
+    setInsightMode('idle');
+  }, [estate_id, fromDate, toDate]);
+
+  useEffect(() => {
+    if (hasSummaryPayload) {
+      setInsightMode('generated');
+      return;
+    }
+    if (!fetchSummary || summaryLoading) return;
+    if (summaryError) {
+      setFetchSummary(false);
+      setInsightMode('idle');
+      // The server refused because of the plan (payment required / forbidden): show the payment
+      // prompt rather than a generic failure the user can't act on.
+      if (isAxiosError(summaryErr) && [402, 403].includes(summaryErr.response?.status ?? 0)) {
+        showSummaryDenied();
+        return;
+      }
+      Alert.alert('Unable to generate insight', 'Please try again in a moment.');
+      return;
+    }
+    if (summary && !summary.tier1 && !summary.tier2) {
+      setInsightMode('locked');
+    }
+  }, [
+    fetchSummary,
+    summary,
+    summaryLoading,
+    summaryError,
+    summaryErr,
+    showSummaryDenied,
+    hasSummaryPayload,
+  ]);
+
+  const isBootLoading = !!estate_id && (overviewLoading || reportsLoading);
+  // Only blank the page when both boot queries failed with no usable payload.
+  const bootFailed = !!estate_id && overviewError && reportsError && !overview && !reports;
+  // The estate's plan doesn't include incident reports: the server refuses with 402/403 ("Estate is
+  // not entitled to ..."). That is a plan prompt, not a load failure.
+  const bootEntitlementDenied =
+    bootFailed &&
+    incidentReportAccess !== 'granted' &&
+    (isEntitlementDenied(overviewErr) || isEntitlementDenied(reportsErr));
+
+  const onAccessDeniedRef = useRef(onAccessDenied);
+  onAccessDeniedRef.current = onAccessDenied;
+
+  useEffect(() => {
+    if (!bootEntitlementDenied || !isActive) return;
+    if (onAccessDeniedRef.current) onAccessDeniedRef.current();
+    else showSummaryDenied();
+  }, [bootEntitlementDenied, isActive, showSummaryDenied]);
+
+  const bootErrorDetail = (() => {
+    const err = (overviewErr || reportsErr) as
+      | {
+          message?: string;
+          code?: string;
+          response?: { status?: number; data?: { detail?: unknown } };
+        }
+      | undefined;
+    if (!err) return null;
+    if (err.code === 'ECONNABORTED' || /timeout/i.test(err.message || '')) {
+      return 'The request timed out while analysing reports. Tap retry.';
+    }
+    const detail = err.response?.data?.detail;
+    if (typeof detail === 'string' && detail.trim()) return detail;
+    if (err.response?.status) return `Server error (${err.response.status}). Tap retry.`;
+    return null;
+  })();
+
+  if (!estate_id) {
+    return (
+      <View className="flex-1 items-center justify-center bg-[#F6F7F7] px-8">
+        <Text
+          allowFontScaling={false}
+          className="text-center text-sm font-inter-medium text-primary"
+        >
+          No estate selected
+        </Text>
+        <Text
+          allowFontScaling={false}
+          className="mt-2 text-center text-caption font-inter-regular text-[#878686]"
+        >
+          Switch to an estate to view incident report insights for that community.
+        </Text>
+      </View>
+    );
+  }
+
+  if (isBootLoading) {
+    return (
+      <View className="flex-1 items-center justify-center bg-[#F6F7F7]">
+        <CircleLoader size={48} />
+      </View>
+    );
+  }
+
+  if (bootEntitlementDenied) {
+    // The Upgrade Plan modal (or the contact-admin notice) carries the message.
+    return <View className="flex-1 bg-[#F6F7F7]" />;
+  }
+
+  if (bootFailed) {
+    return (
+      <View className="flex-1 items-center justify-center bg-[#F6F7F7] px-8">
+        <Text
+          allowFontScaling={false}
+          className="text-center text-sm font-inter-medium text-primary"
+        >
+          Couldn’t load incident reports
+        </Text>
+        <Text
+          allowFontScaling={false}
+          className="mt-2 text-center text-caption font-inter-regular text-[#878686]"
+        >
+          {bootErrorDetail || 'Check your connection and try again.'}
+        </Text>
+        <Pressable
+          onPress={() => {
+            void refetchOverview();
+            void refetchReports();
+          }}
+          className="mt-5 h-11 min-w-[120px] items-center justify-center rounded-3xl bg-primary px-6"
+          hitSlop={8}
+        >
+          <Text allowFontScaling={false} className="text-[13px] font-inter-medium text-white">
+            Retry
+          </Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  return (
+    <Animated.View entering={FadeIn.duration(260)} className="flex-1 bg-[#F6F7F7]">
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerClassName="px-5 pt-[61px] pb-[100px]"
+      >
+        <View className="mb-[11px] flex-row items-start justify-between  pl-2 pr-1">
+          <Text
+            allowFontScaling={false}
+            className="text-heading leading-[27.34px] font-ubuntu-medium text-primary"
+          >
+            Your Incident{'\n'}Report{'\n'}Summary
+          </Text>
+          <Button
+            label="Export"
+            accessibilityLabel="Export"
+            hitSlop={8}
+            className="mt-1.5"
+            icon={<ExportSvg width={23} height={23} />}
+            onPress={() => setShowComingSoon(true)}
+          />
+        </View>
+
+        <Pressable
+          onPress={() => setTimeframeVisible(true)}
+          accessibilityRole="button"
+          accessibilityLabel={`Duration: ${selectedRangeText}`}
+          className="mb-[34px] min-w-[93px] flex-row items-center justify-between gap-1 self-start rounded-2xl bg-dark-teal px-2 py-1"
+          hitSlop={8}
+        >
+          <Text
+            allowFontScaling={false}
+            numberOfLines={1}
+            className="text-caption font-inter-medium leading-[normal] text-[#F6F7F7]"
+          >
+            {selectedRangeText}
+          </Text>
+          <DurationExpandSvg width={20} height={20} />
+        </Pressable>
+
+        <ResultPlaceCards name={displayEstateName} location={location} />
+
+        <ResultOverview
+          countText={formatReportCount(totalReports)}
+          residentPct={displayResidentPct}
+          securityPct={displaySecurityPct}
+          isActive={isActive}
+        />
+
+        <IncidentAISummaryCard
+          mode={cardMode}
+          onPress={handleInsightPress}
+          onUpgradePress={handleUpgradePress}
+          slides={summarySlides}
+          onOpenSlide={setOpenSummaryVariant}
+          readTimeLabel={hasSummaryPayload ? summaryReadTime : '2 mins Read'}
+          sourceLabel={hasSummaryPayload ? summarySourceLabel : 'Third Party'}
+          isLoading={fetchSummary && summaryLoading && !hasSummaryPayload}
+          alreadyGenerated={summaryAlreadyGenerated}
+        />
+
+        <CategoryDistribution
+          selectedId={selectedCategory}
+          onSelect={setSelectedCategory}
+          categories={categories}
+          totalReports={totalReports}
+        />
+
+        <View className="mt-[30px] flex-row items-center justify-between">
+          <Pressable
+            onPress={() => {
+              setIncidentReportsListFilters({
+                from_date: fromDate,
+                to_date: toDate,
+                category: reportsQueryParams.category,
+                user_type: reportsQueryParams.user_type,
+              });
+              router.push('/(protected)/(shared-screens)/ai-store/incident-report/reports');
+            }}
+            hitSlop={8}
+          >
+            <Text
+              allowFontScaling={false}
+              className="text-heading-sm font-ubuntu-semibold text-[#0A1F29]"
+            >
+              Incident Reported
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={() => setFilterModalVisible(true)}
+            className="h-[36px] w-[52px] items-center justify-center rounded-[16px] bg-primary "
+            hitSlop={8}
+          >
+            <IncidentFilterIcon size={20} color="#F6F7F7" />
+          </Pressable>
+        </View>
+
+        <View className="mt-3 gap-2 rounded-[16px] bg-white p-4">
+          {reportsListLoading ? (
+            <View className="items-center justify-center py-8">
+              <CircleLoader size={32} />
+              <Text
+                allowFontScaling={false}
+                className="mt-2 text-center text-caption font-inter-regular text-[#878686]"
+              >
+                Loading reports…
+              </Text>
+            </View>
+          ) : rows.length === 0 ? (
+            <TableEmptyState
+              icon={
+                <MaterialCommunityIcons name="clipboard-text-outline" size={22} color="#878686" />
+              }
+              title="No incident reports"
+              subtitle="Nothing was reported in this window. Try another date range."
+            />
+          ) : (
+            <>
+              <View className="h-7 w-full flex-row items-center">
+                <Text
+                  allowFontScaling={false}
+                  className="text-2xs font-inter-medium text-[#878686]"
+                >
+                  REPORTED BY
+                </Text>
+                <Text
+                  allowFontScaling={false}
+                  className="absolute left-[126px] text-2xs font-inter-medium text-[#878686]"
+                >
+                  DESCRIPTION
+                </Text>
+                <Pressable
+                  onPress={() => setOrderModalVisible(true)}
+                  hitSlop={8}
+                  className="ml-auto"
+                >
+                  <IncidentSortIcon size={25} />
+                </Pressable>
+              </View>
+              <View className="flex-col gap-2">
+                {rows.slice(0, visibleCount).map((row) => (
+                  <IncidentListRow key={row.id} row={row} />
+                ))}
+              </View>
+            </>
+          )}
+
+          {!reportsListLoading && visibleCount < rows.length ? (
+            <Pressable
+              onPress={() => setVisibleCount((count) => count + 3)}
+              className="h-10 items-center justify-center "
+            >
+              <Text
+                allowFontScaling={false}
+                className="text-center text-caption font-inter-semibold text-primary"
+              >
+                Load More
+              </Text>
+            </Pressable>
+          ) : null}
+        </View>
+
+        <View className="pt-[60px]">
+          <Text
+            allowFontScaling={false}
+            className="text-heading-sm font-ubuntu-semibold text-[#0A1F29]"
+          >
+            TRENDS DETECTED
+          </Text>
+          <ScrollView
+            horizontal
+            decelerationRate="fast"
+            snapToInterval={227}
+            snapToAlignment="start"
+            showsHorizontalScrollIndicator={false}
+            className="-mx-5 mt-3"
+            contentContainerClassName="items-stretch gap-4 pl-5 pr-5"
+            onScroll={(e) => {
+              const x = e.nativeEvent.contentOffset.x;
+              const next = Math.round(x / 227);
+              const max = Math.max(trendCards.length - 1, 0);
+              setTrendIndex(Math.min(Math.max(next, 0), max));
+            }}
+            scrollEventThrottle={16}
+          >
+            {trendCards.map((card, index) => (
+              <TrendCard
+                key={`${card.title}-${index}`}
+                title={card.title}
+                valueLabel={card.valueLabel}
+                unitLabel={card.unitLabel}
+                body={card.body}
+                icon={
+                  index % 2 === 0 ? (
+                    <TrendDayIcon size={20} />
+                  ) : (
+                    <MaterialCommunityIcons name="alert-circle-outline" size={28} color="#CEE5ED" />
+                  )
+                }
+              />
+            ))}
+          </ScrollView>
+
+          <CarouselDots count={trendCards.length} activeIndex={trendIndex} />
+        </View>
+      </ScrollView>
+
+      <IncidentFilterModal
+        visible={filterModalVisible}
+        onClose={() => setFilterModalVisible(false)}
+        current={{ categories: filterCategories, userTypes: filterUserTypes }}
+        onConfirm={({ categories, userTypes }) => {
+          setFilterCategories(categories);
+          setFilterUserTypes(userTypes);
+          setVisibleCount(5);
+        }}
+      />
+      <IncidentOrderModal
+        visible={orderModalVisible}
+        onClose={() => setOrderModalVisible(false)}
+        sortAscending={sortAscending}
+        onSelect={setSortAscending}
+      />
+      <TimeframeRangeModal
+        visible={timeframeVisible}
+        onClose={() => setTimeframeVisible(false)}
+        selectedLabel={selectedTimeframe}
+        onSelect={(label, start, end) => {
+          setSelectedTimeframe(label);
+          setStartDate(start);
+          setEndDate(end);
+          setVisibleCount(5);
+          setTrendIndex(0);
+        }}
+        onCustomSelect={() => {
+          setSelectedTimeframe('Custom');
+          setTimeframeVisible(false);
+          setDatePickerVisible(true);
+        }}
+      />
+      <DateRangePickerModal
+        visible={datePickerVisible}
+        onClose={() => setDatePickerVisible(false)}
+        initialStart={startDate}
+        initialEnd={endDate}
+        onApply={(start, end) => {
+          setStartDate(start);
+          setEndDate(end);
+          setSelectedTimeframe('Custom');
+          setVisibleCount(5);
+          setTrendIndex(0);
+          setDatePickerVisible(false);
+        }}
+      />
+      <ActionConfirmModal
+        visible={showComingSoon}
+        title="Coming Soon"
+        message="This feature is not yet active. We are working hard to bring it to you soon!"
+        confirmLabel="Got it"
+        hideCancel
+        onConfirm={() => setShowComingSoon(false)}
+        onCancel={() => setShowComingSoon(false)}
+      />
+      <AISummaryModal
+        visible={openSummaryVariant !== null}
+        onClose={() => setOpenSummaryVariant(null)}
+        variant={openSummaryVariant ?? summaryVariant}
+        llmSummary={summary?.tier2}
+        readTimeLabel={openSummaryReadTime}
+        sourceLabel={openSummaryVariant === 'in_house' ? 'In house' : 'Third Party'}
+        executiveSummary={summary?.tier1?.executive_summary}
+        detailedInsight={summary?.tier1?.detailed_insight}
+        timelineSummary={inhouseInsight.timelineSummary}
+        themes={inhouseInsight.themes}
+      />
+    </Animated.View>
+  );
+}
