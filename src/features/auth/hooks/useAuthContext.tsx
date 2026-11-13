@@ -199,11 +199,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (myProfile && myProfile.status) {
           useUserStore.setState({ ...myProfile });
           useAuthStore.setState({ role: myProfile.role });
-          setIsReady(true);
           prefetchUserData(myProfile);
-          setTimeout(() => {
+          try {
             routeForUser(myProfile);
-          }, 50);
+          } catch {}
+          setIsReady(true);
         }
       } catch {
         await performSignOut();
@@ -252,13 +252,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (myProfile?.status) {
               useUserStore.setState({ ...myProfile });
               useAuthStore.setState({ role: myProfile.role });
-              setIsReady(true);
               prefetchUserData(myProfile);
+              // Queue home before the stack mounts so we never paint institution on reload.
               try {
-                setTimeout(() => {
-                  routeForUser(myProfile);
-                }, 50);
+                routeForUser(myProfile);
               } catch {}
+              setIsReady(true);
               return;
             }
           } catch {}
@@ -274,6 +273,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } catch {
       } finally {
+        // After any queued replace above, reveal the stack (starts on index loader).
         setIsReady(true);
       }
     };

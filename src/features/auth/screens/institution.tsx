@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Alert, Keyboard, Pressable, Text, TextInput, View } from 'react-native';
+import { Alert, Keyboard, Platform, Pressable, Text, TextInput, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Linking from 'expo-linking';
@@ -74,6 +74,11 @@ export default function InstitutionScreen() {
     const checkExisting = async () => {
       try {
         const stored = await getSelectedInstitution();
+        // Native: a stored estate means go straight to login — don't paint this picker first.
+        if (stored && Platform.OS !== 'web') {
+          router.replace('/auth/login');
+          return;
+        }
         if (stored) {
           setSelected(null);
         }

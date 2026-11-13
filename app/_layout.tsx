@@ -20,7 +20,9 @@ patchAndroidDoubleNavigation();
 ExpoSplashScreen.preventAutoHideAsync();
 
 export const unstable_settings = {
-  initialRouteName: 'auth/institution',
+  // Stay on the navy loader (`app/index`) until auth bootstrap replaces to the real destination.
+  // Starting on institution made signed-in reloads flash the institution screen.
+  initialRouteName: 'index',
 };
 
 function RootLayoutContent() {
@@ -44,6 +46,7 @@ function RootLayoutContent() {
           animation: 'none',
         }}
       >
+        <Stack.Screen name="index" />
         <Stack.Screen name="auth/institution" />
         <Stack.Screen name="auth/login" />
         <Stack.Screen name="auth/two-factor" />
