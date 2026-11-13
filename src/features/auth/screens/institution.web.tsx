@@ -14,10 +14,7 @@ import InstitutionSearchActive from '@/src/assets/icons/institution-search-activ
 import InstitutionResultCard from '@/src/features/auth/components/InstitutionResultCard';
 import { searchPublicEstates } from '@/src/features/admin/services/estate';
 import { cn } from '@/src/shared/utils/cn';
-import {
-  getSelectedInstitution,
-  setSelectedInstitution,
-} from '@/src/features/auth/services/authPersistence';
+import { setSelectedInstitution } from '@/src/features/auth/services/authPersistence';
 import { getWidthBreakpoint } from '@/src/shared/utils/helpers';
 import LoadingTransition from '@/src/shared/components/feedback/LoadingTransition';
 import { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
@@ -74,20 +71,8 @@ export default function InstitutionWebScreen() {
   }, []);
 
   useEffect(() => {
-    const checkExisting = async () => {
-      try {
-        const stored = await getSelectedInstitution();
-        if (stored) {
-          router.replace('/auth/login');
-          return;
-        }
-      } catch {
-        // ignore read errors
-      }
-      setAppReady(true);
-    };
-    checkExisting();
-  }, [router]);
+    setAppReady(true);
+  }, []);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -194,7 +179,7 @@ export default function InstitutionWebScreen() {
         estate_id: selected.id,
         estate_name: selected.name,
       });
-      router.push('/auth/login');
+      router.push({ pathname: '/auth/login', params: { fromInstitute: 'true' } });
     } catch {
       window.alert('Could not save institution selection. Please try again.');
     }
@@ -206,9 +191,11 @@ export default function InstitutionWebScreen() {
 
   const cancelStyle = useAnimatedStyle(() => ({
     opacity: cancelWidth.value,
-    transform: [{ translateX: (1 - cancelWidth.value) * 12 }],
-    marginLeft: cancelWidth.value * 12,
-    flex: 0,
+    width: cancelWidth.value * 72,
+    marginLeft: cancelWidth.value * 16,
+    overflow: 'hidden',
+    flexGrow: 0,
+    flexShrink: 0,
   }));
 
   const dropdownStyle = useAnimatedStyle(() => ({
@@ -258,11 +245,11 @@ export default function InstitutionWebScreen() {
           <View className="flex-row items-center">
             <View
               className={cn(
-                'h-9 flex-1 flex-row items-center gap-2 rounded-2xl px-4',
+                'h-14 flex-1 flex-row items-center gap-3 rounded-2xl px-5',
                 searching ? 'border-[0.5px] border-primary bg-transparent' : 'bg-[#EFF1F1]'
               )}
             >
-              <View className="h-5 w-5 items-center justify-center">
+              <View className="h-6 w-6 items-center justify-center">
                 {searching ? <InstitutionSearchActive /> : <InstitutionSearchIdle />}
               </View>
               <TextInput
@@ -273,14 +260,20 @@ export default function InstitutionWebScreen() {
                 placeholderTextColor="#9B9797"
                 autoCapitalize="none"
                 autoCorrect={false}
-                className="h-5 flex-1 font-inter-light text-sm text-primary outline-none"
+                className="h-10 flex-1 font-inter-light text-base text-primary outline-none"
                 style={{ paddingVertical: 0 }}
               />
             </View>
 
             <Animated.View style={cancelStyle}>
               <Pressable onPress={handleCancel} className="active:opacity-70">
-                <Text className="font-inter-medium text-sm text-[#167A6F]">Cancel</Text>
+                <Text
+                  numberOfLines={1}
+                  className="font-inter-medium text-sm text-[#167A6F]"
+                  style={{ width: 72 }}
+                >
+                  Cancel
+                </Text>
               </Pressable>
             </Animated.View>
           </View>

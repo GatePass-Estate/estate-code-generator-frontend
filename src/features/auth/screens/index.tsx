@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
   getPostAuthRedirectRoute,
@@ -12,7 +13,9 @@ export default function AuthIndex() {
   useEffect(() => {
     const redirect = async () => {
       const institution = await getSelectedInstitution();
-      router.replace(getPostAuthRedirectRoute(institution));
+      router.replace(
+        Platform.OS === 'web' ? '/auth/institution' : getPostAuthRedirectRoute(institution)
+      );
       setIsReady(true);
     };
 

@@ -93,7 +93,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       resetBroadcastPopupSuppression();
       useNotificationStore.getState().clear();
       const institution = await getSelectedInstitution();
-      router.replace(getPostAuthRedirectRoute(institution));
+      router.replace(
+        Platform.OS === 'web' ? '/auth/institution' : getPostAuthRedirectRoute(institution)
+      );
     } finally {
       isProcessingRef.current = false;
     }
@@ -117,7 +119,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Force full component reset by incrementing key
       setResetKey((prev) => prev + 1);
       const institution = await getSelectedInstitution();
-      const target = getPostAuthRedirectRoute(institution);
+      const target =
+        Platform.OS === 'web' && !options?.signedOutBecause
+          ? '/auth/institution'
+          : getPostAuthRedirectRoute(institution);
 
       if (options?.signedOutBecause && target === '/auth/login') {
         router.replace({ pathname: target, params: { signed_out: options.signedOutBecause } });
@@ -262,7 +267,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!isPublicRoute(currentPath, initialURL)) {
           const institution = await getSelectedInstitution();
           try {
-            router.replace(getPostAuthRedirectRoute(institution));
+            router.replace(
+              Platform.OS === 'web' ? '/auth/institution' : getPostAuthRedirectRoute(institution)
+            );
           } catch {}
         }
       } catch {

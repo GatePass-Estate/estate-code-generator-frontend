@@ -109,6 +109,16 @@ export default function Login() {
 
   useEffect(() => {
     const prepare = async () => {
+      if (
+        Platform.OS === 'web' &&
+        searchParams.fromInstitute !== 'true' &&
+        !searchParams.signed_out &&
+        searchParams.tos_rejected !== 'true'
+      ) {
+        router.replace('/auth/institution');
+        return;
+      }
+
       const draftInstitution = await getSelectedInstitution();
       const lastLoginInstitution = await getLastLoginInstitution();
 
@@ -131,7 +141,7 @@ export default function Login() {
       setShowBiometric(biometric);
     };
     prepare();
-  }, [router, searchParams.fromInstitute]);
+  }, [router, searchParams.fromInstitute, searchParams.signed_out, searchParams.tos_rejected]);
 
   useEffect(() => {
     if (errorMessage) setErrorMessage('');
