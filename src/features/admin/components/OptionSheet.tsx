@@ -95,10 +95,8 @@ export default function OptionSheet({
       onClose={onClose}
       scrimClassName="flex-1 bg-black/40 justify-end"
       panelClassName="bg-[#F6F7F7] rounded-t-[40px] px-5"
-      panelStyle={{ paddingBottom: insets.bottom + 24 }}
+      panelStyle={{ paddingBottom: insets.bottom + 56 }}
     >
-      <View className="h-1 w-[68px] rounded-full bg-grey self-center mb-6" />
-
       {!!title && <Text className="text-primary font-ubuntu-semibold text-base mb-4">{title}</Text>}
 
       <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 380 }}>

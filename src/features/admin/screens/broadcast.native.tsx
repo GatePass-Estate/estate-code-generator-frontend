@@ -6,15 +6,8 @@ import SelectorField from '@/src/features/admin/components/SelectorField';
 import { sharedStyles } from '@/src/shared/theme/styles';
 import { Stack, useNavigation } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  Text,
-  TextInput,
-} from 'react-native';
-import { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
+import { KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, View } from 'react-native';
+import Button, { BUTTON_MARGIN_BOTTOM } from '@/src/shared/components/Button';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   BroadcastFormData,
@@ -214,7 +207,7 @@ const BroadcastMobile = () => {
 
       <Back type="short-arrow" showText={false} showBorder />
 
-      <Text className="text-primary font-ubuntu-semibold mt-4 mb-7" style={{ fontSize: 22 }}>
+      <Text className="mb-7 mt-3 font-ubuntu-semibold text-primary" style={{ fontSize: 22 }}>
         {currentStep === 1 ? 'Set Broadcast' : 'Send a broadcast'}
       </Text>
 
@@ -301,20 +294,13 @@ const BroadcastMobile = () => {
         </ScrollView>
 
         <PlanNoticeSlot {...broadcastGate.noticeProps}>
-          <Pressable
-            onPress={handleContinue}
-            disabled={loading}
-            className="bg-primary rounded-[24px] h-11 items-center justify-center mb-6"
-            style={{ opacity: loading ? 0.7 : 1 }}
-          >
-            {loading ? (
-              <CircleLoader size={22} tone="light" />
-            ) : (
-              <Text className="text-[#F6F7F7] font-ubuntu-semibold text-sm">
-                {currentStep === 1 ? 'Continue' : 'Send Broadcast'}
-              </Text>
-            )}
-          </Pressable>
+          <View className="items-center" style={{ marginBottom: BUTTON_MARGIN_BOTTOM }}>
+            <Button
+              label={currentStep === 1 ? 'Continue' : 'Send Broadcast'}
+              onPress={handleContinue}
+              loading={loading}
+            />
+          </View>
         </PlanNoticeSlot>
       </KeyboardAvoidingView>
 
