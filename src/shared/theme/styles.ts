@@ -93,28 +93,50 @@ export const sharedStyles = StyleSheet.create({
     paddingLeft: 15,
   },
 
+  // Figma admin register 5056:3714 — empty labels are grey; filled labels go navy.
   registrationLabel: {
-    color: '#113E55',
+    color: '#878686',
     fontFamily: 'Inter_18pt-Medium',
     fontSize: 8.96,
     lineHeight: 8.96,
   },
 
-  registrationInput: {
-    backgroundColor: '#F6F7F7',
-    borderColor: '#CEE5ED',
-    borderRadius: 16,
-    borderWidth: StyleSheet.hairlineWidth,
+  registrationLabelFilled: {
     color: '#113E55',
-    fontFamily: 'Inter_18pt-Regular',
-    fontSize: 14,
-    height: 48,
-    marginTop: 8,
-    paddingHorizontal: 16,
   },
 
+  registrationLabelError: {
+    color: '#E30404',
+  },
+
+  // Empty: #EFF1F1, no visible border. Filled: #F6F7F7 + #CEE5ED (5056:3715).
+  // Same shell for Register text inputs and SelectorField so heights match.
+  registrationInput: {
+    backgroundColor: '#EFF1F1',
+    borderColor: 'transparent',
+    borderRadius: 16,
+    borderWidth: 0.5,
+    color: '#113E55',
+    fontFamily: 'Inter_18pt-Light',
+    fontSize: 14,
+    height: 48,
+    includeFontPadding: false,
+    marginTop: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 0,
+    textAlignVertical: 'center',
+  },
+
+  registrationInputFilled: {
+    backgroundColor: '#F6F7F7',
+    borderColor: '#CEE5ED',
+    color: '#113E55',
+  },
+
+  // Error 5056:3716 — #FFE6E6 / #FF0D0D / #C40707.
   registrationInputError: {
-    backgroundColor: '#FFF1F1',
-    borderColor: '#ED0808',
+    backgroundColor: '#FFE6E6',
+    borderColor: '#FF0D0D',
+    color: '#C40707',
   },
 });

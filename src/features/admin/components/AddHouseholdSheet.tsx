@@ -1,14 +1,6 @@
 import { useEffect, useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
+import { KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from 'react-native';
+import Button from '@/src/shared/components/Button';
 
 type AddHouseholdSheetProps = {
   visible: boolean;
@@ -18,6 +10,7 @@ type AddHouseholdSheetProps = {
   onSave: (name: string) => void;
 };
 
+/** Figma 5225:6778 — centered #F6F7F7 card, #EFF1F1 name field, Cancel + Save. */
 export default function AddHouseholdSheet({
   visible,
   loading,
@@ -32,59 +25,74 @@ export default function AddHouseholdSheet({
   }, [visible]);
 
   const trimmedName = name.trim();
+  const canSave = !!trimmedName && !loading;
+
+  if (!visible) return null;
 
   return (
-    visible && (
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        className="absolute inset-0 z-20"
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      className="absolute inset-0 z-20"
+    >
+      <Pressable
+        className="flex-1 items-center justify-center bg-black/50 px-[20px]"
+        onPress={loading ? undefined : onCancel}
       >
-        <Pressable className="flex-1 justify-center bg-black/50" onPress={onCancel}>
-          <Pressable
-            className="h-[322px] w-full justify-center rounded-[24px] bg-body px-5"
-            onPress={(event) => event.stopPropagation()}
+        <Pressable
+          onPress={(event) => event.stopPropagation()}
+          className="w-full max-w-[375px] rounded-[24px] bg-[#F6F7F7] px-[13px]"
+          style={{ height: 325 }}
+        >
+          <Text
+            className="text-center font-ubuntu-semibold text-primary"
+            style={{
+              fontSize: 21.88,
+              lineHeight: 26,
+              marginTop: 80,
+            }}
           >
-            <Text className="text-center text-[17.5px] leading-[21px] text-primary font-ubuntu-medium">
-              Add New Household
+            Add New Household
+          </Text>
+
+          <TextInput
+            value={name}
+            onChangeText={setName}
+            editable={!loading}
+            placeholder="Enter your household name..."
+            placeholderTextColor="#878686"
+            returnKeyType="done"
+            onSubmitEditing={() => canSave && onSave(trimmedName)}
+            className="h-12 rounded-[16px] bg-[#EFF1F1] px-4 font-inter-light text-sm text-primary"
+            style={{ marginTop: 29 }}
+          />
+
+          {!!error && (
+            <Text className="mt-2 font-inter-regular text-[11px]" style={{ color: '#E30404' }}>
+              {error}
             </Text>
+          )}
 
-            <TextInput
-              value={name}
-              onChangeText={setName}
-              editable={!loading}
-              placeholder="Enter your household name..."
-              placeholderTextColor="#9B9797"
-              returnKeyType="done"
-              onSubmitEditing={() => trimmedName && !loading && onSave(trimmedName)}
-              className="mt-5 h-12 rounded-2xl bg-light-grey px-4 text-caption text-primary font-inter-regular"
+          <View
+            className="flex-row items-center justify-between"
+            style={{ marginTop: error ? 36 : 60 }}
+          >
+            <Button
+              label="Cancel"
+              variant="secondary"
+              size="md"
+              disabled={loading}
+              onPress={onCancel}
             />
-
-            {!!error && (
-              <Text className="mt-2 text-xs text-danger font-inter-regular">{error}</Text>
-            )}
-
-            <View className="mt-10 flex-row gap-3">
-              <TouchableOpacity
-                onPress={onCancel}
-                disabled={loading}
-                className="h-12 flex-1 items-center justify-center rounded-[24px] bg-accent"
-              >
-                <Text className="text-caption text-primary font-ubuntu-medium">Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => onSave(trimmedName)}
-                disabled={!trimmedName || loading}
-                className={`h-12 flex-1 flex-row items-center justify-center gap-2 rounded-[24px] bg-primary ${!trimmedName || loading ? 'opacity-50' : ''}`}
-              >
-                {loading && <CircleLoader size={22} tone="light" />}
-                <Text className="text-caption text-white font-ubuntu-medium">
-                  {loading ? 'Saving...' : 'Save'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </Pressable>
+            <Button
+              label="Save"
+              size="md"
+              loading={loading}
+              disabled={!trimmedName}
+              onPress={() => onSave(trimmedName)}
+            />
+          </View>
         </Pressable>
-      </KeyboardAvoidingView>
-    )
+      </Pressable>
+    </KeyboardAvoidingView>
   );
 }

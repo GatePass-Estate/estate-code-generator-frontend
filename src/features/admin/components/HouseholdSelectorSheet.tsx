@@ -6,11 +6,21 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
+import Animated, {
+  Easing,
+  interpolate,
+  interpolateColor,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import CheckRingDuotone from '@/src/assets/icons/check-ring-duotone.svg';
 import AddHouseholdSheet from '@/src/features/admin/components/AddHouseholdSheet';
 import ConfirmHouseholdSheet from '@/src/features/admin/components/ConfirmHouseholdSheet';
 import Back from '@/src/shared/components/navigation/Back';
@@ -23,6 +33,11 @@ import {
 import type { Household } from '@/src/features/admin/types/household';
 
 const SEARCH_DEBOUNCE_MS = 300;
+/** Same timing as the institution search Cancel / field morph. */
+const SEARCH_MOVE_MS = 380;
+const SEARCH_MOVE_EASE = Easing.out(Easing.cubic);
+const SHEET_IDLE_RATIO = 0.421;
+const SHEET_ACTIVE_RATIO = 0.856;
 
 type HouseholdSelectorSheetProps = {
   visible: boolean;
@@ -44,8 +59,11 @@ export default function HouseholdSelectorSheet({
   confirmationActionLabel,
 }: HouseholdSelectorSheetProps) {
   const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
+  /** Last query that finished loading — same gate as institution search. */
+  const [settledQuery, setSettledQuery] = useState('');
   const [items, setItems] = useState<Household[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -53,46 +71,126 @@ export default function HouseholdSelectorSheet({
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState('');
   const [pendingHousehold, setPendingHousehold] = useState<Household | null>(null);
-  const hasSearch = query.trim().length > 0;
+  const trimmedQuery = query.trim();
+  const hasSearch = trimmedQuery.length > 0;
+  // Same gate as institution: keep the loader up until THIS query has settled and loading is done.
+  const awaitingResults = hasSearch && (trimmedQuery !== settledQuery || loading);
+  const showEmpty =
+    hasSearch && !awaitingResults && !error && items.length === 0 && settledQuery === trimmedQuery;
   // Bumped on every search and when the sheet closes; older responses are ignored.
   const searchIdRef = useRef(0);
+  const inputRef = useRef<TextInput>(null);
+  const searchProgress = useSharedValue(0);
+
+  useEffect(() => {
+    searchProgress.value = withTiming(hasSearch ? 1 : 0, {
+      duration: SEARCH_MOVE_MS,
+      easing: SEARCH_MOVE_EASE,
+    });
+  }, [hasSearch, searchProgress]);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedQuery(query), SEARCH_DEBOUNCE_MS);
     return () => clearTimeout(timer);
   }, [query]);
 
-  const loadHouseholds = useCallback(async () => {
-    const searchId = ++searchIdRef.current;
-    if (!visible || !estateId) return;
+  // As soon as the typed query diverges from what we've settled, show loader only — never empty.
+  useEffect(() => {
+    if (!trimmedQuery || trimmedQuery === settledQuery) return;
+    setLoading(true);
+    setItems([]);
+    setError('');
+  }, [trimmedQuery, settledQuery]);
 
-    if (!debouncedQuery.trim()) {
+  const handleCancelSearch = useCallback(() => {
+    setQuery('');
+    setDebouncedQuery('');
+    setSettledQuery('');
+    setItems([]);
+    setError('');
+    setLoading(false);
+    inputRef.current?.blur();
+    Keyboard.dismiss();
+  }, []);
+
+  const fieldStyle = useAnimatedStyle(() => ({
+    backgroundColor: interpolateColor(searchProgress.value, [0, 1], ['#EFF1F1', '#F6F7F7']),
+    borderColor: interpolateColor(searchProgress.value, [0, 1], ['#EFF1F1', '#113E55']),
+  }));
+
+  const cancelStyle = useAnimatedStyle(() => ({
+    opacity: searchProgress.value,
+    width: searchProgress.value * 66,
+    marginLeft: searchProgress.value * 12,
+    overflow: 'hidden' as const,
+  }));
+
+  const searchRowStyle = useAnimatedStyle(() => ({
+    top: interpolate(searchProgress.value, [0, 1], [161, 172]),
+    paddingLeft: interpolate(searchProgress.value, [0, 1], [21, 27]),
+    paddingRight: interpolate(searchProgress.value, [0, 1], [21, 21]),
+  }));
+
+  const sheetHeightStyle = useAnimatedStyle(() => ({
+    height: interpolate(
+      searchProgress.value,
+      [0, 1],
+      [windowHeight * SHEET_IDLE_RATIO, windowHeight * SHEET_ACTIVE_RATIO]
+    ),
+  }));
+
+  const resultsStyle = useAnimatedStyle(() => ({
+    opacity: searchProgress.value,
+  }));
+
+  const runSearch = useCallback(
+    (rawQuery: string) => {
+      const trimmed = rawQuery.trim();
+      const searchId = ++searchIdRef.current;
+      if (!visible || !estateId) return;
+
+      if (!trimmed) {
+        setItems([]);
+        setSettledQuery('');
+        setError('');
+        setLoading(false);
+        return;
+      }
+
+      // Drop previous rows immediately so empty/"no match" never sits under the loader.
+      setLoading(true);
       setItems([]);
       setError('');
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-    try {
-      const response = await searchHouseholds(debouncedQuery);
-      if (searchId !== searchIdRef.current) return;
-      setItems(response.items ?? []);
-    } catch (requestError) {
-      if (searchId !== searchIdRef.current) return;
-      setItems([]);
-      setError(
-        requestError instanceof Error ? requestError.message.trim() : 'Could not load households'
-      );
-    } finally {
-      if (searchId === searchIdRef.current) setLoading(false);
-    }
-  }, [debouncedQuery, estateId, visible]);
+      void searchHouseholds(trimmed)
+        .then((response) => {
+          if (searchId !== searchIdRef.current) return;
+          setItems(response.items ?? []);
+          setSettledQuery(trimmed);
+          setLoading(false);
+        })
+        .catch((requestError) => {
+          if (searchId !== searchIdRef.current) return;
+          setItems([]);
+          setSettledQuery(trimmed);
+          setError(
+            requestError instanceof Error
+              ? requestError.message.trim()
+              : 'Could not load households'
+          );
+          setLoading(false);
+        });
+    },
+    [estateId, visible]
+  );
 
   useEffect(() => {
-    void loadHouseholds();
-  }, [loadHouseholds]);
+    runSearch(debouncedQuery);
+  }, [debouncedQuery, runSearch]);
+
+  const loadHouseholds = useCallback(() => {
+    setSettledQuery('');
+    runSearch(query.trim() || debouncedQuery);
+  }, [debouncedQuery, query, runSearch]);
 
   useEffect(() => {
     if (!visible) {
@@ -100,11 +198,14 @@ export default function HouseholdSelectorSheet({
       setLoading(false);
       setQuery('');
       setDebouncedQuery('');
+      setSettledQuery('');
+      setItems([]);
       setError('');
       setShowAddHousehold(false);
       setPendingHousehold(null);
+      searchProgress.value = 0;
     }
-  }, [visible]);
+  }, [visible, searchProgress]);
 
   const handleSelect = (household: Household) => {
     Keyboard.dismiss();
@@ -157,8 +258,8 @@ export default function HouseholdSelectorSheet({
       visible={visible}
       onClose={onClose}
       scrimClassName="flex-1 justify-end bg-black/50"
-      panelClassName={`relative rounded-[40px] bg-[#F6F7F7] ${hasSearch ? 'h-[85.6%]' : 'h-[42.1%]'}`}
-      panelStyle={{ paddingBottom: Math.max(insets.bottom, 16) }}
+      panelClassName="relative rounded-[40px] bg-[#F6F7F7]"
+      panelStyle={[{ paddingBottom: Math.max(insets.bottom, 16) }, sheetHeightStyle]}
       overlay={
         <>
           <AddHouseholdSheet
@@ -194,114 +295,124 @@ export default function HouseholdSelectorSheet({
         Select Your Household
       </Text>
 
-      <View className={`absolute left-0 right-0 h-9 ${hasSearch ? 'top-[172px]' : 'top-[161px]'}`}>
-        <View
-          className={`absolute h-9 flex-row items-center rounded-2xl bg-[#EFF1F1] px-4 ${
-            hasSearch
-              ? 'left-[7.2%] w-[69.6%] border-[0.5px] border-primary'
-              : 'left-[21px] right-[21px]'
-          }`}
-        >
-          <Feather name="search" size={20} color="#113E55" />
-          <TextInput
-            value={query}
-            onChangeText={setQuery}
-            autoCapitalize="none"
-            autoCorrect={false}
-            multiline={false}
-            numberOfLines={1}
-            autoComplete="off"
-            importantForAutofill="no"
-            textContentType="none"
-            selectionColor="#113E55"
-            cursorColor="#113E55"
-            accessibilityLabel="Search household"
-            placeholder="Search Guest List"
-            placeholderTextColor="#878686"
-            className="ml-2 h-full flex-1 text-[14px] leading-[17px] text-primary font-inter-light"
-            style={{
-              includeFontPadding: false,
-              paddingHorizontal: 0,
-              paddingVertical: 0,
-            }}
-          />
-        </View>
-        {hasSearch && (
-          <TouchableOpacity
-            onPress={() => setQuery('')}
-            className="absolute left-[80%] top-1 h-7 w-[17.6%] items-center justify-center"
+      <Animated.View style={searchRowStyle} className="absolute left-0 right-0">
+        <View className="h-9 flex-row items-center">
+          <Animated.View
+            style={fieldStyle}
+            className="h-9 flex-1 flex-row items-center gap-2 rounded-2xl border-[0.5px] px-4 py-1"
           >
-            <Text className="text-[14px] leading-[14px] text-teal font-inter-medium">Cancel</Text>
-          </TouchableOpacity>
-        )}
-      </View>
+            <Feather name="search" size={20} color="#113E55" />
+            <TextInput
+              ref={inputRef}
+              value={query}
+              onChangeText={setQuery}
+              autoCapitalize="none"
+              autoCorrect={false}
+              multiline={false}
+              numberOfLines={1}
+              autoComplete="off"
+              importantForAutofill="no"
+              textContentType="none"
+              selectionColor="#113E55"
+              cursorColor="#113E55"
+              accessibilityLabel="Search household"
+              placeholder="Search Guest List"
+              placeholderTextColor="#878686"
+              className="h-full flex-1 text-[14px] leading-[17px] text-primary font-inter-light"
+              style={{
+                includeFontPadding: false,
+                paddingHorizontal: 0,
+                paddingVertical: 0,
+              }}
+            />
+          </Animated.View>
+
+          <Animated.View style={cancelStyle} className="h-7 justify-center">
+            <Pressable
+              onPress={handleCancelSearch}
+              className="h-7 items-center justify-center active:opacity-70"
+            >
+              <Text
+                numberOfLines={1}
+                className="text-center text-[14px] leading-[14px] text-[#167A6F] font-inter-medium"
+              >
+                Cancel
+              </Text>
+            </Pressable>
+          </Animated.View>
+        </View>
+      </Animated.View>
 
       <TouchableOpacity
-        className="absolute left-[20px] top-[216px] h-[46px] flex-row items-center gap-[10px] rounded-lg px-2 py-4"
+        className="absolute left-[18px] top-[224px] h-[46px] flex-row items-center justify-center gap-[10px] overflow-hidden rounded-lg px-2 py-4"
         onPress={() => {
           setCreateError('');
           setShowAddHousehold(true);
         }}
       >
-        <Feather name="plus" size={16} color="#113E55" />
-        <Text className="text-caption leading-[11.2px] text-primary font-inter-regular">
+        <Feather name="plus" size={14} color="#113E55" />
+        <Text className="text-center text-[11.2px] leading-[11.2px] text-primary font-inter-regular">
           Add New Household
         </Text>
       </TouchableOpacity>
 
-      {hasSearch && loading ? (
-        <View className="absolute left-[4.8%] top-[278px] h-[400px] w-[88.3%] items-center justify-center">
-          <CircleLoader size={32} />
-          <Text className="mt-3 text-sm text-grey font-inter-regular">Loading households...</Text>
-        </View>
-      ) : hasSearch && error ? (
-        <View className="absolute left-[4.8%] top-[278px] h-[400px] w-[88.3%] items-center justify-center px-6">
-          <Text className="text-center text-sm text-danger font-inter-regular">{error}</Text>
-          <TouchableOpacity
-            className="mt-4 rounded-xl bg-accent px-5 py-3"
-            onPress={loadHouseholds}
-          >
-            <Text className="text-sm text-primary font-ubuntu-medium">Try Again</Text>
-          </TouchableOpacity>
-        </View>
-      ) : hasSearch && items.length === 0 ? (
-        <View className="absolute left-[4.8%] top-[278px] h-[400px] w-[88.3%] items-center justify-center px-6">
-          <Text className="text-center text-sm text-grey font-inter-regular">
-            {debouncedQuery.trim()
-              ? 'No households match your search.'
-              : 'No households have been added yet.'}
-          </Text>
-        </View>
-      ) : hasSearch ? (
-        <FlatList
-          className="absolute left-[4.8%] top-[278px] h-[400px] w-[88.3%] border-y-[0.5px] border-[#EFF1F1] p-2"
-          data={items}
-          keyExtractor={(item) => item.id}
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ gap: 8, paddingBottom: 8 }}
-          renderItem={({ item }) => {
-            const isSelected = item.id === selected?.id;
-            return (
+      <Animated.View
+        pointerEvents={hasSearch ? 'auto' : 'none'}
+        style={resultsStyle}
+        className="absolute left-[18px] right-[26px] top-[286px] h-[400px]"
+      >
+        {hasSearch ? (
+          awaitingResults ? (
+            <View className="items-center pt-2">
+              <CircleLoader size={28} />
+            </View>
+          ) : error ? (
+            <View className="items-center px-6 pt-2">
+              <Text className="text-center text-sm font-inter-regular text-danger">{error}</Text>
               <TouchableOpacity
-                onPress={() => requestSelection(item)}
-                className={`h-12 flex-row items-center justify-between rounded-2xl px-4 ${
-                  isSelected ? 'border border-primary bg-accent' : 'bg-[#EFF1F1]'
-                }`}
+                className="mt-3 rounded-xl bg-accent px-5 py-3"
+                onPress={loadHouseholds}
               >
-                <Text
-                  className="flex-1 text-[14px] leading-[17px] text-primary font-inter-light"
-                  style={{ includeFontPadding: false }}
-                >
-                  {item.name}
-                </Text>
-                <View className="h-4 w-4 items-center justify-center rounded-full bg-accent">
-                  <Feather name="check" size={10} color="#113E55" />
-                </View>
+                <Text className="text-sm font-ubuntu-medium text-primary">Try Again</Text>
               </TouchableOpacity>
-            );
-          }}
-        />
-      ) : null}
+            </View>
+          ) : showEmpty ? (
+            <View className="items-center px-6 pt-2">
+              <Text className="text-center text-sm font-inter-regular text-grey">
+                No households match your search.
+              </Text>
+            </View>
+          ) : (
+            <FlatList
+              className="flex-1"
+              data={items}
+              keyExtractor={(item) => item.id}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ gap: 8, padding: 8 }}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  onPress={() => requestSelection(item)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: item.id === selected?.id }}
+                  className="h-12 w-full flex-row items-center justify-between overflow-hidden rounded-2xl bg-[#EFF1F1] p-4"
+                >
+                  <Text
+                    numberOfLines={1}
+                    className="mr-3 flex-1 text-[14px] leading-[17px] text-primary font-inter-light"
+                    style={{ includeFontPadding: false }}
+                  >
+                    {item.name}
+                  </Text>
+                  <View className="h-6 w-6 shrink-0 items-center justify-center overflow-hidden">
+                    <CheckRingDuotone width={16} height={16} />
+                  </View>
+                </TouchableOpacity>
+              )}
+            />
+          )
+        ) : null}
+      </Animated.View>
     </BottomSheet>
   );
 }
