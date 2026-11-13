@@ -4,7 +4,6 @@ import { activateUser } from '@/src/features/users/services/user';
 import { Inter } from '@/src/shared/constants/fonts';
 import { useCallback, useEffect, useState } from 'react';
 import {
-  TextInput,
   TouchableOpacity,
   Platform,
   useWindowDimensions,
@@ -20,6 +19,7 @@ import { getWidthBreakpoint } from '@/src/shared/utils/helpers';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { cn } from '@/src/shared/utils/cn';
 import icons from '@/src/shared/constants/icons';
+import PasswordTextInput from '@/src/features/auth/components/PasswordTextInput';
 
 const MIN_PASSWORD_LENGTH = 8;
 
@@ -68,13 +68,13 @@ const SetPasswordForm = ({
         New password
       </Text>
       <View className="relative">
-        <TextInput
+        <PasswordTextInput
           placeholder="Enter your new password"
-          secureTextEntry={!showPassword}
+          visible={showPassword}
           value={password}
           onChangeText={setPassword}
           editable={!isSubmitting}
-          className="bg-light-grey rounded-2xl px-4 py-5 mt-1 pr-12 text-primary"
+          className="mt-1 rounded-2xl bg-light-grey px-4 py-5 pr-12 text-primary"
           placeholderTextColor="#9B9797"
         />
         <Pressable
@@ -96,13 +96,13 @@ const SetPasswordForm = ({
         Confirm password
       </Text>
       <View className="relative">
-        <TextInput
+        <PasswordTextInput
           placeholder="Confirm your password"
-          secureTextEntry={!showPassword}
+          visible={showPassword}
           value={confirmPassword}
           onChangeText={setConfirmPassword}
           editable={!isSubmitting}
-          className="bg-light-grey rounded-2xl px-4 py-5 mt-1 pr-12 text-primary"
+          className="mt-1 rounded-2xl bg-light-grey px-4 py-5 pr-12 text-primary"
           placeholderTextColor="#9B9797"
         />
         <Pressable

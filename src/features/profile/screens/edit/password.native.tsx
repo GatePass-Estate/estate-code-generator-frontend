@@ -1,11 +1,12 @@
 import { useGoBack } from '@/src/shared/hooks/useGoBack';
 import { errorMessage as thrownMessage } from '@/src/shared/services/api/errors';
 import { useState, useCallback, memo } from 'react';
-import { View, Text, TextInput, Alert, Image, Pressable } from 'react-native';
+import { View, Text, Alert, Image, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { sharedStyles } from '@/src/shared/theme/styles';
 import Button from '@/src/shared/components/Button';
 import Back from '@/src/shared/components/navigation/Back';
+import PasswordTextInput from '@/src/features/auth/components/PasswordTextInput';
 import { updatepassword } from '@/src/features/users/services/user';
 import { useUserStore } from '@/src/store/userStore';
 
@@ -24,7 +25,6 @@ interface PasswordInputProps {
 const PasswordInput = memo(
   ({ label, value, onChange, show, setShow, placeholder, disabled }: PasswordInputProps) => (
     <>
-      <Text className="text-[12px] text-primary mt-5">{label}</Text>
       <Text
         className="mt-5 font-inter-medium text-[#878686]"
         style={{ fontSize: 8.96, lineHeight: 11 }}
@@ -32,14 +32,13 @@ const PasswordInput = memo(
         {label}
       </Text>
       <View className="relative mt-2 h-14">
-        <TextInput
+        <PasswordTextInput
           placeholder={placeholder}
           placeholderTextColor="#878686"
           value={value}
           onChangeText={onChange}
-          secureTextEntry={!show}
+          visible={show}
           editable={!disabled}
-          autoCapitalize="none"
           pointerEvents={disabled ? 'none' : 'auto'}
           className="h-14 rounded-2xl bg-[#EFF1F1] px-4 pr-14 font-inter-light text-sm text-primary"
           style={{ paddingVertical: 0 }}
@@ -125,7 +124,7 @@ export default function ChangePasswordScreen() {
       <View className="flex-1 flex flex-col">
         <Back type="short-arrow" showText={false} showBorder />
 
-        <Text className="text-primary mt-[18px] text-3xl font-ubuntu-semibold mb-6">
+        <Text className="mb-6 mt-3 text-3xl font-ubuntu-semibold text-primary">
           Change Password
         </Text>
 

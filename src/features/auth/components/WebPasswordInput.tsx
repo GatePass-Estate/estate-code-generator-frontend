@@ -1,6 +1,10 @@
 import { useCallback } from 'react';
 import { Image, Pressable } from 'react-native';
 import icons from '@/src/shared/constants/icons';
+import {
+  nextPasswordFromMaskedInput,
+  passwordDisplayValue,
+} from '@/src/features/auth/utils/passwordMask';
 
 interface WebPasswordInputProps {
   label: string;
@@ -23,7 +27,6 @@ const WebPasswordInput = ({
   disabled,
   inputRef,
 }: WebPasswordInputProps) => {
-  // Prevent copy and paste events
   const handleCopy = useCallback((e: React.ClipboardEvent) => {
     e.preventDefault();
   }, []);
@@ -41,22 +44,24 @@ const WebPasswordInput = ({
   }, []);
 
   return (
-    <div className="flex flex-col gap-2 w-full min-w-0">
+    <div className="flex w-full min-w-0 flex-col gap-2">
       <label className="input-label-web text-left text-sm sm:text-base">{label}</label>
       <div className="relative w-full min-w-0">
         <input
-          type={show ? 'text' : 'password'}
+          type="text"
           placeholder={placeholder}
-          className="input-style-web w-full min-w-0 box-border pr-12 text-base"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
+          className="input-style-web box-border w-full min-w-0 pr-12 text-base"
+          value={passwordDisplayValue(value, show)}
+          onChange={(e) => onChange(nextPasswordFromMaskedInput(value, e.target.value, show))}
           disabled={disabled}
           ref={inputRef as React.Ref<HTMLInputElement | null>}
-          // Disable copy, paste, cut
+          autoComplete="current-password"
+          autoCapitalize="off"
+          autoCorrect="off"
+          spellCheck={false}
           onCopy={handleCopy}
           onPaste={handlePaste}
           onCut={handleCut}
-          // Disable right-click context menu
           onContextMenu={handleContextMenu}
         />
         <Pressable

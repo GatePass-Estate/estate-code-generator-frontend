@@ -1,20 +1,13 @@
 import { errorMessage as thrownMessage } from '@/src/shared/services/api/errors';
 import { useEffect, useState, useCallback } from 'react';
-import {
-  Platform,
-  View,
-  TextInput,
-  Image,
-  Text,
-  useWindowDimensions,
-  Pressable,
-} from 'react-native';
+import { Platform, View, Image, Text, useWindowDimensions, Pressable } from 'react-native';
 import { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
 import { FontAwesome, AntDesign } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/src/shared/components/nativewindui/Button';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { verifyPasswordReset, resetPassword } from '@/src/features/auth';
+import PasswordTextInput from '@/src/features/auth/components/PasswordTextInput';
 import { getWidthBreakpoint } from '@/src/shared/utils/helpers';
 import Images from '@/src/shared/constants/images';
 import { cn } from '@/src/shared/utils/cn';
@@ -277,13 +270,13 @@ export default function ResetPassword() {
               New Password
             </Text>
             <View className="relative">
-              <TextInput
+              <PasswordTextInput
                 placeholder="Enter your new password..."
-                secureTextEntry={!showNewPassword}
+                visible={showNewPassword}
                 value={newPassword}
                 onChangeText={setNewPassword}
                 editable={!isLoading}
-                className="bg-light-grey border border-input-border rounded-lg px-4 py-5 mt-1 pr-12"
+                className="mt-1 rounded-lg border border-input-border bg-light-grey px-4 py-5 pr-12"
               />
               <Pressable
                 onPress={() => setShowNewPassword(!showNewPassword)}
@@ -304,13 +297,13 @@ export default function ResetPassword() {
               Confirm Password
             </Text>
             <View className="relative">
-              <TextInput
+              <PasswordTextInput
                 placeholder="Confirm your new password..."
-                secureTextEntry={!showConfirmPassword}
+                visible={showConfirmPassword}
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
                 editable={!isLoading}
-                className="bg-light-grey border border-input-border rounded-lg px-4 py-5 mt-1 pr-12"
+                className="mt-1 rounded-lg border border-input-border bg-light-grey px-4 py-5 pr-12"
               />
               <Pressable
                 onPress={() => setShowConfirmPassword(!showConfirmPassword)}

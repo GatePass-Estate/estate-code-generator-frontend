@@ -48,6 +48,7 @@ import {
   biometricTokenMatchesUser,
 } from '@/src/features/auth/services/biometricAuth';
 import { BiometricPromptModal } from '@/src/features/auth/components/BiometricPromptModal';
+import PasswordTextInput from '@/src/features/auth/components/PasswordTextInput';
 import Back from '@/src/shared/components/navigation/Back';
 import { parseSignOutReason, signOutNotice } from '@/src/features/auth/services/signOutReason';
 import { palette } from '@/src/shared/theme/palette';
@@ -527,13 +528,12 @@ export default function Login() {
                       Password
                     </Text>
                     <View className="relative mt-2 h-14">
-                      <TextInput
+                      <PasswordTextInput
                         placeholder="Enter your password"
                         placeholderTextColor="#878686"
-                        secureTextEntry={!showPassword}
+                        visible={showPassword}
                         value={password}
                         onChangeText={setPassword}
-                        autoCapitalize="none"
                         editable={!isLoading}
                         className="h-14 rounded-2xl bg-[#EFF1F1] px-4 pr-14 font-inter-light text-sm text-primary"
                         style={{ paddingVertical: 0 }}
