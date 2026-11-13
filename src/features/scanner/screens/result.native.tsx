@@ -429,8 +429,9 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   backButton: {
+    // Same top inset as ScreenHeader / Register (`mt-[19px]`), not Figma's 44.
     marginLeft: 17,
-    marginTop: 44,
+    marginTop: 19,
   },
   backButtonIconFrame: {
     height: 24,

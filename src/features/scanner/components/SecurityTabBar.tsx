@@ -127,6 +127,7 @@ export default function SecurityTabBar({ activeTab }: { activeTab: SecurityTab }
 }
 
 const styles = StyleSheet.create({
+  // Figma `nav bar ios` 8074:8101 — 227×49 capsule; overflow clips the teal fill to the radius.
   bar: {
     alignSelf: 'center',
     backgroundColor: '#CEE5ED',
@@ -134,9 +135,10 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     borderWidth: 0.5,
     flexDirection: 'row',
-    height: 60,
+    height: 49,
+    overflow: 'hidden',
     position: 'absolute',
-    width: 240,
+    width: 227,
   },
   home: { alignItems: 'center', flex: 1, justifyContent: 'center' },
   report: { alignItems: 'center', flex: 1, justifyContent: 'center' },
@@ -145,10 +147,11 @@ const styles = StyleSheet.create({
   label: {
     color: '#6F91A0',
     fontFamily: 'UbuntuSans-Regular',
-    fontSize: 11,
-    lineHeight: 14,
+    fontSize: 9,
+    lineHeight: 11,
     marginTop: 4,
     textAlign: 'center',
+    textTransform: 'capitalize',
   },
   activeLabel: { color: '#113E55', fontFamily: 'UbuntuSans-Medium' },
 });

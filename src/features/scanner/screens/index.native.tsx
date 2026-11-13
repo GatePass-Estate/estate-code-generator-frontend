@@ -16,6 +16,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
@@ -32,6 +33,7 @@ import { fetchCachedUser } from '@/src/features/history/hooks/accessLogs';
 import { refreshEstateEntitlements } from '@/src/features/billing';
 import { getScanWarningSeverity } from '@/src/features/scanner/utils/securityScanWarning';
 import { useVerificationGate } from '@/src/features/auth/hooks/useAccountVerification';
+import AnimatedPillTabs from '@/src/shared/components/AnimatedPillTabs';
 import { sharedStyles } from '@/src/shared/theme/styles';
 import { Inter } from '@/src/shared/constants/fonts';
 import SecurityTabBar from '@/src/features/scanner/components/SecurityTabBar';
@@ -151,8 +153,10 @@ function InvalidCodeOverlay({ onClose }: { onClose: () => void }) {
 export default function SecurityVerificationMobile() {
   const queryClient = useQueryClient();
   const params = useLocalSearchParams();
+  const { width: windowWidth } = useWindowDimensions();
   const [mode, setMode] = useState<VerificationMode>(params.mode === 'scan' ? 'scan' : 'enter');
   const [code, setCode] = useState<string[]>(EMPTY_CODE);
+  const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
   const [invalidCode, setInvalidCode] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -166,6 +170,9 @@ export default function SecurityVerificationMobile() {
   const headerTopGap = 24.14;
   const headerToToggleGap = 24;
   const contentTopGap = mode === 'scan' ? 66 : 96;
+  // Match the stretch tabs that sat inside container padding (20 each side).
+  const tabTrackWidth = Math.max(229, windowWidth - 40);
+  const tabActiveWidth = Math.round(tabTrackWidth / 2);
 
   const setInputRef = (el: TextInput | null, index: number) => {
     if (el) inputs.current[index] = el;
@@ -377,11 +384,17 @@ export default function SecurityVerificationMobile() {
       </View>
 
       <View className="h-[64.5px] w-[304px] flex-row justify-center gap-[8px] py-[2px]">
-        {code.map((digit, idx) =>
-          Platform.OS === 'ios' ? (
+        {code.map((digit, idx) => {
+          const focused = focusedIndex === idx;
+          const boxBorder = focused
+            ? { borderColor: '#113E55', borderWidth: 1.5 }
+            : { borderColor: '#9B9797', borderWidth: 0.5 };
+
+          return Platform.OS === 'ios' ? (
             <View
               key={idx}
-              className="relative h-[60.50px] w-[44px] items-center justify-center rounded-[8px] border-[0.5px] border-grey bg-[#EFF1F1]"
+              className="relative h-[60.50px] w-[44px] items-center justify-center rounded-[8px] bg-[#EFF1F1]"
+              style={boxBorder}
             >
               <Text
                 allowFontScaling={false}
@@ -396,32 +409,38 @@ export default function SecurityVerificationMobile() {
                 value={digit}
                 onChangeText={(t) => handleChange(t, idx)}
                 onKeyPress={(e) => handleKeyPress(e, idx)}
+                onFocus={() => setFocusedIndex(idx)}
+                onBlur={() => setFocusedIndex((current) => (current === idx ? null : current))}
                 autoCapitalize="characters"
                 maxLength={1}
                 accessibilityLabel={`Digit ${idx + 1}`}
                 returnKeyType="done"
                 blurOnSubmit
-                caretHidden
-                selectionColor="transparent"
+                cursorColor="#113E55"
+                selectionColor="#CEE5ED"
               />
             </View>
           ) : (
             <TextInput
               key={idx}
               ref={(el) => setInputRef(el, idx)}
-              className="h-[60.50px] w-[44px] rounded-[8px] border-[0.5px] border-grey bg-[#EFF1F1] text-center font-ubuntu-semibold text-[20px] leading-[20px] text-primary"
-              style={styles.codeInputAndroid}
+              className="h-[60.50px] w-[44px] rounded-[8px] bg-[#EFF1F1] text-center font-ubuntu-semibold text-[20px] leading-[20px] text-primary"
+              style={[styles.codeInputAndroid, boxBorder]}
               value={digit}
               onChangeText={(t) => handleChange(t, idx)}
               onKeyPress={(e) => handleKeyPress(e, idx)}
+              onFocus={() => setFocusedIndex(idx)}
+              onBlur={() => setFocusedIndex((current) => (current === idx ? null : current))}
               autoCapitalize="characters"
               maxLength={1}
               accessibilityLabel={`Digit ${idx + 1}`}
               returnKeyType="done"
               blurOnSubmit
+              cursorColor="#113E55"
+              selectionColor="#CEE5ED"
             />
-          )
-        )}
+          );
+        })}
       </View>
 
       <View className="mt-[106.5px] h-[48px] w-full items-center">
@@ -554,45 +573,17 @@ export default function SecurityVerificationMobile() {
         </View>
       </View>
 
-      <View
-        className="h-[40px] flex-row self-stretch overflow-hidden rounded-[20px] bg-[#EFF1F1]"
-        style={{ marginLeft: mode === 'scan' ? 1 : 3 }}
-      >
-        <Pressable
-          accessibilityRole="tab"
-          accessibilityState={{ selected: mode === 'enter' }}
-          className={`h-[40px] items-center justify-center rounded-[20px] ${mode === 'enter' ? 'bg-accent' : ''}`}
-          style={{ flex: mode === 'enter' ? 172.52 : 160.44 }}
-          onPress={() => setMode('enter')}
-        >
-          <View style={styles.enterCodeText}>
-            <Text
-              allowFontScaling={false}
-              numberOfLines={1}
-              style={[styles.segmentText, mode === 'scan' && styles.inactiveSegmentText]}
-            >
-              Enter Code
-            </Text>
-          </View>
-        </Pressable>
-        <Pressable
-          accessibilityRole="tab"
-          accessibilityState={{ selected: mode === 'scan' }}
-          className={`h-[40px] items-center justify-center rounded-[20px] ${mode === 'scan' ? 'bg-accent' : ''}`}
-          style={{ flex: mode === 'scan' ? 173.56 : 159.48 }}
-          onPress={() => setMode('scan')}
-        >
-          <View style={styles.scanCodeText}>
-            <Text
-              allowFontScaling={false}
-              numberOfLines={1}
-              style={[styles.segmentText, mode !== 'scan' && styles.inactiveSegmentText]}
-            >
-              Scan Code
-            </Text>
-          </View>
-        </Pressable>
-      </View>
+      <AnimatedPillTabs
+        style={{ alignSelf: 'stretch' }}
+        options={[
+          { value: 'enter', label: 'Enter Code' },
+          { value: 'scan', label: 'Scan Code' },
+        ]}
+        value={mode}
+        onChange={setMode}
+        width={tabTrackWidth}
+        activeWidth={tabActiveWidth}
+      />
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -645,27 +636,6 @@ const styles = StyleSheet.create({
     left: 10,
     position: 'absolute',
     top: 17,
-  },
-  segmentText: {
-    color: '#113E55',
-    fontFamily: Inter.regular,
-    fontSize: 11.2,
-    includeFontPadding: false,
-    lineHeight: 11.2,
-    textAlign: 'center',
-  },
-  enterCodeText: {
-    height: 14,
-    justifyContent: 'center',
-    width: 86.99,
-  },
-  scanCodeText: {
-    height: 14,
-    justifyContent: 'center',
-    width: 84.09,
-  },
-  inactiveSegmentText: {
-    color: '#878686',
   },
   validateCodeButtonText: {
     color: '#F6F7F7',
