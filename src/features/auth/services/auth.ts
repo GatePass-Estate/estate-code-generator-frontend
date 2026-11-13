@@ -1,13 +1,22 @@
 import { raiseApiError } from '@/src/shared/services/api/errors';
 import Api from '@/src/shared/services/api/client';
+import { persistDeviceTrustTokenFromResponse } from '@/src/shared/services/storage/deviceTrustToken';
 import axios, { isAxiosError } from 'axios';
 import {
+  BiometricLoginResponse,
   LoginResponse,
   SessionListResponse,
   TwoFARecoveryCodesResponse,
   TwoFASetupResponse,
   VerifyEmailActivationResponse,
 } from '@/src/features/auth/types/auth';
+
+async function withDeviceTrustToken<T extends { device_token?: string | null }>(
+  data: T
+): Promise<T> {
+  await persistDeviceTrustTokenFromResponse(data);
+  return data;
+}
 
 export async function loginUser(
   email: string,
@@ -25,20 +34,14 @@ export async function loginUser(
       password,
       ...(estate_id ? { estate_id } : {}),
     });
-    const data = axiosRes.data;
-
-    if (data?.requires_tos_acceptance && data?.access_token) {
-      return data;
-    }
-
-    return data;
+    return withDeviceTrustToken(axiosRes.data as LoginResponse);
   } catch (error: unknown) {
     if (
       isAxiosError(error) &&
       error.response?.data?.requires_tos_acceptance &&
       error.response?.data?.access_token
     ) {
-      return error.response.data;
+      return withDeviceTrustToken(error.response.data as LoginResponse);
     }
     raiseApiError(error, 'Login failed', true);
   }
@@ -59,7 +62,7 @@ export async function acceptTos(token: string): Promise<LoginResponse> {
         timeout: 10000,
       }
     );
-    return axiosRes.data;
+    return withDeviceTrustToken(axiosRes.data as LoginResponse);
   } catch (error: unknown) {
     raiseApiError(error, 'Failed to accept Terms of Service', true);
   }
@@ -108,16 +111,7 @@ export async function loginBiometric(
   biometricToken: string,
   estate_id: string,
   accessToken?: string
-): Promise<{
-  success: boolean;
-  access_token: string | null;
-  role?: string | null;
-  token_type?: string;
-  session_id?: string | null;
-  refresh_token?: string | null;
-  biometric_token?: string | null;
-  requires_full_reauth?: boolean;
-}> {
+): Promise<BiometricLoginResponse> {
   try {
     const baseUrl = process.env.EXPO_PUBLIC_USER_SERVICE_API_URL;
     if (!baseUrl) throw new Error('EXPO_PUBLIC_USER_SERVICE_API_URL is missing');
@@ -133,7 +127,7 @@ export async function loginBiometric(
       }
     );
 
-    return axiosRes.data;
+    return withDeviceTrustToken(axiosRes.data as BiometricLoginResponse);
   } catch (error: unknown) {
     raiseApiError(error, 'Biometric login failed', true);
   }
@@ -286,7 +280,7 @@ export async function enableTwoFactor(code: string): Promise<TwoFARecoveryCodesR
   try {
     const api = Api();
     const axiosRes = await api.post(`/auth/2fa/enable`, { code });
-    return axiosRes.data;
+    return withDeviceTrustToken(axiosRes.data as TwoFARecoveryCodesResponse);
   } catch (error: unknown) {
     raiseApiError(error, 'Could not enable two-factor authentication');
   }
@@ -328,7 +322,8 @@ export async function verifyTwoFactor(two_fa_token: string, code: string): Promi
       { two_fa_token, code },
       { headers: { 'Content-Type': 'application/json' }, timeout: 10000 }
     );
-    return axiosRes.data;
+    // Do not send X-Device-Token on this call — the body always carries a fresh token.
+    return withDeviceTrustToken(axiosRes.data as LoginResponse);
   } catch (error: unknown) {
     raiseApiError(error, 'Invalid authentication code');
   }
@@ -346,7 +341,8 @@ export async function recoverTwoFactor(
       { two_fa_token, recovery_code },
       { headers: { 'Content-Type': 'application/json' }, timeout: 10000 }
     );
-    return axiosRes.data;
+    // Prior tokens were revoked; persist the fresh one from the body.
+    return withDeviceTrustToken(axiosRes.data as LoginResponse);
   } catch (error: unknown) {
     raiseApiError(error, 'Invalid recovery code');
   }

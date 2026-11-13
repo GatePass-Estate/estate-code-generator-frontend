@@ -23,6 +23,25 @@ export type LoginResponse = {
   session_id?: string | null;
   /** Rotating refresh JWT (see src/lib/authRefresh.ts). Absent on 2FA/ToS-pending responses. */
   refresh_token?: string | null;
+  /**
+   * Trusted-device token for this install. Present after a new-device login, ToS
+   * acceptance, 2FA verify, or 2FA recover. Persist when set; keep the old value when null.
+   */
+  device_token?: string | null;
+};
+
+/** POST /auth/biometric/login — same session fields as login, plus optional token rotation. */
+export type BiometricLoginResponse = {
+  success: boolean;
+  access_token: string | null;
+  role?: string | null;
+  token_type?: string;
+  session_id?: string | null;
+  refresh_token?: string | null;
+  biometric_token?: string | null;
+  requires_full_reauth?: boolean;
+  /** Fresh trust token when the prior one was missing or expired. */
+  device_token?: string | null;
 };
 
 export type VerifyEmailActivationResponse = {
@@ -38,7 +57,15 @@ export type TwoFASetupResponse = {
 
 export type TwoFARecoveryCodesResponse = {
   recovery_codes: string[];
+  /**
+   * Enabling 2FA revokes prior device tokens; when present, overwrite the stored
+   * trust token with this fresh one.
+   */
+  device_token?: string | null;
 };
+
+/** Alias for the enable-2FA response shape (recovery codes + optional device token). */
+export type TwoFAEnableResponse = TwoFARecoveryCodesResponse;
 
 export type SessionResponse = {
   id: string;

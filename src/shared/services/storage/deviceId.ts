@@ -7,11 +7,9 @@ import { getDeviceLabel } from '@/src/shared/services/storage/deviceLabel';
 /**
  * Stable per-install identifier, sent to the API as `X-Device-Id`.
  *
- * The backend currently decides "new device" from the client IP alone, and
- * mobile networks rotate IPs, so the same phone is reported as a new device on
- * most logins. Recognising the install needs an identifier that survives IP
- * changes — this is the app's half of that fix. Until the backend reads the
- * header it is simply ignored.
+ * Labels this install on sessions (together with `X-Device-Name`). Device
+ * familiarity for 2FA / new-device alerts uses the separate trusted-device token
+ * (`X-Device-Token` in `deviceTrustToken.ts`), not this id.
  *
  * Generated once and kept in SecureStore (AsyncStorage on web). It identifies
  * an install, not a person, and is only ever sent to GatePass's own API.

@@ -1,5 +1,6 @@
 import axios, { type AxiosError, type AxiosInstance, type InternalAxiosRequestConfig } from 'axios';
 import { attachDeviceId } from '@/src/shared/services/storage/deviceId';
+import { attachDeviceTrustToken } from '@/src/shared/services/storage/deviceTrustToken';
 import { logger } from '@/src/shared/utils/logger';
 import {
   errorDetail,
@@ -106,6 +107,7 @@ function installSessionInterceptors(client: AxiosInstance, addWhenMissing: boole
 // Direct `axios.post(...)` calls (2FA verify, biometric login, ToS) go through the global
 // instance, so tag those too and keep their session token fresh. Installed once at load.
 axios.interceptors.request.use(attachDeviceId);
+axios.interceptors.request.use(attachDeviceTrustToken);
 installSessionInterceptors(axios, false);
 
 const warnedMissingUrls = new Set<ApiService>();
@@ -138,6 +140,7 @@ const Api = (service: ApiService = 'user') => {
 
   // Instances made by axios.create do not inherit global interceptors.
   client.interceptors.request.use(attachDeviceId);
+  client.interceptors.request.use(attachDeviceTrustToken);
   installSessionInterceptors(client, true);
 
   return client;
