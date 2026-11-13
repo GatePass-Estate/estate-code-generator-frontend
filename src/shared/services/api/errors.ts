@@ -71,7 +71,11 @@ const TECHNICAL_AXIOS_MESSAGE = /^Request failed with status code \d+$/;
  */
 export function userFacingError(error: unknown, fallback: string): string {
   const message = getErrorMessage(error).trim();
-  if (!message || message === 'An unknown error occurred' || TECHNICAL_AXIOS_MESSAGE.test(message)) {
+  if (
+    !message ||
+    message === 'An unknown error occurred' ||
+    TECHNICAL_AXIOS_MESSAGE.test(message)
+  ) {
     return fallback;
   }
   return message;

@@ -7,7 +7,7 @@ describe('allowAndroidAction', () => {
     jest.doMock('expo-router', () => ({
       router: { push: jest.fn(), replace: jest.fn(), navigate: jest.fn() },
     }));
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+
     const { allowAndroidAction } =
       require('@/src/shared/utils/androidActionLock') as typeof import('@/src/shared/utils/androidActionLock');
     expect(allowAndroidAction('open:/settings', 700)).toBe(true);

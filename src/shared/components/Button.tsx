@@ -51,7 +51,9 @@ export default function Button({
       disabled={isDisabled}
       className={cn(
         'items-center justify-center overflow-hidden rounded-[24px] py-4',
-        icon ? 'h-[44px] w-auto max-w-none flex-row gap-1 rounded-full px-4 py-0' : SIZE_CLASS[size],
+        icon
+          ? 'h-[44px] w-auto max-w-none flex-row gap-1 rounded-full px-4 py-0'
+          : SIZE_CLASS[size],
         icon ? null : variant === 'secondary' ? 'px-6' : 'px-8',
         variant === 'secondary'
           ? 'bg-[#E5F6FF]'

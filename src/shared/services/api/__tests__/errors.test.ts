@@ -72,12 +72,12 @@ describe('userFacingError', () => {
   });
 
   it('replaces an unmapped status line and an unknown failure with the fallback', () => {
-    expect(userFacingError(new Error('Request failed with status code 500'), 'Could not load users')).toBe(
-      'Server error - please try again later.'
-    );
-    expect(userFacingError(new Error('Request failed with status code 418'), 'Could not load users')).toBe(
-      'Could not load users'
-    );
+    expect(
+      userFacingError(new Error('Request failed with status code 500'), 'Could not load users')
+    ).toBe('Server error - please try again later.');
+    expect(
+      userFacingError(new Error('Request failed with status code 418'), 'Could not load users')
+    ).toBe('Could not load users');
     expect(userFacingError(undefined, 'Could not load users')).toBe('Could not load users');
   });
 });

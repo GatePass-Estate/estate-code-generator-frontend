@@ -33,9 +33,7 @@ export default function ActionConfirmModal({
     >
       <View className="flex-1 items-center justify-center bg-black/40 px-6">
         <View className="w-full max-w-[360px] rounded-[24px] bg-[#F6F7F7] px-6 py-7">
-          <Text className="text-center font-ubuntu-semibold text-[21px] text-primary">
-            {title}
-          </Text>
+          <Text className="text-center font-ubuntu-semibold text-[21px] text-primary">{title}</Text>
           <Text className="mt-3 text-center font-inter-regular text-[14px] leading-[21px] text-[#646B70]">
             {message}
           </Text>

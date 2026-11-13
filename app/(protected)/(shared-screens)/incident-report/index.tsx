@@ -1,1 +1,1 @@
-export { default } from './index.native';
+export { default } from '@/src/features/ai/screens/incidents/incident-report/index';

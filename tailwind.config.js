@@ -1,3 +1,5 @@
+const { palette } = require('./src/shared/theme/palette');
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   // NativeWind 4.2+ on web needs class mode so colorScheme.set doesn't crash.
@@ -55,23 +57,7 @@ module.exports = {
         Inter: ['Inter_18pt-Regular', 'system-ui'],
       },
 
-      colors: {
-        primary: '#113E55',
-        secondary: '#1E40AF',
-        accent: '#CEE5ED',
-        orange: '#F46036',
-        teal: '#1B998B',
-        grey: '#9B9797',
-        tertiary: '#F46036',
-        'light-orange': '#FFF8F5',
-        'light-teal': '#F4FFFE',
-        'light-grey': '#F7F9F9',
-        'dark-teal': '#167a6f',
-        body: '#FBFEFF',
-        'input-border': '#D1D5DB',
-        danger: '#ED0808',
-        black: '#04121A',
-      },
+      colors: palette,
 
       borderWidth: {
         micro: '0.1px',

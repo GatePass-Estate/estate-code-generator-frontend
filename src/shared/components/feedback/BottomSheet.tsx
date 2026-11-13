@@ -165,7 +165,12 @@ export default function BottomSheet({
       <GestureHandlerRootView style={styles.root}>
         {backdrop}
         <Animated.View style={[styles.fill, scrimStyle]} pointerEvents="box-none">
-          <Pressable style={styles.fill} className={resolvedScrimClass} onPress={close} {...scrimProps} />
+          <Pressable
+            style={styles.fill}
+            className={resolvedScrimClass}
+            onPress={close}
+            {...scrimProps}
+          />
         </Animated.View>
         {/*
           The spacer above the panel is the outside tap. The top strip is the drag-down handle.

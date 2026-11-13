@@ -9,9 +9,9 @@
     "icon": "./src/assets/gatepass_ng_Gp.png",
     "userInterfaceStyle": "automatic",
     "splash": {
-      "image": "./src/assets/gatepass_ng_Gp.png",
+      "image": "./src/assets/images/gatepass-mark-white.png",
       "resizeMode": "contain",
-      "backgroundColor": "#FFFFFF"
+      "backgroundColor": "#113E55"
     },
     "android": {
       "package": "com.gatepassng.gms",
@@ -97,14 +97,13 @@
       [
         "expo-splash-screen",
         {
-          "image": "./src/assets/gatepass_ng_Gp.png",
-          "imageWidth": 200,
+          "image": "./src/assets/images/gatepass-mark-white.png",
+          "imageWidth": 170,
           "resizeMode": "contain",
-          "backgroundColor": "#FFFFFF",
-          "enableFullScreenImage_legacy": true,
+          "backgroundColor": "#113E55",
           "dark": {
-            "image": "./src/assets/gatepass_ng_Gp.png",
-            "backgroundColor": "#FFFFFF"
+            "image": "./src/assets/images/gatepass-mark-white.png",
+            "backgroundColor": "#113E55"
           }
         }
       ],

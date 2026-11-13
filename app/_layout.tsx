@@ -2,19 +2,18 @@ import { useFonts } from 'expo-font';
 import * as ExpoSplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { Stack } from 'expo-router';
-import AndroidNavBarGlobal from '@/src/components/common/AndroidNavBarGlobal';
-import { AuthProvider, useAuth } from '@/src/hooks/useAuthContext';
+import AndroidNavBarGlobal from '@/src/shared/components/navigation/AndroidNavBarGlobal';
+import { AuthProvider, useAuth } from '@/src/features/auth/hooks/useAuthContext';
 import 'react-native-reanimated';
-import { Inter, UbuntuSans } from '@/src/constants/fonts';
-// @ts-ignore
+import { Inter, UbuntuSans } from '@/src/shared/constants/fonts';
 import './global.css';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { queryClient } from '@/lib/queryClient';
+import { queryClient } from '@/src/shared/services/api/queryClient';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useEffect, useLayoutEffect } from 'react';
-import LoadingTransition from '@/src/components/common/LoadingTransition';
+import LoadingTransition from '@/src/shared/components/feedback/LoadingTransition';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { patchAndroidDoubleNavigation } from '@/src/lib/androidActionLock';
+import { patchAndroidDoubleNavigation } from '@/src/shared/utils/androidActionLock';
 
 patchAndroidDoubleNavigation();
 
@@ -88,17 +87,9 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (loaded || fontError) {
-      ExpoSplashScreen.hideAsync().catch((error) => {
-        console.log('Error hiding native splash screen', error);
-      });
+      ExpoSplashScreen.hideAsync().catch(() => {});
     }
   }, [loaded, fontError]);
-
-  useEffect(() => {
-    if (fontError) {
-      console.log('Error loading fonts', fontError);
-    }
-  }, [fontError]);
 
   if (!loaded && !fontError) {
     return null;

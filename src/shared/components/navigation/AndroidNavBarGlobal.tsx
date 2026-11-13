@@ -2,7 +2,10 @@ import { Platform, useColorScheme as useDeviceColorScheme, View } from 'react-na
 import { usePathname } from 'expo-router';
 
 import { useAndroidBottomInset } from '@/src/shared/hooks/useAndroidBottomInset';
-import { getAndroidNavBarBackground, useInitialAndroidBarSync } from '@/src/shared/hooks/useAndroidNavBar';
+import {
+  getAndroidNavBarBackground,
+  useInitialAndroidBarSync,
+} from '@/src/shared/hooks/useAndroidNavBar';
 
 /** Global Android 3-button nav: black/white strip + icon style on every screen. */
 export default function AndroidNavBarGlobal() {
