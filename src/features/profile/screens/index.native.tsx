@@ -1,0 +1,930 @@
+import { errorMessage as thrownMessage } from '@/src/shared/services/api/errors';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  View,
+  Text,
+  Pressable,
+  ScrollView,
+  Alert,
+  StyleSheet,
+  Image,
+  Modal,
+  TouchableOpacity,
+} from 'react-native';
+import { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
+import { MaterialIcons } from '@expo/vector-icons';
+import { router, Stack, useNavigation } from 'expo-router';
+import * as Clipboard from 'expo-clipboard';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import Back from '@/src/shared/components/navigation/Back';
+import { useUserStore } from '@/src/store/userStore';
+import { useProfileDocumentsStore } from '@/src/features/profile/store/profileDocumentsStore';
+import { ProfileFieldRow } from '@/src/features/profile/components/ProfileFieldRow';
+import ResidentAccessCodeQRModal from '@/src/features/profile/components/ResidentAccessCodeQRModal';
+import ProfilePhotoSheet from '@/src/features/profile/components/ProfilePhotoSheet';
+import IdentificationSheet from '@/src/features/profile/components/IdentificationSheet';
+import PendingRequestSheet, {
+  PendingRequestSheetData,
+} from '@/src/features/admin/components/PendingRequestSheet';
+import {
+  EyeIcon,
+  HiddenEyeIcon,
+  QrCodeIcon,
+  RefreshIcon,
+  DownloadIcon,
+  CameraIcon,
+} from '@/src/assets/svgs';
+import { sharedStyles } from '@/src/shared/theme/styles';
+import { useGenerateCode, useMyResidentCode } from '@/src/features/access-codes/hooks/codes';
+import {
+  downloadMyDocument,
+  getMyDocumentViewUri,
+  getPendingDocumentViewUri,
+  uploadUserDocument,
+} from '@/src/features/profile/services/userDocuments';
+import { formatDateWithOrdinal } from '@/src/shared/utils/helpers';
+import {
+  useAccountVerification,
+  useVerificationGate,
+} from '@/src/features/auth/hooks/useAccountVerification';
+import { useProfilePendingFields } from '@/src/features/profile/hooks/useProfilePendingFields';
+import { ProfileFieldKey } from '@/src/features/profile/utils/profilePendingFields';
+import {
+  createIdentificationPendingRequest,
+  DEFAULT_PENDING_ID_LABEL,
+  downloadFile,
+} from '@/src/features/admin/utils/pendingRequestHelpers';
+import {
+  getFilenameFromUri,
+  getMimeTypeFromUri,
+} from '@/src/features/profile/utils/userDocumentHelpers';
+import {
+  getProfileOnboardingStep,
+  ProfileOnboardingBanner,
+  ProfileOnboardingStep,
+} from '@/src/features/profile/components/ProfileOnboardingBanner';
+import { CopiedToast } from '@/src/shared/components/feedback/CopiedToast';
+import IdDocumentPreview from '@/src/features/profile/components/IdDocumentPreview';
+
+function formatAccessCode(code: string) {
+  return code.replace(/\s+/g, '').toUpperCase();
+}
+
+const WAITING_APPROVAL_COPY = {
+  title: 'Waiting Approval',
+  description: 'Your documents are currently being reviewed by Admin.',
+};
+
+const ID_REJECTED_COPY = {
+  title: 'ID Rejected',
+  description:
+    'Admin could not approve your ID. Please upload a clear, valid government-issued ID.',
+};
+
+const ONBOARDING_COPY: Record<
+  Exclude<ProfileOnboardingStep, null>,
+  { title: string; description: string }
+> = {
+  id: {
+    title: 'Verify Your ID',
+    description: 'Please upload your government issued ID to generate your access code.',
+  },
+  photo: {
+    title: 'Upload Your Photo',
+    description: 'Please upload your passport to generate your access code.',
+  },
+};
+
+export default function ProfileScreen() {
+  // Until the ID is approved only the photo and ID uploads work here; anything else shows the
+  // Complete KYC modal.
+  const { requireVerified } = useVerificationGate();
+  const { approval: idApproval, blocked: verificationBlocked } = useAccountVerification();
+  const navigation = useNavigation();
+  const {
+    first_name,
+    last_name,
+    home_address,
+    household_name,
+    household_primary_resident,
+    email,
+    phone_number,
+    user_id,
+    estate_id,
+    role,
+  } = useUserStore();
+  const showAccessCode = role !== 'security';
+  const {
+    data: residentCode,
+    isFetched: residentCodeFetched,
+    refetch: refetchResidentCode,
+  } = useMyResidentCode(showAccessCode ? user_id : null);
+  const generateResidentCode = useGenerateCode();
+
+  const [code, setCode] = useState<string | null>(null);
+  const [expiry, setExpiry] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [noCode, setNoCode] = useState(false);
+  const [codeVisible, setCodeVisible] = useState(false);
+  const [showQrModal, setShowQrModal] = useState(false);
+  const [showPhotoSheet, setShowPhotoSheet] = useState(false);
+  const [showIdentificationSheet, setShowIdentificationSheet] = useState(false);
+  const [showIdentificationPreview, setShowIdentificationPreview] = useState(false);
+  const profilePhotoUri = useProfileDocumentsStore((state) => state.profilePhotoUri);
+  const identificationUri = useProfileDocumentsStore((state) => state.identificationUri);
+  const identificationContentType = useProfileDocumentsStore(
+    (state) => state.identificationContentType
+  );
+  const pendingIdentificationContentType = useProfileDocumentsStore(
+    (state) => state.pendingIdentificationContentType
+  );
+  const identificationPendingRequest = useProfileDocumentsStore(
+    (state) => state.identificationPendingRequest
+  );
+  const onboardingCache = useProfileDocumentsStore((state) => state.onboarding);
+  const documentsImagesLoading = useProfileDocumentsStore((state) => state.imagesLoading);
+  const idRejected = useProfileDocumentsStore((state) => state.idRejected);
+  const syncDocuments = useProfileDocumentsStore((state) => state.syncDocuments);
+  const markOnboardingStep = useProfileDocumentsStore((state) => state.markOnboardingStep);
+  const setProfilePhotoUri = useProfileDocumentsStore((state) => state.setProfilePhotoUri);
+  const setIdentificationUri = useProfileDocumentsStore((state) => state.setIdentificationUri);
+  const setIdentificationPendingRequest = useProfileDocumentsStore(
+    (state) => state.setIdentificationPendingRequest
+  );
+  const [pendingRequestSheet, setPendingRequestSheet] = useState<PendingRequestSheetData | null>(
+    null
+  );
+  const [showPendingRequestSheet, setShowPendingRequestSheet] = useState(false);
+  const [showCopiedToast, setShowCopiedToast] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [uploadingIdentification, setUploadingIdentification] = useState(false);
+  const copiedToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { pendingDetails, pendingFields, refreshPendingFields } = useProfilePendingFields(user_id);
+
+  const fetchMyCode = useCallback(async () => {
+    if (!user_id) return;
+    setLoading(true);
+    const result = await refetchResidentCode();
+    if (result.data) {
+      setCode(result.data.hashed_code);
+      setExpiry(result.data.valid_until);
+      setNoCode(false);
+    } else {
+      setCode(null);
+      setExpiry(null);
+      setNoCode(true);
+    }
+    setLoading(false);
+  }, [refetchResidentCode, user_id]);
+
+  const handleGenerateCode = useCallback(async () => {
+    if (!requireVerified()) return;
+    if (!user_id) return;
+    setLoading(true);
+    try {
+      const { hashed_code, valid_until } = await generateResidentCode.mutateAsync({
+        user_id,
+        estate_id: estate_id ?? '',
+        receiver: 'resident',
+      });
+      setCode(hashed_code);
+      setExpiry(valid_until);
+      setNoCode(false);
+      setCodeVisible(true);
+    } catch {
+      Alert.alert('Could not generate code', 'Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  }, [estate_id, generateResidentCode, requireVerified, user_id]);
+
+  useEffect(() => {
+    if (!user_id) return;
+    syncDocuments(user_id);
+  }, [user_id, syncDocuments]);
+
+  useEffect(() => {
+    if (!showAccessCode) return;
+    if (!residentCodeFetched) {
+      setLoading(true);
+      return;
+    }
+    if (residentCode) {
+      setCode(residentCode.hashed_code);
+      setExpiry(residentCode.valid_until);
+      setNoCode(false);
+    } else {
+      setCode(null);
+      setExpiry(null);
+      setNoCode(true);
+    }
+    setLoading(false);
+  }, [residentCode, residentCodeFetched, showAccessCode]);
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      if (showAccessCode) fetchMyCode();
+    });
+    return unsubscribe;
+  }, [navigation, fetchMyCode, showAccessCode]);
+
+  // The admin may have approved or rejected the ID since the last visit: refresh on every visit.
+  // `force` skips the 10-minute freshness window (a rejection would otherwise stay hidden for that
+  // long); approved users' document images still come from the cache.
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      if (user_id) void syncDocuments(user_id, { force: true });
+    });
+    return unsubscribe;
+  }, [navigation, user_id, syncDocuments]);
+
+  const formattedDate = useMemo(() => {
+    if (!expiry) return null;
+    return formatDateWithOrdinal(new Date(expiry));
+  }, [expiry]);
+
+  const openEditProfile = () => {
+    if (!requireVerified()) return;
+    router.push('/profile/edit');
+  };
+
+  const openPendingSheet = useCallback((data: PendingRequestSheetData) => {
+    setPendingRequestSheet(data);
+    setShowPendingRequestSheet(true);
+  }, []);
+
+  const openPendingRequestSheet = useCallback(
+    (fieldKey: ProfileFieldKey, fieldLabel: string) => {
+      const detail = pendingDetails[fieldKey];
+      if (!detail.hasPending || !detail.requestId) return;
+
+      openPendingSheet({
+        kind: 'field',
+        fieldLabel,
+        currentValue: detail.oldValue?.trim() || '—',
+        newValue: detail.newValue?.trim() || '—',
+        requestId: detail.requestId,
+      });
+    },
+    [openPendingSheet, pendingDetails]
+  );
+
+  const handleAvatarPress = () => {
+    setShowPhotoSheet(true);
+  };
+
+  const handlePhotoSelected = async (uri: string) => {
+    const previousPhotoUri = useProfileDocumentsStore.getState().profilePhotoUri;
+    setUploadingPhoto(true);
+    setProfilePhotoUri(uri);
+
+    try {
+      const result = await uploadUserDocument(uri, 'profile_picture');
+
+      if (user_id) {
+        await markOnboardingStep(user_id, { hasPhoto: true });
+      }
+
+      useProfileDocumentsStore.setState({
+        photoDocumentId: result.document_id,
+        lastSyncedAt: Date.now(),
+      });
+      setShowPhotoSheet(false);
+      setUploadingPhoto(false);
+
+      // Refresh authenticated preview in the background; local URI is already shown.
+      void getMyDocumentViewUri('profile_picture', result.content_type)
+        .then((photoUri) => {
+          setProfilePhotoUri(photoUri);
+        })
+        .catch(() => {
+          // Keep the local picker URI if the authenticated view fetch fails.
+        });
+    } catch (error: unknown) {
+      setProfilePhotoUri(previousPhotoUri);
+      setUploadingPhoto(false);
+      Alert.alert(
+        'Upload failed',
+        thrownMessage(error)?.trim() || 'Could not upload profile photo.'
+      );
+    }
+  };
+
+  const handleIdentificationPress = () => {
+    if (identificationPendingRequest) {
+      openPendingSheet(identificationPendingRequest);
+      return;
+    }
+
+    setShowIdentificationSheet(true);
+  };
+
+  const handleIdentificationSelected = async (uri: string) => {
+    setUploadingIdentification(true);
+    try {
+      // The server attaches a re-submitted ID to the existing request itself; nothing more to call.
+      const result = await uploadUserDocument(uri, 'id_card');
+
+      if (user_id) {
+        await markOnboardingStep(user_id, { hasIdentification: true });
+      }
+
+      const requestId = result.edit_request_id ?? `local-identification-${result.document_id}`;
+      const fileName = getFilenameFromUri(uri, 'Uploaded ID');
+
+      if (result.document_status === 'pending') {
+        setIdentificationPendingRequest(
+          createIdentificationPendingRequest({
+            requestId,
+            newFileName: fileName,
+            newFileUri: uri,
+            currentFileUri: identificationUri,
+            currentFileName: identificationUri ? 'Current ID' : DEFAULT_PENDING_ID_LABEL,
+          })
+        );
+        // The server says the ID now waits for an admin: reflect that straight away so this screen
+        // shows "Waiting Approval" and the Complete KYC modal sends the user back here. A user whose
+        // ID is already approved is only changing it: they stay verified while the request is open.
+        const alreadyApproved = useProfileDocumentsStore.getState().idApproval === 'approved';
+        useProfileDocumentsStore.setState({
+          pendingIdDocumentId: result.document_id,
+          pendingIdentificationContentType:
+            result.content_type ?? getMimeTypeFromUri(uri, 'id_card'),
+          idApproval: alreadyApproved ? 'approved' : 'pending',
+          // A just-uploaded ID hasn't been reviewed, so it can't be rejected yet.
+          idRejected: false,
+          idRejectionDocumentId: result.document_id,
+          lastSyncedAt: Date.now(),
+        });
+        if (user_id) {
+          void useProfileDocumentsStore.getState().checkIdRejection(user_id, result.document_id);
+        }
+      } else {
+        setIdentificationUri(uri, getMimeTypeFromUri(uri, 'id_card'));
+        setIdentificationPendingRequest(null);
+        useProfileDocumentsStore.setState({
+          activeIdDocumentId: result.document_id,
+          pendingIdDocumentId: null,
+          lastSyncedAt: Date.now(),
+        });
+      }
+
+      setShowIdentificationSheet(false);
+      setUploadingIdentification(false);
+
+      // Refresh authenticated preview in the background; local URI is already shown.
+      if (result.document_status === 'pending' && result.document_id) {
+        void getPendingDocumentViewUri(result.document_id, result.content_type)
+          .then((pendingUri) => {
+            const current = useProfileDocumentsStore.getState().identificationPendingRequest;
+            if (current?.requestId === requestId) {
+              setIdentificationPendingRequest({
+                ...current,
+                newFileUri: pendingUri,
+                newFileName: getFilenameFromUri(pendingUri, fileName),
+              });
+            }
+          })
+          .catch(() => {
+            // Local picker URI is enough until preview loads later.
+          });
+      } else if (result.document_status !== 'pending') {
+        void getMyDocumentViewUri('id_card', result.content_type)
+          .then((activeUri) => {
+            setIdentificationUri(activeUri, result.content_type);
+          })
+          .catch(() => {
+            // Keep local picker URI if view fetch fails.
+          });
+      }
+    } catch (error: unknown) {
+      setUploadingIdentification(false);
+      Alert.alert(
+        'Upload failed',
+        thrownMessage(error)?.trim() || 'Could not upload identification.'
+      );
+    }
+  };
+
+  const handleIdentificationDownload = async () => {
+    if (!requireVerified()) return;
+    if (identificationPendingRequest?.newFileUri) {
+      await downloadFile(identificationPendingRequest.newFileUri);
+      return;
+    }
+
+    if (identificationUri) {
+      await downloadFile(identificationUri);
+      return;
+    }
+
+    try {
+      const uri = await downloadMyDocument('id_card');
+      await downloadFile(uri);
+    } catch {
+      Alert.alert('Download unavailable', 'No identification file is available to download yet.');
+    }
+  };
+
+  const identificationPreviewUri =
+    identificationPendingRequest?.newFileUri ?? identificationUri ?? null;
+  const identificationPreviewContentType = identificationPendingRequest?.newFileUri
+    ? (pendingIdentificationContentType ??
+      getMimeTypeFromUri(identificationPendingRequest.newFileUri, 'id_card'))
+    : identificationContentType;
+
+  const closePendingRequestSheet = () => {
+    setShowPendingRequestSheet(false);
+    setPendingRequestSheet(null);
+  };
+
+  const handlePendingRequestDeleted = (deleted: PendingRequestSheetData) => {
+    if (deleted.kind === 'field') {
+      refreshPendingFields();
+      return;
+    }
+
+    setIdentificationPendingRequest(null);
+    if (deleted.newFileUri && deleted.newFileUri === identificationUri) {
+      setIdentificationUri(null);
+    }
+
+    if (user_id) {
+      syncDocuments(user_id, { force: true });
+    }
+  };
+
+  const codeDisplay = useMemo(() => {
+    if (noCode || !code) return '------';
+    if (!codeVisible) return '******';
+    return formatAccessCode(code);
+  }, [code, codeVisible, noCode]);
+
+  const canCopyCode = Boolean(code && !noCode);
+
+  const handleCopyCode = useCallback(async () => {
+    if (!requireVerified()) return;
+    if (!canCopyCode) {
+      Alert.alert('No access code', 'Generate an access code first, then long-press it to copy.');
+      return;
+    }
+
+    await Clipboard.setStringAsync(formatAccessCode(code!));
+    setShowCopiedToast(true);
+
+    if (copiedToastTimer.current) {
+      clearTimeout(copiedToastTimer.current);
+    }
+
+    copiedToastTimer.current = setTimeout(() => {
+      setShowCopiedToast(false);
+    }, 2000);
+  }, [canCopyCode, code, requireVerified]);
+
+  useEffect(() => {
+    return () => {
+      if (copiedToastTimer.current) {
+        clearTimeout(copiedToastTimer.current);
+      }
+    };
+  }, []);
+
+  const hasIdentification = Boolean(
+    identificationUri || identificationPendingRequest || onboardingCache?.hasIdentification
+  );
+  const hasPhoto = Boolean(profilePhotoUri || onboardingCache?.hasPhoto);
+  // Always the user's real step (photo, then ID), however the screen was opened.
+  const onboardingStep = getProfileOnboardingStep(hasIdentification, hasPhoto);
+  const isProfileLocked = onboardingStep !== null && !uploadingPhoto && !uploadingIdentification;
+  // Photo and ID are in, the ID is waiting for an admin: show "Waiting Approval" over a faded profile.
+  const isAwaitingApproval =
+    !isProfileLocked &&
+    verificationBlocked &&
+    (idApproval === 'pending' || !!identificationPendingRequest) &&
+    !uploadingPhoto &&
+    !uploadingIdentification;
+
+  const identificationDisplayValue = identificationPendingRequest
+    ? identificationPendingRequest.newFileName || 'Uploaded'
+    : identificationUri
+      ? 'No Preview'
+      : 'Passport or ID card only';
+
+  const handleOnboardingUpload = () => {
+    if (onboardingStep === 'id') {
+      setShowIdentificationSheet(true);
+      return;
+    }
+
+    if (onboardingStep === 'photo') {
+      setShowPhotoSheet(true);
+    }
+  };
+
+  const renderProfileContent = (isPreview = false) => (
+    <>
+      <View className={`items-center ${isPreview ? 'mt-0' : 'mt-6'}`}>
+        <Pressable onPress={handleAvatarPress}>
+          <View
+            style={{
+              width: 87,
+              height: 87,
+              borderRadius: 100,
+
+              backgroundColor: '#F4FFFE',
+              overflow: 'hidden',
+            }}
+          >
+            {profilePhotoUri ? (
+              <Image
+                source={{ uri: profilePhotoUri }}
+                style={StyleSheet.absoluteFill}
+                resizeMode="cover"
+              />
+            ) : (
+              <View className="flex-1 items-center justify-center bg-light-teal"></View>
+            )}
+
+            {uploadingPhoto || documentsImagesLoading ? (
+              <View
+                pointerEvents="none"
+                style={[
+                  StyleSheet.absoluteFill,
+                  { alignItems: 'center', justifyContent: 'center' },
+                ]}
+              >
+                <CircleLoader size={32} />
+              </View>
+            ) : null}
+
+            <View
+              style={{
+                position: 'absolute',
+                bottom: 0,
+                left: 4,
+                width: 79,
+                height: 28,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <View
+                style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(27, 153, 139, 0.5)' }]}
+              />
+              <CameraIcon width={20} height={20} />
+            </View>
+          </View>
+        </Pressable>
+
+        <Text className="pt-[13px] text-[24px] leading-[30px] font-ubuntu-medium text-primary">
+          Hi {first_name ?? 'there'}
+        </Text>
+      </View>
+
+      <View pointerEvents={isPreview ? 'none' : 'auto'}>
+        {showAccessCode ? (
+          <View className="mt-8 flex-row items-stretch justify-between rounded-[16px] bg-white p-4">
+            <View className="flex-1 justify-between gap-2 ">
+              <View className="gap-2">
+                <Text className="text-[11px] font-inter-regular text-[#6C6C6C]">
+                  My Access Code
+                </Text>
+
+                <View
+                  className="flex-row items-center gap-1"
+                  style={{ minHeight: isPreview ? 28 : 22 }}
+                >
+                  {!isPreview ? (
+                    <>
+                      <TouchableOpacity
+                        onLongPress={handleCopyCode}
+                        delayLongPress={400}
+                        activeOpacity={0.6}
+                        disabled={!canCopyCode || loading}
+                        hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+                        style={{ minHeight: 28, justifyContent: 'center' }}
+                      >
+                        <View
+                          style={
+                            !loading && codeDisplay === '******'
+                              ? { transform: [{ translateY: 5 }] }
+                              : undefined
+                          }
+                        >
+                          <Text
+                            className={`text-[24px]   ${
+                              !loading && codeDisplay === '******'
+                                ? 'font-ubuntu-normal text-primary/90 tracking-[3.5px] '
+                                : 'font-ubuntu-medium text-primary'
+                            }`}
+                            style={{
+                              lineHeight: 28,
+                              includeFontPadding: false,
+                              minWidth: 109,
+                            }}
+                          >
+                            {loading ? '------' : codeDisplay}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                      <View className="h-8 w-8 items-center justify-center">
+                        {code && !noCode && !loading ? (
+                          <Pressable
+                            onPress={() => {
+                              if (!requireVerified()) return;
+                              setCodeVisible((visible) => !visible);
+                            }}
+                            hitSlop={8}
+                            className="h-8 w-8 items-center justify-center rounded-full bg-[#E0FFFC80]"
+                          >
+                            {codeVisible ? (
+                              <EyeIcon width={18} height={18} />
+                            ) : (
+                              <HiddenEyeIcon width={18} height={18} />
+                            )}
+                          </Pressable>
+                        ) : null}
+                      </View>
+                    </>
+                  ) : null}
+                </View>
+              </View>
+
+              <View>
+                {isPreview || loading ? (
+                  <Text className="text-[11px] font-inter-regular text-[#6C6C6C]">
+                    Code expires on —
+                  </Text>
+                ) : formattedDate ? (
+                  <Text className="text-[11px] font-inter-regular text-[#6C6C6C]">
+                    Code expires on {formattedDate}
+                  </Text>
+                ) : noCode ? (
+                  <Text className="text-[11px] font-inter-regular text-grey">
+                    You do not have a code yet. Tap refresh to generate one.
+                  </Text>
+                ) : (
+                  <Text className="text-[11px] font-inter-regular text-[#6C6C6C]">
+                    Code expires on —
+                  </Text>
+                )}
+              </View>
+            </View>
+
+            <View className="items-end justify-between">
+              <Pressable
+                onPress={() => {
+                  if (!requireVerified()) return;
+                  router.push('/profile/access-log');
+                }}
+                hitSlop={8}
+              >
+                <Text className="text-[11px] font-inter-semibold text-primary">View History</Text>
+              </Pressable>
+
+              <View className="flex-row gap-3">
+                <Pressable
+                  onPress={handleGenerateCode}
+                  disabled={loading}
+                  hitSlop={8}
+                  className="h-[30px] w-[30px] items-center justify-center rounded-full bg-[#E0FFFC80]"
+                >
+                  {loading ? <CircleLoader size={32} /> : <RefreshIcon width={16} height={16} />}
+                </Pressable>
+
+                <Pressable
+                  onPress={() => {
+                    if (!requireVerified()) return;
+                    if (code) setShowQrModal(true);
+                    else handleGenerateCode();
+                  }}
+                  className="h-[30px] w-[30px] items-center justify-center rounded-full bg-[#E0FFFC80]"
+                  disabled={loading}
+                  hitSlop={8}
+                >
+                  <QrCodeIcon width={20} height={20} />
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        ) : null}
+
+        <View className="mt-4 flex-col gap-2 rounded-[16px] bg-white py-4 mb-6">
+          <ProfileFieldRow
+            label="First Name"
+            value={first_name}
+            pendingValue={pendingDetails.firstName.newValue}
+            onEdit={openEditProfile}
+            onPendingPress={() => openPendingRequestSheet('firstName', 'First Name')}
+            hasPendingRequest={pendingFields.firstName}
+          />
+          <ProfileFieldRow
+            label="Last Name"
+            value={last_name}
+            pendingValue={pendingDetails.lastName.newValue}
+            onEdit={openEditProfile}
+            onPendingPress={() => openPendingRequestSheet('lastName', 'Last Name')}
+            hasPendingRequest={pendingFields.lastName}
+          />
+          <ProfileFieldRow label="Phone Number" value={phone_number} onEdit={openEditProfile} />
+          <ProfileFieldRow
+            label="Email Address"
+            value={email}
+            pendingValue={pendingDetails.email.newValue}
+            onEdit={openEditProfile}
+            onPendingPress={() => openPendingRequestSheet('email', 'Email Address')}
+            hasPendingRequest={pendingFields.email}
+            isLast
+          />
+        </View>
+
+        <View className=" flex-col gap-2 rounded-[16px] bg-white py-4">
+          <ProfileFieldRow label="Household" value={household_name ?? null} />
+          <ProfileFieldRow label="Primary Resident" value={household_primary_resident ?? null} />
+          <ProfileFieldRow
+            label="Address"
+            value={home_address}
+            pendingValue={pendingDetails.address.newValue}
+            onEdit={openEditProfile}
+            onPendingPress={() => openPendingRequestSheet('address', 'Address')}
+            hasPendingRequest={pendingFields.address}
+            isLast
+          />
+        </View>
+
+        <View className="mt-6 flex-row items-center gap-3.5">
+          <View className="flex-1 rounded-[16px] bg-white">
+            <ProfileFieldRow
+              label="Identification"
+              value={identificationDisplayValue}
+              pendingValue={identificationPendingRequest ? 'Awaiting approval' : undefined}
+              onEdit={handleIdentificationPress}
+              onPendingPress={() => {
+                if (identificationPendingRequest) {
+                  openPendingSheet(identificationPendingRequest);
+                }
+              }}
+              hasPendingRequest={!!identificationPendingRequest}
+            />
+          </View>
+
+          <View className="flex-row gap-2">
+            <Pressable
+              onPress={() => setShowIdentificationPreview(true)}
+              disabled={!identificationPreviewUri}
+              accessibilityRole="button"
+              accessibilityLabel="Preview identification"
+              className={`h-10 w-10 items-center justify-center rounded-full bg-white ${!identificationPreviewUri ? 'opacity-40' : ''}`}
+            >
+              <MaterialIcons name="visibility" size={17} color="#113E55" />
+            </Pressable>
+            <Pressable
+              onPress={handleIdentificationDownload}
+              accessibilityRole="button"
+              accessibilityLabel="Download identification"
+              className="h-10 w-10 items-center justify-center rounded-full bg-white"
+            >
+              <DownloadIcon width={10} height={12} />
+            </Pressable>
+          </View>
+        </View>
+      </View>
+    </>
+  );
+
+  return (
+    <SafeAreaView
+      style={[sharedStyles.container, sharedStyles.modalContainer, { backgroundColor: '#F6F7F7' }]}
+      className="relative flex-1"
+    >
+      <Stack.Screen options={{ headerShown: false }} />
+
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }}
+        showsVerticalScrollIndicator={false}
+      >
+        <View className="flex-row items-center justify-between">
+          <Back type="short-arrow" onPress={() => navigation.goBack()} />
+
+          {isProfileLocked ? (
+            <Text className="text-[11px] font-inter-regular text-[#0A1F29]">
+              {onboardingStep === 'photo' ? '1/2' : '2/2'}
+            </Text>
+          ) : (
+            <View className="h-[30px] w-[30px]" />
+          )}
+        </View>
+
+        {isProfileLocked && onboardingStep ? (
+          <View className="w-full flex-1 justify-center">
+            <View className="w-full items-center px-1">
+              <ProfileOnboardingBanner
+                {...ONBOARDING_COPY[onboardingStep]}
+                onUpload={handleOnboardingUpload}
+              />
+            </View>
+
+            {/* Only the avatar stays tappable, so the photo can be uploaded before the ID. */}
+            <View style={{ opacity: 0.35 }} pointerEvents="box-none" className="mt-6 w-full">
+              {renderProfileContent(true)}
+            </View>
+          </View>
+        ) : isAwaitingApproval ? (
+          <View className="w-full flex-1 justify-center">
+            <View className="w-full items-center px-1">
+              {idRejected === null ? (
+                // Still checking whether the admin rejected this ID: show neither banner yet.
+                <View
+                  className="mb-[30px] w-full items-center justify-center pt-12"
+                  style={{ height: 230 }}
+                >
+                  <CircleLoader size={32} />
+                </View>
+              ) : (
+                <ProfileOnboardingBanner
+                  {...(idRejected ? ID_REJECTED_COPY : WAITING_APPROVAL_COPY)}
+                  buttonLabel={idRejected ? 'Re-upload' : 'Re-submit'}
+                  onUpload={() => setShowIdentificationSheet(true)}
+                />
+              )}
+            </View>
+
+            <View style={{ opacity: 0.4 }} pointerEvents="box-none" className="mt-6 w-full">
+              {renderProfileContent(true)}
+            </View>
+          </View>
+        ) : (
+          renderProfileContent()
+        )}
+      </ScrollView>
+
+      <CopiedToast visible={showCopiedToast} />
+
+      {code ? (
+        <ResidentAccessCodeQRModal
+          visible={showQrModal}
+          code={code.replace(/\s+/g, '')}
+          onClose={() => setShowQrModal(false)}
+        />
+      ) : null}
+
+      <ProfilePhotoSheet
+        visible={showPhotoSheet}
+        photoUri={profilePhotoUri}
+        onClose={() => setShowPhotoSheet(false)}
+        onPhotoSelected={handlePhotoSelected}
+        uploading={uploadingPhoto}
+      />
+
+      <IdentificationSheet
+        visible={showIdentificationSheet}
+        identificationUri={identificationUri}
+        onClose={() => setShowIdentificationSheet(false)}
+        onIdentificationSelected={handleIdentificationSelected}
+        uploading={uploadingIdentification}
+      />
+
+      <Modal
+        visible={showIdentificationPreview && Boolean(identificationPreviewUri)}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={() => setShowIdentificationPreview(false)}
+      >
+        <View className="flex-1 items-center justify-center bg-black/60 px-5">
+          <Pressable
+            onPress={() => setShowIdentificationPreview(false)}
+            accessibilityRole="button"
+            accessibilityLabel="Close identification preview"
+            style={StyleSheet.absoluteFill}
+          />
+          <View className="h-[70%] w-full max-w-[360px] overflow-hidden rounded-[24px] bg-white p-4">
+            {identificationPreviewUri ? (
+              <View className="flex-1 overflow-hidden rounded-[16px]">
+                <IdDocumentPreview
+                  uri={identificationPreviewUri}
+                  contentType={identificationPreviewContentType}
+                />
+              </View>
+            ) : null}
+            <Pressable
+              onPress={() => setShowIdentificationPreview(false)}
+              accessibilityRole="button"
+              className="mt-4 h-11 items-center justify-center rounded-3xl bg-primary"
+            >
+              <Text className="font-ubuntu-semibold text-[14px] text-white">Close</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+      <PendingRequestSheet
+        visible={showPendingRequestSheet}
+        request={pendingRequestSheet}
+        onClose={closePendingRequestSheet}
+        onDeleted={handlePendingRequestDeleted}
+      />
+    </SafeAreaView>
+  );
+}
