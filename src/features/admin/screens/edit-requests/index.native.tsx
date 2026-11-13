@@ -135,7 +135,7 @@ const EditRequestMobile = () => {
             lineHeight: 26,
             marginBottom: 8,
             marginLeft: 6,
-            marginTop: 40,
+            marginTop: 12,
           }}
         >
           Edit Requests
@@ -189,7 +189,7 @@ const EditRequestMobile = () => {
           lineHeight: 26,
           marginBottom: 8,
           marginLeft: 6,
-          marginTop: 40,
+          marginTop: 12,
         }}
       >
         Edit Requests

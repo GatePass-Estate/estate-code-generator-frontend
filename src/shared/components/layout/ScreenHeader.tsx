@@ -3,6 +3,11 @@ import { Text, View } from 'react-native';
 import Back from '@/src/shared/components/navigation/Back';
 import { cn } from '@/src/shared/utils/cn';
 
+/** Space between the back control and the title — same on More, Register, etc. */
+export const BACK_TO_TITLE_GAP = 12;
+/** NativeWind class for {@link BACK_TO_TITLE_GAP}. */
+export const BACK_TO_TITLE_GAP_CLASS = 'mt-3';
+
 type ScreenHeaderProps = {
   title: string;
   subtitle?: string;
@@ -29,13 +34,13 @@ export default function ScreenHeader({
   titleClassName,
   subtitleClassName,
 }: ScreenHeaderProps) {
-  // No onBack: Back's own default (useGoBack) navigates without Expo Router's queue.
+  // No onBack: Back's own default (useGoBack) navigates without Expo Router's warning.
   const back = showBack || onBack ? <Back type="short-arrow" onPress={onBack} /> : null;
 
   return (
     <View className={cn(inset && 'mt-[19px]', containerClassName)}>
       {back}
-      <View className={cn('flex-col gap-3', back ? 'mt-3' : undefined)}>
+      <View className={cn('flex-col gap-3', back ? BACK_TO_TITLE_GAP_CLASS : undefined)}>
         <View className="flex-row items-center justify-between">
           <Text className={cn('text-[27px] font-ubuntu-medium text-primary', titleClassName)}>
             {title}

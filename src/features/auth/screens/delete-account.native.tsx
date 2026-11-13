@@ -36,7 +36,7 @@ export default function DeleteAccountScreen() {
       <Back type="short-arrow" showText={false} showBorder />
 
       <View className="flex-1">
-        <Text className="text-primary font-ubuntu-medium mt-[18px]" style={{ fontSize: 27 }}>
+        <Text className="mt-3 font-ubuntu-medium text-primary" style={{ fontSize: 27 }}>
           Delete Account
         </Text>
         <Text className="text-[#3E424E] font-inter-light text-sm mt-3 leading-5">

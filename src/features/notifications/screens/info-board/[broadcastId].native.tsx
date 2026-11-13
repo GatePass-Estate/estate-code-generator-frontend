@@ -85,7 +85,7 @@ export default function BroadcastDetailScreen() {
         </View>
       ) : (
         <>
-          <Text className="text-primary font-ubuntu-medium mt-[18px]" style={{ fontSize: 27 }}>
+          <Text className="mt-3 font-ubuntu-medium text-primary" style={{ fontSize: 27 }}>
             {broadcast?.title}
           </Text>
           <Text className="text-primary font-inter-light text-sm mt-1">

@@ -51,7 +51,7 @@ export default function RecoveryCodesScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <Back type="short-arrow" showText={false} showBorder onPress={handleDone} />
 
-      <Text className="text-primary font-ubuntu-medium mt-[18px]" style={{ fontSize: 27 }}>
+      <Text className="mt-3 font-ubuntu-medium text-primary" style={{ fontSize: 27 }}>
         Save Your Recovery{'\n'}Codes
       </Text>
       <Text className="text-[#0A1F29] font-inter-light text-sm mt-3 leading-5">
