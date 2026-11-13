@@ -29,9 +29,15 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# local env files
-.env*.local
+# local env files (keep *.example templates tracked)
 .env
+.env.*
+!.env.local.example
+!.env.example
+
+# Firebase / Google services — copy from *.example locally; never commit real keys
+google-services.json
+GoogleService-Info.plist
 
 # local AI workspace
 .claude/
@@ -40,9 +46,6 @@ yarn-error.*
 *.tsbuildinfo
 
 app-example
-
-.env
-.env.example
 
 # generated native folders
 /ios

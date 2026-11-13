@@ -9,22 +9,10 @@
       "distribution": "internal"
     },
     "preview": {
-      "distribution": "internal",
-      "env": {
-        "EXPO_PUBLIC_USER_SERVICE_API_URL": "http://139.84.226.209:9034",
-        "EXPO_PUBLIC_CODE_SERVICE_API_URL": "http://139.84.226.209:9033",
-        "EXPO_PUBLIC_REVENUE_SERVICE_API_URL": "http://139.84.226.209:9037",
-        "EXPO_PUBLIC_AUTH_STORAGE_KEY": "auth-key",
-        "EXPO_PUBLIC_WIDTH_BREAKPOINT": "768"
-      }
+      "distribution": "internal"
     },
     "production": {
-      "autoIncrement": true,
-      "env": {
-        "EXPO_PUBLIC_USER_SERVICE_API_URL": "https://api.gatepassng.com/user",
-        "EXPO_PUBLIC_CODE_SERVICE_API_URL": "https://api.gatepassng.com/code",
-        "EXPO_PUBLIC_WIDTH_BREAKPOINT": "768"
-      }
+      "autoIncrement": true
     }
   },
   "submit": {
