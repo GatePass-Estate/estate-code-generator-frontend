@@ -10,6 +10,7 @@ import {
   type ViewProps,
   type ViewStyle,
 } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, {
   Easing,
@@ -101,7 +102,10 @@ export default function BottomSheet({
           dragStartY.value = translateY.value;
         })
         .onUpdate((event) => {
-          translateY.value = Math.max(0, dragStartY.value + event.translationY);
+          const next = Math.max(0, dragStartY.value + event.translationY);
+          translateY.value = next;
+          // The sheet moves. The overlay only fades with how far the sheet has travelled.
+          scrimOpacity.value = 1 - Math.min(next / height, 1);
         })
         .onEnd((event) => {
           const shouldClose = event.translationY > 120 || event.velocityY > 800;
@@ -110,8 +114,9 @@ export default function BottomSheet({
             return;
           }
           translateY.value = withTiming(0, SLIDE);
+          scrimOpacity.value = withTiming(1, SLIDE);
         }),
-    [busy, close, dragStartY, translateY]
+    [busy, close, dragStartY, height, scrimOpacity, translateY]
   );
 
   useEffect(() => {
@@ -146,12 +151,8 @@ export default function BottomSheet({
 
   if (!mounted) return null;
 
-  const scrimStyleProp = scrimProps?.style;
-  const scrimAlreadyDimmed =
-    !!backdrop ||
-    scrimClassName.includes('bg-') ||
-    !!StyleSheet.flatten(scrimStyleProp)?.backgroundColor;
-  const resolvedScrimClass = scrimAlreadyDimmed ? scrimClassName : `${scrimClassName} bg-black/50`;
+  // Callers still pass a scrim class. The backdrop colour is a style, because that class does not paint inside the modal.
+  void scrimClassName;
 
   return (
     <Modal
@@ -163,29 +164,33 @@ export default function BottomSheet({
       onRequestClose={close}
     >
       <GestureHandlerRootView style={styles.root}>
-        {backdrop}
-        <Animated.View style={[styles.fill, scrimStyle]} pointerEvents="box-none">
-          <Pressable
-            style={styles.fill}
-            className={resolvedScrimClass}
-            onPress={close}
-            {...scrimProps}
-          />
-        </Animated.View>
         {/*
-          The spacer above the panel is the outside tap. The top strip is the drag-down handle.
-          The panel itself stays a plain View so a ScrollView inside it (the Set Time wheels)
-          still receives the drag.
+          Full-screen blur + dark tint, faded in and out with the sheet (same opacity value the
+          slide and drag-to-close drive). A caller's own `backdrop` (e.g. the AI sheets' blur)
+          replaces the default blur and fades the same way, so there is never a double blur.
         */}
-        <Animated.View style={[styles.dock, panelMotion]} pointerEvents="box-none">
-          <Pressable style={styles.dismiss} onPress={close} />
-          <View className={panelClassName} style={panelStyle} {...panelProps}>
-            <GestureDetector gesture={pan}>
-              <View style={styles.handle} />
-            </GestureDetector>
-            {showGrabber ? <SheetGrabber /> : null}
-            {children}
-          </View>
+        <Animated.View pointerEvents="none" style={[styles.fill, scrimStyle]}>
+          {backdrop ?? (
+            <BlurView
+              intensity={40}
+              tint="dark"
+              blurMethod="dimezisBlurView"
+              style={styles.fill}
+            />
+          )}
+          <View style={[styles.fill, styles.dim]} />
+        </Animated.View>
+        <Pressable style={styles.fill} onPress={close} {...scrimProps} />
+        <Animated.View
+          className={panelClassName}
+          {...panelProps}
+          style={[styles.sheet, panelStyle, panelMotion]}
+        >
+          <GestureDetector gesture={pan}>
+            <View style={styles.handle} />
+          </GestureDetector>
+          {showGrabber ? <SheetGrabber /> : null}
+          {children}
         </Animated.View>
         {overlay ? (
           <View style={styles.fill} pointerEvents="box-none">
@@ -199,8 +204,9 @@ export default function BottomSheet({
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  fill: StyleSheet.absoluteFillObject,
-  dismiss: { flex: 1 },
+
+  fill: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 },
+  dim: { backgroundColor: 'rgba(0, 0, 0, 0.35)' },
   handle: {
     position: 'absolute',
     top: 0,
@@ -209,8 +215,15 @@ const styles = StyleSheet.create({
     height: 36,
     zIndex: 2,
   },
-  dock: {
-    flex: 1,
-    justifyContent: 'flex-end',
+  sheet: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1,
+    backgroundColor: '#F6F7F7',
+    borderTopLeftRadius: 40,
+    borderTopRightRadius: 40,
+    overflow: 'hidden',
   },
 });
