@@ -714,7 +714,7 @@ export default function AdminUsersMobilePage() {
                   onPress={() =>
                     router.push({
                       pathname: '/(protected)/admin/users/[userId]',
-                      params: { userId: item.id!, userParam: JSON.stringify(item) },
+                      params: { userId: item.id! },
                     })
                   }
                 >

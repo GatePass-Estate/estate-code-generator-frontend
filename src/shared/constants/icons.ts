@@ -1,4 +1,3 @@
-import menuIcon from '../../assets/icons/android-home-inactive.png';
 import activeAdminIcon from '../../assets/icons/web-admin-access-active.png';
 import inactiveAdminIcon from '../../assets/icons/web-admin-access-inactive.png';
 import activeProfileIcon from '../../assets/icons/web-profile-icon-active.png';
@@ -35,7 +34,6 @@ import webHomeActiveIcon from '../../assets/icons/web-home-icon-active.png';
 import webHomeInActiveIcon from '../../assets/icons/web-home-icon-inactive.png';
 import deleteMobileIcon from '../../assets/icons/delete.png';
 import generateCodeIcon from '../../assets/icons/generate-code.png';
-import activeBtnImg from '../../assets/icons/android-home-active.png';
 import activeGuestIcon from '../../assets/icons/active-account.png';
 import securityIcon from '../../assets/icons/admin-security.png';
 import editRequestIcon from '../../assets/icons/admin-edit-request.png';
@@ -58,7 +56,7 @@ import slideUp from '../../assets/icons/slide-up.png';
 import rightIcon from '../../assets/icons/right-icon.png';
 
 const icons = {
-  menuIcon,
+  menuIcon: inactiveHomeIcon,
   activeAdminIcon,
   inactiveAdminIcon,
   activeProfileIcon,
@@ -95,7 +93,7 @@ const icons = {
   webHomeInActiveIcon,
   deleteMobileIcon,
   generateCodeIcon,
-  activeBtnImg,
+  activeBtnImg: activeHomeIcon,
   activeGuestIcon,
   securityIcon,
   editRequestIcon,

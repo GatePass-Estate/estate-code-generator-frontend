@@ -24,6 +24,7 @@ import {
   getMarketplaceFeatureById,
 } from '@/src/features/marketplace/services/aiMarketplace';
 import { MarketplaceDetailResponse } from '@/src/features/marketplace/types/aiMarketplace';
+import { getUserDocumentViewUri } from '@/src/features/profile/services/userDocuments';
 import {
   anomalyHistoryRecords,
   anomalyHistoryTotal,
@@ -87,7 +88,7 @@ export default function AnomalyDetectionUserDetailsScreen() {
   );
 
   const [localSummaryData, setLocalSummaryData] = useState<AnomalySummaryView | null>(null);
-  const [featureDetail, setFeatureDetail] = useState<MarketplaceDetailResponse | null>(null);
+  const [, setFeatureDetail] = useState<MarketplaceDetailResponse | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -108,9 +109,6 @@ export default function AnomalyDetectionUserDetailsScreen() {
       isMounted = false;
     };
   }, []);
-
-  const tierTwoApi = featureDetail?.tiers?.find((tier) => tier.tier === 'tier2');
-  const tierThreeApi = featureDetail?.tiers?.find((tier) => tier.tier === 'tier3');
 
   const rawSummaryData = localSummaryData || summaryData;
   const currentSummaryData = unwrapAnomalyPayload(rawSummaryData as AnomalySummaryView | undefined);
@@ -185,7 +183,7 @@ export default function AnomalyDetectionUserDetailsScreen() {
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    Animated.loop(
+    const anim = Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
           toValue: 1.03,
@@ -198,7 +196,11 @@ export default function AnomalyDetectionUserDetailsScreen() {
           useNativeDriver: true,
         }),
       ])
-    ).start();
+    );
+    anim.start();
+    return () => {
+      anim.stop();
+    };
   }, [pulseAnim]);
 
   const [profilePicUri, setProfilePicUri] = useState<string | null>(null);
@@ -211,8 +213,6 @@ export default function AnomalyDetectionUserDetailsScreen() {
         return;
       }
       try {
-        const { getUserDocumentViewUri } = require('@/src/features/profile/services/userDocuments');
-
         // Only the profile photo: never fall back to the government ID image (private, and may
         // be a PDF). Without a photo the screen shows its normal placeholder avatar.
         const profilePic = await getUserDocumentViewUri(demo.user_id, 'profile_picture');

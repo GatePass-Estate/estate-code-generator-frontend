@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { Dimensions, Text, View } from 'react-native';
+import { Text, View, useWindowDimensions } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
@@ -8,7 +8,6 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-const SCREEN_WIDTH = Dimensions.get('window').width;
 /** How far the row must travel before the action commits. */
 const ACTION_THRESHOLD = 80;
 const TIMING = { duration: 180 };
@@ -43,6 +42,7 @@ export default function SwipeableRow({
   deleteColor = '#E30404',
   openColor = '#113E55',
 }: SwipeableRowProps) {
+  const { width: screenWidth } = useWindowDimensions();
   const translateX = useSharedValue(0);
   const startX = useSharedValue(0);
 
@@ -63,7 +63,7 @@ export default function SwipeableRow({
     })
     .onEnd(() => {
       if (onSwipeLeft && translateX.value <= -ACTION_THRESHOLD) {
-        translateX.value = withTiming(-SCREEN_WIDTH, TIMING, (finished) => {
+        translateX.value = withTiming(-screenWidth, TIMING, (finished) => {
           if (finished) runOnJS(onSwipeLeft)();
         });
         return;

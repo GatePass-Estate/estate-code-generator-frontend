@@ -3,14 +3,40 @@ import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import { AuthState } from '@/src/features/auth/store/authStore';
 import { AuthBroadcastMessage, UserRolesType } from '@/src/shared/types/general';
+import type { User } from '@/src/features/users/types/user';
 
 const authStorageKey = 'auth-key';
+/** Last successful profile — used so offline startup can keep the session (STB-05). */
+const cachedUserStorageKey = 'gatepass-cached-user';
 // Native keeps the refresh token in the keychain/keystore; web has only localStorage, which
 // also lets other tabs pick up a rotated pair (see authRefresh.ts).
 const refreshTokenSecureKey = 'gatepass-refresh-token';
 // The access token is a bearer credential too, so on native it is kept out of plain AsyncStorage.
 const accessTokenSecureKey = 'gatepass-access-token';
+// Web: keep the short-lived access token in sessionStorage (tab-scoped) instead of localStorage
+// so a stolen localStorage dump does not include a live bearer (SEC-03). Refresh stays shared
+// so other tabs / reloads can mint a new access token.
+const webAccessTokenSessionKey = 'gatepass-access-token-session';
 const keepsRefreshTokenInSecureStore = Platform.OS !== 'web';
+
+function readWebAccessToken(): string | null {
+  if (Platform.OS !== 'web' || typeof sessionStorage === 'undefined') return null;
+  try {
+    return sessionStorage.getItem(webAccessTokenSessionKey);
+  } catch {
+    return null;
+  }
+}
+
+function writeWebAccessToken(access_token: string | null | undefined): void {
+  if (Platform.OS !== 'web' || typeof sessionStorage === 'undefined') return;
+  try {
+    if (access_token) sessionStorage.setItem(webAccessTokenSessionKey, access_token);
+    else sessionStorage.removeItem(webAccessTokenSessionKey);
+  } catch {
+    // Private mode / quota — leave the in-memory auth store as the source of truth.
+  }
+}
 
 const BROADCAST_CHANNEL_NAME = 'gatepass-auth-sync';
 
@@ -18,7 +44,7 @@ let broadcastChannel: BroadcastChannel | null = null;
 let storageEventListener: ((event: StorageEvent) => void) | null = null;
 
 export const initAuthSync = (callbacks: {
-  onLogin: (token: string, role: UserRolesType) => void;
+  onLogin: (role: UserRolesType) => void;
   onLogout: () => void;
 }): (() => void) => {
   if (Platform.OS !== 'web' || typeof window === 'undefined') {
@@ -30,7 +56,8 @@ export const initAuthSync = (callbacks: {
     broadcastChannel.onmessage = (event: MessageEvent<AuthBroadcastMessage>) => {
       const message = event.data;
       if (message.type === 'LOGIN') {
-        callbacks.onLogin(message.payload.token, message.payload.role);
+        // Token stays in shared storage — never posted across tabs.
+        callbacks.onLogin(message.payload.role);
       } else if (message.type === 'LOGOUT') {
         callbacks.onLogout();
       }
@@ -64,14 +91,15 @@ export const initAuthSync = (callbacks: {
 };
 
 /**
- * Broadcast login event to all other tabs
+ * Broadcast login event to all other tabs. Other tabs read the session from shared
+ * storage — the bearer token is never posted on the channel.
  */
-export const broadcastLogin = (token: string, role: UserRolesType): void => {
+export const broadcastLogin = (role: UserRolesType): void => {
   if (Platform.OS !== 'web' || typeof window === 'undefined') return;
 
   const message: AuthBroadcastMessage = {
     type: 'LOGIN',
-    payload: { token, role, timestamp: Date.now() },
+    payload: { role, timestamp: Date.now() },
   };
 
   if (broadcastChannel) {
@@ -122,6 +150,10 @@ export const storeAuthState = async (userData: AuthState): Promise<boolean> => {
         // Keychain unavailable: keep the previous behaviour rather than losing the session.
         await SecureStore.deleteItemAsync(accessTokenSecureKey).catch(() => {});
       }
+    } else {
+      // Web: never persist the bearer in localStorage; sessionStorage only.
+      writeWebAccessToken(stored.access_token);
+      stored = { ...stored, access_token: null };
     }
     await AsyncStorage.setItem(authStorageKey, JSON.stringify(stored));
     return true;
@@ -140,14 +172,32 @@ export const clearAuthState = async (): Promise<void> => {
   try {
     await AsyncStorage.removeItem(authStorageKey);
   } catch {}
+  writeWebAccessToken(null);
   await clearStoredRefreshToken();
+  await clearCachedUser();
 };
 
-export const clearAccessToken = async (): Promise<void> => {
+/** Persist the signed-in profile so a cold start without network can still enter the app. */
+export const storeCachedUser = async (user: User): Promise<void> => {
   try {
-    await AsyncStorage.removeItem(authStorageKey);
+    await AsyncStorage.setItem(cachedUserStorageKey, JSON.stringify(user));
   } catch {}
-  await clearStoredRefreshToken();
+};
+
+export const getCachedUser = async (): Promise<User | null> => {
+  try {
+    const raw = await AsyncStorage.getItem(cachedUserStorageKey);
+    if (!raw) return null;
+    return JSON.parse(raw) as User;
+  } catch {
+    return null;
+  }
+};
+
+export const clearCachedUser = async (): Promise<void> => {
+  try {
+    await AsyncStorage.removeItem(cachedUserStorageKey);
+  } catch {}
 };
 
 /** Stored session, or null. `refresh_token` is null for sessions saved before refresh tokens. */
@@ -162,6 +212,19 @@ export const getAuthState = async (): Promise<AuthState | null> => {
       // the next storeAuthState moves it.
       const secureAccess = await SecureStore.getItemAsync(accessTokenSecureKey).catch(() => null);
       if (secureAccess) state.access_token = secureAccess;
+    } else {
+      // Prefer sessionStorage; migrate a legacy localStorage bearer into sessionStorage once.
+      const sessionAccess = readWebAccessToken();
+      if (sessionAccess) {
+        state.access_token = sessionAccess;
+      } else if (state.access_token) {
+        writeWebAccessToken(state.access_token);
+        const { access_token: _legacy, ...withoutAccess } = state;
+        await AsyncStorage.setItem(
+          authStorageKey,
+          JSON.stringify({ ...withoutAccess, access_token: null })
+        );
+      }
     }
     return { ...state, refresh_token: state.refresh_token ?? null };
   } catch {

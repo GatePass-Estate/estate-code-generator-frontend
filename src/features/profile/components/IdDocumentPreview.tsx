@@ -101,7 +101,7 @@ function AndroidPdfPreview({ uri }: { uri: string }) {
       {html ? (
         <WebView
           source={{ html, baseUrl: `${PDFJS}/` }}
-          originWhitelist={['*']}
+          originWhitelist={['https://cdnjs.cloudflare.com']}
           className="h-full w-full"
           onMessage={(event) => {
             setPhase(event.nativeEvent.data.startsWith('error') ? 'error' : 'ready');
@@ -128,11 +128,12 @@ export default function IdDocumentPreview({ uri, contentType }: Props) {
   }
 
   if (isPdf) {
+    const allowedOrigins = ['file://', 'https://*', 'http://localhost*', 'content://*'];
     return (
       <WebView
         source={{ uri }}
         className="h-full w-full"
-        originWhitelist={['*']}
+        originWhitelist={allowedOrigins}
         allowingReadAccessToURL={uri}
         showsHorizontalScrollIndicator={false}
         showsVerticalScrollIndicator={false}

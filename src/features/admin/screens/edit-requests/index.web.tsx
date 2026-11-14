@@ -350,10 +350,6 @@ function EditRequestsWeb() {
 
                     {editRequests.length > 0 && (
                       <div className="flex items-center gap-4 mb-4 p-4 bg-white justify-end mt-20">
-                        {/* <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} className="w-5 h-5 cursor-pointer" />
-												<span className="text-sm font-inter-regular text-grey flex-1">
-													{allSelected ? 'Deselect All' : 'Select All'} ({selectedRequests.length} selected)
-												</span> */}
                         <button
                           onClick={handleDeclineSelected}
                           disabled={running || selectedRequests.length === 0}

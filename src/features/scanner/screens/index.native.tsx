@@ -1,14 +1,12 @@
 import { errorMessage as thrownMessage } from '@/src/shared/services/api/errors';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useFocusEffect, useIsFocused, useLocalSearchParams, useRouter } from 'expo-router';
 import {
   Alert,
-  Image,
   Keyboard,
   KeyboardAvoidingView,
   Linking,
-  Modal,
   Platform,
   Pressable,
   RefreshControl,
@@ -25,7 +23,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/src/shared/services/api/queryKeys';
 import { Ionicons as Icon } from '@expo/vector-icons';
 import NotificationBell from '@/src/features/notifications/components/NotificationBell';
-import InvalidCodeClose from '@/src/assets/icons/invalid-code-close.svg';
 import MoreFill from '@/src/assets/icons/more-fill.svg';
 import ScanFrame from '@/src/assets/icons/scan-frame.svg';
 import { useValidateCode } from '@/src/features/access-codes/hooks/codes';
@@ -36,11 +33,13 @@ import { useVerificationGate } from '@/src/features/auth/hooks/useAccountVerific
 import AnimatedPillTabs from '@/src/shared/components/AnimatedPillTabs';
 import { sharedStyles } from '@/src/shared/theme/styles';
 import { Inter } from '@/src/shared/constants/fonts';
+import EnterCodePanel from '@/src/features/scanner/components/EnterCodePanel';
+import InvalidCodeOverlay from '@/src/features/scanner/components/InvalidCodeOverlay';
 import SecurityTabBar from '@/src/features/scanner/components/SecurityTabBar';
+import { useExitAppOnRootBack } from '@/src/shared/hooks/useExitAppOnRootBack';
 import { InputRefsStorage } from '@/src/shared/types/general';
 
 const EMPTY_CODE = ['', '', '', '', '', ''];
-const invalidCodeIllustration = require('@/src/assets/icons/credit-card-1.png');
 type VerificationMode = 'enter' | 'scan';
 
 const normalizeAccessCode = (value: string | null | undefined) => {
@@ -109,50 +108,11 @@ const extractScannedAccessCode = (value: string) => {
   return normalizeAccessCode(rawValue);
 };
 
-function InvalidCodeOverlay({ onClose }: { onClose: () => void }) {
-  return (
-    <Modal
-      visible
-      transparent
-      animationType="fade"
-      statusBarTranslucent
-      navigationBarTranslucent
-      onRequestClose={onClose}
-    >
-      <View style={styles.overlayBackdrop}>
-        <Pressable
-          accessibilityLabel="Close invalid code message"
-          onPress={onClose}
-          style={StyleSheet.absoluteFill}
-        />
-        <View style={styles.invalidOverlayContent}>
-          <View style={styles.invalidCard}>
-            <Image source={invalidCodeIllustration} style={styles.invalidCardImage} />
-            <Text allowFontScaling={false} numberOfLines={1} style={styles.invalidTitleText}>
-              Oops!!
-            </Text>
-            <Text allowFontScaling={false} numberOfLines={1} style={styles.invalidMessageText}>
-              {"This code doesn't exist or has expired"}
-            </Text>
-          </View>
-          <View pointerEvents="box-none" style={styles.invalidClosePosition}>
-            <Pressable
-              accessibilityLabel="Close invalid code message"
-              onPress={onClose}
-              style={({ pressed }) => [styles.invalidCloseButton, pressed && styles.pressed]}
-            >
-              <InvalidCodeClose width={32} height={32} />
-            </Pressable>
-          </View>
-        </View>
-      </View>
-    </Modal>
-  );
-}
-
 export default function SecurityVerificationMobile() {
+  useExitAppOnRootBack();
   const queryClient = useQueryClient();
   const params = useLocalSearchParams();
+  const isFocused = useIsFocused();
   const { width: windowWidth } = useWindowDimensions();
   const [mode, setMode] = useState<VerificationMode>(params.mode === 'scan' ? 'scan' : 'enter');
   const [code, setCode] = useState<string[]>(EMPTY_CODE);
@@ -167,6 +127,8 @@ export default function SecurityVerificationMobile() {
   const inputs = useRef<InputRefsStorage>({});
   const scanNavigationInProgressRef = useRef(false);
   const router = useRouter();
+  // PERF-08: unmount the camera when leaving the scan tab or this screen.
+  const cameraActive = isFocused && mode === 'scan' && Boolean(permission?.granted);
   const headerTopGap = 24.14;
   const headerToToggleGap = 24;
   const contentTopGap = mode === 'scan' ? 66 : 96;
@@ -231,11 +193,10 @@ export default function SecurityVerificationMobile() {
         return;
       }
 
-      // Code validation is authoritative; missing profile details must not reject a valid scan.
-      const resident = result.user_id
-        ? await fetchCachedUser(result.user_id).catch(() => null)
-        : null;
-      const residentHousehold = resident?.household_name || result.household_name || 'Household';
+      // PERF-08: navigate on validation alone; warm the resident cache for the result screen.
+      if (result.user_id) {
+        void fetchCachedUser(result.user_id).catch(() => null);
+      }
       const warningSeverity = getScanWarningSeverity(result);
 
       router.push({
@@ -244,12 +205,8 @@ export default function SecurityVerificationMobile() {
           visitor_fullname: result.visitor_fullname,
           relationship_with_resident: result.relationship_with_resident,
           gender: result.gender,
-          resident_name: `${resident?.first_name ?? ''} ${resident?.last_name ?? ''}`,
-          resident_address: resident?.home_address,
-          resident_household: residentHousehold,
-          resident_email: resident?.email,
-          resident_phone_number: resident?.phone_number,
-          resident_user_id: result.user_id,
+          resident_household: result.household_name || 'Household',
+          resident_user_id: result.user_id ?? '',
           code: result.hashed_code,
           receiver: result.receiver,
           ...(warningSeverity ? { warningSeverity } : {}),
@@ -361,111 +318,19 @@ export default function SecurityVerificationMobile() {
   };
 
   const renderEnterCode = () => (
-    <View className="w-full items-center">
-      <View className="mb-[38px] items-center">
-        <View className="h-[26px] w-[302px] items-center justify-center">
-          <Text
-            allowFontScaling={false}
-            numberOfLines={1}
-            className="h-[26px] w-[302px] text-center font-ubuntu-semibold text-heading-sm leading-[21.88px] text-primary"
-          >
-            Verify Access Code
-          </Text>
-        </View>
-        <View className="mt-[10px] h-[17px] w-[205px] items-center justify-center">
-          <Text
-            allowFontScaling={false}
-            numberOfLines={1}
-            className="h-[17px] w-[205px] text-center font-inter-light text-[14px] leading-[14px] text-orange"
-          >
-            Enter the code from guest here
-          </Text>
-        </View>
-      </View>
-
-      <View className="h-[64.5px] w-[304px] flex-row justify-center gap-[8px] py-[2px]">
-        {code.map((digit, idx) => {
-          const focused = focusedIndex === idx;
-          const boxBorder = focused
-            ? { borderColor: '#113E55', borderWidth: 1.5 }
-            : { borderColor: '#9B9797', borderWidth: 0.5 };
-
-          return Platform.OS === 'ios' ? (
-            <View
-              key={idx}
-              className="relative h-[60.50px] w-[44px] items-center justify-center rounded-[8px] bg-[#EFF1F1]"
-              style={boxBorder}
-            >
-              <Text
-                allowFontScaling={false}
-                pointerEvents="none"
-                className="text-center font-ubuntu-semibold text-[20px] leading-[20px] text-primary"
-              >
-                {digit}
-              </Text>
-              <TextInput
-                ref={(el) => setInputRef(el, idx)}
-                style={styles.codeInputCapture}
-                value={digit}
-                onChangeText={(t) => handleChange(t, idx)}
-                onKeyPress={(e) => handleKeyPress(e, idx)}
-                onFocus={() => setFocusedIndex(idx)}
-                onBlur={() => setFocusedIndex((current) => (current === idx ? null : current))}
-                autoCapitalize="characters"
-                maxLength={1}
-                accessibilityLabel={`Digit ${idx + 1}`}
-                returnKeyType="done"
-                blurOnSubmit
-                cursorColor="#113E55"
-                selectionColor="#CEE5ED"
-              />
-            </View>
-          ) : (
-            <TextInput
-              key={idx}
-              ref={(el) => setInputRef(el, idx)}
-              className="h-[60.50px] w-[44px] rounded-[8px] bg-[#EFF1F1] text-center font-ubuntu-semibold text-[20px] leading-[20px] text-primary"
-              style={[styles.codeInputAndroid, boxBorder]}
-              value={digit}
-              onChangeText={(t) => handleChange(t, idx)}
-              onKeyPress={(e) => handleKeyPress(e, idx)}
-              onFocus={() => setFocusedIndex(idx)}
-              onBlur={() => setFocusedIndex((current) => (current === idx ? null : current))}
-              autoCapitalize="characters"
-              maxLength={1}
-              accessibilityLabel={`Digit ${idx + 1}`}
-              returnKeyType="done"
-              blurOnSubmit
-              cursorColor="#113E55"
-              selectionColor="#CEE5ED"
-            />
-          );
-        })}
-      </View>
-
-      <View className="mt-[106.5px] h-[48px] w-full items-center">
-        <Pressable
-          className="h-[48px] min-w-[80px] max-w-[278px] w-[171px] flex-row items-center justify-center gap-[10px] rounded-[24px] bg-primary px-[24px] py-[16px]"
-          style={({ pressed }) => [pressed && styles.pressed]}
-          onPress={() => validateEnteredCode(code.join(''))}
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? (
-            <CircleLoader size={22} tone="light" />
-          ) : (
-            <Text allowFontScaling={false} numberOfLines={1} style={styles.validateCodeButtonText}>
-              Validate Code
-            </Text>
-          )}
-        </Pressable>
-      </View>
-
-      {errorMessage && !invalidCode ? (
-        <Text className="mt-[18px] text-center font-inter-regular text-[13px] text-danger">
-          {errorMessage}
-        </Text>
-      ) : null}
-    </View>
+    <EnterCodePanel
+      code={code}
+      focusedIndex={focusedIndex}
+      isSubmitting={isSubmitting}
+      errorMessage={errorMessage}
+      invalidCode={invalidCode}
+      setInputRef={setInputRef}
+      onChangeDigit={handleChange}
+      onKeyPressDigit={handleKeyPress}
+      onFocusDigit={setFocusedIndex}
+      onBlurDigit={(idx) => setFocusedIndex((current) => (current === idx ? null : current))}
+      onValidate={() => validateEnteredCode(code.join(''))}
+    />
   );
 
   const renderScanner = () => (
@@ -490,14 +355,18 @@ export default function SecurityVerificationMobile() {
       </View>
 
       <View style={styles.scanFrame}>
-        {permission?.granted ? (
+        {cameraActive ? (
           <CameraView
             style={styles.camera}
             facing="back"
             barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
             onCameraReady={resetScanState}
-            onBarcodeScanned={handleScan}
+            onBarcodeScanned={isSubmitting ? undefined : handleScan}
           />
+        ) : permission?.granted ? (
+          <View style={styles.permissionState}>
+            <CircleLoader size={32} />
+          </View>
         ) : (
           <View style={styles.permissionState}>
             <Icon name="camera-outline" size={34} color="#113E55" />
@@ -637,29 +506,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 17,
   },
-  validateCodeButtonText: {
-    color: '#F6F7F7',
-    fontFamily: 'UbuntuSans-SemiBold',
-    fontSize: 14,
-    height: 17,
-    left: 24,
-    letterSpacing: -0.24,
-    lineHeight: 17,
-    position: 'absolute',
-    textAlign: 'center',
-    top: 15.5,
-    width: 123,
-  },
-  codeInputCapture: {
-    ...StyleSheet.absoluteFill,
-    color: 'transparent',
-    padding: 0,
-    textAlign: 'center',
-  },
-  codeInputAndroid: {
-    paddingVertical: 0,
-    textAlignVertical: 'center',
-  },
   content: {
     flex: 1,
     justifyContent: 'flex-start',
@@ -730,67 +576,5 @@ const styles = StyleSheet.create({
     top: 0,
     width: 250.94,
     zIndex: 2,
-  },
-  overlayBackdrop: {
-    backgroundColor: 'rgba(0, 0, 0, 0.58)',
-    flex: 1,
-  },
-  invalidOverlayContent: {
-    alignItems: 'center',
-    flex: 1,
-    paddingTop: 209,
-  },
-  invalidCard: {
-    alignItems: 'center',
-    backgroundColor: '#F6F7F7',
-    borderRadius: 40,
-    height: 351,
-    justifyContent: 'center',
-    overflow: 'hidden',
-    position: 'relative',
-    width: 331,
-  },
-  invalidCardImage: {
-    height: 150,
-    left: 91,
-    position: 'absolute',
-    top: 53,
-    width: 150,
-  },
-  invalidClosePosition: {
-    height: 32,
-    marginTop: 104,
-    width: 32,
-  },
-  invalidCloseButton: {
-    alignItems: 'center',
-    borderRadius: 10000,
-    height: 32,
-    justifyContent: 'center',
-    width: 32,
-  },
-  invalidTitleText: {
-    color: '#113E55',
-    fontFamily: 'UbuntuSans-SemiBold',
-    fontSize: 26,
-    height: 33,
-    left: 124,
-    lineHeight: 33,
-    position: 'absolute',
-    textAlign: 'center',
-    top: 219,
-    width: 82,
-  },
-  invalidMessageText: {
-    color: '#0A1F29',
-    fontFamily: Inter.regular,
-    fontSize: 14,
-    height: 17,
-    left: 30,
-    lineHeight: 17,
-    position: 'absolute',
-    textAlign: 'center',
-    top: 268,
-    width: 271,
   },
 });

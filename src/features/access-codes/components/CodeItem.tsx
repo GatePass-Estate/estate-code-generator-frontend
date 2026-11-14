@@ -16,7 +16,7 @@ const CodeItem = ({
   formattedDate: string;
   parsed: Date;
 }) => {
-  const [codes, setCodes] = useState<Codes[]>([]);
+  const [, setCodes] = useState<Codes[]>([]);
 
   return (
     <Pressable

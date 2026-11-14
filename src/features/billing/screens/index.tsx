@@ -27,7 +27,7 @@ import {
   useEstateAiTools,
 } from '@/src/features/billing/hooks/billing';
 import { useBillingScreenGuard } from '@/src/features/billing/hooks/useBillingScreenGuard';
-import { useEstateUsers } from '@/src/features/admin/hooks/estateUsers';
+import { useEstateUsersSummary } from '@/src/features/admin/hooks/estateUsers';
 import { useEstateEntitlements } from '@/src/features/billing';
 import {
   formatBillingDate,
@@ -70,7 +70,7 @@ export default function BillingScreen() {
   // Seat usage without a dedicated call: the seat total from the (already cached) entitlements and
   // seats in use counted like the admin dashboard, from the shared estate users list.
   const { data: entitlements } = useEstateEntitlements();
-  const { data: estateUsers } = useEstateUsers({ enabled: canView });
+  const { data: estateUsers } = useEstateUsersSummary({ enabled: canView });
   const aiTools = useEstateAiTools();
   const pendingRequests = usePendingRequests();
   const cancelPlan = useCancelSubscription();

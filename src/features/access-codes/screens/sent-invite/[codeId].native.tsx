@@ -50,7 +50,7 @@ export default function UpcomingInviteScreen() {
   const goBack = useGoBack();
   const navigation = useNavigation();
   const { tabBarStyle } = useAndroidBottomInset();
-  const { user_id } = useUserStore();
+  const user_id = useUserStore((s) => s.user_id);
   const params = useLocalSearchParams<{
     codeId: string;
     visitorName?: string;

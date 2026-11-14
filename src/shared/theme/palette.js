@@ -15,6 +15,12 @@ const palette = {
   'input-border': '#D1D5DB',
   danger: '#ED0808',
   black: '#04121A',
+  // CQ-11: high-traffic semantic surfaces / mute text used across headers & lists.
+  surface: '#F6F7F7',
+  'surface-bell': '#F6FCFF',
+  muted: '#6C6C6C',
+  'muted-soft': '#878686',
+  'danger-badge': '#E30404',
 };
 
 module.exports = { palette };

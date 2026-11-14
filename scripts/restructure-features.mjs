@@ -2,7 +2,6 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const root = process.cwd();
-const exts = ['.ts', '.tsx', '.js', '.jsx', '.native.tsx', '.web.tsx', '.ios.tsx', '.android.tsx'];
 
 const exact = {
   'lib/queryClient.ts': 'src/shared/services/api/queryClient.ts',

@@ -29,7 +29,8 @@ const PROFILE_TIMELINE_GAP = 26;
 export default function UsageLogScreen() {
   const navigation = useNavigation();
   const { codeId } = useLocalSearchParams<{ codeId: string }>();
-  const { user_id, estate_id } = useUserStore();
+  const user_id = useUserStore((s) => s.user_id);
+  const estate_id = useUserStore((s) => s.estate_id);
   const { requestAccess: requestCodeAccess } = useFeatureGate('advanced_code_management', {
     notice: 'floating',
   });

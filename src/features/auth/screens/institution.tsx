@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Alert, Keyboard, Platform, Pressable, Text, TextInput, View } from 'react-native';
+import { Keyboard, Pressable, Text, TextInput, View } from 'react-native';
+import { showAlert } from '@/src/shared/utils/alert';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Linking from 'expo-linking';
@@ -16,11 +17,7 @@ import InstitutionSearchIdle from '@/src/assets/icons/institution-search-idle.sv
 import InstitutionSearchActive from '@/src/assets/icons/institution-search-active.svg';
 import { searchPublicEstates } from '@/src/features/admin/services/estate';
 import InstitutionResultCard from '@/src/features/auth/components/InstitutionResultCard';
-import {
-  getSelectedInstitution,
-  setSelectedInstitution,
-} from '@/src/features/auth/services/authPersistence';
-import LoadingTransition from '@/src/shared/components/feedback/LoadingTransition';
+import { setSelectedInstitution } from '@/src/features/auth/services/authPersistence';
 import { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
 import type { Estate } from '@/src/features/admin/types/estate';
 
@@ -44,7 +41,6 @@ export default function InstitutionScreen() {
   const [settledQuery, setSettledQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [selected, setSelected] = useState<Estate | null>(null);
-  const [appReady, setAppReady] = useState(false);
 
   const inputRef = useRef<TextInput>(null);
   const searchSeq = useRef(0);
@@ -69,26 +65,6 @@ export default function InstitutionScreen() {
   useEffect(() => {
     progress.value = withTiming(searching ? 1 : 0, { duration: MOVE_MS, easing: MOVE_EASE });
   }, [searching, progress]);
-
-  useEffect(() => {
-    const checkExisting = async () => {
-      try {
-        const stored = await getSelectedInstitution();
-        // Native: a stored estate means go straight to login — don't paint this picker first.
-        if (stored && Platform.OS !== 'web') {
-          router.replace('/auth/login');
-          return;
-        }
-        if (stored) {
-          setSelected(null);
-        }
-      } catch {
-        // ignore read errors; continue to selection screen
-      }
-      setAppReady(true);
-    };
-    checkExisting();
-  }, [router]);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -213,7 +189,7 @@ export default function InstitutionScreen() {
       });
       router.push({ pathname: '/auth/login', params: { fromInstitute: 'true' } });
     } catch {
-      Alert.alert('Error', 'Could not save institution selection. Please try again.');
+      showAlert('Error', 'Could not save institution selection. Please try again.');
     }
   }, [selected, router]);
 
@@ -226,10 +202,6 @@ export default function InstitutionScreen() {
     transform: [{ translateY: continueTranslateY.value }],
     pointerEvents: continueOpacity.value > 0.5 ? 'auto' : 'none',
   }));
-
-  if (!appReady) {
-    return <LoadingTransition />;
-  }
 
   return (
     <SafeAreaView className="flex-1 bg-body">

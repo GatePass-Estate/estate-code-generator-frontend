@@ -1,19 +1,6 @@
 import { raiseApiError } from '@/src/shared/services/api/errors';
 import Api from '@/src/shared/services/api/client';
-import { CodesApiResponse } from '@/src/features/access-codes/types/codes';
 import { Estate, PublicEstateListResponse } from '@/src/features/admin/types/estate';
-
-export async function getEstates(id: string): Promise<CodesApiResponse> {
-  try {
-    const api = Api('code');
-    const axiosRes = await api.get(`/codeservice/all/${id}?receiver=visitor`);
-    const data = axiosRes.data;
-
-    return data;
-  } catch (error: unknown) {
-    raiseApiError(error, 'Could not fetch code', true);
-  }
-}
 
 export async function searchPublicEstates(query: string): Promise<PublicEstateListResponse> {
   try {

@@ -11,7 +11,7 @@ import {
   useWindowDimensions,
   type ViewStyle,
 } from 'react-native';
-import { Inter, UbuntuSans } from '@/src/shared/constants/fonts';
+import { Inter } from '@/src/shared/constants/fonts';
 import { consumeActivationStatusAccess } from '@/src/features/auth/services/authPersistence';
 import { getWidthBreakpoint } from '@/src/shared/utils/helpers';
 import { SafeAreaView } from 'react-native-safe-area-context';

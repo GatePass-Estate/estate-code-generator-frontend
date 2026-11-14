@@ -1,12 +1,12 @@
 import React, { useState, useRef } from 'react';
 import { useRouter } from 'expo-router';
 import { Ionicons as Icon } from '@expo/vector-icons';
-import Back from '@/src/shared/components/navigation/Back';
 import StarRating from '@/src/shared/components/StarRating';
 import Modal from '@/src/shared/components/feedback/Modal';
 import { GatePassLogo } from '@/src/features/support/components/GatePassLogo';
 import { errorMessage } from '@/src/shared/services/api/errors';
 import { submitFeedback } from '@/src/features/support/services/help';
+import { uploadFeedbackAttachment } from '@/src/features/support/services/feedbackAttachment';
 
 type Tab = 'Suggestion' | 'Issue';
 
@@ -149,22 +149,7 @@ export default function RatingFeedbackWeb() {
             let uploadedUrl = '';
 
             if (imageFile) {
-              const formData = new FormData();
-              formData.append('file', imageFile);
-              formData.append('upload_preset', 'GatePass_Feedback');
-
-              const uploadRes = await fetch(
-                'https://api.cloudinary.com/v1_1/dcozenahn/image/upload',
-                {
-                  method: 'POST',
-                  body: formData,
-                }
-              );
-
-              if (!uploadRes.ok) throw new Error('Failed to upload image to Cloudinary');
-
-              const uploadData = await uploadRes.json();
-              uploadedUrl = uploadData.secure_url;
+              uploadedUrl = await uploadFeedbackAttachment(imageFile);
             }
 
             await submitFeedback({

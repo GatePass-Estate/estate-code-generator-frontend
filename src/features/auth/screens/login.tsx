@@ -96,7 +96,7 @@ export default function Login() {
 
   const routeForUser = useCallback(
     (user: User) => {
-      if (user.role === 'resident' || ['primary_admin', 'admin'].includes(user.role!)) {
+      if (user.role === 'resident' || ['root', 'primary_admin', 'admin'].includes(user.role!)) {
         router.replace('/user');
       } else if (user.role === 'security') {
         router.replace('/security');
@@ -141,7 +141,9 @@ export default function Login() {
       const biometric = await canUseBiometricLogin(savedUserId, institution?.estate_id);
       setShowBiometric(biometric);
     };
-    prepare();
+    void prepare().catch(() => {
+      // STB-15: institution/biometric bootstrap must not surface as an unhandled rejection.
+    });
   }, [router, searchParams.fromInstitute, searchParams.signed_out, searchParams.tos_rejected]);
 
   useEffect(() => {
@@ -154,7 +156,12 @@ export default function Login() {
     if (Platform.OS === 'web') document.title = 'Login - GatePass';
   }, []);
 
-  const handleBackPress = useCallback(async () => {
+  const handleBackPress = useCallback(() => {
+    // Prefer popping back to the existing institution screen (smooth slide) over remounting it.
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
     router.replace('/auth/institution');
   }, [router]);
 
@@ -174,7 +181,7 @@ export default function Login() {
         role: user.role,
         session_id: options?.sessionId,
       });
-      broadcastLogin(token, user.role);
+      broadcastLogin(user.role);
       signIn(user);
 
       if (!options?.skipRouting) {
@@ -263,9 +270,10 @@ export default function Login() {
         }
       }
 
-      const hasSavedBiometricForCurrentUser = Boolean(
-        (await getBiometricToken()) &&
-        (await biometricTokenMatchesUser(user.user_id, user.estate_id))
+      // Do not call getBiometricToken here — that unlocks the keychain and prompts Face ID.
+      const hasSavedBiometricForCurrentUser = await biometricTokenMatchesUser(
+        user.user_id,
+        user.estate_id
       );
       const hasPreferenceForCurrentUser = await isBiometricPreferenceEnabled(
         user.user_id,
@@ -295,12 +303,7 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      const authenticated = await promptBiometrics('Unlock GatePass');
-      if (!authenticated) {
-        setIsLoading(false);
-        return;
-      }
-
+      // SecureStore.requireAuthentication prompts Face ID / fingerprint to unlock the token.
       const token = await getBiometricToken();
       if (!token || !estate?.estate_id) {
         setPassword('');

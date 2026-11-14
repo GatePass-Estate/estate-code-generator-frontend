@@ -1,9 +1,9 @@
-import { Stack, router, useFocusEffect } from 'expo-router';
-import CountdownRing from '@/src/shared/components/CountdownRing';
-import { View, Text, FlatList, Animated, Platform, Alert } from 'react-native';
+import { Stack, router, useFocusEffect, useIsFocused } from 'expo-router';
+import { View, Text, FlatList, Animated, Platform, Alert, RefreshControl } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useExitAppOnRootBack } from '@/src/shared/hooks/useExitAppOnRootBack';
 import images from '@/src/shared/constants/images';
 import { Codes } from '@/src/features/access-codes/types/codes';
 import {
@@ -27,9 +27,12 @@ import ActiveCodeCard from '@/src/features/access-codes/components/ActiveCodeCar
 import ScreenHeader from '@/src/shared/components/layout/ScreenHeader';
 import HeaderActions from '@/src/features/dashboard/components/HeaderActions';
 import { CopiedToast } from '@/src/shared/components/feedback/CopiedToast';
+import { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
 
 export default function HomeMobile() {
   const { tabContentPadding } = useAndroidBottomInset();
+  const isFocused = useIsFocused();
+  useExitAppOnRootBack();
   const bounceValue = useRef(new Animated.Value(0)).current;
   const userId = useUserStore((state) => state.user_id);
   const codesQuery = useActiveCodes(userId);
@@ -86,7 +89,13 @@ export default function HomeMobile() {
     }, [])
   );
 
+  // PERF-15: only bounce while this tab is focused.
   useEffect(() => {
+    if (!isFocused) {
+      bounceValue.stopAnimation();
+      bounceValue.setValue(0);
+      return;
+    }
     const anim = Animated.loop(
       Animated.sequence([
         Animated.timing(bounceValue, {
@@ -102,11 +111,10 @@ export default function HomeMobile() {
       ])
     );
     anim.start();
-
     return () => {
       anim.stop();
     };
-  }, [bounceValue]);
+  }, [bounceValue, isFocused]);
 
   useEffect(() => {
     return () => {
@@ -114,15 +122,15 @@ export default function HomeMobile() {
     };
   }, []);
 
-  const handleCopied = () => {
+  const handleCopied = useCallback(() => {
     setShowCopiedToast(true);
     if (copiedToastTimer.current) clearTimeout(copiedToastTimer.current);
     copiedToastTimer.current = setTimeout(() => setShowCopiedToast(false), 1600);
-  };
+  }, []);
 
-  const handleDeleted = (hashedCode: string) => {
+  const handleDeleted = useCallback((hashedCode: string) => {
     setCodes((prev) => prev.filter((c) => c.hashed_code !== hashedCode));
-  };
+  }, []);
 
   const applyFrozenState = (hashedCode: string, frozen: boolean, isValid?: boolean) => {
     setFrozenCodes((prev) => {
@@ -145,24 +153,27 @@ export default function HomeMobile() {
   };
 
   /** `isCurrentlyFrozen` must match what the card is showing (not a stale item snapshot). */
-  const handleToggleFreeze = async (hashedCode: string, isCurrentlyFrozen: boolean) => {
-    const targetFrozen = !isCurrentlyFrozen;
+  const handleToggleFreeze = useCallback(
+    async (hashedCode: string, isCurrentlyFrozen: boolean) => {
+      const targetFrozen = !isCurrentlyFrozen;
 
-    applyFrozenState(hashedCode, targetFrozen);
+      applyFrozenState(hashedCode, targetFrozen);
 
-    try {
-      const res = await freezeCodeMutation.mutateAsync({
-        code: hashedCode,
-        frozen: targetFrozen,
-      });
-      // Keep the requested state on success so a sticky `frozen: true` response can't block unfreeze
-      applyFrozenState(hashedCode, targetFrozen, res?.is_valid);
-    } catch {
-      applyFrozenState(hashedCode, isCurrentlyFrozen);
-    }
-  };
+      try {
+        const res = await freezeCodeMutation.mutateAsync({
+          code: hashedCode,
+          frozen: targetFrozen,
+        });
+        // Keep the requested state on success so a sticky `frozen: true` response can't block unfreeze
+        applyFrozenState(hashedCode, targetFrozen, res?.is_valid);
+      } catch {
+        applyFrozenState(hashedCode, isCurrentlyFrozen);
+      }
+    },
+    [freezeCodeMutation]
+  );
 
-  const openInviteDetails = (item: Codes) => {
+  const openInviteDetails = useCallback((item: Codes) => {
     const { home_address, estate_name } = useUserStore.getState();
     const startRaw = item.validity_period?.start;
     const endRaw = item.validity_period?.end || item.valid_until;
@@ -190,9 +201,9 @@ export default function HomeMobile() {
         from: 'home',
       },
     });
-  };
+  }, []);
 
-  const openHistory = (item: Codes) => {
+  const openHistory = useCallback((item: Codes) => {
     router.push({
       pathname: '/user/history/[codeId]',
       params: {
@@ -202,30 +213,33 @@ export default function HomeMobile() {
         isActive: 'true',
       },
     });
-  };
+  }, []);
 
-  const handleExtend = async (item: Codes) => {
-    try {
-      const res = await extendCodeMutation.mutateAsync(item.hashed_code);
-      setCodes((prev) =>
-        prev.map((c) =>
-          c.hashed_code === item.hashed_code
-            ? {
-                ...c,
-                valid_until: res.valid_until || c.valid_until,
-                validity_period: res.validity_period ?? c.validity_period,
-                extended: res.extended ?? true,
-              }
-            : c
-        )
-      );
-    } catch (error: unknown) {
-      Alert.alert(
-        'Could not extend code',
-        errorMessage(error)?.trim() || 'Please try again later.'
-      );
-    }
-  };
+  const handleExtend = useCallback(
+    async (item: Codes) => {
+      try {
+        const res = await extendCodeMutation.mutateAsync(item.hashed_code);
+        setCodes((prev) =>
+          prev.map((c) =>
+            c.hashed_code === item.hashed_code
+              ? {
+                  ...c,
+                  valid_until: res.valid_until || c.valid_until,
+                  validity_period: res.validity_period ?? c.validity_period,
+                  extended: res.extended ?? true,
+                }
+              : c
+          )
+        );
+      } catch (error: unknown) {
+        Alert.alert(
+          'Could not extend code',
+          errorMessage(error)?.trim() || 'Please try again later.'
+        );
+      }
+    },
+    [extendCodeMutation]
+  );
 
   const isEmpty = codes.length === 0;
 
@@ -237,6 +251,52 @@ export default function HomeMobile() {
       return aFrozen ? 1 : -1;
     });
   }, [codes, frozenCodes]);
+
+  const listRows = useMemo(
+    () =>
+      sortedCodes.map((item) => {
+        const iso = String(item.valid_until ?? '')
+          .replace(' ', 'T')
+          .replace(/([+-]\d{2})(\d{2})$/, '$1:$2');
+        const expiresAt = new Date(iso).getTime();
+        const startIso = item.validity_period?.start
+          ? String(item.validity_period.start)
+              .replace(' ', 'T')
+              .replace(/([+-]\d{2})(\d{2})$/, '$1:$2')
+          : null;
+        const startAt = startIso ? new Date(startIso).getTime() : null;
+        const frozen = Boolean(item.frozen) || frozenCodes.has(item.hashed_code);
+        return { item, expiresAt, startAt, frozen };
+      }),
+    [sortedCodes, frozenCodes]
+  );
+
+  const renderCodeItem = useCallback(
+    ({
+      item: row,
+    }: {
+      item: { item: Codes; expiresAt: number; startAt: number | null; frozen: boolean };
+    }) => {
+      const { item, expiresAt, startAt, frozen } = row;
+      return (
+        <ActiveCodeCard
+          item={item}
+          guestName={item.visitor_fullname ?? 'Guest'}
+          code={item.hashed_code.toUpperCase()}
+          expiresAt={expiresAt}
+          startAt={startAt}
+          frozen={frozen}
+          onToggleFreeze={() => handleToggleFreeze(item.hashed_code, frozen)}
+          onDeleted={() => handleDeleted(item.hashed_code)}
+          onCopied={handleCopied}
+          onOpenHistory={() => openHistory(item)}
+          onOpenDetails={() => openInviteDetails(item)}
+          onExtend={() => handleExtend(item)}
+        />
+      );
+    },
+    [handleCopied, handleDeleted, handleExtend, handleToggleFreeze, openHistory, openInviteDetails]
+  );
 
   return (
     <SafeAreaView
@@ -301,53 +361,37 @@ export default function HomeMobile() {
 
         <GestureHandlerRootView style={{ flex: 1 }}>
           <FlatList
-            data={sortedCodes}
+            data={listRows}
             extraData={frozenCodes}
-            keyExtractor={(item) => item.hashed_code}
-            refreshing={refreshing}
-            onRefresh={fetchCodes}
+            keyExtractor={(row) => row.item.hashed_code}
             scrollEnabled={!isEmpty}
             contentContainerStyle={{ paddingBottom: tabContentPadding, flexGrow: 1, gap: 8 }}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={() => void fetchCodes(true)}
+                // Hide the system ActivityIndicator; CircleLoader is shown in the header.
+                tintColor="transparent"
+                colors={['transparent']}
+                progressBackgroundColor="transparent"
+              />
+            }
             ListHeaderComponent={
-              !isEmpty ? (
-                <Text className="mt-9 mb-[18px] font-inter-medium text-sm text-[#878686]">
-                  All incoming guest
-                </Text>
-              ) : null
+              <>
+                {refreshing ? (
+                  <View className="items-center py-4">
+                    <CircleLoader size={40} />
+                  </View>
+                ) : null}
+                {!isEmpty ? (
+                  <Text className="mt-9 mb-[18px] font-inter-medium text-sm text-[#878686]">
+                    All incoming guest
+                  </Text>
+                ) : null}
+              </>
             }
             ListEmptyComponent={null}
-            renderItem={({ item }) => {
-              const iso = String(item.valid_until ?? '')
-                .replace(' ', 'T')
-                .replace(/([+-]\d{2})(\d{2})$/, '$1:$2');
-              const expiresAt = new Date(iso).getTime();
-
-              const startIso = item.validity_period?.start
-                ? String(item.validity_period.start)
-                    .replace(' ', 'T')
-                    .replace(/([+-]\d{2})(\d{2})$/, '$1:$2')
-                : null;
-              const startAt = startIso ? new Date(startIso).getTime() : null;
-
-              const frozen = Boolean(item.frozen) || frozenCodes.has(item.hashed_code);
-
-              return (
-                <ActiveCodeCard
-                  item={item}
-                  guestName={item.visitor_fullname ?? 'Guest'}
-                  code={item.hashed_code.toUpperCase()}
-                  expiresAt={expiresAt}
-                  startAt={startAt}
-                  frozen={frozen}
-                  onToggleFreeze={() => handleToggleFreeze(item.hashed_code, frozen)}
-                  onDeleted={() => handleDeleted(item.hashed_code)}
-                  onCopied={handleCopied}
-                  onOpenHistory={() => openHistory(item)}
-                  onOpenDetails={() => openInviteDetails(item)}
-                  onExtend={() => handleExtend(item)}
-                />
-              );
-            }}
+            renderItem={renderCodeItem}
           />
         </GestureHandlerRootView>
       </View>

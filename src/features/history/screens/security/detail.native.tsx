@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import ScreenLoading from '@/src/shared/components/feedback/ScreenLoading';
-import { View, Text, ScrollView, Pressable, Image, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, Image, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useLocalSearchParams, useNavigation } from 'expo-router';
 import Back from '@/src/shared/components/navigation/Back';

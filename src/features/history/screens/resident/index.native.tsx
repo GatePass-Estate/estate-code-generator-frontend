@@ -3,13 +3,12 @@ import ScreenLoading, { CircleLoader } from '@/src/shared/components/feedback/Sc
 import {
   View,
   Text,
-  ScrollView,
+  SectionList,
+  FlatList,
   Pressable,
   RefreshControl,
   AppState,
   type AppStateStatus,
-  type NativeScrollEvent,
-  type NativeSyntheticEvent,
 } from 'react-native';
 import { Stack, router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -35,7 +34,7 @@ type HistoryMode = 'past' | 'upcoming';
 
 /** Visits per page; the list is de-duplicated by code, so older codes arrive on later pages. */
 const PAST_PAGE_SIZE = 50;
-const END_REACHED_THRESHOLD = 200;
+const END_REACHED_THRESHOLD = 0.4;
 
 function resolveHistoryMode(tab?: string | string[]): HistoryMode {
   const value = Array.isArray(tab) ? tab[0] : tab;
@@ -137,9 +136,24 @@ function UpcomingHistoryCard({ entry, onPress }: { entry: Codes; onPress: () => 
   );
 }
 
+function HistoryCardSeparator() {
+  return <View style={{ height: 13 }} />;
+}
+
+function PastSectionSeparator({
+  leadingItem,
+  trailingSection,
+}: {
+  leadingItem?: unknown;
+  trailingSection?: unknown;
+}) {
+  if (leadingItem == null || trailingSection == null) return null;
+  return <View style={{ height: 38 }} />;
+}
+
 export default function HistoryTabScreen() {
   const { tabContentPadding } = useAndroidBottomInset();
-  const { user_id } = useUserStore();
+  const user_id = useUserStore((s) => s.user_id);
   const params = useLocalSearchParams<{ tab?: string }>();
   const [mode, setMode] = useState<HistoryMode>(() => resolveHistoryMode(params.tab));
   const [refreshing, setRefreshing] = useState(false);
@@ -228,23 +242,19 @@ export default function HistoryTabScreen() {
     () => groupLogsByMonth(pastLogs, (log) => log.visit_time),
     [pastLogs]
   );
+  const pastSections = useMemo(
+    () =>
+      groupedPast.map((group, index) => ({
+        key: `${group.label}-${index}`,
+        title: group.label,
+        data: group.items,
+      })),
+    [groupedPast]
+  );
 
   const loadMorePast = useCallback(() => {
     if (mode === 'past' && hasNextPage && !isFetchingNextPage) void fetchNextPage();
   }, [fetchNextPage, hasNextPage, isFetchingNextPage, mode]);
-
-  const handleScroll = useCallback(
-    ({ nativeEvent }: NativeSyntheticEvent<NativeScrollEvent>) => {
-      const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
-      if (
-        layoutMeasurement.height + contentOffset.y >=
-        contentSize.height - END_REACHED_THRESHOLD
-      ) {
-        loadMorePast();
-      }
-    },
-    [loadMorePast]
-  );
 
   // De-duplicating by code can leave a page too short to scroll; keep loading until it fills.
   const layoutHeightRef = useRef(0);
@@ -274,6 +284,18 @@ export default function HistoryTabScreen() {
       ? !!pastError || groupedPast.length === 0
       : !!upcomingError || sortedUpcoming.length === 0;
 
+  const refreshControl = (
+    <RefreshControl
+      refreshing={refreshing}
+      onRefresh={() => {
+        setRefreshing(true);
+        void refreshHistory().finally(() => setRefreshing(false));
+      }}
+      tintColor="#113E55"
+      colors={['#113E55']}
+    />
+  );
+
   return (
     <SafeAreaView style={[sharedStyles.container, { backgroundColor: '#F6F7F7' }]} edges={['top']}>
       <Stack.Screen options={{ headerShown: false }} />
@@ -293,91 +315,92 @@ export default function HistoryTabScreen() {
 
         {loading ? (
           <ScreenLoading />
-        ) : (
-          <ScrollView
+        ) : mode === 'past' ? (
+          <SectionList
             style={{ flex: 1 }}
+            sections={pastSections}
+            keyExtractor={(entry) => entry.id}
+            stickySectionHeadersEnabled={false}
+            showsVerticalScrollIndicator={false}
             contentContainerStyle={{
               flexGrow: 1,
-              // Lists keep their per-tab offsets; the empty/error message sits at one shared offset so
-              // it lines up when switching tabs.
-              paddingTop: showingMessageOnly ? 31 : mode === 'upcoming' ? 35 : 31,
+              // Past rows and the shared empty/error offset both start at 31.
+              paddingTop: 31,
               paddingBottom: tabContentPadding + 40,
-              gap: 38,
             }}
-            showsVerticalScrollIndicator={false}
+            onEndReached={loadMorePast}
+            onEndReachedThreshold={END_REACHED_THRESHOLD}
             onLayout={(event) => {
               layoutHeightRef.current = event.nativeEvent.layout.height;
               fillViewport();
             }}
-            onScroll={handleScroll}
             onContentSizeChange={(_width, height) => {
               contentHeightRef.current = height;
               fillViewport();
             }}
-            scrollEventThrottle={100}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={() => {
-                  setRefreshing(true);
-                  void refreshHistory().finally(() => setRefreshing(false));
-                }}
-                tintColor="#113E55"
-                colors={['#113E55']}
+            refreshControl={refreshControl}
+            renderSectionHeader={({ section }) => (
+              <Text className="mb-[18px] px-4 text-xs leading-[14px] font-inter-light text-[#6C6C6C]">
+                {section.title}
+              </Text>
+            )}
+            renderItem={({ item }) => (
+              <PastHistoryCard
+                entry={item}
+                onRefresh={() => handleRefresh(item)}
+                onPress={() => openPastDetail(item)}
               />
-            }
-          >
-            {mode === 'past' ? (
+            )}
+            ItemSeparatorComponent={HistoryCardSeparator}
+            SectionSeparatorComponent={PastSectionSeparator}
+            ListEmptyComponent={
               pastError ? (
                 <Text className="text-center text-sm font-inter-regular text-[#6C6C6C]">
                   {pastError}
                 </Text>
-              ) : groupedPast.length === 0 ? (
+              ) : (
                 <Text className="text-center text-sm font-inter-regular text-[#6C6C6C]">
                   No past access history yet.
                 </Text>
-              ) : (
-                <>
-                  {groupedPast.map((group, index) => (
-                    <View key={`${group.label}-${index}`}>
-                      <Text className="mb-[18px] px-4 text-xs leading-[14px] font-inter-light text-[#6C6C6C]">
-                        {group.label}
-                      </Text>
-                      <View className="flex-col gap-[13px]">
-                        {group.items.map((entry) => (
-                          <PastHistoryCard
-                            key={entry.id}
-                            entry={entry}
-                            onRefresh={() => handleRefresh(entry)}
-                            onPress={() => openPastDetail(entry)}
-                          />
-                        ))}
-                      </View>
-                    </View>
-                  ))}
-                  {isFetchingNextPage ? <CircleLoader size={32} /> : null}
-                </>
               )
-            ) : upcomingError ? (
-              <Text className="text-center text-sm font-inter-regular text-[#6C6C6C]">
-                {upcomingError}
-              </Text>
-            ) : sortedUpcoming.length === 0 ? (
-              <Text className="text-center text-sm font-inter-regular text-[#6C6C6C]">
-                No upcoming invites yet.
-              </Text>
-            ) : (
-              <View className="flex-col gap-[13px]">
-                {sortedUpcoming.map((entry) => (
-                  <UpcomingHistoryCard
-                    key={entry.hashed_code}
-                    entry={entry}
-                    onPress={() => openUpcomingInvite(entry)}
-                  />
-                ))}
-              </View>
+            }
+            ListFooterComponent={
+              isFetchingNextPage ? (
+                <View style={{ marginTop: 38 }}>
+                  <CircleLoader size={32} />
+                </View>
+              ) : null
+            }
+          />
+        ) : (
+          <FlatList
+            style={{ flex: 1 }}
+            data={sortedUpcoming}
+            keyExtractor={(entry) => entry.hashed_code}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{
+              flexGrow: 1,
+              // Empty/error copy uses the past list's offset so the two tabs line up.
+              paddingTop: showingMessageOnly ? 31 : 35,
+              paddingBottom: tabContentPadding + 40,
+            }}
+            refreshControl={refreshControl}
+            renderItem={({ item }) => (
+              <UpcomingHistoryCard entry={item} onPress={() => openUpcomingInvite(item)} />
             )}
-          </ScrollView>
+            ItemSeparatorComponent={HistoryCardSeparator}
+            ListEmptyComponent={
+              upcomingError ? (
+                <Text className="text-center text-sm font-inter-regular text-[#6C6C6C]">
+                  {upcomingError}
+                </Text>
+              ) : (
+                <Text className="text-center text-sm font-inter-regular text-[#6C6C6C]">
+                  No upcoming invites yet.
+                </Text>
+              )
+            }
+          />
         )}
       </View>
     </SafeAreaView>

@@ -49,7 +49,7 @@ export default function TwoFactorChallengeScreen() {
 
   const routeForUser = useCallback(
     (user: User) => {
-      if (user.role === 'resident' || ['primary_admin', 'admin'].includes(user.role!)) {
+      if (user.role === 'resident' || ['root', 'primary_admin', 'admin'].includes(user.role!)) {
         router.replace('/user');
       } else if (user.role === 'security') {
         router.replace('/security');
@@ -106,7 +106,7 @@ export default function TwoFactorChallengeScreen() {
         role: user.role,
         session_id: result.session_id,
       });
-      broadcastLogin(result.access_token, user.role);
+      broadcastLogin(user.role);
       signIn(user);
       routeForUser(user);
     } catch (error: unknown) {

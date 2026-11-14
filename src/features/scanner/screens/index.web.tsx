@@ -45,7 +45,7 @@ function InviteDetailsModal({
             </div>
           </div>
 
-          {result?.isResident == false && (
+          {result?.isResident === false && (
             <>
               <h3 className="text-[14px] font-Inter font-normal mt-[18px] mb-3">Guest Details</h3>
               <div className="bg-accent text-primary rounded-lg p-5 mb-6">
@@ -58,7 +58,7 @@ function InviteDetailsModal({
                 <div className="flex justify-between items-start py-2 px-1">
                   <div className="w-40 text-[14px]">Gender :</div>
                   <div className="text-right text-[14px] capitalize">
-                    {result?.gender == 'prefer_not_to_say' ? 'Prefer Not To Say' : result?.gender}
+                    {result?.gender === 'prefer_not_to_say' ? 'Prefer Not To Say' : result?.gender}
                   </div>
                 </div>
                 <div className="flex justify-between items-start py-2 px-1">
@@ -164,25 +164,35 @@ function SearchCode({
         return;
       }
 
-      // Code validation is authoritative; missing profile details must not reject a valid code.
-      const resident = result.user_id
-        ? await fetchCachedUser(result.user_id).catch(() => null)
-        : null;
-
+      // PERF-08: show the result immediately; fill resident fields from cache/network after.
       setValues(['', '', '', '', '', '']);
-      setResult({
-        visitor_fullname: result.visitor_fullname,
+      const baseResult: GuestDetails = {
+        visitor_fullname: result.visitor_fullname ?? '',
         relationship_with_resident: result.relationship_with_resident,
         gender: result.gender,
-        resident_name: `${resident?.first_name ?? ''} ${resident?.last_name ?? ''}`,
-        resident_address: resident?.home_address,
-        resident_email: resident?.email,
-        resident_phone_number: resident?.phone_number,
+        resident_name: '',
+        resident_address: '',
+        resident_email: '',
+        resident_phone_number: '',
         code: result.hashed_code,
         isResident: result.receiver === 'resident',
-      } as GuestDetails);
-
+      };
+      setResult(baseResult);
       setModalOpen(true);
+
+      if (result.user_id) {
+        void fetchCachedUser(result.user_id)
+          .then((resident) => {
+            setResult({
+              ...baseResult,
+              resident_name: `${resident.first_name ?? ''} ${resident.last_name ?? ''}`.trim(),
+              resident_address: resident.home_address ?? '',
+              resident_email: resident.email ?? '',
+              resident_phone_number: resident.phone_number ?? '',
+            });
+          })
+          .catch(() => null);
+      }
     } catch (err: unknown) {
       setErrorMessage(thrownMessage(err) ?? 'Invalid Code');
     } finally {

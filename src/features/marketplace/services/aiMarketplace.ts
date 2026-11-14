@@ -214,26 +214,6 @@ export async function installMarketplaceFeature(
 }
 
 /**
- * Uninstall an AI feature grant for the estate (free or paid tier).
- * Revenue: POST /ai-features/estate/{estate_id}/uninstall
- */
-export async function uninstallMarketplaceFeature(
-  estateId: string,
-  featureKey: string
-): Promise<void> {
-  requirePrimaryAdminForFeatureAction();
-  try {
-    const api = Api('revenue');
-    await api.post(`/ai-features/estate/${encodeURIComponent(estateId)}/uninstall`, {
-      feature_key: featureKey,
-    });
-    void invalidateMarketplace();
-  } catch (error: unknown) {
-    throwFeatureActionError(error, 'Failed to uninstall feature');
-  }
-}
-
-/**
  * Cancel the estate's Paystack AI subscription auto-renew via standalone AI cancellation endpoint.
  * Revenue: POST /ai-features/estate/{estate_id}/cancel
  */
@@ -278,6 +258,14 @@ export async function uninstallAiFeature(estateId: string, featureKey: string): 
   } catch (error: unknown) {
     throwFeatureActionError(error, 'Failed to uninstall feature');
   }
+}
+
+/** CQ-08: alias — same as `uninstallAiFeature`. */
+export async function uninstallMarketplaceFeature(
+  estateId: string,
+  featureKey: string
+): Promise<void> {
+  return uninstallAiFeature(estateId, featureKey);
 }
 
 export async function installAiFeature(estateId: string, featureKey: string): Promise<void> {

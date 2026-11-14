@@ -1,5 +1,4 @@
 import { View, Text, Pressable } from 'react-native';
-import Animated from 'react-native-reanimated';
 import { MaterialIcons } from '@expo/vector-icons';
 import { ResultPlaceCards } from '@/src/features/ai/components/shared/ResultPlaceCards';
 import TotalUsersSvg from '@/src/assets/icons/totalusers.svg';

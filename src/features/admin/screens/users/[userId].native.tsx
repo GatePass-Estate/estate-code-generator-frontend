@@ -66,20 +66,6 @@ const emptyUser = (id: string): User => ({
   status: false,
 });
 
-const parseUserParam = (
-  value: string | string[] | undefined,
-  userId: string | string[] | undefined
-): User | null => {
-  if (typeof value !== 'string') return null;
-  try {
-    const user = JSON.parse(value) as User;
-    if (!user?.role || (!user.user_id && !user.id)) return null;
-    return { ...user, user_id: user.user_id ?? (userId as string) };
-  } catch {
-    return null;
-  }
-};
-
 export default function SingleUserMobile() {
   const goBack = useGoBack();
   const { signOut } = useAuth();
@@ -87,13 +73,13 @@ export default function SingleUserMobile() {
   const viewerUserId = useUserStore((state) => state.user_id);
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
-  const { userId, userParam } = useLocalSearchParams();
-  const initialUser = parseUserParam(userParam, userId);
+  // SEC-21 / PERF-19: pass ID only — never trust a user JSON blob from the route.
+  const { userId } = useLocalSearchParams();
   const cachedPicture =
     typeof userId === 'string' ? getCachedUserDocument(userId, 'profile_picture') : null;
   const cachedIdentification =
     typeof userId === 'string' ? getCachedUserDocument(userId, 'id_card') : null;
-  const [loading, setLoading] = useState(!initialUser);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deactivating, setDeactivating] = useState(false);
   const [processing, setProcessing] = useState(false);
@@ -121,19 +107,23 @@ export default function SingleUserMobile() {
     cachedIdentification ? 'loaded' : 'loading'
   );
   const [userData, setUserData] = useState<User>(
-    initialUser ?? emptyUser(typeof userId === 'string' ? userId : '')
+    emptyUser(typeof userId === 'string' ? userId : '')
   );
 
   const loadUser = useCallback(async () => {
     try {
       setError(null);
-      const residentFromRoute = parseUserParam(userParam, userId);
-      setLoading(!residentFromRoute);
-      const resident = residentFromRoute ?? (await getUserByIdAdmin(userId as string));
+      setLoading(true);
+      if (typeof userId !== 'string' || !userId) {
+        setError('User not found');
+        setUserData(emptyUser(''));
+        return;
+      }
+      const resident = await getUserByIdAdmin(userId);
 
       if (!resident) {
         setError('User not found');
-        setUserData(emptyUser(typeof userId === 'string' ? userId : ''));
+        setUserData(emptyUser(userId));
         return;
       }
 
@@ -144,7 +134,7 @@ export default function SingleUserMobile() {
     } finally {
       setLoading(false);
     }
-  }, [userId, userParam]);
+  }, [userId]);
   const isVerifiedProfile =
     userData.status &&
     (userData.role === 'resident' ||

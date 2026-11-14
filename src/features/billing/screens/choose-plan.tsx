@@ -39,7 +39,7 @@ import {
 } from '@/src/features/billing/hooks/billing';
 import { useBillingScreenGuard } from '@/src/features/billing/hooks/useBillingScreenGuard';
 import { getCheckoutQuote } from '@/src/features/billing/services/billing';
-import { useEstateUsers } from '@/src/features/admin/hooks/estateUsers';
+import { useEstateUsersSummary } from '@/src/features/admin/hooks/estateUsers';
 import {
   buildCustomEntitlements,
   formatMoney,
@@ -119,7 +119,7 @@ export default function ChoosePlanScreen() {
 
   const tiersQuery = useBillingTiers();
   const eligibilityQuery = useSeatReductionEligibility();
-  const { data: estateUsers } = useEstateUsers({ enabled: canManage });
+  const { data: estateUsers } = useEstateUsersSummary({ enabled: canManage });
   const { startCheckout, isRunning, checkoutSheet } = usePaystackCheckout();
   const queryClient = useQueryClient();
   const { estateId } = useBillingAccess();
@@ -534,7 +534,7 @@ export default function ChoosePlanScreen() {
               <Text className="flex-1 font-inter-light text-[14px] leading-[16.9px] text-primary">
                 Set Plan Duration
               </Text>
-              <Text className="font-inter-extralight text-[14px] italic leading-[16.9px] text-primary">
+              <Text className="font-inter-light text-[14px] italic leading-[16.9px] text-primary">
                 {duration.shortLabel}
               </Text>
               <Ionicons name="chevron-forward" size={16} color="#113E55" />

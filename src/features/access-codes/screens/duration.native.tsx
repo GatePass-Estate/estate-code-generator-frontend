@@ -112,7 +112,10 @@ export default function SetAccessCodeDurationScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const { tabBarStyle } = useAndroidBottomInset();
-  const { user_id, estate_id, home_address, estate_name } = useUserStore();
+  const user_id = useUserStore((s) => s.user_id);
+  const estate_id = useUserStore((s) => s.estate_id);
+  const home_address = useUserStore((s) => s.home_address);
+  const estate_name = useUserStore((s) => s.estate_name);
   const generateCodeMutation = useGenerateCode();
   const createGuestMutation = useCreateGuest();
   const { requestAccess: requestCodeAccess, noticeProps: codeNoticeProps } = useFeatureGate(
@@ -268,15 +271,16 @@ export default function SetAccessCodeDurationScreen() {
         receiver: 'visitor',
       });
 
+      // PERF-18: navigate as soon as the code exists; persist the guest in the background.
       if (shouldSaveGuest) {
-        try {
-          await createGuestMutation.mutateAsync({
+        void createGuestMutation
+          .mutateAsync({
             resident_id: user_id,
             guest_name: visitorName,
             relationship,
             gender,
-          });
-        } catch {}
+          })
+          .catch(() => {});
       }
 
       const { formattedDate, timeframe } = formatInvitePeriodDisplay(

@@ -15,14 +15,14 @@ import { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
 import { Feather } from '@expo/vector-icons';
 import { NavigationBar as AndroidNavigationBar } from 'expo-navigation-bar';
 import { Stack, router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import Back from '@/src/shared/components/navigation/Back';
 import BottomSheet, { SheetGrabber } from '@/src/shared/components/feedback/BottomSheet';
 import { getRoleIcon, getRoleIconHeight, getRoleIconWidth } from '@/src/shared/utils/helpers';
-import { useEstateUsers } from '@/src/features/admin/hooks/estateUsers';
+import { useEstateUsersInfinite } from '@/src/features/admin/hooks/estateUsers';
 import type { User } from '@/src/features/users/types/user';
 import type { UserRolesType } from '@/src/shared/types/general';
 
@@ -49,18 +49,10 @@ const SHEET_ROLE_FILTERS: { label: string; value: UserFilter | null; width: numb
   { label: 'Admins', value: 'admins', width: 64 },
 ];
 
-const PAGE_SIZE = 10;
-
 export default function AllUsersMobile() {
   const { role } = useLocalSearchParams<{ role?: string }>();
-  const usersQuery = useEstateUsers();
-  const userItems = usersQuery.data?.items;
-  const allUsers = useMemo(() => userItems ?? [], [userItems]);
-  const loading = usersQuery.isLoading || (usersQuery.isFetching && !usersQuery.data);
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-  const [refreshing, setRefreshing] = useState(false);
-  const [fetchingMore, setFetchingMore] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const deferredSearch = useDeferredValue(searchQuery.trim());
   const [selectedFilters, setSelectedFilters] = useState<UserFilter[]>(() => {
     if (role === 'resident' || role === 'security' || role === 'admins') {
       return [role as UserFilter];
@@ -69,8 +61,7 @@ export default function AllUsersMobile() {
   });
   const [validationFilter, setValidationFilter] = useState<ValidationFilter>(null);
   const [filterVisible, setFilterVisible] = useState(false);
-  const error = usersQuery.isError ? usersQuery.error.message.trim() || 'Could not load users' : '';
-  const hasActiveAdvancedFilter = validationFilter !== null || selectedFilters.length > 0;
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     if (role === 'resident' || role === 'security' || role === 'admins') {
@@ -80,45 +71,46 @@ export default function AllUsersMobile() {
     }
   }, [role]);
 
-  const { isFetched: usersFetched, refetch: refetchUsers } = usersQuery;
+  // Single selection only — backend `GET /users/` accepts one role at a time.
+  const apiRole =
+    selectedFilters.length === 1
+      ? (selectedFilters[0] as 'resident' | 'security' | 'admins')
+      : null;
+
+  const usersQuery = useEstateUsersInfinite({
+    search: deferredSearch,
+    role: apiRole,
+    validated: validationFilter,
+  });
+
+  const displayedUsers = usersQuery.items;
+  const loading = usersQuery.isLoading || (usersQuery.isFetching && !usersQuery.isFetched);
+  const fetchingMore = usersQuery.isFetchingNextPage;
+  const error = usersQuery.isError ? usersQuery.error.message.trim() || 'Could not load users' : '';
+  const hasActiveAdvancedFilter = validationFilter !== null || selectedFilters.length > 0;
+  const { isFetched, isStale, refetch, hasNextPage, fetchNextPage } = usersQuery;
 
   useFocusEffect(
     useCallback(() => {
-      if (usersFetched) void refetchUsers();
-    }, [refetchUsers, usersFetched])
+      if (isFetched && isStale) void refetch();
+    }, [isFetched, isStale, refetch])
   );
 
-  const filteredUsers = useMemo(() => {
-    const normalizedQuery = searchQuery.trim().toLowerCase();
-
-    return allUsers.filter((user) => {
-      const name = `${user.first_name ?? ''} ${user.last_name ?? ''}`.trim().toLowerCase();
-      const address = user.home_address?.toLowerCase() ?? '';
-      const matchesSearch =
-        normalizedQuery.length === 0 ||
-        name.includes(normalizedQuery) ||
-        address.includes(normalizedQuery);
-
-      const matchesFilter =
-        selectedFilters.length === 0 ||
-        selectedFilters.some((filter) => {
-          if (filter === 'admins') {
-            return ['admin', 'primary_admin'].includes(user.role as string);
-          }
-
-          return user.role === filter;
-        });
-
-      const matchesValidation = validationFilter === null || user.status === validationFilter;
-
-      return matchesSearch && matchesFilter && matchesValidation;
-    });
-  }, [allUsers, searchQuery, selectedFilters, validationFilter]);
-
-  const displayedUsers = useMemo(
-    () => filteredUsers.slice(0, visibleCount),
-    [filteredUsers, visibleCount]
-  );
+  // Role/search are client-side — pull more pages until the filtered list fills the screen.
+  useEffect(() => {
+    if (!deferredSearch && !apiRole) return;
+    if (displayedUsers.length >= 12) return;
+    if (!hasNextPage || fetchingMore || loading) return;
+    void fetchNextPage();
+  }, [
+    apiRole,
+    deferredSearch,
+    displayedUsers.length,
+    loading,
+    fetchNextPage,
+    hasNextPage,
+    fetchingMore,
+  ]);
 
   const refreshUsers = async () => {
     setRefreshing(true);
@@ -127,11 +119,8 @@ export default function AllUsersMobile() {
   };
 
   const loadMore = () => {
-    if (loading || fetchingMore || visibleCount >= filteredUsers.length) return;
-
-    setFetchingMore(true);
-    setVisibleCount((count) => count + PAGE_SIZE);
-    setFetchingMore(false);
+    if (!usersQuery.hasNextPage || usersQuery.isFetchingNextPage) return;
+    void usersQuery.fetchNextPage();
   };
 
   const openUser = (user: User) => {
@@ -140,7 +129,7 @@ export default function AllUsersMobile() {
 
     router.push({
       pathname: '/(protected)/admin/users/[userId]',
-      params: { userId, userParam: JSON.stringify(user) },
+      params: { userId },
     });
   };
 
@@ -169,10 +158,7 @@ export default function AllUsersMobile() {
             <Feather name="search" size={20} color="#878686" />
             <TextInput
               value={searchQuery}
-              onChangeText={(value) => {
-                setSearchQuery(value);
-                setVisibleCount(PAGE_SIZE);
-              }}
+              onChangeText={setSearchQuery}
               placeholder="Search Guest List"
               placeholderTextColor="#878686"
               autoCapitalize="none"
@@ -182,10 +168,7 @@ export default function AllUsersMobile() {
             />
             {searchQuery ? (
               <TouchableOpacity
-                onPress={() => {
-                  setSearchQuery('');
-                  setVisibleCount(PAGE_SIZE);
-                }}
+                onPress={() => setSearchQuery('')}
                 accessibilityRole="button"
                 accessibilityLabel="Clear search"
               >
@@ -229,7 +212,6 @@ export default function AllUsersMobile() {
                   key={item.label}
                   onPress={() => {
                     setSelectedFilters(item.value === null ? [] : [item.value]);
-                    setVisibleCount(PAGE_SIZE);
                   }}
                   style={{ width: item.width, height: 35 }}
                   className={`items-center justify-center rounded-2xl ${
@@ -280,6 +262,7 @@ export default function AllUsersMobile() {
         ) : (
           <FlatList
             data={displayedUsers}
+            extraData={`${apiRole ?? 'all'}|${deferredSearch}|${validationFilter}`}
             keyExtractor={(item, index) => item.id ?? item.user_id ?? String(index)}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
@@ -361,19 +344,10 @@ export default function AllUsersMobile() {
         onClose={() => setFilterVisible(false)}
         onValidationChange={(value) => {
           setValidationFilter((current) => (current === value ? null : value));
-          setVisibleCount(PAGE_SIZE);
         }}
         onRoleChange={(value) => {
-          if (value === null) {
-            setSelectedFilters([]);
-          } else {
-            setSelectedFilters((current) =>
-              current.includes(value)
-                ? current.filter((filter) => filter !== value)
-                : [...current, value]
-            );
-          }
-          setVisibleCount(PAGE_SIZE);
+          // Match the chip bar: one role (or none). Multi-role is not supported by the API.
+          setSelectedFilters(value === null ? [] : [value]);
         }}
       />
     </SafeAreaView>

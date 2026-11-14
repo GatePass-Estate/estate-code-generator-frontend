@@ -1,9 +1,16 @@
 module.exports = function (api) {
-  api.cache(true);
+  const isProd = api.env('production');
+  api.cache.using(() => (isProd ? 'production' : 'development'));
+
+  const plugins = ['react-native-reanimated/plugin'];
+
+  if (isProd) {
+    plugins.unshift(['transform-remove-console', { exclude: ['error', 'warn'] }]);
+  }
 
   return {
     presets: [['babel-preset-expo', { jsxImportSource: 'nativewind' }]],
-    plugins: ['react-native-reanimated/plugin'],
+    plugins,
     compact: false,
   };
 };

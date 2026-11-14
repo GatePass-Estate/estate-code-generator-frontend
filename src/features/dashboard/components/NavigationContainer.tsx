@@ -39,13 +39,16 @@ export default function NavigationContainer({
           tabBarShowLabel: false,
           tabBarActiveTintColor: '#113E55',
           tabBarInactiveTintColor: '#6F91A0',
+          // PERF-17: don't keep inactive tabs fully live (timers/animations).
+          lazy: true,
+          freezeOnBlur: true,
           // Home is the leftmost tab: returning to it should shift in from the left.
           animation: 'shift',
         }}
       >
         {routes &&
           routes
-            .filter((el) => el.for == 'native' || el.for == 'both')
+            .filter((el) => el.for === 'native' || el.for === 'both')
             .map(({ name, title, TabIcon }) =>
               TabIcon ? (
                 <Tabs.Screen

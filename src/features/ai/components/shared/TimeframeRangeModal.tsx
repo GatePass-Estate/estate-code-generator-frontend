@@ -94,7 +94,7 @@ export default function IncidentTimeframeModal({
   selectedLabel,
   onSelect,
   onCustomSelect,
-}: IncidentTimeframeModalProps) {
+}: TimeframeRangeModalProps) {
   const openDateAfterClose = useRef(false);
 
   const handleSelect = (opt: (typeof OPTIONS)[number]) => {

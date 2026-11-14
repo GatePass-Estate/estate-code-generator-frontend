@@ -1,6 +1,6 @@
 import WebSidebar from '@/src/features/dashboard/components/WebSidebar';
 import { menuRoutes } from '@/src/features/dashboard/components/menuRoutes';
-import { useRouter, useLocalSearchParams, useNavigation } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Image, Platform, useWindowDimensions } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import Modal from '@/src/shared/components/feedback/Modal';
@@ -28,7 +28,6 @@ export default function ShareInvitePage() {
   const { width } = useWindowDimensions();
 
   const isLargeScreen = width > getWidthBreakpoint();
-  const navigation = useNavigation();
 
   const handleCopy = async () => {
     try {
@@ -123,7 +122,9 @@ export default function ShareInvitePage() {
   return (
     <div className="flex h-full w-screen overflow-y-scroll bg-body">
       <WebSidebar
-        routes={menuRoutes.filter((el) => el.for == 'web' || el.for == 'both').map((data) => data)}
+        routes={menuRoutes
+          .filter((el) => el.for === 'web' || el.for === 'both')
+          .map((data) => data)}
         onNavigate={(route) => router.push(route)}
       />
 

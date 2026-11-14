@@ -1,12 +1,13 @@
 import { useGoBack } from '@/src/shared/hooks/useGoBack';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Pressable, ScrollView, Alert, Image } from 'react-native';
+import { View, Pressable, ScrollView, Image } from 'react-native';
+import { showAlert } from '@/src/shared/utils/alert';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/src/shared/services/api/queryKeys';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { errorMessage, userFacingError } from '@/src/shared/services/api/errors';
+import { errorMessage } from '@/src/shared/services/api/errors';
 import LoadError from '@/src/shared/components/feedback/LoadError';
 import ScreenLoading from '@/src/shared/components/feedback/ScreenLoading';
 import { logger } from '@/src/shared/utils/logger';
@@ -33,14 +34,11 @@ import {
   ANOMALY_INSIGHT_PAGE_COUNT,
   AnomalyInsightPage,
 } from '@/src/features/ai/components/anomaly/modals/anomalyInsightStory';
-import ActivationQuoteModal, {
-  prefetchAiQuotes,
-} from '@/src/features/ai/components/shared/ActivationQuoteModal';
+import ActivationQuoteModal from '@/src/features/ai/components/shared/ActivationQuoteModal';
 import AnomalyResultView from '@/src/features/ai/components/anomaly/AnomalyResultView';
 import { refreshEstateEntitlements } from '@/src/features/billing';
 import { usePaystackCheckout } from '@/src/features/billing/utils/billingCheckout';
 import {
-  getMarketplaceFeatureById,
   subscribeMarketplaceFeature,
   getFeaturePictureUrl,
   rateMarketplaceFeature,
@@ -48,8 +46,8 @@ import {
   installAiFeature,
   cancelMarketplaceSubscription,
   sortMarketplaceTiers,
-  resolveMarketplaceFeatureId,
 } from '@/src/features/marketplace/services/aiMarketplace';
+import { useMarketplaceFeature } from '@/src/features/marketplace/hooks/useMarketplaceFeature';
 import { useBillingAccess } from '@/src/features/billing/hooks/billing';
 import {
   useFeatureGate,
@@ -59,7 +57,6 @@ import {
 import { scrollCardIntoView } from '@/src/shared/utils/scrollIntoView';
 import { useUserStore } from '@/src/store/userStore';
 import {
-  MarketplaceDetailResponse,
   MarketplaceTier,
   AiCheckoutDuration,
   AiQuoteResponse,
@@ -72,6 +69,8 @@ const INSTALL_TIER_ONE_FOR_RESULT_MESSAGE =
   'Install Tier One (Anomaly Detection and Insights) to view your results.';
 const TIER_ONE_FIRST_MESSAGE = 'Tier One is required for Tier 2 and Tier 3 activation.';
 const INSTALL_TIER_ONE_FIRST_MESSAGE = 'Tier One is required for Tier 2 and Tier 3 activation.';
+
+const isAnomalyProduct = (name: string) => name.toLowerCase().includes('anomaly');
 
 const isTierActive = (tier: MarketplaceTier) =>
   !!tier.is_installed ||
@@ -100,7 +99,6 @@ export default function AnomalyDetectionPreviewScreen() {
     setActiveTab(params.tab === 'Result' ? 'Result' : 'Overview');
   }
   const [expandedTier, setExpandedTier] = useState<string | null>(null);
-  const [featureDetail, setFeatureDetail] = useState<MarketplaceDetailResponse | null>(null);
   const [isSubscribing, setIsSubscribing] = useState(false);
   const [subscribingTierKey, setSubscribingTierKey] = useState<string | null>(null);
   const [isUninstalling, setIsUninstalling] = useState(false);
@@ -129,10 +127,15 @@ export default function AnomalyDetectionPreviewScreen() {
 
   const estateId = useUserStore((state) => state.estate_id) || '';
   const { denyIfUnauthorized, notifyActionError } = useBillingAccess();
+  const { featureDetail, isLoading, loadError, refetch } = useMarketplaceFeature({
+    featureId: typeof params.featureId === 'string' ? params.featureId : undefined,
+    nameMatch: isAnomalyProduct,
+    estateId,
+  });
 
   const handleRate = async (rating: number) => {
     if (!hasFeatureEntitlement) {
-      Alert.alert(
+      showAlert(
         'Rating Unavailable',
         'You need an active subscription or entitlement to this AI feature before you can rate it.'
       );
@@ -142,63 +145,20 @@ export default function AnomalyDetectionPreviewScreen() {
     if (!targetId) return;
     try {
       await rateMarketplaceFeature(targetId, { score: rating });
-      const data = await getMarketplaceFeatureById(targetId);
-      setFeatureDetail(data);
-      Alert.alert('Success', 'Rating submitted successfully');
+      await refetch();
+      showAlert('Success', 'Rating submitted successfully');
     } catch (err: unknown) {
-      Alert.alert('Error', errorMessage(err) || 'Failed to submit rating');
+      showAlert('Error', errorMessage(err) || 'Failed to submit rating');
       throw err;
     }
   };
 
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState('');
-  const hasLoadedFeatureRef = useRef(false);
-
-  const isAnomalyProduct = (name: string) => name.toLowerCase().includes('anomaly');
-
-  const loadFeature = useCallback(
-    async (id?: string) => {
-      if (!hasLoadedFeatureRef.current) setIsLoading(true);
-      setLoadError('');
-      try {
-        const rawId = id || (typeof params.featureId === 'string' ? params.featureId : undefined);
-        const targetId = await resolveMarketplaceFeatureId(rawId, isAnomalyProduct);
-
-        if (targetId) {
-          const detail = await getMarketplaceFeatureById(targetId);
-          hasLoadedFeatureRef.current = true;
-          setFeatureDetail(detail);
-          const sorted = sortMarketplaceTiers(detail.tiers ?? []);
-          setExpandedTier((prev) =>
-            prev && sorted.some((tier) => tier.tier === prev) ? prev : null
-          );
-          if (estateId && detail.tiers) {
-            detail.tiers.forEach((t) => {
-              if (t.feature_key && !t.is_free) {
-                prefetchAiQuotes(estateId, t.feature_key);
-              }
-            });
-          }
-        }
-      } catch (error) {
-        setLoadError(userFacingError(error, 'Could not load this feature.'));
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [params.featureId, estateId]
-  );
-
-  const refreshAfterTierChange = useCallback(
-    async (id?: string) => {
-      setServerDenied(false);
-      refreshEstateEntitlements();
-      void queryClient.invalidateQueries({ queryKey: queryKeys.anomaly.all });
-      await loadFeature(id ?? featureDetail?.id);
-    },
-    [queryClient, loadFeature, featureDetail?.id]
-  );
+  const refreshAfterTierChange = useCallback(async () => {
+    setServerDenied(false);
+    refreshEstateEntitlements();
+    void queryClient.invalidateQueries({ queryKey: queryKeys.anomaly.all });
+    await refetch();
+  }, [queryClient, refetch]);
 
   useFocusEffect(
     useCallback(() => {
@@ -208,52 +168,19 @@ export default function AnomalyDetectionPreviewScreen() {
   );
 
   useEffect(() => {
-    let isMounted = true;
-    async function init() {
-      if (!hasLoadedFeatureRef.current) setIsLoading(true);
-      setLoadError('');
-      try {
-        if (estateId) {
-          try {
-            const stored = await AsyncStorage.getItem(`cancelledTiers-${estateId}`);
-            if (stored) {
-              setJustCancelledTiers(JSON.parse(stored));
-            }
-          } catch (e) {
-            logger.error('Could not load cancelled tiers', e);
-          }
-        }
+    if (!estateId) return;
+    AsyncStorage.getItem(`cancelledTiers-${estateId}`)
+      .then((stored) => {
+        if (stored) setJustCancelledTiers(JSON.parse(stored));
+      })
+      .catch((e) => logger.error('Could not load cancelled tiers', e));
+  }, [estateId]);
 
-        const rawId = typeof params.featureId === 'string' ? params.featureId : undefined;
-        const targetId = await resolveMarketplaceFeatureId(rawId, isAnomalyProduct);
-
-        if (targetId && isMounted) {
-          const detail = await getMarketplaceFeatureById(targetId);
-          if (isMounted) {
-            hasLoadedFeatureRef.current = true;
-            setFeatureDetail(detail);
-            if (estateId && detail.tiers) {
-              detail.tiers.forEach((t) => {
-                if (t.feature_key && !t.is_free) {
-                  prefetchAiQuotes(estateId, t.feature_key);
-                }
-              });
-            }
-          }
-        }
-      } catch (error) {
-        if (isMounted) setLoadError(userFacingError(error, 'Could not load this feature.'));
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
-    }
-    init();
-    return () => {
-      isMounted = false;
-    };
-  }, [params.featureId, estateId]);
+  useEffect(() => {
+    if (!featureDetail) return;
+    const tiers = sortMarketplaceTiers(featureDetail.tiers ?? []);
+    setExpandedTier((prev) => (prev && tiers.some((tier) => tier.tier === prev) ? prev : null));
+  }, [featureDetail]);
 
   const handleActivateFreeTier = async (tierPayload: MarketplaceTier) => {
     if (denyIfUnauthorized()) return;
@@ -268,7 +195,7 @@ export default function AnomalyDetectionPreviewScreen() {
         await installAiFeature(estateId, tierPayload.feature_key);
       } else {
         if (!tierPayload.ai_feature_id) {
-          Alert.alert('Error', 'Missing feature identifier.');
+          showAlert('Error', 'Missing feature identifier.');
           return;
         }
         await subscribeMarketplaceFeature(featureDetail.id, {
@@ -276,8 +203,8 @@ export default function AnomalyDetectionPreviewScreen() {
           period_months: 1,
         });
       }
-      Alert.alert('Success', 'Free feature tier activated successfully!');
-      loadFeature(featureDetail.id);
+      showAlert('Success', 'Free feature tier activated successfully!');
+      void refetch();
     } catch (err: unknown) {
       notifyActionError(
         'Activation Failed',
@@ -305,7 +232,7 @@ export default function AnomalyDetectionPreviewScreen() {
     if (denyIfUnauthorized()) return;
     const tier = selectedTierForActivation;
     if (!tier?.feature_key) {
-      Alert.alert('Error', 'Feature key is missing for this tier.');
+      showAlert('Error', 'Feature key is missing for this tier.');
       return;
     }
 
@@ -347,7 +274,7 @@ export default function AnomalyDetectionPreviewScreen() {
         return next;
       });
     }
-    if (featureDetail?.id) loadFeature(featureDetail.id);
+    void refetch();
   };
 
   const handleCancelSubscription = async (tierPayload: {
@@ -367,7 +294,7 @@ export default function AnomalyDetectionPreviewScreen() {
         setIsCanceling(true);
         try {
           await cancelMarketplaceSubscription(estateId, tierPayload.feature_key || undefined);
-          Alert.alert('Success', 'Subscription cancelled successfully.');
+          showAlert('Success', 'Subscription cancelled successfully.');
           setJustCancelledTiers((prev) => {
             const next = { ...prev, [tierPayload.tier]: true };
             if (estateId)
@@ -376,7 +303,7 @@ export default function AnomalyDetectionPreviewScreen() {
               );
             return next;
           });
-          await refreshAfterTierChange(featureDetail?.id);
+          await refreshAfterTierChange();
         } catch (err: unknown) {
           const cancelMessage = errorMessage(err) || 'Failed to cancel subscription.';
           // If Paystack says it failed to disable, it's almost certainly because it's already cancelled
@@ -392,9 +319,9 @@ export default function AnomalyDetectionPreviewScreen() {
                 );
               return next;
             });
-            Alert.alert('Already Cancelled', 'Your subscription has already been cancelled.');
+            showAlert('Already Cancelled', 'Your subscription has already been cancelled.');
           } else {
-            Alert.alert('Cancellation Failed', cancelMessage);
+            showAlert('Cancellation Failed', cancelMessage);
           }
         } finally {
           setIsCanceling(false);
@@ -413,11 +340,11 @@ export default function AnomalyDetectionPreviewScreen() {
     if (denyIfUnauthorized()) return;
     if (requireTierOne(tierPayload.tier)) return;
     if (!estateId) {
-      Alert.alert('Error', 'Estate ID not found');
+      showAlert('Error', 'Estate ID not found');
       return;
     }
     if (!tierPayload.feature_key) {
-      Alert.alert('Error', 'Feature key is missing for this tier.');
+      showAlert('Error', 'Feature key is missing for this tier.');
       return;
     }
 
@@ -433,8 +360,8 @@ export default function AnomalyDetectionPreviewScreen() {
         setIsUninstalling(true);
         try {
           await uninstallAiFeature(estateId, tierPayload.feature_key!);
-          Alert.alert('Success', 'Feature uninstalled successfully.');
-          await refreshAfterTierChange(featureDetail?.id);
+          showAlert('Success', 'Feature uninstalled successfully.');
+          await refreshAfterTierChange();
         } catch (err: unknown) {
           notifyActionError(
             'Uninstall Failed',
@@ -458,11 +385,11 @@ export default function AnomalyDetectionPreviewScreen() {
     if (denyIfUnauthorized()) return;
     if (requireTierOne(tierPayload.tier)) return;
     if (!estateId) {
-      Alert.alert('Error', 'Estate ID not found');
+      showAlert('Error', 'Estate ID not found');
       return;
     }
     if (!tierPayload.feature_key) {
-      Alert.alert('Error', 'Feature key is missing for this tier.');
+      showAlert('Error', 'Feature key is missing for this tier.');
       return;
     }
 
@@ -470,9 +397,9 @@ export default function AnomalyDetectionPreviewScreen() {
     setIsInstalling(true);
     try {
       await installAiFeature(estateId, tierPayload.feature_key);
-      Alert.alert('Success', 'Feature installed successfully.');
+      showAlert('Success', 'Feature installed successfully.');
       setJustPurchasedTiers((prev) => ({ ...prev, [tierPayload.tier]: false }));
-      await refreshAfterTierChange(featureDetail?.id);
+      await refreshAfterTierChange();
     } catch (err: unknown) {
       notifyActionError(
         'Install Failed',
@@ -546,6 +473,8 @@ export default function AnomalyDetectionPreviewScreen() {
     if (!sortedTiers.length || openedExpandTier.current === '2') return;
     openedExpandTier.current = '2';
     showTier(2);
+    // showTier reads sortedTiers (already listed) plus stable setters and refs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.expandTier, sortedTiers]);
   const { showDenied: showResultDenied } = useFeatureGate('access_anomaly_detection_tier_1', {
     notice: 'floating',
@@ -652,7 +581,7 @@ export default function AnomalyDetectionPreviewScreen() {
             onAccessDenied={() => setServerDenied(true)}
           />
         ) : loadError && !featureDetail ? (
-          <LoadError message={loadError} onRetry={() => void loadFeature()} />
+          <LoadError message={loadError} onRetry={() => void refetch()} />
         ) : isLoading && !featureDetail ? (
           <View
             style={{

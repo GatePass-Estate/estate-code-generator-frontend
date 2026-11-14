@@ -5,8 +5,8 @@ import {
   ScrollView,
   TextInput,
   StyleSheet,
-  Dimensions,
   RefreshControl,
+  useWindowDimensions,
   Image,
 } from 'react-native';
 import { router, Stack } from 'expo-router';
@@ -37,9 +37,6 @@ import AnomalyDetectionSvg from '@/src/assets/images/aianormaly.svg';
 import AccessVolumePredictionSvg from '@/src/assets/images/accessvolumeprediction.svg';
 import TemporaryAnomalyDetectionSvg from '@/src/assets/images/temporaryanomalydetection.svg';
 import ExploratoryDataAnalysisSvg from '@/src/assets/images/exploratorydataanalysis.svg';
-
-const { width } = Dimensions.get('window');
-const CARD_WIDTH = (width - 42 - 8) / 2; // screen padding 21*2, gap 8
 
 const RoundedStar = ({ size, color, filled }: { size: number; color: string; filled: boolean }) => (
   <Svg
@@ -178,6 +175,8 @@ function selectTools(data: MarketplaceListResponse | undefined): AITool[] {
 }
 
 export default function AIStoreScreen() {
+  const { width } = useWindowDimensions();
+  const cardWidth = (width - 42 - 8) / 2; // screen padding 21*2, gap 8
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isFilterModalVisible, setFilterModalVisible] = useState(false);
@@ -346,7 +345,7 @@ export default function AIStoreScreen() {
                     });
                   }
                 }}
-                style={[styles.card, { width: CARD_WIDTH }]}
+                style={[styles.card, { width: cardWidth }]}
               >
                 {/* Card Header (Price/Badge) */}
                 <View style={styles.cardHeader}>

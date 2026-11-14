@@ -31,6 +31,11 @@ export const queryKeys = {
   estateUsers: {
     all: ['estate-users'] as const,
     estate: (estateId: string) => ['estate-users', estateId] as const,
+    /** Admin home / seat summary — first page only (role_summary + preview). */
+    estatePage: (estateId: string) => ['estate-users', 'page', estateId] as const,
+    /** All Users screen — one page at a time (infinite scroll). */
+    infinite: (estateId: string, filters: unknown) =>
+      ['estate-users', 'infinite', estateId, filters] as const,
   },
   anomaly: {
     all: ['anomaly'] as const,

@@ -19,7 +19,6 @@ import { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Button } from '@/src/shared/components/nativewindui/Button';
-import Back from '@/src/shared/components/navigation/Back';
 import ScreenHeader from '@/src/shared/components/layout/ScreenHeader';
 import { useAuth } from '@/src/features/auth/hooks/useAuthContext';
 import { acceptTos, fetchMe } from '@/src/features/auth';
@@ -263,7 +262,7 @@ export default function TermsOfService() {
 
   const routeForRole = useCallback(
     (role: UserRolesType) => {
-      if (role === 'resident' || ['primary_admin', 'admin'].includes(role!)) {
+      if (role === 'resident' || ['root', 'primary_admin', 'admin'].includes(role!)) {
         router.replace('/user');
       } else if (role === 'security') {
         router.replace('/security');
@@ -310,7 +309,7 @@ export default function TermsOfService() {
         role,
         session_id: result.session_id,
       });
-      broadcastLogin(token, role);
+      broadcastLogin(role);
       signIn(user);
 
       // Accepting TOS completes a fresh login. Only clear the biometric token

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Modal, Pressable, View, Text, Alert, Dimensions, StyleSheet } from 'react-native';
+import { Modal, Pressable, View, Text, Alert, StyleSheet, useWindowDimensions } from 'react-native';
 import { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -24,8 +24,6 @@ import {
   downloadFile,
 } from '@/src/features/admin/utils/pendingRequestHelpers';
 
-const SCREEN_HEIGHT = Dimensions.get('window').height;
-const SHEET_HEIGHT = SCREEN_HEIGHT * 0.6;
 const SHEET_ANIMATION = {
   duration: 280,
   easing: Easing.out(Easing.cubic),
@@ -119,13 +117,15 @@ export default function PendingRequestSheet({
   onDeleted,
 }: PendingRequestSheetProps) {
   const insets = useSafeAreaInsets();
-  const translateY = useSharedValue(SHEET_HEIGHT);
+  const { height: windowHeight } = useWindowDimensions();
+  const sheetHeight = windowHeight * 0.6;
+  const translateY = useSharedValue(sheetHeight);
   const dragStartY = useSharedValue(0);
   const [deleting, setDeleting] = useState(false);
   const [notifying, setNotifying] = useState(false);
 
   const closeSheet = () => {
-    translateY.value = withTiming(SHEET_HEIGHT, SHEET_ANIMATION, () => {
+    translateY.value = withTiming(sheetHeight, SHEET_ANIMATION, () => {
       // Always dismiss — interrupted close must not leave a blocking invisible Modal.
       runOnJS(onClose)();
     });
@@ -135,9 +135,9 @@ export default function PendingRequestSheet({
     if (visible) {
       translateY.value = withTiming(0, SHEET_ANIMATION);
     } else {
-      translateY.value = SHEET_HEIGHT;
+      translateY.value = sheetHeight;
     }
-  }, [translateY, visible]);
+  }, [sheetHeight, translateY, visible]);
 
   const panGesture = Gesture.Pan()
     .onBegin(() => {
@@ -147,7 +147,7 @@ export default function PendingRequestSheet({
       translateY.value = Math.max(0, dragStartY.value + event.translationY);
     })
     .onEnd((event) => {
-      const shouldClose = event.translationY > SHEET_HEIGHT * 0.2 || event.velocityY > 800;
+      const shouldClose = event.translationY > sheetHeight * 0.2 || event.velocityY > 800;
 
       if (shouldClose) {
         runOnJS(closeSheet)();
@@ -161,9 +161,12 @@ export default function PendingRequestSheet({
     transform: [{ translateY: translateY.value }],
   }));
 
-  const backdropAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: 1 - translateY.value / SHEET_HEIGHT,
-  }));
+  const backdropAnimatedStyle = useAnimatedStyle(
+    () => ({
+      opacity: 1 - translateY.value / sheetHeight,
+    }),
+    [sheetHeight]
+  );
 
   const handleDeleteRequest = async () => {
     if (!request?.requestId) return;
@@ -232,7 +235,7 @@ export default function PendingRequestSheet({
           <Animated.View
             style={[
               styles.sheet,
-              { height: SHEET_HEIGHT, paddingBottom: Math.max(insets.bottom, 24) },
+              { height: sheetHeight, paddingBottom: Math.max(insets.bottom, 24) },
               sheetAnimatedStyle,
             ]}
           >

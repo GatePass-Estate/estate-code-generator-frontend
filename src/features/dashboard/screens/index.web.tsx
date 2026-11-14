@@ -200,15 +200,6 @@ export default function HomeWeb() {
     setGuestsPage(1);
   }, [searchQuery]);
 
-  const performFilteredSearch = () => {
-    const filtered = guests.filter(
-      (guest) =>
-        guest.guest_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        guest.relationship?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-    return filtered;
-  };
-
   return (
     <div className="flex h-full w-screen overflow-y-scroll bg-body">
       <WebSidebar routes={menuRoutes} onNavigate={(route) => router.push(route)} />
@@ -244,7 +235,6 @@ export default function HomeWeb() {
 
                   let formattedDate = 'Invalid date';
                   let timeframe = 'Unknown';
-                  let timeLeftMinutes = 0;
 
                   if (!isNaN(parsed.getTime())) {
                     const day = String(parsed.getDate()).padStart(2, '0');
@@ -266,7 +256,6 @@ export default function HomeWeb() {
                           })
                           .replace(/\s+/g, '')
                           .toLowerCase();
-                      timeLeftMinutes = Math.floor((diffMs % 3600000) / 60000);
                       timeframe = `${formatTime(startDate)} to ${formatTime(parsed)}`;
                     }
                   }

@@ -1,6 +1,6 @@
 import { useGoBack } from '@/src/shared/hooks/useGoBack';
 import React, { useState, useRef, useEffect } from 'react';
-import BottomSheet, { SheetGrabber } from '@/src/shared/components/feedback/BottomSheet';
+import BottomSheet from '@/src/shared/components/feedback/BottomSheet';
 import {
   View,
   Text,
@@ -11,7 +11,6 @@ import {
   Image,
   Animated,
   PanResponder,
-  Linking,
   Platform,
   Alert,
   KeyboardAvoidingView,
@@ -22,15 +21,14 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons as Icon } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import Back from '@/src/shared/components/navigation/Back';
 import AnimatedPillTabs from '@/src/shared/components/AnimatedPillTabs';
 import { sharedStyles } from '@/src/shared/theme/styles';
 import StarRating from '@/src/shared/components/StarRating';
 import { GatePassLogo } from '@/src/features/support/components/GatePassLogo';
 import { DeviconStarshipIcon } from '@/src/assets/svgs';
-import icons from '@/src/shared/constants/icons';
 import { errorMessage } from '@/src/shared/services/api/errors';
 import { submitFeedback } from '@/src/features/support/services/help';
+import { uploadFeedbackAttachment } from '@/src/features/support/services/feedbackAttachment';
 
 type Tab = 'Suggestion' | 'Issue';
 
@@ -207,22 +205,9 @@ export default function RatingFeedbackNative() {
             let uploadedUrl = '';
 
             if (images.length > 0) {
-              const formData = new FormData();
-              formData.append('file', attachmentFile(images[0]) as unknown as Blob);
-              formData.append('upload_preset', 'GatePass_Feedback');
-
-              const uploadRes = await fetch(
-                'https://api.cloudinary.com/v1_1/dcozenahn/image/upload',
-                {
-                  method: 'POST',
-                  body: formData,
-                }
+              uploadedUrl = await uploadFeedbackAttachment(
+                attachmentFile(images[0]) as unknown as Blob
               );
-
-              if (!uploadRes.ok) throw new Error('Failed to upload image to Cloudinary');
-
-              const uploadData = await uploadRes.json();
-              uploadedUrl = uploadData.secure_url;
             }
 
             await submitFeedback({
@@ -666,6 +651,12 @@ const styles = StyleSheet.create({
     fontFamily: 'UbuntuSans-Medium',
     color: '#828282',
     marginBottom: 12,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontFamily: 'UbuntuSans-Medium',
+    color: '#113E55',
+    marginBottom: 8,
   },
   modalSubtitle: {
     fontSize: 15,

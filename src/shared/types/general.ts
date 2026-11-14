@@ -81,5 +81,5 @@ export interface FormErrors {
 }
 
 export type AuthBroadcastMessage =
-  | { type: 'LOGIN'; payload: { token: string; role: UserRolesType; timestamp: number } }
+  | { type: 'LOGIN'; payload: { role: UserRolesType; timestamp: number } }
   | { type: 'LOGOUT'; payload: { timestamp: number } };

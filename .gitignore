@@ -50,3 +50,5 @@ app-example
 # generated native folders
 /ios
 /android
+# Play Store submit key (REL-04)
+google-play-service-account.json

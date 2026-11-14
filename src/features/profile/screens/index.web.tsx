@@ -13,8 +13,13 @@ import { menuRoutes } from '@/src/features/dashboard/components/menuRoutes';
 
 export default function MyProfile() {
   const router = useRouter();
-  const { user_id, estate_id, first_name, last_name, home_address, email, phone_number } =
-    useUserStore();
+  const user_id = useUserStore((s) => s.user_id);
+  const estate_id = useUserStore((s) => s.estate_id);
+  const first_name = useUserStore((s) => s.first_name);
+  const last_name = useUserStore((s) => s.last_name);
+  const home_address = useUserStore((s) => s.home_address);
+  const email = useUserStore((s) => s.email);
+  const phone_number = useUserStore((s) => s.phone_number);
   const codeQuery = useMyResidentCode(user_id);
   const generateResidentCode = useGenerateCode();
   const { refetch: refetchResidentCode } = codeQuery;

@@ -1,6 +1,6 @@
 import { useGoBack } from '@/src/shared/hooks/useGoBack';
 import React from 'react';
-import { View, Pressable } from 'react-native';
+import { View } from 'react-native';
 import ScreenLoading from '@/src/shared/components/feedback/ScreenLoading';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';

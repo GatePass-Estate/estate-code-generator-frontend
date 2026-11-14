@@ -1,4 +1,4 @@
-import { Text, View, Animated, useWindowDimensions, TouchableOpacity } from 'react-native';
+import { Text, View, Animated, TouchableOpacity } from 'react-native';
 import { useEffect, useRef } from 'react';
 import { Ionicons as Icon } from '@expo/vector-icons';
 

@@ -1,19 +1,8 @@
-import React, { useEffect, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, Platform, ScrollView } from 'react-native';
 import BottomSheet from '@/src/shared/components/feedback/BottomSheet';
-import Animated, {
-  SlideInDown,
-  useAnimatedStyle,
-  useAnimatedProps,
-  useSharedValue,
-  withSequence,
-  withTiming,
-  Easing,
-  withDelay,
-} from 'react-native-reanimated';
 import { BlurView } from 'expo-blur';
 import { MaterialIcons } from '@expo/vector-icons';
-import Svg, { Path, Circle } from 'react-native-svg';
+import Svg, { Path } from 'react-native-svg';
 import VShapeSvg from '@/src/assets/icons/vshape.svg';
 
 export interface GaugeData {

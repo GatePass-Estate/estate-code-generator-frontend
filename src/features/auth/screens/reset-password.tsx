@@ -53,6 +53,14 @@ export default function ResetPassword() {
         setResetToken(token);
         setUserEmail(result.email);
         setIsVerifying(false);
+        // Drop the token from the address bar after it is held in component state (SEC-08).
+        if (
+          Platform.OS === 'web' &&
+          typeof window !== 'undefined' &&
+          window.history?.replaceState
+        ) {
+          window.history.replaceState({}, '', '/auth/reset-password');
+        }
       } catch (error: unknown) {
         setTokenError(thrownMessage(error) || 'This reset link has expired or is invalid.');
         setIsVerifying(false);

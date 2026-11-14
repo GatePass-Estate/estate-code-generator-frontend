@@ -14,8 +14,14 @@ import { useEffect, useLayoutEffect } from 'react';
 import LoadingTransition from '@/src/shared/components/feedback/LoadingTransition';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { patchAndroidDoubleNavigation } from '@/src/shared/utils/androidActionLock';
+import AppErrorBoundary from '@/src/shared/components/feedback/AppErrorBoundary';
+import { installGlobalErrorHandlers } from '@/src/shared/utils/globalErrorHandlers';
+import { logger } from '@/src/shared/utils/logger';
+import { installReactQueryNativeManagers } from '@/src/shared/services/api/reactQueryNative';
 
 patchAndroidDoubleNavigation();
+installGlobalErrorHandlers();
+installReactQueryNativeManagers();
 
 ExpoSplashScreen.preventAutoHideAsync();
 
@@ -47,8 +53,11 @@ function RootLayoutContent() {
         }}
       >
         <Stack.Screen name="index" />
-        <Stack.Screen name="auth/institution" />
-        <Stack.Screen name="auth/login" />
+        <Stack.Screen
+          name="auth/institution"
+          options={{ animation: 'slide_from_left', animationTypeForReplace: 'pop' }}
+        />
+        <Stack.Screen name="auth/login" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="auth/two-factor" />
         <Stack.Screen name="auth/tos" />
         <Stack.Screen name="auth/set-password" />
@@ -65,13 +74,11 @@ function RootLayoutContent() {
 }
 
 export default function RootLayout() {
+  // PERF-09: skip unused italic/extraLight faces so splash unblocks sooner.
   const [loaded, fontError] = useFonts({
-    RobotoItalic: require('../src/assets/fonts/Roboto-Italic-VariableFont_wdth,wght.ttf'),
     Roboto: require('../src/assets/fonts/Roboto-VariableFont_wdth,wght.ttf'),
     UbuntuSans: require('../src/assets/fonts/UbuntuSans-VariableFont_wdth,wght.ttf'),
-    UbuntuSansItalic: require('../src/assets/fonts/UbuntuSans-Italic-VariableFont_wdth,wght.ttf'),
 
-    [UbuntuSans.extraLight]: require('../src/assets/fonts/UbuntuSans-ExtraLight.ttf'),
     [UbuntuSans.light]: require('../src/assets/fonts/UbuntuSans-Light.ttf'),
     [UbuntuSans.regular]: require('../src/assets/fonts/UbuntuSans-Regular.ttf'),
     [UbuntuSans.medium]: require('../src/assets/fonts/UbuntuSans-Medium.ttf'),
@@ -79,7 +86,6 @@ export default function RootLayout() {
     [UbuntuSans.bold]: require('../src/assets/fonts/UbuntuSans-Bold.ttf'),
     [UbuntuSans.extraBold]: require('../src/assets/fonts/UbuntuSans-ExtraBold.ttf'),
 
-    [Inter.extraLight]: require('../src/assets/fonts/Inter_18pt-ExtraLight.ttf'),
     [Inter.light]: require('../src/assets/fonts/Inter_18pt-Light.ttf'),
     [Inter.regular]: require('../src/assets/fonts/Inter_18pt-Regular.ttf'),
     [Inter.medium]: require('../src/assets/fonts/Inter_18pt-Medium.ttf'),
@@ -89,6 +95,10 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
+    if (fontError) {
+      // STB-14: continue with system fonts; report so we know field devices hit this.
+      logger.error('Custom fonts failed to load; falling back to system fonts', fontError);
+    }
     if (loaded || fontError) {
       ExpoSplashScreen.hideAsync().catch(() => {});
     }
@@ -101,11 +111,13 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <GestureHandlerRootView style={{ flex: 1 }}>
-            <RootLayoutContent />
-          </GestureHandlerRootView>
-        </AuthProvider>
+        <AppErrorBoundary name="root">
+          <AuthProvider>
+            <GestureHandlerRootView style={{ flex: 1 }}>
+              <RootLayoutContent />
+            </GestureHandlerRootView>
+          </AuthProvider>
+        </AppErrorBoundary>
       </QueryClientProvider>
     </SafeAreaProvider>
   );

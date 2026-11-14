@@ -13,19 +13,21 @@ import {
 import Svg, { Text as SvgText } from 'react-native-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { useQuery } from '@tanstack/react-query';
 import ProfileExpandedOverlay from '@/src/assets/icons/profile-expanded-overlay.svg';
 import ProfileOverlayClose from '@/src/assets/icons/profile-overlay-close.svg';
 import ResidentProfileHead from '@/src/assets/icons/resident-profile-head.svg';
 import ResidentProfileOutline from '@/src/assets/icons/resident-profile-outline.svg';
 import { Inter } from '@/src/shared/constants/fonts';
-import { useAuthStore } from '@/src/features/auth/store/authStore';
 import { getUserDocumentViewUri } from '@/src/features/profile/services/userDocuments';
+import { fetchCachedUser } from '@/src/features/history/hooks/accessLogs';
 import AnomalousScanOverlay from '@/src/features/scanner/components/AnomalousScanOverlay';
 import {
   parseScanWarningSeverity,
   type ScanWarningSeverity,
 } from '@/src/features/scanner/utils/securityScanWarning';
 import Back from '@/src/shared/components/navigation/Back';
+import { queryKeys } from '@/src/shared/services/api/queryKeys';
 
 const getParam = (value: string | string[] | undefined, fallback = 'N/A') => {
   const rawValue = Array.isArray(value) ? value[0] : value;
@@ -162,7 +164,6 @@ export default function ValidationResult() {
   const [warningSeverity, setWarningSeverity] = useState<ScanWarningSeverity | null>(null);
   const [profileImageFailed, setProfileImageFailed] = useState(false);
   const [fetchedProfilePictureUrl, setFetchedProfilePictureUrl] = useState<string | null>(null);
-  const accessToken = useAuthStore((state) => state.access_token);
   const routeWarningSeverity = parseScanWarningSeverity(params.warningSeverity);
 
   useEffect(() => {
@@ -174,24 +175,28 @@ export default function ValidationResult() {
   const guestName = getParam(params.visitor_fullname);
   const relationship = toTitleCase(getParam(params.relationship_with_resident));
   const guestGender = toTitleCase(getParam(params.gender));
-  const residentName = getParam(params.resident_name);
-  const residentAddress = getParam(params.resident_address);
-  const residentHousehold = getParam(params.resident_household);
-  const residentEmail = getParam(params.resident_email);
-  const residentPhone = getParam(params.resident_phone_number);
   const validatedCode = getParam(params.code, '');
   const residentUserId = getParam(params.resident_user_id, '');
-  const residentProfilePictureUrl = getParam(params.resident_profile_picture_url, '');
-  const activeResidentProfilePictureUrl =
-    residentProfilePictureUrl || fetchedProfilePictureUrl || '';
+  // PERF-08: resident profile loads in parallel with the result screen (cache warm from scanner).
+  const residentQuery = useQuery({
+    queryKey: queryKeys.users.byId(residentUserId),
+    queryFn: () => fetchCachedUser(residentUserId),
+    enabled: Boolean(residentUserId) && residentUserId !== 'N/A',
+  });
+  const resident = residentQuery.data;
+  const residentName =
+    [resident?.first_name, resident?.last_name].filter(Boolean).join(' ').trim() ||
+    getParam(params.resident_name);
+  const residentAddress = resident?.home_address?.trim() || getParam(params.resident_address);
+  const residentHousehold = resident?.household_name?.trim() || getParam(params.resident_household);
+  const residentEmail = resident?.email?.trim() || getParam(params.resident_email);
+  const residentPhone = resident?.phone_number?.trim() || getParam(params.resident_phone_number);
+  // Never load or authorize an image URI from route params — a crafted deep link could
+  // point at an attacker host and exfiltrate the bearer token via Image headers.
+  const activeResidentProfilePictureUrl = fetchedProfilePictureUrl || '';
   const profileInitials = getNameInitials(isResidentCode ? residentName : guestName);
   const residentProfilePictureSource = activeResidentProfilePictureUrl
-    ? /^https?:\/\//i.test(activeResidentProfilePictureUrl)
-      ? {
-          uri: activeResidentProfilePictureUrl,
-          headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
-        }
-      : { uri: activeResidentProfilePictureUrl }
+    ? { uri: activeResidentProfilePictureUrl }
     : null;
   const shouldShowProfileImage = Boolean(
     isResidentCode && residentProfilePictureSource && !profileImageFailed
@@ -227,6 +232,28 @@ export default function ValidationResult() {
 
     router.replace('/security');
   };
+
+  // STB-11: deep link / missing navigation params — don't render a blank N/A result.
+  if (!validatedCode) {
+    return (
+      <SafeAreaView className="relative flex-1 items-center justify-center bg-[#F6F7F7] px-8">
+        <Stack.Screen options={{ headerShown: false }} />
+        <Text className="text-center text-[16px] font-ubuntu-medium text-primary">
+          No scan result to show
+        </Text>
+        <Text className="mt-2 text-center text-[14px] font-inter-regular text-[#878686]">
+          Scan or enter an access code first.
+        </Text>
+        <Pressable
+          onPress={handleBack}
+          className="mt-6 rounded-full bg-primary px-5 py-3"
+          accessibilityRole="button"
+        >
+          <Text className="font-ubuntu-semibold text-sm text-white">Back to scanner</Text>
+        </Pressable>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView className="relative flex-1 bg-[#F6F7F7]">

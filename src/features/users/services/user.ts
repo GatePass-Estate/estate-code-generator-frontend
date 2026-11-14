@@ -56,7 +56,7 @@ export const getUserByIdAdmin = async (id: string): Promise<User> => {
   try {
     const api = Api();
 
-    const axiosRes = await api.get(`/users/${id}`);
+    const axiosRes = await api.get(`/users/${encodeURIComponent(id)}`);
     const data = axiosRes.data;
 
     return data;
@@ -69,7 +69,7 @@ export const getUserById = async (id: string): Promise<UserProfileResponse> => {
   try {
     const api = Api();
 
-    const axiosRes = await api.get(`/users/profile/${id}`);
+    const axiosRes = await api.get(`/users/profile/${encodeURIComponent(id)}`);
     const data = axiosRes.data;
 
     return data;
@@ -81,12 +81,15 @@ export const getUserById = async (id: string): Promise<UserProfileResponse> => {
 export const getUserProfilePictureUrl = async (userId: string): Promise<string | null> => {
   try {
     const api = Api();
-    const axiosRes = await api.get<UserDocumentsMetadataResponse>(`/users/documents/${userId}`, {
-      params: {
-        document_type: 'profile_picture',
-        document_status: 'active',
-      },
-    });
+    const axiosRes = await api.get<UserDocumentsMetadataResponse>(
+      `/users/documents/${encodeURIComponent(userId)}`,
+      {
+        params: {
+          document_type: 'profile_picture',
+          document_status: 'active',
+        },
+      }
+    );
 
     const profilePicture = axiosRes.data.documents.find(
       (document: DocumentMetadataItem) =>
@@ -107,20 +110,89 @@ export const getUserProfilePictureUrl = async (userId: string): Promise<string |
   }
 };
 
-export const getAllEstateUsers = async (page: number = 1, limit: number = 5): Promise<AllUsers> => {
+/**
+ * `GET /users/all` — estate roster with status + pagination (used by admin home / billing).
+ * Does not support name/role search; use `searchEstateUsers` for the All Users screen.
+ */
+export const getAllEstateUsers = async (
+  page: number = 1,
+  limit: number = 5,
+  status: 'all' | 'true' | 'false' = 'all'
+): Promise<AllUsers> => {
   try {
     const api = Api();
-
     const axiosRes = await api.get('/users/all', {
-      params: { page, limit, status: 'all' },
+      params: { page, limit, status },
     });
-    const data = axiosRes.data;
-
-    return data;
+    return axiosRes.data;
   } catch (error: unknown) {
     raiseApiError(error, 'An error occured', true);
   }
 };
+
+/** Filters supported by `GET /users/` (backend `list_users` / `SearchUserRequest`). */
+export type SearchEstateUsersParams = {
+  page?: number;
+  limit?: number;
+  first_name?: string | null;
+  last_name?: string | null;
+  email?: string | null;
+  role?: 'root' | 'primary_admin' | 'admin' | 'resident' | 'security' | 'guest' | null;
+  /** Activation status. Omit for everyone; `true` / `false` for validated filters. */
+  status?: boolean | null;
+};
+
+/**
+ * `GET /users/` — server-side search + role + status + pagination.
+ * Prefer this for All Users filters (PERF-03).
+ */
+export const searchEstateUsers = async (
+  params: SearchEstateUsersParams = {}
+): Promise<AllUsers> => {
+  try {
+    const api = Api();
+    // No trailing slash — some gateways 307 `/users/` → `/users` and drop query params,
+    // which made role/search filters look broken (always the same first page).
+    const axiosRes = await api.get('/users', {
+      params: {
+        page: params.page ?? 1,
+        limit: params.limit ?? 20,
+        ...(params.first_name?.trim() ? { first_name: params.first_name.trim() } : {}),
+        ...(params.last_name?.trim() ? { last_name: params.last_name.trim() } : {}),
+        ...(params.email?.trim() ? { email: params.email.trim() } : {}),
+        ...(params.role ? { role: params.role } : {}),
+        ...(params.status === null || params.status === undefined
+          ? {}
+          : { status: String(params.status) }),
+      },
+      // Keep `status=false` — axios can drop falsy values depending on serializer.
+      paramsSerializer: {
+        serialize: (p) =>
+          Object.entries(p)
+            .filter(([, v]) => v !== undefined && v !== null && v !== '')
+            .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
+            .join('&'),
+      },
+    });
+    return axiosRes.data;
+  } catch (error: unknown) {
+    raiseApiError(error, 'An error occured', true);
+  }
+};
+
+/** Map the All Users search box onto the fields `GET /users/` actually supports. */
+export function searchTextToUserFilters(
+  search: string
+): Pick<SearchEstateUsersParams, 'first_name' | 'last_name' | 'email'> {
+  const trimmed = search.trim();
+  if (!trimmed) return {};
+  if (trimmed.includes('@')) return { email: trimmed };
+  const parts = trimmed.split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) {
+    return { first_name: parts[0], last_name: parts.slice(1).join(' ') };
+  }
+  return { first_name: trimmed };
+}
 
 /**
  * Admin changes to a user (add, remove, role change) change the estate's user list and seat count.
@@ -191,7 +263,7 @@ export const demoteToResident = async (user_id: string): Promise<UpdateUserRoleR
 export const resendEmailVerification = async (user_id: string): Promise<void> => {
   try {
     const api = Api();
-    await api.post(`/users/${user_id}/resend-verification`);
+    await api.post(`/users/${encodeURIComponent(user_id)}/resend-verification`);
   } catch (error: unknown) {
     raiseApiError(error, 'An error occured', true);
   }

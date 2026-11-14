@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter, Redirect } from 'expo-router';
 import { useVerifyEmailActivationToken } from '@/src/features/auth';
 import LoadingTransition from '@/src/shared/components/feedback/LoadingTransition';
 import { grantActivationStatusAccess } from '@/src/features/auth/services/authPersistence';
+import { stashPendingAuthToken } from '@/src/features/auth/services/pendingAuthToken';
 
 function firstParam(value?: string | string[]): string {
   if (Array.isArray(value)) return value[0] ?? '';
@@ -21,12 +22,7 @@ export default function ActivateScreen() {
   const router = useRouter();
   const hasRedirected = useRef(false);
 
-  const {
-    data: verifyData,
-    isLoading: isVerifying,
-    isError: isVerifyError,
-    error: verifyError,
-  } = useVerifyEmailActivationToken(token);
+  const { data: verifyData, isError: isVerifyError } = useVerifyEmailActivationToken(token);
 
   useEffect(() => {
     if (hasRedirected.current) return;
@@ -40,13 +36,9 @@ export default function ActivateScreen() {
 
     if (verifyData?.user_id && token) {
       hasRedirected.current = true;
-      router.replace({
-        pathname: '/auth/set-password',
-        params: {
-          token,
-          email: verifyData.email,
-        },
-      });
+      // Keep the token out of the next route's params / history (SEC-08).
+      stashPendingAuthToken(token, verifyData.email);
+      router.replace('/auth/set-password');
     }
   }, [verifyData, isVerifyError, router, token]);
 

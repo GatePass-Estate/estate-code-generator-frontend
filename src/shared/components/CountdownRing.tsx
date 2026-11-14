@@ -24,7 +24,10 @@ export default function CountdownRing({ size = 90, strokeWidth = 7, expiresAt, o
   const totalSeconds = 60 * 60;
 
   /** compute starting remaining time ONCE */
-  const computeRemaining = () => Math.max(0, Math.floor((expiresAt - Date.now()) / 1000));
+  const computeRemaining = useCallback(
+    () => Math.max(0, Math.floor((expiresAt - Date.now()) / 1000)),
+    [expiresAt]
+  );
 
   const [remainingSeconds, setRemainingSeconds] = useState(computeRemaining);
 
@@ -53,7 +56,7 @@ export default function CountdownRing({ size = 90, strokeWidth = 7, expiresAt, o
       clearInterval(interval);
       sub.remove();
     };
-  }, [expiresAt]);
+  }, [update]);
 
   const mins = Math.ceil(remainingSeconds / 60) - 1;
 

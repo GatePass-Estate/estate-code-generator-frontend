@@ -219,7 +219,9 @@ export default function EditProfile() {
   return (
     <div className="flex h-full w-screen overflow-y-scroll bg-body">
       <WebSidebar
-        routes={menuRoutes.filter((el) => el.for == 'web' || el.for == 'both').map((data) => data)}
+        routes={menuRoutes
+          .filter((el) => el.for === 'web' || el.for === 'both')
+          .map((data) => data)}
         onNavigate={(route) => router.push(route)}
       />
 

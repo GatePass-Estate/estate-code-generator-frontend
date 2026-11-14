@@ -55,7 +55,7 @@ export default function AddGuestWeb() {
       return false;
     }
 
-    if (selectedRelationships == 'other' && !otherRelationship.trim()) {
+    if (selectedRelationships === 'other' && !otherRelationship.trim()) {
       setError('Please select or enter a relationship.');
       return false;
     }

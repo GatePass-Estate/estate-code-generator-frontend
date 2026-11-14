@@ -101,18 +101,17 @@ export default function ProfileScreen() {
   const { requireVerified } = useVerificationGate();
   const { approval: idApproval, blocked: verificationBlocked } = useAccountVerification();
   const navigation = useNavigation();
-  const {
-    first_name,
-    last_name,
-    home_address,
-    household_name,
-    household_primary_resident,
-    email,
-    phone_number,
-    user_id,
-    estate_id,
-    role,
-  } = useUserStore();
+  // PERF-16: select only what this screen needs (useShallow so the object is stable).
+  const first_name = useUserStore((s) => s.first_name);
+  const last_name = useUserStore((s) => s.last_name);
+  const home_address = useUserStore((s) => s.home_address);
+  const household_name = useUserStore((s) => s.household_name);
+  const household_primary_resident = useUserStore((s) => s.household_primary_resident);
+  const email = useUserStore((s) => s.email);
+  const phone_number = useUserStore((s) => s.phone_number);
+  const user_id = useUserStore((s) => s.user_id);
+  const estate_id = useUserStore((s) => s.estate_id);
+  const role = useUserStore((s) => s.role);
   const showAccessCode = role !== 'security';
   const {
     data: residentCode,

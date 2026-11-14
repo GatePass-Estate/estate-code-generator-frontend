@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Clipboard from 'expo-clipboard';
@@ -53,7 +53,7 @@ type ActiveCodeCardProps = {
   onExtend: () => void | Promise<void>;
 };
 
-export default function ActiveCodeCard({
+function ActiveCodeCard({
   item,
   guestName,
   code,
@@ -463,3 +463,5 @@ export default function ActiveCodeCard({
     </View>
   );
 }
+
+export default memo(ActiveCodeCard);

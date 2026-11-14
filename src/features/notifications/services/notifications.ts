@@ -38,16 +38,6 @@ export async function markNotificationRead(notification_id: string): Promise<{ i
   }
 }
 
-export async function markAllNotificationsRead(): Promise<{ updated?: number }> {
-  try {
-    const api = Api();
-    const axiosRes = await api.patch(`/notifications/read-all`);
-    return axiosRes.data;
-  } catch (error: unknown) {
-    raiseApiError(error, 'Could not mark all as read');
-  }
-}
-
 /** Deletes a single activity item. This is the swipe-to-delete action. */
 export async function deleteNotification(notification_id: string): Promise<{ id?: string }> {
   try {

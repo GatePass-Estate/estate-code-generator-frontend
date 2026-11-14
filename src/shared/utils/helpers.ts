@@ -79,7 +79,25 @@ export const getErrorMessage = (error: unknown): string => {
   return message ?? 'An unknown error occurred';
 };
 
+/**
+ * PERF-13: avoid stringifying large payloads on every poll when a cheap
+ * identity/timestamp check is enough. Falls back to JSON only for other shapes.
+ */
 export const isDataEqual = (obj1: unknown, obj2: unknown): boolean => {
+  if (obj1 === obj2) return true;
+  if (obj1 == null || obj2 == null) return obj1 === obj2;
+  if (typeof obj1 !== 'object' || typeof obj2 !== 'object') return obj1 === obj2;
+
+  const a = obj1 as Record<string, unknown>;
+  const b = obj2 as Record<string, unknown>;
+  const aId = a.id ?? a.user_id ?? a.code_id;
+  const bId = b.id ?? b.user_id ?? b.code_id;
+  const aUpdated = a.updated_at ?? a.modified_at ?? a.created_at;
+  const bUpdated = b.updated_at ?? b.modified_at ?? b.created_at;
+  if (aId != null && bId != null && aUpdated != null && bUpdated != null) {
+    return aId === bId && aUpdated === bUpdated;
+  }
+
   return JSON.stringify(obj1) === JSON.stringify(obj2);
 };
 

@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
+  Pressable,
   ScrollView,
   NativeSyntheticEvent,
   NativeScrollEvent,
@@ -32,6 +33,7 @@ import {
   type AnomalyOverviewView,
 } from '@/src/features/ai/utils/anomalyShapes';
 import { useFeatureGate } from '@/src/features/billing/hooks/usePlan';
+import { userFacingError } from '@/src/shared/services/api/errors';
 import { AnomalyEvidenceSection } from '@/src/features/ai/components/anomaly/result/AnomalyEvidenceSection';
 import { AnomalyOverviewSection } from '@/src/features/ai/components/anomaly/result/AnomalyOverviewSection';
 import { AnomalySummaryCards } from '@/src/features/ai/components/anomaly/result/AnomalySummaryCards';
@@ -249,6 +251,33 @@ export default function AnomalyResultView({
         }}
       >
         <ScreenLoading />
+      </View>
+    );
+  }
+
+  // STB-11: surface load failures instead of an empty Result tab.
+  if (
+    (overviewError || predictionsError) &&
+    !rawOverview &&
+    !predictionsData &&
+    !bootEntitlementDenied
+  ) {
+    const message = userFacingError(
+      overviewErr ?? predictionsErr,
+      'Could not load anomaly results.'
+    );
+    return (
+      <View className="flex-1 items-center justify-center bg-[#F6F7F7] px-8">
+        <Text className="text-center text-[15px] font-inter-medium text-primary">{message}</Text>
+        <Pressable
+          onPress={() => {
+            void refetchOverview();
+            void refetchPredictions();
+          }}
+          className="mt-4 rounded-full bg-primary px-5 py-3"
+        >
+          <Text className="text-sm font-inter-medium text-white">Retry</Text>
+        </Pressable>
       </View>
     );
   }

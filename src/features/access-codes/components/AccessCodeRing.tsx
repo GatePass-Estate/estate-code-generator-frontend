@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { View, Text } from 'react-native';
+import { Text } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import Animated, {
   useAnimatedProps,

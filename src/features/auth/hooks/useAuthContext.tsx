@@ -7,9 +7,11 @@ import {
   broadcastLogout,
   clearAuthState,
   getAuthState,
+  getCachedUser,
   getPostAuthRedirectRoute,
   getSelectedInstitution,
   initAuthSync,
+  storeCachedUser,
 } from '@/src/features/auth/services/authPersistence';
 import { setUnauthorizedHandler } from '@/src/features/auth/services/session';
 import type { SignOutReason } from '@/src/features/auth/services/signOutReason';
@@ -30,9 +32,18 @@ import { useNotificationStore } from '@/src/features/notifications/store/notific
 import { unregisterForPushNotifications } from '@/src/features/notifications/services/pushNotifications';
 import { AuthContextType } from '@/src/features/auth/types/auth';
 import { User } from '@/src/features/users/types/user';
+import { shouldKeepSessionOffline } from '@/src/features/auth/utils/offlineSession';
 import { usePathname, useRouter } from 'expo-router';
 import * as Linking from 'expo-linking';
-import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { UserRolesType } from '@/src/shared/types/general';
 
 const AuthContext = createContext<AuthContextType>({
@@ -158,7 +169,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const routeForUser = useCallback(
     (user: User) => {
-      if (['primary_admin', 'admin', 'resident'].includes(user.role!)) {
+      if (['root', 'primary_admin', 'admin', 'resident'].includes(user.role!)) {
         router.replace('/user');
       } else if (user.role === 'security') {
         router.replace('/security');
@@ -167,38 +178,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [router]
   );
 
-  const signIn = async (userData: User) => {
+  const signIn = useCallback(async (userData: User) => {
     useUserStore.setState({ ...userData });
+    void storeCachedUser(userData);
     setIsReady(true);
     prefetchUserData(userData);
-  };
+  }, []);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     await performSignOut();
-  };
+  }, [performSignOut]);
 
   const handleCrossTabLogin = useCallback(
-    async (token: string, role: UserRolesType) => {
+    async (role: UserRolesType) => {
       if (isProcessingRef.current) return;
       isProcessingRef.current = true;
 
       try {
-        // The broadcast carries only the access token; the refresh token and session id are
-        // read from the storage the tabs share, so they are never posted to every tab.
+        // Bearer stays in shared storage; the channel only announces that a login happened.
         const stored = await getAuthState();
+        if (!stored?.access_token) {
+          await performSignOut();
+          return;
+        }
         // Another tab signed in, possibly as a different account: nothing cached here is theirs.
         clearQueryCache();
-        adoptStoredSession(
-          stored?.access_token === token
-            ? { ...stored, role }
-            : { access_token: token, refresh_token: null, role, session_id: null }
-        );
+        adoptStoredSession({ ...stored, role: role ?? stored.role });
 
-        const myProfile = (await fetchMe(token)) as User;
+        const myProfile = (await fetchMe(stored.access_token)) as User;
 
         if (myProfile && myProfile.status) {
           useUserStore.setState({ ...myProfile });
           useAuthStore.setState({ role: myProfile.role });
+          void storeCachedUser(myProfile);
           prefetchUserData(myProfile);
           try {
             routeForUser(myProfile);
@@ -215,6 +227,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const hasLoadedAuth = useRef(false);
+  // Pathname only matters for the one-shot bootstrap; keep it out of effect deps so
+  // navigation does not re-run loadAuthState or churn the provider (PERF-06).
+  const pathnameRef = useRef(pathname);
+  pathnameRef.current = pathname;
 
   useEffect(() => {
     let cleanupSync: (() => void) | undefined;
@@ -224,6 +240,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         (r) =>
           currentPath === r || currentPath.startsWith(r) || (initialURL && initialURL.includes(r))
       );
+    };
+
+    const enterWithProfile = (profile: User) => {
+      useUserStore.setState({ ...profile });
+      useAuthStore.setState({ role: profile.role });
+      void storeCachedUser(profile);
+      prefetchUserData(profile);
+      try {
+        routeForUser(profile);
+      } catch {}
+      setIsReady(true);
     };
 
     const loadAuthState = async () => {
@@ -236,8 +263,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           Platform.OS === 'web'
             ? typeof window !== 'undefined'
               ? window.location?.pathname || ''
-              : pathname || ''
-            : pathname;
+              : pathnameRef.current || ''
+            : pathnameRef.current;
         const localData = await getAuthState();
 
         if (localData?.access_token) {
@@ -250,17 +277,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const myProfile = (await fetchMe(token)) as User;
 
             if (myProfile?.status) {
-              useUserStore.setState({ ...myProfile });
-              useAuthStore.setState({ role: myProfile.role });
-              prefetchUserData(myProfile);
-              // Queue home before the stack mounts so we never paint institution on reload.
-              try {
-                routeForUser(myProfile);
-              } catch {}
-              setIsReady(true);
+              enterWithProfile(myProfile);
               return;
             }
-          } catch {}
+          } catch (error) {
+            // STB-05: no network / server blip must not dump a valid session onto login.
+            if (shouldKeepSessionOffline(error)) {
+              const cached = await getCachedUser();
+              if (cached?.status) {
+                enterWithProfile(cached);
+                return;
+              }
+              if (localData.role) {
+                try {
+                  if (['root', 'primary_admin', 'admin', 'resident'].includes(localData.role)) {
+                    router.replace('/user');
+                  } else if (localData.role === 'security') {
+                    router.replace('/security');
+                  }
+                } catch {}
+                setIsReady(true);
+                return;
+              }
+            }
+          }
         }
 
         if (!isPublicRoute(currentPath, initialURL)) {
@@ -288,13 +328,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       cleanupSync?.();
     };
-  }, [handleCrossTabLogin, handleCrossTabLogout, router, pathname, routeForUser]);
+  }, [handleCrossTabLogin, handleCrossTabLogout, router, routeForUser]);
 
-  return (
-    <AuthContext.Provider value={{ isReady, resetKey, signIn, signOut }}>
-      {children}
-    </AuthContext.Provider>
+  const authValue = useMemo(
+    () => ({ isReady, resetKey, signIn, signOut }),
+    [isReady, resetKey, signIn, signOut]
   );
+
+  return <AuthContext.Provider value={authValue}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

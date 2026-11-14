@@ -1,5 +1,4 @@
 import { useColorScheme as useNativewindColorScheme } from 'nativewind';
-import * as React from 'react';
 
 import { COLORS } from '@/src/shared/theme/colors';
 

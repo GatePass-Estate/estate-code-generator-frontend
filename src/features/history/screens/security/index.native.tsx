@@ -2,15 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import ScreenLoading, { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
 import LoadError from '@/src/shared/components/feedback/LoadError';
 import { userFacingError } from '@/src/shared/services/api/errors';
-import {
-  View,
-  Text,
-  ScrollView,
-  Pressable,
-  RefreshControl,
-  type NativeScrollEvent,
-  type NativeSyntheticEvent,
-} from 'react-native';
+import { View, Text, SectionList, Pressable, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
 import { sharedStyles } from '@/src/shared/theme/styles';
@@ -36,7 +28,7 @@ import SecurityTabBar from '@/src/features/scanner/components/SecurityTabBar';
 type HistoryMode = 'visitor' | 'resident';
 
 const PAGE_SIZE = 20;
-const END_REACHED_THRESHOLD = 200;
+const END_REACHED_THRESHOLD = 0.4;
 
 const capitalizeWords = (value: string) =>
   value
@@ -76,6 +68,21 @@ const AccessLogCard = ({
   </Pressable>
 );
 
+function AccessLogItemSeparator() {
+  return <View style={{ height: 8 }} />;
+}
+
+function AccessLogSectionSeparator({
+  leadingItem,
+  trailingSection,
+}: {
+  leadingItem?: unknown;
+  trailingSection?: unknown;
+}) {
+  if (leadingItem == null || trailingSection == null) return null;
+  return <View style={{ height: 30 }} />;
+}
+
 export default function AccessLogScreen() {
   const router = useRouter();
   const [mode, setMode] = useState<HistoryMode>('visitor');
@@ -105,20 +112,17 @@ export default function AccessLogScreen() {
   const loadMore = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) void fetchNextPage();
   }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
-  const handleScroll = useCallback(
-    ({ nativeEvent }: NativeSyntheticEvent<NativeScrollEvent>) => {
-      const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
-      if (
-        layoutMeasurement.height + contentOffset.y >=
-        contentSize.height - END_REACHED_THRESHOLD
-      ) {
-        loadMore();
-      }
-    },
-    [loadMore]
-  );
 
   const groupedLogs = useMemo(() => groupLogsByMonth(logs, (log) => log.timestamp), [logs]);
+  const sections = useMemo(
+    () =>
+      groupedLogs.map((group, index) => ({
+        key: `${group.label}-${index}`,
+        title: group.label,
+        data: group.items,
+      })),
+    [groupedLogs]
+  );
 
   const switchMode = (nextMode: HistoryMode) => {
     if (nextMode === mode) return;
@@ -161,12 +165,16 @@ export default function AccessLogScreen() {
         {loading ? (
           <ScreenLoading />
         ) : (
-          <ScrollView
+          <SectionList
+            key={mode}
             style={{ flex: 1 }}
-            contentContainerStyle={{ flexGrow: 0, paddingTop: 20, paddingBottom: 96, gap: 30 }}
+            sections={sections}
+            keyExtractor={(entry) => entry.id}
+            stickySectionHeadersEnabled={false}
             showsVerticalScrollIndicator={false}
-            onScroll={handleScroll}
-            scrollEventThrottle={100}
+            contentContainerStyle={{ flexGrow: 0, paddingTop: 20, paddingBottom: 96 }}
+            onEndReached={loadMore}
+            onEndReachedThreshold={END_REACHED_THRESHOLD}
             refreshControl={
               <RefreshControl
                 refreshing={refreshing}
@@ -177,35 +185,35 @@ export default function AccessLogScreen() {
                 tintColor="#113E55"
               />
             }
-          >
-            {error ? (
-              <LoadError message={error} onRetry={() => void refetch()} />
-            ) : groupedLogs.length === 0 ? (
-              <Text className="px-6 text-center text-sm text-grey">
-                {mode === 'resident'
-                  ? 'No resident access logs yet.'
-                  : 'No guest access logs found.'}
+            renderSectionHeader={({ section }) => (
+              <Text className="mb-3 px-4 text-sm font-inter-light  text-[#6C6C6C]">
+                {section.title}
               </Text>
-            ) : (
-              groupedLogs.map((group) => (
-                <View key={group.label}>
-                  <Text className="mb-3 px-4 text-sm font-inter-light  text-[#6C6C6C]">
-                    {group.label}
-                  </Text>
-                  <View className="flex-col gap-2">
-                    {group.items.map((entry) => (
-                      <AccessLogCard
-                        key={entry.id}
-                        entry={entry}
-                        onPress={() => openTimeline(entry)}
-                      />
-                    ))}
-                  </View>
-                </View>
-              ))
             )}
-            {isFetchingNextPage ? <CircleLoader size={32} style={{ marginTop: 8 }} /> : null}
-          </ScrollView>
+            renderItem={({ item }) => (
+              <AccessLogCard entry={item} onPress={() => openTimeline(item)} />
+            )}
+            ItemSeparatorComponent={AccessLogItemSeparator}
+            SectionSeparatorComponent={AccessLogSectionSeparator}
+            ListEmptyComponent={
+              error ? (
+                <LoadError message={error} onRetry={() => void refetch()} />
+              ) : (
+                <Text className="px-6 text-center text-sm text-grey">
+                  {mode === 'resident'
+                    ? 'No resident access logs yet.'
+                    : 'No guest access logs found.'}
+                </Text>
+              )
+            }
+            ListFooterComponent={
+              isFetchingNextPage ? (
+                <View style={{ marginTop: 30 }}>
+                  <CircleLoader size={32} />
+                </View>
+              ) : null
+            }
+          />
         )}
       </View>
       <SecurityTabBar activeTab="history" />

@@ -1,6 +1,8 @@
 import { create, StateCreator } from 'zustand';
 import { getUnreadBroadcastCount } from '@/src/features/notifications/services/broadcast';
 import { getUnreadNotificationCount } from '@/src/features/notifications/services/notifications';
+import { queryClient } from '@/src/shared/services/api/queryClient';
+import { queryKeys } from '@/src/shared/services/api/queryKeys';
 
 type State = {
   broadcastUnread: number;
@@ -41,13 +43,24 @@ const creator: StateCreator<State & Actions> = (set) => ({
     ]);
     if (version !== countsVersion) return;
 
+    const broadcastUnread =
+      broadcasts.status === 'fulfilled' ? (broadcasts.value?.count ?? 0) : undefined;
+    const activityUnread =
+      activity.status === 'fulfilled' ? (activity.value?.count ?? 0) : undefined;
+
     set((state) => ({
-      broadcastUnread:
-        broadcasts.status === 'fulfilled' ? (broadcasts.value?.count ?? 0) : state.broadcastUnread,
-      activityUnread:
-        activity.status === 'fulfilled' ? (activity.value?.count ?? 0) : state.activityUnread,
+      broadcastUnread: broadcastUnread ?? state.broadcastUnread,
+      activityUnread: activityUnread ?? state.activityUnread,
       loaded: true,
     }));
+
+    // Keep NotificationBell's React Query cache aligned with local updates.
+    if (broadcastUnread !== undefined && activityUnread !== undefined) {
+      queryClient.setQueryData([...queryKeys.broadcasts.all, 'unread-counts'], {
+        broadcastUnread,
+        activityUnread,
+      });
+    }
   },
   setBroadcastUnread: (count: number) => {
     countsVersion += 1;

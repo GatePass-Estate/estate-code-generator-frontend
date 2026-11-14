@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
-import ScreenLoading, { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
+import { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { router } from 'expo-router';
@@ -625,7 +625,10 @@ export default function IncidentResultView({
               const x = e.nativeEvent.contentOffset.x;
               const next = Math.round(x / 227);
               const max = Math.max(trendCards.length - 1, 0);
-              setTrendIndex(Math.min(Math.max(next, 0), max));
+              const clamped = Math.min(Math.max(next, 0), max);
+              // Only update when the page index changes — avoids re-rendering the whole
+              // result view on every scroll frame (PERF-11).
+              setTrendIndex((prev) => (prev === clamped ? prev : clamped));
             }}
             scrollEventThrottle={16}
           >

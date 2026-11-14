@@ -33,7 +33,8 @@ export default function AccountSecurityScreen() {
   const [biometricEnabled, setBiometricEnabled] = useState(false);
   const [biometricAvailable, setBiometricAvailable] = useState(false);
 
-  const { user_id, estate_id } = useUserStore();
+  const user_id = useUserStore((s) => s.user_id);
+  const estate_id = useUserStore((s) => s.estate_id);
   const {
     enabled: twoFactorEnabled,
     setEnabled: setTwoFactorEnabled,

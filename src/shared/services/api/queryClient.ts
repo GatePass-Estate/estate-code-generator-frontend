@@ -21,7 +21,8 @@ export const queryClient = new QueryClient({
       gcTime: 1000 * 60 * 5,
       staleTime: 1000 * 60 * 5, // 5 minutes
       retry: shouldRetryQuery,
-      refetchOnWindowFocus: false, // often better for mobile
+      // PERF-05: with focusManager wired on native, stale queries refresh on resume.
+      refetchOnWindowFocus: true,
     },
   },
 });

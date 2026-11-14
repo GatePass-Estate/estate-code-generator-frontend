@@ -1,6 +1,7 @@
 import { useGoBack } from '@/src/shared/hooks/useGoBack';
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { View, Text, Pressable, ScrollView, Alert } from 'react-native';
+import { View, Text, Pressable, ScrollView } from 'react-native';
+import { showAlert } from '@/src/shared/utils/alert';
 import { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
 import { useLocalSearchParams } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
@@ -15,9 +16,7 @@ import BiInfoSvg from '@/src/assets/icons/bi_info.svg';
 
 import IncidentReportSvg from '@/src/assets/images/incident-report.svg';
 import RatingModal from '@/src/features/ai/components/shared/RatingModal';
-import ActivationQuoteModal, {
-  prefetchAiQuotes,
-} from '@/src/features/ai/components/shared/ActivationQuoteModal';
+import ActivationQuoteModal from '@/src/features/ai/components/shared/ActivationQuoteModal';
 import DataInsightModal from '@/src/features/ai/components/shared/DataInsightModal';
 import {
   INCIDENT_INSIGHT_PAGE_COUNT,
@@ -37,15 +36,14 @@ import MarketplaceTierList, {
 } from '@/src/features/ai/components/shared/MarketplaceTierList';
 import AnimatedPillTabs from '@/src/shared/components/AnimatedPillTabs';
 import {
-  getMarketplaceFeatureById,
   installAiFeature,
   rateMarketplaceFeature,
-  resolveMarketplaceFeatureId,
   sortMarketplaceTiers,
   subscribeMarketplaceFeature,
   uninstallAiFeature,
   cancelMarketplaceSubscription,
 } from '@/src/features/marketplace/services/aiMarketplace';
+import { useMarketplaceFeature } from '@/src/features/marketplace/hooks/useMarketplaceFeature';
 import { usePaystackCheckout } from '@/src/features/billing/utils/billingCheckout';
 import { refreshEstateEntitlements } from '@/src/features/billing';
 import { useBillingAccess } from '@/src/features/billing/hooks/billing';
@@ -58,7 +56,6 @@ import {
 } from '@/src/features/billing/hooks/usePlan';
 import {
   AiCheckoutDuration,
-  MarketplaceDetailResponse,
   MarketplaceTier,
 } from '@/src/features/marketplace/types/aiMarketplace';
 
@@ -88,6 +85,11 @@ export default function IncidentReportPreviewScreen() {
   const params = useLocalSearchParams<{ featureId?: string; title?: string; tab?: string }>();
   const estateId = useUserStore((s) => s.estate_id);
   const { denyIfUnauthorized, notifyActionError } = useBillingAccess();
+  const { featureDetail, isLoading, loadError, refetch } = useMarketplaceFeature({
+    featureId: typeof params.featureId === 'string' ? params.featureId : undefined,
+    nameMatch: isIncidentProduct,
+    estateId: estateId || undefined,
+  });
   const [activeTab, setActiveTab] = useState<'Preview' | 'Result'>(
     params.tab === 'Result' ? 'Result' : 'Preview'
   );
@@ -97,7 +99,6 @@ export default function IncidentReportPreviewScreen() {
     setActiveTab(params.tab === 'Result' ? 'Result' : 'Preview');
   }
   const [expandedTier, setExpandedTier] = useState<string | null>(null);
-  const [featureDetail, setFeatureDetail] = useState<MarketplaceDetailResponse | null>(null);
   const [isSubscribing, setIsSubscribing] = useState(false);
   const [subscribingTierKey, setSubscribingTierKey] = useState<string | null>(null);
   const [isUninstalling, setIsUninstalling] = useState(false);
@@ -122,54 +123,6 @@ export default function IncidentReportPreviewScreen() {
   const [isRatingModalVisible, setIsRatingModalVisible] = useState(false);
   const [dataInsightVisible, setDataInsightVisible] = useState(false);
   const [cardHeight, setCardHeight] = useState<number>(120);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const hasLoadedFeatureRef = useRef(false);
-
-  const loadFeature = useCallback(
-    async (id?: string) => {
-      if (!hasLoadedFeatureRef.current) setIsLoading(true);
-      setLoadError(null);
-      try {
-        const targetId = await resolveMarketplaceFeatureId(
-          id ?? params.featureId,
-          isIncidentProduct
-        );
-        if (!targetId) {
-          if (!hasLoadedFeatureRef.current) {
-            setFeatureDetail(null);
-            setLoadError('No marketplace product returned for this feature.');
-          }
-          return;
-        }
-
-        const detail = await getMarketplaceFeatureById(targetId);
-        hasLoadedFeatureRef.current = true;
-        setFeatureDetail(detail);
-        if (estateId) {
-          detail.tiers?.forEach((t) => {
-            if (t.feature_key && !t.is_free) prefetchAiQuotes(estateId, t.feature_key);
-          });
-        }
-        const sorted = sortMarketplaceTiers(detail.tiers ?? []);
-        setExpandedTier((prev) =>
-          prev && sorted.some((tier) => tier.tier === prev) ? prev : null
-        );
-      } catch (err: unknown) {
-        if (!hasLoadedFeatureRef.current) {
-          setFeatureDetail(null);
-          setLoadError(errorMessage(err) || 'Failed to load feature details');
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [params.featureId, estateId]
-  );
-
-  useEffect(() => {
-    void loadFeature();
-  }, [loadFeature]);
 
   useEffect(() => {
     if (!estateId) return;
@@ -179,6 +132,12 @@ export default function IncidentReportPreviewScreen() {
       })
       .catch((error) => logger.error('Could not load cancelled tiers', error));
   }, [estateId]);
+
+  useEffect(() => {
+    if (!featureDetail) return;
+    const tiers = sortMarketplaceTiers(featureDetail.tiers ?? []);
+    setExpandedTier((prev) => (prev && tiers.some((tier) => tier.tier === prev) ? prev : null));
+  }, [featureDetail]);
 
   const markTierCancelled = (tierKey: string, cancelled: boolean) => {
     setJustCancelledTiers((prev) => {
@@ -198,15 +157,12 @@ export default function IncidentReportPreviewScreen() {
     setServerDenied(false);
     queryClient.removeQueries({ queryKey: [...queryKeys.incidents.all, 'summary'] });
     void queryClient.invalidateQueries({ queryKey: queryKeys.incidents.all });
-    await Promise.all([
-      refreshEstateEntitlements(),
-      featureDetail?.id ? loadFeature(featureDetail.id) : undefined,
-    ]);
+    await Promise.all([refreshEstateEntitlements(), refetch()]);
   };
 
   const handleRate = async (rating: number) => {
     if (!hasFeatureEntitlement) {
-      Alert.alert(
+      showAlert(
         'Rating Unavailable',
         'You need an active subscription or entitlement to this AI feature before you can rate it.'
       );
@@ -216,10 +172,10 @@ export default function IncidentReportPreviewScreen() {
     if (!targetId) return;
     try {
       await rateMarketplaceFeature(targetId, { score: rating });
-      await loadFeature(targetId);
-      Alert.alert('Success', 'Rating submitted successfully');
+      await refetch();
+      showAlert('Success', 'Rating submitted successfully');
     } catch (err: unknown) {
-      Alert.alert('Error', errorMessage(err) || 'Failed to submit rating');
+      showAlert('Error', errorMessage(err) || 'Failed to submit rating');
       throw err;
     }
   };
@@ -243,7 +199,7 @@ export default function IncidentReportPreviewScreen() {
             period_months: 1,
           });
         }
-        Alert.alert('Success', 'Free feature tier activated successfully!');
+        showAlert('Success', 'Free feature tier activated successfully!');
         await refreshAfterTierChange();
       } else if (tier.feature_key) {
         // Paid tier: pick a duration and see the price before Paystack.
@@ -254,7 +210,7 @@ export default function IncidentReportPreviewScreen() {
           ai_feature_id: tier.ai_feature_id,
           period_months: 1,
         });
-        Alert.alert('Success', 'Subscription quote created successfully.');
+        showAlert('Success', 'Subscription quote created successfully.');
       }
     } catch (err: unknown) {
       notifyActionError(
@@ -272,7 +228,7 @@ export default function IncidentReportPreviewScreen() {
     if (denyIfUnauthorized()) return;
     const tier = selectedTierForActivation;
     if (!tier?.feature_key) {
-      Alert.alert('Error', 'Feature key is missing for this tier.');
+      showAlert('Error', 'Feature key is missing for this tier.');
       return;
     }
 
@@ -321,7 +277,7 @@ export default function IncidentReportPreviewScreen() {
         setIsCanceling(true);
         try {
           await cancelMarketplaceSubscription(estateId || '');
-          Alert.alert('Success', 'Subscription cancelled successfully.');
+          showAlert('Success', 'Subscription cancelled successfully.');
           markTierCancelled(tier.tier, true);
           await refreshAfterTierChange();
         } catch (err: unknown) {
@@ -332,9 +288,9 @@ export default function IncidentReportPreviewScreen() {
             cancelMessage.toLowerCase().includes('already')
           ) {
             markTierCancelled(tier.tier, true);
-            Alert.alert('Already Cancelled', 'Your subscription has already been cancelled.');
+            showAlert('Already Cancelled', 'Your subscription has already been cancelled.');
           } else {
-            Alert.alert('Cancellation Failed', cancelMessage);
+            showAlert('Cancellation Failed', cancelMessage);
           }
         } finally {
           setIsCanceling(false);
@@ -348,12 +304,12 @@ export default function IncidentReportPreviewScreen() {
   const handleUninstall = (tier: MarketplaceTier) => {
     if (denyIfUnauthorized()) return;
     if (!estateId) {
-      Alert.alert('Error', 'Estate ID not found');
+      showAlert('Error', 'Estate ID not found');
       return;
     }
     const featureKey = tier.feature_key;
     if (!featureKey) {
-      Alert.alert('Error', 'Feature key is missing for this tier.');
+      showAlert('Error', 'Feature key is missing for this tier.');
       return;
     }
 
@@ -369,7 +325,7 @@ export default function IncidentReportPreviewScreen() {
         setIsUninstalling(true);
         try {
           await uninstallAiFeature(estateId, featureKey);
-          Alert.alert('Success', 'Feature uninstalled successfully.');
+          showAlert('Success', 'Feature uninstalled successfully.');
           await refreshAfterTierChange();
         } catch (err: unknown) {
           notifyActionError(
@@ -390,11 +346,11 @@ export default function IncidentReportPreviewScreen() {
     if (denyIfUnauthorized()) return;
     if (requireTierOne(tier)) return;
     if (!estateId) {
-      Alert.alert('Error', 'Estate ID not found');
+      showAlert('Error', 'Estate ID not found');
       return;
     }
     if (!tier.feature_key) {
-      Alert.alert('Error', 'Feature key is missing for this tier.');
+      showAlert('Error', 'Feature key is missing for this tier.');
       return;
     }
 
@@ -402,7 +358,7 @@ export default function IncidentReportPreviewScreen() {
     setIsInstalling(true);
     try {
       await installAiFeature(estateId, tier.feature_key);
-      Alert.alert('Success', 'Feature installed successfully.');
+      showAlert('Success', 'Feature installed successfully.');
       setJustPurchasedTiers((prev) => ({ ...prev, [tier.tier]: false }));
       await refreshAfterTierChange();
     } catch (err: unknown) {
@@ -610,10 +566,10 @@ export default function IncidentReportPreviewScreen() {
         ) : !featureDetail ? (
           <View className="flex-1 items-center justify-center bg-[#F6F7F7] px-8">
             <Text className="text-center text-sm font-inter-medium text-primary">
-              {loadError || 'Could not load preview.'}
+              {loadError || 'No marketplace product returned for this feature.'}
             </Text>
             <Pressable
-              onPress={() => void loadFeature()}
+              onPress={() => void refetch()}
               className="mt-4 rounded-full bg-primary px-5 py-3"
             >
               <Text className="text-sm font-inter-medium text-white">Retry</Text>

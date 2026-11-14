@@ -1,7 +1,6 @@
 import { errorMessage as thrownMessage } from '@/src/shared/services/api/errors';
 import CustomSafeAreaView from '@/src/features/auth/components/CustomSafeAreaView';
 import { activateUser } from '@/src/features/users/services/user';
-import { Inter } from '@/src/shared/constants/fonts';
 import { useCallback, useEffect, useState } from 'react';
 import {
   TouchableOpacity,
@@ -15,6 +14,7 @@ import {
 import { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import { grantActivationStatusAccess } from '@/src/features/auth/services/authPersistence';
+import { takePendingAuthToken } from '@/src/features/auth/services/pendingAuthToken';
 import { getWidthBreakpoint } from '@/src/shared/utils/helpers';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { cn } from '@/src/shared/utils/cn';
@@ -154,12 +154,17 @@ const SetPasswordPage = () => {
     token?: string | string[];
     email?: string;
   }>();
-  const tokenFromParams = Array.isArray(params.token) ? params.token[0] : params.token;
-  const token =
-    tokenFromParams ||
-    (Platform.OS === 'web' && typeof window !== 'undefined'
-      ? (new URLSearchParams(window.location.search).get('token') ?? undefined)
-      : undefined);
+  // Prefer the in-memory stash from /activate so the token is not kept in route params.
+  const [token] = useState(() => {
+    const stashed = takePendingAuthToken();
+    if (stashed.token) return stashed.token;
+    const tokenFromParams = Array.isArray(params.token) ? params.token[0] : params.token;
+    if (tokenFromParams) return tokenFromParams;
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      return new URLSearchParams(window.location.search).get('token') ?? undefined;
+    }
+    return undefined;
+  });
   const router = useRouter();
   const { width } = useWindowDimensions();
   const isLargeScreen = width > getWidthBreakpoint();

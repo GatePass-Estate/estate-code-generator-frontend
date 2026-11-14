@@ -1,9 +1,7 @@
 import React from 'react';
-import { View, Text, Dimensions, type ViewStyle } from 'react-native';
+import { View, type ViewStyle, useWindowDimensions } from 'react-native';
 import Svg, { Polygon, Line, Circle } from 'react-native-svg';
 import TextTicker from 'react-native-text-ticker';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export interface RadarSeries {
   data: number[];
@@ -36,11 +34,12 @@ const AnomalyRadarChart = ({
     },
   ],
   labels = ['Data 1', 'Data 2', 'Data 3', 'Data 4', 'Data 5', 'Data 6'],
-  size = SCREEN_WIDTH - 32,
+  size,
   gridColor = '#E5E7EB',
   levels = 4,
 }: AnomalyRadarChartProps) => {
-  const width = size;
+  const { width: screenWidth } = useWindowDimensions();
+  const width = size ?? screenWidth - 32;
   const height = 320;
   const centerX = width / 2;
   const centerY = height / 2;

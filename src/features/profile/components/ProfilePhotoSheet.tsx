@@ -1,5 +1,15 @@
 import { useEffect } from 'react';
-import { Modal, Pressable, View, Text, Image, Alert, Dimensions, StyleSheet } from 'react-native';
+import {
+  Modal,
+  Pressable,
+  View,
+  Text,
+  Image,
+  Alert,
+  StyleSheet,
+  Linking,
+  useWindowDimensions,
+} from 'react-native';
 import { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
@@ -17,8 +27,6 @@ import {
   documentUploadTooLargeMessage,
 } from '@/src/features/profile/utils/userDocumentHelpers';
 
-const SCREEN_HEIGHT = Dimensions.get('window').height;
-const SHEET_HEIGHT = SCREEN_HEIGHT * 0.6;
 const SHEET_ANIMATION = {
   duration: 280,
   easing: Easing.out(Easing.cubic),
@@ -64,13 +72,15 @@ export default function ProfilePhotoSheet({
   uploading = false,
 }: ProfilePhotoSheetProps) {
   const insets = useSafeAreaInsets();
-  const translateY = useSharedValue(SHEET_HEIGHT);
+  const { height: windowHeight } = useWindowDimensions();
+  const sheetHeight = windowHeight * 0.6;
+  const translateY = useSharedValue(sheetHeight);
   const dragStartY = useSharedValue(0);
 
   const closeSheet = () => {
     if (uploading) return;
 
-    translateY.value = withTiming(SHEET_HEIGHT, SHEET_ANIMATION, () => {
+    translateY.value = withTiming(sheetHeight, SHEET_ANIMATION, () => {
       // Always dismiss — interrupted close must not leave a blocking invisible Modal.
       runOnJS(onClose)();
     });
@@ -80,9 +90,9 @@ export default function ProfilePhotoSheet({
     if (visible) {
       translateY.value = withTiming(0, SHEET_ANIMATION);
     } else {
-      translateY.value = SHEET_HEIGHT;
+      translateY.value = sheetHeight;
     }
-  }, [translateY, visible]);
+  }, [sheetHeight, translateY, visible]);
 
   const panGesture = Gesture.Pan()
     .enabled(!uploading)
@@ -95,7 +105,7 @@ export default function ProfilePhotoSheet({
       translateY.value = Math.max(0, dragStartY.value + event.translationY);
     })
     .onEnd((event) => {
-      const shouldClose = event.translationY > SHEET_HEIGHT * 0.2 || event.velocityY > 800;
+      const shouldClose = event.translationY > sheetHeight * 0.2 || event.velocityY > 800;
 
       if (shouldClose) {
         runOnJS(closeSheet)();
@@ -109,14 +119,20 @@ export default function ProfilePhotoSheet({
     transform: [{ translateY: translateY.value }],
   }));
 
-  const backdropAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: 1 - translateY.value / SHEET_HEIGHT,
-  }));
+  const backdropAnimatedStyle = useAnimatedStyle(
+    () => ({
+      opacity: 1 - translateY.value / sheetHeight,
+    }),
+    [sheetHeight]
+  );
 
   const handleChooseFromPhotos = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission needed', 'Allow photo library access to choose a profile picture.');
+      Alert.alert('Permission needed', 'Allow photo library access to choose a profile picture.', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Open Settings', onPress: () => void Linking.openSettings() },
+      ]);
       return;
     }
 
@@ -144,7 +160,10 @@ export default function ProfilePhotoSheet({
   const handleTakePhoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission needed', 'Allow camera access to take a profile picture.');
+      Alert.alert('Permission needed', 'Allow camera access to take a profile picture.', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Open Settings', onPress: () => void Linking.openSettings() },
+      ]);
       return;
     }
 
@@ -190,7 +209,7 @@ export default function ProfilePhotoSheet({
         <Animated.View
           style={[
             styles.sheet,
-            { height: SHEET_HEIGHT, paddingBottom: Math.max(insets.bottom, 24) },
+            { height: sheetHeight, paddingBottom: Math.max(insets.bottom, 24) },
             sheetAnimatedStyle,
           ]}
         >

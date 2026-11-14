@@ -111,6 +111,26 @@ axios.interceptors.request.use(attachDeviceTrustToken);
 installSessionInterceptors(axios, false);
 
 const warnedMissingUrls = new Set<ApiService>();
+const clients = new Map<ApiService, AxiosInstance>();
+
+function createServiceClient(service: ApiService): AxiosInstance {
+  const url = SERVICE_URLS[service];
+  if (!url) {
+    throw new Error(`API URL for service '${service}' is missing from env variables`);
+  }
+
+  const client = axios.create({
+    baseURL: `${url}/api/v1`,
+    timeout: 10000,
+  });
+
+  // Instances made by axios.create do not inherit global interceptors.
+  client.interceptors.request.use(attachDeviceId);
+  client.interceptors.request.use(attachDeviceTrustToken);
+  installSessionInterceptors(client, true);
+
+  return client;
+}
 
 const Api = (service: ApiService = 'user') => {
   // A missing URL makes every request to this service fail (e.g. plan checks then treat every
@@ -122,27 +142,11 @@ const Api = (service: ApiService = 'user') => {
     );
   }
 
-  const access_token = useAuthStore.getState().access_token;
+  const existing = clients.get(service);
+  if (existing) return existing;
 
-  const url = SERVICE_URLS[service];
-  if (!url) {
-    throw new Error(`API URL for service '${service}' is missing from env variables`);
-  }
-
-  const client = axios.create({
-    baseURL: `${url}/api/v1`,
-    timeout: 10000,
-    headers: {
-      // Replaced at send time by the session interceptor; kept so callers see the shape.
-      Authorization: access_token ? `Bearer ${access_token}` : undefined,
-    },
-  });
-
-  // Instances made by axios.create do not inherit global interceptors.
-  client.interceptors.request.use(attachDeviceId);
-  client.interceptors.request.use(attachDeviceTrustToken);
-  installSessionInterceptors(client, true);
-
+  const client = createServiceClient(service);
+  clients.set(service, client);
   return client;
 };
 

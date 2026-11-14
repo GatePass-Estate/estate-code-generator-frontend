@@ -6,14 +6,12 @@ import {
   Animated,
   FlatList,
   Alert,
-  Platform,
-  useWindowDimensions,
   Pressable,
+  RefreshControl,
 } from 'react-native';
 import { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
-import { router, Stack, useLocalSearchParams } from 'expo-router';
+import { router, Stack, useIsFocused, useLocalSearchParams } from 'expo-router';
 import { logger } from '@/src/shared/utils/logger';
-import UserIcon from '@/src/shared/components/UserIcon';
 import ScreenHeader from '@/src/shared/components/layout/ScreenHeader';
 import HeaderActions from '@/src/features/dashboard/components/HeaderActions';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -25,10 +23,8 @@ import { useDeleteGuest, useMyGuestsInfinite } from '@/src/features/visitors/hoo
 import { GenderType, RelationshipType } from '@/src/shared/types/general';
 import { sharedStyles } from '@/src/shared/theme/styles';
 import { useAndroidBottomInset } from '@/src/shared/hooks/useAndroidBottomInset';
-import { menuRoutes } from '@/src/features/dashboard/components/menuRoutes';
 import { GuestSearchIcon } from '@/src/features/visitors/components/guestIcons';
-import WebSidebar from '@/src/features/dashboard/components/WebSidebar';
-import { getErrorMessage, getWidthBreakpoint } from '@/src/shared/utils/helpers';
+import { getErrorMessage } from '@/src/shared/utils/helpers';
 import Modal from '@/src/shared/components/feedback/Modal';
 
 const GUEST_PAGE_SIZE = 20;
@@ -50,19 +46,27 @@ const MyGuestMobile = () => {
   const guests = useMemo(() => data?.pages.flatMap((page) => page.items) ?? [], [data]);
   const loading = isFetching && !isFetchingNextPage;
   const deleting = deleteGuestMutation.isPending;
-  const { width } = useWindowDimensions();
+  const isFocused = useIsFocused();
   const [confirmModalVisible, setConfirmModalVisible] = useState(false);
   const [pendingGuestId, setPendingGuestId] = useState<string | null>(null);
-
-  const isLargeScreen = width > getWidthBreakpoint();
+  const [pullRefreshing, setPullRefreshing] = useState(false);
 
   const { refresh } = useLocalSearchParams();
 
   const filteredGuests = filterGuests(guests, searchQuery);
 
-  const fetchGuests = () => {
+  const fetchGuests = useCallback(() => {
     void refetch();
-  };
+  }, [refetch]);
+
+  const handlePullRefresh = useCallback(async () => {
+    setPullRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setPullRefreshing(false);
+    }
+  }, [refetch]);
 
   const loadMoreGuests = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage && !isError) void fetchNextPage();
@@ -84,12 +88,6 @@ const MyGuestMobile = () => {
   useEffect(() => {
     if (refresh === 'true') void refetch();
   }, [refresh, refetch]);
-
-  useEffect(() => {
-    if (Platform.OS === 'web') {
-      document.title = 'Guests - GatePass';
-    }
-  }, []);
 
   function openDurationForGuest({
     name,
@@ -122,58 +120,45 @@ const MyGuestMobile = () => {
 
   const bounceValue = useRef(new Animated.Value(0)).current;
 
+  // PERF-15: stop bounce when this screen is not focused.
   useEffect(() => {
+    if (!isFocused) {
+      bounceValue.stopAnimation();
+      bounceValue.setValue(0);
+      return;
+    }
     const anim = Animated.loop(
       Animated.sequence([
         Animated.timing(bounceValue, {
           toValue: -10,
           duration: 500,
-          useNativeDriver: Platform.OS !== 'web',
+          useNativeDriver: true,
         }),
         Animated.timing(bounceValue, {
           toValue: 0,
           duration: 500,
-          useNativeDriver: Platform.OS !== 'web',
+          useNativeDriver: true,
         }),
       ])
     );
     anim.start();
-
     return () => {
       anim.stop();
     };
-  }, [bounceValue]);
+  }, [bounceValue, isFocused]);
 
   return (
     <SafeAreaView
       style={[sharedStyles.container, { backgroundColor: '#F6F7F7' }]}
-      edges={Platform.OS === 'web' ? [] : ['top', 'left', 'right']}
+      edges={['top', 'left', 'right']}
     >
-      {Platform.OS !== 'web' ? (
-        <>
-          <Stack.Screen options={{ headerShown: false }} />
-          <ScreenHeader
-            title="My Guests"
-            actions={<HeaderActions />}
-            containerClassName="z-10"
-            titleClassName="font-ubuntu-semibold text-[21.33px] leading-[24px]"
-          />
-        </>
-      ) : (
-        <>
-          <WebSidebar routes={menuRoutes} onNavigate={(route) => router.push(route)} />
-          <View
-            className={`flex flex-col justify-center gap-7 ${isLargeScreen ? 'mt-20' : 'mt-11'}`}
-          />
-          <View className="flex flex-row justify-between mb-5">
-            <Text className={`${isLargeScreen ? 'text-4xl' : 'text-2xl font-ubuntu-medium'}`}>
-              My Guests
-            </Text>
-
-            {!isLargeScreen && <UserIcon />}
-          </View>
-        </>
-      )}
+      <Stack.Screen options={{ headerShown: false }} />
+      <ScreenHeader
+        title="My Guests"
+        actions={<HeaderActions />}
+        containerClassName="z-10"
+        titleClassName="font-ubuntu-semibold text-[21.33px] leading-[24px]"
+      />
 
       <View className="mt-5 flex-row items-center">
         <View className="h-11 min-w-0 flex-1 flex-row items-center rounded-[16px] border-[0.5px] border-[#113E55] bg-[#EFF1F1] px-4">
@@ -203,11 +188,26 @@ const MyGuestMobile = () => {
 
       <FlatList
         data={filteredGuests}
-        keyExtractor={(item, index) => item.id ?? index.toString()}
-        refreshing={loading}
-        onRefresh={fetchGuests}
+        keyExtractor={(item) => item.id}
         onEndReached={loadMoreGuests}
         onEndReachedThreshold={0.5}
+        refreshControl={
+          <RefreshControl
+            refreshing={pullRefreshing}
+            onRefresh={() => void handlePullRefresh()}
+            // Hide the system ActivityIndicator; CircleLoader is shown in the header.
+            tintColor="transparent"
+            colors={['transparent']}
+            progressBackgroundColor="transparent"
+          />
+        }
+        ListHeaderComponent={
+          pullRefreshing ? (
+            <View className="items-center pb-4">
+              <CircleLoader size={40} />
+            </View>
+          ) : null
+        }
         ListFooterComponent={
           isFetchingNextPage ? (
             <View className="items-center py-4">
@@ -230,7 +230,7 @@ const MyGuestMobile = () => {
                 <Text className="text-sm font-ubuntu-semibold text-white">Try again</Text>
               </Pressable>
             </View>
-          ) : loading ? (
+          ) : loading && !pullRefreshing ? (
             <View className="items-center pt-10">
               <CircleLoader size={48} />
             </View>
@@ -262,24 +262,19 @@ const MyGuestMobile = () => {
           <SavedGuestCard
             guest={item}
             onDeletePress={() => {
-              if (Platform.OS !== 'web') {
-                Alert.alert(
-                  'Delete guest',
-                  `Are you sure you want to delete ${item.guest_name}?`,
-                  [
-                    { text: 'Cancel', style: 'cancel' },
-                    {
-                      text: 'Delete',
-                      style: 'destructive',
-                      onPress: () => deleteGuest(item.id),
-                    },
-                  ],
-                  { cancelable: true }
-                );
-              } else {
-                setPendingGuestId(item.id);
-                setConfirmModalVisible(true);
-              }
+              Alert.alert(
+                'Delete guest',
+                `Are you sure you want to delete ${item.guest_name}?`,
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: () => deleteGuest(item.id),
+                  },
+                ],
+                { cancelable: true }
+              );
             }}
             onGenerateCode={() =>
               openDurationForGuest({

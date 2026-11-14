@@ -18,10 +18,6 @@ const EXPAND = {
 
 /** Purchased card mint wash */
 const PURCHASED_CARD_BG = '#EDF3F3';
-/** ACTIVE badge fill */
-const ACTIVE_BADGE_BG = '#CEE5ED';
-/** Secondary Uninstall button */
-const UNINSTALL_BTN_BG = '#CEE5ED';
 
 type SubscriptionTierCardProps = {
   tierLabel: string;

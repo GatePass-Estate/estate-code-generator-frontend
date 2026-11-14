@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import Svg, { Line } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import BottomSheet, { SheetGrabber } from '@/src/shared/components/feedback/BottomSheet';
+import BottomSheet from '@/src/shared/components/feedback/BottomSheet';
 import { UbuntuSans } from '@/src/shared/constants/fonts';
 
 type SeatCapacitySheetProps = {

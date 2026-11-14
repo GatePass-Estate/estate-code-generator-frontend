@@ -1,7 +1,6 @@
 import { Platform, Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
 import { useRef } from 'react';
 import { Tabs, router, useIsFocused, usePathname } from 'expo-router';
-import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFeatureGate } from '@/src/features/billing/hooks/usePlan';
 import { useVerificationGate } from '@/src/features/auth/hooks/useAccountVerification';

@@ -9,7 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import BottomSheet, { SheetGrabber } from '@/src/shared/components/feedback/BottomSheet';
+import BottomSheet from '@/src/shared/components/feedback/BottomSheet';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 

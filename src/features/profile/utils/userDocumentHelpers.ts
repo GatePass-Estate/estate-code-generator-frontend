@@ -75,6 +75,19 @@ export function resolveDocumentApiUrl(path: string) {
   return `${baseUrl}/api/v1/${path}`;
 }
 
+/** SEC-23: only send the session bearer to our user-service host. */
+export function shouldAttachAuthHeader(url: string): boolean {
+  const rawBaseUrl = process.env.EXPO_PUBLIC_USER_SERVICE_API_URL;
+  if (!rawBaseUrl) return false;
+  try {
+    const apiHost = new URL(rawBaseUrl).host;
+    const targetHost = new URL(url).host;
+    return apiHost.length > 0 && apiHost === targetHost;
+  } catch {
+    return false;
+  }
+}
+
 const CONTENT_TYPE_TO_EXTENSION: Record<string, string> = {
   'image/jpeg': 'jpg',
   'image/png': 'png',
@@ -118,9 +131,17 @@ export async function fetchAuthenticatedDocumentUri(
   const uniqueSuffix = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
   const fileUri = `${FileSystem.cacheDirectory}document-${documentKey}-${uniqueSuffix}.${extension}`;
 
-  const result = await FileSystem.downloadAsync(url, fileUri, {
-    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-  });
+  // SEC-23: never attach Bearer to off-host absolute URLs.
+  const headers =
+    token && shouldAttachAuthHeader(url) ? { Authorization: `Bearer ${token}` } : undefined;
+
+  // STB-16: bound hung downloads (legacy FileSystem has no AbortSignal).
+  const result = await Promise.race([
+    FileSystem.downloadAsync(url, fileUri, { headers }),
+    new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Document download timed out')), 15000);
+    }),
+  ]);
 
   if (result.status !== 200) {
     throw new Error(`Failed to download document: ${result.status}`);

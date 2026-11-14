@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import ScreenLoading from '@/src/shared/components/feedback/ScreenLoading';
-import { View, Pressable, ScrollView, Text } from 'react-native';
+import { View, ScrollView, Text } from 'react-native';
 import { Stack, router, useNavigation } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AccessLogCard } from '@/src/features/history/components/AccessLogCard';

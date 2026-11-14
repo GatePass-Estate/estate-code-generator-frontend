@@ -1,10 +1,10 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   BackHandler,
   Image,
   Platform,
   RefreshControl,
-  ScrollView,
+  SectionList,
   Text,
   TouchableOpacity,
   View,
@@ -32,6 +32,19 @@ import {
   parseIncidentReportReturnTo,
 } from '@/src/features/ai/utils/incidentReportNavigation';
 import { sharedStyles } from '@/src/shared/theme/styles';
+
+type ReportSection = {
+  key: 'new' | 'read';
+  title: string;
+  data: IncidentReport[];
+};
+
+const NEW_REPORT_CARD_HEIGHT = 67;
+const REPORT_CARD_GAP = 1;
+
+function ReportCardSeparator() {
+  return <View style={{ height: REPORT_CARD_GAP }} />;
+}
 
 function ReportCard({ report, onPress }: { report: IncidentReport; onPress: () => void }) {
   return (
@@ -69,7 +82,6 @@ export default function ReportTabScreen() {
   const [accessReady, setAccessReady] = useState(false);
   const reportsQuery = useManagedIncidentReports('all', isAdmin && accessReady);
   const clearReadMutation = useClearReadIncidentReports();
-  const reports = reportsQuery.data ?? [];
   const loading = isAdmin && accessReady && reportsQuery.isLoading;
   const [refreshing, setRefreshing] = useState(false);
   const [confirmClearRead, setConfirmClearRead] = useState(false);
@@ -124,8 +136,23 @@ export default function ReportTabScreen() {
     }
   };
 
-  const newReports = reports.filter((report) => !report.is_read);
-  const readReports = reports.filter((report) => report.is_read);
+  const reportSections = useMemo<ReportSection[]>(() => {
+    const items = reportsQuery.data ?? [];
+    return [
+      {
+        key: 'new',
+        title: 'New Reports',
+        data: items.filter((report) => !report.is_read),
+      },
+      {
+        key: 'read',
+        title: 'Read Reports',
+        data: items.filter((report) => report.is_read),
+      },
+    ];
+  }, [reportsQuery.data]);
+  const newReports = reportSections[0].data;
+  const readReports = reportSections[1].data;
   const newReportsEmpty = !loading && !visibleError && newReports.length === 0;
   const newReportsMinHeight = newReportsEmpty ? 56 : 135;
 
@@ -148,9 +175,12 @@ export default function ReportTabScreen() {
           </Text>
         </View>
       )}
-      <ScrollView
-        className="flex-1"
-        style={accessDenied ? { display: 'none' } : undefined}
+      <SectionList
+        style={accessDenied ? { flex: 1, display: 'none' } : { flex: 1 }}
+        sections={reportSections}
+        keyExtractor={(report) => report.id}
+        extraData={`${loading}|${visibleError}|${clearing}|${newReportsEmpty}|${returnTo}`}
+        stickySectionHeadersEnabled={false}
         contentContainerStyle={{ paddingBottom: 32 }}
         refreshControl={
           <RefreshControl
@@ -161,78 +191,98 @@ export default function ReportTabScreen() {
             }}
           />
         }
-      >
-        <Text className="mt-[36px] ml-[29px] mb-[16px] text-caption leading-[14px] text-[#878686] font-inter-regular">
-          New Reports
-        </Text>
-        <View className="mx-[9px] gap-[1px]" style={{ minHeight: newReportsMinHeight }}>
-          {loading ? (
-            <View className="items-center py-6">
-              <CircleLoader size={48} />
-            </View>
-          ) : null}
-          {!loading && visibleError ? (
-            <Text className="text-[13px] text-[#B42318] font-inter-regular">{visibleError}</Text>
-          ) : null}
-          {newReportsEmpty ? (
+        ItemSeparatorComponent={ReportCardSeparator}
+        renderSectionHeader={({ section }) =>
+          section.key === 'read' ? (
             <View
-              className="items-center justify-center"
-              style={{ minHeight: newReportsMinHeight }}
+              className="relative mx-[9px] h-[39px]"
+              style={{ marginTop: newReportsEmpty ? 0 : 15 }}
             >
-              <Text className="text-[13px] text-[#878686] font-inter-regular">No new reports.</Text>
+              <Text className="absolute left-[20px] top-[9px] text-caption leading-[14px] text-[#878686] font-inter-regular">
+                Read Reports
+              </Text>
+              <TouchableOpacity
+                accessibilityRole="button"
+                className="absolute right-[9px] top-0 h-[40px] w-[46px] items-center justify-center"
+                onPress={() => setConfirmClearRead(true)}
+                disabled={clearing || readReports.length === 0}
+              >
+                <Text className="text-caption leading-[14px] text-primary font-inter-semibold">
+                  {clearing ? '…' : 'Clear All'}
+                </Text>
+              </TouchableOpacity>
             </View>
-          ) : null}
-          {newReports.map((report) => (
+          ) : (
+            <View>
+              <Text className="mt-[36px] ml-[29px] mb-[16px] text-caption leading-[14px] text-[#878686] font-inter-regular">
+                New Reports
+              </Text>
+              {loading ? (
+                <View
+                  className="mx-[9px] items-center py-6"
+                  style={{ minHeight: newReportsMinHeight }}
+                >
+                  <CircleLoader size={48} />
+                </View>
+              ) : null}
+              {!loading && visibleError ? (
+                <View
+                  className="mx-[9px]"
+                  style={newReports.length === 0 ? { minHeight: newReportsMinHeight } : undefined}
+                >
+                  <Text className="text-[13px] text-[#B42318] font-inter-regular">
+                    {visibleError}
+                  </Text>
+                </View>
+              ) : null}
+              {newReportsEmpty ? (
+                <View
+                  className="mx-[9px] items-center justify-center"
+                  style={{ minHeight: newReportsMinHeight }}
+                >
+                  <Text className="text-[13px] text-[#878686] font-inter-regular">
+                    No new reports.
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+          )
+        }
+        renderItem={({ item, section }) => (
+          <View className={section.key === 'read' ? 'ml-[10px] mr-[8px]' : 'mx-[9px]'}>
             <ReportCard
-              key={report.id}
-              report={report}
+              report={item}
               onPress={() =>
                 router.push({
                   pathname: '/user/report/[id]',
-                  params: { id: report.id, returnTo },
+                  params: { id: item.id, returnTo },
                 })
               }
             />
-          ))}
-        </View>
-        <View
-          className="relative mx-[9px] h-[39px]"
-          style={{ marginTop: newReportsEmpty ? 0 : 15 }}
-        >
-          <Text className="absolute left-[20px] top-[9px] text-caption leading-[14px] text-[#878686] font-inter-regular">
-            Read Reports
-          </Text>
-          <TouchableOpacity
-            accessibilityRole="button"
-            className="absolute right-[9px] top-0 h-[40px] w-[46px] items-center justify-center"
-            onPress={() => setConfirmClearRead(true)}
-            disabled={clearing || readReports.length === 0}
-          >
-            <Text className="text-caption leading-[14px] text-primary font-inter-semibold">
-              {clearing ? '…' : 'Clear All'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-        {!loading && !visibleError && readReports.length === 0 ? (
-          <View className="mx-[9px] min-h-[56px] items-center justify-center">
-            <Text className="text-[13px] text-[#878686] font-inter-regular">No read reports.</Text>
           </View>
-        ) : null}
-        <View className="ml-[10px] mr-[8px] gap-[1px]">
-          {readReports.map((report) => (
-            <ReportCard
-              key={report.id}
-              report={report}
-              onPress={() =>
-                router.push({
-                  pathname: '/user/report/[id]',
-                  params: { id: report.id, returnTo },
-                })
-              }
-            />
-          ))}
-        </View>
-      </ScrollView>
+        )}
+        renderSectionFooter={({ section }) => {
+          if (section.key === 'new') {
+            if (newReports.length === 0) return null;
+            const contentHeight =
+              newReports.length * NEW_REPORT_CARD_HEIGHT +
+              (newReports.length - 1) * REPORT_CARD_GAP;
+            const extra = newReportsMinHeight - contentHeight;
+            if (extra <= 0) return null;
+            return <View style={{ height: extra }} />;
+          }
+          if (!loading && !visibleError && readReports.length === 0) {
+            return (
+              <View className="mx-[9px] min-h-[56px] items-center justify-center">
+                <Text className="text-[13px] text-[#878686] font-inter-regular">
+                  No read reports.
+                </Text>
+              </View>
+            );
+          }
+          return null;
+        }}
+      />
       <ActionConfirmModal
         visible={confirmClearRead}
         title="Clear Read Reports?"
