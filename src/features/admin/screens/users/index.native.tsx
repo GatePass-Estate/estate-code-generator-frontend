@@ -70,7 +70,7 @@ export default function AllUsersMobile() {
     }
   }, [role]);
 
-  // Single selection only — backend `GET /users/` accepts one role at a time.
+  // Single selection only — `GET /users/` takes one Role enum value (Admins → admin + primary_admin).
   const apiRole =
     selectedFilters.length === 1
       ? (selectedFilters[0] as 'resident' | 'security' | 'admins')
@@ -89,29 +89,13 @@ export default function AllUsersMobile() {
     ? userFacingError(usersQuery.error, 'Could not load users.')
     : '';
   const hasActiveAdvancedFilter = validationFilter !== null || selectedFilters.length > 0;
-  const { isFetched, isStale, refetch, hasNextPage, fetchNextPage } = usersQuery;
+  const { isFetched, isStale, refetch } = usersQuery;
 
   useFocusEffect(
     useCallback(() => {
       if (isFetched && isStale) void refetch();
     }, [isFetched, isStale, refetch])
   );
-
-  // Role/search are client-side — pull more pages until the filtered list fills the screen.
-  useEffect(() => {
-    if (!deferredSearch && !apiRole) return;
-    if (displayedUsers.length >= 12) return;
-    if (!hasNextPage || fetchingMore || loading) return;
-    void fetchNextPage();
-  }, [
-    apiRole,
-    deferredSearch,
-    displayedUsers.length,
-    loading,
-    fetchNextPage,
-    hasNextPage,
-    fetchingMore,
-  ]);
 
   const refreshUsers = async () => {
     setRefreshing(true);

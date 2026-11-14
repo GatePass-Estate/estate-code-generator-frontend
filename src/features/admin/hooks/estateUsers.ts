@@ -1,6 +1,11 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { queryClient } from '@/src/shared/services/api/queryClient';
-import { getAllEstateUsers } from '@/src/features/users/services/user';
+import {
+  getAllEstateUsers,
+  searchEstateUsers,
+  searchTextToUserFilters,
+  type SearchEstateUsersParams,
+} from '@/src/features/users/services/user';
 import { queryKeys } from '@/src/shared/services/api/queryKeys';
 import { useUserStore } from '@/src/store/userStore';
 import type { AllUsers, User } from '@/src/features/users/types/user';
@@ -18,6 +23,60 @@ export type EstateUsersListFilters = {
   role?: 'resident' | 'security' | 'admin' | 'primary_admin' | 'admins' | null;
   validated?: boolean | null;
 };
+
+function apiRoleForFilter(role: EstateUsersListFilters['role']): SearchEstateUsersParams['role'] {
+  if (role === 'resident' || role === 'security' || role === 'admin' || role === 'primary_admin') {
+    return role;
+  }
+  // `admins` is a UI chip — backend Role enum is one value, handled in fetchListPage.
+  return null;
+}
+
+/**
+ * All Users page via `GET /users/` — search, role, and status are filtered on the server.
+ * The Admins chip requests both `admin` and `primary_admin` (no combined Role enum value).
+ */
+async function fetchEstateUsersListPage(
+  page: number,
+  filters: EstateUsersListFilters
+): Promise<AllUsers> {
+  const text = searchTextToUserFilters(filters.search ?? '');
+  const status = filters.validated ?? null;
+  const base = {
+    page,
+    limit: ESTATE_USERS_LIST_PAGE_SIZE,
+    ...text,
+    status,
+  } satisfies SearchEstateUsersParams;
+
+  if (filters.role === 'admins') {
+    const [adminPage, primaryPage] = await Promise.all([
+      searchEstateUsers({ ...base, role: 'admin' }),
+      // Primary admins are few — pull them on page 1 only so they always show under Admins.
+      page === 1
+        ? searchEstateUsers({ ...base, page: 1, limit: 20, role: 'primary_admin' })
+        : Promise.resolve(null),
+    ]);
+    if (!primaryPage) return adminPage;
+    const seen = new Set(
+      adminPage.items.map((user) => user.id ?? user.user_id).filter(Boolean) as string[]
+    );
+    const extras = primaryPage.items.filter((user) => {
+      const id = user.id ?? user.user_id;
+      return !!id && !seen.has(id);
+    });
+    return {
+      ...adminPage,
+      items: [...extras, ...adminPage.items],
+      total: adminPage.total + primaryPage.total,
+    };
+  }
+
+  return searchEstateUsers({
+    ...base,
+    role: apiRoleForFilter(filters.role),
+  });
+}
 
 /** Every user in the estate (all pages). Prefer `useEstateUsersInfinite` for list UIs. */
 export async function fetchAllEstateUsers(): Promise<AllUsers> {
@@ -82,38 +141,9 @@ function nextUsersPage(lastPage: AllUsers): number | undefined {
 }
 
 /**
- * Matches All Users chips/search against a row.
- * `/users/all` only filters by activation status; role + name are applied here.
- */
-export function userMatchesListFilters(user: User, filters: EstateUsersListFilters): boolean {
-  const search = filters.search?.trim().toLowerCase() ?? '';
-  if (search) {
-    const name = `${user.first_name ?? ''} ${user.last_name ?? ''}`.trim().toLowerCase();
-    const email = (user.email ?? '').toLowerCase();
-    const address = (user.home_address ?? '').toLowerCase();
-    if (!name.includes(search) && !email.includes(search) && !address.includes(search)) {
-      return false;
-    }
-  }
-
-  const role = filters.role ?? null;
-  if (role === 'admins') {
-    if (!['admin', 'primary_admin'].includes(user.role as string)) return false;
-  } else if (role && user.role !== role) {
-    return false;
-  }
-
-  if (filters.validated !== null && filters.validated !== undefined) {
-    if (user.status !== filters.validated) return false;
-  }
-
-  return true;
-}
-
-/**
- * All Users: page via `GET /users/all` (estate-scoped; status on the wire).
- * Role + search are filtered client-side — the search API uses exact string equality,
- * which made role/search chips look broken (same first page every time).
+ * All Users: page via `GET /users/` with search, role, and status on the wire.
+ * Estate scope comes from the JWT — do not block the list if zustand estate_id
+ * has not hydrated yet.
  */
 export function useEstateUsersInfinite(
   filters: EstateUsersListFilters = {},
@@ -125,17 +155,10 @@ export function useEstateUsersInfinite(
     role: filters.role ?? null,
     validated: filters.validated ?? null,
   };
-  const statusParam: 'all' | 'true' | 'false' =
-    normalized.validated === true ? 'true' : normalized.validated === false ? 'false' : 'all';
 
   const infinite = useInfiniteQuery({
-    // `/users/all` only understands status — cache by that. Role/search filter in memory
-    // so chip switches update immediately without re-downloading the same pages.
-    // Estate comes from the JWT on the server; don't block the list if zustand estate_id
-    // hasn't hydrated yet (that left All Users empty / looking broken after the audit pass).
-    queryKey: estateUsersKeys.infinite(estateId || 'session', { validated: normalized.validated }),
-    queryFn: ({ pageParam }) =>
-      getAllEstateUsers(pageParam, ESTATE_USERS_LIST_PAGE_SIZE, statusParam),
+    queryKey: estateUsersKeys.infinite(estateId || 'session', normalized),
+    queryFn: ({ pageParam }) => fetchEstateUsersListPage(pageParam, normalized),
     initialPageParam: 1,
     getNextPageParam: nextUsersPage,
     enabled,
@@ -146,7 +169,6 @@ export function useEstateUsersInfinite(
   for (const user of infinite.data?.pages.flatMap((page) => page.items) ?? []) {
     const key = user.id ?? user.user_id;
     if (!key || seen.has(key)) continue;
-    if (!userMatchesListFilters(user, normalized)) continue;
     seen.add(key);
     items.push(user);
   }
