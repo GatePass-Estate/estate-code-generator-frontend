@@ -9,6 +9,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   cancelAnimation,
@@ -16,6 +17,7 @@ import Animated, {
   FadeIn,
   FadeOut,
   ReduceMotion,
+  runOnJS,
   type SharedValue,
   useAnimatedStyle,
   useSharedValue,
@@ -26,28 +28,129 @@ import type { MarketplaceDataInsight } from '@/src/features/marketplace/types/ai
 
 const PAGE_DURATION = 6000;
 const BUBBLE_MS = 2000;
+const SEGMENT_WIDTH = 65;
 /** Figma frames are 375 wide; the status bar in them is 44 tall. */
 const FRAME_STATUS_BAR = 44;
 
 const cleanLines = (lines?: string[]) => (lines ?? []).map((line) => line.trim()).filter(Boolean);
 
-function ProgressBar({
+/**
+ * Instagram-style segment: past = full, active = animated 0→1, future = empty.
+ * Pixel width (not %) so Android doesn't jump when the active index changes.
+ */
+function ProgressSegment({
   index,
-  currentIndex,
+  activeIndex,
   progress,
 }: {
   index: number;
-  currentIndex: number;
+  activeIndex: number;
   progress: SharedValue<number>;
 }) {
-  const fillStyle = useAnimatedStyle(() => ({
-    width:
-      index < currentIndex ? '100%' : index === currentIndex ? `${progress.value * 100}%` : '0%',
-  }));
+  const fillStyle = useAnimatedStyle(() => {
+    const fill = index < activeIndex ? 1 : index === activeIndex ? progress.value : 0;
+    return { width: SEGMENT_WIDTH * fill };
+  });
 
   return (
-    <View className="h-1 w-[65px] overflow-hidden rounded-lg bg-[#D3D3D3]">
-      <Animated.View className="h-full bg-primary" style={fillStyle} />
+    <View
+      style={{
+        width: SEGMENT_WIDTH,
+        height: 4,
+        borderRadius: 8,
+        overflow: 'hidden',
+        backgroundColor: '#D3D3D3',
+      }}
+    >
+      <Animated.View style={[{ height: '100%', backgroundColor: '#113E55' }, fillStyle]} />
+    </View>
+  );
+}
+
+/**
+ * Single driver for stories progress (same approach as common RN story viewers):
+ * one withTiming per segment, pause cancels in place, resume continues from progress.value.
+ * No layout-effect reset + timer fighting the animation (that caused Android speed-ups).
+ */
+function StoriesProgress({
+  count,
+  activeIndex,
+  paused,
+  running,
+  durationMs,
+  onSegmentComplete,
+}: {
+  count: number;
+  activeIndex: number;
+  paused: boolean;
+  running: boolean;
+  durationMs: number;
+  onSegmentComplete: () => void;
+}) {
+  const progress = useSharedValue(0);
+  const activeRef = useRef(-1);
+  const wasRunningRef = useRef(false);
+  const completeRef = useRef(onSegmentComplete);
+  completeRef.current = onSegmentComplete;
+
+  const finishSegment = useCallback(() => {
+    completeRef.current();
+  }, []);
+
+  useEffect(() => {
+    if (!running) {
+      cancelAnimation(progress);
+      progress.value = 0;
+      activeRef.current = -1;
+      wasRunningRef.current = false;
+      return;
+    }
+
+    const justOpened = !wasRunningRef.current;
+    wasRunningRef.current = true;
+
+    const segmentChanged = activeRef.current !== activeIndex;
+    if (justOpened || segmentChanged) {
+      activeRef.current = activeIndex;
+      cancelAnimation(progress);
+      progress.value = 0;
+    }
+
+    if (paused) {
+      cancelAnimation(progress);
+      return;
+    }
+
+    const start = justOpened || segmentChanged ? 0 : progress.value;
+    if (start >= 0.999) {
+      finishSegment();
+      return;
+    }
+
+    const remaining = Math.max(32, (1 - start) * durationMs);
+    progress.value = start;
+    progress.value = withTiming(
+      1,
+      {
+        duration: remaining,
+        easing: Easing.linear,
+        reduceMotion: ReduceMotion.Never,
+      },
+      (finished) => {
+        if (finished) runOnJS(finishSegment)();
+      }
+    );
+
+    return () => {
+      cancelAnimation(progress);
+    };
+  }, [running, activeIndex, paused, durationMs, finishSegment, progress]);
+
+  return (
+    <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 5 }}>
+      {Array.from({ length: count }, (_, index) => (
+        <ProgressSegment key={index} index={index} activeIndex={activeIndex} progress={progress} />
+      ))}
     </View>
   );
 }
@@ -177,9 +280,27 @@ function InsightList({
       visible={visible}
       onClose={onClose}
       dismissible={false}
-      animationType="fade"
+      // Appear as soon as the story sequence ends — no slide/fade delay.
+      animationType="none"
       statusBarTranslucent
-      scrimClassName="flex-1 justify-end bg-black/50"
+      scrimClassName="flex-1 justify-end"
+      backdrop={
+        <>
+          {/* Same thick stack as other AI sheets + dimezis so Android actually blurs. */}
+          <BlurView
+            intensity={40}
+            tint="dark"
+            blurMethod="dimezisBlurView"
+            style={StyleSheet.absoluteFill}
+          />
+          <BlurView
+            intensity={40}
+            tint="dark"
+            blurMethod="dimezisBlurView"
+            style={StyleSheet.absoluteFill}
+          />
+        </>
+      }
       panelStyle={{
         backgroundColor: '#F6F7F7',
         borderTopLeftRadius: 32,
@@ -271,29 +392,30 @@ export default function DataInsightModal({
   const [currentPage, setCurrentPage] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [showList, setShowList] = useState(false);
-  const progress = useSharedValue(0);
-  const lastPageRef = useRef(-1);
-  const elapsedMsRef = useRef(0);
   const openedAtRef = useRef(0);
   const pressInAtRef = useRef(0);
+  const advanceLockRef = useRef(false);
+  const currentPageRef = useRef(0);
+  currentPageRef.current = currentPage;
 
   const goToNextPage = useCallback(() => {
-    cancelAnimation(progress);
-    progress.value = 0;
-    elapsedMsRef.current = 0;
-    setCurrentPage((prev) => {
-      if (prev < pageCount - 1) return prev + 1;
+    if (advanceLockRef.current) return;
+    const page = currentPageRef.current;
+    if (page >= pageCount - 1) {
+      // Last story finished — open the insight sheet immediately.
       setShowList(true);
-      return prev;
+      return;
+    }
+    advanceLockRef.current = true;
+    setCurrentPage(page + 1);
+    requestAnimationFrame(() => {
+      advanceLockRef.current = false;
     });
-  }, [pageCount, progress]);
+  }, [pageCount]);
 
   const goToPrevPage = useCallback(() => {
-    cancelAnimation(progress);
-    progress.value = 0;
-    elapsedMsRef.current = 0;
     setCurrentPage((prev) => (prev > 0 ? prev - 1 : prev));
-  }, [progress]);
+  }, []);
 
   const handleTapPrev = useCallback(() => {
     const now = Date.now();
@@ -313,57 +435,11 @@ export default function DataInsightModal({
     if (!visible) return;
     openedAtRef.current = Date.now();
     pressInAtRef.current = 0;
-    elapsedMsRef.current = 0;
+    advanceLockRef.current = false;
     setCurrentPage(0);
     setIsPaused(false);
     setShowList(false);
-    lastPageRef.current = -1;
-    cancelAnimation(progress);
-    progress.value = 0;
-  }, [visible, progress]);
-
-  useEffect(() => {
-    if (!visible || showList) return;
-
-    if (lastPageRef.current !== currentPage) {
-      lastPageRef.current = currentPage;
-      elapsedMsRef.current = 0;
-      cancelAnimation(progress);
-      progress.value = 0;
-    }
-
-    if (isPaused) {
-      cancelAnimation(progress);
-      return;
-    }
-
-    const from = Math.min(1, Math.max(0, elapsedMsRef.current / PAGE_DURATION));
-    const remainingDuration = Math.max(100, PAGE_DURATION - elapsedMsRef.current);
-    cancelAnimation(progress);
-    progress.value = from;
-    progress.value = withTiming(1, {
-      duration: remainingDuration,
-      easing: Easing.linear,
-      reduceMotion: ReduceMotion.Never,
-    });
-
-    let lastTick = Date.now();
-    const interval = setInterval(() => {
-      const now = Date.now();
-      elapsedMsRef.current += Math.max(0, now - lastTick);
-      lastTick = now;
-      progress.value = Math.min(1, elapsedMsRef.current / PAGE_DURATION);
-      if (elapsedMsRef.current >= PAGE_DURATION) {
-        clearInterval(interval);
-        goToNextPage();
-      }
-    }, 50);
-
-    return () => {
-      clearInterval(interval);
-      cancelAnimation(progress);
-    };
-  }, [visible, showList, isPaused, currentPage, goToNextPage, progress]);
+  }, [visible]);
 
   if (!visible) return null;
 
@@ -384,14 +460,15 @@ export default function DataInsightModal({
     <Modal visible transparent statusBarTranslucent animationType="fade" onRequestClose={onClose}>
       <View className="flex-1 overflow-hidden bg-[#F6F7F7]">
         {renderPage(currentPage)}
-        <View
-          className="absolute left-0 right-0 flex-row justify-center gap-[5px]"
-          style={{ top: barTop }}
-          pointerEvents="none"
-        >
-          {Array.from({ length: pageCount }, (_, index) => (
-            <ProgressBar key={index} index={index} currentIndex={currentPage} progress={progress} />
-          ))}
+        <View style={{ position: 'absolute', left: 0, right: 0, top: barTop }} pointerEvents="none">
+          <StoriesProgress
+            count={pageCount}
+            activeIndex={currentPage}
+            paused={isPaused}
+            running={visible && !showList}
+            durationMs={PAGE_DURATION}
+            onSegmentComplete={goToNextPage}
+          />
         </View>
         <View style={[StyleSheet.absoluteFill, { flexDirection: 'row' }]}>
           <Pressable
