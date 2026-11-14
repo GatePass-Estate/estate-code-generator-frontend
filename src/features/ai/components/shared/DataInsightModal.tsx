@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   cancelAnimation,
@@ -156,10 +165,18 @@ function InsightList({
   legalLines: string[];
   onClose: () => void;
 }) {
+  const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
+  const bottomPad = Math.max(insets.bottom, Platform.OS === 'android' ? 28 : 16) + 16;
+  const sheetMaxHeight = Math.round(windowHeight * 0.9);
+  // Grabber (~34) + button block (~56 + 24 margin) + bottom pad — scroll the list only.
+  const scrollMaxHeight = Math.max(180, sheetMaxHeight - 34 - 80 - bottomPad);
+
   return (
     <BottomSheet
       visible={visible}
       onClose={onClose}
+      dismissible={false}
       animationType="fade"
       statusBarTranslucent
       scrimClassName="flex-1 justify-end bg-black/50"
@@ -167,14 +184,17 @@ function InsightList({
         backgroundColor: '#F6F7F7',
         borderTopLeftRadius: 32,
         borderTopRightRadius: 32,
-        maxHeight: '90%',
+        maxHeight: sheetMaxHeight,
         paddingHorizontal: 24,
-        paddingBottom: 40,
+        paddingBottom: bottomPad,
       }}
     >
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 20 }}
+        bounces={false}
+        nestedScrollEnabled
+        style={{ maxHeight: scrollMaxHeight }}
+        contentContainerStyle={{ paddingBottom: 8 }}
       >
         <Text
           allowFontScaling={false}
@@ -211,11 +231,15 @@ function InsightList({
       </ScrollView>
       <Pressable
         onPress={onClose}
+        accessibilityRole="button"
+        accessibilityLabel="I understand"
         style={{
           backgroundColor: '#113E55',
+          minHeight: 56,
           paddingVertical: 16,
           borderRadius: 32,
           alignItems: 'center',
+          justifyContent: 'center',
           marginTop: 24,
         }}
       >

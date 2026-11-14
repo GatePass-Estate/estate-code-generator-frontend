@@ -42,6 +42,11 @@ type BottomSheetProps = {
   onDismissed?: () => void;
   /** The sheet draws one grabber. Turn this off only when the visible card is an inner view. */
   showGrabber?: boolean;
+  /**
+   * When false, overlay tap, drag-to-dismiss, and Android back do not close the sheet —
+   * a child control must call onClose (e.g. Data Insight "I understand"). Default true.
+   */
+  dismissible?: boolean;
   animationType?: 'none' | 'slide' | 'fade';
   statusBarTranslucent?: boolean;
 };
@@ -78,6 +83,7 @@ export default function BottomSheet({
   overlay,
   onDismissed,
   showGrabber = true,
+  dismissible = true,
   animationType = 'slide',
 }: BottomSheetProps) {
   const { height } = useWindowDimensions();
@@ -93,17 +99,18 @@ export default function BottomSheet({
   // True while the gesture is finishing the slide-away; skip the close effect's
   // second withTiming so the sheet does not hitch mid-dismiss.
   const dismissFromDrag = useSharedValue(false);
+  const canDismiss = dismissible && !busy;
 
   const close = useCallback(() => {
-    if (!busy) onClose();
-  }, [busy, onClose]);
+    if (canDismiss) onClose();
+  }, [canDismiss, onClose]);
 
   // Drag anywhere on the sheet (not only the grabber). activeOffsetY waits for a clear
   // downward pull; failOffsetY lets nested ScrollViews keep upward / content scrolling.
   const pan = useMemo(
     () =>
       Gesture.Pan()
-        .enabled(!busy)
+        .enabled(canDismiss)
         .activeOffsetY(10)
         .failOffsetY(-10)
         .failOffsetX([-28, 28])
@@ -138,7 +145,7 @@ export default function BottomSheet({
           translateY.value = withSpring(0, SNAP);
           scrimOpacity.value = withSpring(1, SNAP);
         }),
-    [busy, close, dismissFromDrag, dragStartY, height, scrimOpacity, translateY]
+    [canDismiss, close, dismissFromDrag, dragStartY, height, scrimOpacity, translateY]
   );
 
   useEffect(() => {
