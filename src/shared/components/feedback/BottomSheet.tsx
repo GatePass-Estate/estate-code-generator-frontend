@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   Modal,
+  Platform,
   Pressable,
   StyleSheet,
   View,
@@ -11,6 +12,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
+import { NavigationBar as AndroidNavigationBar } from 'expo-navigation-bar';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, {
   Easing,
@@ -20,6 +22,7 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type BottomSheetProps = {
   visible: boolean;
@@ -31,7 +34,8 @@ type BottomSheetProps = {
   scrimClassName: string;
   scrimProps?: Omit<PressableProps, 'onPress' | 'className'>;
   panelClassName?: string;
-  panelStyle?: StyleProp<ViewStyle>;
+  /** Plain or Reanimated styles (e.g. animated height on household search). */
+  panelStyle?: StyleProp<ViewStyle> | object;
   /** Extra panel props (accessibility). Taps inside never dismiss: the scrim is not a parent. */
   panelProps?: Omit<ViewProps, 'style' | 'className'>;
   /** Drawn behind the scrim. Use this for a blur layer. */
@@ -67,7 +71,8 @@ export function SheetGrabber() {
 /**
  * Slide-up sheet shell: transparent modal, scrim dismiss, Android back, and a panel
  * that swallows taps. The panel slides up and the scrim fades. Drag-to-dismiss works
- * anywhere on the sheet; padding and content stay with the caller.
+ * anywhere on the sheet. On Android the system nav is hidden while open and the panel
+ * always clears a safe bottom inset so Confirm / Done are never under the nav bar.
  */
 export default function BottomSheet({
   visible,
@@ -86,14 +91,23 @@ export default function BottomSheet({
   dismissible = true,
   animationType = 'slide',
 }: BottomSheetProps) {
+  const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
   const [mounted, setMounted] = useState(visible);
+  // Translucent modals often report insets.bottom as 0 on Android — keep a floor so
+  // every sheet clears the 3-button / gesture nav without each caller re-learning it.
+  const minBottomPad = Platform.OS === 'android' ? Math.max(insets.bottom, 48) : insets.bottom;
   const translateY = useSharedValue(height);
   const scrimOpacity = useSharedValue(0);
   const visibleRef = useRef(visible);
   visibleRef.current = visible;
   const onDismissedRef = useRef(onDismissed);
   onDismissedRef.current = onDismissed;
+  // Track open/close edges only — window height often changes when Android nav hides,
+  // and that must not restart the enter animation (looked like the sheet opening twice).
+  const wasOpenRef = useRef(false);
+  const heightRef = useRef(height);
+  heightRef.current = height;
   const instant = animationType === 'none';
   const dragStartY = useSharedValue(0);
   // True while the gesture is finishing the slide-away; skip the close effect's
@@ -120,32 +134,30 @@ export default function BottomSheet({
         })
         .onUpdate((event) => {
           // Follow the finger 1:1 downward only — never rubber-band above the rest pose.
+          const h = heightRef.current;
           const next = Math.max(0, dragStartY.value + event.translationY);
           translateY.value = next;
-          scrimOpacity.value = 1 - Math.min(next / height, 1);
+          scrimOpacity.value = 1 - Math.min(next / h, 1);
         })
         .onEnd((event) => {
+          const h = heightRef.current;
           const dragged = translateY.value;
-          const shouldClose = dragged > height * 0.18 || event.velocityY > 900;
+          const shouldClose = dragged > h * 0.18 || event.velocityY > 900;
           if (shouldClose) {
             dismissFromDrag.value = true;
-            const distance = Math.max(height - dragged, 1);
+            const distance = Math.max(h - dragged, 1);
             const velocity = Math.max(event.velocityY, 400);
             const duration = Math.min(280, Math.max(160, (distance / velocity) * 1000));
-            translateY.value = withTiming(
-              height,
-              { duration, easing: SLIDE.easing },
-              (finished) => {
-                if (finished) runOnJS(close)();
-              }
-            );
+            translateY.value = withTiming(h, { duration, easing: SLIDE.easing }, (finished) => {
+              if (finished) runOnJS(close)();
+            });
             scrimOpacity.value = withTiming(0, { duration, easing: SLIDE.easing });
             return;
           }
           translateY.value = withSpring(0, SNAP);
           scrimOpacity.value = withSpring(1, SNAP);
         }),
-    [canDismiss, close, dismissFromDrag, dragStartY, height, scrimOpacity, translateY]
+    [canDismiss, close, dismissFromDrag, dragStartY, scrimOpacity, translateY]
   );
 
   useEffect(() => {
@@ -154,31 +166,43 @@ export default function BottomSheet({
 
   useEffect(() => {
     if (!mounted) return;
+
     const hide = () => {
       if (visibleRef.current) return;
       setMounted(false);
       const notify = onDismissedRef.current;
       if (notify) setTimeout(notify, 50);
     };
-    if (visible) {
+
+    const opening = visible && !wasOpenRef.current;
+    const closing = !visible && wasOpenRef.current;
+
+    if (opening) {
+      wasOpenRef.current = true;
       dismissFromDrag.value = false;
-      translateY.value = height;
+      const h = heightRef.current;
+      translateY.value = h;
       scrimOpacity.value = 0;
       translateY.value = withTiming(0, instant ? { duration: 0 } : SLIDE);
       scrimOpacity.value = withTiming(1, instant ? { duration: 0 } : SLIDE);
       return;
     }
+
+    if (!closing) return;
+
+    wasOpenRef.current = false;
     if (dismissFromDrag.value) {
       // Gesture already slid the sheet off-screen; just unmount after a beat.
       dismissFromDrag.value = false;
       const t = setTimeout(hide, instant ? 0 : 40);
       return () => clearTimeout(t);
     }
-    translateY.value = withTiming(height, instant ? { duration: 0 } : SLIDE, (finished) => {
+    const h = heightRef.current;
+    translateY.value = withTiming(h, instant ? { duration: 0 } : SLIDE, (finished) => {
       if (finished) runOnJS(hide)();
     });
     scrimOpacity.value = withTiming(0, instant ? { duration: 0 } : SLIDE);
-  }, [visible, mounted, height, instant, translateY, scrimOpacity, dismissFromDrag]);
+  }, [visible, mounted, instant, translateY, scrimOpacity, dismissFromDrag]);
 
   const scrimStyle = useAnimatedStyle(() => ({ opacity: scrimOpacity.value }));
   const panelMotion = useAnimatedStyle(() => ({
@@ -191,6 +215,22 @@ export default function BottomSheet({
   void scrimClassName;
   // Never let caller styles replace the full-screen hit target (that broke overlay dismiss).
   const { style: scrimStyleProp, ...restScrimProps } = scrimProps ?? {};
+  // Only read paddingBottom from plain style objects — animated handles are not flattenable.
+  const callerBottomPad = (() => {
+    const entries = Array.isArray(panelStyle) ? panelStyle : panelStyle ? [panelStyle] : [];
+    let pad = 0;
+    for (const entry of entries) {
+      if (!entry || typeof entry !== 'object') continue;
+      if ('viewDescriptors' in entry || 'styleId' in entry) continue;
+      const pb = (entry as ViewStyle).paddingBottom;
+      if (typeof pb === 'number') pad = Math.max(pad, pb);
+    }
+    return pad;
+  })();
+  const panelBottomPad = Math.max(callerBottomPad, minBottomPad);
+  const scrimViewStyle = StyleSheet.flatten(
+    typeof scrimStyleProp === 'function' ? undefined : scrimStyleProp
+  );
 
   return (
     <Modal
@@ -199,8 +239,12 @@ export default function BottomSheet({
       animationType="none"
       statusBarTranslucent
       navigationBarTranslucent
-      onRequestClose={close}
+      // Non-dismissible sheets (e.g. Data Insight) ignore Android back — only an
+      // in-sheet action like "I understand" may call onClose.
+      onRequestClose={canDismiss ? close : undefined}
     >
+      {/* Hide the system nav while any sheet is open so it cannot cover Confirm / Done. */}
+      {Platform.OS === 'android' ? <AndroidNavigationBar hidden /> : null}
       <GestureHandlerRootView style={styles.root}>
         {/*
           Full-screen blur + dark tint, faded in and out with the sheet (same opacity value the
@@ -213,18 +257,28 @@ export default function BottomSheet({
           )}
           <View style={[styles.fill, styles.dim]} />
         </Animated.View>
-        <Pressable
-          style={[styles.fill, scrimStyleProp]}
-          onPress={close}
-          accessibilityRole="button"
-          accessibilityLabel="Dismiss"
-          {...restScrimProps}
-        />
+        {canDismiss ? (
+          <Pressable
+            style={[styles.fill, scrimViewStyle]}
+            onPress={close}
+            accessibilityRole="button"
+            accessibilityLabel="Dismiss"
+            {...restScrimProps}
+          />
+        ) : (
+          // Swallow outside taps — do not wire onPress to onClose.
+          <View style={[styles.fill, scrimViewStyle]} />
+        )}
         <GestureDetector gesture={pan}>
           <Animated.View
             className={panelClassName}
             {...panelProps}
-            style={[styles.sheet, panelStyle, panelMotion]}
+            style={[
+              styles.sheet,
+              panelStyle as StyleProp<ViewStyle>,
+              { paddingBottom: panelBottomPad },
+              panelMotion,
+            ]}
           >
             {showGrabber ? <SheetGrabber /> : null}
             {children}
