@@ -16,6 +16,12 @@ const base = {
   },
   android: {
     package: 'com.gatepassng.gms',
+    // Light app chrome: keep clock/battery dark so they stay visible on #F6F7F7 screens.
+    androidStatusBar: {
+      barStyle: 'dark-content',
+      backgroundColor: '#00000000',
+      translucent: true,
+    },
     adaptiveIcon: {
       foregroundImage: './src/assets/android-adaptive-foreground.png',
       backgroundColor: '#FFFFFF',

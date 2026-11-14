@@ -60,9 +60,11 @@ export const updatepassword = async (payload: {
 export const getUserByIdAdmin = async (id: string): Promise<User> => {
   try {
     const api = Api();
-    const axiosRes = await api.get<UserProfileResponse>(`/users/profile/${encodeURIComponent(id)}`);
+    const axiosRes = await api.get<UserProfileResponse & { id?: string }>(
+      `/users/profile/${encodeURIComponent(id)}`
+    );
     const data = axiosRes.data;
-    const userId = String(data.user_id);
+    const userId = String(data.user_id ?? data.id ?? id);
 
     return {
       user_id: userId,
@@ -71,11 +73,11 @@ export const getUserByIdAdmin = async (id: string): Promise<User> => {
       last_name: data.last_name,
       home_address: data.home_address,
       email: data.email,
-      phone_number: data.phone_number,
+      phone_number: data.phone_number ?? null,
       gender: data.gender,
       estate_name: data.estate_name,
       role: data.role,
-      estate_id: data.estate_id,
+      estate_id: data.estate_id != null ? String(data.estate_id) : null,
       household_name: data.household_name ?? null,
       household_primary_resident: data.household_primary_resident ?? null,
       status: data.status,
@@ -150,49 +152,49 @@ export const getAllEstateUsers = async (
   }
 };
 
-/** Filters supported by `GET /users/` (backend `list_users` / `SearchUserRequest`). */
+export type EstateUserRole = 'root' | 'primary_admin' | 'admin' | 'resident' | 'security' | 'guest';
+
+/** Filters supported by `GET /users/` (list_users — partial name/email, `roles[]`, status). */
 export type SearchEstateUsersParams = {
   page?: number;
   limit?: number;
   first_name?: string | null;
   last_name?: string | null;
   email?: string | null;
-  role?: 'root' | 'primary_admin' | 'admin' | 'resident' | 'security' | 'guest' | null;
+  /** One or more roles — sent as repeated `roles=` query params. */
+  roles?: EstateUserRole[] | null;
   /** Activation status. Omit for everyone; `true` / `false` for validated filters. */
   status?: boolean | null;
 };
 
 /**
- * `GET /users/` — server-side search + role + status + pagination.
- * Prefer this for All Users filters (PERF-03).
+ * `GET /users/` — server-side search + roles + status + pagination.
+ *
+ * Trailing slash is required: the route is `@router.get("/")` under `/users`, so
+ * `GET /users` 307s to `/users/`. XHR drops Authorization on that redirect → 401 → logout.
  */
 export const searchEstateUsers = async (
   params: SearchEstateUsersParams = {}
 ): Promise<AllUsers> => {
   try {
     const api = Api();
-    // No trailing slash — some gateways 307 `/users/` → `/users` and drop query params,
-    // which made role/search filters look broken (always the same first page).
-    const axiosRes = await api.get('/users', {
-      params: {
-        page: params.page ?? 1,
-        limit: params.limit ?? 20,
-        ...(params.first_name?.trim() ? { first_name: params.first_name.trim() } : {}),
-        ...(params.last_name?.trim() ? { last_name: params.last_name.trim() } : {}),
-        ...(params.email?.trim() ? { email: params.email.trim() } : {}),
-        ...(params.role ? { role: params.role } : {}),
-        ...(params.status === null || params.status === undefined
-          ? {}
-          : { status: String(params.status) }),
-      },
-      // Keep `status=false` — axios can drop falsy values depending on serializer.
-      paramsSerializer: {
-        serialize: (p) =>
-          Object.entries(p)
-            .filter(([, v]) => v !== undefined && v !== null && v !== '')
-            .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
-            .join('&'),
-      },
+    const query: Record<string, string | number | string[]> = {
+      page: params.page ?? 1,
+      limit: params.limit ?? 20,
+    };
+    if (params.first_name?.trim()) query.first_name = params.first_name.trim();
+    if (params.last_name?.trim()) query.last_name = params.last_name.trim();
+    if (params.email?.trim()) query.email = params.email.trim();
+    if (params.roles?.length) query.roles = params.roles;
+    // Stringify so axios does not drop `status=false`.
+    if (params.status !== null && params.status !== undefined) {
+      query.status = String(params.status);
+    }
+
+    const axiosRes = await api.get('/users/', {
+      params: query,
+      // `roles=admin&roles=primary_admin` (FastAPI list query), not roles[0]=…
+      paramsSerializer: { indexes: null },
     });
     return axiosRes.data;
   } catch (error: unknown) {

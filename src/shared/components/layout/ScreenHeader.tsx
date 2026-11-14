@@ -44,8 +44,10 @@ export default function ScreenHeader({
         <View className="flex-row items-center justify-between">
           <Text
             className={cn(
-              'font-ubuntu-medium text-[27.34px] leading-[33px] text-[#113E55]',
-              titleClassName
+              // Color last: `text-heading` (fontSize) would otherwise drop `text-[#113E55]` via twMerge.
+              'font-ubuntu-medium text-[27.34px] leading-[33px]',
+              titleClassName,
+              'text-[#113E55]'
             )}
           >
             {title}

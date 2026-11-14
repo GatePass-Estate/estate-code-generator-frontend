@@ -18,63 +18,54 @@ export const ESTATE_USERS_LIST_PAGE_SIZE = 40;
 
 export const estateUsersKeys = queryKeys.estateUsers;
 
+export type EstateUserRoleFilter = 'resident' | 'security' | 'admin' | 'primary_admin' | 'admins';
+
 export type EstateUsersListFilters = {
   search?: string;
-  role?: 'resident' | 'security' | 'admin' | 'primary_admin' | 'admins' | null;
+  /** OR of UI role chips. Empty / omitted = every role. */
+  roles?: EstateUserRoleFilter[];
   validated?: boolean | null;
 };
 
-function apiRoleForFilter(role: EstateUsersListFilters['role']): SearchEstateUsersParams['role'] {
-  if (role === 'resident' || role === 'security' || role === 'admin' || role === 'primary_admin') {
-    return role;
+/** Expand UI chips to API `roles` (`admins` → admin + primary_admin). */
+function apiRolesFromFilters(
+  roles: EstateUserRoleFilter[] | undefined
+): NonNullable<SearchEstateUsersParams['roles']> {
+  if (!roles?.length) return [];
+  const out: NonNullable<SearchEstateUsersParams['roles']> = [];
+  for (const role of roles) {
+    if (role === 'admins') {
+      out.push('admin', 'primary_admin');
+      continue;
+    }
+    if (
+      role === 'resident' ||
+      role === 'security' ||
+      role === 'admin' ||
+      role === 'primary_admin'
+    ) {
+      out.push(role);
+    }
   }
-  // `admins` is a UI chip — backend Role enum is one value, handled in fetchListPage.
-  return null;
+  return [...new Set(out)];
 }
 
 /**
- * All Users page via `GET /users/` — search, role, and status are filtered on the server.
- * The Admins chip requests both `admin` and `primary_admin` (no combined Role enum value).
+ * All Users page via `GET /users/` — search, `roles`, and status on the server.
+ * Multi-select chips send every selected role in one `roles=` query (OR).
  */
 async function fetchEstateUsersListPage(
   page: number,
   filters: EstateUsersListFilters
 ): Promise<AllUsers> {
   const text = searchTextToUserFilters(filters.search ?? '');
-  const status = filters.validated ?? null;
-  const base = {
+  const roles = apiRolesFromFilters(filters.roles);
+  return searchEstateUsers({
     page,
     limit: ESTATE_USERS_LIST_PAGE_SIZE,
     ...text,
-    status,
-  } satisfies SearchEstateUsersParams;
-
-  if (filters.role === 'admins') {
-    const [adminPage, primaryPage] = await Promise.all([
-      searchEstateUsers({ ...base, role: 'admin' }),
-      // Primary admins are few — pull them on page 1 only so they always show under Admins.
-      page === 1
-        ? searchEstateUsers({ ...base, page: 1, limit: 20, role: 'primary_admin' })
-        : Promise.resolve(null),
-    ]);
-    if (!primaryPage) return adminPage;
-    const seen = new Set(
-      adminPage.items.map((user) => user.id ?? user.user_id).filter(Boolean) as string[]
-    );
-    const extras = primaryPage.items.filter((user) => {
-      const id = user.id ?? user.user_id;
-      return !!id && !seen.has(id);
-    });
-    return {
-      ...adminPage,
-      items: [...extras, ...adminPage.items],
-      total: adminPage.total + primaryPage.total,
-    };
-  }
-
-  return searchEstateUsers({
-    ...base,
-    role: apiRoleForFilter(filters.role),
+    status: filters.validated ?? null,
+    roles: roles.length ? roles : null,
   });
 }
 
@@ -141,9 +132,8 @@ function nextUsersPage(lastPage: AllUsers): number | undefined {
 }
 
 /**
- * All Users: page via `GET /users/` with search, role, and status on the wire.
- * Estate scope comes from the JWT — do not block the list if zustand estate_id
- * has not hydrated yet.
+ * All Users: `GET /users/` with search, `roles`, and status on the wire.
+ * Estate scope comes from the JWT. Multiple chips → one request with `roles=…&roles=…`.
  */
 export function useEstateUsersInfinite(
   filters: EstateUsersListFilters = {},
@@ -152,7 +142,7 @@ export function useEstateUsersInfinite(
   const estateId = useUserStore((s) => s.estate_id);
   const normalized: EstateUsersListFilters = {
     search: filters.search?.trim() || '',
-    role: filters.role ?? null,
+    roles: [...(filters.roles ?? [])].sort(),
     validated: filters.validated ?? null,
   };
 

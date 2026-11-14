@@ -1,7 +1,14 @@
 import * as NavigationBar from 'expo-navigation-bar';
+import { setStatusBarBackgroundColor, setStatusBarStyle } from 'expo-status-bar';
 import { usePathname } from 'expo-router';
 import * as React from 'react';
-import { Appearance, AppState, ColorSchemeName, Platform } from 'react-native';
+import {
+  Appearance,
+  AppState,
+  ColorSchemeName,
+  Platform,
+  StatusBar as RNStatusBar,
+} from 'react-native';
 
 /** Android 3-button nav bar: our rule — not the system default. */
 const ANDROID_NAV_BAR = {
@@ -26,6 +33,22 @@ function applyAndroidNavBar(colorScheme: 'light' | 'dark') {
   NavigationBar.setStyle(theme.style);
 }
 
+/**
+ * Most GatePass screens are light (#F6F7F7). On Android edge-to-edge + device dark mode,
+ * the system can leave light status icons — clock/battery vanish on light backgrounds.
+ * Force dark icons unless the route has a dark header (admin tools).
+ */
+function applyAndroidStatusBar(pathname: string) {
+  const darkHeader = pathname === '/admin' || pathname === '/admin/' || pathname.endsWith('/admin');
+  const style = darkHeader ? 'light' : 'dark';
+  setStatusBarStyle(style);
+  RNStatusBar.setBarStyle(darkHeader ? 'light-content' : 'dark-content', true);
+  // Transparent so the screen background shows through; icons stay readable via style.
+  RNStatusBar.setBackgroundColor('transparent', true);
+  RNStatusBar.setTranslucent(true);
+  setStatusBarBackgroundColor('transparent', true);
+}
+
 export function getAndroidNavBarBackground(scheme: ColorSchemeName | null | undefined): string {
   return ANDROID_NAV_BAR[resolveDeviceColorScheme(scheme)].background;
 }
@@ -33,27 +56,31 @@ export function getAndroidNavBarBackground(scheme: ColorSchemeName | null | unde
 export function useInitialAndroidBarSync() {
   const pathname = usePathname();
 
-  const applyDeviceNavBar = React.useCallback((scheme: ColorSchemeName | null | undefined) => {
-    applyAndroidNavBar(resolveDeviceColorScheme(scheme));
-  }, []);
+  const applyDeviceBars = React.useCallback(
+    (scheme: ColorSchemeName | null | undefined) => {
+      applyAndroidNavBar(resolveDeviceColorScheme(scheme));
+      applyAndroidStatusBar(pathname ?? '');
+    },
+    [pathname]
+  );
 
   React.useEffect(() => {
     if (Platform.OS !== 'android') return;
-    applyDeviceNavBar(Appearance.getColorScheme());
-  }, [pathname, applyDeviceNavBar]);
+    applyDeviceBars(Appearance.getColorScheme());
+  }, [pathname, applyDeviceBars]);
 
   React.useEffect(() => {
     if (Platform.OS !== 'android') return;
 
-    applyDeviceNavBar(Appearance.getColorScheme());
+    applyDeviceBars(Appearance.getColorScheme());
 
     const appearanceSubscription = Appearance.addChangeListener(({ colorScheme }) =>
-      applyDeviceNavBar(colorScheme)
+      applyDeviceBars(colorScheme)
     );
 
     const appStateSubscription = AppState.addEventListener('change', (nextState) => {
       if (nextState === 'active') {
-        applyDeviceNavBar(Appearance.getColorScheme());
+        applyDeviceBars(Appearance.getColorScheme());
       }
     });
 
@@ -61,5 +88,5 @@ export function useInitialAndroidBarSync() {
       appearanceSubscription.remove();
       appStateSubscription.remove();
     };
-  }, [applyDeviceNavBar]);
+  }, [applyDeviceBars]);
 }

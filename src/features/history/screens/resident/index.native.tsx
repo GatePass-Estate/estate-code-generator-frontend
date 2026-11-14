@@ -270,7 +270,7 @@ export default function HistoryTabScreen() {
 
   const handleRefresh = useCallback((entry: VisitorLogEntry) => {
     router.push({
-      pathname: '/user/history/duration',
+      pathname: '/duration',
       params: {
         visitorName: entry.visitor_fullname || 'Guest',
         relationship: entry.relationship_with_resident || 'other',

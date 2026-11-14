@@ -147,7 +147,6 @@ export default function EditRequest() {
         onBack={() => navigation.goBack()}
         title="Edit Profile"
         subtitle="Send a request to change your details"
-        titleClassName="text-heading"
         subtitleClassName="text-[#878686]"
         containerClassName="mb-[19px]"
       />

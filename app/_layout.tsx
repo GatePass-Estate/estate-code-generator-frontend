@@ -44,7 +44,8 @@ function RootLayoutContent() {
 
   return (
     <>
-      <StatusBar style="dark" />
+      {/* Dark icons on light screens — Android also re-applies this in useInitialAndroidBarSync. */}
+      <StatusBar style="dark" translucent />
       <Stack
         key={resetKey}
         screenOptions={{

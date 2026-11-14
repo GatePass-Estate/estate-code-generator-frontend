@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { View, Text, Pressable, ScrollView, Alert } from 'react-native';
-import { router, useFocusEffect, useLocalSearchParams, useNavigation } from 'expo-router';
+import { router, useLocalSearchParams, useNavigation } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   FormChevronRightIcon,
@@ -18,7 +18,6 @@ import { useGenerateCode } from '@/src/features/access-codes/hooks/codes';
 import { useCreateGuest } from '@/src/features/visitors/hooks/guests';
 import { errorMessage } from '@/src/shared/services/api/errors';
 import { formatInvitePeriodDisplay, parseLogDate, toUtcClock } from '@/src/shared/utils/helpers';
-import { useAndroidBottomInset } from '@/src/shared/hooks/useAndroidBottomInset';
 import { useFeatureGate } from '@/src/features/billing/hooks/usePlan';
 import { useUserStore } from '@/src/store/userStore';
 import { GenderType, RelationshipType } from '@/src/shared/types/general';
@@ -111,7 +110,6 @@ const GENDERS = new Set(['male', 'female', 'prefer_not_to_say']);
 export default function SetAccessCodeDurationScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const { tabBarStyle } = useAndroidBottomInset();
   const user_id = useUserStore((s) => s.user_id);
   const estate_id = useUserStore((s) => s.estate_id);
   const home_address = useUserStore((s) => s.home_address);
@@ -137,20 +135,7 @@ export default function SetAccessCodeDurationScreen() {
   const gender = (GENDERS.has(genderParam) ? genderParam : 'prefer_not_to_say') as GenderType;
   const shouldSaveGuest = params.saveGuest === 'true';
 
-  useFocusEffect(
-    useCallback(() => {
-      const parent = navigation.getParent();
-      parent?.setOptions({
-        tabBarStyle: { display: 'none' },
-      });
-
-      return () => {
-        parent?.setOptions({
-          tabBarStyle,
-        });
-      };
-    }, [navigation, tabBarStyle])
-  );
+  // Duration lives outside the tab navigator (shared-screens); no tab bar to hide.
 
   const [durationEnabled, setDurationEnabled] = useState(false);
   const [startDate, setStartDate] = useState<Date | null>(null);
@@ -354,7 +339,6 @@ export default function SetAccessCodeDurationScreen() {
       <ScreenHeader
         onBack={() => navigation.goBack()}
         title="Set Duration"
-        titleClassName="text-heading"
         subtitle="Select the date and time duration of your guest access code."
         subtitleClassName="text-[#878686] mt-1"
       />

@@ -48,7 +48,9 @@ import PromptModal from '@/src/shared/components/feedback/PromptModal';
 import { useAuthStore } from '@/src/features/auth/store/authStore';
 import { useUserStore } from '@/src/store/userStore';
 import { useAuth } from '@/src/features/auth/hooks/useAuthContext';
-import { userFacingError } from '@/src/shared/services/api/errors';
+import { userFacingError, errorStatus } from '@/src/shared/services/api/errors';
+import { queryClient } from '@/src/shared/services/api/queryClient';
+import { queryKeys } from '@/src/shared/services/api/queryKeys';
 
 type DocumentLoadState = 'loading' | 'loaded' | 'missing' | 'pending' | 'error';
 
@@ -119,16 +121,27 @@ export default function SingleUserMobile() {
         setUserData(emptyUser(''));
         return;
       }
-      const resident = await getUserByIdAdmin(userId);
-
-      if (!resident) {
-        setError('User not found');
-        setUserData(emptyUser(userId));
+      try {
+        const resident = await getUserByIdAdmin(userId);
+        setUserData(resident);
+        setIdentificationExpanded(resident.role === 'resident');
+        queryClient.setQueryData(queryKeys.users.byIdAdmin(userId), resident);
         return;
+      } catch (error) {
+        // `/users/profile/{id}` 404s inactive users — use the All Users row we cached on tap.
+        const cached = queryClient.getQueryData<User>(queryKeys.users.byIdAdmin(userId));
+        if (cached && (errorStatus(error) === 404 || errorStatus(error) === 403)) {
+          setUserData({
+            ...emptyUser(userId),
+            ...cached,
+            user_id: cached.user_id || userId,
+            id: cached.id || userId,
+          });
+          setIdentificationExpanded(cached.role === 'resident');
+          return;
+        }
+        throw error;
       }
-
-      setUserData(resident);
-      setIdentificationExpanded(resident.role === 'resident');
     } catch (error) {
       setError(userFacingError(error, 'Failed to load user data'));
     } finally {

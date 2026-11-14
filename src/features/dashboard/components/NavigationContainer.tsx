@@ -56,11 +56,16 @@ export default function NavigationContainer({
                   name={name}
                   listeners={
                     name === 'history'
-                      ? {
-                          tabPress: () => {
+                      ? ({ navigation }) => ({
+                          tabPress: (e) => {
+                            // Only reset when History is already focused (detail → list).
+                            // preventDefault on a cross-tab press blocks UserTabBar's
+                            // navigate() and leaves you stuck on Home/Guests/etc.
+                            if (!navigation.isFocused()) return;
+                            e.preventDefault();
                             router.dismissTo('/user/history');
                           },
-                        }
+                        })
                       : undefined
                   }
                   options={{
@@ -74,6 +79,7 @@ export default function NavigationContainer({
 
                     headerShown: false,
                     tabBarIcon: ({ focused }) => (TabIcon ? <TabIcon focused={focused} /> : null),
+                    // Leave History → drop nested detail/invite so the next visit is the list.
                     popToTopOnBlur: name === 'history',
                   }}
                 />

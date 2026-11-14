@@ -99,7 +99,7 @@ const MyGuestMobile = () => {
     relationship_with_resident: RelationshipType;
   }) {
     router.push({
-      pathname: '/user/history/duration',
+      pathname: '/duration',
       params: {
         visitorName: name,
         relationship: relationship_with_resident ?? 'other',

@@ -21,11 +21,15 @@ import BottomSheet from '@/src/shared/components/feedback/BottomSheet';
 import { userFacingError } from '@/src/shared/services/api/errors';
 import { getRoleIconHeight, getRoleIconWidth } from '@/src/shared/utils/helpers';
 import RoleIcon from '@/src/shared/components/RoleIcon';
-import { useEstateUsersInfinite } from '@/src/features/admin/hooks/estateUsers';
+import {
+  useEstateUsersInfinite,
+  type EstateUserRoleFilter,
+} from '@/src/features/admin/hooks/estateUsers';
+import { queryClient } from '@/src/shared/services/api/queryClient';
+import { queryKeys } from '@/src/shared/services/api/queryKeys';
 import type { User } from '@/src/features/users/types/user';
-import type { UserRolesType } from '@/src/shared/types/general';
 
-type UserFilter = UserRolesType | 'admins';
+type UserFilter = EstateUserRoleFilter;
 type ValidationFilter = boolean | null;
 
 const FILTERS: {
@@ -70,15 +74,10 @@ export default function AllUsersMobile() {
     }
   }, [role]);
 
-  // Single selection only — `GET /users/` takes one Role enum value (Admins → admin + primary_admin).
-  const apiRole =
-    selectedFilters.length === 1
-      ? (selectedFilters[0] as 'resident' | 'security' | 'admins')
-      : null;
-
+  // Role chips OR together; status + search still combine with them.
   const usersQuery = useEstateUsersInfinite({
     search: deferredSearch,
-    role: apiRole,
+    roles: selectedFilters,
     validated: validationFilter,
   });
 
@@ -112,8 +111,15 @@ export default function AllUsersMobile() {
     const userId = user.id ?? user.user_id;
     if (!userId) return;
 
+    // Profile API 404s inactive users — keep the list row so detail can still open.
+    queryClient.setQueryData(queryKeys.users.byIdAdmin(userId), {
+      ...user,
+      user_id: user.user_id || userId,
+      id: userId,
+    });
+
     router.push({
-      pathname: '/(protected)/admin/users/[userId]',
+      pathname: '/admin/users/[userId]',
       params: { userId },
     });
   };
@@ -196,7 +202,15 @@ export default function AllUsersMobile() {
                 <Pressable
                   key={item.label}
                   onPress={() => {
-                    setSelectedFilters(item.value === null ? [] : [item.value]);
+                    if (item.value === null) {
+                      setSelectedFilters([]);
+                      return;
+                    }
+                    setSelectedFilters((current) =>
+                      current.includes(item.value!)
+                        ? current.filter((filter) => filter !== item.value)
+                        : [...current, item.value!]
+                    );
                   }}
                   style={{ width: item.width, height: 35 }}
                   className={`items-center justify-center rounded-2xl ${
@@ -247,7 +261,7 @@ export default function AllUsersMobile() {
         ) : (
           <FlatList
             data={displayedUsers}
-            extraData={`${apiRole ?? 'all'}|${deferredSearch}|${validationFilter}`}
+            extraData={`${selectedFilters.join(',')}|${deferredSearch}|${validationFilter}`}
             keyExtractor={(item, index) => item.id ?? item.user_id ?? String(index)}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
@@ -328,8 +342,15 @@ export default function AllUsersMobile() {
           setValidationFilter((current) => (current === value ? null : value));
         }}
         onRoleChange={(value) => {
-          // Match the chip bar: one role (or none). Multi-role is not supported by the API.
-          setSelectedFilters(value === null ? [] : [value]);
+          if (value === null) {
+            setSelectedFilters([]);
+            return;
+          }
+          setSelectedFilters((current) =>
+            current.includes(value)
+              ? current.filter((filter) => filter !== value)
+              : [...current, value]
+          );
         }}
       />
     </SafeAreaView>

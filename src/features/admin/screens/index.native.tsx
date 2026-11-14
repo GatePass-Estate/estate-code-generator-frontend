@@ -36,6 +36,8 @@ import AdminSecuritySvg from '@/src/assets/images/adminsecurity.svg';
 import AdminIncidentResponseSvg from '@/src/assets/images/adminincidentresponse.svg';
 import SeatsSvg from '@/src/assets/images/seats.svg';
 import SeatCapacitySheet from '@/src/features/billing/components/SeatCapacitySheet';
+import { queryClient } from '@/src/shared/services/api/queryClient';
+import { queryKeys } from '@/src/shared/services/api/queryKeys';
 
 export default function AdminUsersMobilePage() {
   const goBack = useGoBack();
@@ -711,12 +713,19 @@ export default function AdminUsersMobilePage() {
                     alignItems: 'center',
                     justifyContent: 'space-between',
                   }}
-                  onPress={() =>
+                  onPress={() => {
+                    const userId = item.id ?? item.user_id;
+                    if (!userId) return;
+                    queryClient.setQueryData(queryKeys.users.byIdAdmin(userId), {
+                      ...item,
+                      user_id: item.user_id || userId,
+                      id: userId,
+                    });
                     router.push({
-                      pathname: '/(protected)/admin/users/[userId]',
-                      params: { userId: item.id! },
-                    })
-                  }
+                      pathname: '/admin/users/[userId]',
+                      params: { userId },
+                    });
+                  }}
                 >
                   <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
                     <RoleIcon role={item.role} width={24} height={24} />

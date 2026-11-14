@@ -80,7 +80,7 @@ export default function HistoryDetailScreen() {
 
   const openDurationScreen = useCallback(() => {
     router.push({
-      pathname: '/user/history/duration',
+      pathname: '/duration',
       params: {
         visitorName: name || 'Guest',
         relationship: category || 'other',

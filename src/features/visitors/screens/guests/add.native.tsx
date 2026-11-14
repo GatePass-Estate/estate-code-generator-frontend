@@ -74,7 +74,7 @@ const AddGuestMobile = () => {
     if (!inputChecks()) return;
 
     router.push({
-      pathname: '/user/history/duration',
+      pathname: '/duration',
       params: {
         visitorName: guestName.trim(),
         relationship: relationship as string,
@@ -133,7 +133,6 @@ const AddGuestMobile = () => {
           title="Add Guest"
           subtitle="Fill in your guest information"
           actions={<HeaderActions />}
-          titleClassName="text-heading"
           subtitleClassName="text-[#878686]"
           containerClassName="mb-[19px]"
         />
