@@ -1,10 +1,13 @@
 import React from 'react';
-import { Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { Platform, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { NavigationBar as AndroidNavigationBar } from 'expo-navigation-bar';
 import { ScrollView } from 'react-native-gesture-handler';
 import Svg, { Line } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import BottomSheet from '@/src/shared/components/feedback/BottomSheet';
 import { UbuntuSans } from '@/src/shared/constants/fonts';
+
+const GRABBER_HEIGHT = 34;
 
 type SeatCapacitySheetProps = {
   visible: boolean;
@@ -138,30 +141,34 @@ export default function SeatCapacitySheet({
   void currentCapacity;
   const occupiedSeats = residentsCount + securityPersonnelCount;
   const vacantSeats = Math.max(0, maxCapacity - occupiedSeats);
-  // Grabber (~34) + bottom safe padding; keep actions pinned and scroll the rest.
-  const bottomPad = Math.max(insets.bottom, 16) + 12;
+  // Grow with content up to ~92% of the screen. On Android hide the system nav and
+  // pad the bottom so Done stays clear; overflow scrolls silently (no scrollbar).
+  const bottomPad = Math.max(insets.bottom, Platform.OS === 'android' ? 48 : 16) + 16;
   const sheetMaxHeight = Math.round(windowHeight * 0.92);
-  const actionsHeight = onManageSeats ? 50 + 10 + 50 + 24 : 50 + 24;
-  const scrollMaxHeight = Math.max(180, sheetMaxHeight - 34 - bottomPad - actionsHeight);
+  const scrollMaxHeight = Math.max(220, sheetMaxHeight - GRABBER_HEIGHT - bottomPad);
 
   return (
-    <BottomSheet
-      visible={visible}
-      onClose={onClose}
-      scrimClassName="flex-1 justify-end"
-      scrimProps={{ style: { backgroundColor: 'rgba(0, 0, 0, 0.45)' } }}
-      panelStyle={{
-        backgroundColor: '#F8F9FA',
-        maxHeight: sheetMaxHeight,
-        paddingHorizontal: 20,
-        paddingBottom: bottomPad,
-      }}
-    >
-      <View>
+    <>
+      {Platform.OS === 'android' && visible ? <AndroidNavigationBar hidden /> : null}
+      <BottomSheet
+        visible={visible}
+        onClose={onClose}
+        scrimClassName="flex-1 justify-end"
+        scrimProps={{ style: { backgroundColor: 'rgba(0, 0, 0, 0.45)' } }}
+        panelStyle={{
+          backgroundColor: '#F8F9FA',
+          maxHeight: sheetMaxHeight,
+          paddingHorizontal: 20,
+          paddingBottom: bottomPad,
+        }}
+      >
         <ScrollView
-          showsVerticalScrollIndicator={false}
+          nestedScrollEnabled
           bounces={false}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
           style={{ maxHeight: scrollMaxHeight }}
+          contentContainerStyle={{ flexGrow: 1, paddingBottom: 12 }}
         >
           <RadialSeatGauge
             totalSeats={maxCapacity}
@@ -382,24 +389,47 @@ export default function SeatCapacitySheet({
               </Text>
             </View>
           </View>
-        </ScrollView>
 
-        <View style={{ gap: 10, marginTop: 24 }}>
-          {onManageSeats && (
+          <View style={{ gap: 10, marginTop: 24 }}>
+            {onManageSeats && (
+              <TouchableOpacity
+                activeOpacity={0.85}
+                disabled={canManageSeats === false}
+                onPress={() => {
+                  onClose();
+                  onManageSeats();
+                }}
+                style={{
+                  backgroundColor: '#113E55',
+                  height: 50,
+                  borderRadius: 25,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  opacity: canManageSeats === false ? 0.45 : 1,
+                }}
+              >
+                <Text
+                  allowFontScaling={false}
+                  style={{
+                    fontFamily: UbuntuSans.medium,
+                    fontSize: 15,
+                    color: '#FFFFFF',
+                  }}
+                >
+                  Manage Seats
+                </Text>
+              </TouchableOpacity>
+            )}
+
             <TouchableOpacity
               activeOpacity={0.85}
-              disabled={canManageSeats === false}
-              onPress={() => {
-                onClose();
-                onManageSeats();
-              }}
+              onPress={onClose}
               style={{
-                backgroundColor: '#113E55',
+                backgroundColor: onManageSeats ? '#EFF1F3' : '#113E55',
                 height: 50,
                 borderRadius: 25,
                 alignItems: 'center',
                 justifyContent: 'center',
-                opacity: canManageSeats === false ? 0.45 : 1,
               }}
             >
               <Text
@@ -407,38 +437,15 @@ export default function SeatCapacitySheet({
                 style={{
                   fontFamily: UbuntuSans.medium,
                   fontSize: 15,
-                  color: '#FFFFFF',
+                  color: onManageSeats ? '#113E55' : '#FFFFFF',
                 }}
               >
-                Manage Seats
+                Done
               </Text>
             </TouchableOpacity>
-          )}
-
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={onClose}
-            style={{
-              backgroundColor: onManageSeats ? '#EFF1F3' : '#113E55',
-              height: 50,
-              borderRadius: 25,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Text
-              allowFontScaling={false}
-              style={{
-                fontFamily: UbuntuSans.medium,
-                fontSize: 15,
-                color: onManageSeats ? '#113E55' : '#FFFFFF',
-              }}
-            >
-              Done
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </BottomSheet>
+          </View>
+        </ScrollView>
+      </BottomSheet>
+    </>
   );
 }
