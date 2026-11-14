@@ -13,8 +13,9 @@ import {
 import { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import Back from '@/src/shared/components/navigation/Back';
 import ActionConfirmModal from '@/src/shared/components/feedback/ActionConfirmModal';
+import ScreenHeader from '@/src/shared/components/layout/ScreenHeader';
+import { sharedStyles } from '@/src/shared/theme/styles';
 import { useFeatureGate } from '@/src/features/billing/hooks/usePlan';
 import { useCreateIncidentReport } from '@/src/features/ai/hooks/operations';
 import {
@@ -207,8 +208,16 @@ export default function IncidentReportCreateScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-[#F6F7F7]" edges={['top', 'bottom']}>
+    <SafeAreaView
+      style={[sharedStyles.container, { backgroundColor: '#F6F7F7' }]}
+      edges={['top', 'bottom']}
+    >
       <Stack.Screen options={{ headerShown: false, gestureEnabled: !hasDraft }} />
+      <ScreenHeader
+        onBack={() => void requestExit()}
+        title="Incident Report"
+        titleClassName="font-ubuntu-medium text-[27.34px] leading-[33px] text-[#113E55]"
+      />
       <KeyboardAvoidingView
         className="flex-1"
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -217,61 +226,47 @@ export default function IncidentReportCreateScreen() {
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={{
             flexGrow: 1,
-            paddingTop: 19,
             paddingBottom: Math.max(
               role === 'security' ? 96 : 32,
               height * (126 / 847) - insets.bottom
             ),
           }}
         >
-          <View className="px-5">
-            <Back
-              type="short-arrow"
-              showText={false}
-              showBorder
-              borderSize={30}
-              leftOffset={-3}
-              onPress={() => void requestExit()}
-            />
-            <Text className="-ml-[3px] mt-[22px] font-ubuntu-medium text-heading leading-[33px] text-primary">
-              Incident Report
-            </Text>
-            <Text className="ml-[1px] mt-[22px] font-inter-medium text-2xs leading-[11px] text-[#878686]">
-              Describe your issue
-            </Text>
-            <TextInput
-              value={title}
-              onChangeText={(value) => {
-                setTitle(value);
-                setError('');
-              }}
-              placeholder="Give a short title of the incident"
-              placeholderTextColor="#878686"
-              accessibilityLabel="Incident title"
-              maxLength={160}
-              className="ml-[1px] mt-[8px] h-12 rounded-[16px] bg-[#EFF1F1] px-4 font-inter-light text-[14px] text-[#0A1F29]"
-            />
-            <TextInput
-              value={narrative}
-              onChangeText={(value) => {
-                setNarrative(value);
-                setError('');
-              }}
-              placeholder="Give more details about the incident"
-              placeholderTextColor="#878686"
-              accessibilityLabel="Incident details"
-              maxLength={1000}
-              multiline
-              textAlignVertical="top"
-              className="ml-[1px] mt-[16px] h-[289px] rounded-[16px] bg-[#EFF1F1] p-4 font-inter-light text-[14px] leading-[20px] text-[#0A1F29]"
-            />
-            <Text className="mr-[4px] mt-[6px] text-right font-inter-light text-caption leading-[14px] text-[#878686]">
-              {narrative.length}/1000
-            </Text>
-            {error ? (
-              <Text className="mt-3 font-inter-regular text-[13px] text-[#B42318]">{error}</Text>
-            ) : null}
-          </View>
+          <Text className="mt-[10px] font-inter-medium text-2xs leading-[11px] text-[#878686]">
+            Describe your issue
+          </Text>
+          <TextInput
+            value={title}
+            onChangeText={(value) => {
+              setTitle(value);
+              setError('');
+            }}
+            placeholder="Give a short title of the incident"
+            placeholderTextColor="#878686"
+            accessibilityLabel="Incident title"
+            maxLength={160}
+            className="mt-[8px] h-12 rounded-[16px] bg-[#EFF1F1] px-4 font-inter-light text-[14px] text-[#0A1F29]"
+          />
+          <TextInput
+            value={narrative}
+            onChangeText={(value) => {
+              setNarrative(value);
+              setError('');
+            }}
+            placeholder="Give more details about the incident"
+            placeholderTextColor="#878686"
+            accessibilityLabel="Incident details"
+            maxLength={1000}
+            multiline
+            textAlignVertical="top"
+            className="mt-[16px] h-[289px] rounded-[16px] bg-[#EFF1F1] p-4 font-inter-light text-[14px] leading-[20px] text-[#0A1F29]"
+          />
+          <Text className="mt-[6px] text-right font-inter-light text-caption leading-[14px] text-[#878686]">
+            {narrative.length}/1000
+          </Text>
+          {error ? (
+            <Text className="mt-3 font-inter-regular text-[13px] text-[#B42318]">{error}</Text>
+          ) : null}
 
           <View className="flex-1" />
           <TouchableOpacity

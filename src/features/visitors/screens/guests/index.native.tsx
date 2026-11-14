@@ -157,7 +157,7 @@ const MyGuestMobile = () => {
         title="My Guests"
         actions={<HeaderActions />}
         containerClassName="z-10"
-        titleClassName="font-ubuntu-semibold text-[21.33px] leading-[24px]"
+        titleClassName="font-ubuntu-medium text-[27.34px] leading-[33px] text-[#113E55]"
       />
 
       <View className="mt-5 flex-row items-center">

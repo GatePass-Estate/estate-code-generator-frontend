@@ -165,8 +165,8 @@ export default function ReportTabScreen() {
         onBack={() => leaveIncidentReport(returnTo, router)}
         title="Incident Report"
         subtitle="View all reports observed in your space."
-        titleClassName="ml-[4px] text-heading leading-[33px]"
-        subtitleClassName="ml-[3px] text-[14px] leading-[17px] text-[#878686]"
+        titleClassName="font-ubuntu-medium text-[27.34px] leading-[33px] text-[#113E55]"
+        subtitleClassName="text-[14px] leading-[17px] text-[#878686]"
       />
       {accessDenied && (
         <View className="flex-1 items-center justify-center px-6">

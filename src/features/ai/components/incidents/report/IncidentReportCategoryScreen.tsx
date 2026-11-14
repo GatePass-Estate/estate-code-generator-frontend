@@ -21,6 +21,8 @@ import {
 } from '@/src/features/ai/utils/incidentReportNavigation';
 import { toggleIncidentType } from '@/src/features/ai/utils/incidentTypeSelection';
 import SecurityTabBar from '@/src/features/scanner/components/SecurityTabBar';
+import ScreenHeader from '@/src/shared/components/layout/ScreenHeader';
+import { sharedStyles } from '@/src/shared/theme/styles';
 import { useUserStore } from '@/src/store/userStore';
 import { formatApiCategoryLabel } from '@/src/features/ai/components/incidents/categoryIcons';
 import {
@@ -188,8 +190,17 @@ export default function IncidentReportCategoryScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-[#F6F7F7]" edges={['top', 'bottom']}>
+    <SafeAreaView
+      style={[sharedStyles.container, { backgroundColor: '#F6F7F7' }]}
+      edges={['top', 'bottom']}
+    >
       <Stack.Screen options={{ headerShown: false, gestureEnabled: false }} />
+      <ScreenHeader
+        title="Incident Report"
+        subtitle="Report security related incidents that happened within your Estate. Please confirm incident type"
+        titleClassName="font-ubuntu-medium text-[27.34px] leading-[33px] text-[#113E55]"
+        subtitleClassName="text-[14px] leading-[17px] text-[#878686]"
+      />
       <KeyboardAvoidingView
         className="flex-1"
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -199,55 +210,45 @@ export default function IncidentReportCategoryScreen() {
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={{
             flexGrow: 1,
-            paddingTop: 19,
             paddingBottom: Math.max(isSecurity ? 96 : 32, height * (157 / 921) - insets.bottom),
           }}
         >
-          <View className="pl-[21px] pr-[30px]">
-            <Text className="ml-[5px] mt-[16px] font-ubuntu-medium text-heading leading-[33px] text-primary">
-              Incident Report
-            </Text>
-            <Text className="ml-[7px] mt-[8px] font-inter-light text-[14px] leading-[17px] text-[#878686]">
-              Report security related incidents that happened within your Estate. Please confirm
-              incident type
-            </Text>
-            {hasStoredDraft ? (
-              <View className="ml-[7px] mt-3 flex-row items-center justify-between">
-                <Text className="mr-3 flex-shrink font-inter-medium text-[12px] text-primary">
-                  Draft saved on this device
-                </Text>
-                <Text
-                  accessibilityRole="link"
-                  onPress={() => void deleteDraft()}
-                  className="font-inter-medium text-[12px] text-primary underline"
-                >
-                  Delete draft
-                </Text>
-              </View>
-            ) : null}
-            <View className={hasStoredDraft ? 'mt-[16px] gap-[12px]' : 'mt-[40px] gap-[16px]'}>
-              {incidentTypes.map((categoryId) => {
-                const checked = selected.includes(categoryId);
-                return (
-                  <TouchableOpacity
-                    key={categoryId}
-                    onPress={() => toggle(categoryId)}
-                    accessibilityRole="checkbox"
-                    accessibilityState={{ checked }}
-                    className="h-6 flex-row items-center"
-                  >
-                    <View
-                      className={`h-[16px] w-[16px] items-center justify-center rounded-[2px] border-[1.5px] border-primary ${checked ? 'bg-primary' : ''}`}
-                    >
-                      {checked && <Feather name="check" size={12} color="#F6F7F7" />}
-                    </View>
-                    <Text className="ml-[22px] font-ubuntu-regular text-[15px] leading-[18px] text-[#0A1F29]">
-                      {formatApiCategoryLabel(categoryId)}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
+          {hasStoredDraft ? (
+            <View className="mt-3 flex-row items-center justify-between">
+              <Text className="mr-3 flex-shrink font-inter-medium text-[12px] text-primary">
+                Draft saved on this device
+              </Text>
+              <Text
+                accessibilityRole="link"
+                onPress={() => void deleteDraft()}
+                className="font-inter-medium text-[12px] text-primary underline"
+              >
+                Delete draft
+              </Text>
             </View>
+          ) : null}
+          <View className={hasStoredDraft ? 'mt-[16px] gap-[12px]' : 'mt-[40px] gap-[16px]'}>
+            {incidentTypes.map((categoryId) => {
+              const checked = selected.includes(categoryId);
+              return (
+                <TouchableOpacity
+                  key={categoryId}
+                  onPress={() => toggle(categoryId)}
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked }}
+                  className="h-6 flex-row items-center"
+                >
+                  <View
+                    className={`h-[16px] w-[16px] items-center justify-center rounded-[2px] border-[1.5px] border-primary ${checked ? 'bg-primary' : ''}`}
+                  >
+                    {checked && <Feather name="check" size={12} color="#F6F7F7" />}
+                  </View>
+                  <Text className="ml-[22px] font-ubuntu-regular text-[15px] leading-[18px] text-[#0A1F29]">
+                    {formatApiCategoryLabel(categoryId)}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
 
           <TextInput
@@ -266,13 +267,11 @@ export default function IncidentReportCategoryScreen() {
             placeholder={selected.includes('other') ? 'Describe the incident type' : ''}
             placeholderTextColor="#878686"
             accessibilityLabel="Other incident type"
-            className="mx-[21px] mt-3 h-[43px] rounded-[8px] bg-[#EFF1F1] px-4 font-inter-regular text-[14px] text-[#0A1F29]"
+            className="mt-3 h-[43px] rounded-[8px] bg-[#EFF1F1] px-4 font-inter-regular text-[14px] text-[#0A1F29]"
           />
 
           {error ? (
-            <Text className="mx-[26px] mt-3 font-inter-regular text-[13px] text-[#B42318]">
-              {error}
-            </Text>
+            <Text className="mt-3 font-inter-regular text-[13px] text-[#B42318]">{error}</Text>
           ) : null}
           <View className="flex-1" />
           <TouchableOpacity

@@ -144,10 +144,17 @@ export default function AccessLogScreen() {
   };
 
   return (
-    <SafeAreaView style={[sharedStyles.container, { backgroundColor: '#F6F7F7' }]}>
+    <SafeAreaView
+      style={[sharedStyles.container, { backgroundColor: '#F6F7F7' }]}
+      edges={['top', 'left', 'right']}
+    >
       <Stack.Screen options={{ headerShown: false }} />
 
-      <ScreenHeader title="Access Log" subtitle="View all access code you have approved" />
+      <ScreenHeader
+        title="Access Log"
+        subtitle="View all access code you have approved"
+        titleClassName="font-ubuntu-medium text-[27.34px] leading-[33px] text-[#113E55]"
+      />
 
       <View style={{ flex: 1, paddingTop: 24 }}>
         <AnimatedPillTabs

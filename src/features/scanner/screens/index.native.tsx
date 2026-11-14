@@ -31,6 +31,7 @@ import { refreshEstateEntitlements } from '@/src/features/billing';
 import { getScanWarningSeverity } from '@/src/features/scanner/utils/securityScanWarning';
 import { useVerificationGate } from '@/src/features/auth/hooks/useAccountVerification';
 import AnimatedPillTabs from '@/src/shared/components/AnimatedPillTabs';
+import ScreenHeader from '@/src/shared/components/layout/ScreenHeader';
 import { sharedStyles } from '@/src/shared/theme/styles';
 import { Inter } from '@/src/shared/constants/fonts';
 import EnterCodePanel from '@/src/features/scanner/components/EnterCodePanel';
@@ -129,8 +130,8 @@ export default function SecurityVerificationMobile() {
   const router = useRouter();
   // PERF-08: unmount the camera when leaving the scan tab or this screen.
   const cameraActive = isFocused && mode === 'scan' && Boolean(permission?.granted);
-  const headerTopGap = 24.14;
-  const headerToToggleGap = 24;
+  // Keep Enter/Scan where they sat under the old 77px header block (title + icons row).
+  const headerToToggleGap = 68;
   const contentTopGap = mode === 'scan' ? 66 : 96;
   // Match the stretch tabs that sat inside container padding (20 each side).
   const tabTrackWidth = Math.max(229, windowWidth - 40);
@@ -407,43 +408,35 @@ export default function SecurityVerificationMobile() {
   return (
     <SafeAreaView
       className="relative flex-1 bg-body"
-      style={[sharedStyles.container, sharedStyles.modalContainer]}
+      style={[sharedStyles.container, { backgroundColor: '#F6F7F7' }]}
+      edges={['top', 'left', 'right']}
     >
       <Stack.Screen options={{ headerShown: false }} />
 
-      <View
-        className="relative h-[77px] w-full max-w-[390px] self-center"
-        style={{ marginBottom: headerToToggleGap, marginTop: headerTopGap }}
-      >
-        <Text
-          allowFontScaling={false}
-          numberOfLines={1}
-          className="absolute left-[1px] top-[44px] h-[33px] w-[229px] font-ubuntu-medium text-heading leading-[27.34px] text-primary"
-          style={styles.incomingGuestTitle}
-        >
-          Incoming Guest
-        </Text>
-        <View
-          className="absolute right-0 top-0 flex-row items-start gap-[10px]"
-          style={styles.headerIconGroup}
-        >
-          <NotificationBell className="mt-[3px]" />
-          <Pressable
-            accessibilityLabel="Open more options"
-            hitSlop={8}
-            onPress={() => router.push('/security/more')}
-            className="h-[38px] w-[38px] items-center justify-center"
-            style={({ pressed }) => [pressed && styles.pressed]}
-          >
-            <View className="relative h-[38px] w-[38px] rounded-full bg-[#F6FCFF]">
-              <MoreFill width={18} height={4} style={styles.group862VectorIcon} />
-            </View>
-          </Pressable>
-        </View>
-      </View>
+      <ScreenHeader
+        title="Incoming Guest"
+        containerClassName="z-10"
+        titleClassName="font-ubuntu-medium text-[27.34px] leading-[33px] text-[#113E55]"
+        actions={
+          <View className="flex-row items-center gap-2.5">
+            <NotificationBell className="" />
+            <Pressable
+              accessibilityLabel="Open more options"
+              hitSlop={8}
+              onPress={() => router.push('/security/more')}
+              className="h-[38px] w-[38px] items-center justify-center"
+              style={({ pressed }) => [pressed && styles.pressed]}
+            >
+              <View className="relative h-[38px] w-[38px] rounded-full bg-[#F6FCFF]">
+                <MoreFill width={18} height={4} style={styles.group862VectorIcon} />
+              </View>
+            </Pressable>
+          </View>
+        }
+      />
 
       <AnimatedPillTabs
-        style={{ alignSelf: 'stretch' }}
+        style={{ alignSelf: 'stretch', marginTop: headerToToggleGap }}
         options={[
           { value: 'enter', label: 'Enter Code' },
           { value: 'scan', label: 'Scan Code' },
@@ -495,12 +488,6 @@ export default function SecurityVerificationMobile() {
 }
 
 const styles = StyleSheet.create({
-  incomingGuestTitle: {
-    letterSpacing: 0,
-  },
-  headerIconGroup: {
-    transform: [{ translateY: -22.14 }],
-  },
   group862VectorIcon: {
     left: 10,
     position: 'absolute',

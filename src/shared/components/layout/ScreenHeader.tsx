@@ -42,7 +42,12 @@ export default function ScreenHeader({
       {back}
       <View className={cn('flex-col gap-3', back ? BACK_TO_TITLE_GAP_CLASS : undefined)}>
         <View className="flex-row items-center justify-between">
-          <Text className={cn('text-[27px] font-ubuntu-medium text-primary', titleClassName)}>
+          <Text
+            className={cn(
+              'font-ubuntu-medium text-[27.34px] leading-[33px] text-[#113E55]',
+              titleClassName
+            )}
+          >
             {title}
           </Text>
           {actions}

@@ -98,8 +98,8 @@ export default function ResidentIncidentReportList({
         onBack={handleBack}
         title={title}
         subtitle="View all reports observed in your space."
-        titleClassName="ml-[4px] text-heading leading-[33px]"
-        subtitleClassName="ml-[3px] text-[14px] leading-[17px] text-[#878686]"
+        titleClassName="font-ubuntu-medium text-[27.34px] leading-[33px] text-[#113E55]"
+        subtitleClassName="text-[14px] leading-[17px] text-[#878686]"
       />
       <ScrollView
         className="flex-1"

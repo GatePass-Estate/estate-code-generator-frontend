@@ -316,7 +316,7 @@ export default function HomeMobile() {
           title="Active Codes"
           actions={<HeaderActions />}
           containerClassName="z-10"
-          titleClassName="text-heading"
+          titleClassName="font-ubuntu-medium text-[27.34px] leading-[33px] text-[#113E55]"
         />
 
         {isEmpty && !refreshing ? (
