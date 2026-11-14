@@ -7,7 +7,8 @@ type CodeInputProps = {
   length?: number;
   autoFocus?: boolean;
   editable?: boolean;
-  onSubmit?: () => void;
+  /** Fires with the completed digits (number-pad has no Enter key). */
+  onSubmit?: (completed: string) => void;
 };
 
 /**
@@ -61,10 +62,17 @@ export default function CodeInput({
       <TextInput
         ref={inputRef}
         value={value}
-        onChangeText={(next) => onChange(next.replace(/[^0-9]/g, '').slice(0, length))}
+        onChangeText={(next) => {
+          const cleaned = next.replace(/[^0-9]/g, '').slice(0, length);
+          onChange(cleaned);
+          // number-pad has no Done/Enter — submit as soon as the last digit lands.
+          if (cleaned.length === length) onSubmit?.(cleaned);
+        }}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
-        onSubmitEditing={onSubmit}
+        onSubmitEditing={() => {
+          if (value.length === length) onSubmit?.(value);
+        }}
         editable={editable}
         autoFocus={autoFocus}
         keyboardType="number-pad"

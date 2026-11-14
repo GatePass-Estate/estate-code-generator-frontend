@@ -5,7 +5,7 @@ import {
 } from '@/src/features/auth/services/pendingSignIn';
 import { errorMessage as thrownMessage } from '@/src/shared/services/api/errors';
 import { useCallback, useEffect, useState } from 'react';
-import { Platform, Pressable, Text, TextInput, View } from 'react-native';
+import { Keyboard, Platform, Pressable, Text, TextInput, View } from 'react-native';
 import { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
@@ -60,60 +60,65 @@ export default function TwoFactorChallengeScreen() {
     [router]
   );
 
-  const handleSubmit = useCallback(async () => {
-    if (submitting) return;
+  const handleSubmit = useCallback(
+    async (otpOverride?: string) => {
+      if (submitting) return;
 
-    if (useRecovery) {
-      if (!recoveryCode.trim()) {
-        setErrorMessage('Enter one of your recovery codes.');
+      const otp = otpOverride ?? code;
+      if (useRecovery) {
+        if (!recoveryCode.trim()) {
+          setErrorMessage('Enter one of your recovery codes.');
+          return;
+        }
+      } else if (otp.length !== 6) {
+        setErrorMessage('Enter the 6-digit code from your authenticator app.');
         return;
       }
-    } else if (code.length !== 6) {
-      setErrorMessage('Enter the 6-digit code from your authenticator app.');
-      return;
-    }
 
-    setSubmitting(true);
-    setErrorMessage('');
+      Keyboard.dismiss();
+      setSubmitting(true);
+      setErrorMessage('');
 
-    try {
-      const result = useRecovery
-        ? await recoverTwoFactor(twoFaToken, recoveryCode.trim())
-        : await verifyTwoFactor(twoFaToken, code);
+      try {
+        const result = useRecovery
+          ? await recoverTwoFactor(twoFaToken, recoveryCode.trim())
+          : await verifyTwoFactor(twoFaToken, otp);
 
-      if (!result.access_token) {
-        setErrorMessage('That code was not accepted. Try again.');
+        if (!result.access_token) {
+          setErrorMessage('That code was not accepted. Try again.');
+          setSubmitting(false);
+          return;
+        }
+
+        // Terms may still be outstanding once the second factor clears.
+        if (result.requires_tos_acceptance) {
+          setPendingTos(result.access_token, result.role || '');
+          router.replace('/auth/tos');
+          return;
+        }
+
+        const user = await fetchMe(result.access_token);
+
+        // Completing a challenge is proof of the account's 2FA state: verifying
+        // means it is on, while a recovery code disables it server-side.
+        await writeTwoFactorFlag(user.user_id, !useRecovery);
+
+        await applySession({
+          access_token: result.access_token,
+          refresh_token: result.refresh_token,
+          role: user.role,
+          session_id: result.session_id,
+        });
+        broadcastLogin(user.role);
+        signIn(user);
+        routeForUser(user);
+      } catch (error: unknown) {
+        setErrorMessage(thrownMessage(error) || 'That code was not accepted. Try again.');
         setSubmitting(false);
-        return;
       }
-
-      // Terms may still be outstanding once the second factor clears.
-      if (result.requires_tos_acceptance) {
-        setPendingTos(result.access_token, result.role || '');
-        router.replace('/auth/tos');
-        return;
-      }
-
-      const user = await fetchMe(result.access_token);
-
-      // Completing a challenge is proof of the account's 2FA state: verifying
-      // means it is on, while a recovery code disables it server-side.
-      await writeTwoFactorFlag(user.user_id, !useRecovery);
-
-      await applySession({
-        access_token: result.access_token,
-        refresh_token: result.refresh_token,
-        role: user.role,
-        session_id: result.session_id,
-      });
-      broadcastLogin(user.role);
-      signIn(user);
-      routeForUser(user);
-    } catch (error: unknown) {
-      setErrorMessage(thrownMessage(error) || 'That code was not accepted. Try again.');
-      setSubmitting(false);
-    }
-  }, [submitting, useRecovery, recoveryCode, code, twoFaToken, router, signIn, routeForUser]);
+    },
+    [submitting, useRecovery, recoveryCode, code, twoFaToken, router, signIn, routeForUser]
+  );
 
   return (
     <SafeAreaView
@@ -146,7 +151,7 @@ export default function TwoFactorChallengeScreen() {
             autoCapitalize="characters"
             autoCorrect={false}
             returnKeyType="done"
-            onSubmitEditing={handleSubmit}
+            onSubmitEditing={() => void handleSubmit()}
             className="bg-[#EFF1F1] rounded-[16px] h-12 px-5 text-sm font-inter-light text-[#0A1F29]"
           />
         ) : (
@@ -154,7 +159,7 @@ export default function TwoFactorChallengeScreen() {
             <Text className="text-[#878686] font-inter-regular text-center text-[11px] mb-4">
               Please Enter Code
             </Text>
-            <CodeInput value={code} onChange={setCode} onSubmit={handleSubmit} />
+            <CodeInput value={code} onChange={setCode} onSubmit={(otp) => void handleSubmit(otp)} />
           </>
         )}
       </View>
@@ -181,7 +186,7 @@ export default function TwoFactorChallengeScreen() {
       <View className="flex-1" />
 
       <Pressable
-        onPress={handleSubmit}
+        onPress={() => void handleSubmit()}
         disabled={submitting}
         className="bg-primary rounded-[24px] h-11 items-center justify-center mb-8"
         style={{ opacity: submitting ? 0.7 : 1 }}
