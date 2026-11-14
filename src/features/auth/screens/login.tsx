@@ -17,7 +17,7 @@ import {
   Keyboard,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { FontAwesome, AntDesign, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { FontAwesome, AntDesign } from '@expo/vector-icons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Button from '@/src/shared/components/Button';
 import { useAuth } from '@/src/features/auth/hooks/useAuthContext';
@@ -51,7 +51,7 @@ import { BiometricPromptModal } from '@/src/features/auth/components/BiometricPr
 import PasswordTextInput from '@/src/features/auth/components/PasswordTextInput';
 import Back from '@/src/shared/components/navigation/Back';
 import { parseSignOutReason, signOutNotice } from '@/src/features/auth/services/signOutReason';
-import { palette } from '@/src/shared/theme/palette';
+import LoginFingerprint from '@/src/assets/icons/login-fingerprint.svg';
 
 export default function Login() {
   const { signIn } = useAuth();
@@ -566,27 +566,35 @@ export default function Login() {
                 </View>
 
                 <View className="mt-6 items-center gap-[13px] self-center pb-8">
-                  <Button label="Continue" onPress={handleSignInPress} loading={isLoading} />
+                  {/* Figma 5010:7793 — Continue + fingerprint on one row; Forgot below. */}
+                  <View className="flex-row items-center gap-4">
+                    <Button
+                      label="Continue"
+                      onPress={handleSignInPress}
+                      loading={isLoading}
+                      style={{ width: 218, maxWidth: 218 }}
+                      className="w-[218px] max-w-[218px]"
+                    />
+                    {showBiometric && (
+                      <Pressable
+                        onPress={handleBiometricLogin}
+                        disabled={isLoading}
+                        accessibilityRole="button"
+                        accessibilityLabel="Sign in with fingerprint"
+                        className={`h-11 w-11 items-center justify-center overflow-hidden rounded-full ${
+                          isLoading ? 'opacity-80' : ''
+                        }`}
+                      >
+                        <LoginFingerprint width={44} height={44} />
+                      </Pressable>
+                    )}
+                  </View>
                   <Button
                     label="Forgot Password"
                     variant="secondary"
                     disabled={isLoading}
                     onPress={() => router.push('/auth/forgot-password')}
                   />
-                  {showBiometric && (
-                    <Pressable
-                      onPress={handleBiometricLogin}
-                      disabled={isLoading}
-                      className={`h-11 w-11 items-center justify-center self-center rounded-full ${isLoading && 'opacity-80'}`}
-                      style={{ backgroundColor: palette.primary }}
-                    >
-                      {Platform.OS === 'ios' ? (
-                        <MaterialCommunityIcons name="face-recognition" size={24} color="#CEE5ED" />
-                      ) : (
-                        <Ionicons name="finger-print" size={24} color="#CEE5ED" />
-                      )}
-                    </Pressable>
-                  )}
                 </View>
               </View>
             </ScrollView>
