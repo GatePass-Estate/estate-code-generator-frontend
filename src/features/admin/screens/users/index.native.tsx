@@ -1,6 +1,5 @@
 import {
   FlatList,
-  Image,
   Platform,
   Pressable,
   RefreshControl,
@@ -20,7 +19,8 @@ import Svg, { Path } from 'react-native-svg';
 import Back from '@/src/shared/components/navigation/Back';
 import BottomSheet from '@/src/shared/components/feedback/BottomSheet';
 import { userFacingError } from '@/src/shared/services/api/errors';
-import { getRoleIcon, getRoleIconHeight, getRoleIconWidth } from '@/src/shared/utils/helpers';
+import { getRoleIconHeight, getRoleIconWidth } from '@/src/shared/utils/helpers';
+import RoleIcon from '@/src/shared/components/RoleIcon';
 import { useEstateUsersInfinite } from '@/src/features/admin/hooks/estateUsers';
 import type { User } from '@/src/features/users/types/user';
 import type { UserRolesType } from '@/src/shared/types/general';
@@ -290,13 +290,10 @@ export default function AllUsersMobile() {
                   activeOpacity={0.75}
                   className="h-[52px] flex-row items-center rounded-2xl bg-white p-2"
                 >
-                  <Image
-                    source={getRoleIcon(item.role)}
-                    style={{
-                      width: Math.min(getRoleIconWidth(item.role), 24),
-                      height: Math.min(getRoleIconHeight(item.role), 24),
-                    }}
-                    resizeMode="contain"
+                  <RoleIcon
+                    role={item.role}
+                    width={Math.min(getRoleIconWidth(item.role), 24)}
+                    height={Math.min(getRoleIconHeight(item.role), 24)}
                   />
                   <View className="ml-4 flex-1">
                     <Text

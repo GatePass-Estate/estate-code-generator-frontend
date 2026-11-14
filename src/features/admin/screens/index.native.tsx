@@ -23,7 +23,8 @@ import { getSeatOccupancy } from '@/src/features/billing/utils/billing';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AllUsers } from '@/src/features/users/types/user';
 import icons from '@/src/shared/constants/icons';
-import { getRoleIcon, isDataEqual } from '@/src/shared/utils/helpers';
+import { isDataEqual } from '@/src/shared/utils/helpers';
+import RoleIcon from '@/src/shared/components/RoleIcon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useEstateEntitlements } from '@/src/features/billing';
 import { useEstateSubscription } from '@/src/features/billing/hooks/billing';
@@ -297,21 +298,23 @@ export default function AdminUsersMobilePage() {
                 onPress={handleOpenAddSeats}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 style={{
-                  backgroundColor: 'rgba(255, 255, 255, 0.25)',
-                  borderColor: 'rgba(255, 255, 255, 0.35)',
-                  borderWidth: 1,
+                  width: 100,
+                  height: 34,
+                  backgroundColor: 'rgba(255, 255, 255, 0.3)',
                   borderRadius: 8,
-                  paddingHorizontal: 14,
-                  paddingVertical: 6,
+                  padding: 10,
+                  alignItems: 'center',
+                  justifyContent: 'center',
                   opacity: isPrimaryAdmin ? 1 : 0.45,
                 }}
               >
                 <Text
                   allowFontScaling={false}
                   style={{
-                    fontFamily: 'Inter_18pt-Medium',
-                    fontSize: 13,
-                    color: '#FFFFFF',
+                    fontFamily: 'Inter_18pt-SemiBold',
+                    fontSize: 11.2,
+                    color: '#F6F7F7',
+                    textAlign: 'center',
                   }}
                 >
                   Add Seats
@@ -359,7 +362,7 @@ export default function AdminUsersMobilePage() {
                   gap: 8,
                 }}
               >
-                <AdminResidentsSvg width={22} height={22} />
+                <AdminResidentsSvg width={24} height={24} />
                 <View>
                   <Text
                     allowFontScaling={false}
@@ -407,7 +410,7 @@ export default function AdminUsersMobilePage() {
                   gap: 8,
                 }}
               >
-                <AdminSecuritySvg width={22} height={22} />
+                <AdminSecuritySvg width={24} height={24} />
                 <View>
                   <Text
                     allowFontScaling={false}
@@ -695,21 +698,18 @@ export default function AdminUsersMobilePage() {
               limitedUsers.map((item) => (
                 <TouchableOpacity
                   key={item.id}
+                  activeOpacity={0.75}
                   style={{
-                    backgroundColor: '#FFFFFF',
+                    // Figma 6667:9244 — frosted card, no shadow/border
+                    height: 52,
+                    backgroundColor: 'rgba(255, 255, 255, 0.7)',
                     borderRadius: 16,
                     paddingHorizontal: 16,
-                    paddingVertical: 14,
+                    paddingVertical: 8,
                     marginBottom: 10,
                     flexDirection: 'row',
                     alignItems: 'center',
-                    borderWidth: 1,
-                    borderColor: '#EFF1F3',
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: 0.03,
-                    shadowRadius: 4,
-                    elevation: 1,
+                    justifyContent: 'space-between',
                   }}
                   onPress={() =>
                     router.push({
@@ -718,37 +718,37 @@ export default function AdminUsersMobilePage() {
                     })
                   }
                 >
-                  <Image
-                    source={getRoleIcon(item.role)}
-                    style={{ width: 26, height: 26 }}
-                    resizeMode="contain"
-                  />
-                  <View style={{ flex: 1, marginLeft: 14, marginRight: 8 }}>
-                    <Text
-                      allowFontScaling={false}
-                      style={{
-                        fontFamily: 'Inter_18pt-Medium',
-                        fontSize: 14,
-                        color: '#113E55',
-                      }}
-                      numberOfLines={1}
-                    >
-                      {`${item.first_name} ${item.last_name}`}
-                    </Text>
-                    <Text
-                      allowFontScaling={false}
-                      style={{
-                        fontFamily: 'Inter_18pt-Regular',
-                        fontSize: 12,
-                        color: '#8A9A9D',
-                        marginTop: 4,
-                      }}
-                      numberOfLines={1}
-                    >
-                      {item.home_address || 'No address provided'}
-                    </Text>
+                  <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
+                    <RoleIcon role={item.role} width={24} height={24} />
+                    <View style={{ flex: 1, marginLeft: 16, marginRight: 8 }}>
+                      <Text
+                        allowFontScaling={false}
+                        style={{
+                          fontFamily: 'Inter_18pt-Light',
+                          fontSize: 14,
+                          lineHeight: 17,
+                          color: '#113E55',
+                        }}
+                        numberOfLines={1}
+                      >
+                        {`${item.first_name} ${item.last_name}`}
+                      </Text>
+                      <Text
+                        allowFontScaling={false}
+                        style={{
+                          fontFamily: 'Inter_18pt-Regular',
+                          fontSize: 11.2,
+                          lineHeight: 14,
+                          color: '#113E55',
+                          marginTop: 5,
+                        }}
+                        numberOfLines={1}
+                      >
+                        {item.home_address || 'No address provided'}
+                      </Text>
+                    </View>
                   </View>
-                  <Feather name="chevron-right" size={20} color="#113E55" />
+                  <Feather name="chevron-right" size={24} color="#113E55" />
                 </TouchableOpacity>
               ))
             )}

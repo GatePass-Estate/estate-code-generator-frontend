@@ -1,7 +1,6 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -47,7 +46,6 @@ type ActiveCodeCardProps = {
   frozen: boolean;
   onToggleFreeze: () => void;
   onDeleted: () => void;
-  onCopied: () => void;
   onOpenHistory: () => void;
   onOpenDetails: () => void;
   onExtend: () => void | Promise<void>;
@@ -62,7 +60,6 @@ function ActiveCodeCard({
   frozen,
   onToggleFreeze,
   onDeleted,
-  onCopied,
   onOpenHistory,
   onOpenDetails,
   onExtend,
@@ -109,13 +106,6 @@ function ActiveCodeCard({
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, []);
 
-  const handleCopy = useCallback(async () => {
-    if (!requireVerified()) return;
-    await Clipboard.setStringAsync(code);
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    onCopied();
-  }, [code, onCopied, requireVerified]);
-
   const handleDelete = useCallback(async () => {
     setDeleting(true);
     try {
@@ -132,7 +122,7 @@ function ActiveCodeCard({
     }
   }, [deleteCodeMutation, item.hashed_code, onDeleted]);
 
-  // Every card action (copy, history, details, extend, freeze, delete) starts here, so an unverified
+  // Every card action (history, details, extend, freeze, delete) starts here, so an unverified
   // user gets the Complete KYC modal instead of the action.
   const openMenu = useCallback(() => {
     if (!requireVerified()) return;
@@ -229,13 +219,7 @@ function ActiveCodeCard({
       if (success) runOnJS(handleCardPress)();
     });
 
-  const longPress = Gesture.LongPress()
-    .minDuration(450)
-    .onStart(() => {
-      runOnJS(handleCopy)();
-    });
-
-  const cardGesture = Gesture.Race(pan, Gesture.Exclusive(longPress, tap));
+  const cardGesture = Gesture.Race(pan, tap);
 
   // Freeze open → name + code shift right
   const identityStyle = useAnimatedStyle(() => ({

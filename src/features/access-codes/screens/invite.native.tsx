@@ -9,7 +9,8 @@ import icons from '@/src/shared/constants/icons';
 import { useDeleteCode } from '@/src/features/access-codes/hooks/codes';
 import Button, { BUTTON_MARGIN_BOTTOM } from '@/src/shared/components/Button';
 import BrandedQRCode from '@/src/shared/components/BrandedQRCode';
-import { useState } from 'react';
+import { CopiedToast } from '@/src/shared/components/feedback/CopiedToast';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { logger } from '@/src/shared/utils/logger';
 
 function DetailRow({
@@ -39,12 +40,20 @@ export default function InvitePage() {
   const goBack = useGoBack();
   let { name, code, date, timeframe, address, from } = useLocalSearchParams();
   const [cancelText, setCancelText] = useState('Cancel Invite');
+  const [showCopiedToast, setShowCopiedToast] = useState(false);
+  const copiedToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const deleteCodeMutation = useDeleteCode();
 
   code = Array.isArray(code) ? code.join('') : (code ?? '');
   code = code.replace(/\s+/g, '');
   const fromScreen = Array.isArray(from) ? from[0] : from;
   const insets = useSafeAreaInsets();
+
+  useEffect(() => {
+    return () => {
+      if (copiedToastTimer.current) clearTimeout(copiedToastTimer.current);
+    };
+  }, []);
 
   const handleBack = () => {
     if (fromScreen === 'home' && router.canGoBack()) {
@@ -57,9 +66,13 @@ export default function InvitePage() {
     });
   };
 
-  const copyToClipboard = async () => {
+  const copyToClipboard = useCallback(async () => {
+    if (!code) return;
     await Clipboard.setStringAsync(code);
-  };
+    setShowCopiedToast(true);
+    if (copiedToastTimer.current) clearTimeout(copiedToastTimer.current);
+    copiedToastTimer.current = setTimeout(() => setShowCopiedToast(false), 1600);
+  }, [code]);
 
   const handleShare = async () => {
     try {
@@ -100,6 +113,8 @@ export default function InvitePage() {
         }}
       />
 
+      <CopiedToast visible={showCopiedToast} />
+
       <Back type="short-arrow" onPress={handleBack} />
 
       <ScrollView
@@ -114,14 +129,18 @@ export default function InvitePage() {
             accessibilityLabel="Guest invite QR code"
           />
 
-          <View className="flex-row items-center gap-1">
+          <Pressable
+            onPress={copyToClipboard}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Copy access code"
+            className="flex-row items-center gap-1"
+          >
             <Text className="text-[23.04px] font-ubuntu-extrabold text-primary tracking-[10px] ">
               {code.toUpperCase()}
             </Text>
-            <Pressable onPress={copyToClipboard} hitSlop={8}>
-              <Image source={icons.copyIcon} style={{ width: 16, height: 16 }} />
-            </Pressable>
-          </View>
+            <Image source={icons.copyIcon} style={{ width: 16, height: 16 }} />
+          </Pressable>
         </View>
 
         <View className="mt-10 mx-[17px] h-px bg-orange opacity-40" />

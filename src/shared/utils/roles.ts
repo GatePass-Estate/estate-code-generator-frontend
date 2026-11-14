@@ -1,17 +1,14 @@
 import icons from '@/src/shared/constants/icons';
 import { UserRolesType } from '@/src/shared/types/general';
 
+/** @deprecated Prefer `<RoleIcon />` — kept for any remaining Image-source call sites. */
 export const getRoleIcon = (role: UserRolesType) => {
   switch (role) {
-    case 'resident':
-      return icons.adminHomeIcon;
-    case 'security':
-      return icons.securityIcon;
     case 'primary_admin':
     case 'admin':
       return icons.activeAdminIcon;
     default:
-      return icons.adminHomeIcon;
+      return icons.activeAdminIcon;
   }
 };
 

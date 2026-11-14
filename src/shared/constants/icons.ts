@@ -35,11 +35,9 @@ import webHomeInActiveIcon from '../../assets/icons/web-home-icon-inactive.png';
 import deleteMobileIcon from '../../assets/icons/delete.png';
 import generateCodeIcon from '../../assets/icons/generate-code.png';
 import activeGuestIcon from '../../assets/icons/active-account.png';
-import securityIcon from '../../assets/icons/admin-security.png';
 import editRequestIcon from '../../assets/icons/admin-edit-request.png';
 import addUserIcon from '../../assets/icons/admin-add-user.png';
 import broadcastIcon from '../../assets/icons/admin-broadcast.png';
-import adminHomeIcon from '../../assets/icons/admin-home.png';
 import thinPlus from '../../assets/icons/thin-plus.png';
 import filter from '../../assets/icons/filter.png';
 import expand from '../../assets/icons/expand.png';
@@ -95,11 +93,9 @@ const icons = {
   generateCodeIcon,
   activeBtnImg: activeHomeIcon,
   activeGuestIcon,
-  securityIcon,
   editRequestIcon,
   addUserIcon,
   broadcastIcon,
-  adminHomeIcon,
   thinPlus,
   filter,
   expand,

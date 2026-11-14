@@ -26,7 +26,6 @@ import {
 import ActiveCodeCard from '@/src/features/access-codes/components/ActiveCodeCard';
 import ScreenHeader from '@/src/shared/components/layout/ScreenHeader';
 import HeaderActions from '@/src/features/dashboard/components/HeaderActions';
-import { CopiedToast } from '@/src/shared/components/feedback/CopiedToast';
 import { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
 
 export default function HomeMobile() {
@@ -41,9 +40,7 @@ export default function HomeMobile() {
   const [refreshing, setRefreshing] = useState(true);
   const [codes, setCodes] = useState<Codes[]>([]);
   const [frozenCodes, setFrozenCodes] = useState<Set<string>>(new Set());
-  const [showCopiedToast, setShowCopiedToast] = useState(false);
   const codesRef = useRef<Codes[]>(codes);
-  const copiedToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     codesRef.current = codes;
@@ -115,18 +112,6 @@ export default function HomeMobile() {
       anim.stop();
     };
   }, [bounceValue, isFocused]);
-
-  useEffect(() => {
-    return () => {
-      if (copiedToastTimer.current) clearTimeout(copiedToastTimer.current);
-    };
-  }, []);
-
-  const handleCopied = useCallback(() => {
-    setShowCopiedToast(true);
-    if (copiedToastTimer.current) clearTimeout(copiedToastTimer.current);
-    copiedToastTimer.current = setTimeout(() => setShowCopiedToast(false), 1600);
-  }, []);
 
   const handleDeleted = useCallback((hashedCode: string) => {
     setCodes((prev) => prev.filter((c) => c.hashed_code !== hashedCode));
@@ -288,14 +273,13 @@ export default function HomeMobile() {
           frozen={frozen}
           onToggleFreeze={() => handleToggleFreeze(item.hashed_code, frozen)}
           onDeleted={() => handleDeleted(item.hashed_code)}
-          onCopied={handleCopied}
           onOpenHistory={() => openHistory(item)}
           onOpenDetails={() => openInviteDetails(item)}
           onExtend={() => handleExtend(item)}
         />
       );
     },
-    [handleCopied, handleDeleted, handleExtend, handleToggleFreeze, openHistory, openInviteDetails]
+    [handleDeleted, handleExtend, handleToggleFreeze, openHistory, openInviteDetails]
   );
 
   return (
@@ -308,8 +292,6 @@ export default function HomeMobile() {
           headerShown: false,
         }}
       />
-
-      <CopiedToast visible={showCopiedToast} />
 
       <View className="flex-1">
         <ScreenHeader

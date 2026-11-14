@@ -566,14 +566,18 @@ export default function Login() {
                 </View>
 
                 <View className="mt-6 items-center gap-[13px] self-center pb-8">
-                  {/* Figma 5010:7793 — Continue + fingerprint on one row; Forgot below. */}
-                  <View className="flex-row items-center gap-4">
+                  {/* Figma login: Continue 218 + gap 16 + fingerprint 44 = 278 (matches Forgot). */}
+                  <View className={showBiometric ? 'flex-row items-center gap-4' : undefined}>
                     <Button
                       label="Continue"
                       onPress={handleSignInPress}
                       loading={isLoading}
-                      style={{ width: 218, maxWidth: 218 }}
-                      className="w-[218px] max-w-[218px]"
+                      style={
+                        showBiometric
+                          ? { width: 218, maxWidth: 218, height: 44, paddingVertical: 0 }
+                          : undefined
+                      }
+                      className={showBiometric ? 'h-11 w-[218px] max-w-[218px] py-0' : undefined}
                     />
                     {showBiometric && (
                       <Pressable

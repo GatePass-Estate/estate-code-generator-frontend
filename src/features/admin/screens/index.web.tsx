@@ -18,12 +18,14 @@ import icons from '@/src/shared/constants/icons';
 import { Pagination } from '@/src/shared/components/Pagination';
 import { Image, Platform, useWindowDimensions } from 'react-native';
 import {
-  getRoleIcon,
   getRoleIconHeight,
   getRoleIconWidth,
   getWidthBreakpoint,
   isDataEqual,
 } from '@/src/shared/utils/helpers';
+import RoleIcon from '@/src/shared/components/RoleIcon';
+import AdminHomeSvg from '@/src/assets/icons/admin-home.svg';
+import AdminSecuritySvg from '@/src/assets/icons/admin-security.svg';
 import WebNavLink from '@/src/shared/components/navigation/WebNavLink';
 import { useUserStore } from '@/src/store/userStore';
 import { logger } from '@/src/shared/utils/logger';
@@ -399,7 +401,7 @@ function AdminUsersPageWeb() {
             <div className="col-span-10">
               <div className="grid grid-cols-12 gap-4 mb-8">
                 <div className="border border-orange rounded-xl p-6 bg-orange/5 flex items-center gap-4 col-span-1 md:col-span-4">
-                  <Image source={icons.adminHomeIcon} style={{ width: 65, height: 60 }} />
+                  <AdminHomeSvg width={65} height={60} />
                   <div>
                     <p className="text-grey text-2xl font-ubuntu-regular">Residents</p>
                     <p className="text-orange text-5xl font-ubuntu-bold">{residentsCount}</p>
@@ -407,7 +409,7 @@ function AdminUsersPageWeb() {
                 </div>
 
                 <div className="border border-teal rounded-xl p-4 bg-teal/5 flex items-center gap-4 col-span-1 md:col-span-4">
-                  <Image source={icons.securityIcon} style={{ width: 60, height: 60 }} />
+                  <AdminSecuritySvg width={60} height={60} />
 
                   <div>
                     <p className="text-grey text-2xl font-ubuntu-regular">Security Personnels</p>
@@ -530,13 +532,10 @@ function AdminUsersPageWeb() {
                           className={`border-b border-gray-100 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-gray-50 transition`}
                         >
                           <td className="p-4">
-                            <Image
-                              source={getRoleIcon(user.role)}
-                              style={{
-                                width: getRoleIconWidth(user.role),
-                                height: getRoleIconHeight(user.role),
-                              }}
-                              resizeMode="contain"
+                            <RoleIcon
+                              role={user.role}
+                              width={getRoleIconWidth(user.role)}
+                              height={getRoleIconHeight(user.role)}
                             />
                           </td>
                           <td className="py-4 px-4">
