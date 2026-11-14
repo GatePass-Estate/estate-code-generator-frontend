@@ -19,12 +19,12 @@ export type BillingSheetProps = {
 /**
  * Bottom-sheet shell for the billing sheets (seat confirmation, pending
  * requests, AI tools, plan duration): slide-up Modal, 40% black scrim,
- * #F6F7F7 panel with 40pt top corners and the 134x7 grab handle 13pt from
- * the top. Same structure as ConfirmSheet / OptionSheet.
+ * #F6F7F7 panel with 40pt top corners. Grabber comes from shared BottomSheet.
+ * Same structure as ConfirmSheet / OptionSheet.
  *
  * Figma sheet frames are fixed-height mock-ups with large empty bands above the content and the
- * buttons; sheets here hug their content instead: 24pt from the handle to the first element and
- * 32pt above the action buttons.
+ * buttons; sheets here hug their content instead: 24pt below the shared grabber to the first
+ * element and 32pt above the action buttons.
  */
 export default function BillingSheet({
   visible,
@@ -56,8 +56,7 @@ export default function BillingSheet({
         onAccessibilityEscape: close,
       }}
     >
-      <View className="h-[7px] w-[134px] self-center rounded-[4px] bg-grey" />
-
+      {/* Grabber comes from shared BottomSheet only */}
       {scrollable ? (
         <ScrollView
           style={{ maxHeight: height * 0.8 }}

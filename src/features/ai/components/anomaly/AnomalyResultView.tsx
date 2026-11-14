@@ -131,9 +131,21 @@ export default function AnomalyResultView({
   } = useAnomalyPredictions(estate_id, {
     from_date: effectiveFromDate,
     to_date: effectiveToDate,
-    severity: filterSeverity.length > 0 ? filterSeverity.map((s) => s.toLowerCase()) : undefined,
-    gender: filterGender.length > 0 ? filterGender.map((g) => g.toLowerCase()) : undefined,
-    user_type: filterUserType.length > 0 ? filterUserType.map((u) => u.toLowerCase()) : undefined,
+    // Map display labels → OpenAPI enums (prefer_not_to_say is not a plain toLowerCase).
+    severity:
+      filterSeverity.length > 0
+        ? filterSeverity.map((s) => s.toLowerCase() as 'low' | 'medium' | 'high')
+        : undefined,
+    gender:
+      filterGender.length > 0
+        ? filterGender.map((g) =>
+            g === 'Prefer not to say' ? 'prefer_not_to_say' : g.toLowerCase()
+          )
+        : undefined,
+    user_type:
+      filterUserType.length > 0
+        ? filterUserType.map((u) => u.toLowerCase() as 'guest' | 'resident')
+        : undefined,
     sort_order: sortAscending ? 'asc' : 'desc',
     limit: paginationLimit,
     page: 1,

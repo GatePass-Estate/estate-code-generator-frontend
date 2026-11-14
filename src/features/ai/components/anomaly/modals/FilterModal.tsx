@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { useEffect, useState } from 'react';
+import { View, Text, Pressable } from 'react-native';
 import BottomSheet from '@/src/shared/components/feedback/BottomSheet';
-import { BlurView } from 'expo-blur';
 
+/** Display labels kept for callers; API gets lowercase via AnomalyResultView. */
 export type Severity = 'Low' | 'Medium' | 'High';
 export type Gender = 'Female' | 'Male' | 'Prefer not to say';
 export type UserType = 'Guest' | 'Resident';
@@ -14,6 +14,85 @@ interface FilterModalProps {
   currentSeverity: Severity[];
   currentGender: Gender[];
   currentUserType: UserType[];
+}
+
+const SEVERITIES: Severity[] = ['Low', 'Medium', 'High'];
+const GENDERS: Gender[] = ['Female', 'Male', 'Prefer not to say'];
+const USER_TYPES: UserType[] = ['Guest', 'Resident'];
+
+function toggleValue<T>(list: T[], value: T): T[] {
+  return list.includes(value) ? list.filter((item) => item !== value) : [...list, value];
+}
+
+/** Same chip style as IncidentFilterModal: inactive #EFF1F1 / #878686, active #CEE5ED / #113E55 */
+function FilterChip({
+  label,
+  selected,
+  onPress,
+}: {
+  label: string;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  const color = selected ? '#113E55' : '#878686';
+  return (
+    <Pressable
+      onPress={onPress}
+      hitSlop={4}
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 12,
+        paddingHorizontal: 12,
+        borderRadius: 16,
+        backgroundColor: selected ? '#CEE5ED' : '#EFF1F1',
+      }}
+    >
+      <Text
+        allowFontScaling={false}
+        style={{
+          fontFamily: 'Inter_18pt-Regular',
+          fontSize: 11.2,
+          lineHeight: 14,
+          textAlign: 'center',
+          color,
+        }}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+function SectionLabel({ children }: { children: string }) {
+  return (
+    <Text
+      allowFontScaling={false}
+      style={{
+        marginBottom: 16,
+        paddingLeft: 12,
+        fontFamily: 'Inter_18pt-Light',
+        fontSize: 14,
+        color: '#878686',
+      }}
+    >
+      {children}
+    </Text>
+  );
+}
+
+function SectionDivider() {
+  return (
+    <View
+      style={{
+        marginVertical: 24,
+        height: 0.5,
+        width: '100%',
+        backgroundColor: '#D3D3D3',
+      }}
+    />
+  );
 }
 
 export default function FilterModal({
@@ -29,190 +108,100 @@ export default function FilterModal({
   const [selectedUserType, setSelectedUserType] = useState<UserType[]>(currentUserType || []);
 
   useEffect(() => {
-    if (visible) {
-      setSelectedSeverity(currentSeverity || []);
-      setSelectedGender(currentGender || []);
-      setSelectedUserType(currentUserType || []);
-    }
+    if (!visible) return;
+    setSelectedSeverity(currentSeverity || []);
+    setSelectedGender(currentGender || []);
+    setSelectedUserType(currentUserType || []);
   }, [visible, currentSeverity, currentGender, currentUserType]);
-
-  const severities: Severity[] = ['Low', 'Medium', 'High'];
-  const genders: Gender[] = ['Female', 'Male', 'Prefer not to say'];
-  const userTypes: UserType[] = ['Guest', 'Resident'];
-
-  const toggleSelection = <T extends string>(
-    item: T,
-    selectedArray: T[],
-    setArray: (next: T[]) => void
-  ) => {
-    if (selectedArray.includes(item)) {
-      setArray(selectedArray.filter((i) => i !== item));
-    } else {
-      setArray([...selectedArray, item]);
-    }
-  };
-
-  const Pill = ({
-    label,
-    isSelected,
-    onPress,
-  }: {
-    label: string;
-    isSelected: boolean;
-    onPress: () => void;
-  }) => (
-    <Pressable
-      onPress={onPress}
-      style={{
-        backgroundColor: isSelected ? '#CEE5ED' : '#F6F7F7',
-        paddingVertical: 10,
-        paddingHorizontal: 16,
-        borderRadius: 24,
-        marginRight: 10,
-        marginBottom: 10,
-      }}
-    >
-      <Text
-        style={{
-          fontFamily: 'Inter_18pt-Regular',
-          fontSize: 13,
-          color: isSelected ? '#113E55' : '#8A9A9D',
-        }}
-      >
-        {label}
-      </Text>
-    </Pressable>
-  );
 
   return (
     <BottomSheet
       visible={visible}
       onClose={onClose}
-      scrimClassName="flex-1 justify-end"
-      backdrop={<BlurView intensity={15} tint="dark" style={StyleSheet.absoluteFill} />}
+      scrimClassName="flex-1 justify-end bg-black/80"
       panelStyle={{
-        backgroundColor: '#FFFFFF',
-        borderTopLeftRadius: 32,
-        borderTopRightRadius: 32,
-        paddingHorizontal: 24,
-        paddingBottom: 40,
+        backgroundColor: '#F6F7F7',
+        borderTopLeftRadius: 40,
+        borderTopRightRadius: 40,
+        paddingBottom: 8,
       }}
     >
-      {/* Handle */}
-      <View style={{ marginBottom: 32 }}>
-        <View
+      <View style={{ paddingTop: 46, paddingHorizontal: 34, paddingBottom: 8 }}>
+        <SectionLabel>Severity</SectionLabel>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+          {SEVERITIES.map((item) => (
+            <FilterChip
+              key={item}
+              label={item}
+              selected={selectedSeverity.includes(item)}
+              onPress={() => setSelectedSeverity((prev) => toggleValue(prev, item))}
+            />
+          ))}
+        </View>
+
+        <SectionDivider />
+
+        <SectionLabel>Gender</SectionLabel>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+          {GENDERS.map((item) => (
+            <FilterChip
+              key={item}
+              label={item}
+              selected={selectedGender.includes(item)}
+              onPress={() => setSelectedGender((prev) => toggleValue(prev, item))}
+            />
+          ))}
+        </View>
+
+        <SectionDivider />
+
+        <SectionLabel>User Type</SectionLabel>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 40 }}>
+          {USER_TYPES.map((item) => (
+            <FilterChip
+              key={item}
+              label={item}
+              selected={selectedUserType.includes(item)}
+              onPress={() => setSelectedUserType((prev) => toggleValue(prev, item))}
+            />
+          ))}
+        </View>
+
+        <Pressable
+          onPress={() => {
+            onApply(selectedSeverity, selectedGender, selectedUserType);
+            onClose();
+          }}
+          hitSlop={8}
           style={{
-            width: 50,
-            height: 4,
-            borderRadius: 2,
-            backgroundColor: '#A3A3A3',
+            marginBottom: 40,
+            height: 48,
+            width: '100%',
+            maxWidth: 278,
             alignSelf: 'center',
-          }}
-        />
-      </View>
-
-      {/* Severity */}
-      <View style={{ marginBottom: 16 }}>
-        <Text
-          allowFontScaling={false}
-          style={{
-            fontFamily: 'Inter_18pt-Regular',
-            fontSize: 16,
-            color: '#8A9A9D',
-            marginBottom: 16,
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: 24,
+            borderWidth: 1,
+            borderColor: '#113E55',
+            backgroundColor: '#113E55',
+            paddingHorizontal: 32,
           }}
         >
-          Severity
-        </Text>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-          {severities.map((s) => (
-            <Pill
-              key={s}
-              label={s}
-              isSelected={selectedSeverity.includes(s)}
-              onPress={() => toggleSelection(s, selectedSeverity, setSelectedSeverity)}
-            />
-          ))}
-        </View>
+          <Text
+            allowFontScaling={false}
+            style={{
+              fontFamily: 'UbuntuSans-SemiBold',
+              fontSize: 14,
+              letterSpacing: -0.24,
+              color: '#F6F7F7',
+              textAlign: 'center',
+            }}
+          >
+            Confirm
+          </Text>
+        </Pressable>
       </View>
-
-      <View style={{ height: 1, backgroundColor: '#E5E7EB', marginBottom: 24 }} />
-
-      {/* Gender */}
-      <View style={{ marginBottom: 16 }}>
-        <Text
-          allowFontScaling={false}
-          style={{
-            fontFamily: 'Inter_18pt-Regular',
-            fontSize: 16,
-            color: '#8A9A9D',
-            marginBottom: 16,
-          }}
-        >
-          Gender
-        </Text>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-          {genders.map((g) => (
-            <Pill
-              key={g}
-              label={g}
-              isSelected={selectedGender.includes(g)}
-              onPress={() => toggleSelection(g, selectedGender, setSelectedGender)}
-            />
-          ))}
-        </View>
-      </View>
-
-      <View style={{ height: 1, backgroundColor: '#E5E7EB', marginBottom: 24 }} />
-
-      {/* User Type */}
-      <View style={{ marginBottom: 32 }}>
-        <Text
-          allowFontScaling={false}
-          style={{
-            fontFamily: 'Inter_18pt-Regular',
-            fontSize: 16,
-            color: '#8A9A9D',
-            marginBottom: 16,
-          }}
-        >
-          User Type
-        </Text>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-          {userTypes.map((u) => (
-            <Pill
-              key={u}
-              label={u}
-              isSelected={selectedUserType.includes(u)}
-              onPress={() => toggleSelection(u, selectedUserType, setSelectedUserType)}
-            />
-          ))}
-        </View>
-      </View>
-
-      {/* Confirm Button */}
-      <Pressable
-        onPress={() => {
-          onApply(selectedSeverity, selectedGender, selectedUserType);
-          onClose();
-        }}
-        style={{
-          width: '100%',
-          height: 56,
-          backgroundColor: '#113E55',
-          borderRadius: 28,
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginBottom: 10,
-        }}
-      >
-        <Text
-          allowFontScaling={false}
-          style={{ fontFamily: 'UbuntuSans-Medium', fontSize: 16, color: '#FFFFFF' }}
-        >
-          Confirm
-        </Text>
-      </Pressable>
     </BottomSheet>
   );
 }

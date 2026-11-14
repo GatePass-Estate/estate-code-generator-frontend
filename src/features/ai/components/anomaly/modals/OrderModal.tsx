@@ -77,19 +77,7 @@ export default function OrderModal({
         width: '100%',
       }}
     >
-      {/* Draggable Handle Area */}
-      <View style={{ paddingVertical: 12 }}>
-        <View
-          style={{
-            width: 40,
-            height: 4,
-            backgroundColor: '#EFF1F3',
-            borderRadius: 2,
-            alignSelf: 'center',
-          }}
-        />
-      </View>
-
+      {/* Grabber comes from shared BottomSheet only */}
       <Text
         allowFontScaling={false}
         style={{

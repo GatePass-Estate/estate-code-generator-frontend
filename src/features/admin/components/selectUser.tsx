@@ -43,8 +43,6 @@ const UserRoleModal: React.FC<UserTypeModalProps> = ({ visible, onClose }) => {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.modalContainer}
         >
-          <View style={styles.handleBar} />
-
           <FlatList
             data={roles}
             keyExtractor={(item) => item}
@@ -82,14 +80,6 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 30,
     padding: 20,
     paddingBottom: 40,
-  },
-  handleBar: {
-    alignSelf: 'center',
-    width: 130,
-    height: 5,
-    borderRadius: 10,
-    backgroundColor: '#A1A1AA',
-    marginBottom: 20,
   },
   option: {
     backgroundColor: '#F5F5F5',

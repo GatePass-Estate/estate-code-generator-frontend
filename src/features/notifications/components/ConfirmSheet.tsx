@@ -46,10 +46,8 @@ export default function ConfirmSheet({
       panelClassName="bg-[#F6F7F7] rounded-t-[40px] px-6"
       panelStyle={{ paddingBottom: insets.bottom + 56 }}
     >
-      <View className="h-[7px] w-[134px] rounded-[4px] bg-grey self-center" />
-
       <Text
-        className="text-[#878686] font-ubuntu-semibold text-center mt-16"
+        className="text-[#878686] font-ubuntu-semibold text-center mt-8"
         style={{ fontSize: 22 }}
       >
         {title}

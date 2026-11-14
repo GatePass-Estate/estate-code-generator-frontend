@@ -240,8 +240,9 @@ export default function InstitutionWebScreen() {
           </Text>
         </Animated.View>
 
-        {/* Search */}
-        <Pressable onPress={() => inputRef.current?.blur()} className="w-full">
+        {/* Search — View (not Pressable): wrapping TextInput in Pressable+blur
+            stole focus on web click so the field could not be typed into. */}
+        <View className="w-full">
           <View className="flex-row items-center">
             <View
               className={cn(
@@ -256,6 +257,7 @@ export default function InstitutionWebScreen() {
                 ref={inputRef}
                 value={query}
                 onChangeText={setQuery}
+                onFocus={() => setSearching(true)}
                 placeholder="Enter Institution name or address"
                 placeholderTextColor="#9B9797"
                 autoCapitalize="none"
@@ -303,7 +305,7 @@ export default function InstitutionWebScreen() {
               )}
             </View>
           </Animated.View>
-        </Pressable>
+        </View>
 
         {/* Continue button */}
         <Animated.View style={continueStyle} className="mt-8 items-center">
