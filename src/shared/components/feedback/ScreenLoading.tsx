@@ -9,8 +9,10 @@ import Animated, {
 } from 'react-native-reanimated';
 
 const DOTS = 8;
+/** Design reference for dot layout. Default rendered size is smaller (see CircleLoader). */
 const RING = 64;
 const RADIUS = 22;
+const DEFAULT_SIZE = 40;
 
 /** Tail to head. Rotation makes the darker dots chase around the ring. */
 const STEPS = [
@@ -37,7 +39,7 @@ const LIGHT_STEPS = [
 
 /** Orbiting-dot ring. `size` is the ring diameter; dots scale with it. */
 export function CircleLoader({
-  size = RING,
+  size = DEFAULT_SIZE,
   tone = 'navy',
 }: {
   size?: number;
@@ -88,7 +90,7 @@ export function CircleLoader({
 export default function ScreenLoading() {
   return (
     <View className="flex-1 items-center justify-center" style={{ paddingBottom: 96 }}>
-      <CircleLoader />
+      <CircleLoader size={DEFAULT_SIZE} />
     </View>
   );
 }

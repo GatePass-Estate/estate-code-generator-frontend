@@ -256,7 +256,7 @@ function EmptyGenerateCard({
           entering={CONTENT_FADE_IN}
           className="w-[281px] items-center gap-3"
         >
-          <CircleLoader size={48} />
+          <CircleLoader size={36} />
           <Text
             allowFontScaling={false}
             className="text-center text-caption font-inter-regular leading-[normal] text-[#878686]"

@@ -55,7 +55,7 @@ export function AnomalyUserActivity({
             <View style={{ gap: 12 }}>
               {loading ? (
                 <View className="items-center py-6">
-                  <CircleLoader size={48} />
+                  <CircleLoader size={36} />
                 </View>
               ) : historyRecords.length > 0 ? (
                 historyRecords.map((record, index: number) => {

@@ -204,14 +204,14 @@ const MyGuestMobile = () => {
         ListHeaderComponent={
           pullRefreshing ? (
             <View className="items-center pb-4">
-              <CircleLoader size={40} />
+              <CircleLoader size={32} />
             </View>
           ) : null
         }
         ListFooterComponent={
           isFetchingNextPage ? (
             <View className="items-center py-4">
-              <CircleLoader size={48} />
+              <CircleLoader size={36} />
             </View>
           ) : null
         }
@@ -232,7 +232,7 @@ const MyGuestMobile = () => {
             </View>
           ) : loading && !pullRefreshing ? (
             <View className="items-center pt-10">
-              <CircleLoader size={48} />
+              <CircleLoader size={36} />
             </View>
           ) : (
             <View

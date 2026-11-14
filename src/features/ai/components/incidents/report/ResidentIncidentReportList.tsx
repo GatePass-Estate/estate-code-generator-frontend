@@ -117,7 +117,7 @@ export default function ResidentIncidentReportList({
         <View className="mt-[36px] mx-[9px] gap-[1px]">
           {checkingAccess || loading ? (
             <View className="items-center py-6">
-              <CircleLoader size={48} />
+              <CircleLoader size={36} />
             </View>
           ) : null}
           {!loading && error ? (

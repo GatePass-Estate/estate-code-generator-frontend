@@ -403,7 +403,7 @@ export default function IncidentResultView({
   if (isBootLoading) {
     return (
       <View className="flex-1 items-center justify-center bg-[#F6F7F7]">
-        <CircleLoader size={48} />
+        <CircleLoader size={36} />
       </View>
     );
   }

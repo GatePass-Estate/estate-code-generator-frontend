@@ -114,7 +114,7 @@ export default function MyProfile() {
                     </div>
                     <div onClick={handleGenerateCode}>
                       {loading ? (
-                        <CircleLoader size={48} />
+                        <CircleLoader size={36} />
                       ) : (
                         <Image
                           source={icons.refresh}

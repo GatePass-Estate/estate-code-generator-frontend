@@ -89,7 +89,7 @@ export default function PaymentProcessingModal({
             {visuals ? (
               <Ionicons name={visuals.icon} size={visuals.iconSize} color={visuals.iconColor} />
             ) : (
-              <CircleLoader size={48} />
+              <CircleLoader size={36} />
             )}
           </View>
 

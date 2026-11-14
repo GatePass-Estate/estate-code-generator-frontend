@@ -128,7 +128,7 @@ export default function ResetPassword() {
   if (isVerifying) {
     return (
       <SafeAreaView className="h-full flex-1 bg-white items-center justify-center">
-        <CircleLoader size={48} />
+        <CircleLoader size={36} />
         <Text className="mt-4 text-grey font-Inter text-base">Verifying your reset link...</Text>
       </SafeAreaView>
     );

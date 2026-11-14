@@ -561,7 +561,7 @@ export default function IncidentReportPreviewScreen() {
               alignItems: 'center',
             }}
           >
-            <CircleLoader size={48} />
+            <CircleLoader size={36} />
           </View>
         ) : !featureDetail ? (
           <View className="flex-1 items-center justify-center bg-[#F6F7F7] px-8">

@@ -294,7 +294,7 @@ export default function InstitutionScreen() {
               <View className="gap-3">
                 {awaitingResults || isLoading ? (
                   <View className="items-center justify-center py-6">
-                    <CircleLoader size={48} />
+                    <CircleLoader size={36} />
                   </View>
                 ) : results.length === 0 ? (
                   hasQuery ? (

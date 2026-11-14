@@ -113,7 +113,7 @@ function AndroidPdfPreview({ uri }: { uri: string }) {
       ) : null}
       {phase === 'loading' ? (
         <View className="absolute inset-0 items-center justify-center bg-[#F6F7F7]">
-          <CircleLoader size={48} />
+          <CircleLoader size={36} />
         </View>
       ) : null}
     </View>

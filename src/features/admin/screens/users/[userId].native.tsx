@@ -496,7 +496,7 @@ export default function SingleUserMobile() {
 
         {loading ? (
           <View className="flex-1 justify-center items-center">
-            <CircleLoader size={48} />
+            <CircleLoader size={36} />
           </View>
         ) : error ? (
           <View className="flex-1 justify-center items-center px-4">

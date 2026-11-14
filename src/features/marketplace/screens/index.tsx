@@ -305,7 +305,7 @@ export default function AIStoreScreen() {
       >
         {isLoading && tools.length === 0 ? (
           <View className="py-16 items-center justify-center">
-            <CircleLoader size={48} />
+            <CircleLoader size={36} />
           </View>
         ) : isError && tools.length === 0 ? (
           <View className="py-16 items-center justify-center">

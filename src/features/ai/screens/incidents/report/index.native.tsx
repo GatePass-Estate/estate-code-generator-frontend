@@ -222,7 +222,7 @@ export default function ReportTabScreen() {
                   className="mx-[9px] items-center py-6"
                   style={{ minHeight: newReportsMinHeight }}
                 >
-                  <CircleLoader size={48} />
+                  <CircleLoader size={36} />
                 </View>
               ) : null}
               {!loading && visibleError ? (

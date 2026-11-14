@@ -110,7 +110,7 @@ export default function MyIncidentReportDetailScreen() {
       <View className="flex-1 bg-white px-[23px] pt-[29px]">
         {loading ? (
           <View className="items-center py-6">
-            <CircleLoader size={48} />
+            <CircleLoader size={36} />
           </View>
         ) : null}
         {!loading && error ? (

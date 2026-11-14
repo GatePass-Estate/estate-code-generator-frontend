@@ -240,7 +240,7 @@ export default function ProfilePhotoSheet({
                     { alignItems: 'center', justifyContent: 'center' },
                   ]}
                 >
-                  <CircleLoader size={48} />
+                  <CircleLoader size={36} />
                 </View>
               ) : null}
             </View>

@@ -283,7 +283,7 @@ export default function InstitutionWebScreen() {
             <View className="gap-3">
               {awaitingResults || isLoading ? (
                 <View className="py-6 items-center justify-center">
-                  <CircleLoader size={48} />
+                  <CircleLoader size={36} />
                 </View>
               ) : results.length === 0 ? (
                 <View className="py-6 px-4 items-center">

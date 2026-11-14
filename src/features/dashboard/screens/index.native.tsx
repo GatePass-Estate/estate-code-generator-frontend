@@ -380,7 +380,7 @@ export default function HomeMobile() {
               <>
                 {refreshing ? (
                   <View className="items-center py-4">
-                    <CircleLoader size={40} />
+                    <CircleLoader size={32} />
                   </View>
                 ) : null}
                 {!isEmpty ? (
