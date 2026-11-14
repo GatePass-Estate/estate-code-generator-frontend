@@ -1,8 +1,6 @@
 import {
-  Animated,
   FlatList,
   Image,
-  PanResponder,
   Platform,
   Pressable,
   RefreshControl,
@@ -15,12 +13,13 @@ import { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
 import { Feather } from '@expo/vector-icons';
 import { NavigationBar as AndroidNavigationBar } from 'expo-navigation-bar';
 import { Stack, router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useCallback, useDeferredValue, useEffect, useState } from 'react';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import Back from '@/src/shared/components/navigation/Back';
-import BottomSheet, { SheetGrabber } from '@/src/shared/components/feedback/BottomSheet';
+import BottomSheet from '@/src/shared/components/feedback/BottomSheet';
+import { userFacingError } from '@/src/shared/services/api/errors';
 import { getRoleIcon, getRoleIconHeight, getRoleIconWidth } from '@/src/shared/utils/helpers';
 import { useEstateUsersInfinite } from '@/src/features/admin/hooks/estateUsers';
 import type { User } from '@/src/features/users/types/user';
@@ -86,7 +85,9 @@ export default function AllUsersMobile() {
   const displayedUsers = usersQuery.items;
   const loading = usersQuery.isLoading || (usersQuery.isFetching && !usersQuery.isFetched);
   const fetchingMore = usersQuery.isFetchingNextPage;
-  const error = usersQuery.isError ? usersQuery.error.message.trim() || 'Could not load users' : '';
+  const error = usersQuery.isError
+    ? userFacingError(usersQuery.error, 'Could not load users.')
+    : '';
   const hasActiveAdvancedFilter = validationFilter !== null || selectedFilters.length > 0;
   const { isFetched, isStale, refetch, hasNextPage, fetchNextPage } = usersQuery;
 
@@ -369,37 +370,7 @@ function AdvancedFilterSheet({
   onValidationChange: (value: boolean) => void;
   onRoleChange: (value: UserFilter | null) => void;
 }) {
-  const translateY = useRef(new Animated.Value(0)).current;
-  const panResponder = useMemo(
-    () =>
-      PanResponder.create({
-        onStartShouldSetPanResponder: () => true,
-        onMoveShouldSetPanResponder: (_, gesture) => gesture.dy > 6,
-        onPanResponderMove: (_, gesture) => {
-          translateY.setValue(Math.max(0, gesture.dy));
-        },
-        onPanResponderRelease: (_, gesture) => {
-          if (gesture.dy > 80 || gesture.vy > 0.8) {
-            Animated.timing(translateY, {
-              toValue: 369,
-              duration: 160,
-              useNativeDriver: true,
-            }).start(onClose);
-            return;
-          }
-
-          Animated.spring(translateY, {
-            toValue: 0,
-            useNativeDriver: true,
-          }).start();
-        },
-      }),
-    [onClose, translateY]
-  );
-
-  useEffect(() => {
-    if (visible) translateY.setValue(0);
-  }, [translateY, visible]);
+  const insets = useSafeAreaInsets();
 
   return (
     <>
@@ -409,69 +380,47 @@ function AdvancedFilterSheet({
         onClose={onClose}
         scrimClassName="flex-1 justify-end"
         scrimProps={{ accessibilityLabel: 'Close filters' }}
-        panelStyle={{ backgroundColor: 'transparent' }}
-        showGrabber={false}
+        panelClassName="bg-[#F6F7F7] rounded-t-[40px] px-5"
+        panelStyle={{ paddingBottom: Math.max(insets.bottom, 24) + 16 }}
       >
-        <Animated.View
-          className="h-[369px] w-full rounded-t-[40px] border border-white bg-[#F6F7F7]"
-          style={{ transform: [{ translateY }] }}
-        >
-          <View {...panResponder.panHandlers}>
-            <SheetGrabber />
-          </View>
-
-          <View className="absolute top-[81px] h-[74px]" style={{ left: '8%', right: '9.8667%' }}>
-            <Text className="absolute left-px top-[7px] text-[14px] leading-[14px] text-[#878686] font-inter-light">
-              Validation Status
-            </Text>
-
-            <View className="absolute left-0 right-0 top-[35px] h-[38px]">
-              <View className="absolute left-0">
-                <FilterSheetChip
-                  label="Validated Account"
-                  width={121}
-                  active={validationFilter === true}
-                  onPress={() => onValidationChange(true)}
-                />
-              </View>
-              <View className="absolute" style={{ left: '42.2078%' }}>
-                <FilterSheetChip
-                  label="Non Validated Account"
-                  width={146}
-                  active={validationFilter === false}
-                  onPress={() => onValidationChange(false)}
-                />
-              </View>
-            </View>
-          </View>
-
-          <View
-            className="absolute top-[166px] border-t-[0.5px] border-grey"
-            style={{ left: '7.8667%', right: '9.8667%' }}
+        <Text className="mt-2 text-[14px] leading-[14px] text-[#878686] font-inter-light">
+          Validation Status
+        </Text>
+        <View className="mt-4 flex-row flex-wrap items-center gap-3">
+          <FilterSheetChip
+            label="Validated Account"
+            width={121}
+            active={validationFilter === true}
+            onPress={() => onValidationChange(true)}
           />
+          <FilterSheetChip
+            label="Non Validated Account"
+            width={146}
+            active={validationFilter === false}
+            onPress={() => onValidationChange(false)}
+          />
+        </View>
 
-          <View className="absolute top-[178px] h-[71px]" style={{ left: '8%', right: '9.8667%' }}>
-            <Text className="text-[14px] leading-[14px] text-[#878686] font-inter-light">
-              User Role
-            </Text>
+        <View className="my-5 border-t-[0.5px] border-grey" />
 
-            <View className="mt-[19px] h-[38px] flex-row items-center justify-between">
-              {SHEET_ROLE_FILTERS.map((item) => (
-                <FilterSheetChip
-                  key={item.label}
-                  label={item.label}
-                  width={item.width}
-                  active={
-                    item.value === null
-                      ? selectedRoles.length === 0
-                      : selectedRoles.includes(item.value)
-                  }
-                  onPress={() => onRoleChange(item.value)}
-                />
-              ))}
-            </View>
-          </View>
-        </Animated.View>
+        <Text className="text-[14px] leading-[14px] text-[#878686] font-inter-light">
+          User Role
+        </Text>
+        <View className="mt-4 flex-row flex-wrap items-center gap-2">
+          {SHEET_ROLE_FILTERS.map((item) => (
+            <FilterSheetChip
+              key={item.label}
+              label={item.label}
+              width={item.width}
+              active={
+                item.value === null
+                  ? selectedRoles.length === 0
+                  : selectedRoles.includes(item.value)
+              }
+              onPress={() => onRoleChange(item.value)}
+            />
+          ))}
+        </View>
       </BottomSheet>
     </>
   );

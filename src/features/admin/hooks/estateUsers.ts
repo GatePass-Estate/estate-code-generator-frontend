@@ -55,9 +55,9 @@ export function fetchEstateUsersFresh(estateId: string): Promise<AllUsers> {
 export function useEstateUsers({ enabled = true }: { enabled?: boolean } = {}) {
   const estateId = useUserStore((s) => s.estate_id);
   return useQuery({
-    queryKey: estateUsersKeys.estate(estateId ?? ''),
+    queryKey: estateUsersKeys.estate(estateId || 'session'),
     queryFn: fetchAllEstateUsers,
-    enabled: enabled && Boolean(estateId),
+    enabled,
   });
 }
 
@@ -68,9 +68,9 @@ export function useEstateUsers({ enabled = true }: { enabled?: boolean } = {}) {
 export function useEstateUsersSummary({ enabled = true }: { enabled?: boolean } = {}) {
   const estateId = useUserStore((s) => s.estate_id);
   return useQuery({
-    queryKey: estateUsersKeys.estatePage(estateId ?? ''),
+    queryKey: estateUsersKeys.estatePage(estateId || 'session'),
     queryFn: fetchEstateUsersPage,
-    enabled: enabled && Boolean(estateId),
+    enabled,
   });
 }
 
@@ -131,12 +131,14 @@ export function useEstateUsersInfinite(
   const infinite = useInfiniteQuery({
     // `/users/all` only understands status — cache by that. Role/search filter in memory
     // so chip switches update immediately without re-downloading the same pages.
-    queryKey: estateUsersKeys.infinite(estateId ?? '', { validated: normalized.validated }),
+    // Estate comes from the JWT on the server; don't block the list if zustand estate_id
+    // hasn't hydrated yet (that left All Users empty / looking broken after the audit pass).
+    queryKey: estateUsersKeys.infinite(estateId || 'session', { validated: normalized.validated }),
     queryFn: ({ pageParam }) =>
       getAllEstateUsers(pageParam, ESTATE_USERS_LIST_PAGE_SIZE, statusParam),
     initialPageParam: 1,
     getNextPageParam: nextUsersPage,
-    enabled: enabled && Boolean(estateId),
+    enabled,
   });
 
   const seen = new Set<string>();

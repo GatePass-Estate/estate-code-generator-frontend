@@ -1,12 +1,6 @@
-import React, { useEffect, useRef } from 'react';
-import {
-  Animated as RNAnimated,
-  PanResponder,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import React from 'react';
+import { Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { ScrollView } from 'react-native-gesture-handler';
 import Svg, { Line } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import BottomSheet from '@/src/shared/components/feedback/BottomSheet';
@@ -140,74 +134,15 @@ export default function SeatCapacitySheet({
   canManageSeats = true,
 }: SeatCapacitySheetProps) {
   const insets = useSafeAreaInsets();
-  const panY = useRef(new RNAnimated.Value(0)).current;
-
-  useEffect(() => {
-    if (visible) {
-      panY.setValue(0);
-    }
-  }, [visible, panY]);
-
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => false,
-      onMoveShouldSetPanResponder: (_, gestureState) => gestureState.dy > 5,
-      onPanResponderMove: (_, gestureState) => {
-        if (gestureState.dy > 0) {
-          panY.setValue(gestureState.dy);
-        }
-      },
-      onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dy > 100 || gestureState.vy > 0.6) {
-          RNAnimated.timing(panY, {
-            toValue: 600,
-            duration: 180,
-            useNativeDriver: true,
-          }).start(() => {
-            onClose();
-          });
-        } else {
-          RNAnimated.spring(panY, {
-            toValue: 0,
-            bounciness: 4,
-            useNativeDriver: true,
-          }).start();
-        }
-      },
-    })
-  ).current;
-
-  const handlePanResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (_, gestureState) => gestureState.dy > 2,
-      onPanResponderMove: (_, gestureState) => {
-        if (gestureState.dy > 0) {
-          panY.setValue(gestureState.dy);
-        }
-      },
-      onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dy > 100 || gestureState.vy > 0.6) {
-          RNAnimated.timing(panY, {
-            toValue: 600,
-            duration: 180,
-            useNativeDriver: true,
-          }).start(() => {
-            onClose();
-          });
-        } else {
-          RNAnimated.spring(panY, {
-            toValue: 0,
-            bounciness: 4,
-            useNativeDriver: true,
-          }).start();
-        }
-      },
-    })
-  ).current;
-
+  const { height: windowHeight } = useWindowDimensions();
+  void currentCapacity;
   const occupiedSeats = residentsCount + securityPersonnelCount;
   const vacantSeats = Math.max(0, maxCapacity - occupiedSeats);
+  // Grabber (~34) + bottom safe padding; keep actions pinned and scroll the rest.
+  const bottomPad = Math.max(insets.bottom, 16) + 12;
+  const sheetMaxHeight = Math.round(windowHeight * 0.92);
+  const actionsHeight = onManageSeats ? 50 + 10 + 50 + 24 : 50 + 24;
+  const scrollMaxHeight = Math.max(180, sheetMaxHeight - 34 - bottomPad - actionsHeight);
 
   return (
     <BottomSheet
@@ -215,44 +150,19 @@ export default function SeatCapacitySheet({
       onClose={onClose}
       scrimClassName="flex-1 justify-end"
       scrimProps={{ style: { backgroundColor: 'rgba(0, 0, 0, 0.45)' } }}
-      panelStyle={{ backgroundColor: 'transparent' }}
+      panelStyle={{
+        backgroundColor: '#F8F9FA',
+        maxHeight: sheetMaxHeight,
+        paddingHorizontal: 20,
+        paddingBottom: bottomPad,
+      }}
     >
-      <RNAnimated.View
-        {...panResponder.panHandlers}
-        onStartShouldSetResponder={() => true}
-        style={{
-          transform: [{ translateY: panY }],
-          backgroundColor: '#F8F9FA',
-          borderTopLeftRadius: 36,
-          borderTopRightRadius: 36,
-          maxHeight: '90%',
-          paddingHorizontal: 20,
-          paddingTop: 8,
-          paddingBottom: Math.max(insets.bottom, 16) + 16,
-        }}
-      >
-        {/* Top Handle Drag Zone */}
-        <View
-          {...handlePanResponder.panHandlers}
-          style={{
-            paddingTop: 8,
-            paddingBottom: 16,
-            alignItems: 'center',
-            width: '100%',
-          }}
+      <View>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+          style={{ maxHeight: scrollMaxHeight }}
         >
-          <View
-            style={{
-              width: 120,
-              height: 5,
-              borderRadius: 3,
-              backgroundColor: '#9B9797',
-            }}
-          />
-        </View>
-
-        <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
-          {/* Radial Meter Gauge */}
           <RadialSeatGauge
             totalSeats={maxCapacity}
             residentsCount={residentsCount}
@@ -260,7 +170,6 @@ export default function SeatCapacitySheet({
             vacantCount={vacantSeats}
           />
 
-          {/* Side by Side Capacity Cards */}
           <View
             style={{
               flexDirection: 'row',
@@ -268,7 +177,6 @@ export default function SeatCapacitySheet({
               marginTop: 14,
             }}
           >
-            {/* Current Seat Capacity */}
             <View
               style={{
                 flex: 1,
@@ -300,7 +208,6 @@ export default function SeatCapacitySheet({
               </Text>
             </View>
 
-            {/* Max Seat Capacity */}
             <View
               style={{
                 flex: 1,
@@ -333,7 +240,6 @@ export default function SeatCapacitySheet({
             </View>
           </View>
 
-          {/* Seat Allocation Card */}
           <View
             style={{
               backgroundColor: '#FFFFFF',
@@ -354,7 +260,6 @@ export default function SeatCapacitySheet({
               Seat Allocation
             </Text>
 
-            {/* Residents Row */}
             <View
               style={{
                 flexDirection: 'row',
@@ -396,7 +301,6 @@ export default function SeatCapacitySheet({
               </Text>
             </View>
 
-            {/* Security Row */}
             <View
               style={{
                 flexDirection: 'row',
@@ -438,7 +342,6 @@ export default function SeatCapacitySheet({
               </Text>
             </View>
 
-            {/* Vacant Seats Row */}
             <View
               style={{
                 flexDirection: 'row',
@@ -479,48 +382,24 @@ export default function SeatCapacitySheet({
               </Text>
             </View>
           </View>
+        </ScrollView>
 
-          {/* Action Buttons */}
-          <View style={{ gap: 10, marginTop: 24 }}>
-            {onManageSeats && (
-              <TouchableOpacity
-                activeOpacity={0.85}
-                disabled={canManageSeats === false}
-                onPress={() => {
-                  onClose();
-                  onManageSeats();
-                }}
-                style={{
-                  backgroundColor: '#113E55',
-                  height: 50,
-                  borderRadius: 25,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  opacity: canManageSeats === false ? 0.45 : 1,
-                }}
-              >
-                <Text
-                  allowFontScaling={false}
-                  style={{
-                    fontFamily: UbuntuSans.medium,
-                    fontSize: 15,
-                    color: '#FFFFFF',
-                  }}
-                >
-                  Manage Seats
-                </Text>
-              </TouchableOpacity>
-            )}
-
+        <View style={{ gap: 10, marginTop: 24 }}>
+          {onManageSeats && (
             <TouchableOpacity
               activeOpacity={0.85}
-              onPress={onClose}
+              disabled={canManageSeats === false}
+              onPress={() => {
+                onClose();
+                onManageSeats();
+              }}
               style={{
-                backgroundColor: onManageSeats ? '#EFF1F3' : '#113E55',
+                backgroundColor: '#113E55',
                 height: 50,
                 borderRadius: 25,
                 alignItems: 'center',
                 justifyContent: 'center',
+                opacity: canManageSeats === false ? 0.45 : 1,
               }}
             >
               <Text
@@ -528,15 +407,38 @@ export default function SeatCapacitySheet({
                 style={{
                   fontFamily: UbuntuSans.medium,
                   fontSize: 15,
-                  color: onManageSeats ? '#113E55' : '#FFFFFF',
+                  color: '#FFFFFF',
                 }}
               >
-                Done
+                Manage Seats
               </Text>
             </TouchableOpacity>
-          </View>
-        </ScrollView>
-      </RNAnimated.View>
+          )}
+
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={onClose}
+            style={{
+              backgroundColor: onManageSeats ? '#EFF1F3' : '#113E55',
+              height: 50,
+              borderRadius: 25,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Text
+              allowFontScaling={false}
+              style={{
+                fontFamily: UbuntuSans.medium,
+                fontSize: 15,
+                color: onManageSeats ? '#113E55' : '#FFFFFF',
+              }}
+            >
+              Done
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
     </BottomSheet>
   );
 }

@@ -58,8 +58,8 @@ export function SheetGrabber() {
 
 /**
  * Slide-up sheet shell: transparent modal, scrim dismiss, Android back, and a panel
- * that swallows taps. The panel slides up and the scrim fades. The handle, padding,
- * and content stay with the caller.
+ * that swallows taps. The panel slides up and the scrim fades. Drag-to-dismiss works
+ * anywhere on the sheet; padding and content stay with the caller.
  */
 export default function BottomSheet({
   visible,
@@ -92,11 +92,14 @@ export default function BottomSheet({
     if (!busy) onClose();
   }, [busy, onClose]);
 
+  // Drag anywhere on the sheet (not only the grabber). activeOffsetY waits for a clear
+  // downward pull; failOffsetY lets nested ScrollViews keep upward / content scrolling.
   const pan = useMemo(
     () =>
       Gesture.Pan()
         .enabled(!busy)
         .activeOffsetY(8)
+        .failOffsetY(-12)
         .failOffsetX([-24, 24])
         .onBegin(() => {
           dragStartY.value = translateY.value;
@@ -153,6 +156,8 @@ export default function BottomSheet({
 
   // Callers still pass a scrim class. The backdrop colour is a style, because that class does not paint inside the modal.
   void scrimClassName;
+  // Never let caller styles replace the full-screen hit target (that broke overlay dismiss).
+  const { style: scrimStyleProp, ...restScrimProps } = scrimProps ?? {};
 
   return (
     <Modal
@@ -171,27 +176,27 @@ export default function BottomSheet({
         */}
         <Animated.View pointerEvents="none" style={[styles.fill, scrimStyle]}>
           {backdrop ?? (
-            <BlurView
-              intensity={40}
-              tint="dark"
-              blurMethod="dimezisBlurView"
-              style={styles.fill}
-            />
+            <BlurView intensity={40} tint="dark" blurMethod="dimezisBlurView" style={styles.fill} />
           )}
           <View style={[styles.fill, styles.dim]} />
         </Animated.View>
-        <Pressable style={styles.fill} onPress={close} {...scrimProps} />
-        <Animated.View
-          className={panelClassName}
-          {...panelProps}
-          style={[styles.sheet, panelStyle, panelMotion]}
-        >
-          <GestureDetector gesture={pan}>
-            <View style={styles.handle} />
-          </GestureDetector>
-          {showGrabber ? <SheetGrabber /> : null}
-          {children}
-        </Animated.View>
+        <Pressable
+          style={[styles.fill, scrimStyleProp]}
+          onPress={close}
+          accessibilityRole="button"
+          accessibilityLabel="Dismiss"
+          {...restScrimProps}
+        />
+        <GestureDetector gesture={pan}>
+          <Animated.View
+            className={panelClassName}
+            {...panelProps}
+            style={[styles.sheet, panelStyle, panelMotion]}
+          >
+            {showGrabber ? <SheetGrabber /> : null}
+            {children}
+          </Animated.View>
+        </GestureDetector>
         {overlay ? (
           <View style={styles.fill} pointerEvents="box-none">
             {overlay}
@@ -207,14 +212,6 @@ const styles = StyleSheet.create({
 
   fill: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 },
   dim: { backgroundColor: 'rgba(0, 0, 0, 0.35)' },
-  handle: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 36,
-    zIndex: 2,
-  },
   sheet: {
     position: 'absolute',
     left: 0,

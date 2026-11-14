@@ -256,18 +256,11 @@ const RegisterUser = () => {
       const regiteredUser = await registerUser(payload);
 
       if (regiteredUser && regiteredUser.id) {
-        setToastMessage('User registered successfully!');
-        setToastType('success');
-        setToastVisible(true);
-        // Leave immediately for Admin Tools — don't reset the form first (that looked like an
-        // old empty Register screen when navigation lagged).
-        setTimeout(() => {
-          if (router.canDismiss()) {
-            router.dismiss(1);
-          } else {
-            router.replace('/admin');
-          }
-        }, 800);
+        if (router.canDismiss()) {
+          router.dismiss(1);
+        } else {
+          router.replace('/admin');
+        }
       } else {
         setToastMessage('Failed to register user. Please try again.');
         setToastType('error');

@@ -71,8 +71,12 @@ export default function HouseholdSelectorSheet({
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState('');
   const [pendingHousehold, setPendingHousehold] = useState<Household | null>(null);
+  const [searchFocused, setSearchFocused] = useState(false);
   const trimmedQuery = query.trim();
   const hasSearch = trimmedQuery.length > 0;
+  // Expand as soon as the field is focused so the keyboard does not cover the input
+  // before the first character is typed.
+  const searchActive = searchFocused || hasSearch;
   // Same gate as institution: keep the loader up until THIS query has settled and loading is done.
   const awaitingResults = hasSearch && (trimmedQuery !== settledQuery || loading);
   const showEmpty =
@@ -83,11 +87,11 @@ export default function HouseholdSelectorSheet({
   const searchProgress = useSharedValue(0);
 
   useEffect(() => {
-    searchProgress.value = withTiming(hasSearch ? 1 : 0, {
+    searchProgress.value = withTiming(searchActive ? 1 : 0, {
       duration: SEARCH_MOVE_MS,
       easing: SEARCH_MOVE_EASE,
     });
-  }, [hasSearch, searchProgress]);
+  }, [searchActive, searchProgress]);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedQuery(query), SEARCH_DEBOUNCE_MS);
@@ -109,6 +113,7 @@ export default function HouseholdSelectorSheet({
     setItems([]);
     setError('');
     setLoading(false);
+    setSearchFocused(false);
     inputRef.current?.blur();
     Keyboard.dismiss();
   }, []);
@@ -203,6 +208,7 @@ export default function HouseholdSelectorSheet({
       setError('');
       setShowAddHousehold(false);
       setPendingHousehold(null);
+      setSearchFocused(false);
       searchProgress.value = 0;
     }
   }, [visible, searchProgress]);
@@ -306,6 +312,10 @@ export default function HouseholdSelectorSheet({
               ref={inputRef}
               value={query}
               onChangeText={setQuery}
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => {
+                if (!trimmedQuery) setSearchFocused(false);
+              }}
               autoCapitalize="none"
               autoCorrect={false}
               multiline={false}

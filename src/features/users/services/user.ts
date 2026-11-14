@@ -52,14 +52,34 @@ export const updatepassword = async (payload: {
   }
 };
 
+/**
+ * Estate admin user detail. Uses `GET /users/profile/{id}` (same-estate + can_register_users).
+ * Do not use `GET /users/{id}` here — that route is root-only and returns
+ * "You are not authorized to view this user." for primary/admin.
+ */
 export const getUserByIdAdmin = async (id: string): Promise<User> => {
   try {
     const api = Api();
-
-    const axiosRes = await api.get(`/users/${encodeURIComponent(id)}`);
+    const axiosRes = await api.get<UserProfileResponse>(`/users/profile/${encodeURIComponent(id)}`);
     const data = axiosRes.data;
+    const userId = String(data.user_id);
 
-    return data;
+    return {
+      user_id: userId,
+      id: userId,
+      first_name: data.first_name,
+      last_name: data.last_name,
+      home_address: data.home_address,
+      email: data.email,
+      phone_number: data.phone_number,
+      gender: data.gender,
+      estate_name: data.estate_name,
+      role: data.role,
+      estate_id: data.estate_id,
+      household_name: data.household_name ?? null,
+      household_primary_resident: data.household_primary_resident ?? null,
+      status: data.status,
+    };
   } catch (error: unknown) {
     raiseApiError(error, 'An error occured', true);
   }
