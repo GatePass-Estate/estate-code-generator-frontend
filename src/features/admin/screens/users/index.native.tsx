@@ -30,7 +30,8 @@ import { queryKeys } from '@/src/shared/services/api/queryKeys';
 import type { User } from '@/src/features/users/types/user';
 
 type UserFilter = EstateUserRoleFilter;
-type ValidationFilter = boolean | null;
+/** Multi-select: true = validated, false = non-validated. Both or neither = everyone. */
+type ValidationStatus = boolean;
 
 const FILTERS: {
   label: string;
@@ -54,6 +55,7 @@ const SHEET_ROLE_FILTERS: { label: string; value: UserFilter | null; width: numb
 
 export default function AllUsersMobile() {
   const { role } = useLocalSearchParams<{ role?: string }>();
+  const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
   const deferredSearch = useDeferredValue(searchQuery.trim());
   const [selectedFilters, setSelectedFilters] = useState<UserFilter[]>(() => {
@@ -62,7 +64,7 @@ export default function AllUsersMobile() {
     }
     return [];
   });
-  const [validationFilter, setValidationFilter] = useState<ValidationFilter>(null);
+  const [validationStatuses, setValidationStatuses] = useState<ValidationStatus[]>([]);
   const [filterVisible, setFilterVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -74,11 +76,11 @@ export default function AllUsersMobile() {
     }
   }, [role]);
 
-  // Role chips OR together; status + search still combine with them.
+  // Role + validation chips OR together; search still combines with them.
   const usersQuery = useEstateUsersInfinite({
     search: deferredSearch,
     roles: selectedFilters,
-    validated: validationFilter,
+    validatedStatuses: validationStatuses,
   });
 
   const displayedUsers = usersQuery.items;
@@ -87,7 +89,9 @@ export default function AllUsersMobile() {
   const error = usersQuery.isError
     ? userFacingError(usersQuery.error, 'Could not load users.')
     : '';
-  const hasActiveAdvancedFilter = validationFilter !== null || selectedFilters.length > 0;
+  // Both validation chips on = no status filter (same as none) — don't mark the icon active.
+  const validationFilterActive = validationStatuses.length === 1;
+  const hasActiveAdvancedFilter = validationFilterActive || selectedFilters.length > 0;
   const { isFetched, isStale, refetch } = usersQuery;
 
   useFocusEffect(
@@ -126,10 +130,12 @@ export default function AllUsersMobile() {
 
   return (
     <SafeAreaView
+      edges={['left', 'right', 'bottom']}
       style={{
         backgroundColor: '#F6F7F7',
         flex: 1,
-        paddingTop: 19,
+        // Keep 19px below the status bar — do not override SafeArea top with a flat 19.
+        paddingTop: insets.top + 19,
       }}
     >
       <Stack.Screen options={{ headerShown: false }} />
@@ -150,7 +156,7 @@ export default function AllUsersMobile() {
             <TextInput
               value={searchQuery}
               onChangeText={setSearchQuery}
-              placeholder="Search Guest List"
+              placeholder="Search"
               placeholderTextColor="#878686"
               autoCapitalize="none"
               autoCorrect={false}
@@ -261,7 +267,7 @@ export default function AllUsersMobile() {
         ) : (
           <FlatList
             data={displayedUsers}
-            extraData={`${selectedFilters.join(',')}|${deferredSearch}|${validationFilter}`}
+            extraData={`${selectedFilters.join(',')}|${deferredSearch}|${validationStatuses.join(',')}`}
             keyExtractor={(item, index) => item.id ?? item.user_id ?? String(index)}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
@@ -312,13 +318,13 @@ export default function AllUsersMobile() {
                   <View className="ml-4 flex-1">
                     <Text
                       numberOfLines={1}
-                      className="text-[14px] leading-[14px] text-primary font-inter-light"
+                      className="text-[14px] leading-[18px] text-primary font-inter-light"
                     >
                       {fullName || 'Unnamed user'}
                     </Text>
                     <Text
                       numberOfLines={1}
-                      className="mt-2 text-caption leading-[11.2px] text-primary font-inter-regular"
+                      className="mt-1.5 text-caption leading-[14px] text-primary font-inter-regular"
                     >
                       {item.home_address || 'No address provided'}
                     </Text>
@@ -335,11 +341,15 @@ export default function AllUsersMobile() {
 
       <AdvancedFilterSheet
         visible={filterVisible}
-        validationFilter={validationFilter}
+        validationStatuses={validationStatuses}
         selectedRoles={selectedFilters}
         onClose={() => setFilterVisible(false)}
         onValidationChange={(value) => {
-          setValidationFilter((current) => (current === value ? null : value));
+          setValidationStatuses((current) =>
+            current.includes(value)
+              ? current.filter((status) => status !== value)
+              : [...current, value]
+          );
         }}
         onRoleChange={(value) => {
           if (value === null) {
@@ -359,17 +369,17 @@ export default function AllUsersMobile() {
 
 function AdvancedFilterSheet({
   visible,
-  validationFilter,
+  validationStatuses,
   selectedRoles,
   onClose,
   onValidationChange,
   onRoleChange,
 }: {
   visible: boolean;
-  validationFilter: ValidationFilter;
+  validationStatuses: ValidationStatus[];
   selectedRoles: UserFilter[];
   onClose: () => void;
-  onValidationChange: (value: boolean) => void;
+  onValidationChange: (value: ValidationStatus) => void;
   onRoleChange: (value: UserFilter | null) => void;
 }) {
   const insets = useSafeAreaInsets();
@@ -392,13 +402,13 @@ function AdvancedFilterSheet({
           <FilterSheetChip
             label="Validated Account"
             width={121}
-            active={validationFilter === true}
+            active={validationStatuses.includes(true)}
             onPress={() => onValidationChange(true)}
           />
           <FilterSheetChip
             label="Non Validated Account"
             width={146}
-            active={validationFilter === false}
+            active={validationStatuses.includes(false)}
             onPress={() => onValidationChange(false)}
           />
         </View>

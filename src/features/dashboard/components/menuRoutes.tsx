@@ -1,6 +1,6 @@
 /**
  * Signed-in navigation: the resident tab bar (native) / sidebar (web) entries and the admin
- * sidebar. Lives in the dashboard feature next to NavigationContainer and WebSidebar so screens
+ * sidebar. Lives in the dashboard feature next to RoleShell and WebSidebar so screens
  * can import it without depending on app/ route files.
  */
 import { View, Text } from 'react-native';

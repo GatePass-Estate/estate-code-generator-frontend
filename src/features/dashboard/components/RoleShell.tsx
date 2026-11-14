@@ -3,19 +3,23 @@ import { Tabs, Stack, router } from 'expo-router';
 import UserTabBar from '@/src/features/dashboard/components/UserTabBar';
 import { menuRouteType } from '@/src/shared/types/general';
 
-type NavigationContainerProps = {
+type RoleShellProps = {
   routes?: menuRouteType[];
   headerStyle?: object;
   tabBarStyle?: object;
   enableForMobile?: boolean;
 };
 
-export default function NavigationContainer({
+/**
+ * Role area shell (tabs for residents, stack for admin/security/shared).
+ * Not Expo Router's root NavigationContainer — naming it that confused SDK 58 linking.
+ */
+export default function RoleShell({
   routes,
   headerStyle,
   tabBarStyle,
   enableForMobile = true,
-}: NavigationContainerProps) {
+}: RoleShellProps) {
   if (Platform.OS === 'web') {
     return (
       <>

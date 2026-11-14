@@ -186,15 +186,25 @@ export const searchEstateUsers = async (
     if (params.last_name?.trim()) query.last_name = params.last_name.trim();
     if (params.email?.trim()) query.email = params.email.trim();
     if (params.roles?.length) query.roles = params.roles;
-    // Stringify so axios does not drop `status=false`.
+    // Always send lowercase "true"/"false" — never a boolean (axios/qs can drop `false`).
     if (params.status !== null && params.status !== undefined) {
-      query.status = String(params.status);
+      query.status = params.status ? 'true' : 'false';
     }
 
     const axiosRes = await api.get('/users/', {
       params: query,
-      // `roles=admin&roles=primary_admin` (FastAPI list query), not roles[0]=…
-      paramsSerializer: { indexes: null },
+      paramsSerializer: {
+        // `roles=admin&roles=primary_admin` (FastAPI list), and never skip status=false.
+        serialize: (p) =>
+          Object.entries(p)
+            .filter(([, v]) => v !== undefined && v !== null && v !== '')
+            .flatMap(([k, v]) =>
+              Array.isArray(v)
+                ? v.map((item) => `${encodeURIComponent(k)}=${encodeURIComponent(String(item))}`)
+                : [`${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`]
+            )
+            .join('&'),
+      },
     });
     return axiosRes.data;
   } catch (error: unknown) {

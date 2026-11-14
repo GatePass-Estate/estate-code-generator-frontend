@@ -1,5 +1,5 @@
 import * as NavigationBar from 'expo-navigation-bar';
-import { setStatusBarBackgroundColor, setStatusBarStyle } from 'expo-status-bar';
+import { setStatusBarStyle } from 'expo-status-bar';
 import { usePathname } from 'expo-router';
 import * as React from 'react';
 import {
@@ -34,25 +34,40 @@ function applyAndroidNavBar(colorScheme: 'light' | 'dark') {
 }
 
 /**
- * Most GatePass screens are light (#F6F7F7). On Android edge-to-edge + device dark mode,
- * the system can leave light status icons — clock/battery vanish on light backgrounds.
- * Force dark icons unless the route has a dark header (admin tools).
+ * Routes whose top chrome is dark (need light status icons). Everything else is
+ * light grey/white and must use dark icons so clock/battery stay visible on Android.
  */
-function applyAndroidStatusBar(pathname: string) {
-  const darkHeader = pathname === '/admin' || pathname === '/admin/' || pathname.endsWith('/admin');
-  const style = darkHeader ? 'light' : 'dark';
+export function statusBarStyleForPath(pathname: string): 'light' | 'dark' {
+  const normalized = (pathname ?? '').replace(/\/+$/, '') || '/';
+  // Admin Tools home only — /admin/users and other nested admin screens are light.
+  if (normalized === '/admin') return 'light';
+  return 'dark';
+}
+
+/**
+ * Force readable status icons on every Android screen. Device dark mode + edge-to-edge
+ * otherwise leaves light icons on #F6F7F7 and the bar looks "all white"/empty.
+ */
+export function applyAndroidStatusBar(pathname: string) {
+  if (Platform.OS !== 'android') return;
+
+  const style = statusBarStyleForPath(pathname);
   setStatusBarStyle(style);
-  RNStatusBar.setBarStyle(darkHeader ? 'light-content' : 'dark-content', true);
-  // Transparent so the screen background shows through; icons stay readable via style.
-  RNStatusBar.setBackgroundColor('transparent', true);
-  RNStatusBar.setTranslucent(true);
-  setStatusBarBackgroundColor('transparent', true);
+  RNStatusBar.setBarStyle(style === 'light' ? 'light-content' : 'dark-content', true);
+
+  const androidBar = RNStatusBar as typeof RNStatusBar & {
+    setBackgroundColor?: (color: string, animated?: boolean) => void;
+    setTranslucent?: (translucent: boolean) => void;
+  };
+  androidBar.setBackgroundColor?.('transparent', true);
+  androidBar.setTranslucent?.(true);
 }
 
 export function getAndroidNavBarBackground(scheme: ColorSchemeName | null | undefined): string {
   return ANDROID_NAV_BAR[resolveDeviceColorScheme(scheme)].background;
 }
 
+/** Keeps status + nav bars in sync on every route / theme / foreground change. */
 export function useInitialAndroidBarSync() {
   const pathname = usePathname();
 

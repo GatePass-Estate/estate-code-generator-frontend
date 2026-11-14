@@ -28,7 +28,7 @@ ExpoSplashScreen.preventAutoHideAsync();
 export const unstable_settings = {
   // Stay on the navy loader (`app/index`) until auth bootstrap replaces to the real destination.
   // Starting on institution made signed-in reloads flash the institution screen.
-  initialRouteName: 'index',
+  anchor: 'index',
 };
 
 function RootLayoutContent() {
@@ -45,7 +45,7 @@ function RootLayoutContent() {
   return (
     <>
       {/* Dark icons on light screens — Android also re-applies this in useInitialAndroidBarSync. */}
-      <StatusBar style="dark" translucent />
+      <StatusBar style="dark" />
       <Stack
         key={resetKey}
         screenOptions={{
@@ -54,19 +54,8 @@ function RootLayoutContent() {
         }}
       >
         <Stack.Screen name="index" />
-        <Stack.Screen
-          name="auth/institution"
-          options={{ animation: 'slide_from_left', animationTypeForReplace: 'pop' }}
-        />
-        <Stack.Screen name="auth/login" options={{ animation: 'slide_from_right' }} />
-        <Stack.Screen name="auth/two-factor" />
-        <Stack.Screen name="auth/tos" />
-        <Stack.Screen name="auth/set-password" />
-        <Stack.Screen name="auth/forgot-password" />
-        <Stack.Screen name="auth/reset-password" />
-        <Stack.Screen name="auth/data-protection-policy" />
+        <Stack.Screen name="auth" />
         <Stack.Screen name="activate" />
-        <Stack.Screen name="auth/email-activation-status" />
         <Stack.Screen name="(protected)" />
       </Stack>
       <AndroidNavBarGlobal />

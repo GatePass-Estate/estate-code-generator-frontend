@@ -1,5 +1,5 @@
 import { usePathname } from 'expo-router';
-import NavigationContainer from '@/src/features/dashboard/components/NavigationContainer';
+import RoleShell from '@/src/features/dashboard/components/RoleShell';
 import { menuRoutes } from '@/src/features/dashboard/components/menuRoutes';
 import { sharedStyles } from '@/src/shared/theme/styles';
 import RoleGuard from '@/src/features/auth/components/RoleGuard';
@@ -23,7 +23,7 @@ export default function UserRootLayout() {
 
   return (
     <RoleGuard allow={allow}>
-      <NavigationContainer routes={menuRoutes} tabBarStyle={sharedStyles.tabBar} />
+      <RoleShell routes={menuRoutes} tabBarStyle={sharedStyles.tabBar} />
     </RoleGuard>
   );
 }

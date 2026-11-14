@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { queryClient } from '@/src/shared/services/api/queryClient';
 import {
@@ -24,8 +25,19 @@ export type EstateUsersListFilters = {
   search?: string;
   /** OR of UI role chips. Empty / omitted = every role. */
   roles?: EstateUserRoleFilter[];
-  validated?: boolean | null;
+  /**
+   * Activation chips (Validated / Non Validated). Empty or both → no status filter.
+   * A single value → `status=true` or `status=false` on GET /users/.
+   */
+  validatedStatuses?: boolean[];
 };
+
+/** Map multi-select validation chips to the API’s single `status` query. */
+function apiStatusFromFilters(statuses: boolean[] | undefined): boolean | null {
+  const unique = [...new Set(statuses ?? [])];
+  if (unique.length === 1) return unique[0];
+  return null;
+}
 
 /** Expand UI chips to API `roles` (`admins` → admin + primary_admin). */
 function apiRolesFromFilters(
@@ -64,7 +76,7 @@ async function fetchEstateUsersListPage(
     page,
     limit: ESTATE_USERS_LIST_PAGE_SIZE,
     ...text,
-    status: filters.validated ?? null,
+    status: apiStatusFromFilters(filters.validatedStatuses),
     roles: roles.length ? roles : null,
   });
 }
@@ -134,16 +146,19 @@ function nextUsersPage(lastPage: AllUsers): number | undefined {
 /**
  * All Users: `GET /users/` with search, `roles`, and status on the wire.
  * Estate scope comes from the JWT. Multiple chips → one request with `roles=…&roles=…`.
+ * Validated / Non Validated map to `status=true` / `status=false`.
  */
 export function useEstateUsersInfinite(
   filters: EstateUsersListFilters = {},
   { enabled = true }: { enabled?: boolean } = {}
 ) {
   const estateId = useUserStore((s) => s.estate_id);
+  const statusFilter = apiStatusFromFilters(filters.validatedStatuses);
   const normalized: EstateUsersListFilters = {
     search: filters.search?.trim() || '',
     roles: [...(filters.roles ?? [])].sort(),
-    validated: filters.validated ?? null,
+    // Stable key: sort booleans as 0/1 so [true,false] === [false,true].
+    validatedStatuses: [...(filters.validatedStatuses ?? [])].sort((a, b) => Number(a) - Number(b)),
   };
 
   const infinite = useInfiniteQuery({
@@ -159,9 +174,21 @@ export function useEstateUsersInfinite(
   for (const user of infinite.data?.pages.flatMap((page) => page.items) ?? []) {
     const key = user.id ?? user.user_id;
     if (!key || seen.has(key)) continue;
+    // Enforce activation filter locally too — some gateways mishandle status=false.
+    if (statusFilter !== null && Boolean(user.status) !== statusFilter) continue;
     seen.add(key);
     items.push(user);
   }
+
+  const needsStatusFill = statusFilter !== null;
+  const { hasNextPage, isFetchingNextPage, isFetching, fetchNextPage } = infinite;
+
+  useEffect(() => {
+    if (!needsStatusFill) return;
+    if (!hasNextPage || isFetchingNextPage || isFetching) return;
+    if (items.length >= ESTATE_USERS_LIST_PAGE_SIZE) return;
+    void fetchNextPage();
+  }, [needsStatusFill, hasNextPage, isFetchingNextPage, isFetching, items.length, fetchNextPage]);
 
   return {
     ...infinite,

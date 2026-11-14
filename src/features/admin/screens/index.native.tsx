@@ -17,7 +17,6 @@ import { Feather } from '@expo/vector-icons';
 import { Stack, useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';
-import { StatusBar } from 'expo-status-bar';
 import { fetchEstateUsersFresh } from '@/src/features/admin/hooks/estateUsers';
 import { getSeatOccupancy } from '@/src/features/billing/utils/billing';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -215,7 +214,7 @@ export default function AdminUsersMobilePage() {
 
   return (
     <View style={{ flex: 1, backgroundColor: '#F6F7F7' }}>
-      <StatusBar style="light" />
+      {/* Status icons come from AndroidNavBarGlobal (light on /admin, dark everywhere else). */}
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* Top Bounce Background for iOS */}

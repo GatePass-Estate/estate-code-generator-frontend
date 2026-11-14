@@ -9,8 +9,9 @@ import { useUserStore } from '@/src/store/userStore';
 import BroadcastPopupHost from '@/src/features/notifications/components/BroadcastPopupHost';
 import PushNotificationsHost from '@/src/features/notifications/components/PushNotificationsHost';
 
-export const unstable_home_settings = {
-  initialRouteName: '(protected)',
+export const unstable_settings = {
+  // Default into the resident stack; RoleGuard / sign-in replace to admin or security.
+  anchor: 'user',
 };
 
 export default function ProtectedLayout() {
@@ -41,6 +42,9 @@ export default function ProtectedLayout() {
         }}
       >
         <Stack.Screen name="user" />
+        <Stack.Screen name="admin" />
+        <Stack.Screen name="security" />
+        <Stack.Screen name="(shared-screens)" />
       </Stack>
       <PlanGuard />
       <VerifyAccountGuard />
