@@ -372,8 +372,7 @@ export default function AnomalyResultView({
           setEndDate(end);
         }}
         onCustomSelect={() => {
-          setSelectedTimeframe('Custom');
-          setTimeframeVisible(false);
+          // Only open Set Date — Custom flips anomaly `to_date`, so wait for Apply.
           setDatePickerVisible(true);
         }}
       />
@@ -387,6 +386,7 @@ export default function AnomalyResultView({
         onApply={(start, end) => {
           setStartDate(start);
           setEndDate(end);
+          setSelectedTimeframe('Custom');
           setDatePickerVisible(false);
         }}
       />

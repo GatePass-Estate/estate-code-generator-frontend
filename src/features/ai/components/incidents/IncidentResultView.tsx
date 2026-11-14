@@ -682,8 +682,7 @@ export default function IncidentResultView({
           setTrendIndex(0);
         }}
         onCustomSelect={() => {
-          setSelectedTimeframe('Custom');
-          setTimeframeVisible(false);
+          // Only open Set Date — keep the current range/API params until Apply.
           setDatePickerVisible(true);
         }}
       />
