@@ -26,7 +26,11 @@ describe('buildBroadcastPayload', () => {
     const { expires_at: webExpiry, ...webRest } = fromWeb;
     const { expires_at: nativeExpiry, ...nativeRest } = fromNative;
     expect(webRest).toEqual(nativeRest);
-    expect(Math.abs(Date.parse(webExpiry) - Date.parse(nativeExpiry))).toBeLessThan(1000);
+    expect(webExpiry).toEqual(expect.any(String));
+    expect(nativeExpiry).toEqual(expect.any(String));
+    expect(
+      Math.abs(Date.parse(webExpiry as string) - Date.parse(nativeExpiry as string))
+    ).toBeLessThan(1000);
     expect(fromWeb.audience).toEqual(['primary_admin', 'admin']);
     expect(fromWeb.priority).toBe('HIGH');
     expect(fromWeb.title).toBe('Gate closed');

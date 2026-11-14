@@ -160,7 +160,6 @@ export default function UserTabBar(props: UserTabBarProps) {
               accessibilityRole="button"
               accessibilityState={focused ? { selected: true } : {}}
               accessibilityLabel={options.title}
-              delayPressIn={0}
               onPressIn={onPress}
               style={styles.item}
             >
@@ -182,7 +181,6 @@ export default function UserTabBar(props: UserTabBarProps) {
               state.routes[state.index].key === addRoute.key ? { selected: true } : {}
             }
             accessibilityLabel={descriptors[addRoute.key].options.title}
-            delayPressIn={0}
             onPressIn={() => {
               if (!requireVerified()) return;
               const focused = state.routes[state.index].key === addRoute.key;

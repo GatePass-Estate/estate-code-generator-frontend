@@ -176,7 +176,7 @@ const Button = React.forwardRef<React.ElementRef<typeof Pressable>, ButtonProps>
               buttonVariants({ variant, size, className })
             )}
             ref={ref}
-            style={[brandFill, style]}
+            style={(state) => [brandFill, typeof style === 'function' ? style(state) : style]}
             {...(androidRipple ? { android_ripple: androidRipple } : {})}
             {...props}
           />

@@ -65,7 +65,14 @@ export default function Button({
         className
       )}
       {...props}
-      style={icon ? [{ height: 44, paddingVertical: 0 }, style] : style}
+      style={
+        icon
+          ? (state) => [
+              { height: 44, paddingVertical: 0 },
+              typeof style === 'function' ? style(state) : style,
+            ]
+          : style
+      }
       onPress={handlePress}
     >
       {loading ? (
