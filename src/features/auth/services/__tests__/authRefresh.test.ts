@@ -317,34 +317,48 @@ it('adopts a pair another tab already rotated instead of reusing the old refresh
 });
 
 it('on web without Web Locks, still adopts a pair another tab already rotated', async () => {
-  // The modules loadModules re-requires see a web Platform.
-  jest.doMock('react-native', () => {
-    const actual = jest.requireActual('react-native');
-    Object.defineProperty(actual.Platform, 'OS', { configurable: true, get: () => 'web' });
-    return actual;
-  });
   // Hide the Web Locks API (recent Node versions provide one).
   const nav = globalThis.navigator as unknown as { locks?: unknown };
+  const previousLocks = nav.locks;
   Object.defineProperty(nav, 'locks', { configurable: true, value: undefined });
   try {
     const m = loadModules(rotatingServer());
-    await signIn(m, 'r1', jwt('a1-expiring', 30));
-    // Another tab rotated and saved the new pair (web keeps it all in the shared localStorage).
-    await m.helpers.storeAuthState({
-      access_token: A2,
-      refresh_token: 'r2',
-      role: 'resident',
-      session_id: 's1',
-    });
+    // Force web after modules load so refreshSession's no-locks path re-reads storage.
+    const { Platform } = require('react-native');
+    const previousOS = Platform.OS;
+    Object.defineProperty(Platform, 'OS', { configurable: true, get: () => 'web' });
+    try {
+      await signIn(m, 'r1', jwt('a1-expiring', 30));
+      // Another tab rotated and saved the new pair (web keeps it all in the shared localStorage).
+      await m.helpers.storeAuthState({
+        access_token: A2,
+        refresh_token: 'r2',
+        role: 'resident',
+        session_id: 's1',
+      });
 
-    const response = await m.Api().get('/things/1');
+      // Store still holds the pre-rotation pair until refresh adopts from storage.
+      m.useAuthStore.setState({
+        access_token: jwt('a1-expiring', 30),
+        refresh_token: 'r1',
+        role: 'resident',
+        session_id: 's1',
+      });
 
-    expect(response.status).toBe(200);
-    expect(m.refreshCalls()).toHaveLength(0);
-    expect(m.useAuthStore.getState()).toMatchObject({ access_token: A2, refresh_token: 'r2' });
+      expect(Platform.OS).toBe('web');
+      expect(nav.locks).toBeUndefined();
+
+      const response = await m.Api().get('/things/1');
+
+      expect(response.status).toBe(200);
+      expect(m.refreshCalls()).toHaveLength(0);
+      expect(m.useAuthStore.getState()).toMatchObject({ access_token: A2, refresh_token: 'r2' });
+    } finally {
+      Object.defineProperty(Platform, 'OS', { configurable: true, value: previousOS });
+    }
   } finally {
-    jest.dontMock('react-native');
-    delete nav.locks;
+    if (previousLocks === undefined) delete nav.locks;
+    else Object.defineProperty(nav, 'locks', { configurable: true, value: previousLocks });
   }
 });
 
