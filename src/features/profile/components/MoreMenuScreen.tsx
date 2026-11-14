@@ -1,0 +1,601 @@
+import {
+  View,
+  Text,
+  Pressable,
+  ScrollView,
+  Alert,
+  Modal,
+  StyleSheet,
+  Linking,
+  TouchableOpacity,
+  Platform,
+} from 'react-native';
+import { router, Stack, useFocusEffect, useNavigation } from 'expo-router';
+import { logger } from '@/src/shared/utils/logger';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Feather, MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Path } from 'react-native-svg';
+import { useCallback, useRef, useState, ReactNode } from 'react';
+import { useAuth } from '@/src/features/auth/hooks/useAuthContext';
+import { useVerificationGate } from '@/src/features/auth/hooks/useAccountVerification';
+import { useFeatureGate, useUpgradePromptStore } from '@/src/features/billing/hooks/usePlan';
+import { useUserStore } from '@/src/store/userStore';
+import {
+  refreshEstateEntitlements,
+  refreshEstateEntitlementsIfOlderThan,
+  useEstateEntitlements,
+  useEstateTier,
+} from '@/src/features/billing';
+import { planBannerCopy } from '@/src/features/billing/utils/planAvailability';
+import { canViewBilling } from '@/src/features/billing/utils/billing';
+import { revokeAllSessions } from '@/src/features/auth';
+import { sharedStyles } from '@/src/shared/theme/styles';
+import ScreenHeader from '@/src/shared/components/layout/ScreenHeader';
+import StarRating from '@/src/shared/components/StarRating';
+import * as StoreReview from 'expo-store-review';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
+import {
+  AccountSecurityIcon,
+  DeleteAccountIcon,
+  IncidentReportIcon,
+  LinkedDevicesIcon,
+  LogOutIcon,
+  MyProfileIcon,
+  PrivacyPolicyIcon,
+  RateStarshipIcon,
+  RateUsIcon,
+  RatingsFeedbackIcon,
+  SendFeedbackIcon,
+  TermsOfServiceIcon,
+} from '@/src/assets/svgs';
+import { MoreMenuRow, SectionTitle } from '@/src/features/profile/components/MoreMenuRow';
+
+/** Back-to-back focus changes (e.g. closing a sheet) reuse a plan fetched this recently. */
+const PLAN_FOCUS_MAX_AGE_MS = 5_000;
+
+type MoreMenuScreenProps = {
+  title?: string;
+  subtitle?: string;
+};
+
+function SparklesIcon({ size = 20, color = 'white' }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M13 5L14.5 10.5L20 12L14.5 13.5L13 19L11.5 13.5L6 12L11.5 10.5L13 5Z"
+        stroke={color}
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M7 2L7.7 4.3L10 5L7.7 5.7L7 8L6.3 5.7L4 5L6.3 4.3L7 2Z"
+        stroke={color}
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+function BannerCard({
+  colors,
+  icon,
+  title,
+  subtitle,
+  onPress,
+}: {
+  colors: readonly [string, string, ...string[]];
+  icon: ReactNode;
+  title: string;
+  subtitle: string;
+  onPress?: () => void;
+}) {
+  return (
+    <Pressable onPress={onPress} disabled={!onPress}>
+      <LinearGradient
+        colors={colors}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={{ borderRadius: 8, marginBottom: 8 }}
+      >
+        <View className="flex-row items-center justify-between p-4">
+          <View className="flex-row items-center gap-3 flex-1 pr-4">
+            <View>{icon}</View>
+            <View className="flex-1 flex-col">
+              <Text className="text-[17px] font-inter-medium text-white mb-1">{title}</Text>
+              <Text className="text-[12px] font-inter-regular text-white opacity-90 leading-tight">
+                {subtitle}
+              </Text>
+            </View>
+          </View>
+          <Feather name="chevron-right" size={20} color="white" />
+        </View>
+      </LinearGradient>
+    </Pressable>
+  );
+}
+
+function SquareCard({
+  colors,
+  icon,
+  title,
+  subtitle,
+  onPress,
+}: {
+  colors: readonly [string, string, ...string[]];
+  icon: ReactNode;
+  title: string;
+  subtitle: string;
+  onPress?: () => void;
+}) {
+  return (
+    <Pressable onPress={onPress} className="flex-1">
+      <LinearGradient
+        colors={colors}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{ borderRadius: 8 }}
+      >
+        <View className="px-[10px] py-3 flex-col justify-between min-h-[105px]">
+          <View className="flex-row items-start gap-[6px]">
+            <View>{icon}</View>
+            <View className="flex-1 flex-col mt-[1px]">
+              <Text className="text-[12px] font-inter-regular text-white mb-1" numberOfLines={1}>
+                {title}
+              </Text>
+              <Text className="text-[10px] font-inter-regular text-white opacity-90 leading-tight">
+                {subtitle}
+              </Text>
+            </View>
+          </View>
+          <View className="items-end mt-1">
+            <View
+              className="w-5 h-5 rounded-full items-center justify-center"
+              style={{ borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.6)' }}
+            >
+              <Feather name="arrow-up-right" size={12} color="white" style={{ opacity: 0.9 }} />
+            </View>
+          </View>
+        </View>
+      </LinearGradient>
+    </Pressable>
+  );
+}
+
+export default function MoreMenuScreen({
+  title = 'More',
+  subtitle = 'Adjust Gatepass to your preference, manage account.',
+}: MoreMenuScreenProps) {
+  const navigation = useNavigation();
+  const { signOut } = useAuth();
+  const role = useUserStore((s) => s.role);
+  const { requestAccessWhenReady: requestIncidentReportAccess } = useFeatureGate(
+    'incident_report',
+    { notice: 'floating' }
+  );
+  const { requireVerified } = useVerificationGate();
+  const openingIncidentReportRef = useRef(false);
+  const [feedbackPopupStep, setFeedbackPopupStep] = useState<'NONE' | 'SELECT' | 'RATE_US'>('NONE');
+  const [starRating, setStarRating] = useState(0);
+
+  const isAdmin = role === 'admin' || role === 'primary_admin' || role === 'root';
+  const canOpenBilling = canViewBilling(role);
+
+  const handleOpenIncidentReport = useCallback(async () => {
+    // Unverified users get the Complete KYC modal before any plan/upgrade prompt.
+    if (!requireVerified()) return;
+    if (openingIncidentReportRef.current) return;
+    openingIncidentReportRef.current = true;
+    try {
+      const allowed = await requestIncidentReportAccess(() => navigation.isFocused());
+      if (!allowed || !navigation.isFocused()) return;
+      router.push({
+        pathname: '/incident-report',
+        params: { returnTo: role === 'security' ? '/security/more' : '/settings' },
+      });
+    } finally {
+      openingIncidentReportRef.current = false;
+    }
+  }, [navigation, requestIncidentReportAccess, requireVerified, role]);
+
+  const handleBack = useCallback(() => {
+    if (useUpgradePromptStore.getState().visible) return;
+    if (Platform.OS === 'web') {
+      navigation.goBack();
+      return;
+    }
+    router.dismissTo(role === 'security' ? '/security' : '/user');
+  }, [navigation, role]);
+
+  const estateId = useUserStore((s) => s.estate_id);
+  const { data: entitlements, error: entitlementsError } = useEstateEntitlements();
+  const { data: tier, error: tierError } = useEstateTier();
+  const plan = planBannerCopy({
+    tier,
+    tierSlug: entitlements?.tierSlug,
+    error: tierError ?? entitlementsError,
+  });
+
+  // The plan can change on another device (an upgrade, an ID approval), so re-check it each time
+  // this screen comes into view rather than trusting what was cached at sign-in.
+  useFocusEffect(
+    useCallback(() => {
+      if (estateId) refreshEstateEntitlementsIfOlderThan(estateId, PLAN_FOCUS_MAX_AGE_MS);
+    }, [estateId])
+  );
+
+  const confirmLogOutAllDevices = () => {
+    Alert.alert(
+      'Log out of all devices?',
+      'Every device signed in to this account will be signed out, including this one.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Log Out',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await revokeAllSessions();
+            } catch {
+              // Even if the revoke call fails we still clear this device, so the
+              // user is never left looking signed in after asking to sign out.
+            }
+            await signOut();
+          },
+        },
+      ]
+    );
+  };
+
+  const iconColor = '#113E55';
+
+  return (
+    <SafeAreaView style={[sharedStyles.container, { backgroundColor: '#F6F7F7' }]}>
+      <Stack.Screen options={{ headerShown: false }} />
+
+      <ScreenHeader
+        onBack={handleBack}
+        titleClassName="text-[21px] font-ubuntu-semibold text-primary"
+        title={title}
+        subtitle={subtitle || undefined}
+      />
+
+      <ScrollView
+        contentContainerStyle={{
+          paddingBottom: 40,
+          paddingTop: 24,
+          flexGrow: 0,
+        }}
+        showsVerticalScrollIndicator={false}
+      >
+        <View className="mb-6">
+          <BannerCard
+            colors={['#185A75', '#5796AB']}
+            icon={<Ionicons name="diamond-outline" size={24} color="white" />}
+            title={plan.title}
+            subtitle={plan.subtitle}
+            onPress={
+              plan.state === 'failed'
+                ? () => refreshEstateEntitlements()
+                : canOpenBilling
+                  ? () => router.push('/billing')
+                  : undefined
+            }
+          />
+          {isAdmin && (
+            <View className="flex-row gap-2">
+              <SquareCard
+                colors={['#F05E3E', '#F99573']}
+                icon={<MaterialCommunityIcons name="account-cog-outline" size={20} color="white" />}
+                title="ADMIN TOOLS"
+                subtitle="Control and manage access on your dashboard"
+                onPress={() => {
+                  if (!requireVerified()) return;
+                  router.push({ pathname: '/admin', params: { returnTo: '/settings' } });
+                }}
+              />
+              <SquareCard
+                colors={['#129B85', '#49CCB8']}
+                icon={<SparklesIcon size={20} color="white" />}
+                title="AI STORE"
+                subtitle="Get AI assistance on your dashboard"
+                onPress={() => {
+                  if (!requireVerified()) return;
+                  router.push('/ai-store');
+                }}
+              />
+            </View>
+          )}
+        </View>
+        <View className="flex-col gap-6">
+          <View>
+            <SectionTitle first>Account</SectionTitle>
+            <View className="flex-col gap-2">
+              <MoreMenuRow
+                icon={<MyProfileIcon color={iconColor} />}
+                label="My Profile"
+                onPress={() => router.push('/profile')}
+              />
+              <MoreMenuRow
+                icon={<AccountSecurityIcon color={iconColor} />}
+                label="Account Security"
+                onPress={() => router.push('/account-security')}
+              />
+              {canOpenBilling ? (
+                <MoreMenuRow
+                  icon={<Ionicons name="diamond-outline" size={22} color={iconColor} />}
+                  label="Billing and Subscription"
+                  onPress={() => router.push('/billing/choose-plan')}
+                />
+              ) : null}
+              <MoreMenuRow
+                icon={<IncidentReportIcon color={iconColor} />}
+                label="Reported Incidents"
+                onPress={() => void handleOpenIncidentReport()}
+              />
+              <MoreMenuRow
+                icon={<LinkedDevicesIcon color={iconColor} />}
+                label="Linked Devices"
+                onPress={() => router.push('/linked-devices')}
+              />
+            </View>
+          </View>
+
+          <View>
+            <SectionTitle>About</SectionTitle>
+            <View className="flex-col gap-2">
+              <MoreMenuRow
+                icon={<TermsOfServiceIcon color={iconColor} />}
+                label="Terms of Service"
+                onPress={() =>
+                  router.push({
+                    pathname: '/auth/tos',
+                    params: { readonly: 'true' },
+                  })
+                }
+              />
+              <MoreMenuRow
+                icon={<PrivacyPolicyIcon color={iconColor} />}
+                label="Privacy Policy"
+                onPress={() =>
+                  router.push({
+                    pathname: '/auth/data-protection-policy',
+                    params: { source: 'settings' },
+                  })
+                }
+              />
+              <MoreMenuRow
+                icon={<RatingsFeedbackIcon color={iconColor} />}
+                label="Rating and Feedback"
+                onPress={() => setFeedbackPopupStep('SELECT')}
+              />
+            </View>
+          </View>
+
+          <View>
+            <SectionTitle>Sign out</SectionTitle>
+            <View className="flex-col gap-[7px]">
+              <MoreMenuRow
+                icon={<LogOutIcon color={iconColor} />}
+                label="Log Out"
+                onPress={signOut}
+                showNavigateNext={false}
+              />
+              <MoreMenuRow
+                icon={<LogOutIcon color={iconColor} />}
+                label="Log Out of All Devices"
+                onPress={confirmLogOutAllDevices}
+                showNavigateNext={false}
+              />
+            </View>
+          </View>
+        </View>
+        <Pressable
+          onPress={() => router.push('/delete-account')}
+          className="flex-row items-center gap-4 rounded-[8px] border border-[#E30404] bg-white px-4 py-[18px] mt-6"
+        >
+          <DeleteAccountIcon />
+          <Text className="text-[13px] font-inter-regular text-[#E30404]">Delete Account</Text>
+        </Pressable>
+      </ScrollView>
+
+      {/* Select Feedback Type Modal */}
+      <Modal
+        visible={feedbackPopupStep === 'SELECT'}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setFeedbackPopupStep('NONE')}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setFeedbackPopupStep('NONE')}>
+          <Pressable style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Feedback</Text>
+            <Text style={styles.modalSubtitle}>Enjoying the app?</Text>
+
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={() => setFeedbackPopupStep('RATE_US')}
+            >
+              <Text style={styles.modalButtonText}>Rate Us</Text>
+              <RateUsIcon size={20} color="#113E55" />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={() => {
+                setFeedbackPopupStep('NONE');
+                router.push('/rating-feedback');
+              }}
+            >
+              <Text style={styles.modalButtonText}>Send Feedback</Text>
+              <SendFeedbackIcon size={20} color="#113E55" />
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Rate Us Modal */}
+      <Modal
+        visible={feedbackPopupStep === 'RATE_US'}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setFeedbackPopupStep('NONE')}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setFeedbackPopupStep('NONE')}>
+          <Pressable style={[styles.modalContent, { alignItems: 'center' }]}>
+            <View style={{ marginBottom: 12 }}>
+              <RateStarshipIcon size={52} />
+            </View>
+
+            <Text style={styles.rateUsTitle}>Are you loving your experience with us so far?</Text>
+
+            <View style={styles.ratingBox}>
+              <StarRating rating={starRating} onRatingChange={setStarRating} size={32} />
+              <Text style={styles.ratingSubtitle}>Give us a rating</Text>
+            </View>
+
+            <View style={{ flex: 1 }} />
+
+            <TouchableOpacity
+              style={styles.submitButton}
+              onPress={async () => {
+                try {
+                  const isExpoGo =
+                    Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+
+                  if (!isExpoGo && (await StoreReview.hasAction())) {
+                    await StoreReview.requestReview();
+                  } else {
+                    // Fallback to external linking if native in-app review is not available
+                    if (Platform.OS === 'android') {
+                      const androidPackageName = 'com.gatepassng.gms';
+                      const marketUrl = `market://details?id=${androidPackageName}`;
+                      const webUrl = `https://play.google.com/store/apps/details?id=${androidPackageName}`;
+
+                      const canOpen = await Linking.canOpenURL(marketUrl);
+                      if (canOpen) {
+                        await Linking.openURL(marketUrl);
+                      } else {
+                        await Linking.openURL(webUrl);
+                      }
+                    } else if (Platform.OS === 'ios') {
+                      // Use actual Apple App Store ID
+                      const appleAppId = '6766627688';
+                      const itunesUrl = `itms-apps://itunes.apple.com/app/id${appleAppId}?action=write-review`;
+                      const webUrl = `https://apps.apple.com/app/id${appleAppId}?action=write-review`;
+
+                      const canOpen = await Linking.canOpenURL(itunesUrl);
+                      if (canOpen) {
+                        await Linking.openURL(itunesUrl);
+                      } else {
+                        await Linking.openURL(webUrl);
+                      }
+                    }
+                  }
+                } catch (error) {
+                  logger.error('Could not open the app store', error);
+                }
+                setFeedbackPopupStep('NONE');
+              }}
+            >
+              <Text style={styles.submitButtonText}>Submit</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modalContent: {
+    backgroundColor: '#FFF',
+    borderRadius: 24,
+    paddingTop: 24,
+    paddingBottom: 32,
+    paddingHorizontal: 24,
+    width: 337,
+    height: 333,
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  modalTitle: {
+    fontSize: 28,
+    fontFamily: 'UbuntuSans-Bold',
+    color: '#081E27',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  modalSubtitle: {
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#113E55',
+    marginBottom: 32,
+    textAlign: 'center',
+  },
+  modalButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F2F4F5',
+    borderRadius: 16,
+    paddingHorizontal: 20,
+    height: 56,
+    marginBottom: 16,
+  },
+  modalButtonText: {
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#113E55',
+  },
+  iconCircleGradient: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  rateUsTitle: {
+    fontSize: 20,
+    fontFamily: 'UbuntuSans-Bold',
+    color: '#081E27',
+    textAlign: 'center',
+    lineHeight: 26,
+    marginBottom: 16,
+  },
+  ratingBox: {
+    width: '100%',
+    backgroundColor: '#F7F9F9',
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  ratingSubtitle: {
+    fontSize: 12,
+    fontFamily: 'Inter-Regular',
+    color: '#888',
+    marginTop: 8,
+  },
+  submitButton: {
+    backgroundColor: '#113E55',
+    borderRadius: 28,
+    height: 48,
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  submitButtonText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontFamily: 'UbuntuSans-Bold',
+  },
+});

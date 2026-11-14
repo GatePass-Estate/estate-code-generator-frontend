@@ -1,0 +1,195 @@
+import React from 'react';
+import { View, type ViewStyle, useWindowDimensions } from 'react-native';
+import Svg, { Polygon, Line, Circle } from 'react-native-svg';
+import TextTicker from 'react-native-text-ticker';
+
+export interface RadarSeries {
+  data: number[];
+  strokeColor: string;
+  fillColor: string;
+  dotColor: string;
+}
+
+interface AnomalyRadarChartProps {
+  series?: RadarSeries[];
+  labels?: string[];
+  size?: number;
+  gridColor?: string;
+  levels?: number;
+}
+
+const AnomalyRadarChart = ({
+  series = [
+    {
+      data: [90, 80, 60, 60, 60, 90], // Expected (Orange)
+      strokeColor: '#F46036',
+      fillColor: 'rgba(244, 96, 54, 0.28)',
+      dotColor: '#F46036',
+    },
+    {
+      data: [90, 60, 80, 90, 80, 90], // Actual (Teal)
+      strokeColor: '#1B998B',
+      fillColor: 'rgba(27, 153, 139, 0.28)',
+      dotColor: '#1B998B',
+    },
+  ],
+  labels = ['Data 1', 'Data 2', 'Data 3', 'Data 4', 'Data 5', 'Data 6'],
+  size,
+  gridColor = '#E5E7EB',
+  levels = 4,
+}: AnomalyRadarChartProps) => {
+  const { width: screenWidth } = useWindowDimensions();
+  const width = size ?? screenWidth - 32;
+  const height = 320;
+  const centerX = width / 2;
+  const centerY = height / 2;
+  const radius = Math.max(45, Math.min(centerX - 95, centerY - 45)); // Ensure wide enough margins for pills
+  const dataLength = labels.length;
+
+  const maxDataValue = Math.max(...(series?.flatMap((s) => s.data) || []));
+  const isDecimal = maxDataValue <= 1 && maxDataValue > 0;
+  const scaleMax = isDecimal ? Math.max(0.2, maxDataValue) : Math.max(20, maxDataValue);
+
+  // Calculate coordinates for a polygon given its values
+  const getCoordinates = (values: number[], scale = scaleMax) => {
+    return values
+      .map((val, i) => {
+        const angle = (Math.PI * 2 * i) / dataLength - Math.PI / 2;
+        const distance = (val / scale) * radius;
+        const x = centerX + distance * Math.cos(angle);
+        const y = centerY + distance * Math.sin(angle);
+        return `${x},${y}`;
+      })
+      .join(' ');
+  };
+
+  const getLabelCoordinates = (i: number, total: number, labelRadiusOffset = 12) => {
+    const angle = (Math.PI * 2 * i) / total - Math.PI / 2;
+    const distance = radius + labelRadiusOffset;
+    return {
+      x: centerX + distance * Math.cos(angle),
+      y: centerY + distance * Math.sin(angle),
+    };
+  };
+
+  return (
+    <View style={{ width: width, height: height, alignItems: 'center', justifyContent: 'center' }}>
+      <Svg width={width} height={height}>
+        {/* Draw background grid (concentric polygons) */}
+        {[...Array(levels)].map((_, i) => {
+          const levelRatio = (i + 1) / levels;
+          const bgData = Array(dataLength).fill(levelRatio * scaleMax);
+          return (
+            <Polygon
+              key={`grid-${i}`}
+              points={getCoordinates(bgData, scaleMax)}
+              fill="none"
+              stroke={gridColor}
+              strokeWidth="1.5"
+            />
+          );
+        })}
+
+        {/* Draw axes (lines from center to corners) */}
+        {labels.map((_, i) => {
+          const angle = (Math.PI * 2 * i) / dataLength - Math.PI / 2;
+          const x = centerX + radius * Math.cos(angle);
+          const y = centerY + radius * Math.sin(angle);
+          return (
+            <Line
+              key={`axis-${i}`}
+              x1={centerX}
+              y1={centerY}
+              x2={x}
+              y2={y}
+              stroke={gridColor}
+              strokeWidth="1.5"
+            />
+          );
+        })}
+
+        {/* Draw the data series polygons and points */}
+        {series.map((s, index) => (
+          <React.Fragment key={`series-${index}`}>
+            <Polygon
+              points={getCoordinates(s.data, scaleMax)}
+              fill={s.fillColor}
+              stroke={s.strokeColor}
+              strokeWidth="2"
+            />
+            {s.data.map((val, i) => {
+              const angle = (Math.PI * 2 * i) / dataLength - Math.PI / 2;
+              const distance = (val / scaleMax) * radius;
+              const x = centerX + distance * Math.cos(angle);
+              const y = centerY + distance * Math.sin(angle);
+              return <Circle key={`point-${index}-${i}`} cx={x} cy={y} r="4" fill={s.dotColor} />;
+            })}
+          </React.Fragment>
+        ))}
+      </Svg>
+
+      {/* Draw Labels as absolute positioned components outside SVG */}
+      {labels.map((label, i) => {
+        const { x, y } = getLabelCoordinates(i, dataLength, 20); // increase offset slightly to fit pills
+
+        const PALETTE = [
+          { text: '#F46036', bg: '#FFF0F0' },
+          { text: '#113E55', bg: '#E3EDF2' },
+          { text: '#D97706', bg: '#FEF3C7' },
+          { text: '#1B998B', bg: '#E5F5F3' },
+          { text: '#7C3AED', bg: '#F3E8FF' },
+          { text: '#78350F', bg: '#F0E6E1' },
+        ];
+        const colorSet = PALETTE[i % PALETTE.length];
+
+        const positionStyle: ViewStyle = { top: y - 12, justifyContent: 'center' };
+
+        if (x > centerX + 10) {
+          positionStyle.left = x;
+          positionStyle.alignItems = 'flex-start';
+        } else if (x < centerX - 10) {
+          positionStyle.right = width - x;
+          positionStyle.alignItems = 'flex-end';
+        } else {
+          positionStyle.left = 0;
+          positionStyle.right = 0;
+          positionStyle.alignItems = 'center';
+        }
+
+        return (
+          <View key={`label-${i}`} style={[{ position: 'absolute' }, positionStyle]}>
+            <View
+              style={{
+                backgroundColor: colorSet.bg,
+                paddingHorizontal: 8,
+                height: 26,
+                justifyContent: 'center',
+                borderRadius: 16,
+                maxWidth: 80,
+              }}
+            >
+              <TextTicker
+                duration={3000}
+                loop
+                bounce
+                repeatSpacer={20}
+                marqueeDelay={1000}
+                style={{
+                  color: colorSet.text,
+                  fontSize: 10.5,
+                  fontFamily: 'Inter_18pt-Medium',
+                }}
+              >
+                {label}
+              </TextTicker>
+            </View>
+          </View>
+        );
+      })}
+    </View>
+  );
+};
+
+export default React.memo(AnomalyRadarChart, (prevProps, nextProps) => {
+  return JSON.stringify(prevProps) === JSON.stringify(nextProps);
+});

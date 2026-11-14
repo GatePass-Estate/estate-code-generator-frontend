@@ -1,0 +1,262 @@
+import { errorMessage as thrownMessage } from '@/src/shared/services/api/errors';
+import CustomSafeAreaView from '@/src/features/auth/components/CustomSafeAreaView';
+import { activateUser } from '@/src/features/users/services/user';
+import { useCallback, useEffect, useState } from 'react';
+import {
+  TouchableOpacity,
+  Platform,
+  useWindowDimensions,
+  Pressable,
+  Image,
+  Text,
+  View,
+} from 'react-native';
+import { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
+import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
+import { grantActivationStatusAccess } from '@/src/features/auth/services/authPersistence';
+import { takePendingAuthToken } from '@/src/features/auth/services/pendingAuthToken';
+import { getWidthBreakpoint } from '@/src/shared/utils/helpers';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { cn } from '@/src/shared/utils/cn';
+import icons from '@/src/shared/constants/icons';
+import PasswordTextInput from '@/src/features/auth/components/PasswordTextInput';
+
+const MIN_PASSWORD_LENGTH = 8;
+
+interface SetPasswordFormProps {
+  password: string;
+  setPassword: (value: string) => void;
+  confirmPassword: string;
+  setConfirmPassword: (value: string) => void;
+  showPassword: boolean;
+  setShowPassword: (value: boolean) => void;
+  isSubmitting: boolean;
+  errorMessage: string;
+  handleSubmit: () => void;
+  isLargeScreen: boolean;
+}
+
+const SetPasswordForm = ({
+  password,
+  setPassword,
+  confirmPassword,
+  setConfirmPassword,
+  showPassword,
+  setShowPassword,
+  isSubmitting,
+  errorMessage,
+  handleSubmit,
+  isLargeScreen,
+}: SetPasswordFormProps) => (
+  <View className={cn('w-full max-w-xl', isLargeScreen ? 'gap-8' : 'gap-6')}>
+    <View className="">
+      <Text
+        className={cn('text-primary font-ubuntu-medium', isLargeScreen ? 'text-5xl' : 'text-4xl')}
+      >
+        Set Password
+      </Text>
+    </View>
+
+    {errorMessage ? (
+      <View className="bg-red-50 p-4 rounded-lg">
+        <Text className="text-danger text-sm text-center">{errorMessage}</Text>
+      </View>
+    ) : null}
+
+    <View>
+      <Text className={cn(`pb-1 ${password ? 'text-primary' : 'text-grey'}`, 'text-base')}>
+        New password
+      </Text>
+      <View className="relative">
+        <PasswordTextInput
+          placeholder="Enter your new password"
+          visible={showPassword}
+          value={password}
+          onChangeText={setPassword}
+          editable={!isSubmitting}
+          className="mt-1 rounded-2xl bg-light-grey px-4 py-5 pr-12 text-primary"
+          placeholderTextColor="#9B9797"
+        />
+        <Pressable
+          onPress={() => setShowPassword(!showPassword)}
+          className="absolute right-3 top-6"
+          disabled={isSubmitting}
+        >
+          <Image
+            source={showPassword ? icons.eye : icons.hiddenEye}
+            style={{ width: 20, height: 20 }}
+            resizeMode="contain"
+          />
+        </Pressable>
+      </View>
+    </View>
+
+    <View>
+      <Text className={cn(`pb-1 ${confirmPassword ? 'text-primary' : 'text-grey'}`, 'text-base')}>
+        Confirm password
+      </Text>
+      <View className="relative">
+        <PasswordTextInput
+          placeholder="Confirm your password"
+          visible={showPassword}
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+          editable={!isSubmitting}
+          className="mt-1 rounded-2xl bg-light-grey px-4 py-5 pr-12 text-primary"
+          placeholderTextColor="#9B9797"
+        />
+        <Pressable
+          onPress={() => setShowPassword(!showPassword)}
+          className="absolute right-3 top-6"
+          disabled={isSubmitting}
+        >
+          <Image
+            source={showPassword ? icons.eye : icons.hiddenEye}
+            style={{ width: 20, height: 20 }}
+            resizeMode="contain"
+          />
+        </Pressable>
+      </View>
+    </View>
+
+    <View className="mx-10">
+      <TouchableOpacity
+        onPress={handleSubmit}
+        disabled={isSubmitting}
+        className={cn(
+          'h-14 bg-primary rounded-full justify-center items-center w-full',
+          isSubmitting && 'opacity-70'
+        )}
+      >
+        {isSubmitting ? (
+          <CircleLoader size={22} tone="light" />
+        ) : (
+          <Text className="text-white font-ubuntu-semibold text-lg">Submit</Text>
+        )}
+      </TouchableOpacity>
+    </View>
+  </View>
+);
+
+const WebSetPasswordView = (props: SetPasswordFormProps) => (
+  <View className="flex-1 w-full bg-white items-center justify-center px-5 py-10">
+    <View
+      className="w-full max-w-[600px] rounded-lg items-center px-8 py-10"
+      style={{ backgroundColor: '#fbfeff' }}
+    >
+      <SetPasswordForm {...props} />
+    </View>
+  </View>
+);
+
+const SetPasswordPage = () => {
+  const params = useLocalSearchParams<{
+    token?: string | string[];
+    email?: string;
+  }>();
+  // Prefer the in-memory stash from /activate so the token is not kept in route params.
+  const [token] = useState(() => {
+    const stashed = takePendingAuthToken();
+    if (stashed.token) return stashed.token;
+    const tokenFromParams = Array.isArray(params.token) ? params.token[0] : params.token;
+    if (tokenFromParams) return tokenFromParams;
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      return new URLSearchParams(window.location.search).get('token') ?? undefined;
+    }
+    return undefined;
+  });
+  const router = useRouter();
+  const { width } = useWindowDimensions();
+  const isLargeScreen = width > getWidthBreakpoint();
+
+  const [password, setPassword] = useState<string>('');
+  const [confirmPassword, setConfirmPassword] = useState<string>('');
+  const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
+  useEffect(() => {
+    setErrorMessage('');
+  }, [password, confirmPassword]);
+
+  const handleSubmit = useCallback(async () => {
+    setErrorMessage('');
+
+    if (!password || !confirmPassword) {
+      setErrorMessage('Both password fields are required.');
+      return;
+    }
+
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      setErrorMessage(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setErrorMessage('Passwords do not match.');
+      return;
+    }
+
+    if (!token) {
+      setErrorMessage('Verification failed. Please try the link again.');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      await activateUser({
+        token,
+        new_password: password,
+      });
+      grantActivationStatusAccess();
+      router.replace('/auth/email-activation-status');
+    } catch (error: unknown) {
+      setErrorMessage(thrownMessage(error) || 'Failed to set password. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [password, confirmPassword, token, router]);
+
+  if (!token) {
+    grantActivationStatusAccess();
+    return <Redirect href="/auth/email-activation-status?status=error" />;
+  }
+
+  const formProps: SetPasswordFormProps = {
+    password,
+    setPassword,
+    confirmPassword,
+    setConfirmPassword,
+    showPassword,
+    setShowPassword,
+    isSubmitting,
+    errorMessage,
+    handleSubmit,
+    isLargeScreen,
+  };
+
+  if (Platform.OS === 'web' && isLargeScreen) {
+    return <WebSetPasswordView {...formProps} />;
+  }
+
+  if (Platform.OS === 'web') {
+    return (
+      <SafeAreaView className="flex-1 bg-white">
+        <View className="flex-1 px-6 pb-10 justify-center max-w-xl w-full self-center mx-auto">
+          <SetPasswordForm {...formProps} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <CustomSafeAreaView>
+      <View className="px-5 flex-1 w-full flex flex-col justify-center">
+        <SetPasswordForm {...formProps} />
+      </View>
+    </CustomSafeAreaView>
+  );
+};
+
+export default SetPasswordPage;

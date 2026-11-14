@@ -1,6 +1,1 @@
-import { Platform } from 'react-native';
-import ReportMobile from './index.native';
-
-export default Platform.select({
-  default: ReportMobile,
-});
+export { default } from '@/src/features/ai/screens/incidents/report/index';

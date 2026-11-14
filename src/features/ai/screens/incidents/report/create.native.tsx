@@ -1,0 +1,305 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  BackHandler,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
+} from 'react-native';
+import { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import Back from '@/src/shared/components/navigation/Back';
+import ActionConfirmModal from '@/src/shared/components/feedback/ActionConfirmModal';
+import { useFeatureGate } from '@/src/features/billing/hooks/usePlan';
+import { useCreateIncidentReport } from '@/src/features/ai/hooks/operations';
+import {
+  leaveIncidentReport,
+  parseIncidentReportReturnTo,
+} from '@/src/features/ai/utils/incidentReportNavigation';
+import { useUserStore } from '@/src/store/userStore';
+import SecurityTabBar from '@/src/features/scanner/components/SecurityTabBar';
+import {
+  clearIncidentReportDraft,
+  loadIncidentReportDraft,
+  saveIncidentReportDraft,
+} from '@/src/features/ai/utils/incidentReportDraft';
+
+function parseCategories(value: string | string[] | undefined): string[] {
+  if (typeof value !== 'string') return [];
+  try {
+    const parsed: unknown = JSON.parse(value);
+    return Array.isArray(parsed)
+      ? parsed.filter((item): item is string => typeof item === 'string' && Boolean(item.trim()))
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+export default function IncidentReportCreateScreen() {
+  const router = useRouter();
+  const {
+    categories: categoryParam,
+    customCategory: customCategoryParam,
+    returnTo: returnToParam,
+  } = useLocalSearchParams<{
+    categories?: string;
+    customCategory?: string;
+    returnTo?: string;
+  }>();
+  const returnTo = parseIncidentReportReturnTo(returnToParam);
+  const categories = useMemo(() => parseCategories(categoryParam), [categoryParam]);
+  const customCategory = typeof customCategoryParam === 'string' ? customCategoryParam.trim() : '';
+  const role = useUserStore((state) => state.role);
+  const userId = useUserStore((state) => state.user_id);
+  const insets = useSafeAreaInsets();
+  const { height } = useWindowDimensions();
+  const { requestAccessWhenReady } = useFeatureGate('incident_report', { notice: 'floating' });
+  const createReport = useCreateIncidentReport();
+  const [checkingAccess, setCheckingAccess] = useState(true);
+  const [title, setTitle] = useState('');
+  const [narrative, setNarrative] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [confirmSubmit, setConfirmSubmit] = useState(false);
+  const [draftLoaded, setDraftLoaded] = useState(false);
+  const [error, setError] = useState('');
+  const clearedDraft = useRef(false);
+  const latestDraft = useRef({ categories, customCategory, title, narrative });
+  latestDraft.current = { categories, customCategory, title, narrative };
+  const draftReady = useRef(false);
+  draftReady.current = draftLoaded;
+  const hasDraft = Boolean(title.trim() || narrative.trim());
+
+  useEffect(() => {
+    let active = true;
+    void loadIncidentReportDraft(userId)
+      .then((draft) => {
+        if (!active || !draft) return;
+        setTitle(draft.title);
+        setNarrative(draft.narrative);
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (active) setDraftLoaded(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, [userId]);
+
+  const saveDraft = useCallback(
+    () =>
+      saveIncidentReportDraft(userId, {
+        categories,
+        customCategory,
+        title,
+        narrative,
+      }),
+    [categories, customCategory, narrative, title, userId]
+  );
+
+  useEffect(() => {
+    if (!draftLoaded || clearedDraft.current || !userId) return;
+    const timer = setTimeout(() => {
+      void saveDraft().catch(() => setError('Unable to save your draft. Please try again.'));
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [draftLoaded, saveDraft, userId]);
+
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        if (draftReady.current && !clearedDraft.current && userId) {
+          void saveIncidentReportDraft(userId, latestDraft.current).catch(() => undefined);
+        }
+      };
+    }, [userId])
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      if (
+        role !== 'resident' &&
+        role !== 'security' &&
+        role !== 'admin' &&
+        role !== 'primary_admin'
+      ) {
+        router.replace('/user/report');
+        return () => {
+          active = false;
+        };
+      }
+      void (async () => {
+        const allowed = await requestAccessWhenReady(() => active);
+        if (!active) return;
+        if (allowed) setCheckingAccess(false);
+        else leaveIncidentReport(returnTo, router);
+      })();
+      return () => {
+        active = false;
+      };
+    }, [requestAccessWhenReady, returnTo, role, router])
+  );
+
+  const requestExit = useCallback(async () => {
+    if (submitting || !draftLoaded) return;
+    if (!userId) {
+      setError('Unable to save your draft. Please sign in again.');
+      return;
+    }
+    try {
+      await saveDraft();
+      router.replace({ pathname: '/user/report/category', params: { returnTo } });
+    } catch {
+      setError('Unable to save your draft. Please try again.');
+    }
+  }, [draftLoaded, returnTo, router, saveDraft, submitting, userId]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (Platform.OS !== 'android') return;
+      const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+        void requestExit();
+        return true;
+      });
+      return () => subscription.remove();
+    }, [requestExit])
+  );
+
+  const requestSubmit = () => {
+    if (submitting || checkingAccess) return;
+    if ((categories.length === 0 && !customCategory) || !title.trim() || !narrative.trim()) {
+      setError('Enter a title and details before submitting your report.');
+      return;
+    }
+    setError('');
+    setConfirmSubmit(true);
+  };
+
+  const submit = async () => {
+    if (submitting || checkingAccess || !confirmSubmit) return;
+    setSubmitting(true);
+    setError('');
+    try {
+      await createReport.mutateAsync({
+        title: title.trim(),
+        category: categories,
+        custom_category: customCategory || null,
+        narrative: narrative.trim(),
+        occurred_at: new Date().toISOString(),
+      });
+      clearedDraft.current = true;
+      await clearIncidentReportDraft(userId).catch(() => undefined);
+      setConfirmSubmit(false);
+      leaveIncidentReport(returnTo, router);
+    } catch {
+      setConfirmSubmit(false);
+      setError('Unable to submit your report. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <SafeAreaView className="flex-1 bg-[#F6F7F7]" edges={['top', 'bottom']}>
+      <Stack.Screen options={{ headerShown: false, gestureEnabled: !hasDraft }} />
+      <KeyboardAvoidingView
+        className="flex-1"
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{
+            flexGrow: 1,
+            paddingTop: 19,
+            paddingBottom: Math.max(
+              role === 'security' ? 96 : 32,
+              height * (126 / 847) - insets.bottom
+            ),
+          }}
+        >
+          <View className="px-5">
+            <Back
+              type="short-arrow"
+              showText={false}
+              showBorder
+              borderSize={30}
+              leftOffset={-3}
+              onPress={() => void requestExit()}
+            />
+            <Text className="-ml-[3px] mt-[22px] font-ubuntu-medium text-heading leading-[33px] text-primary">
+              Incident Report
+            </Text>
+            <Text className="ml-[1px] mt-[22px] font-inter-medium text-2xs leading-[11px] text-[#878686]">
+              Describe your issue
+            </Text>
+            <TextInput
+              value={title}
+              onChangeText={(value) => {
+                setTitle(value);
+                setError('');
+              }}
+              placeholder="Give a short title of the incident"
+              placeholderTextColor="#878686"
+              accessibilityLabel="Incident title"
+              maxLength={160}
+              className="ml-[1px] mt-[8px] h-12 rounded-[16px] bg-[#EFF1F1] px-4 font-inter-light text-[14px] text-[#0A1F29]"
+            />
+            <TextInput
+              value={narrative}
+              onChangeText={(value) => {
+                setNarrative(value);
+                setError('');
+              }}
+              placeholder="Give more details about the incident"
+              placeholderTextColor="#878686"
+              accessibilityLabel="Incident details"
+              maxLength={1000}
+              multiline
+              textAlignVertical="top"
+              className="ml-[1px] mt-[16px] h-[289px] rounded-[16px] bg-[#EFF1F1] p-4 font-inter-light text-[14px] leading-[20px] text-[#0A1F29]"
+            />
+            <Text className="mr-[4px] mt-[6px] text-right font-inter-light text-caption leading-[14px] text-[#878686]">
+              {narrative.length}/1000
+            </Text>
+            {error ? (
+              <Text className="mt-3 font-inter-regular text-[13px] text-[#B42318]">{error}</Text>
+            ) : null}
+          </View>
+
+          <View className="flex-1" />
+          <TouchableOpacity
+            onPress={requestSubmit}
+            disabled={submitting || checkingAccess || !draftLoaded}
+            accessibilityRole="button"
+            className="mx-auto h-[44px] w-[278px] max-w-[80%] items-center justify-center rounded-[24px] bg-primary"
+          >
+            {submitting ? (
+              <CircleLoader size={22} tone="light" />
+            ) : (
+              <Text className="font-ubuntu-semibold text-[14px] leading-[18px] tracking-[-0.24px] text-[#F6F7F7]">
+                Submit
+              </Text>
+            )}
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
+      {role === 'security' ? <SecurityTabBar activeTab="report" /> : null}
+      <ActionConfirmModal
+        visible={confirmSubmit}
+        title="Submit Incident Report?"
+        message="Send this incident report to your estate administrators?"
+        confirmLabel="Submit Report"
+        busy={submitting}
+        onConfirm={() => void submit()}
+        onCancel={() => setConfirmSubmit(false)}
+      />
+    </SafeAreaView>
+  );
+}

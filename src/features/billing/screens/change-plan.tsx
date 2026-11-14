@@ -1,0 +1,368 @@
+import { useGoBack } from '@/src/shared/hooks/useGoBack';
+import { useMemo, useState } from 'react';
+import { Alert, ScrollView, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Stack } from 'expo-router';
+import ScreenHeader from '@/src/shared/components/layout/ScreenHeader';
+import Button, { BUTTON_MARGIN_BOTTOM } from '@/src/shared/components/Button';
+import {
+  BillingLoadError,
+  BillingLoading,
+  BillingSectionCard,
+  BillingViewOnlyNote,
+  InfoNote,
+  PlanCard,
+  PlanFeatureList,
+  PlanTabs,
+  RadioOptionCard,
+} from '@/src/features/billing/components';
+import PendingRequestsSheet, {
+  usePendingRequests,
+} from '@/src/features/billing/components/PendingRequestsSheet';
+import {
+  useBillingQuote,
+  useBillingTiers,
+  useScheduleTierChange,
+} from '@/src/features/billing/hooks/billing';
+import { useBillingScreenGuard } from '@/src/features/billing/hooks/useBillingScreenGuard';
+import {
+  showCheckoutOutcomeAlert,
+  usePaystackCheckout,
+} from '@/src/features/billing/utils/billingCheckout';
+import {
+  formatBillingDate,
+  formatMoney,
+  formatMonthlyCharge,
+  formatPlanName,
+  getBilledCaption,
+  getCurrentPlanQuoteParams,
+  getNextBillingQuoteParams,
+  getPlanDirection,
+  getPlanRenewalFootnote,
+  getTierFeatureRows,
+  inferPeriodMonths,
+} from '@/src/features/billing/utils/billing';
+import { sharedStyles } from '@/src/shared/theme/styles';
+
+type ChangeTiming = 'immediate' | 'next_cycle';
+
+export default function ChangePlanScreen() {
+  const goBack = useGoBack();
+  // Plan changes need a running paid plan; anything else picks a plan first.
+  const {
+    canManage,
+    subscriptionQuery,
+    subscription,
+    tier: currentTier,
+    redirecting,
+  } = useBillingScreenGuard({ requirePaidPlan: true });
+  const tiersQuery = useBillingTiers();
+  const scheduleTierChange = useScheduleTierChange();
+  const { startCheckout, isRunning: checkoutRunning, checkoutSheet } = usePaystackCheckout();
+  const pendingRequests = usePendingRequests();
+
+  const tiers = tiersQuery.data;
+
+  const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
+  const [timing, setTiming] = useState<ChangeTiming | null>(null);
+  const [pendingVisible, setPendingVisible] = useState(false);
+
+  // Designer annotation: the current plan is not offered as a tab.
+  const otherTiers = useMemo(
+    () =>
+      (tiers ?? []).filter(
+        (tier) => tier.id !== currentTier?.id && tier.slug !== currentTier?.slug
+      ),
+    [tiers, currentTier]
+  );
+  const defaultSlug =
+    otherTiers.find((tier) => tier.display_order > (currentTier?.display_order ?? -1))?.slug ??
+    otherTiers[0]?.slug ??
+    null;
+  const target =
+    otherTiers.find((tier) => tier.slug === selectedSlug) ??
+    otherTiers.find((tier) => tier.slug === defaultSlug) ??
+    null;
+
+  const direction =
+    target && currentTier
+      ? getPlanDirection(currentTier.display_order, target.display_order)
+      : 'upgrade';
+  const isUpgrade = direction === 'upgrade';
+  const isCustomTarget = !!target?.is_custom;
+  const isFreeTarget = target?.slug === 'access';
+  const autoRenew = !!subscription?.auto_renew;
+  const hasPendingTierChange = !!subscription?.pending_tier_slug;
+
+  // Downgrades only happen at renewal, so that option is pre-selected; upgrades need a pick.
+  const effectiveTiming: ChangeTiming | null = isUpgrade
+    ? timing === 'next_cycle' && !autoRenew
+      ? null
+      : timing
+    : autoRenew
+      ? 'next_cycle'
+      : null;
+
+  // What the first renewal on the new plan charges: the whole cycle at the seats it renews with,
+  // priced like Your Current Plan's billing amount once the change is scheduled.
+  const nextCycleQuote = useBillingQuote(
+    target && !isCustomTarget && !isFreeTarget
+      ? getNextBillingQuoteParams(subscription, currentTier, { nextTier: target })
+      : null
+  );
+  // The card's "/month" figure: the selected plan's monthly charge at the estate's current seats.
+  const monthlyQuote = useBillingQuote(
+    target && !isCustomTarget && !isFreeTarget
+      ? getCurrentPlanQuoteParams(subscription, target, subscription?.covered_users ?? 0, 1)
+      : null
+  );
+  const nextCycleCaption = getBilledCaption(
+    inferPeriodMonths(subscription?.period_start, subscription?.period_end)
+  );
+  const nextCycleAmount = isFreeTarget
+    ? 'Free'
+    : nextCycleQuote.data && !nextCycleQuote.isPlaceholderData
+      ? formatMoney(nextCycleQuote.data.client_total, nextCycleQuote.data.currency_code)
+      : nextCycleQuote.isError
+        ? 'Unavailable'
+        : 'Calculating…';
+
+  const busy = scheduleTierChange.isPending || checkoutRunning;
+  const canSubmit = canManage && !!target && !isCustomTarget && effectiveTiming !== null && !busy;
+
+  const periodEnd = subscription?.period_end ?? null;
+  const effectiveLong = formatBillingDate(periodEnd);
+  const effectiveShort = formatBillingDate(periodEnd, 'short');
+
+  const selectTab = (slug: string) => {
+    setSelectedSlug(slug);
+    setTiming(null);
+  };
+
+  const scheduleChange = () => {
+    if (!target) return;
+    const when = effectiveLong ? ` on ${effectiveLong}` : ' at your next renewal';
+    Alert.alert(
+      isUpgrade ? 'Upgrade next billing cycle?' : 'Downgrade next billing cycle?',
+      `Your plan will change to ${target.name}${when}. You can cancel this from your pending requests before then.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Confirm',
+          onPress: () =>
+            scheduleTierChange.mutate(target.slug, {
+              onSuccess: (result) => {
+                const date = formatBillingDate(result.effective_from ?? periodEnd);
+                Alert.alert(
+                  'Plan change scheduled',
+                  `Your plan will change to ${target.name}${date ? ` on ${date}` : ' at your next renewal'}.`
+                );
+                goBack();
+              },
+              onError: (error) => Alert.alert('Could not change plan', error.message),
+            }),
+        },
+      ]
+    );
+  };
+
+  const upgradeNow = async () => {
+    if (!target) return;
+    const outcome = await startCheckout({
+      checkout_kind: 'tier_upgrade_immediate',
+      tier_slug: target.slug,
+    });
+    showCheckoutOutcomeAlert(outcome, 'Your plan has been upgraded.');
+    if (outcome === 'paid') goBack();
+  };
+
+  const handleSubmit = () => {
+    if (effectiveTiming === 'immediate') upgradeNow();
+    else if (effectiveTiming === 'next_cycle') scheduleChange();
+  };
+
+  const retry = () => {
+    subscriptionQuery.refetch();
+    tiersQuery.refetch();
+  };
+
+  const renderOptions = () => {
+    if (!target) return null;
+
+    if (isCustomTarget) {
+      return (
+        <InfoNote
+          className="mt-10"
+          text="Custom plans can't be scheduled as a plan change yet. Contact GatePass support to switch to a custom plan."
+        />
+      );
+    }
+
+    if (hasPendingTierChange) {
+      const count = pendingRequests.length;
+      return (
+        <BillingSectionCard
+          className="mt-6"
+          eyebrow="Subscription changes"
+          title="Pending Request"
+          trailing={`${count} ${count === 1 ? 'Request' : 'Requests'}`}
+          actionLabel="View"
+          onAction={() => setPendingVisible(true)}
+        />
+      );
+    }
+
+    const nextCycleDescription = effectiveLong
+      ? `Your new plan will take effect on ${effectiveLong}`
+      : 'Your new plan will take effect at your next renewal';
+
+    return (
+      <View className="mt-10 gap-4">
+        {!autoRenew ? (
+          <InfoNote
+            text={
+              isUpgrade
+                ? 'Auto-renewal is off, so plan changes can’t be scheduled. Immediate upgrades are still available.'
+                : 'Auto-renewal is off, so plan changes can’t be scheduled.'
+            }
+          />
+        ) : null}
+
+        {isUpgrade ? (
+          <>
+            <RadioOptionCard
+              selected={effectiveTiming === 'immediate'}
+              onPress={() => setTiming('immediate')}
+              disabled={!canManage || busy}
+              title="Immediate Upgrade"
+              description="Pay the prorated amount for the remaining period and get access to the plan right away."
+              amount="Calculated at checkout"
+              footnote={
+                effectiveShort ? `Prorated charge (today – ${effectiveShort})` : 'Prorated charge'
+              }
+            />
+            <RadioOptionCard
+              selected={effectiveTiming === 'next_cycle'}
+              onPress={() => setTiming('next_cycle')}
+              disabled={!canManage || busy || !autoRenew}
+              title="Upgrade next billing cycle"
+              description={nextCycleDescription}
+              amount={nextCycleAmount}
+              footnote={nextCycleCaption}
+            />
+          </>
+        ) : (
+          <RadioOptionCard
+            selected={effectiveTiming === 'next_cycle'}
+            onPress={() => setTiming('next_cycle')}
+            disabled={!canManage || busy || !autoRenew}
+            title="Downgrade next billing cycle"
+            description={nextCycleDescription}
+            amount={nextCycleAmount}
+            footnote={isFreeTarget ? null : nextCycleCaption}
+          />
+        )}
+      </View>
+    );
+  };
+
+  const renderContent = () => {
+    const loading =
+      redirecting || subscriptionQuery.isPending || (tiersQuery.isPending && !tiersQuery.isError);
+
+    if (subscriptionQuery.isError || tiersQuery.isError) {
+      const error = subscriptionQuery.error ?? tiersQuery.error;
+      return (
+        <BillingLoadError
+          message={error?.message || 'Could not load the available plans.'}
+          onRetry={retry}
+        />
+      );
+    }
+
+    if (loading) return <BillingLoading />;
+
+    // Placeholder data is another plan's figure (kept while switching tabs), so it isn't shown.
+    const priceLabel = isFreeTarget
+      ? 'Free'
+      : monthlyQuote.data?.tier_slug === target?.slug
+        ? formatMonthlyCharge(monthlyQuote.data)
+        : null;
+    // Figma: the card carries the current subscription's renew/expiry line, as on Your Current Plan.
+    const footnote = isCustomTarget ? 'Custom pricing' : getPlanRenewalFootnote(subscription);
+    const hideButton = hasPendingTierChange && !isCustomTarget;
+
+    return (
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: BUTTON_MARGIN_BOTTOM }}
+      >
+        <Text className="mt-2 font-inter-regular text-caption leading-[13.6px] text-[#878686]">
+          {'You are currently on the '}
+          <Text className="font-inter-semibold text-[#5B5E61]">
+            {formatPlanName(currentTier?.name)}
+          </Text>
+          {' plan, select another to upgrade or downgrade.'}
+        </Text>
+
+        {otherTiers.length > 0 ? (
+          <PlanTabs
+            className="-mx-5 mt-6"
+            tabs={otherTiers.map((tier) => ({ key: tier.slug, label: tier.name }))}
+            value={target?.slug ?? null}
+            onChange={selectTab}
+          />
+        ) : null}
+
+        {target ? (
+          <>
+            <PlanCard
+              className="mt-9"
+              slug={target.slug}
+              name={target.name}
+              priceLabel={priceLabel}
+              unitLabel={priceLabel && !isFreeTarget ? '/month' : undefined}
+              footnote={footnote}
+            />
+            <PlanFeatureList
+              className="mt-6 px-10 py-[21px]"
+              rows={getTierFeatureRows(target)}
+              mutedIncluded
+            />
+          </>
+        ) : (
+          <Text className="mt-10 text-center font-inter-regular text-sm text-[#878686]">
+            No other plans are available right now.
+          </Text>
+        )}
+
+        {renderOptions()}
+
+        {!canManage ? <BillingViewOnlyNote className="mt-4" /> : null}
+
+        {target && !hideButton ? (
+          <View className="mt-[79px] items-center">
+            <Button
+              label={isUpgrade ? 'Upgrade' : 'Downgrade'}
+              onPress={handleSubmit}
+              disabled={!canSubmit}
+              loading={busy}
+            />
+          </View>
+        ) : null}
+      </ScrollView>
+    );
+  };
+
+  return (
+    <SafeAreaView style={[sharedStyles.container, { backgroundColor: '#F6F7F7' }]}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <ScreenHeader showBack title="Change Plan" titleClassName="leading-[32.8px]" />
+
+      {renderContent()}
+
+      <PendingRequestsSheet visible={pendingVisible} onClose={() => setPendingVisible(false)} />
+      {checkoutSheet}
+    </SafeAreaView>
+  );
+}

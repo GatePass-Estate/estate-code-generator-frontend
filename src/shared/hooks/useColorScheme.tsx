@@ -1,0 +1,25 @@
+import { useColorScheme as useNativewindColorScheme } from 'nativewind';
+
+import { COLORS } from '@/src/shared/theme/colors';
+
+function useColorScheme() {
+  const { colorScheme, setColorScheme: setNativeWindColorScheme } = useNativewindColorScheme();
+
+  async function setColorScheme(nextScheme: 'light' | 'dark') {
+    setNativeWindColorScheme(nextScheme);
+  }
+
+  function toggleColorScheme() {
+    return setColorScheme(colorScheme === 'light' ? 'dark' : 'light');
+  }
+
+  return {
+    colorScheme: colorScheme ?? 'light',
+    isDarkColorScheme: colorScheme === 'dark',
+    setColorScheme,
+    toggleColorScheme,
+    colors: COLORS[colorScheme ?? 'light'],
+  };
+}
+
+export { useColorScheme };

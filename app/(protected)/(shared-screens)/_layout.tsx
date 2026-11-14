@@ -1,6 +1,6 @@
-import { sharedStyles } from '@/src/theme/styles';
-import { menuRoutes } from '../user/_layout';
-import NavigationContainer from '@/src/components/common/NavigationContainer';
+import { sharedStyles } from '@/src/shared/theme/styles';
+import { menuRoutes } from '@/src/features/dashboard/components/menuRoutes';
+import NavigationContainer from '@/src/features/dashboard/components/NavigationContainer';
 
 export default function SharedScreenLayout() {
   return (
