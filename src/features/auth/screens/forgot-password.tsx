@@ -101,8 +101,10 @@ export default function ForgotPassword() {
 
   const submit = useCallback(
     async (emailValue: string) => {
-      await recordForgotPasswordAttempt(emailValue);
+      // Only start the resend cooldown after the API accepts the request —
+      // invalid emails must not lock Resend / Submit behind a countdown.
       await forgotPassword(emailValue, estateId);
+      await recordForgotPasswordAttempt(emailValue);
     },
     [estateId]
   );
