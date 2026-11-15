@@ -39,7 +39,7 @@ import {
 } from '@/src/features/billing/hooks/billing';
 import { useBillingScreenGuard } from '@/src/features/billing/hooks/useBillingScreenGuard';
 import { getCheckoutQuote } from '@/src/features/billing/services/billing';
-import { useEstateUsersSummary } from '@/src/features/admin/hooks/estateUsers';
+import { useEstateUsersSummary } from '@/src/features/users/hooks/estateUsers';
 import {
   buildCustomEntitlements,
   formatMoney,

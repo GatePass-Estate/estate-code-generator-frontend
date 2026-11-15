@@ -4,30 +4,24 @@ import {
   Pressable,
   RefreshControl,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+import AppTextInput from '@/src/shared/components/form/AppTextInput';
 import { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
 import { Feather } from '@expo/vector-icons';
 import { NavigationBar as AndroidNavigationBar } from 'expo-navigation-bar';
-import { Stack, router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useCallback, useDeferredValue, useEffect, useState } from 'react';
+import { Stack } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import Back from '@/src/shared/components/navigation/Back';
 import BottomSheet from '@/src/shared/components/feedback/BottomSheet';
-import { userFacingError } from '@/src/shared/services/api/errors';
+import { ListFooter } from '@/src/shared/components/lists/ListStates';
 import { getRoleIconHeight, getRoleIconWidth } from '@/src/shared/utils/helpers';
 import RoleIcon from '@/src/shared/components/RoleIcon';
-import {
-  useEstateUsersInfinite,
-  type EstateUserRoleFilter,
-} from '@/src/features/admin/hooks/estateUsers';
-import { queryClient } from '@/src/shared/services/api/queryClient';
-import { queryKeys } from '@/src/shared/services/api/queryKeys';
-import type { User } from '@/src/features/users/types/user';
+import { type EstateUserRoleFilter } from '@/src/features/users/hooks/estateUsers';
+import { useAllUsers } from '@/src/features/admin/hooks/useAllUsers';
 
 type UserFilter = EstateUserRoleFilter;
 /** Multi-select: true = validated, false = non-validated. Both or neither = everyone. */
@@ -54,79 +48,29 @@ const SHEET_ROLE_FILTERS: { label: string; value: UserFilter | null; width: numb
 ];
 
 export default function AllUsersMobile() {
-  const { role } = useLocalSearchParams<{ role?: string }>();
   const insets = useSafeAreaInsets();
-  const [searchQuery, setSearchQuery] = useState('');
-  const deferredSearch = useDeferredValue(searchQuery.trim());
-  const [selectedFilters, setSelectedFilters] = useState<UserFilter[]>(() => {
-    if (role === 'resident' || role === 'security' || role === 'admins') {
-      return [role as UserFilter];
-    }
-    return [];
-  });
-  const [validationStatuses, setValidationStatuses] = useState<ValidationStatus[]>([]);
-  const [filterVisible, setFilterVisible] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-
-  useEffect(() => {
-    if (role === 'resident' || role === 'security' || role === 'admins') {
-      setSelectedFilters([role as UserFilter]);
-    } else if (role === 'all') {
-      setSelectedFilters([]);
-    }
-  }, [role]);
-
-  // Role + validation chips OR together; search still combines with them.
-  const usersQuery = useEstateUsersInfinite({
-    search: deferredSearch,
-    roles: selectedFilters,
-    validatedStatuses: validationStatuses,
-  });
-
-  const displayedUsers = usersQuery.items;
-  const loading = usersQuery.isLoading || (usersQuery.isFetching && !usersQuery.isFetched);
-  const fetchingMore = usersQuery.isFetchingNextPage;
-  const error = usersQuery.isError
-    ? userFacingError(usersQuery.error, 'Could not load users.')
-    : '';
-  // Both validation chips on = no status filter (same as none) — don't mark the icon active.
-  const validationFilterActive = validationStatuses.length === 1;
-  const hasActiveAdvancedFilter = validationFilterActive || selectedFilters.length > 0;
-  const { isFetched, isStale, refetch } = usersQuery;
-
-  useFocusEffect(
-    useCallback(() => {
-      if (isFetched && isStale) void refetch();
-    }, [isFetched, isStale, refetch])
-  );
-
-  const refreshUsers = async () => {
-    setRefreshing(true);
-    await usersQuery.refetch();
-    setRefreshing(false);
-  };
-
-  const loadMore = () => {
-    if (!usersQuery.hasNextPage || usersQuery.isFetchingNextPage) return;
-    void usersQuery.fetchNextPage();
-  };
-
-  const openUser = (user: User) => {
-    const userId = user.id ?? user.user_id;
-    if (!userId) return;
-
-    // Profile API 404s inactive users — keep the list row so detail can still open.
-    queryClient.setQueryData(queryKeys.users.byIdAdmin(userId), {
-      ...user,
-      user_id: user.user_id || userId,
-      id: userId,
-    });
-
-    router.push({
-      pathname: '/admin/users/[userId]',
-      params: { userId },
-    });
-  };
+  const {
+    searchQuery,
+    setSearchQuery,
+    deferredSearch,
+    selectedFilters,
+    onRoleChange,
+    validationStatuses,
+    onValidationChange,
+    hasActiveAdvancedFilter,
+    filterVisible,
+    setFilterVisible,
+    users: displayedUsers,
+    loading,
+    error,
+    retry,
+    fetchingMore,
+    hasNextPage,
+    refreshing,
+    refreshUsers,
+    loadMore,
+    openUser,
+  } = useAllUsers();
 
   return (
     <SafeAreaView
@@ -153,15 +97,13 @@ export default function AllUsersMobile() {
 
           <View className="mr-[14px] h-9 min-w-0 flex-1 flex-row items-center gap-2 rounded-2xl bg-[#EFF1F1] px-4 py-1">
             <Feather name="search" size={20} color="#878686" />
-            <TextInput
+            <AppTextInput
               value={searchQuery}
               onChangeText={setSearchQuery}
               placeholder="Search"
-              placeholderTextColor="#878686"
               autoCapitalize="none"
               autoCorrect={false}
-              className="h-7 flex-1 text-[14px] leading-[14px] text-primary font-inter-light"
-              style={{ paddingVertical: 0, textAlignVertical: 'center' }}
+              className="h-8 flex-1"
             />
             {searchQuery ? (
               <TouchableOpacity
@@ -207,17 +149,7 @@ export default function AllUsersMobile() {
               return [
                 <Pressable
                   key={item.label}
-                  onPress={() => {
-                    if (item.value === null) {
-                      setSelectedFilters([]);
-                      return;
-                    }
-                    setSelectedFilters((current) =>
-                      current.includes(item.value!)
-                        ? current.filter((filter) => filter !== item.value)
-                        : [...current, item.value!]
-                    );
-                  }}
+                  onPress={() => onRoleChange(item.value)}
                   style={{ width: item.width, height: 35 }}
                   className={`items-center justify-center rounded-2xl ${
                     active ? 'bg-accent' : 'bg-[#EFF1F1]'
@@ -255,12 +187,7 @@ export default function AllUsersMobile() {
             <Text className="text-center text-[14px] leading-5 text-danger font-inter-regular">
               {error}
             </Text>
-            <TouchableOpacity
-              className="mt-4 rounded-2xl bg-primary px-6 py-3"
-              onPress={() => {
-                void usersQuery.refetch();
-              }}
-            >
+            <TouchableOpacity className="mt-4 rounded-2xl bg-primary px-6 py-3" onPress={retry}>
               <Text className="text-[14px] text-white font-ubuntu-medium">Try Again</Text>
             </TouchableOpacity>
           </View>
@@ -296,11 +223,7 @@ export default function AllUsersMobile() {
               </View>
             }
             ListFooterComponent={
-              fetchingMore ? (
-                <View className="my-4">
-                  <CircleLoader size={32} />
-                </View>
-              ) : null
+              <ListFooter isFetchingNextPage={fetchingMore} hasNextPage={hasNextPage} />
             }
             renderItem={({ item }) => {
               const fullName = `${item.first_name ?? ''} ${item.last_name ?? ''}`.trim();
@@ -344,24 +267,8 @@ export default function AllUsersMobile() {
         validationStatuses={validationStatuses}
         selectedRoles={selectedFilters}
         onClose={() => setFilterVisible(false)}
-        onValidationChange={(value) => {
-          setValidationStatuses((current) =>
-            current.includes(value)
-              ? current.filter((status) => status !== value)
-              : [...current, value]
-          );
-        }}
-        onRoleChange={(value) => {
-          if (value === null) {
-            setSelectedFilters([]);
-            return;
-          }
-          setSelectedFilters((current) =>
-            current.includes(value)
-              ? current.filter((filter) => filter !== value)
-              : [...current, value]
-          );
-        }}
+        onValidationChange={onValidationChange}
+        onRoleChange={onRoleChange}
       />
     </SafeAreaView>
   );

@@ -27,7 +27,7 @@ import {
   useEstateAiTools,
 } from '@/src/features/billing/hooks/billing';
 import { useBillingScreenGuard } from '@/src/features/billing/hooks/useBillingScreenGuard';
-import { useEstateUsersSummary } from '@/src/features/admin/hooks/estateUsers';
+import { useEstateUsersSummary } from '@/src/features/users/hooks/estateUsers';
 import { useEstateEntitlements } from '@/src/features/billing';
 import {
   formatBillingDate,

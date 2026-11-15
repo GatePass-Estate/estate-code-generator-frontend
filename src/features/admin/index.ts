@@ -1,7 +1,6 @@
 export * from './services/estate';
 export * from './services/households';
 export * from './services/requests';
-export * from './hooks/estateUsers';
 export * from './hooks/requests';
 export * from './types/estate';
 export * from './types/household';
