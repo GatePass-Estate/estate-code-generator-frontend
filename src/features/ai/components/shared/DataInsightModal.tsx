@@ -23,7 +23,7 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
-import BottomSheet from '@/src/shared/components/feedback/BottomSheet';
+import { SheetGrabber } from '@/src/shared/components/feedback/BottomSheet';
 import type { MarketplaceDataInsight } from '@/src/features/marketplace/types/aiMarketplace';
 
 const PAGE_DURATION = 6000;
@@ -257,13 +257,15 @@ function InsightRow({ text, label, symbol }: { text: string; label: string; symb
   );
 }
 
+/**
+ * Sheet body drawn inside the same Modal as the stories (phase-2 pattern).
+ * A second Modal/BottomSheet on top of the story Modal often never appears on device.
+ */
 function InsightList({
-  visible,
   dataLines,
   legalLines,
   onClose,
 }: {
-  visible: boolean;
   dataLines: string[];
   legalLines: string[];
   onClose: () => void;
@@ -272,106 +274,96 @@ function InsightList({
   const { height: windowHeight } = useWindowDimensions();
   const bottomPad = Math.max(insets.bottom, Platform.OS === 'android' ? 28 : 16) + 16;
   const sheetMaxHeight = Math.round(windowHeight * 0.9);
-  // Grabber (~34) + button block (~56 + 24 margin) + bottom pad — scroll the list only.
   const scrollMaxHeight = Math.max(180, sheetMaxHeight - 34 - 80 - bottomPad);
 
   return (
-    <BottomSheet
-      visible={visible}
-      onClose={onClose}
-      dismissible={false}
-      // Appear as soon as the story sequence ends — no slide/fade delay.
-      animationType="none"
-      statusBarTranslucent
-      scrimClassName="flex-1 justify-end"
-      backdrop={
-        <>
-          {/* Same thick stack as other AI sheets + dimezis so Android actually blurs. */}
-          <BlurView
-            intensity={40}
-            tint="dark"
-            blurMethod="dimezisBlurView"
-            style={StyleSheet.absoluteFill}
-          />
-          <BlurView
-            intensity={40}
-            tint="dark"
-            blurMethod="dimezisBlurView"
-            style={StyleSheet.absoluteFill}
-          />
-        </>
-      }
-      panelStyle={{
-        backgroundColor: '#F6F7F7',
-        borderTopLeftRadius: 32,
-        borderTopRightRadius: 32,
-        maxHeight: sheetMaxHeight,
-        paddingHorizontal: 24,
-        paddingBottom: bottomPad,
-      }}
-    >
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        bounces={false}
-        nestedScrollEnabled
-        style={{ maxHeight: scrollMaxHeight }}
-        contentContainerStyle={{ paddingBottom: 8 }}
-      >
-        <Text
-          allowFontScaling={false}
-          style={{
-            fontFamily: 'UbuntuSans-Medium',
-            fontSize: 32,
-            color: '#113E55',
-            marginBottom: 12,
-          }}
-        >
-          Data Insight
-        </Text>
-        <Text
-          allowFontScaling={false}
-          style={{
-            fontFamily: 'Inter_18pt-Regular',
-            fontSize: 13,
-            color: '#8A9A9D',
-            marginBottom: 24,
-            lineHeight: 18,
-          }}
-        >
-          No complicated reports. Get simple insights that help you understand what&apos;s happening
-          and why.
-        </Text>
-        <View style={{ gap: 16 }}>
-          {dataLines.map((text, index) => (
-            <InsightRow key={`data-${index}`} text={text} label="Data Collected" symbol="?" />
-          ))}
-          {legalLines.map((text, index) => (
-            <InsightRow key={`legal-${index}`} text={text} label="Legal Context" symbol="§" />
-          ))}
-        </View>
-      </ScrollView>
-      <Pressable
-        onPress={onClose}
-        accessibilityRole="button"
-        accessibilityLabel="I understand"
+    <View style={{ flex: 1, justifyContent: 'flex-end' }}>
+      <BlurView
+        intensity={40}
+        tint="dark"
+        blurMethod="dimezisBlurView"
+        style={StyleSheet.absoluteFill}
+      />
+      <BlurView
+        intensity={40}
+        tint="dark"
+        blurMethod="dimezisBlurView"
+        style={StyleSheet.absoluteFill}
+      />
+      <View
         style={{
-          backgroundColor: '#113E55',
-          minHeight: 56,
-          paddingVertical: 16,
-          borderRadius: 32,
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginTop: 24,
+          backgroundColor: '#F6F7F7',
+          borderTopLeftRadius: 32,
+          borderTopRightRadius: 32,
+          maxHeight: sheetMaxHeight,
+          paddingHorizontal: 24,
+          paddingBottom: bottomPad,
         }}
       >
-        <Text
-          allowFontScaling={false}
-          style={{ fontFamily: 'UbuntuSans-Medium', fontSize: 16, color: '#FFFFFF' }}
+        <SheetGrabber />
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+          nestedScrollEnabled
+          style={{ maxHeight: scrollMaxHeight }}
+          contentContainerStyle={{ paddingBottom: 8 }}
         >
-          I understand
-        </Text>
-      </Pressable>
-    </BottomSheet>
+          <Text
+            allowFontScaling={false}
+            style={{
+              fontFamily: 'UbuntuSans-Medium',
+              fontSize: 32,
+              color: '#113E55',
+              marginBottom: 12,
+            }}
+          >
+            Data Insight
+          </Text>
+          <Text
+            allowFontScaling={false}
+            style={{
+              fontFamily: 'Inter_18pt-Regular',
+              fontSize: 13,
+              color: '#8A9A9D',
+              marginBottom: 24,
+              lineHeight: 18,
+            }}
+          >
+            No complicated reports. Get simple insights that help you understand what&apos;s
+            happening and why.
+          </Text>
+          <View style={{ gap: 16 }}>
+            {dataLines.map((text, index) => (
+              <InsightRow key={`data-${index}`} text={text} label="Data Collected" symbol="?" />
+            ))}
+            {legalLines.map((text, index) => (
+              <InsightRow key={`legal-${index}`} text={text} label="Legal Context" symbol="§" />
+            ))}
+          </View>
+        </ScrollView>
+        <Pressable
+          onPress={onClose}
+          accessibilityRole="button"
+          accessibilityLabel="I understand"
+          style={{
+            backgroundColor: '#113E55',
+            minHeight: 56,
+            paddingVertical: 16,
+            borderRadius: 32,
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginTop: 24,
+          }}
+        >
+          <Text
+            allowFontScaling={false}
+            style={{ fontFamily: 'UbuntuSans-Medium', fontSize: 16, color: '#FFFFFF' }}
+          >
+            I understand
+          </Text>
+        </Pressable>
+      </View>
+    </View>
   );
 }
 
@@ -443,54 +435,62 @@ export default function DataInsightModal({
 
   if (!visible) return null;
 
-  if (showList) {
-    return (
-      <InsightList
-        visible={visible}
-        dataLines={cleanLines(dataInsight?.data)}
-        legalLines={cleanLines(dataInsight?.legal)}
-        onClose={onClose}
-      />
-    );
-  }
-
   const barTop = insets.top - FRAME_STATUS_BAR + 83.86;
 
+  // One Modal only (phase-2): swap stories → sheet inside it. A second Modal never reliably
+  // appears on top of the story Modal, which left users stuck on the last slide.
   return (
-    <Modal visible transparent statusBarTranslucent animationType="fade" onRequestClose={onClose}>
-      <View className="flex-1 overflow-hidden bg-[#F6F7F7]">
-        {renderPage(currentPage)}
-        <View style={{ position: 'absolute', left: 0, right: 0, top: barTop }} pointerEvents="none">
-          <StoriesProgress
-            count={pageCount}
-            activeIndex={currentPage}
-            paused={isPaused}
-            running={visible && !showList}
-            durationMs={PAGE_DURATION}
-            onSegmentComplete={goToNextPage}
-          />
+    <Modal
+      visible
+      transparent
+      statusBarTranslucent
+      animationType="fade"
+      onRequestClose={showList ? () => {} : onClose}
+    >
+      {showList ? (
+        <InsightList
+          dataLines={cleanLines(dataInsight?.data)}
+          legalLines={cleanLines(dataInsight?.legal)}
+          onClose={onClose}
+        />
+      ) : (
+        <View className="flex-1 overflow-hidden bg-[#F6F7F7]">
+          {renderPage(currentPage)}
+          <View
+            style={{ position: 'absolute', left: 0, right: 0, top: barTop }}
+            pointerEvents="none"
+          >
+            <StoriesProgress
+              count={pageCount}
+              activeIndex={currentPage}
+              paused={isPaused}
+              running
+              durationMs={PAGE_DURATION}
+              onSegmentComplete={goToNextPage}
+            />
+          </View>
+          <View style={[StyleSheet.absoluteFill, { flexDirection: 'row' }]}>
+            <Pressable
+              style={{ flex: 0.3 }}
+              onPress={handleTapPrev}
+              onPressIn={() => {
+                pressInAtRef.current = Date.now();
+                setIsPaused(true);
+              }}
+              onPressOut={() => setIsPaused(false)}
+            />
+            <Pressable
+              style={{ flex: 0.7 }}
+              onPress={handleTapNext}
+              onPressIn={() => {
+                pressInAtRef.current = Date.now();
+                setIsPaused(true);
+              }}
+              onPressOut={() => setIsPaused(false)}
+            />
+          </View>
         </View>
-        <View style={[StyleSheet.absoluteFill, { flexDirection: 'row' }]}>
-          <Pressable
-            style={{ flex: 0.3 }}
-            onPress={handleTapPrev}
-            onPressIn={() => {
-              pressInAtRef.current = Date.now();
-              setIsPaused(true);
-            }}
-            onPressOut={() => setIsPaused(false)}
-          />
-          <Pressable
-            style={{ flex: 0.7 }}
-            onPress={handleTapNext}
-            onPressIn={() => {
-              pressInAtRef.current = Date.now();
-              setIsPaused(true);
-            }}
-            onPressOut={() => setIsPaused(false)}
-          />
-        </View>
-      </View>
+      )}
     </Modal>
   );
 }

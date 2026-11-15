@@ -118,118 +118,116 @@ export default function IncidentFilterModal({
         backgroundColor: '#F6F7F7',
         borderTopLeftRadius: 40,
         borderTopRightRadius: 40,
-        height: 620,
+        paddingBottom: 8,
       }}
     >
-      <View style={{ flex: 1, paddingTop: 46, paddingHorizontal: 34 }}>
-        <View style={{ flex: 1 }}>
-          <Text
-            allowFontScaling={false}
-            style={{
-              marginBottom: 16,
-              paddingLeft: 12,
-              fontFamily: 'Inter_18pt-Light',
-              fontSize: 14,
-              color: '#878686',
-            }}
-          >
-            Category
-          </Text>
-          <View
-            style={{
-              flexDirection: 'row',
-              flexWrap: 'wrap',
-              gap: 8,
-            }}
-          >
-            <FilterChip label="All" selected={allSelected} onPress={() => setCategories([])} />
-            {categoryOptions.map((item) => (
-              <FilterChip
-                key={item.id}
-                label={item.label}
-                categoryId={item.id}
-                selected={categories.includes(item.id)}
-                onPress={() =>
-                  setCategories((prev) => toggleValue(prev, item.id as IncidentFilterCategory))
-                }
-              />
-            ))}
-          </View>
-
-          <View
-            style={{
-              marginVertical: 24,
-              height: 0.5,
-              width: '100%',
-              backgroundColor: '#D3D3D3',
-            }}
-          />
-
-          <Text
-            allowFontScaling={false}
-            style={{
-              marginBottom: 16,
-              paddingLeft: 12,
-              fontFamily: 'Inter_18pt-Light',
-              fontSize: 14,
-              color: '#878686',
-            }}
-          >
-            User Type
-          </Text>
-          <View
-            style={{
-              flexDirection: 'row',
-              flexWrap: 'wrap',
-              gap: 8,
-            }}
-          >
-            {USER_TYPES.map((item) => (
-              <FilterChip
-                key={item.id}
-                label={item.label}
-                selected={userTypes.includes(item.id)}
-                onPress={() => setUserTypes((prev) => toggleValue(prev, item.id))}
-              />
-            ))}
-          </View>
-
-          <Pressable
-            onPress={() => {
-              onConfirm({ categories, userTypes });
-              onClose();
-            }}
-            hitSlop={8}
-            style={{
-              marginTop: 'auto',
-              marginBottom: 40,
-              height: 48,
-              width: '100%',
-              maxWidth: 278,
-              alignSelf: 'center',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: 24,
-              borderWidth: 1,
-              borderColor: '#113E55',
-              backgroundColor: '#113E55',
-              paddingHorizontal: 32,
-            }}
-          >
-            <Text
-              allowFontScaling={false}
-              style={{
-                fontFamily: 'UbuntuSans-SemiBold',
-                fontSize: 14,
-                letterSpacing: -0.24,
-                color: '#F6F7F7',
-                textAlign: 'center',
-              }}
-            >
-              Confirm
-            </Text>
-          </Pressable>
+      <View style={{ paddingTop: 46, paddingHorizontal: 34, paddingBottom: 8 }}>
+        <Text
+          allowFontScaling={false}
+          style={{
+            marginBottom: 16,
+            paddingLeft: 12,
+            fontFamily: 'Inter_18pt-Light',
+            fontSize: 14,
+            color: '#878686',
+          }}
+        >
+          Category
+        </Text>
+        <View
+          style={{
+            flexDirection: 'row',
+            flexWrap: 'wrap',
+            gap: 8,
+          }}
+        >
+          <FilterChip label="All" selected={allSelected} onPress={() => setCategories([])} />
+          {categoryOptions.map((item) => (
+            <FilterChip
+              key={item.id}
+              label={item.label}
+              categoryId={item.id}
+              selected={categories.includes(item.id)}
+              onPress={() =>
+                setCategories((prev) => toggleValue(prev, item.id as IncidentFilterCategory))
+              }
+            />
+          ))}
         </View>
+
+        <View
+          style={{
+            marginVertical: 24,
+            height: 0.5,
+            width: '100%',
+            backgroundColor: '#D3D3D3',
+          }}
+        />
+
+        <Text
+          allowFontScaling={false}
+          style={{
+            marginBottom: 16,
+            paddingLeft: 12,
+            fontFamily: 'Inter_18pt-Light',
+            fontSize: 14,
+            color: '#878686',
+          }}
+        >
+          User Type
+        </Text>
+        <View
+          style={{
+            flexDirection: 'row',
+            flexWrap: 'wrap',
+            gap: 8,
+            marginBottom: 40,
+          }}
+        >
+          {USER_TYPES.map((item) => (
+            <FilterChip
+              key={item.id}
+              label={item.label}
+              selected={userTypes.includes(item.id)}
+              onPress={() => setUserTypes((prev) => toggleValue(prev, item.id))}
+            />
+          ))}
+        </View>
+
+        <Pressable
+          onPress={() => {
+            onConfirm({ categories, userTypes });
+            onClose();
+          }}
+          hitSlop={8}
+          style={{
+            marginBottom: 40,
+            height: 48,
+            width: '100%',
+            maxWidth: 278,
+            alignSelf: 'center',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: 24,
+            borderWidth: 1,
+            borderColor: '#113E55',
+            backgroundColor: '#113E55',
+            paddingHorizontal: 32,
+          }}
+        >
+          <Text
+            allowFontScaling={false}
+            style={{
+              fontFamily: 'UbuntuSans-SemiBold',
+              fontSize: 14,
+              letterSpacing: -0.24,
+              color: '#F6F7F7',
+              textAlign: 'center',
+            }}
+          >
+            Confirm
+          </Text>
+        </Pressable>
       </View>
     </BottomSheet>
   );

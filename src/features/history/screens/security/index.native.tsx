@@ -1,6 +1,11 @@
 import { useCallback, useMemo, useState } from 'react';
 import ScreenLoading from '@/src/shared/components/feedback/ScreenLoading';
-import { ListFooter, ListPlaceholder } from '@/src/shared/components/lists/ListStates';
+import {
+  EmptyListMessage,
+  LIST_EMPTY_TOP,
+  ListFooter,
+  ListPlaceholder,
+} from '@/src/shared/components/lists/ListStates';
 import { View, Text, SectionList, Pressable, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
@@ -175,7 +180,11 @@ export default function AccessLogScreen() {
             keyExtractor={(entry) => entry.id}
             stickySectionHeadersEnabled={false}
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ flexGrow: 0, paddingTop: 20, paddingBottom: 96 }}
+            contentContainerStyle={{
+              flexGrow: 0,
+              paddingTop: LIST_EMPTY_TOP,
+              paddingBottom: 96,
+            }}
             onEndReached={loadMore}
             onEndReachedThreshold={END_REACHED_THRESHOLD}
             refreshControl={
@@ -206,11 +215,11 @@ export default function AccessLogScreen() {
                 onRetry={() => void refetch()}
                 errorFallback="Could not load access history."
                 empty={
-                  <Text className="px-6 text-center text-sm text-grey">
+                  <EmptyListMessage className="px-6 text-grey">
                     {mode === 'resident'
                       ? 'No resident access logs yet.'
                       : 'No guest access logs found.'}
-                  </Text>
+                  </EmptyListMessage>
                 }
               />
             }

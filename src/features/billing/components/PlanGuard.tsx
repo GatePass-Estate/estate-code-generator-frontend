@@ -44,6 +44,8 @@ export default function PlanGuard() {
   const dismiss = useUpgradePromptStore((s) => s.dismiss);
   const customUpgrade = useUpgradePromptStore((s) => s.onUpgrade);
   const upgradeMessage = useUpgradePromptStore((s) => s.message);
+  const upgradeTitle = useUpgradePromptStore((s) => s.title);
+  const upgradeConfirmLabel = useUpgradePromptStore((s) => s.confirmLabel);
   const role = useUserStore((s) => s.role);
   const noticeFeature = useContactAdminNoticeStore((s) => s.feature);
   const noticeMessage = useContactAdminNoticeStore((s) => s.message);
@@ -72,9 +74,9 @@ export default function PlanGuard() {
         <PromptModal
           visible={visible}
           icon={<CrownIcon width={40} height={40} />}
-          title="Upgrade Plan"
+          title={upgradeTitle || 'Upgrade Plan'}
           message={upgradeMessage || getUpgradeCopy(feature)}
-          confirmLabel="Upgrade Your Plan"
+          confirmLabel={upgradeConfirmLabel || 'Upgrade Your Plan'}
           onClose={dismiss}
           onConfirm={() => {
             handleUpgrade?.();

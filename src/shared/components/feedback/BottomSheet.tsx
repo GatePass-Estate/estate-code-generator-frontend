@@ -94,9 +94,10 @@ export default function BottomSheet({
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
   const [mounted, setMounted] = useState(visible);
-  // Translucent modals often report insets.bottom as 0 on Android — keep a floor so
-  // every sheet clears the 3-button / gesture nav without each caller re-learning it.
-  const minBottomPad = Platform.OS === 'android' ? Math.max(insets.bottom, 48) : insets.bottom;
+  // Translucent modals often report insets.bottom as 0 — keep a floor so every sheet
+  // clears the home indicator / nav bar without each caller re-learning it.
+  const minBottomPad =
+    Platform.OS === 'android' ? Math.max(insets.bottom, 48) : Math.max(insets.bottom, 34);
   const translateY = useSharedValue(height);
   const scrimOpacity = useSharedValue(0);
   const visibleRef = useRef(visible);

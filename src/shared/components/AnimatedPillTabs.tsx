@@ -54,21 +54,21 @@ export default function AnimatedPillTabs<T extends string>({
   const translateX = useSharedValue(isRight ? resultX : 0);
   const startX = useSharedValue(0);
 
-  const syncToControlledValue = () => {
-    translateX.value = withTiming(value === right.value ? resultX : 0, GLIDE_CONFIG);
+  const glideTo = (nextRight: boolean) => {
+    translateX.value = withTiming(nextRight ? resultX : 0, GLIDE_CONFIG);
   };
 
+  // Follow the controlled value (including when the parent rejects a change and snaps back).
   useEffect(() => {
-    syncToControlledValue();
+    glideTo(value === right.value);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only sync when tab value changes
   }, [value, resultX, right.value]);
 
   const setValue = (next: T) => {
-    if (next !== value) {
-      onChange(next);
-    }
-    // If parent rejects the tab change (e.g. subscription gate), ensure indicator stays on `value`.
-    syncToControlledValue();
+    // Glide to the requested tab immediately. Do not re-sync to the stale `value` here —
+    // that bounced the pill back, then the effect had to animate forward again.
+    glideTo(next === right.value);
+    if (next !== value) onChange(next);
   };
 
   const panGesture = Gesture.Pan()
@@ -102,15 +102,7 @@ export default function AnimatedPillTabs<T extends string>({
       runOnJS(setValue)(nextRight ? right.value : left.value);
     });
 
-  const tapGesture = Gesture.Tap()
-    .maxDuration(250)
-    .onEnd((e) => {
-      'worklet';
-      const nextRight = e.x >= activeWidth;
-      runOnJS(setValue)(nextRight ? right.value : left.value);
-    });
-
-  const pillGesture = Gesture.Race(panGesture, tapGesture);
+  // Taps go through the Pressables below; this pan only handles swipe between tabs.
 
   const indicatorStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: translateX.value }],
@@ -125,7 +117,7 @@ export default function AnimatedPillTabs<T extends string>({
   }));
 
   return (
-    <GestureDetector gesture={pillGesture}>
+    <GestureDetector gesture={panGesture}>
       <View style={[styles.track, { width, height, borderRadius: height / 2 }, style]}>
         <Animated.View
           style={[
@@ -141,9 +133,7 @@ export default function AnimatedPillTabs<T extends string>({
         <Pressable
           accessibilityRole="tab"
           accessibilityState={{ selected: value === left.value }}
-          onPress={() => {
-            setValue(left.value);
-          }}
+          onPress={() => setValue(left.value)}
           style={[styles.tab, { width: activeWidth, height }]}
         >
           <Animated.Text allowFontScaling={false} style={[styles.label, leftTextStyle]}>
@@ -153,9 +143,7 @@ export default function AnimatedPillTabs<T extends string>({
         <Pressable
           accessibilityRole="tab"
           accessibilityState={{ selected: value === right.value }}
-          onPress={() => {
-            setValue(right.value);
-          }}
+          onPress={() => setValue(right.value)}
           style={[styles.tab, { width: resultX, height }]}
         >
           <Animated.Text allowFontScaling={false} style={[styles.label, rightTextStyle]}>

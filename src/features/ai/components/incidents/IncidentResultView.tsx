@@ -68,6 +68,7 @@ export default function IncidentResultView({
   isActive = true,
   onAccessDenied,
   hasAiReviewTier,
+  aiSummaryNeedsInstall,
   inHouseInstalled,
   thirdPartyInstalled,
   onUpgradeAiSummary,
@@ -78,8 +79,10 @@ export default function IncidentResultView({
    * it the plan prompt is shown here.
    */
   onAccessDenied?: () => void;
-  /** False when neither tier 2 nor tier 3 is installed → show the Upgrade Plan card. */
+  /** False when neither tier 2 nor tier 3 is installed → show the locked summary card. */
   hasAiReviewTier?: boolean;
+  /** Paid for tier 2/3 but not installed → Install modal instead of Upgrade Plan. */
+  aiSummaryNeedsInstall?: boolean;
   /** False hides the In-house summary even if the API still returns `tier1`. */
   inHouseInstalled?: boolean;
   /** False hides the Third-party summary even if the API still returns `tier2`. */
@@ -164,6 +167,13 @@ export default function IncidentResultView({
     notice: 'floating',
     onUpgrade: () => onUpgradeAiSummary?.(),
   });
+  const promptAiSummaryInstall = () =>
+    showSummaryDenied(
+      'Install an AI Review tier (Tier Two or Tier Three) to generate AI summaries.',
+      { title: 'Install AI Review', confirmLabel: 'Install' }
+    );
+  const promptAiSummaryDenied = () =>
+    aiSummaryNeedsInstall ? promptAiSummaryInstall() : showSummaryDenied();
   const summary = useMemo(() => {
     if (!rawSummary) return rawSummary;
     return {
@@ -306,7 +316,7 @@ export default function IncidentResultView({
     }
   };
 
-  const handleUpgradePress = () => showSummaryDenied();
+  const handleUpgradePress = () => promptAiSummaryDenied();
 
   useEffect(() => {
     setFetchSummary(false);
@@ -325,7 +335,7 @@ export default function IncidentResultView({
       // The server refused because of the plan (payment required / forbidden): show the payment
       // prompt rather than a generic failure the user can't act on.
       if (isAxiosError(summaryErr) && [402, 403].includes(summaryErr.response?.status ?? 0)) {
-        showSummaryDenied();
+        promptAiSummaryDenied();
         return;
       }
       Alert.alert('Unable to generate insight', 'Please try again in a moment.');
@@ -340,6 +350,7 @@ export default function IncidentResultView({
     summaryLoading,
     summaryError,
     summaryErr,
+    aiSummaryNeedsInstall,
     showSummaryDenied,
     hasSummaryPayload,
   ]);
@@ -360,8 +371,8 @@ export default function IncidentResultView({
   useEffect(() => {
     if (!bootEntitlementDenied || !isActive) return;
     if (onAccessDeniedRef.current) onAccessDeniedRef.current();
-    else showSummaryDenied();
-  }, [bootEntitlementDenied, isActive, showSummaryDenied]);
+    else promptAiSummaryDenied();
+  }, [bootEntitlementDenied, isActive, aiSummaryNeedsInstall, showSummaryDenied]);
 
   const bootErrorDetail = (() => {
     const err = (overviewErr || reportsErr) as
@@ -497,6 +508,7 @@ export default function IncidentResultView({
           mode={cardMode}
           onPress={handleInsightPress}
           onUpgradePress={handleUpgradePress}
+          upgradeLabel={aiSummaryNeedsInstall ? 'Install' : 'Upgrade Plan'}
           slides={summarySlides}
           onOpenSlide={setOpenSummaryVariant}
           readTimeLabel={hasSummaryPayload ? summaryReadTime : '2 mins Read'}
@@ -620,7 +632,7 @@ export default function IncidentResultView({
             snapToAlignment="start"
             showsHorizontalScrollIndicator={false}
             className="-mx-5 mt-3"
-            contentContainerClassName="items-stretch gap-4 pl-5 pr-5"
+            contentContainerClassName="gap-4 pl-5 pr-5"
             onScroll={(e) => {
               const x = e.nativeEvent.contentOffset.x;
               const next = Math.round(x / 227);

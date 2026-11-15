@@ -12,6 +12,7 @@ import {
   formatRequestValue,
   REQUEST_LABELS,
 } from '@/src/features/admin/utils/editRequests';
+import { EmptyListMessage, LIST_EMPTY_TOP } from '@/src/shared/components/lists/ListStates';
 
 const EditRequestMobile = () => {
   const { requests, loading, refreshing, handleRefresh, toast, hideToast } =
@@ -123,14 +124,17 @@ const EditRequestMobile = () => {
         data={requests}
         keyExtractor={(item) => item.id}
         style={{ marginHorizontal: -20 }}
-        contentContainerStyle={{ gap: 8, paddingBottom: 24, paddingHorizontal: 20, paddingTop: 25 }}
+        contentContainerStyle={{
+          gap: 8,
+          paddingBottom: 24,
+          paddingHorizontal: 20,
+          paddingTop: LIST_EMPTY_TOP,
+        }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         ListEmptyComponent={
-          <View className="flex-1 justify-center items-center py-8">
-            <Text className="text-grey text-center text-md font-ubuntu-medium">
-              No edit requests at the moment
-            </Text>
-          </View>
+          <EmptyListMessage className="text-grey text-md font-ubuntu-medium">
+            No edit requests at the moment
+          </EmptyListMessage>
         }
         renderItem={({ item }) => {
           const isGenderFrame = item.requestType === 'gender_change';

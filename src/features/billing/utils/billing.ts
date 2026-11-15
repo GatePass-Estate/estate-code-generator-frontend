@@ -748,6 +748,13 @@ function extractApiErrorDetail(error: unknown): string | null {
 }
 
 export function toBillingError(error: unknown, fallback: string): BillingApiError {
+  const wrapped = toBillingErrorMessage(error, fallback);
+  // Keep the original (Axios) error so callers can read structured details, e.g. a 409 body.
+  if (error !== undefined) wrapped.cause = error;
+  return wrapped;
+}
+
+function toBillingErrorMessage(error: unknown, fallback: string): BillingApiError {
   const status = httpStatus(error);
 
   // 5xx details describe internal services (e.g. "Upstream returned HTTP 500 for GET

@@ -103,6 +103,7 @@ export default function ResidentIncidentReportList({
       />
       <ScrollView
         className="flex-1"
+        showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 32 }}
         refreshControl={
           <RefreshControl

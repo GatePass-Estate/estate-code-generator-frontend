@@ -3,9 +3,8 @@ import { Text, View } from 'react-native';
 import Back from '@/src/shared/components/navigation/Back';
 import { cn } from '@/src/shared/utils/cn';
 
-/** Space between the back control and the title — same on More, Register, etc. */
+/** Default space between the back control and the title. */
 export const BACK_TO_TITLE_GAP = 12;
-/** NativeWind class for {@link BACK_TO_TITLE_GAP}. */
 export const BACK_TO_TITLE_GAP_CLASS = 'mt-3';
 
 type ScreenHeaderProps = {

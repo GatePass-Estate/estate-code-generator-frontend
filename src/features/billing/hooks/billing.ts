@@ -1,4 +1,4 @@
-import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQueries, useQuery } from '@tanstack/react-query';
 import { useCallback, useMemo } from 'react';
 import { Alert } from 'react-native';
 import { create } from 'zustand';
@@ -22,7 +22,10 @@ import {
   scheduleSeatReduction,
   scheduleTierChange,
 } from '@/src/features/billing/services/billing';
-import { getMarketplaceFeatures } from '@/src/features/marketplace/services/aiMarketplace';
+import {
+  getMarketplaceFeatureById,
+  getMarketplaceFeatures,
+} from '@/src/features/marketplace/services/aiMarketplace';
 import { refreshEstateEntitlements } from '@/src/features/billing/services/entitlements';
 import {
   canManageBilling,
@@ -31,7 +34,12 @@ import {
   PRIMARY_ADMIN_FEATURE_ACTION_MESSAGE,
   sortTiers,
 } from '@/src/features/billing/utils/billing';
-import { buildStandaloneAiTools } from '@/src/features/billing/utils/estateAiTools';
+import {
+  buildStandaloneAiTools,
+  isStandaloneAiGrant,
+  revenueAiFeatureLabels,
+  type AiToolProduct,
+} from '@/src/features/billing/utils/estateAiTools';
 import { useUserStore } from '@/src/store/userStore';
 import {
   BillingTier,
@@ -227,8 +235,10 @@ export function useSeatProrate(seatsAdded: number | null) {
 /**
  * The estate's standalone AI subscriptions for Billing's "Active AI Tools": AI tools subscribed to
  * separately from the estate plan, which are managed (and cancelled) in the AI marketplace. AI
- * tools included in the plan and free installs are left out. Named via the AI marketplace
- * (fallback: humanised feature key). See `buildStandaloneAiTools`.
+ * tools included in the plan and free installs are left out.
+ *
+ * Names prefer GET /ai-marketplace/{id} `tier.name`, then GET /subscriptions/tiers
+ * `AiFeatureLabel.label`, then list product `name` (see `buildStandaloneAiTools`).
  */
 export function useEstateAiTools() {
   const { estateId, canView } = useBillingAccess();
@@ -244,20 +254,89 @@ export function useEstateAiTools() {
     queryFn: () => getMarketplaceFeatures({ page: 1, limit: 100 }),
     enabled,
   });
+  const tiersQuery = useBillingTiers();
 
   const grants = grantsQuery.data?.features;
-  const products = marketplaceQuery.data?.items;
-  const tools = useMemo(() => buildStandaloneAiTools(grants, products), [grants, products]);
+  const listItems = marketplaceQuery.data?.items;
+
+  const productIdsForGrants = useMemo(() => {
+    const grantIds = new Set(
+      (grants ?? []).filter(isStandaloneAiGrant).map((grant) => grant.ai_feature_id)
+    );
+    if (grantIds.size === 0) return [] as string[];
+    const ids: string[] = [];
+    for (const item of listItems ?? []) {
+      if ((item.ai_feature_ids ?? []).some((id) => grantIds.has(id))) {
+        ids.push(item.id);
+      }
+    }
+    return ids;
+  }, [grants, listItems]);
+
+  const detailQueries = useQueries({
+    queries: productIdsForGrants.map((id) => ({
+      queryKey: [...queryKeys.marketplace.detail(id), estateId ?? ''],
+      queryFn: () => getMarketplaceFeatureById(id),
+      enabled: enabled && Boolean(id),
+    })),
+  });
+
+  const detailsReadyKey = detailQueries.map((query) => query.dataUpdatedAt).join('|');
+  const detailsLoading = detailQueries.some((query) => query.isLoading && !query.data);
+
+  const products = useMemo((): AiToolProduct[] => {
+    const byId = new Map<string, AiToolProduct>();
+    for (const item of listItems ?? []) {
+      byId.set(item.id, {
+        id: item.id,
+        name: item.name,
+        ai_feature_ids: item.ai_feature_ids,
+      });
+    }
+    for (const query of detailQueries) {
+      const detail = query.data;
+      if (!detail) continue;
+      byId.set(detail.id, {
+        id: detail.id,
+        name: detail.name,
+        ai_feature_ids: detail.tiers?.map((tier) => tier.ai_feature_id).filter(Boolean),
+        tiers: detail.tiers?.map((tier) => ({
+          ai_feature_id: tier.ai_feature_id,
+          feature_key: tier.feature_key,
+          name: tier.name,
+        })),
+      });
+    }
+    return [...byId.values()];
+    // detailsReadyKey tracks when any detail query settles with new data.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [listItems, detailsReadyKey]);
+
+  const revenueLabels = useMemo(() => revenueAiFeatureLabels(tiersQuery.data), [tiersQuery.data]);
+
+  const tools = useMemo(
+    () => buildStandaloneAiTools(grants, products, Date.now(), revenueLabels),
+    [grants, products, revenueLabels]
+  );
 
   const { refetch: refetchGrants } = grantsQuery;
   const { refetch: refetchMarketplace } = marketplaceQuery;
+  const { refetch: refetchTiers } = tiersQuery;
 
   return {
     tools,
+    /** Every standalone grant (one per purchased tier), not collapsed by product. */
+    standaloneCount: tools.length,
     activeCount: tools.filter((tool) => tool.status === 'active').length,
-    isLoading: grantsQuery.isLoading || marketplaceQuery.isLoading,
+    isLoading: grantsQuery.isLoading || marketplaceQuery.isLoading || detailsLoading,
     error: grantsQuery.error ?? null,
-    refetch: () => Promise.all([refetchGrants(), refetchMarketplace()]),
+    refetch: () =>
+      Promise.all([
+        refetchGrants(),
+        refetchMarketplace(),
+        refetchTiers(),
+        ...detailQueries.map((query) => query.refetch()),
+      ]),
   };
 }
 

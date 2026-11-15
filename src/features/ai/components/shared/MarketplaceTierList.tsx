@@ -9,6 +9,11 @@ import type {
   MarketplaceDetailResponse,
   MarketplaceTier,
 } from '@/src/features/marketplace/types/aiMarketplace';
+import {
+  resolveTierInstalled,
+  tierCardButtons,
+  tierPurchaseState,
+} from '@/src/features/ai/utils/aiTierState';
 
 const tierNumber = (tier: string) => tier.replace(/\D/g, '') || tier;
 export const tierOrder = (tier: MarketplaceTier) =>
@@ -23,6 +28,7 @@ export default function MarketplaceTierList({
   onTierCardRef,
   justPurchasedTiers,
   justCancelledTiers,
+  installOverrides = {},
   subscribingTierKey,
   cancelTierKey,
   uninstallingTierKey,
@@ -42,6 +48,8 @@ export default function MarketplaceTierList({
   onTierCardRef?: (order: number, node: RNView | null) => void;
   justPurchasedTiers: Record<string, boolean>;
   justCancelledTiers: Record<string, boolean>;
+  /** Optimistic Install/Uninstall until detail refetch. */
+  installOverrides?: Record<string, boolean>;
   subscribingTierKey: string | null;
   cancelTierKey: string | null;
   uninstallingTierKey: string | null;
@@ -73,12 +81,9 @@ export default function MarketplaceTierList({
           ? tier.benefits
           : (feature?.tier_benefits?.find((group) => tierNumber(group.tier) === tierNumber(tierKey))
               ?.benefits ?? []);
-        const isSubscribed =
-          tier.status === 'active' ||
-          tier.status === 'purchased' ||
-          tier.status === 'subscribed' ||
-          tier.status === 'installed' ||
-          !!tier.purchased;
+        const purchase = tierPurchaseState(tier, justCancelledTiers);
+        const isInstalled = resolveTierInstalled(tier, justPurchasedTiers, installOverrides);
+        const buttons = tierCardButtons(purchase, isInstalled, !!tier.is_free);
 
         return (
           <View
@@ -91,8 +96,8 @@ export default function MarketplaceTierList({
             collapsable={false}
           >
             <SubscriptionTierCard
-              tierLabel={formatTierLabel(tierKey)}
-              subtitle={tier.name?.trim() || formatTierSubtitle(tier)}
+              tierLabel={tier.name?.trim() || formatTierLabel(tierKey)}
+              subtitle={formatTierSubtitle(tier)}
               subtitleUppercase={false}
               description={tier.description?.trim() || ''}
               benefits={benefits}
@@ -110,15 +115,13 @@ export default function MarketplaceTierList({
               cancelDisabled={actionsLocked.cancel}
               installDisabled={actionsLocked.install}
               uninstallDisabled={actionsLocked.uninstall}
-              isCancelledLocally={!!justCancelledTiers[tierKey]}
               cancelLockedMessage={
                 tier.payment_mode === 'subscription'
                   ? 'This feature is included in your estate subscription plan and cannot be cancelled separately.'
                   : undefined
               }
-              isFree={!!tier.is_free}
-              isInstalled={!!tier.is_installed && !justPurchasedTiers[tierKey]}
-              isSubscribed={isSubscribed}
+              isInstalled={isInstalled}
+              buttons={buttons}
             />
           </View>
         );

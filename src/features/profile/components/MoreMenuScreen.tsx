@@ -31,7 +31,6 @@ import {
 import { planBannerCopy } from '@/src/features/billing/utils/planAvailability';
 import { canViewBilling } from '@/src/features/billing/utils/billing';
 import { revokeAllSessions } from '@/src/features/auth';
-import { sharedStyles } from '@/src/shared/theme/styles';
 import ScreenHeader from '@/src/shared/components/layout/ScreenHeader';
 import StarRating from '@/src/shared/components/StarRating';
 import * as StoreReview from 'expo-store-review';
@@ -51,6 +50,7 @@ import {
   TermsOfServiceIcon,
 } from '@/src/assets/svgs';
 import { MoreMenuRow, SectionTitle } from '@/src/features/profile/components/MoreMenuRow';
+import BannerChevronRightSvg from '@/src/assets/icons/banner-chevron-right.svg';
 
 /** Back-to-back focus changes (e.g. closing a sheet) reuse a plan fetched this recently. */
 const PLAN_FOCUS_MAX_AGE_MS = 5_000;
@@ -94,25 +94,22 @@ function BannerCard({
 }) {
   return (
     <Pressable onPress={onPress} disabled={!onPress}>
-      <LinearGradient
-        colors={colors}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={{ borderRadius: 8, marginBottom: 8 }}
-      >
-        <View className="flex-row items-center justify-between p-4">
-          <View className="flex-row items-center gap-3 flex-1 pr-4">
-            <View>{icon}</View>
-            <View className="flex-1 flex-col">
-              <Text className="text-[17px] font-inter-medium text-white mb-1">{title}</Text>
-              <Text className="text-[12px] font-inter-regular text-white opacity-90 leading-tight">
-                {subtitle}
-              </Text>
+      <View className="overflow-hidden rounded-[8px]">
+        <LinearGradient colors={colors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+          <View className="flex-row items-center justify-between p-4">
+            <View className={`flex-row items-center gap-3 flex-1${onPress ? ' pr-4' : ''}`}>
+              <View>{icon}</View>
+              <View className="flex-1 flex-col">
+                <Text className="text-[17px] font-inter-medium text-white mb-1">{title}</Text>
+                <Text className="text-[12px] font-inter-regular text-white opacity-90 leading-tight">
+                  {subtitle}
+                </Text>
+              </View>
             </View>
+            {onPress ? <BannerChevronRightSvg width={7} height={11} /> : null}
           </View>
-          <Feather name="chevron-right" size={20} color="white" />
-        </View>
-      </LinearGradient>
+        </LinearGradient>
+      </View>
     </Pressable>
   );
 }
@@ -132,34 +129,31 @@ function SquareCard({
 }) {
   return (
     <Pressable onPress={onPress} className="flex-1">
-      <LinearGradient
-        colors={colors}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={{ borderRadius: 8 }}
-      >
-        <View className="px-[10px] py-3 flex-col justify-between min-h-[105px]">
-          <View className="flex-row items-start gap-[6px]">
-            <View>{icon}</View>
-            <View className="flex-1 flex-col mt-[1px]">
-              <Text className="text-[12px] font-inter-regular text-white mb-1" numberOfLines={1}>
-                {title}
-              </Text>
-              <Text className="text-[10px] font-inter-regular text-white opacity-90 leading-tight">
-                {subtitle}
-              </Text>
+      <View className="overflow-hidden rounded-[8px]">
+        <LinearGradient colors={colors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+          <View className="px-[10px] py-3 flex-col justify-between min-h-[105px]">
+            <View className="flex-row items-start gap-[6px]">
+              <View>{icon}</View>
+              <View className="flex-1 flex-col mt-[1px]">
+                <Text className="text-[12px] font-inter-regular text-white mb-1" numberOfLines={1}>
+                  {title}
+                </Text>
+                <Text className="text-[10px] font-inter-regular text-white opacity-90 leading-tight">
+                  {subtitle}
+                </Text>
+              </View>
+            </View>
+            <View className="items-end mt-1">
+              <View
+                className="w-5 h-5 rounded-full items-center justify-center"
+                style={{ borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.6)' }}
+              >
+                <Feather name="arrow-up-right" size={12} color="white" style={{ opacity: 0.9 }} />
+              </View>
             </View>
           </View>
-          <View className="items-end mt-1">
-            <View
-              className="w-5 h-5 rounded-full items-center justify-center"
-              style={{ borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.6)' }}
-            >
-              <Feather name="arrow-up-right" size={12} color="white" style={{ opacity: 0.9 }} />
-            </View>
-          </View>
-        </View>
-      </LinearGradient>
+        </LinearGradient>
+      </View>
     </Pressable>
   );
 }
@@ -254,7 +248,7 @@ export default function MoreMenuScreen({
   const iconColor = '#113E55';
 
   return (
-    <SafeAreaView style={[sharedStyles.container, { backgroundColor: '#F6F7F7' }]}>
+    <SafeAreaView className="flex-1 bg-[#F6F7F7] px-[21px]">
       <Stack.Screen options={{ headerShown: false }} />
 
       <ScreenHeader
@@ -265,14 +259,10 @@ export default function MoreMenuScreen({
       />
 
       <ScrollView
-        contentContainerStyle={{
-          paddingBottom: 40,
-          paddingTop: 24,
-          flexGrow: 0,
-        }}
+        contentContainerClassName="grow-0 pt-6 pb-10"
         showsVerticalScrollIndicator={false}
       >
-        <View className="mb-6">
+        <View className="mb-[40px]">
           <BannerCard
             colors={['#185A75', '#5796AB']}
             icon={<Ionicons name="diamond-outline" size={24} color="white" />}
@@ -287,7 +277,7 @@ export default function MoreMenuScreen({
             }
           />
           {isAdmin && (
-            <View className="flex-row gap-2">
+            <View className="mt-2 flex-row gap-2">
               <SquareCard
                 colors={['#F05E3E', '#F99573']}
                 icon={<MaterialCommunityIcons name="account-cog-outline" size={20} color="white" />}
@@ -311,7 +301,7 @@ export default function MoreMenuScreen({
             </View>
           )}
         </View>
-        <View className="flex-col gap-6">
+        <View className="mx-[2px] flex-col gap-6">
           <View>
             <SectionTitle first>Account</SectionTitle>
             <View className="flex-col gap-2">
@@ -396,7 +386,7 @@ export default function MoreMenuScreen({
         </View>
         <Pressable
           onPress={() => router.push('/delete-account')}
-          className="flex-row items-center gap-4 rounded-[8px] border border-[#E30404] bg-white px-4 py-[18px] mt-6"
+          className="mx-[2px] mt-6 flex-row items-center gap-4 rounded-[8px] border border-[#E30404] bg-white px-4 py-[18px]"
         >
           <DeleteAccountIcon />
           <Text className="text-[13px] font-inter-regular text-[#E30404]">Delete Account</Text>

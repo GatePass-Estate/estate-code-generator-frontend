@@ -10,7 +10,7 @@ type TableEmptyStateProps = {
 /** Empty copy for result-page tables (incident reports, anomaly rankings). */
 export default function TableEmptyState({ icon, title, subtitle }: TableEmptyStateProps) {
   return (
-    <View className="items-center justify-center px-4 py-8">
+    <View className="items-center px-4 pb-8 pt-[31px]">
       <View className="h-12 w-12 items-center justify-center rounded-full bg-[#EFF1F1]">
         {icon}
       </View>

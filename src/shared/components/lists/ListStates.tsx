@@ -3,12 +3,34 @@ import { Pressable, Text, View } from 'react-native';
 import { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
 import LoadError from '@/src/shared/components/feedback/LoadError';
 import { ApiError } from '@/src/shared/services/api/errors';
+import { cn } from '@/src/shared/utils/cn';
 
 /**
  * Shared list states, after BlueSky's `ListFooter` / `ListMaybePlaceholder` (src/components/Lists.tsx):
  * every list shows loading, error-with-retry, empty and "loading more" the same way instead of each
  * screen rebuilding them.
  */
+
+/**
+ * Gap under tabs / search / filters before empty (and first-row) copy.
+ * Matches Past History: rows and "No … yet" both start here.
+ */
+export const LIST_EMPTY_TOP = 31;
+
+/** Simple centered empty copy — pair with `paddingTop: LIST_EMPTY_TOP` on the list. */
+export function EmptyListMessage({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <Text className={cn('text-center text-sm font-inter-regular text-[#6C6C6C]', className)}>
+      {children}
+    </Text>
+  );
+}
 
 /** User-facing text for a failed list request (offline and timeouts get their own wording). */
 export function listErrorMessage(error: unknown, fallback: string): string {
@@ -44,7 +66,11 @@ export const ListPlaceholder = memo(function ListPlaceholder({
 }: ListPlaceholderProps) {
   if (isLoading) {
     return (
-      <View className="items-center pt-10" accessibilityLabel="Loading">
+      <View
+        className="items-center"
+        style={{ paddingTop: LIST_EMPTY_TOP }}
+        accessibilityLabel="Loading"
+      >
         <CircleLoader size={36} />
       </View>
     );

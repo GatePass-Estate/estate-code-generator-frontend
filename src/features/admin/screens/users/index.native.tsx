@@ -17,7 +17,7 @@ import Svg, { Path } from 'react-native-svg';
 
 import Back from '@/src/shared/components/navigation/Back';
 import BottomSheet from '@/src/shared/components/feedback/BottomSheet';
-import { ListFooter } from '@/src/shared/components/lists/ListStates';
+import { LIST_EMPTY_TOP, ListFooter } from '@/src/shared/components/lists/ListStates';
 import { getRoleIconHeight, getRoleIconWidth } from '@/src/shared/utils/helpers';
 import RoleIcon from '@/src/shared/components/RoleIcon';
 import { type EstateUserRoleFilter } from '@/src/features/users/hooks/estateUsers';
@@ -201,7 +201,7 @@ export default function AllUsersMobile() {
             contentContainerStyle={{
               flexGrow: 1,
               gap: 8,
-              paddingTop: 32,
+              paddingTop: LIST_EMPTY_TOP,
               paddingRight: 20,
               paddingBottom: 32,
               paddingLeft: 20,
@@ -210,7 +210,7 @@ export default function AllUsersMobile() {
             onEndReached={loadMore}
             onEndReachedThreshold={0.2}
             ListEmptyComponent={
-              <View className="flex-1 items-center justify-center pb-20">
+              <View className="items-center">
                 <View className="h-12 w-12 items-center justify-center rounded-full bg-[#EFF1F1]">
                   <Feather name="users" size={22} color="#878686" />
                 </View>

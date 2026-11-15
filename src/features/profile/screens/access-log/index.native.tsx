@@ -9,6 +9,7 @@ import { mapResidentLogToAccessLog } from '@/src/features/history/utils/accessLo
 import { useMyResidentAccessLogs } from '@/src/features/history/hooks/accessLogs';
 import { compareLogDatesDesc } from '@/src/shared/utils/helpers';
 import { sharedStyles } from '@/src/shared/theme/styles';
+import { EmptyListMessage, LIST_EMPTY_TOP } from '@/src/shared/components/lists/ListStates';
 
 export default function AccessLogScreen() {
   const navigation = useNavigation();
@@ -42,17 +43,15 @@ export default function AccessLogScreen() {
         <ScrollView
           contentContainerStyle={{
             paddingBottom: 40,
-            paddingTop: 32,
+            paddingTop: LIST_EMPTY_TOP,
             flexGrow: logs.length ? 0 : 1,
           }}
           showsVerticalScrollIndicator={false}
         >
           {error ? (
-            <Text className="text-center text-sm font-inter-regular text-[#6C6C6C]">{error}</Text>
+            <EmptyListMessage>{error}</EmptyListMessage>
           ) : logs.length === 0 ? (
-            <Text className="text-center text-sm font-inter-regular text-[#6C6C6C]">
-              No access logs yet.
-            </Text>
+            <EmptyListMessage>No access logs yet.</EmptyListMessage>
           ) : (
             <View className="gap-[9px]">
               {logs.map((log) => (

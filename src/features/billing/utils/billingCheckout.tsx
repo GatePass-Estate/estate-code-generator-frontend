@@ -28,6 +28,30 @@ import {
 import { errorMessage, errorStatus } from '@/src/shared/services/api/errors';
 import type { CheckoutKind, CheckoutSessionStatus } from '@/src/features/billing/types/billing';
 
+// TEMP-DEBUG(checkout-409): remove after diagnosis.
+function __dbg(tag: string, data: unknown) {
+  if (!__DEV__) return;
+  const raw = data as
+    | {
+        cause?: { response?: { status?: number; data?: unknown } };
+        response?: { status?: number; data?: unknown };
+        status?: number;
+        message?: string;
+      }
+    | undefined;
+  const response = raw?.response ?? raw?.cause?.response;
+  void fetch('http://192.168.100.17:9876', {
+    method: 'POST',
+    body: JSON.stringify({
+      tag,
+      status: response?.status ?? raw?.status,
+      data: response?.data,
+      message: raw?.message,
+      value: response ? undefined : data,
+    }),
+  }).catch(() => {});
+}
+
 export type CheckoutOutcome = CheckoutSessionStatus | 'cancelled' | 'error';
 
 const POLL_INTERVAL_MS = 2000;
@@ -103,7 +127,9 @@ async function settleAbandonedCheckout(
 
   let cancelReached = false;
   try {
+    __dbg('cancel:request', { reference });
     const result = await requestCheckoutCancellation(reference, token);
+    __dbg('cancel:response', result);
     cancelReached = true;
     const outcome = interpretCheckoutCancel(result.status);
     if (outcome === 'paid') return 'paid';
@@ -112,6 +138,7 @@ async function settleAbandonedCheckout(
       return 'cleared';
     }
   } catch (error) {
+    __dbg('cancel:error', error);
     // Already gone: nothing left to conflict with the next purchase.
     if (errorStatus(error) === 404) {
       await finishCheckoutAttempt(reference);
@@ -138,6 +165,11 @@ async function releaseOtherCheckout(
   exceptSignature: string
 ): Promise<'clear' | 'paid' | 'blocked'> {
   const other = findOpenCheckoutAttempt(estateId, exceptSignature);
+  __dbg('release:other', {
+    found: Boolean(other),
+    reference: other?.session?.reference,
+    submitted: other?.submitted,
+  });
   if (!other?.session) return 'clear';
   if (other.submitted) return 'blocked';
 
@@ -522,6 +554,7 @@ export function usePaystackCheckout() {
             errorStatus
           );
         } catch (error: unknown) {
+          __dbg('initialize:error', error);
           const status = errorStatus(error);
           if (status === 409) void refreshBillingData();
           // Left the screen: no alert over whatever the user is looking at now.

@@ -129,6 +129,9 @@ function LegendDot({ color, label }: { color: string; label: string }) {
   );
 }
 
+/** Matches the big headline figure so empty-number cards keep the same band. */
+const TREND_NUMBER_ROW_MIN_HEIGHT = 42;
+
 export function TrendCard({
   title,
   valueLabel,
@@ -142,6 +145,8 @@ export function TrendCard({
   body: string;
   icon: ReactNode;
 }) {
+  const hasNumber = Boolean(valueLabel?.trim());
+
   return (
     <View className="w-[211px] rounded-[16px] bg-primary px-4 pb-[22px] pt-2">
       <View className="w-full flex-row items-start justify-between">
@@ -157,24 +162,30 @@ export function TrendCard({
       </View>
 
       <View className="mt-3 w-full">
-        {valueLabel ? (
-          <View className="flex-row items-end gap-1.5">
-            <Text
-              allowFontScaling={false}
-              className="text-left text-[34.18px] font-ubuntu-medium leading-[normal] text-accent"
-            >
-              {valueLabel}
-            </Text>
-            {unitLabel ? (
+        {/* Keep the number band even when empty so cards without a figure stay the same height. */}
+        <View
+          className="w-full flex-row items-end gap-1.5"
+          style={{ minHeight: TREND_NUMBER_ROW_MIN_HEIGHT }}
+        >
+          {hasNumber ? (
+            <>
               <Text
                 allowFontScaling={false}
-                className="mb-2 text-left text-caption font-inter-regular text-accent"
+                className="text-left text-[34.18px] font-ubuntu-medium leading-[normal] text-accent"
               >
-                {unitLabel}
+                {valueLabel}
               </Text>
-            ) : null}
-          </View>
-        ) : null}
+              {unitLabel ? (
+                <Text
+                  allowFontScaling={false}
+                  className="mb-2 text-left text-caption font-inter-regular text-accent"
+                >
+                  {unitLabel}
+                </Text>
+              ) : null}
+            </>
+          ) : null}
+        </View>
         <Text
           allowFontScaling={false}
           className="w-[181px] text-left text-caption font-inter-regular leading-[normal] text-accent"

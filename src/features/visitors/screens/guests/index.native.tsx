@@ -26,7 +26,11 @@ import { useAndroidBottomInset } from '@/src/shared/hooks/useAndroidBottomInset'
 import { GuestSearchIcon } from '@/src/features/visitors/components/guestIcons';
 import { getErrorMessage } from '@/src/shared/utils/helpers';
 import Modal from '@/src/shared/components/feedback/Modal';
-import { ListFooter, ListPlaceholder } from '@/src/shared/components/lists/ListStates';
+import {
+  LIST_EMPTY_TOP,
+  ListFooter,
+  ListPlaceholder,
+} from '@/src/shared/components/lists/ListStates';
 
 const GUEST_PAGE_SIZE = 20;
 
@@ -217,7 +221,11 @@ const MyGuestMobile = () => {
             onRetry={() => void fetchNextPage()}
           />
         }
-        contentContainerStyle={{ paddingBottom: tabContentPadding, gap: 8, paddingTop: 16 }}
+        contentContainerStyle={{
+          paddingBottom: tabContentPadding,
+          gap: 8,
+          paddingTop: LIST_EMPTY_TOP,
+        }}
         ListEmptyComponent={
           <ListPlaceholder
             isLoading={loading && !pullRefreshing}
@@ -229,9 +237,8 @@ const MyGuestMobile = () => {
               <View
                 style={{
                   flex: 1,
-                  justifyContent: 'center',
+                  justifyContent: 'flex-start',
                   alignItems: 'center',
-                  paddingTop: 40,
                 }}
               >
                 <Animated.Image

@@ -45,6 +45,7 @@ export default function AnomalyDetectionPreviewScreen() {
     toggleTier,
     justPurchasedTiers,
     justCancelledTiers,
+    installOverrides,
     scrollViewRef,
     viewportHeightRef,
     tierOneRef,
@@ -203,6 +204,7 @@ export default function AnomalyDetectionPreviewScreen() {
                   }}
                   justPurchasedTiers={justPurchasedTiers}
                   justCancelledTiers={justCancelledTiers}
+                  installOverrides={installOverrides}
                   {...tierListBusy}
                   onActivate={handlePressActivate}
                   onCancel={handleCancelSubscription}

@@ -26,6 +26,7 @@ import { useAiTierActions } from '@/src/features/ai/hooks/useAiTierActions';
 import {
   hasFeatureEntitlement as computeHasFeatureEntitlement,
   isTierNumberInstalled,
+  isTierNumberSubscribed,
   resultDeniedMessage,
   tierOneState,
 } from '@/src/features/ai/utils/aiTierState';
@@ -33,14 +34,10 @@ import {
 export const isIncidentProduct = (name: string) => name.toLowerCase().includes('incident');
 
 /** Tier One is the base product: it unlocks the Result page. Tiers Two and Three add to it. */
-const TIER_ONE_FOR_RESULT_MESSAGE =
-  'Subscribe to Tier One (Incident Report Summary and Insights) to view your results.';
-const INSTALL_TIER_ONE_FOR_RESULT_MESSAGE =
-  'Install Tier One (Incident Report Summary and Insights) to view your results.';
-const TIER_ONE_FIRST_MESSAGE = 'Tier One is required for Tier 2 and Tier 3 activation.';
+const TIER_ONE_FIRST_MESSAGE = 'The base tier is required before activating higher tiers.';
 /** Shown when the server refuses the Result data although Tier One is active. */
 const SUBSCRIPTION_NOT_LINKED_MESSAGE =
-  'Your subscription is active, but it isn’t linked to Incident Report Insights yet. Please contact support.';
+  'Your subscription is active, but it isn’t linked to this product yet. Please contact support.';
 
 /** Separate from anomaly's `cancelledTiers-*` key, which is keyed by its own tier names. */
 const cancelledTiersStorageKey = (estateId: string) => `incidentCancelledTiers-${estateId}`;
@@ -72,7 +69,7 @@ export function useIncidentProduct() {
   // The server refused the Result data; remembered so the next tap shows the prompt straight away.
   const [serverDenied, setServerDenied] = useState(false);
   const bookkeeping = useTierBookkeeping(estateId ? cancelledTiersStorageKey(estateId) : null);
-  const { justPurchasedTiers, justCancelledTiers } = bookkeeping;
+  const { justPurchasedTiers, justCancelledTiers, installOverrides } = bookkeeping;
 
   useEffect(() => {
     if (!featureDetail) return;
@@ -81,11 +78,13 @@ export function useIncidentProduct() {
   }, [featureDetail]);
 
   const queryClient = useQueryClient();
-  /** Tier entitlements changed → drop cached summaries so Result can't show a removed tier. */
+  /** Tier entitlements changed → drop Result cache + Active AI Tools grants. */
   const refreshAfterTierChange = async () => {
     setServerDenied(false);
     queryClient.removeQueries({ queryKey: [...queryKeys.incidents.all, 'summary'] });
     void queryClient.invalidateQueries({ queryKey: queryKeys.incidents.all });
+    void queryClient.invalidateQueries({ queryKey: ['billing', 'ai-grants'] });
+    void queryClient.invalidateQueries({ queryKey: ['billing', 'ai-marketplace'] });
     await Promise.all([refreshEstateEntitlements(), refetch()]);
   };
 
@@ -99,6 +98,21 @@ export function useIncidentProduct() {
   const thirdPartyInstalled = isTierNumberInstalled(sortedTiers, !!featureDetail, 3);
   const hasAiReviewTier =
     inHouseInstalled === undefined ? undefined : !!(inHouseInstalled || thirdPartyInstalled);
+  const inHouseSubscribed = isTierNumberSubscribed(
+    sortedTiers,
+    !!featureDetail,
+    2,
+    justCancelledTiers
+  );
+  const thirdPartySubscribed = isTierNumberSubscribed(
+    sortedTiers,
+    !!featureDetail,
+    3,
+    justCancelledTiers
+  );
+  /** Paid for an AI review tier but none installed → Install, not Upgrade Plan. */
+  const aiSummaryNeedsInstall =
+    hasAiReviewTier === false && !!(inHouseSubscribed || thirdPartySubscribed);
   const productFeatures = (featureDetail?.product_features ?? [])
     .map((text) => text.trim())
     .filter(Boolean);
@@ -107,18 +121,26 @@ export function useIncidentProduct() {
   const tierOneCardRef = useRef<View>(null);
   const viewportHeightRef = useRef(0);
 
-  // Tier One is what unlocks Result; Tiers Two and Three are add-ons. The entitlements endpoint
-  // doesn't list the AI tiers, so the marketplace status (the same data behind Install /
-  // Uninstall) decides. While it's still loading the tab opens; the server's 402/403 is then
-  // handled by the Result view itself. A locked estate sees the tab switch and the plan prompt
-  // together, with nothing fetched; closing the prompt takes the tab back to Overview.
+  // Tier One unlocks Result. Marketplace `status` (e.g. installed) = paid; `is_installed` = on.
+  // Entitlements do not list AI tiers. Paid + not installed → Install modal, not Upgrade.
   const tierOne = sortedTiers.find((tier) => tierOrder(tier) === 1);
   const { tierOneInstalled, tierOneSubscribed } = tierOneState(
     tierOne,
     !!featureDetail,
-    justPurchasedTiers
+    justPurchasedTiers,
+    installOverrides
   );
   const resultAllowed = tierOneInstalled !== false && !serverDenied;
+  const productName = featureDetail?.name?.trim() || 'this product';
+  const installTierOneConfirm = useMemo(
+    () => ({
+      title: `Install ${productName}`,
+      confirmLabel: 'Install',
+    }),
+    [productName]
+  );
+  const subscribeTierOneMessage = `Subscribe to ${productName} to view your results.`;
+  const installTierOneMessage = `Install ${productName} to view your results.`;
   // "Upgrade" goes to Overview with the tier that unlocks that action opened on Activate.
   const tierCardRefs = useRef<Record<number, View | null>>({});
   const showTier = (order: number) => {
@@ -144,7 +166,10 @@ export function useIncidentProduct() {
   /** True (after prompting) when a Tier Two or Three action needs Tier One first. */
   const requireTierOne = (tier: MarketplaceTier) => {
     if (tierOrder(tier) <= 1 || tierOneInstalled !== false) return false;
-    showResultDenied(TIER_ONE_FIRST_MESSAGE);
+    showResultDenied(
+      tierOneSubscribed ? installTierOneMessage : TIER_ONE_FIRST_MESSAGE,
+      tierOneSubscribed ? installTierOneConfirm : null
+    );
     return true;
   };
   const [resultLocked, setResultLocked] = useState(false);
@@ -162,18 +187,21 @@ export function useIncidentProduct() {
   useEffect(() => {
     if (activeTab !== 'Result' || resultLocked || resultAllowed) return;
     setResultLocked(true);
-    showResultDenied(
-      resultDeniedMessage(tierOneInstalled, tierOneSubscribed, {
-        notLinked: SUBSCRIPTION_NOT_LINKED_MESSAGE,
-        installTierOne: INSTALL_TIER_ONE_FOR_RESULT_MESSAGE,
-        subscribeTierOne: TIER_ONE_FOR_RESULT_MESSAGE,
-      })
-    );
+    const message = resultDeniedMessage(tierOneInstalled, tierOneSubscribed, {
+      notLinked: SUBSCRIPTION_NOT_LINKED_MESSAGE,
+      installTierOne: installTierOneMessage,
+      subscribeTierOne: subscribeTierOneMessage,
+    });
+    const needsInstall = !tierOneInstalled && !!tierOneSubscribed;
+    showResultDenied(message, needsInstall ? installTierOneConfirm : null);
   }, [
     activeTab,
     resultLocked,
     resultAllowed,
     tierOneInstalled,
+    installTierOneMessage,
+    subscribeTierOneMessage,
+    installTierOneConfirm,
     tierOneSubscribed,
     showResultDenied,
   ]);
@@ -189,12 +217,13 @@ export function useIncidentProduct() {
     bookkeeping,
     requireTierOne,
     requireTierOneToUninstall: false,
-    cancelByFeatureKey: false,
+    cancelByFeatureKey: true,
     onTierChange: refreshAfterTierChange,
     afterCheckout: () => void refreshAfterTierChange(),
     rating: { allowed: hasFeatureEntitlement, targetId: featureDetail?.id, refetch },
   });
   const { denyIfUnauthorized, notifyActionError, runSubscribe } = actions;
+  const { markTierInstallState } = bookkeeping;
 
   const handleSubscribe = async (tier: MarketplaceTier) => {
     if (denyIfUnauthorized()) return;
@@ -215,8 +244,10 @@ export function useIncidentProduct() {
               period_months: 1,
             });
           }
+          markTierInstallState(tier.tier, true);
           showAlert('Success', 'Free feature tier activated successfully!');
-          await refreshAfterTierChange();
+          // Don't hold the Activate spinner open while marketplace/entitlements refetch.
+          void refreshAfterTierChange();
         } else if (tier.feature_key) {
           // Paid tier: pick a duration and see the price before Paystack.
           actions.activation.open(tier);
@@ -260,6 +291,7 @@ export function useIncidentProduct() {
     resultBlocked: resultLocked || !resultAllowed,
     onResultAccessDenied: () => setServerDenied(true),
     hasAiReviewTier,
+    aiSummaryNeedsInstall,
     inHouseInstalled,
     thirdPartyInstalled,
     showAiSummaryTier: () => showTier(2),
@@ -267,6 +299,7 @@ export function useIncidentProduct() {
     toggleTier,
     justPurchasedTiers,
     justCancelledTiers,
+    installOverrides,
     scrollViewRef,
     viewportHeightRef,
     tierOneCardRef,

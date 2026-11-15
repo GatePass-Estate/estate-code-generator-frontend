@@ -41,6 +41,7 @@ export default function IncidentReportPreviewScreen() {
     resultBlocked,
     onResultAccessDenied,
     hasAiReviewTier,
+    aiSummaryNeedsInstall,
     inHouseInstalled,
     thirdPartyInstalled,
     showAiSummaryTier,
@@ -48,6 +49,7 @@ export default function IncidentReportPreviewScreen() {
     toggleTier,
     justPurchasedTiers,
     justCancelledTiers,
+    installOverrides,
     scrollViewRef,
     viewportHeightRef,
     tierOneCardRef,
@@ -111,6 +113,7 @@ export default function IncidentReportPreviewScreen() {
             isActive={activeTab === 'Result'}
             onAccessDenied={onResultAccessDenied}
             hasAiReviewTier={hasAiReviewTier}
+            aiSummaryNeedsInstall={aiSummaryNeedsInstall}
             inHouseInstalled={inHouseInstalled}
             thirdPartyInstalled={thirdPartyInstalled}
             onUpgradeAiSummary={showAiSummaryTier}
@@ -204,6 +207,7 @@ export default function IncidentReportPreviewScreen() {
                   }}
                   justPurchasedTiers={justPurchasedTiers}
                   justCancelledTiers={justCancelledTiers}
+                  installOverrides={installOverrides}
                   {...tierListBusy}
                   onActivate={(tier) => void handleSubscribe(tier)}
                   onCancel={handleCancelSubscription}

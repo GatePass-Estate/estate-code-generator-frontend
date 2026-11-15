@@ -31,6 +31,8 @@ type IncidentAISummaryCardProps = {
   /** Idle → generate / view. */
   onPress: () => void;
   onUpgradePress?: () => void;
+  /** Locked-card CTA — Install when paid but uninstalled. */
+  upgradeLabel?: string;
   /** Generated → one swipeable card per summary source. */
   slides?: AISummarySlide[];
   onOpenSlide?: (variant: AISummaryVariant) => void;
@@ -62,10 +64,12 @@ function ExpandButton({ onPress }: { onPress: () => void }) {
 
 function LockedSummaryCard({
   onUpgradePress,
+  upgradeLabel = 'Upgrade Plan',
   readTimeLabel,
   sourceLabel,
 }: {
   onUpgradePress?: () => void;
+  upgradeLabel?: string;
   readTimeLabel?: string | null;
   sourceLabel?: string | null;
 }) {
@@ -102,7 +106,7 @@ function LockedSummaryCard({
           allowFontScaling={false}
           className="text-center text-sm font-ubuntu-semibold tracking-[-0.24px] text-primary"
         >
-          Upgrade Plan
+          {upgradeLabel}
         </Text>
       </Pressable>
     </View>
@@ -283,6 +287,7 @@ export default function IncidentAISummaryCard({
   mode,
   onPress,
   onUpgradePress,
+  upgradeLabel,
   slides = [],
   onOpenSlide,
   readTimeLabel,
@@ -308,6 +313,7 @@ export default function IncidentAISummaryCard({
         {state === 'locked' ? (
           <LockedSummaryCard
             onUpgradePress={onUpgradePress}
+            upgradeLabel={upgradeLabel}
             readTimeLabel={resolvedReadTime}
             sourceLabel={resolvedSource}
           />

@@ -14,7 +14,11 @@ import type {
   AiCheckoutDuration,
   MarketplaceTier,
 } from '@/src/features/marketplace/types/aiMarketplace';
-import { isAlreadyCancelledError } from '@/src/features/ai/utils/aiTierState';
+import {
+  isAlreadyCancelledError,
+  isAlreadyInstalledError,
+  isAlreadyUninstalledError,
+} from '@/src/features/ai/utils/aiTierState';
 import type { TierBookkeeping } from '@/src/features/ai/hooks/useTierBookkeeping';
 
 /** One in-progress tier action: which tier, and whether that kind of action is running. */
@@ -40,7 +44,10 @@ type AiTierActionsOptions = {
   requireTierOne: (tier: MarketplaceTier) => boolean;
   /** Anomaly also blocks uninstalling an add-on while Tier One is missing. */
   requireTierOneToUninstall: boolean;
-  /** Anomaly cancels the tier's own subscription; Incident cancels the estate's. */
+  /**
+   * Cancel must send the tier `feature_key` — `/ai-features/.../cancel` needs it
+   * (empty body fails validation; anomaly already passes the key).
+   */
   cancelByFeatureKey: boolean;
   /** Re-reads everything a tier change affects (entitlements, product, cached results). */
   onTierChange: () => Promise<void>;
@@ -65,7 +72,7 @@ export function useAiTierActions({
   rating,
 }: AiTierActionsOptions) {
   const { denyIfUnauthorized, notifyActionError } = useBillingAccess();
-  const { markTierPurchased, markTierCancelled } = bookkeeping;
+  const { markTierPurchased, markTierCancelled, markTierInstallState } = bookkeeping;
 
   const subscribing = useTierBusy();
   const uninstalling = useTierBusy();
@@ -118,14 +125,19 @@ export function useAiTierActions({
       installing.start(tier.tier);
       try {
         await installAiFeature(estateId, tier.feature_key);
-        markTierPurchased(tier.tier, false);
+        markTierInstallState(tier.tier, true);
       } catch (err: unknown) {
-        markTierPurchased(tier.tier, true);
-        notifyActionError(
-          'Install Failed',
-          { message: errorMessage(err) },
-          'Payment succeeded, but the feature could not be installed. Tap Install to try again.'
-        );
+        const message = errorMessage(err) || '';
+        if (isAlreadyInstalledError(message)) {
+          markTierInstallState(tier.tier, true);
+        } else {
+          markTierPurchased(tier.tier, true);
+          notifyActionError(
+            'Install Failed',
+            { message },
+            'Payment succeeded, but the feature could not be installed. Tap Install to try again.'
+          );
+        }
       } finally {
         installing.stop();
       }
@@ -147,27 +159,34 @@ export function useAiTierActions({
       onConfirm: async () => {
         setConfirmModalVisible(false);
         canceling.start(tier.tier);
+        let shouldRefresh = false;
         try {
-          if (cancelByFeatureKey) {
-            await cancelMarketplaceSubscription(estateId, tier.feature_key || undefined);
-          } else {
-            await cancelMarketplaceSubscription(estateId);
+          const featureKey = cancelByFeatureKey ? tier.feature_key || undefined : undefined;
+          if (cancelByFeatureKey && !featureKey) {
+            showAlert(
+              'Cancellation Failed',
+              'This tier is missing a feature key, so it cannot be cancelled yet.'
+            );
+            return;
           }
-          showAlert('Success', 'Subscription cancelled successfully.');
+          await cancelMarketplaceSubscription(estateId, featureKey);
           markTierCancelled(tier.tier, true);
-          await onTierChange();
+          showAlert('Success', 'Subscription cancelled successfully.');
+          shouldRefresh = true;
         } catch (err: unknown) {
           const cancelMessage = errorMessage(err) || 'Failed to cancel subscription.';
           // Paystack rejects disabling a subscription that is already cancelled.
           if (isAlreadyCancelledError(cancelMessage)) {
             markTierCancelled(tier.tier, true);
             showAlert('Already Cancelled', 'Your subscription has already been cancelled.');
+            shouldRefresh = true;
           } else {
             showAlert('Cancellation Failed', cancelMessage);
           }
         } finally {
           canceling.stop();
         }
+        if (shouldRefresh) void onTierChange();
       },
     });
     setConfirmModalVisible(true);
@@ -195,19 +214,25 @@ export function useAiTierActions({
       onConfirm: async () => {
         setConfirmModalVisible(false);
         uninstalling.start(tier.tier);
+        let shouldRefresh = false;
         try {
           await uninstallAiFeature(estateId, featureKey);
+          markTierInstallState(tier.tier, false);
           showAlert('Success', 'Feature uninstalled successfully.');
-          await onTierChange();
+          shouldRefresh = true;
         } catch (err: unknown) {
-          notifyActionError(
-            'Uninstall Failed',
-            { message: errorMessage(err) },
-            'Failed to uninstall feature.'
-          );
+          const message = errorMessage(err) || '';
+          if (isAlreadyUninstalledError(message)) {
+            markTierInstallState(tier.tier, false);
+            showAlert('Already Uninstalled', 'This feature is already uninstalled.');
+            shouldRefresh = true;
+          } else {
+            notifyActionError('Uninstall Failed', { message }, 'Failed to uninstall feature.');
+          }
         } finally {
           uninstalling.stop();
         }
+        if (shouldRefresh) void onTierChange();
       },
     });
     setConfirmModalVisible(true);
@@ -226,20 +251,25 @@ export function useAiTierActions({
     }
 
     installing.start(tier.tier);
+    let shouldRefresh = false;
     try {
       await installAiFeature(estateId, tier.feature_key);
+      markTierInstallState(tier.tier, true);
       showAlert('Success', 'Feature installed successfully.');
-      markTierPurchased(tier.tier, false);
-      await onTierChange();
+      shouldRefresh = true;
     } catch (err: unknown) {
-      notifyActionError(
-        'Install Failed',
-        { message: errorMessage(err) },
-        'Failed to install feature.'
-      );
+      const message = errorMessage(err) || '';
+      if (isAlreadyInstalledError(message)) {
+        markTierInstallState(tier.tier, true);
+        showAlert('Already Installed', 'This feature is already installed.');
+        shouldRefresh = true;
+      } else {
+        notifyActionError('Install Failed', { message }, 'Failed to install feature.');
+      }
     } finally {
       installing.stop();
     }
+    if (shouldRefresh) void onTierChange();
   };
 
   const handleRate = async (score: number) => {

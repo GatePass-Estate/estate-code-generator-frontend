@@ -1,5 +1,6 @@
 import { View, Text, StyleProp, ViewStyle } from 'react-native';
 import { TimelineDashLine } from '@/src/assets/svgs';
+import { LIST_EMPTY_TOP } from '@/src/shared/components/lists/ListStates';
 
 export type AccessTimelineEvent = {
   id: string;
@@ -85,12 +86,24 @@ export default function AccessTimeline({
   dashStyle,
 }: AccessTimelineProps) {
   if (error) {
-    return <Text className="text-center text-sm font-inter-regular text-[#6C6C6C]">{error}</Text>;
+    return (
+      <Text
+        className="text-center text-sm font-inter-regular text-[#6C6C6C]"
+        style={{ paddingTop: LIST_EMPTY_TOP }}
+      >
+        {error}
+      </Text>
+    );
   }
 
   if (events.length === 0) {
     return (
-      <Text className="text-center text-sm font-inter-regular text-[#6C6C6C]">{emptyMessage}</Text>
+      <Text
+        className="text-center text-sm font-inter-regular text-[#6C6C6C]"
+        style={{ paddingTop: LIST_EMPTY_TOP }}
+      >
+        {emptyMessage}
+      </Text>
     );
   }
 

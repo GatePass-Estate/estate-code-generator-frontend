@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ScreenLoading from '@/src/shared/components/feedback/ScreenLoading';
-import { ListFooter, ListPlaceholder } from '@/src/shared/components/lists/ListStates';
+import {
+  EmptyListMessage,
+  LIST_EMPTY_TOP,
+  ListFooter,
+  ListPlaceholder,
+} from '@/src/shared/components/lists/ListStates';
 import {
   View,
   Text,
@@ -325,8 +330,8 @@ export default function HistoryTabScreen() {
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{
               flexGrow: 1,
-              // Past rows and the shared empty/error offset both start at 31.
-              paddingTop: 31,
+              // Past rows and the shared empty/error offset both start here.
+              paddingTop: LIST_EMPTY_TOP,
               paddingBottom: tabContentPadding + 40,
             }}
             onEndReached={loadMorePast}
@@ -361,11 +366,7 @@ export default function HistoryTabScreen() {
                 error={pastQuery.error}
                 onRetry={user_id ? () => void refetchPast() : undefined}
                 errorFallback={user_id ? 'Could not load past history.' : 'User not found.'}
-                empty={
-                  <Text className="text-center text-sm font-inter-regular text-[#6C6C6C]">
-                    No past access history yet.
-                  </Text>
-                }
+                empty={<EmptyListMessage>No past access history yet.</EmptyListMessage>}
               />
             }
             ListFooterComponent={
@@ -386,7 +387,7 @@ export default function HistoryTabScreen() {
             contentContainerStyle={{
               flexGrow: 1,
               // Empty/error copy uses the past list's offset so the two tabs line up.
-              paddingTop: showingMessageOnly ? 31 : 35,
+              paddingTop: showingMessageOnly ? LIST_EMPTY_TOP : 35,
               paddingBottom: tabContentPadding + 40,
             }}
             refreshControl={refreshControl}
@@ -401,11 +402,7 @@ export default function HistoryTabScreen() {
                 error={upcomingQuery.error}
                 onRetry={user_id ? () => void refetchUpcoming() : undefined}
                 errorFallback={user_id ? 'Could not load upcoming invites.' : 'User not found.'}
-                empty={
-                  <Text className="text-center text-sm font-inter-regular text-[#6C6C6C]">
-                    No upcoming invites yet.
-                  </Text>
-                }
+                empty={<EmptyListMessage>No upcoming invites yet.</EmptyListMessage>}
               />
             }
           />

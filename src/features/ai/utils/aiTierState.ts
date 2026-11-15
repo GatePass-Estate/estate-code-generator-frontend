@@ -8,46 +8,134 @@ import type { MarketplaceTier } from '@/src/features/marketplace/types/aiMarketp
 /** Per-tier flags keyed by the tier name (`tier_1`, …). */
 export type TierFlags = Record<string, boolean>;
 
-const SUBSCRIBED_STATUSES = ['active', 'purchased', 'subscribed', 'installed'];
+/**
+ * Marketplace `status` means the estate has paid / holds the tier (including `installed`).
+ * Actual install is only `is_installed` — paid+uninstalled keeps status but clears the flag.
+ *
+ * Purchase-state values match the Gatepass App technical audit button matrix
+ * (Not Purchased / Purchased / Cancelled / Expired). Grant statuses from revenue
+ * (`AiFeatureGrantStatus`) include `active | expired | cancelled | past_due`.
+ */
+const PURCHASED_STATUSES = ['active', 'purchased', 'subscribed', 'installed'];
+const CANCELLED_STATUSES = ['cancelled'];
+const EXPIRED_STATUSES = ['expired', 'past_due'];
+
+/** Audit matrix purchase column. */
+export type TierPurchaseState = 'not_purchased' | 'purchased' | 'cancelled' | 'expired';
+
+/** Which CTAs the tier card shows (audit matrix × install state). */
+export type TierCardButtons = {
+  activate: boolean;
+  cancel: boolean;
+  reactivate: boolean;
+  install: boolean;
+  uninstall: boolean;
+};
 
 /** `tier_2` / `Tier 2` → 2; 0 when the name has no number. */
 export function tierNumber(tierName: string): number {
   return Number.parseInt(tierName.replace(/\D/g, ''), 10) || 0;
 }
 
-/** Installed, purchased, or in a paid/active status. */
-export function isTierActive(tier: MarketplaceTier): boolean {
-  return !!tier.is_installed || !!tier.purchased || SUBSCRIBED_STATUSES.includes(tier.status ?? '');
+/**
+ * Map marketplace tier + local cancel bookkeeping → audit Purchase State.
+ * Local cancel wins while the API still reports an active/paid status.
+ */
+export function tierPurchaseState(
+  tier: MarketplaceTier | null | undefined,
+  justCancelledTiers: TierFlags = {}
+): TierPurchaseState {
+  if (!tier) return 'not_purchased';
+  const status = (tier.status ?? '').toLowerCase();
+  if (justCancelledTiers[tier.tier] || CANCELLED_STATUSES.includes(status)) return 'cancelled';
+  if (EXPIRED_STATUSES.includes(status)) return 'expired';
+  if (PURCHASED_STATUSES.includes(status) || Boolean(tier.purchased)) return 'purchased';
+  return 'not_purchased';
 }
 
-/** Paid for (by status or the purchased flag), unless the user just cancelled it here. */
+/**
+ * Install State for tier cards. Local overrides win until marketplace detail refetches.
+ * `justPurchasedTiers` means paid but not installed yet (show Install).
+ */
+export function resolveTierInstalled(
+  tier: Pick<MarketplaceTier, 'tier' | 'is_installed'>,
+  justPurchasedTiers: TierFlags = {},
+  installOverrides: TierFlags = {}
+): boolean {
+  if (Object.prototype.hasOwnProperty.call(installOverrides, tier.tier)) {
+    return !!installOverrides[tier.tier];
+  }
+  return !!tier.is_installed && !justPurchasedTiers[tier.tier];
+}
+
+/**
+ * Audit matrix: Purchase State × Install State → buttons.
+ * Free tiers never show Cancel Subscription (nothing to cancel).
+ */
+export function tierCardButtons(
+  purchase: TierPurchaseState,
+  installed: boolean,
+  isFree = false
+): TierCardButtons {
+  if (purchase === 'not_purchased') {
+    return {
+      activate: true,
+      cancel: false,
+      reactivate: false,
+      install: false,
+      uninstall: false,
+    };
+  }
+  if (purchase === 'purchased') {
+    return {
+      activate: false,
+      cancel: !isFree,
+      reactivate: false,
+      install: !installed,
+      uninstall: installed,
+    };
+  }
+  // cancelled | expired
+  return {
+    activate: false,
+    cancel: false,
+    reactivate: true,
+    install: !installed,
+    uninstall: installed,
+  };
+}
+
+/** Purchased / held, or currently installed. */
+export function isTierActive(tier: MarketplaceTier): boolean {
+  return !!tier.is_installed || !!tier.purchased || PURCHASED_STATUSES.includes(tier.status ?? '');
+}
+
+/**
+ * Paid for (marketplace `status` / `purchased`), unless cancelled/expired here.
+ * `status: 'installed'` means paid — not that the feature is currently installed.
+ */
 export function isTierSubscribed(
   tier: MarketplaceTier | null | undefined,
   justCancelledTiers: TierFlags = {}
 ): boolean {
-  if (!tier) return false;
-  if (justCancelledTiers[tier.tier]) return false;
-  return SUBSCRIBED_STATUSES.includes(tier.status ?? '') || Boolean(tier.purchased);
+  return tierPurchaseState(tier, justCancelledTiers) === 'purchased';
 }
 
 /**
- * Tier One is the base product; Tiers Two and Three are add-ons that need it installed. Paying
- * makes a tier "installed" on the server before the user has chosen to install it, so a tier
- * just purchased still counts as not installed (as the Install / Uninstall button does). Until
- * the tiers load (`loaded` false) there is nothing to judge, so both values are undefined.
+ * Tier One unlocks Result. `is_installed` is the only install signal; `status` (e.g. `installed`)
+ * means paid. Paid + not installed → Install modal. Until tiers load, both values are undefined.
  */
 export function tierOneState(
   tierOne: MarketplaceTier | undefined,
   loaded: boolean,
-  justPurchasedTiers: TierFlags
+  justPurchasedTiers: TierFlags,
+  installOverrides: TierFlags = {}
 ): { tierOneInstalled: boolean | undefined; tierOneSubscribed: boolean | undefined } {
   if (!loaded) return { tierOneInstalled: undefined, tierOneSubscribed: undefined };
   return {
     tierOneInstalled:
-      !!tierOne &&
-      (!!tierOne.is_installed || tierOne.status === 'installed') &&
-      !justPurchasedTiers[tierOne.tier],
-    tierOneSubscribed: !!tierOne && isTierActive(tierOne),
+      !!tierOne && resolveTierInstalled(tierOne, justPurchasedTiers, installOverrides),
+    tierOneSubscribed: !!tierOne && isTierSubscribed(tierOne),
   };
 }
 
@@ -81,7 +169,30 @@ export function resultDeniedMessage(
 /** Paystack refuses to disable a subscription that is already cancelled. */
 export function isAlreadyCancelledError(message: string): boolean {
   const lower = message.toLowerCase();
-  return lower.includes('disable subscription failed') || lower.includes('already');
+  return (
+    lower.includes('disable subscription failed') ||
+    lower.includes('already cancelled') ||
+    lower.includes('already canceled')
+  );
+}
+
+/** Install/uninstall when the grant is already in that state. */
+export function isAlreadyInstalledError(message: string): boolean {
+  const lower = message.toLowerCase();
+  return (
+    lower.includes('already installed') ||
+    lower.includes('already active') ||
+    (lower.includes('already') && lower.includes('install'))
+  );
+}
+
+export function isAlreadyUninstalledError(message: string): boolean {
+  const lower = message.toLowerCase();
+  return (
+    lower.includes('already uninstalled') ||
+    lower.includes('not installed') ||
+    (lower.includes('already') && lower.includes('uninstall'))
+  );
 }
 
 /** Whether a tier with this number is installed; undefined until the tiers load. */
@@ -91,27 +202,38 @@ export function isTierNumberInstalled(
   num: number
 ): boolean | undefined {
   if (!loaded) return undefined;
+  return tiers.some((tier) => !!tier.is_installed && tierNumber(tier.tier) === num);
+}
+
+/** Whether a tier with this number is paid/held (`status` / purchased); undefined until loaded. */
+export function isTierNumberSubscribed(
+  tiers: MarketplaceTier[],
+  loaded: boolean,
+  num: number,
+  justCancelledTiers: TierFlags = {}
+): boolean | undefined {
+  if (!loaded) return undefined;
   return tiers.some(
-    (tier) => (tier.is_installed || tier.status === 'installed') && tierNumber(tier.tier) === num
+    (tier) => tierNumber(tier.tier) === num && isTierSubscribed(tier, justCancelledTiers)
   );
 }
 
 /**
- * Result access on the standalone summary screens: a plan that includes results, a paid-tier
- * entitlement, or Tier Two / Three (2nd and 3rd in sorted order) bought from the marketplace.
+ * Result access on the standalone summary screens: plan catalog includes the paid AI keys
+ * (`included_ai_features` / entitlements), or Tier Two / Three bought from the marketplace.
  */
 export function hasSummaryResultAccess({
-  planSlug,
   hasPaidTierEntitlement,
   sortedTiers,
+  planIncludesPaidAi = false,
 }: {
-  planSlug: string | null | undefined;
   hasPaidTierEntitlement: boolean;
   sortedTiers: MarketplaceTier[];
+  /** True when the current subscription tier's `included_ai_features` covers paid summary keys. */
+  planIncludesPaidAi?: boolean;
 }): boolean {
-  const isPlanIncludingResults = planSlug === 'sentinel' || planSlug === 'command';
   return (
-    isPlanIncludingResults ||
+    planIncludesPaidAi ||
     hasPaidTierEntitlement ||
     isTierSubscribed(sortedTiers[1]) ||
     isTierSubscribed(sortedTiers[2])

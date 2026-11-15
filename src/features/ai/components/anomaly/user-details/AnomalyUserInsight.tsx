@@ -15,6 +15,8 @@ export function AnomalyUserInsight({
   currentSummaryData,
   setModalInitialIndex,
   setShowAiSummaryModal,
+  aiSummaryLocked = false,
+  aiSummaryNeedsInstall = false,
 }: {
   aiState: 'idle' | 'loading' | 'loaded' | 'forbidden' | 'error';
   handleGenerateSummary: () => Promise<void>;
@@ -22,6 +24,10 @@ export function AnomalyUserInsight({
   currentSummaryData: AnomalySummaryView | undefined;
   setModalInitialIndex: Dispatch<SetStateAction<number>>;
   setShowAiSummaryModal: Dispatch<SetStateAction<boolean>>;
+  /** No AI review tier installed — show locked card before a 403. */
+  aiSummaryLocked?: boolean;
+  /** Paid for tier 2/3 but uninstalled → Install modal, not Upgrade Plan. */
+  aiSummaryNeedsInstall?: boolean;
 }) {
   const slides = useMemo<AISummarySlide[]>(() => {
     const next: AISummarySlide[] = [];
@@ -44,14 +50,27 @@ export function AnomalyUserInsight({
     return next;
   }, [currentSummaryData]);
 
-  const { showDenied: showSummaryUpgrade } = useFeatureGate('access_anomaly_detection_tier_2', {
+  const openAiStoreTierTwo = () =>
+    router.push({
+      pathname: '/(protected)/(shared-screens)/ai-store/anomaly-detection',
+      params: { tab: 'Overview', expandTier: '2' },
+    });
+
+  const { showDenied: showSummaryDenied } = useFeatureGate('access_anomaly_detection_tier_2', {
     notice: 'floating',
-    onUpgrade: () =>
-      router.push({
-        pathname: '/(protected)/(shared-screens)/ai-store/anomaly-detection',
-        params: { tab: 'Overview', expandTier: '2' },
-      }),
+    onUpgrade: openAiStoreTierTwo,
   });
+
+  const promptSummaryDenied = () => {
+    if (aiSummaryNeedsInstall) {
+      showSummaryDenied(
+        'Install an AI Review tier (Tier Two or Tier Three) to generate AI summaries.',
+        { title: 'Install AI Review', confirmLabel: 'Install' }
+      );
+      return;
+    }
+    showSummaryDenied();
+  };
 
   const openSlide = (variant: AISummaryVariant) => {
     setModalInitialIndex(variant === 'third_party' && slides[0]?.variant === 'in_house' ? 1 : 0);
@@ -59,7 +78,7 @@ export function AnomalyUserInsight({
   };
 
   const mode =
-    aiState === 'forbidden'
+    aiSummaryLocked || aiState === 'forbidden'
       ? 'locked'
       : aiState === 'loaded' && slides.length
         ? 'generated'
@@ -77,10 +96,15 @@ export function AnomalyUserInsight({
             openSlide(slides[0]?.variant ?? 'in_house');
             return;
           }
+          if (aiSummaryLocked) {
+            promptSummaryDenied();
+            return;
+          }
           void handleGenerateSummary();
         }}
         onOpenSlide={openSlide}
-        onUpgradePress={() => showSummaryUpgrade()}
+        onUpgradePress={promptSummaryDenied}
+        upgradeLabel={aiSummaryNeedsInstall ? 'Install' : 'Upgrade Plan'}
         readTimeLabel="2 mins Read"
         sourceLabel="In house"
       />

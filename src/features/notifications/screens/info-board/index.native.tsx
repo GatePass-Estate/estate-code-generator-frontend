@@ -10,6 +10,7 @@ import ActivityDetailModal from '@/src/features/notifications/components/Activit
 import ConfirmSheet from '@/src/features/notifications/components/ConfirmSheet';
 import { ActivityRow, BroadcastRow } from '@/src/features/notifications/components/InfoBoardRows';
 import { sharedStyles } from '@/src/shared/theme/styles';
+import { EmptyListMessage, LIST_EMPTY_TOP } from '@/src/shared/components/lists/ListStates';
 import { useInfoBoardScreen } from '@/src/features/notifications/hooks/useInfoBoardScreen';
 import { requestedInfoBoardTab } from '@/src/features/notifications/utils/pushTarget';
 
@@ -20,12 +21,6 @@ const LIST_TUNING = {
   windowSize: 7,
   removeClippedSubviews: true,
 };
-
-function EmptyState({ text }: { text: string }) {
-  return (
-    <Text className="text-[#878686] font-inter-regular text-sm text-center py-10">{text}</Text>
-  );
-}
 
 export default function InfoBoardScreen() {
   // Set by a push-notification tap: which tab to land on, and which activity
@@ -97,7 +92,13 @@ export default function InfoBoardScreen() {
               refreshControl={
                 <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor="#113E55" />
               }
-              ListEmptyComponent={<EmptyState text="No messages from your estate yet." />}
+              ListEmptyComponent={
+                <View style={{ paddingTop: LIST_EMPTY_TOP }}>
+                  <EmptyListMessage className="text-[#878686]">
+                    No messages from your estate yet.
+                  </EmptyListMessage>
+                </View>
+              }
               renderItem={({ item }) => (
                 <BroadcastRow item={item} onOpen={openBroadcast} onRemove={handleRemoveBroadcast} />
               )}
@@ -113,7 +114,13 @@ export default function InfoBoardScreen() {
               refreshControl={
                 <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor="#113E55" />
               }
-              ListEmptyComponent={<EmptyState text="Nothing has happened on your account yet." />}
+              ListEmptyComponent={
+                <View style={{ paddingTop: LIST_EMPTY_TOP }}>
+                  <EmptyListMessage className="text-[#878686]">
+                    Nothing has happened on your account yet.
+                  </EmptyListMessage>
+                </View>
+              }
               renderItem={({ item }) => (
                 <ActivityRow item={item} onOpen={openActivity} onRemove={handleRemoveActivity} />
               )}

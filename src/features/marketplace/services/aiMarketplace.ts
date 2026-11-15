@@ -80,9 +80,9 @@ export function formatTierLabel(tier: string): string {
 }
 
 export function formatTierSubtitle(tier: MarketplaceTier): string {
-  /** Installed, or paid but uninstalled (`subscribed`) — owned, so show the tier name, not the price. */
+  /** Owned tiers use `tier.name` as the card headline — subtitle is purchase state / price. */
   if (tier.is_installed || tier.status === 'installed' || tier.status === 'subscribed') {
-    return tier.name?.trim() || 'Purchased';
+    return 'Purchased';
   }
   if (tier.is_free) return 'FREE';
   if (tier.price != null) {
@@ -122,8 +122,13 @@ function buildMarketplaceQuery(params?: MarketplaceListParams): string {
   return query ? `?${query}` : '';
 }
 
-/** Refetch the AI Store list/details after a purchase, install, uninstall, cancel or rating. */
+/**
+ * Refetch AI Store + Current Plan “Active AI Tools” after any tier action (purchase / install /
+ * uninstall / cancel / rating). Grants live under billing (`ai-grants`), not marketplace keys.
+ */
 export function invalidateMarketplace(): Promise<void> {
+  void queryClient.invalidateQueries({ queryKey: ['billing', 'ai-grants'] });
+  void queryClient.invalidateQueries({ queryKey: ['billing', 'ai-marketplace'] });
   return queryClient.invalidateQueries({ queryKey: queryKeys.marketplace.all });
 }
 

@@ -257,11 +257,18 @@ export type EstateAiGrantsResponse = {
   features: AiFeatureGrant[];
 };
 
+/** Purchase column on Current Plan AI tool cards (audit matrix / grant `status`). */
+export type AiToolPurchaseLabel = 'Purchased' | 'Cancelled' | 'Expired';
+
 /** An estate AI grant joined with its marketplace product name. */
 export type EstateAiTool = {
   featureKey: string;
   name: string;
   status: AiFeatureGrantStatus;
+  /** Grant `status` mapped for the Purchase State tag. */
+  purchaseLabel: AiToolPurchaseLabel;
+  /** Grant `is_installed` for the Install State tag. */
+  isInstalled: boolean;
   startsAt: string | null;
   expiresAt: string | null;
 };

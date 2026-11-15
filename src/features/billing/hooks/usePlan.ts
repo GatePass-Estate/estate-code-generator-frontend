@@ -17,14 +17,26 @@ import {
 
 const CONTACT_ADMIN_NOTICE_MS = 3000;
 
+type UpgradePromptPresentation = {
+  title?: string | null;
+  confirmLabel?: string | null;
+};
+
 type UpgradePromptStore = {
   feature: PlanFeature | null;
   /** Replaces where "Upgrade Your Plan" goes (default: the billing plan picker). */
   onUpgrade: (() => void) | null;
   /** Replaces the feature's upgrade copy, e.g. when upgrading isn't what will fix the refusal. */
   message: string | null;
+  title: string | null;
+  confirmLabel: string | null;
   visible: boolean;
-  show: (feature: PlanFeature, onUpgrade?: (() => void) | null, message?: string | null) => void;
+  show: (
+    feature: PlanFeature,
+    onUpgrade?: (() => void) | null,
+    message?: string | null,
+    presentation?: UpgradePromptPresentation | null
+  ) => void;
   dismiss: () => void;
   reset: () => void;
 };
@@ -34,12 +46,29 @@ export const useUpgradePromptStore = create<UpgradePromptStore>((set) => ({
   feature: null,
   onUpgrade: null,
   message: null,
+  title: null,
+  confirmLabel: null,
   visible: false,
-  show: (feature, onUpgrade = null, message = null) =>
-    set({ feature, onUpgrade, message, visible: true }),
+  show: (feature, onUpgrade = null, message = null, presentation = null) =>
+    set({
+      feature,
+      onUpgrade,
+      message,
+      title: presentation?.title ?? null,
+      confirmLabel: presentation?.confirmLabel ?? null,
+      visible: true,
+    }),
   // Keeps `feature` so the modal copy doesn't blank out while it fades away.
   dismiss: () => set({ visible: false }),
-  reset: () => set({ feature: null, onUpgrade: null, message: null, visible: false }),
+  reset: () =>
+    set({
+      feature: null,
+      onUpgrade: null,
+      message: null,
+      title: null,
+      confirmLabel: null,
+      visible: false,
+    }),
 }));
 
 type ContactAdminNoticeStore = {
@@ -165,11 +194,12 @@ export function useFeatureGate(
     (
       next: FeatureAccess,
       blockedReason: string | null = null,
-      customMessage: string | null = null
+      customMessage: string | null = null,
+      presentation: UpgradePromptPresentation | null = null
     ): boolean => {
       if (next === 'granted') return true;
       if (next === 'upgrade') {
-        showUpgradePrompt(feature, onUpgradeRef.current ?? null, customMessage);
+        showUpgradePrompt(feature, onUpgradeRef.current ?? null, customMessage, presentation);
         return false;
       }
       // `contact_admin` shows the feature's copy; `blocked` shows the server's reason instead.
@@ -219,13 +249,14 @@ export function useFeatureGate(
   );
 
   // `message` replaces the feature's usual copy. Ignores non-string arguments so the function can
-  // still be used directly as a press handler.
+  // still be used directly as a press handler. Pass `presentation` for Install vs Upgrade titles.
   const showDenied = useCallback(
-    (message?: unknown) => {
+    (message?: unknown, presentation?: UpgradePromptPresentation | null) => {
       promptFor(
         canManagePlan(role) ? 'upgrade' : 'contact_admin',
         null,
-        typeof message === 'string' ? message : null
+        typeof message === 'string' ? message : null,
+        presentation ?? null
       );
     },
     [promptFor, role]

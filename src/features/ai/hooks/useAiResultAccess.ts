@@ -46,8 +46,12 @@ export function useAiResultAccess({
     [featureDetail?.tiers]
   );
   const [tierTwoFeature, tierThreeFeature] = paidTierFeatures;
+  const planIncludesPaidAi = useMemo(() => {
+    const included = new Set(subscriptionData?.tier?.included_ai_features ?? []);
+    return included.has(tierTwoFeature) || included.has(tierThreeFeature);
+  }, [subscriptionData?.tier?.included_ai_features, tierTwoFeature, tierThreeFeature]);
   const hasResultAccess = hasSummaryResultAccess({
-    planSlug: subscriptionData?.tier?.slug ?? entitlements?.tierSlug,
+    planIncludesPaidAi,
     hasPaidTierEntitlement:
       hasEntitlement(entitlements, tierTwoFeature) ||
       hasEntitlement(entitlements, tierThreeFeature),

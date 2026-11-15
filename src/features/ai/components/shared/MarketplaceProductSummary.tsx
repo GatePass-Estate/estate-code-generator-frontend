@@ -96,14 +96,17 @@ export function MarketplaceProductFeatureList({ features }: { features: string[]
           return (
             <View
               key={`${index}-${text.slice(0, 24)}`}
-              className="w-full flex-row items-start gap-3 rounded-[16px] bg-white px-4 py-2"
+              // Figma 6578:4475 — icon on the left, vertically centered with the copy.
+              className="w-full flex-row gap-3 rounded-[16px] bg-white px-4 py-2"
+              style={{ alignItems: 'center' }}
             >
-              <View className="mt-0.5 h-4 w-4 shrink-0 items-center justify-center">
+              <View style={{ width: 16, height: 16, flexShrink: 0 }}>
                 <Icon width={16} height={16} />
               </View>
               <Text
                 allowFontScaling={false}
-                className="min-w-0 flex-1 text-caption font-inter-regular leading-[18px] text-[#878686]"
+                className="min-w-0 flex-1 text-caption font-inter-regular text-[#878686]"
+                style={{ lineHeight: 16, textAlign: 'left' }}
               >
                 {text}
               </Text>

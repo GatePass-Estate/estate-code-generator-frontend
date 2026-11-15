@@ -21,7 +21,9 @@ import {
   useAnomalyUserPicture,
 } from '@/src/features/ai/hooks/anomaly';
 import { useMarketplaceFeature } from '@/src/features/marketplace/hooks/useMarketplaceFeature';
+import { sortMarketplaceTiers } from '@/src/features/marketplace/services/aiMarketplace';
 import { isAnomalyProduct } from '@/src/features/ai/hooks/useAnomalyProduct';
+import { isTierNumberInstalled, isTierNumberSubscribed } from '@/src/features/ai/utils/aiTierState';
 import {
   anomalyHistoryRecords,
   anomalyHistoryTotal,
@@ -85,8 +87,20 @@ export default function AnomalyDetectionUserDetailsScreen() {
   );
 
   const [localSummaryData, setLocalSummaryData] = useState<AnomalySummaryView | null>(null);
-  // Keeps the Anomaly Detection product warm in the cache (same entry as the product screen).
-  useMarketplaceFeature({ nameMatch: isAnomalyProduct, estateId });
+  // Same marketplace product as the plan screen — status = paid, is_installed = on.
+  const { featureDetail } = useMarketplaceFeature({ nameMatch: isAnomalyProduct, estateId });
+  const sortedTiers = useMemo(
+    () => sortMarketplaceTiers(featureDetail?.tiers ?? []),
+    [featureDetail?.tiers]
+  );
+  const inHouseInstalled = isTierNumberInstalled(sortedTiers, !!featureDetail, 2);
+  const thirdPartyInstalled = isTierNumberInstalled(sortedTiers, !!featureDetail, 3);
+  const hasAiReviewTier =
+    inHouseInstalled === undefined ? undefined : !!(inHouseInstalled || thirdPartyInstalled);
+  const inHouseSubscribed = isTierNumberSubscribed(sortedTiers, !!featureDetail, 2);
+  const thirdPartySubscribed = isTierNumberSubscribed(sortedTiers, !!featureDetail, 3);
+  const aiSummaryLocked = hasAiReviewTier === false;
+  const aiSummaryNeedsInstall = aiSummaryLocked && !!(inHouseSubscribed || thirdPartySubscribed);
 
   const rawSummaryData = localSummaryData || summaryData;
   const currentSummaryData = unwrapAnomalyPayload(rawSummaryData as AnomalySummaryView | undefined);
@@ -139,12 +153,16 @@ export default function AnomalyDetectionUserDetailsScreen() {
   );
 
   const handleGenerateSummary = async () => {
+    if (aiSummaryLocked) {
+      setAiState('forbidden');
+      return;
+    }
     setAiState('loading');
     const result = await fetchSummary();
     if (result.isError) {
       const error = result.error as { response?: { status?: number }; status?: number } | undefined;
       const status = error?.response?.status || error?.status;
-      if (status === 403) {
+      if (status === 403 || status === 402) {
         setAiState('forbidden');
       } else {
         setAiState('error');
@@ -241,6 +259,8 @@ export default function AnomalyDetectionUserDetailsScreen() {
             currentSummaryData={currentSummaryData}
             setModalInitialIndex={setModalInitialIndex}
             setShowAiSummaryModal={setShowAiSummaryModal}
+            aiSummaryLocked={aiSummaryLocked}
+            aiSummaryNeedsInstall={aiSummaryNeedsInstall}
           />
         )}
 

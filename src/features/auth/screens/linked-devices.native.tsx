@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
 import ScreenHeader from '@/src/shared/components/layout/ScreenHeader';
 import { sharedStyles } from '@/src/shared/theme/styles';
+import { LIST_EMPTY_TOP } from '@/src/shared/components/lists/ListStates';
 import { useLinkedDevices } from '@/src/features/auth/hooks/useLinkedDevices';
 import { formatLastActive, friendlyDeviceName } from '@/src/shared/services/storage/deviceName';
 import type { SessionResponse } from '@/src/features/auth/types/auth';
@@ -62,11 +63,11 @@ export default function LinkedDevicesScreen() {
       />
 
       {loading ? (
-        <View className="mt-7 items-center py-10">
+        <View className="items-center" style={{ paddingTop: LIST_EMPTY_TOP }}>
           <CircleLoader size={32} />
         </View>
       ) : errorMessage ? (
-        <View className="mt-7 items-center py-10">
+        <View className="items-center" style={{ paddingTop: LIST_EMPTY_TOP }}>
           <Text className="mb-4 text-center font-inter-regular text-sm text-danger">
             {errorMessage}
           </Text>
@@ -75,12 +76,15 @@ export default function LinkedDevicesScreen() {
           </Pressable>
         </View>
       ) : sessions.length === 0 ? (
-        <Text className="mt-7 py-10 text-center font-inter-regular text-sm text-[#878686]">
+        <Text
+          className="text-center font-inter-regular text-sm text-[#878686]"
+          style={{ paddingTop: LIST_EMPTY_TOP }}
+        >
           No other devices are signed in.
         </Text>
       ) : (
         <ScrollView
-          className="mt-7"
+          style={{ marginTop: LIST_EMPTY_TOP }}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ gap: 7 }}
         >

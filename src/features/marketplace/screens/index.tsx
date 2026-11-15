@@ -16,6 +16,7 @@ import ScreenHeader from '@/src/shared/components/layout/ScreenHeader';
 import AppTextInput from '@/src/shared/components/form/AppTextInput';
 import BottomSheet from '@/src/shared/components/feedback/BottomSheet';
 import { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
+import { EmptyListMessage, LIST_EMPTY_TOP } from '@/src/shared/components/lists/ListStates';
 import Svg, { Path } from 'react-native-svg';
 import { ReactNode, useState, useMemo, useCallback } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
@@ -124,7 +125,6 @@ const toggleFilter = (currentSelection: string[], value: string, allValues: stri
 };
 
 const PURCHASE_OPTIONS = ['purchased', 'not_purchased'];
-const CATEGORY_OPTIONS = ['Access Anomaly Detection', 'Incident Report Insights'];
 
 function marketplaceQuery(
   purchaseFilters: string[],
@@ -141,8 +141,21 @@ function marketplaceQuery(
   return params;
 }
 
+/** Distinct `category` values from GET /ai-marketplace (no hardcoded catalog). */
+function marketplaceCategories(data: MarketplaceListResponse | undefined): string[] {
+  const seen = new Set<string>();
+  const categories: string[] = [];
+  for (const item of data?.items ?? []) {
+    const category = item.category?.trim();
+    if (!category || seen.has(category)) continue;
+    seen.add(category);
+    categories.push(category);
+  }
+  return categories;
+}
+
 function mapMarketplaceItem(item: MarketplaceListItem): AITool {
-  const cat = item.category || 'Access Anomaly Detection';
+  const cat = item.category?.trim() || '';
   const iconUrl = item.display_picture_url || item.picture_path;
 
   return {
@@ -187,6 +200,12 @@ export default function AIStoreScreen() {
     () => marketplaceQuery(purchaseFilters, categoryFilters),
     [purchaseFilters, categoryFilters]
   );
+  // Unfiltered list — category chips come from API `category`, not a static list.
+  const { data: categoryOptions = [] } = useQuery({
+    queryKey: queryKeys.marketplace.list({ page: 1, limit: 100 }),
+    queryFn: () => getMarketplaceFeatures({ page: 1, limit: 100 }),
+    select: marketplaceCategories,
+  });
   // Cached per filter set; purchases/installs/uninstalls invalidate queryKeys.marketplace.all.
   const {
     data: tools = [],
@@ -297,14 +316,12 @@ export default function AIStoreScreen() {
         }
       >
         {isLoading && tools.length === 0 ? (
-          <View className="py-16 items-center justify-center">
+          <View className="items-center" style={{ paddingTop: LIST_EMPTY_TOP }}>
             <CircleLoader size={36} />
           </View>
         ) : isError && tools.length === 0 ? (
-          <View className="py-16 items-center justify-center">
-            <Text className="text-center text-sm font-inter-regular text-[#6C6C6C]">
-              Could not load AI tools.
-            </Text>
+          <View className="items-center" style={{ paddingTop: LIST_EMPTY_TOP }}>
+            <EmptyListMessage>Could not load AI tools.</EmptyListMessage>
             <Pressable onPress={() => void refetch()} className="mt-3 px-4 py-2">
               <Text className="text-center text-sm font-inter-medium text-[#113E55]">
                 Try again
@@ -312,10 +329,8 @@ export default function AIStoreScreen() {
             </Pressable>
           </View>
         ) : filteredTools.length === 0 ? (
-          <View className="py-16 items-center justify-center">
-            <Text className="text-center text-sm font-inter-regular text-[#6C6C6C]">
-              No AI tools to show.
-            </Text>
+          <View style={{ paddingTop: LIST_EMPTY_TOP }}>
+            <EmptyListMessage>No AI tools to show.</EmptyListMessage>
           </View>
         ) : (
           <View style={styles.grid}>
@@ -473,50 +488,25 @@ export default function AIStoreScreen() {
                   All
                 </Text>
               </Pressable>
-              <Pressable
-                onPress={() =>
-                  setCategoryFilters((prev) =>
-                    toggleFilter(prev, 'Access Anomaly Detection', CATEGORY_OPTIONS)
-                  )
-                }
-                className={`px-5 py-[10px] rounded-full ${
-                  categoryFilters.includes('Access Anomaly Detection')
-                    ? 'bg-[#D2E7ED]'
-                    : 'bg-[#EFF1F1]'
-                }`}
-              >
-                <Text
-                  className={`text-[14px] font-inter-regular ${
-                    categoryFilters.includes('Access Anomaly Detection')
-                      ? 'text-primary'
-                      : 'text-[#8A9A9D]'
+              {categoryOptions.map((category) => (
+                <Pressable
+                  key={category}
+                  onPress={() =>
+                    setCategoryFilters((prev) => toggleFilter(prev, category, categoryOptions))
+                  }
+                  className={`px-5 py-[10px] rounded-full ${
+                    categoryFilters.includes(category) ? 'bg-[#D2E7ED]' : 'bg-[#EFF1F1]'
                   }`}
                 >
-                  Access Anomaly Detection
-                </Text>
-              </Pressable>
-              <Pressable
-                onPress={() =>
-                  setCategoryFilters((prev) =>
-                    toggleFilter(prev, 'Incident Report Insights', CATEGORY_OPTIONS)
-                  )
-                }
-                className={`px-5 py-[10px] rounded-full ${
-                  categoryFilters.includes('Incident Report Insights')
-                    ? 'bg-[#D2E7ED]'
-                    : 'bg-[#EFF1F1]'
-                }`}
-              >
-                <Text
-                  className={`text-[14px] font-inter-regular ${
-                    categoryFilters.includes('Incident Report Insights')
-                      ? 'text-primary'
-                      : 'text-[#8A9A9D]'
-                  }`}
-                >
-                  Incident Report Insights
-                </Text>
-              </Pressable>
+                  <Text
+                    className={`text-[14px] font-inter-regular ${
+                      categoryFilters.includes(category) ? 'text-primary' : 'text-[#8A9A9D]'
+                    }`}
+                  >
+                    {category}
+                  </Text>
+                </Pressable>
+              ))}
             </View>
           </View>
         </ScrollView>

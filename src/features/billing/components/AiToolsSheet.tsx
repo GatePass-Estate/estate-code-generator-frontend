@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
 import { router } from 'expo-router';
@@ -32,21 +33,60 @@ function DateCaption({
   );
 }
 
+const PURCHASE_TAG = {
+  Purchased: { bg: '#D8F3EE', text: '#0F766E' },
+  Cancelled: { bg: '#FDE8E8', text: '#B42318' },
+  Expired: { bg: '#FEF0C7', text: '#B54708' },
+} as const;
+
+const INSTALL_TAG = {
+  installed: { bg: '#E0F2FE', text: '#0369A1', label: 'Installed' },
+  notInstalled: { bg: '#F3E8FF', text: '#7E22CE', label: 'Not installed' },
+} as const;
+
+function StateTag({
+  label,
+  backgroundColor,
+  color,
+}: {
+  label: string;
+  backgroundColor: string;
+  color: string;
+}) {
+  return (
+    <View className="rounded-full px-3 py-1.5" style={{ backgroundColor }}>
+      <Text
+        allowFontScaling={false}
+        className="font-inter-semibold text-[11px] leading-[13px]"
+        style={{ color }}
+      >
+        {label}
+      </Text>
+    </View>
+  );
+}
+
 function AiToolCard({ tool }: { tool: EstateAiTool }) {
   // A grant without an expiry never ends (free install), so there is no period to fill.
   const progress = tool.expiresAt ? getCycleProgress(tool.startsAt, tool.expiresAt) : 0;
   const started = formatBillingDate(tool.startsAt, 'short') || '—';
   const ends = tool.expiresAt ? formatBillingDate(tool.expiresAt, 'short') || '—' : 'No expiry';
+  const purchase = PURCHASE_TAG[tool.purchaseLabel];
+  const install = tool.isInstalled ? INSTALL_TAG.installed : INSTALL_TAG.notInstalled;
 
   return (
     // Figma: 16pt padding, 8pt title→progress frame, bar 8pt into that frame, labels 7pt under it.
     <View className="gap-2 rounded-[20px] bg-white px-4 pb-[29px] pt-4">
       <Text
         className="font-inter-regular text-[17.5px] leading-[21.2px] text-primary"
-        numberOfLines={1}
+        numberOfLines={2}
       >
         {tool.name}
       </Text>
+      <View className="flex-row flex-wrap gap-2">
+        <StateTag label={tool.purchaseLabel} backgroundColor={purchase.bg} color={purchase.text} />
+        <StateTag label={install.label} backgroundColor={install.bg} color={install.text} />
+      </View>
       <SegmentedProgress
         className="mt-2"
         progress={progress}
@@ -69,7 +109,12 @@ export default function AiToolsSheet({
   onClose: () => void;
 }) {
   const { tools, isLoading, error, refetch } = useEstateAiTools();
-  const activeTools = tools.filter((tool) => tool.status === 'active');
+  // Revenue GET /ai-features/estate/:id — standalone grants only (plan/free filtered out).
+
+  // Pull fresh grants when opening (install/uninstall elsewhere can leave billing cache stale).
+  useEffect(() => {
+    if (visible) void refetch();
+  }, [visible, refetch]);
 
   const openMarketplace = () => {
     onClose();
@@ -98,7 +143,7 @@ export default function AiToolsSheet({
         </Pressable>
       </View>
     );
-  } else if (activeTools.length === 0) {
+  } else if (tools.length === 0) {
     content = (
       <View className="items-center gap-4 py-6">
         <Text className="text-center font-inter-regular text-sm text-[#878686]">
@@ -117,7 +162,7 @@ export default function AiToolsSheet({
   } else {
     content = (
       <View className="gap-4">
-        {activeTools.map((tool) => (
+        {tools.map((tool) => (
           <AiToolCard key={`${tool.featureKey}-${tool.name}`} tool={tool} />
         ))}
       </View>

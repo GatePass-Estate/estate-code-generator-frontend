@@ -10,6 +10,7 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { BenefitsChevronIcon, CheckRingIcon } from '@/src/assets/svgs';
+import type { TierCardButtons } from '@/src/features/ai/utils/aiTierState';
 
 const EXPAND = {
   duration: 300,
@@ -38,17 +39,14 @@ type SubscriptionTierCardProps = {
   cancelDisabled?: boolean;
   installDisabled?: boolean;
   uninstallDisabled?: boolean;
-  /** Cancelled on this device; backend may still report the tier as subscribed. */
-  isCancelledLocally?: boolean;
   /**
    * Set when the tier comes with the estate plan: Cancel greys out and tapping it shows this
    * message in a speech bubble instead of cancelling.
    */
   cancelLockedMessage?: string;
-  /** Free tiers have nothing to cancel, so they never show Cancel Subscription. */
-  isFree?: boolean;
   isInstalled?: boolean;
-  isSubscribed?: boolean;
+  /** Audit matrix CTAs (Purchase State × Install State). */
+  buttons: TierCardButtons;
   /** Benefit rows from the API (`tier.benefits` / `tier_benefits`). */
   benefits?: string[];
   subtitleUppercase?: boolean;
@@ -72,11 +70,9 @@ export default function SubscriptionTierCard({
   cancelDisabled = false,
   installDisabled = false,
   uninstallDisabled = false,
-  isCancelledLocally = false,
   cancelLockedMessage,
-  isFree = false,
   isInstalled = false,
-  isSubscribed = false,
+  buttons,
   benefits,
   subtitleUppercase = false,
 }: SubscriptionTierCardProps) {
@@ -129,15 +125,17 @@ export default function SubscriptionTierCard({
     cancelBubbleTimer.current = setTimeout(() => setCancelBubbleVisible(false), 3500);
   };
   const cancelLocked = !!cancelLockedMessage;
+  const {
+    activate: showActivate,
+    cancel: showCancel,
+    reactivate: showReactivate,
+    install: showInstall,
+    uninstall: showUninstall,
+  } = buttons;
 
-  const showActivate = !isSubscribed;
-  const showCancel = isSubscribed && !isFree;
-  const showInstall = isSubscribed && !isInstalled;
-  const showUninstall = isInstalled;
-
-  const buttons = (
+  const actionButtons = (
     <View className="gap-4">
-      {showActivate && (
+      {(showReactivate || showActivate) && (
         <Pressable
           disabled={isSubscribing || subscribeDisabled || !expanded}
           onPress={onActivate}
@@ -147,7 +145,7 @@ export default function SubscriptionTierCard({
             <CircleLoader size={22} tone="light" />
           ) : (
             <Text allowFontScaling={false} className="text-[14px] font-ubuntu-semibold text-white">
-              Activate
+              {showReactivate ? 'Re-activate' : 'Activate'}
             </Text>
           )}
         </Pressable>
@@ -207,13 +205,11 @@ export default function SubscriptionTierCard({
           )}
 
           <Pressable
-            disabled={
-              (!cancelLocked && (isCanceling || cancelDisabled)) || isCancelledLocally || !expanded
-            }
+            disabled={(!cancelLocked && (isCanceling || cancelDisabled)) || !expanded}
             onPress={cancelLocked ? toggleCancelBubble : onCancelSubscription}
             className={`h-[48px] w-full items-center justify-center rounded-full ${
               cancelLocked ? 'bg-[#E2E8F0] opacity-60' : 'bg-primary'
-            } ${isCancelledLocally ? 'opacity-50' : ''}`}
+            }`}
           >
             {isCanceling ? (
               <CircleLoader size={22} tone={cancelLocked ? 'navy' : 'light'} />
@@ -224,7 +220,7 @@ export default function SubscriptionTierCard({
                   cancelLocked ? 'text-[#64748B]' : 'text-white'
                 }`}
               >
-                {isCancelledLocally ? 'Cancelled' : 'Cancel Subscription'}
+                Cancel Subscription
               </Text>
             )}
           </Pressable>
@@ -342,7 +338,7 @@ export default function SubscriptionTierCard({
             </Animated.View>
           </Pressable>
         ) : (
-          buttons
+          actionButtons
         )}
       </View>
 
@@ -372,7 +368,7 @@ export default function SubscriptionTierCard({
               </View>
             ))}
 
-            <View className={benefitRows.length > 0 ? 'mt-10 px-3' : ''}>{buttons}</View>
+            <View className={benefitRows.length > 0 ? 'mt-10 px-3' : ''}>{actionButtons}</View>
           </View>
         </Animated.View>
       ) : null}

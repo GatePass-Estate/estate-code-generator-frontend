@@ -207,7 +207,7 @@ export default function BillingScreen() {
     const seatUsage = hasUsage && covered > 0 ? activeUsers / covered : 0;
 
     // Standalone AI tools only (plan-included ones are part of the plan), so no "x/y" figure.
-    const toolsTrailing = plural(aiTools.activeCount, 'Tool');
+    const toolsTrailing = plural(aiTools.standaloneCount, 'Tool');
 
     return (
       <ScrollView

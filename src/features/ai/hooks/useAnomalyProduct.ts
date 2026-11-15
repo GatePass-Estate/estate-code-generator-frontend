@@ -30,15 +30,11 @@ import {
 } from '@/src/features/ai/utils/aiTierState';
 
 /** Tier One is the base product: it unlocks the Result page. Tiers Two and Three add to it. */
-const TIER_ONE_FOR_RESULT_MESSAGE =
-  'Subscribe to Tier One (Anomaly Detection and Insights) to view your results.';
-const INSTALL_TIER_ONE_FOR_RESULT_MESSAGE =
-  'Install Tier One (Anomaly Detection and Insights) to view your results.';
-const TIER_ONE_FIRST_MESSAGE = 'Tier One is required for Tier 2 and Tier 3 activation.';
-const INSTALL_TIER_ONE_FIRST_MESSAGE = 'Tier One is required for Tier 2 and Tier 3 activation.';
+const TIER_ONE_FIRST_MESSAGE = 'The base tier is required before activating higher tiers.';
+const INSTALL_TIER_ONE_FIRST_MESSAGE = 'The base tier is required before activating higher tiers.';
 /** Shown when the server refuses the Result data although Tier One is active. */
 const SUBSCRIPTION_NOT_LINKED_MESSAGE =
-  'Your subscription is active, but it isn’t linked to Anomaly Detection Insights yet. Please contact support.';
+  'Your subscription is active, but it isn’t linked to this product yet. Please contact support.';
 
 export const isAnomalyProduct = (name: string) => name.toLowerCase().includes('anomaly');
 
@@ -75,12 +71,14 @@ export function useAnomalyProduct() {
     estateId,
   });
   const bookkeeping = useTierBookkeeping(estateId ? `cancelledTiers-${estateId}` : null);
-  const { justPurchasedTiers, justCancelledTiers } = bookkeeping;
+  const { justPurchasedTiers, justCancelledTiers, installOverrides } = bookkeeping;
 
   const refreshAfterTierChange = useCallback(async () => {
     setServerDenied(false);
     refreshEstateEntitlements();
     void queryClient.invalidateQueries({ queryKey: queryKeys.anomaly.all });
+    void queryClient.invalidateQueries({ queryKey: ['billing', 'ai-grants'] });
+    void queryClient.invalidateQueries({ queryKey: ['billing', 'ai-marketplace'] });
     await refetch();
   }, [queryClient, refetch]);
 
@@ -105,9 +103,20 @@ export function useAnomalyProduct() {
   const { tierOneInstalled, tierOneSubscribed } = tierOneState(
     tierOne,
     !!featureDetail,
-    justPurchasedTiers
+    justPurchasedTiers,
+    installOverrides
   );
   const resultAllowed = tierOneInstalled !== false && !serverDenied;
+  const productName = featureDetail?.name?.trim() || 'this product';
+  const installTierOneConfirm = useMemo(
+    () => ({
+      title: `Install ${productName}`,
+      confirmLabel: 'Install',
+    }),
+    [productName]
+  );
+  const subscribeTierOneMessage = `Subscribe to ${productName} to view your results.`;
+  const installTierOneMessage = `Install ${productName} to view your results.`;
 
   const tierOneRef = useRef<View>(null);
   const tierCardRefs = useRef<Record<number, View | null>>({});
@@ -151,7 +160,10 @@ export function useAnomalyProduct() {
   /** True (after prompting) when a Tier Two or Three action needs Tier One first. */
   const requireTierOne = (tier: MarketplaceTier) => {
     if (tierOrder(tier) <= 1 || tierOneInstalled !== false) return false;
-    showResultDenied(tierOneSubscribed ? INSTALL_TIER_ONE_FIRST_MESSAGE : TIER_ONE_FIRST_MESSAGE);
+    showResultDenied(
+      tierOneSubscribed ? INSTALL_TIER_ONE_FIRST_MESSAGE : TIER_ONE_FIRST_MESSAGE,
+      tierOneSubscribed ? installTierOneConfirm : null
+    );
     return true;
   };
 
@@ -170,13 +182,13 @@ export function useAnomalyProduct() {
   useEffect(() => {
     if (activeTab !== 'Result' || resultLocked || resultAllowed) return;
     setResultLocked(true);
-    showResultDenied(
-      resultDeniedMessage(tierOneInstalled, tierOneSubscribed, {
-        notLinked: SUBSCRIPTION_NOT_LINKED_MESSAGE,
-        installTierOne: INSTALL_TIER_ONE_FOR_RESULT_MESSAGE,
-        subscribeTierOne: TIER_ONE_FOR_RESULT_MESSAGE,
-      })
-    );
+    const message = resultDeniedMessage(tierOneInstalled, tierOneSubscribed, {
+      notLinked: SUBSCRIPTION_NOT_LINKED_MESSAGE,
+      installTierOne: installTierOneMessage,
+      subscribeTierOne: subscribeTierOneMessage,
+    });
+    const needsInstall = !tierOneInstalled && !!tierOneSubscribed;
+    showResultDenied(message, needsInstall ? installTierOneConfirm : null);
   }, [
     activeTab,
     resultLocked,
@@ -184,6 +196,9 @@ export function useAnomalyProduct() {
     tierOneInstalled,
     tierOneSubscribed,
     showResultDenied,
+    installTierOneMessage,
+    subscribeTierOneMessage,
+    installTierOneConfirm,
   ]);
 
   const hasFeatureEntitlement = computeHasFeatureEntitlement(
@@ -199,7 +214,7 @@ export function useAnomalyProduct() {
     requireTierOneToUninstall: true,
     cancelByFeatureKey: true,
     onTierChange: refreshAfterTierChange,
-    afterCheckout: () => void refetch(),
+    afterCheckout: () => void refreshAfterTierChange(),
     rating: {
       allowed: hasFeatureEntitlement,
       targetId: featureDetail?.id || params.featureId,
@@ -207,6 +222,7 @@ export function useAnomalyProduct() {
     },
   });
   const { denyIfUnauthorized, notifyActionError, runSubscribe } = actions;
+  const { markTierInstallState } = bookkeeping;
 
   const handleActivateFreeTier = async (tierPayload: MarketplaceTier) => {
     if (denyIfUnauthorized()) return;
@@ -229,6 +245,7 @@ export function useAnomalyProduct() {
             period_months: 1,
           });
         }
+        markTierInstallState(tierPayload.tier, true);
         showAlert('Success', 'Free feature tier activated successfully!');
         void refetch();
       } catch (err: unknown) {
@@ -276,6 +293,7 @@ export function useAnomalyProduct() {
     toggleTier,
     justPurchasedTiers,
     justCancelledTiers,
+    installOverrides,
     scrollViewRef,
     viewportHeightRef,
     tierOneRef,
