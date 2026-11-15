@@ -60,7 +60,11 @@ export default function SecurityTabBar({ activeTab }: { activeTab: SecurityTab }
         accessibilityRole="button"
         accessibilityLabel="Home"
         accessibilityState={{ selected: activeTab === 'home' }}
-        onPress={() => activeTab !== 'home' && router.dismissTo('/security')}
+        onPress={() => {
+          if (activeTab === 'home') return;
+          // Pop back so Home slides in from the left (History was pushed, not replaced).
+          router.dismissTo('/security');
+        }}
         style={styles.home}
       >
         <View style={styles.iconContainer}>
@@ -100,10 +104,15 @@ export default function SecurityTabBar({ activeTab }: { activeTab: SecurityTab }
         accessibilityLabel="History"
         accessibilityState={{ selected: activeTab === 'history' }}
         onPress={() => {
-          if (activeTab === 'history') return;
+          if (activeTab === 'history') {
+            // Detail → list: stay on History without a sideways jump.
+            router.dismissTo('/security/history');
+            return;
+          }
           void requireVerifiedWhenReady().then((verified) => {
             if (!verified) return;
-            router.replace('/security/history');
+            // Push (not replace) so History slides in from the right and Home can pop from the left.
+            router.push('/security/history');
           });
         }}
         style={styles.history}

@@ -1,6 +1,6 @@
 import WebSidebar from '@/src/features/dashboard/components/WebSidebar';
 import { menuRoutes } from '@/src/features/dashboard/components/menuRoutes';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { Image, Platform, useWindowDimensions } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import Modal from '@/src/shared/components/feedback/Modal';
@@ -9,22 +9,29 @@ import icons from '@/src/shared/constants/icons';
 import { getWidthBreakpoint } from '@/src/shared/utils/helpers';
 import { logger } from '@/src/shared/utils/logger';
 import Back from '@/src/shared/components/navigation/Back';
-import { useDeleteCode } from '@/src/features/access-codes/hooks/codes';
 import BrandedQRCode from '@/src/shared/components/BrandedQRCode';
+import { useInvite } from '@/src/features/access-codes/hooks/useInvite';
 
 export default function ShareInvitePage() {
   const router = useRouter();
   const [showCopyModal, setShowCopyModal] = useState(false);
   const [showShareOptions, setShowShareOptions] = useState(false);
-  const [cancelText, setCancelText] = useState('Cancel Invite');
-  const deleteCodeMutation = useDeleteCode();
-  let {
+  const {
     name: visitor_fullname,
-    code: codeParam,
+    codeParam,
     date,
     timeframe,
     address,
-  } = useLocalSearchParams();
+    cancelText,
+    cancelInvite,
+    shareText,
+  } = useInvite({
+    onCancelled: () => router.replace('/user'),
+    onCancelFailed: () =>
+      window.alert(
+        'Could not cancel invite. The code is still active; check your connection and try again.'
+      ),
+  });
   const { width } = useWindowDimensions();
 
   const isLargeScreen = width > getWidthBreakpoint();
@@ -43,16 +50,6 @@ export default function ShareInvitePage() {
     setShowShareOptions(true);
   };
 
-  const shareText = () => {
-    const parts: string[] = [];
-    if (visitor_fullname) parts.push(`Name: ${visitor_fullname}`);
-    if (address) parts.push(`Address: ${address}`);
-    if (date) parts.push(`Date: ${date}`);
-    if (timeframe) parts.push(`Timeframe: ${timeframe}`);
-    parts.push(`Access code: ${codeParam}`);
-    return parts.join('\n');
-  };
-
   const tryNativeShare = async () => {
     if (typeof navigator.share !== 'function') return false;
     try {
@@ -61,22 +58,6 @@ export default function ShareInvitePage() {
       return true;
     } catch {
       return false;
-    }
-  };
-
-  const performRemoveCode = async (code: string) => {
-    if (deleteCodeMutation.isPending) return;
-    try {
-      setCancelText('Removing...');
-      await deleteCodeMutation.mutateAsync(code);
-      // Leave only once the server has revoked it: on failure the code still opens the gate.
-      router.replace('/user');
-    } catch (error) {
-      logger.error('Could not remove code', error);
-      setCancelText('Cancel Invite');
-      window.alert(
-        'Could not cancel invite. The code is still active; check your connection and try again.'
-      );
     }
   };
 
@@ -258,7 +239,7 @@ export default function ShareInvitePage() {
               {!isLargeScreen && (
                 <button
                   className="text-primary text-[17px] font-ubuntu-medium"
-                  onClick={() => performRemoveCode(codeParam as string)}
+                  onClick={() => cancelInvite(codeParam as string)}
                 >
                   {cancelText}
                 </button>

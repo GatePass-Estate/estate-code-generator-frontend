@@ -15,107 +15,31 @@ import {
 import AnimatedPillTabs from '@/src/shared/components/AnimatedPillTabs';
 import { CrownIcon } from '@/src/assets/svgs';
 import PromptModal from '@/src/shared/components/feedback/PromptModal';
-import { useEstateSubscription } from '@/src/features/billing/hooks/billing';
-import { useContactAdminNoticeStore } from '@/src/features/billing/hooks/usePlan';
-import { useEstateEntitlements } from '@/src/features/billing';
-import { getUpgradeCopy, hasEntitlement } from '@/src/features/billing/utils/plans';
+import { getUpgradeCopy } from '@/src/features/billing/utils/plans';
 import { useUserStore } from '@/src/store/userStore';
-import {
-  getMarketplaceFeatures,
-  getMarketplaceFeatureById,
-  sortMarketplaceTiers,
-} from '@/src/features/marketplace/services/aiMarketplace';
-import {
-  MarketplaceDetailResponse,
-  MarketplaceTier,
-} from '@/src/features/marketplace/types/aiMarketplace';
+import { useAiResultAccess } from '@/src/features/ai/hooks/useAiResultAccess';
+import { isAnomalyProduct } from '@/src/features/ai/hooks/useAnomalyProduct';
 
 export default function AnomalyDetectionSummaryScreen() {
   const goBack = useGoBack();
   const [dataInsightVisible, setDataInsightVisible] = React.useState(false);
-  const [featureDetail, setFeatureDetail] = React.useState<MarketplaceDetailResponse | null>(null);
-  const [isLoading, setIsLoading] = React.useState(true);
-  const [upgradeModalVisible, setUpgradeModalVisible] = React.useState(false);
   const params = useLocalSearchParams<{ featureId?: string }>();
-  const userRole = useUserStore((s) => s.role);
-  const showContactAdminNotice = useContactAdminNoticeStore((s) => s.show);
-  const { data: subscriptionData, isLoading: subLoading } = useEstateSubscription();
-  const { data: entitlements, isLoading: entLoading } = useEstateEntitlements();
-
-  React.useEffect(() => {
-    let isMounted = true;
-    async function init() {
-      setIsLoading(true);
-      try {
-        let targetId = params.featureId;
-        if (!targetId) {
-          const list = await getMarketplaceFeatures();
-          const anomalyTool = list.items?.find((item) =>
-            item.name.toLowerCase().includes('anomaly')
-          );
-          if (anomalyTool) {
-            targetId = anomalyTool.id;
-          }
-        }
-        if (targetId && isMounted) {
-          const detail = await getMarketplaceFeatureById(targetId);
-          if (isMounted) {
-            setFeatureDetail(detail);
-          }
-        }
-      } catch {
-        // Silent fail
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
-    }
-    init();
-    return () => {
-      isMounted = false;
-    };
-  }, [params.featureId]);
-
-  const sortedTiers = featureDetail?.tiers ? sortMarketplaceTiers(featureDetail.tiers) : [];
-  const tierTwoApi = sortedTiers[1];
-  const tierThreeApi = sortedTiers[2];
-  const isTierSubscribed = (tier?: MarketplaceTier | null) =>
-    Boolean(
-      tier &&
-      (tier.status === 'active' ||
-        tier.status === 'purchased' ||
-        tier.status === 'subscribed' ||
-        tier.status === 'installed' ||
-        tier.purchased)
-    );
-
-  const planSlug = subscriptionData?.tier?.slug ?? entitlements?.tierSlug;
-  const isPlanIncludingResults = planSlug === 'sentinel' || planSlug === 'command';
-  const hasPaidTierEntitlement =
-    hasEntitlement(entitlements, 'access_anomaly_detection_tier_2') ||
-    hasEntitlement(entitlements, 'access_anomaly_detection_tier_3');
-  const hasResultAccess =
-    isPlanIncludingResults ||
-    hasPaidTierEntitlement ||
-    isTierSubscribed(tierTwoApi) ||
-    isTierSubscribed(tierThreeApi);
-
-  const checkingAccess = isLoading || subLoading || entLoading;
-
-  React.useEffect(() => {
-    if (!checkingAccess && !hasResultAccess) {
-      if (userRole === 'primary_admin') {
-        setUpgradeModalVisible(true);
-      } else {
-        showContactAdminNotice(
-          'access_anomaly_detection_tier_2',
-          'Upgrade to Sentinel or activate Anomaly Detection Tier Two to view results. Contact Admin to upgrade.'
-        );
-        router.replace('/(protected)/(shared-screens)/ai-store/anomaly-detection');
-      }
-    }
-  }, [checkingAccess, hasResultAccess, userRole, showContactAdminNotice]);
+  const estateId = useUserStore((s) => s.estate_id) || '';
+  const {
+    featureDetail,
+    checkingAccess,
+    hasResultAccess,
+    upgradeModalVisible,
+    setUpgradeModalVisible,
+  } = useAiResultAccess({
+    featureId: typeof params.featureId === 'string' ? params.featureId : undefined,
+    nameMatch: isAnomalyProduct,
+    estateId,
+    paidTierFeatures: ['access_anomaly_detection_tier_2', 'access_anomaly_detection_tier_3'],
+    contactAdminMessage:
+      'Upgrade to Sentinel or activate Anomaly Detection Tier Two to view results. Contact Admin to upgrade.',
+    productRoute: '/(protected)/(shared-screens)/ai-store/anomaly-detection',
+  });
 
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: '#F6F7F7' }}>

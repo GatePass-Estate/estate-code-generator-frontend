@@ -3,9 +3,10 @@ import { errorMessage as thrownMessage } from '@/src/shared/services/api/errors'
 import { useState, useCallback, memo } from 'react';
 import { View, Text, Alert, Image, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Stack } from 'expo-router';
 import { sharedStyles } from '@/src/shared/theme/styles';
 import Button from '@/src/shared/components/Button';
-import Back from '@/src/shared/components/navigation/Back';
+import ScreenHeader from '@/src/shared/components/layout/ScreenHeader';
 import PasswordTextInput from '@/src/features/auth/components/PasswordTextInput';
 import { updatepassword } from '@/src/features/users/services/user';
 import { useUserStore } from '@/src/store/userStore';
@@ -120,13 +121,10 @@ export default function ChangePasswordScreen() {
   }, [confirmPassword, currentPassword, goBack, newPassword, user_id]);
 
   return (
-    <SafeAreaView style={[sharedStyles.container, sharedStyles.modalContainer]}>
+    <SafeAreaView style={[sharedStyles.container, { backgroundColor: '#F6F7F7' }]}>
+      <Stack.Screen options={{ headerShown: false }} />
       <View className="flex-1 flex flex-col">
-        <Back type="short-arrow" showText={false} showBorder />
-
-        <Text className="mb-6 mt-3 text-3xl font-ubuntu-semibold text-primary">
-          Change Password
-        </Text>
+        <ScreenHeader showBack title="Change Password" containerClassName="mb-6" />
 
         <PasswordInput
           label="Current Password"

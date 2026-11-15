@@ -2,7 +2,6 @@ import {
   View,
   Text,
   StyleSheet,
-  TextInput,
   Animated,
   FlatList,
   Alert,
@@ -13,6 +12,7 @@ import { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
 import { router, Stack, useIsFocused, useLocalSearchParams } from 'expo-router';
 import { logger } from '@/src/shared/utils/logger';
 import ScreenHeader from '@/src/shared/components/layout/ScreenHeader';
+import AppTextInput from '@/src/shared/components/form/AppTextInput';
 import HeaderActions from '@/src/features/dashboard/components/HeaderActions';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -26,6 +26,7 @@ import { useAndroidBottomInset } from '@/src/shared/hooks/useAndroidBottomInset'
 import { GuestSearchIcon } from '@/src/features/visitors/components/guestIcons';
 import { getErrorMessage } from '@/src/shared/utils/helpers';
 import Modal from '@/src/shared/components/feedback/Modal';
+import { ListFooter, ListPlaceholder } from '@/src/shared/components/lists/ListStates';
 
 const GUEST_PAGE_SIZE = 20;
 
@@ -163,10 +164,10 @@ const MyGuestMobile = () => {
       <View className="mt-5 flex-row items-center">
         <View className="h-11 min-w-0 flex-1 flex-row items-center rounded-[16px] border-[0.5px] border-[#113E55] bg-[#EFF1F1] px-4">
           <GuestSearchIcon />
-          <TextInput
+          <AppTextInput
             placeholder="Search "
             placeholderTextColor="#113E55"
-            style={styles.searchInput}
+            className="ml-1 flex-1"
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
@@ -209,54 +210,45 @@ const MyGuestMobile = () => {
           ) : null
         }
         ListFooterComponent={
-          isFetchingNextPage ? (
-            <View className="items-center py-4">
-              <CircleLoader size={36} />
-            </View>
-          ) : null
+          <ListFooter
+            isFetchingNextPage={isFetchingNextPage}
+            hasNextPage={hasNextPage}
+            error={guestsQuery.isFetchNextPageError ? guestsQuery.error : undefined}
+            onRetry={() => void fetchNextPage()}
+          />
         }
         contentContainerStyle={{ paddingBottom: tabContentPadding, gap: 8, paddingTop: 16 }}
-        ListEmptyComponent={() =>
-          isError ? (
-            <View style={{ alignItems: 'center', paddingTop: 40, gap: 12 }}>
-              <Text style={{ textAlign: 'center', fontSize: 14, color: '#6C6C6C' }}>
-                {guestsQuery.error?.message?.trim() || 'Could not load your guests.'}
-              </Text>
-              <Pressable
-                onPress={fetchGuests}
-                accessibilityRole="button"
-                className="rounded-full bg-primary px-6 py-3"
-              >
-                <Text className="text-sm font-ubuntu-semibold text-white">Try again</Text>
-              </Pressable>
-            </View>
-          ) : loading && !pullRefreshing ? (
-            <View className="items-center pt-10">
-              <CircleLoader size={36} />
-            </View>
-          ) : (
-            <View
-              style={{
-                flex: 1,
-                justifyContent: 'center',
-                alignItems: 'center',
-                paddingTop: 40,
-              }}
-            >
-              <Animated.Image
-                source={images.ghostImg}
+        ListEmptyComponent={
+          <ListPlaceholder
+            isLoading={loading && !pullRefreshing}
+            isError={isError}
+            error={guestsQuery.error}
+            onRetry={fetchGuests}
+            errorFallback="Could not load your guests."
+            empty={
+              <View
                 style={{
-                  width: 300,
-                  height: 300,
-                  resizeMode: 'contain',
-                  transform: [{ translateY: bounceValue }],
+                  flex: 1,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  paddingTop: 40,
                 }}
-              />
-              <Text style={{ textAlign: 'center', fontSize: 23, opacity: 0.2 }}>
-                {"Click the '+' to add \nyour guest"}
-              </Text>
-            </View>
-          )
+              >
+                <Animated.Image
+                  source={images.ghostImg}
+                  style={{
+                    width: 300,
+                    height: 300,
+                    resizeMode: 'contain',
+                    transform: [{ translateY: bounceValue }],
+                  }}
+                />
+                <Text style={{ textAlign: 'center', fontSize: 23, opacity: 0.2 }}>
+                  {"Click the '+' to add \nyour guest"}
+                </Text>
+              </View>
+            }
+          />
         }
         renderItem={({ item }) => (
           <SavedGuestCard
@@ -357,15 +349,6 @@ const styles = StyleSheet.create({
     fontWeight: '300',
     fontFamily: 'UbuntuSans',
     fontSize: 23,
-  },
-
-  searchInput: {
-    flex: 1,
-    marginLeft: 4,
-    paddingVertical: 0,
-    fontFamily: 'Inter_18pt-Light',
-    fontSize: 14,
-    color: '#113E55',
   },
 
   fab: {

@@ -54,7 +54,8 @@ function RootLayoutContent() {
         }}
       >
         <Stack.Screen name="index" />
-        <Stack.Screen name="auth" />
+        {/* Signed-in More → Terms / Privacy pushes into auth; slide like Broadcast. */}
+        <Stack.Screen name="auth" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="activate" />
         <Stack.Screen name="(protected)" />
       </Stack>

@@ -13,6 +13,8 @@ type ButtonProps = Omit<PressableProps, 'children'> & {
   /** `danger`: orange (#F46036, the seat-usage bar colour) for destructive actions. */
   variant?: 'primary' | 'secondary' | 'danger';
   size?: 'lg' | 'md';
+  /** Label type size. `md` is a step up from the default 14px (e.g. login Continue). */
+  labelSize?: 'sm' | 'md';
   loading?: boolean;
 };
 
@@ -21,11 +23,17 @@ const SIZE_CLASS = {
   md: 'w-[155px] min-w-[80px]',
 } as const;
 
+const LABEL_METRICS = {
+  sm: { fontSize: 14, lineHeight: 17 },
+  md: { fontSize: 16, lineHeight: 20 },
+} as const;
+
 export default function Button({
   label,
   icon,
   variant = 'primary',
   size = 'lg',
+  labelSize = 'sm',
   loading = false,
   disabled,
   className,
@@ -33,6 +41,7 @@ export default function Button({
   style,
   ...props
 }: ButtonProps) {
+  const labelMetrics = LABEL_METRICS[labelSize];
   const isDisabled = Boolean(disabled || loading);
   const mutedPrimary = variant === 'primary' && isDisabled && !loading;
   const lastPressAt = useRef(0);
@@ -82,10 +91,10 @@ export default function Button({
           {icon}
           <Text
             allowFontScaling={false}
-            className="text-center text-sm font-ubuntu-semibold tracking-[-0.24px]"
+            className="text-center font-ubuntu-semibold tracking-[-0.24px]"
             style={{
-              fontSize: 14,
-              lineHeight: 17,
+              fontSize: labelMetrics.fontSize,
+              lineHeight: labelMetrics.lineHeight,
               letterSpacing: -0.24,
               color: mutedPrimary ? '#878686' : variant === 'secondary' ? '#113E55' : '#F6F7F7',
             }}

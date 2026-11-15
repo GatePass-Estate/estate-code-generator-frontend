@@ -1,17 +1,16 @@
 import { useGoBack } from '@/src/shared/hooks/useGoBack';
 import { View, Text, Share, Alert, Image, Pressable, ScrollView } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
-import { Stack, router, useLocalSearchParams } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Back from '@/src/shared/components/navigation/Back';
 import { sharedStyles } from '@/src/shared/theme/styles';
 import icons from '@/src/shared/constants/icons';
-import { useDeleteCode } from '@/src/features/access-codes/hooks/codes';
 import Button, { BUTTON_MARGIN_BOTTOM } from '@/src/shared/components/Button';
 import BrandedQRCode from '@/src/shared/components/BrandedQRCode';
 import { CopiedToast } from '@/src/shared/components/feedback/CopiedToast';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { logger } from '@/src/shared/utils/logger';
+import { useInvite } from '@/src/features/access-codes/hooks/useInvite';
 
 function DetailRow({
   label,
@@ -38,15 +37,26 @@ function DetailRow({
 
 export default function InvitePage() {
   const goBack = useGoBack();
-  let { name, code, date, timeframe, address, from } = useLocalSearchParams();
-  const [cancelText, setCancelText] = useState('Cancel Invite');
+  const {
+    name,
+    code,
+    date,
+    timeframe,
+    address,
+    fromScreen,
+    cancelText,
+    cancelInvite,
+    shareMessage,
+  } = useInvite({
+    onCancelled: () => handleBack(),
+    onCancelFailed: () =>
+      Alert.alert(
+        'Could not cancel invite',
+        'The code is still active. Check your connection and try again.'
+      ),
+  });
   const [showCopiedToast, setShowCopiedToast] = useState(false);
   const copiedToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const deleteCodeMutation = useDeleteCode();
-
-  code = Array.isArray(code) ? code.join('') : (code ?? '');
-  code = code.replace(/\s+/g, '');
-  const fromScreen = Array.isArray(from) ? from[0] : from;
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
@@ -76,28 +86,9 @@ export default function InvitePage() {
 
   const handleShare = async () => {
     try {
-      await Share.share({
-        message: `You're invited!\n\nName: ${name}\nAddress: ${address}\nDate: ${date}\nTime: ${timeframe}\nCode: ${code}`,
-      });
+      await Share.share({ message: shareMessage() });
     } catch {
       Alert.alert('Failed to share');
-    }
-  };
-
-  const performRemoveCode = async (code: string) => {
-    if (deleteCodeMutation.isPending) return;
-    try {
-      setCancelText('Removing...');
-      await deleteCodeMutation.mutateAsync(code);
-      // Leave only once the server has revoked it: on failure the code still opens the gate.
-      handleBack();
-    } catch (error) {
-      logger.error('Could not remove code', error);
-      setCancelText('Cancel Invite');
-      Alert.alert(
-        'Could not cancel invite',
-        'The code is still active. Check your connection and try again.'
-      );
     }
   };
 
@@ -159,7 +150,7 @@ export default function InvitePage() {
             label={cancelText}
             variant="secondary"
             size="lg"
-            onPress={() => performRemoveCode(code)}
+            onPress={() => cancelInvite(code)}
           />
         </View>
       </ScrollView>

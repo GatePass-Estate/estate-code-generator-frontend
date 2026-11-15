@@ -9,106 +9,25 @@ import IncidentResultView from '@/src/features/ai/components/incidents/IncidentR
 import AnimatedPillTabs from '@/src/shared/components/AnimatedPillTabs';
 import { CrownIcon } from '@/src/assets/svgs';
 import PromptModal from '@/src/shared/components/feedback/PromptModal';
-import { useEstateSubscription } from '@/src/features/billing/hooks/billing';
-import { useContactAdminNoticeStore } from '@/src/features/billing/hooks/usePlan';
-import {
-  getMarketplaceFeatureById,
-  getMarketplaceFeatures,
-  sortMarketplaceTiers,
-} from '@/src/features/marketplace/services/aiMarketplace';
-import { useEstateEntitlements } from '@/src/features/billing';
-import { getUpgradeCopy, hasEntitlement } from '@/src/features/billing/utils/plans';
+import { getUpgradeCopy } from '@/src/features/billing/utils/plans';
 import { useUserStore } from '@/src/store/userStore';
-import {
-  MarketplaceDetailResponse,
-  MarketplaceTier,
-} from '@/src/features/marketplace/types/aiMarketplace';
+import { useAiResultAccess } from '@/src/features/ai/hooks/useAiResultAccess';
+import { isIncidentProduct } from '@/src/features/ai/hooks/useIncidentProduct';
 
 export default function IncidentReportSummaryScreen() {
   const goBack = useGoBack();
-  const [featureDetail, setFeatureDetail] = React.useState<MarketplaceDetailResponse | null>(null);
-  const [isLoading, setIsLoading] = React.useState(true);
-  const [upgradeModalVisible, setUpgradeModalVisible] = React.useState(false);
   const params = useLocalSearchParams<{ featureId?: string }>();
-  const userRole = useUserStore((s) => s.role);
-  const showContactAdminNotice = useContactAdminNoticeStore((s) => s.show);
-  const { data: subscriptionData, isLoading: subLoading } = useEstateSubscription();
-  const { data: entitlements, isLoading: entLoading } = useEstateEntitlements();
-
-  React.useEffect(() => {
-    let isMounted = true;
-    async function init() {
-      setIsLoading(true);
-      try {
-        let targetId = params.featureId;
-        if (!targetId) {
-          const list = await getMarketplaceFeatures();
-          const incidentTool = list.items?.find((item) =>
-            item.name.toLowerCase().includes('incident')
-          );
-          if (incidentTool) {
-            targetId = incidentTool.id;
-          }
-        }
-        if (targetId && isMounted) {
-          const detail = await getMarketplaceFeatureById(targetId);
-          if (isMounted) {
-            setFeatureDetail(detail);
-          }
-        }
-      } catch {
-        // Silent fail
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
-    }
-    init();
-    return () => {
-      isMounted = false;
-    };
-  }, [params.featureId]);
-
-  const sortedTiers = featureDetail?.tiers ? sortMarketplaceTiers(featureDetail.tiers) : [];
-  const tierTwoApi = sortedTiers[1];
-  const tierThreeApi = sortedTiers[2];
-  const isTierSubscribed = (tier?: MarketplaceTier | null) =>
-    Boolean(
-      tier &&
-      (tier.status === 'active' ||
-        tier.status === 'purchased' ||
-        tier.status === 'subscribed' ||
-        tier.status === 'installed' ||
-        tier.purchased)
-    );
-
-  const planSlug = subscriptionData?.tier?.slug ?? entitlements?.tierSlug;
-  const isPlanIncludingResults = planSlug === 'sentinel' || planSlug === 'command';
-  const hasPaidTierEntitlement =
-    hasEntitlement(entitlements, 'incident_report_summary_tier_2') ||
-    hasEntitlement(entitlements, 'incident_report_summary_tier_3');
-  const hasResultAccess =
-    isPlanIncludingResults ||
-    hasPaidTierEntitlement ||
-    isTierSubscribed(tierTwoApi) ||
-    isTierSubscribed(tierThreeApi);
-
-  const checkingAccess = isLoading || subLoading || entLoading;
-
-  React.useEffect(() => {
-    if (!checkingAccess && !hasResultAccess) {
-      if (userRole === 'primary_admin') {
-        setUpgradeModalVisible(true);
-      } else {
-        showContactAdminNotice(
-          'incident_report_summary_tier_2',
-          'Upgrade to Sentinel or activate Incident Report Tier Two to view results. Contact Admin to upgrade.'
-        );
-        router.replace('/(protected)/(shared-screens)/ai-store/incident-report');
-      }
-    }
-  }, [checkingAccess, hasResultAccess, userRole, showContactAdminNotice]);
+  const estateId = useUserStore((s) => s.estate_id);
+  const { checkingAccess, hasResultAccess, upgradeModalVisible, setUpgradeModalVisible } =
+    useAiResultAccess({
+      featureId: typeof params.featureId === 'string' ? params.featureId : undefined,
+      nameMatch: isIncidentProduct,
+      estateId: estateId || undefined,
+      paidTierFeatures: ['incident_report_summary_tier_2', 'incident_report_summary_tier_3'],
+      contactAdminMessage:
+        'Upgrade to Sentinel or activate Incident Report Tier Two to view results. Contact Admin to upgrade.',
+      productRoute: '/(protected)/(shared-screens)/ai-store/incident-report',
+    });
 
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: '#F6F7F7' }}>

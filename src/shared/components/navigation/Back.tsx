@@ -32,6 +32,8 @@ const Back = ({
   iconStyle?: StyleProp<ImageStyle>;
   onPress?: () => void;
 }) => {
+  // Default: stack pop + slide. Only pass `onPress` when you must leave without history
+  // (auth replace, etc.) — see useGoBack.
   const goBack = useGoBack();
   const handlePress = onPress ?? goBack;
 

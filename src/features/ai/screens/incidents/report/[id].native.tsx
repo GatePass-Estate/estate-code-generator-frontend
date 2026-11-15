@@ -1,16 +1,18 @@
 import { useCallback, useState } from 'react';
 import { Modal, Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native';
-import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useFocusEffect, useLocalSearchParams, usePathname, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
 import { Ionicons } from '@expo/vector-icons';
 import Back from '@/src/shared/components/navigation/Back';
+import { useGoBack } from '@/src/shared/hooks/useGoBack';
 import type { IncidentReport } from '@/src/features/ai/services/incidentManagement';
 import ActionConfirmModal from '@/src/shared/components/feedback/ActionConfirmModal';
 import {
   useManagedIncidentReport,
   useMarkIncidentReportRead,
 } from '@/src/features/ai/hooks/operations';
+import { incidentReportPaths } from '@/src/features/ai/utils/incidentReportNavigation';
 
 function displayDate(value: string): string {
   const date = new Date(value);
@@ -47,6 +49,9 @@ function SenderRow({ label, value }: { label: string; value?: string | null }) {
 export default function IncidentReportDetailScreen() {
   const { id, returnTo } = useLocalSearchParams<{ id?: string; returnTo?: string }>();
   const router = useRouter();
+  const goBack = useGoBack();
+  const pathname = usePathname();
+  const reportPaths = incidentReportPaths(pathname);
   const reportQuery = useManagedIncidentReport(id, 'all');
   const markReadMutation = useMarkIncidentReportRead();
   const report = id ? (reportQuery.data ?? null) : null;
@@ -75,7 +80,8 @@ export default function IncidentReportDetailScreen() {
     try {
       await markReadMutation.mutateAsync(id);
       setConfirmMarkRead(false);
-      router.replace({ pathname: '/user/report', params: { returnTo: returnTo || '/admin' } });
+      // Pop with the same slide as Broadcast / list → detail.
+      goBack();
     } catch {
       setConfirmMarkRead(false);
       setActionError('Unable to mark this report as read. Please try again.');
@@ -96,12 +102,16 @@ export default function IncidentReportDetailScreen() {
             showBorder
             borderSize={30}
             leftOffset={-3}
-            onPress={() =>
+            onPress={() => {
+              if (router.canGoBack()) {
+                goBack();
+                return;
+              }
               router.replace({
-                pathname: '/user/report',
+                pathname: reportPaths.list,
                 params: { returnTo: returnTo || '/admin' },
-              })
-            }
+              });
+            }}
           />
           <TouchableOpacity
             accessibilityRole="button"

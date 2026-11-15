@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import ScreenLoading, { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
+import ScreenLoading from '@/src/shared/components/feedback/ScreenLoading';
+import { ListFooter, ListPlaceholder } from '@/src/shared/components/lists/ListStates';
 import {
   View,
   Text,
@@ -354,22 +355,26 @@ export default function HistoryTabScreen() {
             ItemSeparatorComponent={HistoryCardSeparator}
             SectionSeparatorComponent={PastSectionSeparator}
             ListEmptyComponent={
-              pastError ? (
-                <Text className="text-center text-sm font-inter-regular text-[#6C6C6C]">
-                  {pastError}
-                </Text>
-              ) : (
-                <Text className="text-center text-sm font-inter-regular text-[#6C6C6C]">
-                  No past access history yet.
-                </Text>
-              )
+              <ListPlaceholder
+                isLoading={false}
+                isError={!!pastError}
+                error={pastQuery.error}
+                onRetry={user_id ? () => void refetchPast() : undefined}
+                errorFallback={user_id ? 'Could not load past history.' : 'User not found.'}
+                empty={
+                  <Text className="text-center text-sm font-inter-regular text-[#6C6C6C]">
+                    No past access history yet.
+                  </Text>
+                }
+              />
             }
             ListFooterComponent={
-              isFetchingNextPage ? (
-                <View style={{ marginTop: 38 }}>
-                  <CircleLoader size={32} />
-                </View>
-              ) : null
+              <ListFooter
+                isFetchingNextPage={isFetchingNextPage}
+                hasNextPage={hasNextPage}
+                error={pastQuery.isFetchNextPageError ? pastQuery.error : undefined}
+                onRetry={() => void fetchNextPage()}
+              />
             }
           />
         ) : (
@@ -390,15 +395,18 @@ export default function HistoryTabScreen() {
             )}
             ItemSeparatorComponent={HistoryCardSeparator}
             ListEmptyComponent={
-              upcomingError ? (
-                <Text className="text-center text-sm font-inter-regular text-[#6C6C6C]">
-                  {upcomingError}
-                </Text>
-              ) : (
-                <Text className="text-center text-sm font-inter-regular text-[#6C6C6C]">
-                  No upcoming invites yet.
-                </Text>
-              )
+              <ListPlaceholder
+                isLoading={false}
+                isError={!!upcomingError}
+                error={upcomingQuery.error}
+                onRetry={user_id ? () => void refetchUpcoming() : undefined}
+                errorFallback={user_id ? 'Could not load upcoming invites.' : 'User not found.'}
+                empty={
+                  <Text className="text-center text-sm font-inter-regular text-[#6C6C6C]">
+                    No upcoming invites yet.
+                  </Text>
+                }
+              />
             }
           />
         )}

@@ -7,85 +7,69 @@ import WebNavLink from '@/src/shared/components/navigation/WebNavLink';
 import { adminRoutes, menuRoutes } from '@/src/features/dashboard/components/menuRoutes';
 import icons from '@/src/shared/constants/icons';
 import Modal from '@/src/shared/components/feedback/Modal';
-import { registerUser } from '@/src/features/users/services/user';
-import { userFacingError } from '@/src/shared/services/api/errors';
-import { useUserStore } from '@/src/store/userStore';
-import { FormErrors, GenderType } from '@/src/shared/types/general';
-import { RegisterUserPayload } from '@/src/features/users/types/user';
+import { GenderType } from '@/src/shared/types/general';
 import { getWidthBreakpoint } from '@/src/shared/utils/helpers';
 import RegisterUser from './add.native';
 import HouseholdSelectorSheet from '@/src/features/admin/components/HouseholdSelectorSheet';
-import type { Household } from '@/src/features/admin/types/household';
-import { getEstateById } from '@/src/features/admin/services/estate';
+import { useRegisterUserForm } from '@/src/features/admin/hooks/useRegisterUserForm';
 import {
-  buildRegisterUserPayload,
   REGISTRATION_GENDER_OPTIONS,
   REGISTRATION_ROLE_OPTIONS,
-  validateRegistrationAddress,
-  validateRegistrationPersonalDetails,
 } from '@/src/features/auth/utils/registrationValidation';
-import { usePendingSeatReduction } from '@/src/features/admin/hooks/usePendingSeatReduction';
 import {
   SEAT_REDUCTION_BLOCKED_MESSAGE,
   SEAT_REDUCTION_BLOCKED_TITLE,
 } from '@/src/features/admin/utils/seatReduction';
 
 function RegisterUserWeb() {
-  const estateId = useUserStore((store) => store.estate_id) || '';
-  const [step, setStep] = useState(1);
   const [error, setError] = useState('');
   const [messageType, setMessageType] = useState<'success' | 'error'>('error');
-  const hasPendingSeatReduction = usePendingSeatReduction();
-  const [seatReductionModalVisible, setSeatReductionModalVisible] = useState(false);
-
-  useEffect(() => {
-    if (hasPendingSeatReduction) setSeatReductionModalVisible(true);
-  }, [hasPendingSeatReduction]);
+  const {
+    estateId,
+    step,
+    setStep,
+    formData,
+    setField,
+    errors: fieldErrors,
+    setErrors,
+    clearFieldError,
+    selectedHousehold,
+    selectHousehold,
+    householdSelectorVisible,
+    setHouseholdSelectorVisible,
+    seatReductionVisible: seatReductionModalVisible,
+    setSeatReductionVisible: setSeatReductionModalVisible,
+    blockIfSeatReductionPending,
+    validatePersonalDetails,
+    validateAddress,
+    resetForm,
+    submit,
+    saving: running,
+  } = useRegisterUserForm({ initialUserType: 'resident' });
+  const {
+    firstName,
+    lastName,
+    email,
+    phoneNumber: phone,
+    gender,
+    userType: selectedRole,
+    apartmentNumber,
+    apartmentName,
+    city,
+    state,
+    postalCode,
+  } = formData;
+  // Only Save shows a spinner (Continue validates locally).
+  const processingAction = (running ? 'save' : null) as 'continue' | 'save' | null;
 
   const handleDismissSeatReduction = () => {
     setSeatReductionModalVisible(false);
     router.push('/admin');
   };
-  const [fieldErrors, setFieldErrors] = useState<FormErrors>({});
-  const [running, setRunning] = useState(false);
-  const [processingAction, setProcessingAction] = useState<'continue' | 'save' | null>(null);
-
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [gender, setGender] = useState<GenderType>(null);
-  const [selectedRole, setSelectedRole] = useState<'resident' | 'security'>('resident');
-
-  const [selectedHousehold, setSelectedHousehold] = useState<Household | null>(null);
-  const [householdSelectorVisible, setHouseholdSelectorVisible] = useState(false);
-  const [apartmentNumber, setApartmentNumber] = useState('');
-  const [apartmentName, setApartmentName] = useState('');
-  const [city, setCity] = useState('');
-  const [state, setState] = useState('');
-  const [postalCode, setPostalCode] = useState('');
 
   useEffect(() => {
     if (Platform.OS === 'web') document.title = 'Add User - Admin Access - GatePass';
   }, []);
-
-  useEffect(() => {
-    if (!estateId) return;
-
-    let active = true;
-    void getEstateById(estateId)
-      .then((estate) => {
-        if (!active) return;
-        setCity((current) => current || estate.city || estate.lga || '');
-        setState((current) => current || estate.state || '');
-        setPostalCode((current) => current || estate.postal_code || '');
-      })
-      .catch(() => undefined);
-
-    return () => {
-      active = false;
-    };
-  }, [estateId]);
 
   const pathname = usePathname();
 
@@ -93,112 +77,28 @@ function RegisterUserWeb() {
     router.push(route);
   }
 
-  const validateStep1 = (): boolean => {
-    const errors = validateRegistrationPersonalDetails({
-      firstName,
-      lastName,
-      email,
-      phoneNumber: phone,
-      gender,
-      userType: selectedRole,
-    });
-    setFieldErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  const clearFieldError = (field: keyof FormErrors) => {
-    if (fieldErrors[field]) {
-      setFieldErrors((current) => ({ ...current, [field]: undefined }));
-    }
-  };
-
-  const validateStep2 = (): boolean => {
-    const errors = validateRegistrationAddress({
-      householdId: selectedHousehold?.id ?? null,
-      apartmentNumber,
-      apartmentName,
-      city,
-      state,
-      postalCode,
-    });
-    setFieldErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
   const handleNextStep = () => {
-    if (hasPendingSeatReduction) {
-      setSeatReductionModalVisible(true);
-      return;
-    }
-    if (step === 1 && validateStep1()) {
+    if (blockIfSeatReductionPending()) return;
+    if (step === 1 && validatePersonalDetails()) {
       setStep(2);
-      setFieldErrors({});
+      setErrors({});
     }
   };
 
   const handleSaveUser = async () => {
-    if (hasPendingSeatReduction) {
-      setSeatReductionModalVisible(true);
-      return;
-    }
-    if (validateStep2()) {
-      setRunning(true);
-      setProcessingAction('save');
-      try {
-        const { estate_id } = useUserStore.getState();
-
-        const payload: RegisterUserPayload = buildRegisterUserPayload({
-          firstName,
-          lastName,
-          email,
-          phoneNumber: phone,
-          role: selectedRole,
-          gender,
-          estateId: estate_id || '',
-          householdId: selectedHousehold?.id ?? null,
-          address: {
-            householdId: selectedHousehold?.id ?? null,
-            apartmentNumber,
-            apartmentName,
-            city,
-            state,
-            postalCode,
-          },
-        });
-
-        const registeredUser = await registerUser(payload);
-
-        if (registeredUser && registeredUser.id) {
-          setMessageType('success');
-          setError('User registered successfully!');
-          setFirstName('');
-          setLastName('');
-          setEmail('');
-          setPhone('');
-          setGender(null);
-          setSelectedRole('resident');
-          setSelectedHousehold(null);
-          setApartmentNumber('');
-          setApartmentName('');
-          setCity('');
-          setState('');
-          setPostalCode('');
-          setStep(1);
-
-          setTimeout(() => {
-            router.push('/admin');
-          }, 2000);
-        } else {
-          setMessageType('error');
-          setError('Failed to register user. Please try again.');
-        }
-      } catch (err) {
-        setMessageType('error');
-        setError(userFacingError(err, 'An error occurred while registering user'));
-      } finally {
-        setRunning(false);
-        setProcessingAction(null);
-      }
+    if (blockIfSeatReductionPending()) return;
+    if (!validateAddress()) return;
+    const result = await submit();
+    if (result.ok) {
+      setMessageType('success');
+      setError('User registered successfully!');
+      resetForm();
+      setTimeout(() => {
+        router.push('/admin');
+      }, 2000);
+    } else {
+      setMessageType('error');
+      setError(result.message);
     }
   };
 
@@ -266,7 +166,7 @@ function RegisterUserWeb() {
                           placeholder="Enter user name"
                           value={firstName}
                           onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                            setFirstName(e.target.value);
+                            setField('firstName', e.target.value);
                             clearFieldError('firstName');
                           }}
                           className={`input-style-web border ${fieldErrors.firstName ? 'registration-input-error-web' : 'border-transparent'}`}
@@ -285,7 +185,7 @@ function RegisterUserWeb() {
                           placeholder="Enter last name"
                           value={lastName}
                           onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                            setLastName(e.target.value);
+                            setField('lastName', e.target.value);
                             clearFieldError('lastName');
                           }}
                           className={`input-style-web border ${fieldErrors.lastName ? 'registration-input-error-web' : 'border-transparent'}`}
@@ -307,7 +207,7 @@ function RegisterUserWeb() {
                           placeholder="Enter user email address"
                           value={email}
                           onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                            setEmail(e.target.value);
+                            setField('email', e.target.value);
                             clearFieldError('email');
                           }}
                           className={`input-style-web border ${fieldErrors.email ? 'registration-input-error-web' : 'border-transparent'}`}
@@ -326,7 +226,7 @@ function RegisterUserWeb() {
                           placeholder="Enter phone number"
                           value={phone}
                           onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                            setPhone(e.target.value);
+                            setField('phoneNumber', e.target.value);
                             clearFieldError('phoneNumber');
                           }}
                           className={`input-style-web border ${fieldErrors.phoneNumber ? 'registration-input-error-web' : 'border-transparent'}`}
@@ -349,7 +249,7 @@ function RegisterUserWeb() {
                               key={g.value + index}
                               className={`flex flex-row items-center px-4 py-2 rounded-md bg-light-grey ${active && 'bg-[#e6f4ef] border border-[#cfe7db]'} gap-3 cursor-pointer`}
                               onClick={() => {
-                                setGender(g.value as GenderType);
+                                setField('gender', g.value as GenderType);
                                 clearFieldError('gender');
                               }}
                             >
@@ -382,7 +282,7 @@ function RegisterUserWeb() {
                               key={r.value + index}
                               className={`flex flex-row items-center px-4 py-2 rounded-md bg-light-grey ${active && 'bg-[#e6f4ef] border border-[#cfe7db]'} gap-3 cursor-pointer`}
                               onClick={() => {
-                                setSelectedRole(r.value);
+                                setField('userType', r.value);
                                 clearFieldError('userType');
                               }}
                             >
@@ -436,7 +336,7 @@ function RegisterUserWeb() {
                           placeholder="Enter apartment number or suite"
                           value={apartmentNumber}
                           onChange={(event) => {
-                            setApartmentNumber(event.target.value);
+                            setField('apartmentNumber', event.target.value);
                             clearFieldError('apartmentNumber');
                           }}
                           className={`input-style-web border ${fieldErrors.apartmentNumber ? 'registration-input-error-web' : 'border-transparent'}`}
@@ -455,7 +355,7 @@ function RegisterUserWeb() {
                           placeholder="Enter your apartment name"
                           value={apartmentName}
                           onChange={(event) => {
-                            setApartmentName(event.target.value);
+                            setField('apartmentName', event.target.value);
                             clearFieldError('apartmentName');
                           }}
                           className={`input-style-web border ${fieldErrors.apartmentName ? 'registration-input-error-web' : 'border-transparent'}`}
@@ -592,10 +492,7 @@ function RegisterUserWeb() {
           estateId={estateId}
           selected={selectedHousehold}
           onClose={() => setHouseholdSelectorVisible(false)}
-          onSelect={(household) => {
-            setSelectedHousehold(household);
-            clearFieldError('householdId');
-          }}
+          onSelect={selectHousehold}
         />
       </div>
     </div>

@@ -17,10 +17,15 @@ import { GuestApiResponse } from '@/src/features/visitors/types/guests';
 const GUEST_LIST_PAGE = 1;
 const GUEST_LIST_LIMIT = 6;
 
-export function useMyGuests(page = GUEST_LIST_PAGE, limit = GUEST_LIST_LIMIT) {
+export function useMyGuests(
+  page = GUEST_LIST_PAGE,
+  limit = GUEST_LIST_LIMIT,
+  options: { refetchInterval?: number | false } = {}
+) {
   return useQuery({
     queryKey: queryKeys.guests.list(page, limit),
     queryFn: () => getMyGuests(page, limit),
+    refetchInterval: options.refetchInterval,
   });
 }
 

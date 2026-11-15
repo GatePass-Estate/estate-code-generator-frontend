@@ -18,11 +18,15 @@ function refreshCodes() {
   void queryClient.invalidateQueries({ queryKey: queryKeys.accessLogs.all });
 }
 
-export function useActiveCodes(userId?: string | null) {
+/** `refetchInterval` lets a focused screen poll (pass `false` while it is not focused). */
+export type PollOptions = { refetchInterval?: number | false };
+
+export function useActiveCodes(userId?: string | null, options: PollOptions = {}) {
   return useQuery({
     queryKey: queryKeys.codes.active(userId ?? ''),
     queryFn: () => getAllCodes(userId as string),
     enabled: Boolean(userId),
+    refetchInterval: options.refetchInterval,
   });
 }
 

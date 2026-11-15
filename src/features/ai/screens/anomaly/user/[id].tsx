@@ -18,13 +18,10 @@ import {
   useAnomalyCaseHistory,
   useAnomalyCaseSummary,
   useAnomalyCaseResults,
+  useAnomalyUserPicture,
 } from '@/src/features/ai/hooks/anomaly';
-import {
-  getMarketplaceFeatures,
-  getMarketplaceFeatureById,
-} from '@/src/features/marketplace/services/aiMarketplace';
-import { MarketplaceDetailResponse } from '@/src/features/marketplace/types/aiMarketplace';
-import { getUserDocumentViewUri } from '@/src/features/profile/services/userDocuments';
+import { useMarketplaceFeature } from '@/src/features/marketplace/hooks/useMarketplaceFeature';
+import { isAnomalyProduct } from '@/src/features/ai/hooks/useAnomalyProduct';
 import {
   anomalyHistoryRecords,
   anomalyHistoryTotal,
@@ -88,27 +85,8 @@ export default function AnomalyDetectionUserDetailsScreen() {
   );
 
   const [localSummaryData, setLocalSummaryData] = useState<AnomalySummaryView | null>(null);
-  const [, setFeatureDetail] = useState<MarketplaceDetailResponse | null>(null);
-
-  useEffect(() => {
-    let isMounted = true;
-    async function fetchFeature() {
-      try {
-        const list = await getMarketplaceFeatures();
-        const anomalyTool = list.items?.find((item) => item.name.toLowerCase().includes('anomaly'));
-        if (anomalyTool && isMounted) {
-          const detail = await getMarketplaceFeatureById(anomalyTool.id);
-          if (isMounted) {
-            setFeatureDetail(detail);
-          }
-        }
-      } catch {}
-    }
-    fetchFeature();
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  // Keeps the Anomaly Detection product warm in the cache (same entry as the product screen).
+  useMarketplaceFeature({ nameMatch: isAnomalyProduct, estateId });
 
   const rawSummaryData = localSummaryData || summaryData;
   const currentSummaryData = unwrapAnomalyPayload(rawSummaryData as AnomalySummaryView | undefined);
@@ -203,28 +181,11 @@ export default function AnomalyDetectionUserDetailsScreen() {
     };
   }, [pulseAnim]);
 
-  const [profilePicUri, setProfilePicUri] = useState<string | null>(null);
-  const [isFetchingPicture, setIsFetchingPicture] = useState(true);
-
-  useEffect(() => {
-    async function fetchPicture() {
-      if (!demo?.user_id) {
-        setIsFetchingPicture(false);
-        return;
-      }
-      try {
-        // Only the profile photo: never fall back to the government ID image (private, and may
-        // be a PDF). Without a photo the screen shows its normal placeholder avatar.
-        const profilePic = await getUserDocumentViewUri(demo.user_id, 'profile_picture');
-        if (profilePic) setProfilePicUri(profilePic);
-      } catch {
-        // The screen already falls back to the guest or placeholder avatar.
-      } finally {
-        setIsFetchingPicture(false);
-      }
-    }
-    fetchPicture();
-  }, [demo?.user_id]);
+  // A failed load falls back to the guest or placeholder avatar.
+  const { data: profilePicData, isLoading: isFetchingPicture } = useAnomalyUserPicture(
+    demo?.user_id
+  );
+  const profilePicUri = profilePicData ?? null;
 
   return (
     <SafeAreaView

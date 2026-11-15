@@ -12,6 +12,7 @@ import Button from '@/src/shared/components/Button';
 import InstitutionSearchIdle from '@/src/assets/icons/institution-search-idle.svg';
 import InstitutionSearchActive from '@/src/assets/icons/institution-search-active.svg';
 import InstitutionResultCard from '@/src/features/auth/components/InstitutionResultCard';
+import AppTextInput from '@/src/shared/components/form/AppTextInput';
 import { searchPublicEstates } from '@/src/features/admin/services/estate';
 import { cn } from '@/src/shared/utils/cn';
 import { setSelectedInstitution } from '@/src/features/auth/services/authPersistence';
@@ -235,7 +236,11 @@ export default function InstitutionWebScreen() {
 
         {/* Empty-state title */}
         <Animated.View className="items-center mb-8" style={emptyStateStyle}>
-          <Text className="text-center font-ubuntu-medium text-heading text-primary">
+          <Text
+            className={`text-center font-ubuntu-semibold text-primary ${
+              isLargeScreen ? 'text-3xl' : 'text-2xl'
+            }`}
+          >
             Which Institution are{'\n'}you signing in to?
           </Text>
         </Animated.View>
@@ -250,10 +255,14 @@ export default function InstitutionWebScreen() {
                 searching ? 'border-[0.5px] border-primary bg-transparent' : 'bg-[#EFF1F1]'
               )}
             >
-              <View className="h-6 w-6 items-center justify-center">
-                {searching ? <InstitutionSearchActive /> : <InstitutionSearchIdle />}
+              <View className="h-7 w-7 items-center justify-center">
+                {searching ? (
+                  <InstitutionSearchActive width={24} height={24} />
+                ) : (
+                  <InstitutionSearchIdle width={24} height={24} />
+                )}
               </View>
-              <TextInput
+              <AppTextInput
                 ref={inputRef}
                 value={query}
                 onChangeText={setQuery}
@@ -262,8 +271,8 @@ export default function InstitutionWebScreen() {
                 placeholderTextColor="#9B9797"
                 autoCapitalize="none"
                 autoCorrect={false}
-                className="h-10 flex-1 font-inter-light text-base text-primary outline-none"
-                style={{ paddingVertical: 0 }}
+                className="h-11 flex-1 text-lg outline-none"
+                style={{ fontSize: 18, lineHeight: 22 }}
               />
             </View>
 

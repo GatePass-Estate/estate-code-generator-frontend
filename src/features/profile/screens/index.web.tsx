@@ -1,79 +1,37 @@
 import { useRouter } from 'expo-router';
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect } from 'react';
 import { Image, Platform, useWindowDimensions } from 'react-native';
 import { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
 import icons from '@/src/shared/constants/icons';
 import { useUserStore } from '@/src/store/userStore';
-import { useGenerateCode, useMyResidentCode } from '@/src/features/access-codes/hooks/codes';
-import { formatDateWithOrdinal, getWidthBreakpoint } from '@/src/shared/utils/helpers';
+import { getWidthBreakpoint } from '@/src/shared/utils/helpers';
 import { logger } from '@/src/shared/utils/logger';
 import Back from '@/src/shared/components/navigation/Back';
 import WebSidebar from '@/src/features/dashboard/components/WebSidebar';
 import { menuRoutes } from '@/src/features/dashboard/components/menuRoutes';
+import { useResidentAccessCode } from '@/src/features/profile/hooks/useResidentAccessCode';
+
+const logLoadError = (error: unknown) => logger.error('Could not load resident code', error);
+const logGenerateError = (error: unknown) =>
+  logger.error('Could not generate resident code', error);
 
 export default function MyProfile() {
   const router = useRouter();
-  const user_id = useUserStore((s) => s.user_id);
-  const estate_id = useUserStore((s) => s.estate_id);
   const first_name = useUserStore((s) => s.first_name);
   const last_name = useUserStore((s) => s.last_name);
   const home_address = useUserStore((s) => s.home_address);
   const email = useUserStore((s) => s.email);
   const phone_number = useUserStore((s) => s.phone_number);
-  const codeQuery = useMyResidentCode(user_id);
-  const generateResidentCode = useGenerateCode();
-  const { refetch: refetchResidentCode } = codeQuery;
-  const [loading, setLoading] = useState(true);
-  const [code, setCode] = useState<string | null>(null);
-  const [expiry, setExpiry] = useState<string | null>(null);
+  const { code, loading, expiring, formattedDate, fetchMyCode, handleGenerateCode } =
+    useResidentAccessCode({ onLoadError: logLoadError, onGenerateError: logGenerateError });
   const { width } = useWindowDimensions();
 
   const isLargeScreen = width > getWidthBreakpoint();
-
-  const fetchMyCode = useCallback(async () => {
-    setLoading(true);
-    const result = await refetchResidentCode();
-    if (result.data) {
-      setCode(result.data.hashed_code);
-      setExpiry(result.data.valid_until);
-    } else {
-      logger.error('Could not load resident code', result.error);
-    }
-    setLoading(false);
-  }, [refetchResidentCode]);
-
-  const handleGenerateCode = useCallback(async () => {
-    setLoading(true);
-    try {
-      const result = await generateResidentCode.mutateAsync({
-        user_id,
-        estate_id: estate_id ?? '',
-        receiver: 'resident',
-      });
-      setCode(result.hashed_code);
-      setExpiry(result.valid_until);
-    } catch (error) {
-      logger.error('Could not generate resident code', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [estate_id, generateResidentCode, user_id]);
 
   useEffect(() => {
     fetchMyCode();
     if (Platform.OS === 'web') document.title = 'My Profile - GatePass';
   }, [fetchMyCode]);
-
-  const { expiring, formattedDate } = useMemo(() => {
-    if (!expiry) return { expiring: false, formattedDate: null };
-    const expDate = new Date(expiry);
-    const now = new Date();
-    const daysLeft = (expDate.getTime() - now.getTime()) / (1000 * 3600 * 24);
-    return {
-      expiring: daysLeft <= 30,
-      formattedDate: formatDateWithOrdinal(expDate),
-    };
-  }, [expiry]);
 
   return (
     <div className="flex h-full w-screen overflow-y-scroll bg-body">

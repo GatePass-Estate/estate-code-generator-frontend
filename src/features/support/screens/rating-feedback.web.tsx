@@ -1,72 +1,57 @@
-import React, { useState, useRef } from 'react';
+import React, { useRef } from 'react';
 import { useRouter } from 'expo-router';
 import { Ionicons as Icon } from '@expo/vector-icons';
 import StarRating from '@/src/shared/components/StarRating';
 import Modal from '@/src/shared/components/feedback/Modal';
 import { GatePassLogo } from '@/src/features/support/components/GatePassLogo';
-import { errorMessage } from '@/src/shared/services/api/errors';
-import { submitFeedback } from '@/src/features/support/services/help';
-import { uploadFeedbackAttachment } from '@/src/features/support/services/feedbackAttachment';
+import { useFeedbackForm } from '@/src/features/support/hooks/useFeedbackForm';
+import type { FeedbackTab } from '@/src/features/support/utils/feedbackForm';
 
-type Tab = 'Suggestion' | 'Issue';
+/** Picked image plus its object-URL preview. */
+type WebAttachment = { file: File; preview: string };
 
 export default function RatingFeedbackWeb() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<Tab>('Suggestion');
-  const [suggestionStep, setSuggestionStep] = useState(1);
-  const [showExitModal, setShowExitModal] = useState(false);
-
-  // Form Data
-  const [issueText, setIssueText] = useState('');
-  const [rating, setRating] = useState(0);
-  const [likeMost, setLikeMost] = useState('');
-  const [improve, setImprove] = useState('');
-
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const [isLoading, setIsLoading] = useState(false);
-
-  const hasData = () => {
-    return issueText.trim() !== '' || rating > 0 || likeMost.trim() !== '' || improve.trim() !== '';
-  };
-
-  const handleBackPress = () => {
-    if (suggestionStep === 4) {
-      router.push('/user');
-      return;
-    }
-
-    if (activeTab === 'Suggestion' && suggestionStep > 1) {
-      setSuggestionStep(suggestionStep - 1);
-      return;
-    }
-
-    if (hasData()) {
-      setShowExitModal(true);
-    } else {
-      router.back();
-    }
-  };
-
-  const handleConfirmExit = () => {
-    setShowExitModal(false);
-    router.back();
-  };
+  const {
+    activeTab,
+    selectTab,
+    suggestionStep,
+    showExitModal,
+    setShowExitModal,
+    issueText,
+    setIssueText,
+    rating,
+    setRating,
+    likeMost,
+    setLikeMost,
+    improve,
+    setImprove,
+    attachment,
+    setAttachment,
+    isLoading,
+    handleBackPress,
+    handleConfirmExit,
+    submitIssue,
+    nextOrSubmitSuggestion,
+  } = useFeedbackForm<WebAttachment>({
+    initialRating: 0,
+    exit: () => router.back(),
+    goHome: () => router.push('/user'),
+    showError: (message) => alert(message),
+    toUploadFile: (picked) => picked.file,
+  });
+  const imagePreview = attachment?.preview ?? null;
 
   const renderTabs = () => (
     <div className="flex flex-row bg-white rounded-full p-1 mb-8 w-64 max-w-sm mx-auto">
-      {(['Suggestion', 'Issue'] as Tab[]).map((tab) => (
+      {(['Suggestion', 'Issue'] as FeedbackTab[]).map((tab) => (
         <button
           key={tab}
           className={`flex-1 h-10 rounded-full flex items-center justify-center transition ${
             activeTab === tab ? 'bg-[#D1E6EF] text-primary' : 'text-gray-400 hover:text-gray-600'
           }`}
-          onClick={() => {
-            setActiveTab(tab);
-            setSuggestionStep(1);
-          }}
+          onClick={() => selectTab(tab)}
         >
           <span
             className={`text-sm ${activeTab === tab ? 'font-inter-medium' : 'font-inter-regular'}`}
@@ -102,10 +87,7 @@ export default function RatingFeedbackWeb() {
                 className="w-full h-full object-cover rounded-xl border border-primary/20"
               />
               <button
-                onClick={() => {
-                  setImageFile(null);
-                  setImagePreview(null);
-                }}
+                onClick={() => setAttachment(null)}
                 className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600 transition"
               >
                 ✕
@@ -129,8 +111,7 @@ export default function RatingFeedbackWeb() {
           onChange={(e) => {
             if (e.target.files && e.target.files[0]) {
               const file = e.target.files[0];
-              setImageFile(file);
-              setImagePreview(URL.createObjectURL(file));
+              setAttachment({ file, preview: URL.createObjectURL(file) });
             }
           }}
         />
@@ -143,33 +124,7 @@ export default function RatingFeedbackWeb() {
 
       <button
         className="bg-primary text-white font-ubuntu-medium text-base h-12 rounded-full w-full max-w-sm mx-auto hover:opacity-90 transition disabled:opacity-50 flex items-center justify-center"
-        onClick={async () => {
-          setIsLoading(true);
-          try {
-            let uploadedUrl = '';
-
-            if (imageFile) {
-              uploadedUrl = await uploadFeedbackAttachment(imageFile);
-            }
-
-            await submitFeedback({
-              feedback_type: 'issue',
-              rating: 1,
-              liked: '',
-              improvement: '',
-              description: issueText,
-              attachment_url: uploadedUrl,
-            });
-            setSuggestionStep(4);
-            setActiveTab('Suggestion');
-            setImageFile(null);
-            setImagePreview(null);
-          } catch (error: unknown) {
-            alert(errorMessage(error) || 'Failed to submit feedback');
-          } finally {
-            setIsLoading(false);
-          }
-        }}
+        onClick={submitIssue}
         disabled={!issueText.trim() || isLoading}
       >
         {isLoading ? (
@@ -272,28 +227,7 @@ export default function RatingFeedbackWeb() {
           <button
             className="flex-1 bg-primary text-white font-ubuntu-medium text-base h-12 rounded-full hover:opacity-90 transition disabled:opacity-50 flex items-center justify-center"
             disabled={isLoading}
-            onClick={async () => {
-              if (suggestionStep === 3) {
-                setIsLoading(true);
-                try {
-                  await submitFeedback({
-                    feedback_type: 'suggestion',
-                    rating: rating,
-                    liked: likeMost,
-                    improvement: improve,
-                    description: '',
-                    attachment_url: '',
-                  });
-                  setSuggestionStep(4);
-                } catch (error: unknown) {
-                  alert(errorMessage(error) || 'Failed to submit feedback');
-                } finally {
-                  setIsLoading(false);
-                }
-              } else {
-                setSuggestionStep(suggestionStep + 1);
-              }
-            }}
+            onClick={nextOrSubmitSuggestion}
           >
             {isLoading ? (
               <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>

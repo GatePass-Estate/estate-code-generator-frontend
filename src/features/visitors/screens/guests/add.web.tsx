@@ -1,4 +1,3 @@
-import { logger } from '@/src/shared/utils/logger';
 import { ChangeEvent, useEffect, useState } from 'react';
 import { Image, Platform, useWindowDimensions } from 'react-native';
 import WebSidebar from '@/src/features/dashboard/components/WebSidebar';
@@ -6,11 +5,9 @@ import { menuRoutes } from '@/src/features/dashboard/components/menuRoutes';
 import { useRouter } from 'expo-router';
 import icons from '@/src/shared/constants/icons';
 import Modal from '@/src/shared/components/feedback/Modal';
-import { useGenerateCode } from '@/src/features/access-codes/hooks/codes';
-import { useUserStore } from '@/src/store/userStore';
-import { useCreateGuest } from '@/src/features/visitors/hooks/guests';
+import { useAddGuest } from '@/src/features/visitors/hooks/useAddGuest';
 import { GenderType, RelationshipType } from '@/src/shared/types/general';
-import { getWidthBreakpoint, timeCalc } from '@/src/shared/utils/helpers';
+import { getWidthBreakpoint } from '@/src/shared/utils/helpers';
 import UserIcon from '@/src/shared/components/UserIcon';
 
 const GENDERS = [
@@ -31,104 +28,35 @@ const RELATIONSHIPS = [
 export default function AddGuestWeb() {
   const router = useRouter();
 
-  const [name, setName] = useState<string>('');
-  const [selectedGender, setSelectedGender] = useState<GenderType>('female');
-  const [selectedRelationships, setSelectedRelationships] = useState<RelationshipType>('friend');
-  const [otherRelationship, setOtherRelationship] = useState<string>('');
-  const [saveToList, setSaveToList] = useState<boolean>(false);
-  const [running, setRunning] = useState<boolean>(false);
   const [error, setError] = useState('');
-  const createGuestMutation = useCreateGuest();
-  const generateCodeMutation = useGenerateCode();
+  const {
+    name,
+    setName,
+    gender: selectedGender,
+    setGender: setSelectedGender,
+    relationship: selectedRelationships,
+    setRelationship: setSelectedRelationships,
+    otherRelationship,
+    setOtherRelationship,
+    setSaveToList,
+    saving: running,
+    saveGuest,
+    generateCode,
+  } = useAddGuest({
+    platform: 'web',
+    onError: setError,
+    onWarning: (message) => window.alert(message),
+  });
   const { width } = useWindowDimensions();
 
   const isLargeScreen = width > getWidthBreakpoint();
 
-  const inputChecks = (): boolean => {
-    if (!name.trim()) {
-      setError("Please enter the guest's name.");
-      return false;
-    }
-
-    if (!selectedGender) {
-      setError('Please select a gender.');
-      return false;
-    }
-
-    if (selectedRelationships === 'other' && !otherRelationship.trim()) {
-      setError('Please select or enter a relationship.');
-      return false;
-    }
-
-    return true;
-  };
-
-  async function handleSaveGuest() {
-    if (inputChecks()) {
-      setRunning(true);
-      try {
-        await createGuestMutation.mutateAsync({
-          resident_id: useUserStore.getState().user_id,
-          guest_name: name,
-          relationship: selectedRelationships,
-          gender: selectedGender,
-        });
-
-        router.push('/user');
-      } catch {
-        setError('Failed to generate code. Please try again.');
-      } finally {
-        setRunning(false);
-      }
-    }
+  function handleSaveGuest() {
+    void saveGuest();
   }
 
-  async function handleGenerateCode() {
-    if (inputChecks()) {
-      setRunning(true);
-      try {
-        const result = await generateCodeMutation.mutateAsync({
-          user_id: useUserStore.getState().user_id,
-          estate_id: useUserStore.getState().estate_id ?? '',
-          visitor_fullname: name,
-          relationship_with_resident: selectedRelationships,
-          gender: selectedGender,
-        });
-
-        // The code already exists at this point. A failed guest save must not fall into the
-        // "failed to generate" path, or the resident retries and creates a second live code.
-        if (saveToList) {
-          try {
-            await createGuestMutation.mutateAsync({
-              resident_id: useUserStore.getState().user_id,
-              guest_name: name,
-              relationship: selectedRelationships,
-              gender: selectedGender,
-            });
-          } catch (error) {
-            logger.error('Could not save guest to list', error);
-            window.alert('Your code was created, but the guest could not be saved to your list.');
-          }
-        }
-
-        let { formattedDate, timeframe } = timeCalc(result.valid_until);
-
-        router.push({
-          pathname: `/invite`,
-          params: {
-            code: result.hashed_code,
-            name,
-            address: `${useUserStore.getState().home_address}, ${useUserStore.getState().estate_name}.`,
-            timeframe,
-            date: formattedDate,
-          },
-        });
-      } catch {
-        setError('Failed to generate code. Please try again.');
-      } finally {
-        setRunning(false);
-      }
-    }
+  function handleGenerateCode() {
+    void generateCode();
   }
 
   useEffect(() => {

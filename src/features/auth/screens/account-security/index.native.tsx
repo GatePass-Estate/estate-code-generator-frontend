@@ -1,190 +1,29 @@
-import { errorMessage as thrownMessage } from '@/src/shared/services/api/errors';
-import { View, Text, Pressable, Image, Platform, Alert, TextInput } from 'react-native';
+import { View, Text, Pressable, Image, Platform, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack, router, useFocusEffect } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import ToggleSwitch from '@/src/features/access-codes/components/ToggleSwitch';
 import ActionConfirmModal from '@/src/shared/components/feedback/ActionConfirmModal';
 import ScreenHeader from '@/src/shared/components/layout/ScreenHeader';
 import { sharedStyles } from '@/src/shared/theme/styles';
 import icons from '@/src/shared/constants/icons';
-import { useCallback, useEffect, useState } from 'react';
-import {
-  clearBiometricPreference,
-  deleteBiometricToken,
-  isBiometricAvailable,
-  isBiometricPreferenceEnabled,
-  promptBiometrics,
-  saveBiometricCredentials,
-  setBiometricPreference,
-} from '@/src/features/auth/services/biometricAuth';
-import {
-  disableBiometricLogin,
-  disableTwoFactor,
-  enableBiometricLogin,
-  isTwoFactorNotEnabledError,
-  regenerateRecoveryCodes,
-} from '@/src/features/auth';
-import { setPendingRecoveryCodes } from '@/src/features/auth/services/recoveryCodes';
-import { getValidAccessToken } from '@/src/features/auth/services/authRefresh';
-import { useUserStore } from '@/src/store/userStore';
-import { useTwoFactorStatus } from '@/src/features/auth/hooks/useTwoFactorStatus';
+import { useAccountSecurity } from '@/src/features/auth/hooks/useAccountSecurity';
+import { useBiometricLogin } from '@/src/features/auth/hooks/useBiometricLogin';
 
 export default function AccountSecurityScreen() {
-  const [biometricEnabled, setBiometricEnabled] = useState(false);
-  const [biometricAvailable, setBiometricAvailable] = useState(false);
-
-  const user_id = useUserStore((s) => s.user_id);
-  const estate_id = useUserStore((s) => s.estate_id);
+  const { biometricAvailable, biometricEnabled, handleToggleBiometric } = useBiometricLogin();
   const {
-    enabled: twoFactorEnabled,
-    setEnabled: setTwoFactorEnabled,
-    refresh: refreshTwoFactor,
-  } = useTwoFactorStatus();
-
-  // One code prompt serves both actions that require a current TOTP code.
-  const [codePrompt, setCodePrompt] = useState<'disable' | 'regenerate' | null>(null);
-  const [promptCode, setPromptCode] = useState('');
-  const [promptBusy, setPromptBusy] = useState(false);
-  const [promptError, setPromptError] = useState('');
-
-  // Re-read the status on focus so returning from setup shows the new state.
-  useFocusEffect(
-    useCallback(() => {
-      refreshTwoFactor();
-    }, [refreshTwoFactor])
-  );
-
-  useEffect(() => {
-    let mounted = true;
-
-    async function initBiometric() {
-      const available = await isBiometricAvailable();
-      if (!mounted) return;
-      setBiometricAvailable(available);
-
-      if (available) {
-        const enabled = await isBiometricPreferenceEnabled(user_id, estate_id);
-        if (!mounted) return;
-        setBiometricEnabled(enabled);
-      }
-    }
-
-    initBiometric();
-    return () => {
-      mounted = false;
-    };
-    // Re-check when the active user or estate changes.
-  }, [user_id, estate_id]);
-
-  const handleToggleBiometric = useCallback(
-    async (value: boolean) => {
-      setBiometricEnabled(value);
-
-      if (value) {
-        const available = await isBiometricAvailable();
-        if (!available) {
-          setBiometricEnabled(false);
-          Alert.alert(
-            'Biometric login not available',
-            'Set up Face ID or Touch ID on this device first.'
-          );
-          return;
-        }
-
-        const success = await promptBiometrics('Enable biometric login');
-        if (!success) {
-          setBiometricEnabled(false);
-          return;
-        }
-
-        const token = await getValidAccessToken();
-        if (!token || !user_id) {
-          setBiometricEnabled(false);
-          return;
-        }
-
-        try {
-          const biometricResponse = await enableBiometricLogin(token, estate_id);
-          await saveBiometricCredentials(biometricResponse.biometric_token, user_id, estate_id);
-          setBiometricEnabled(true);
-        } catch (error: unknown) {
-          setBiometricEnabled(false);
-          Alert.alert(
-            'Unable to enable biometric login',
-            thrownMessage(error) || 'Please try again.'
-          );
-        }
-      } else {
-        try {
-          const token = await getValidAccessToken();
-          if (token) {
-            await disableBiometricLogin(token);
-          }
-        } catch {
-          // Ignore disable errors and still clear locally stored biometrics.
-        }
-        await deleteBiometricToken();
-        await setBiometricPreference(user_id, estate_id, false);
-        await clearBiometricPreference(user_id, estate_id);
-        setBiometricEnabled(false);
-      }
-    },
-    [user_id, estate_id]
-  );
-
-  const openCodePrompt = useCallback((mode: 'disable' | 'regenerate') => {
-    setPromptCode('');
-    setPromptError('');
-    setCodePrompt(mode);
-  }, []);
-
-  const handleToggleTwoFactor = useCallback(
-    (value: boolean) => {
-      if (value) {
-        router.push('/account-security/two-factor');
-        return;
-      }
-      // Turning 2FA off requires a current code, so collect one first.
-      openCodePrompt('disable');
-    },
-    [openCodePrompt]
-  );
-
-  const submitCodePrompt = useCallback(async () => {
-    const code = promptCode.trim();
-    if (code.length !== 6) {
-      setPromptError('Enter the 6-digit code from your authenticator app.');
-      return;
-    }
-
-    setPromptBusy(true);
-    setPromptError('');
-    try {
-      if (codePrompt === 'disable') {
-        await disableTwoFactor(code);
-        setTwoFactorEnabled(false);
-        setCodePrompt(null);
-        return;
-      }
-
-      const response = await regenerateRecoveryCodes(code);
-      // Handed over in memory so the codes never reach the URL or history.
-      setPendingRecoveryCodes(response.recovery_codes ?? []);
-      setCodePrompt(null);
-      router.push('/account-security/recovery-codes');
-    } catch (error: unknown) {
-      // The server says 2FA is already off (e.g. it was reset elsewhere). That
-      // is the truth, not a failure: correct the toggle instead of erroring.
-      if (isTwoFactorNotEnabledError(thrownMessage(error))) {
-        setTwoFactorEnabled(false);
-        setCodePrompt(null);
-        return;
-      }
-      setPromptError(thrownMessage(error) || 'That code was not accepted.');
-    } finally {
-      setPromptBusy(false);
-    }
-  }, [promptCode, codePrompt, setTwoFactorEnabled]);
+    twoFactorEnabled,
+    handleToggleTwoFactor,
+    codePrompt,
+    codePromptCopy,
+    openCodePrompt,
+    closeCodePrompt,
+    promptCode,
+    setPromptCode,
+    promptBusy,
+    promptError,
+    submitCodePrompt,
+  } = useAccountSecurity();
 
   if (Platform.OS === 'web') {
     return null;
@@ -259,26 +98,16 @@ export default function AccountSecurityScreen() {
 
       <ActionConfirmModal
         visible={codePrompt !== null}
-        title={
-          codePrompt === 'disable'
-            ? 'Turn off two-factor authentication'
-            : 'Regenerate recovery codes'
-        }
-        message={
-          codePrompt === 'disable'
-            ? 'Enter the current code from your authenticator app to confirm.'
-            : 'Enter the current code from your authenticator app. Your previous recovery codes will stop working.'
-        }
-        confirmLabel={codePrompt === 'disable' ? 'Turn off' : 'Regenerate'}
+        title={codePromptCopy.title}
+        message={codePromptCopy.message}
+        confirmLabel={codePromptCopy.confirmLabel}
         busy={promptBusy}
-        onCancel={() => {
-          if (!promptBusy) setCodePrompt(null);
-        }}
+        onCancel={closeCodePrompt}
         onConfirm={submitCodePrompt}
       >
         <TextInput
           value={promptCode}
-          onChangeText={(next) => setPromptCode(next.replace(/[^0-9]/g, '').slice(0, 6))}
+          onChangeText={setPromptCode}
           placeholder="6-digit code"
           placeholderTextColor="#878686"
           keyboardType="number-pad"

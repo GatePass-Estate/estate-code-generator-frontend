@@ -1,5 +1,5 @@
 import { useGoBack } from '@/src/shared/hooks/useGoBack';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { View, Text, TextInput, ScrollView, type TextInputProps } from 'react-native';
 import { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -7,13 +7,8 @@ import { Toast, ToastType } from '@/src/shared/components/feedback/Toast';
 import Button, { BUTTON_MARGIN_BOTTOM } from '@/src/shared/components/Button';
 import ScreenHeader from '@/src/shared/components/layout/ScreenHeader';
 import { sharedStyles } from '@/src/shared/theme/styles';
-import { useUserStore } from '@/src/store/userStore';
 import { Stack, useNavigation } from 'expo-router';
-import { fetchProfilePendingFields } from '@/src/features/profile/utils/profilePendingFields';
-import {
-  submitProfileEdits,
-  type ProfileEditPendingValues,
-} from '@/src/features/profile/utils/submitProfileEdits';
+import { useProfileEditForm } from '@/src/features/profile/hooks/useProfileEditForm';
 
 function EditField({ label, ...inputProps }: { label: string } & TextInputProps) {
   return (
@@ -32,86 +27,18 @@ function EditField({ label, ...inputProps }: { label: string } & TextInputProps)
 export default function EditRequest() {
   const goBack = useGoBack();
   const navigation = useNavigation();
-  const user = useUserStore.getState();
+  const {
+    formData,
+    setField,
+    loadingPending,
+    submitting: loading,
+    submit,
+    leaveAfterSave,
+  } = useProfileEditForm({ prefillPending: true });
 
-  const [formData, setFormData] = useState({
-    firstName: user.first_name || '',
-    lastName: user.last_name || '',
-    email: user.email || '',
-    address: user.home_address || '',
-    phoneNumber: user.phone_number || '',
-  });
-
-  // The form is pre-filled with these, so "unchanged" is measured against them.
-  const [pendingValues, setPendingValues] = useState<ProfileEditPendingValues>({});
-  const [loading, setLoading] = useState(false);
-  const [loadingPending, setLoadingPending] = useState(true);
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<ToastType>('success');
-  const leaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(
-    () => () => {
-      if (leaveTimer.current) clearTimeout(leaveTimer.current);
-    },
-    []
-  );
-
-  useEffect(() => {
-    let isMounted = true;
-    const current = useUserStore.getState();
-
-    const loadPendingValues = async () => {
-      if (!current.user_id) {
-        setLoadingPending(false);
-        return;
-      }
-
-      try {
-        const pendingDetails = await fetchProfilePendingFields(current.user_id);
-        if (!isMounted) return;
-
-        const pending = (field: keyof ProfileEditPendingValues) =>
-          pendingDetails[field].hasPending ? pendingDetails[field].newValue : null;
-        setPendingValues({
-          firstName: pending('firstName'),
-          lastName: pending('lastName'),
-          email: pending('email'),
-          address: pending('address'),
-        });
-
-        setFormData({
-          firstName:
-            pendingDetails.firstName.hasPending && pendingDetails.firstName.newValue
-              ? pendingDetails.firstName.newValue
-              : current.first_name || '',
-          lastName:
-            pendingDetails.lastName.hasPending && pendingDetails.lastName.newValue
-              ? pendingDetails.lastName.newValue
-              : current.last_name || '',
-          email:
-            pendingDetails.email.hasPending && pendingDetails.email.newValue
-              ? pendingDetails.email.newValue
-              : current.email || '',
-          address:
-            pendingDetails.address.hasPending && pendingDetails.address.newValue
-              ? pendingDetails.address.newValue
-              : current.home_address || '',
-          phoneNumber: current.phone_number || '',
-        });
-      } catch {
-      } finally {
-        if (isMounted) setLoadingPending(false);
-      }
-    };
-
-    loadPendingValues();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [user.user_id]);
 
   const showToast = (message: string, type: ToastType) => {
     setToastMessage(message);
@@ -120,23 +47,18 @@ export default function EditRequest() {
   };
 
   const handleSendRequest = async () => {
-    setLoading(true);
-    try {
-      const result = await submitProfileEdits(user, formData, pendingValues);
-      if (result.status === 'unchanged') {
-        showToast('No changes detected', 'info');
-        return;
-      }
-      if (result.status !== 'saved') {
-        showToast(result.errors[0], 'error');
-        return;
-      }
-
-      showToast(result.message, 'success');
-      leaveTimer.current = setTimeout(() => goBack(), 1500);
-    } finally {
-      setLoading(false);
+    const result = await submit();
+    if (result.status === 'unchanged') {
+      showToast('No changes detected', 'info');
+      return;
     }
+    if (result.status !== 'saved') {
+      showToast(result.errors[0], 'error');
+      return;
+    }
+
+    showToast(result.message, 'success');
+    leaveAfterSave(() => goBack());
   };
 
   return (
@@ -174,14 +96,14 @@ export default function EditRequest() {
                 label="First Name"
                 placeholder="Enter your first name"
                 value={formData.firstName}
-                onChangeText={(text) => setFormData({ ...formData, firstName: text })}
+                onChangeText={(text) => setField('firstName', text)}
                 editable={!loading}
               />
               <EditField
                 label="Last Name"
                 placeholder="Enter your last name"
                 value={formData.lastName}
-                onChangeText={(text) => setFormData({ ...formData, lastName: text })}
+                onChangeText={(text) => setField('lastName', text)}
                 editable={!loading}
               />
               <EditField
@@ -190,14 +112,14 @@ export default function EditRequest() {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 value={formData.email}
-                onChangeText={(text) => setFormData({ ...formData, email: text })}
+                onChangeText={(text) => setField('email', text)}
                 editable={!loading}
               />
               <EditField
                 label="Address"
                 placeholder="Enter your address"
                 value={formData.address}
-                onChangeText={(text) => setFormData({ ...formData, address: text })}
+                onChangeText={(text) => setField('address', text)}
                 editable={!loading}
               />
               <EditField
@@ -205,7 +127,7 @@ export default function EditRequest() {
                 placeholder="Enter your phone number"
                 keyboardType="phone-pad"
                 value={formData.phoneNumber}
-                onChangeText={(text) => setFormData({ ...formData, phoneNumber: text })}
+                onChangeText={(text) => setField('phoneNumber', text)}
                 editable={!loading}
               />
             </View>

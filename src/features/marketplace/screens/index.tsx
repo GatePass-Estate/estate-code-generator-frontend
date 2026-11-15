@@ -3,7 +3,6 @@ import {
   Text,
   Pressable,
   ScrollView,
-  TextInput,
   StyleSheet,
   RefreshControl,
   useWindowDimensions,
@@ -14,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { sharedStyles } from '@/src/shared/theme/styles';
 import ScreenHeader from '@/src/shared/components/layout/ScreenHeader';
+import AppTextInput from '@/src/shared/components/form/AppTextInput';
 import BottomSheet from '@/src/shared/components/feedback/BottomSheet';
 import { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
 import Svg, { Path } from 'react-native-svg';
@@ -256,20 +256,13 @@ export default function AIStoreScreen() {
           }}
         >
           <Ionicons name="search-outline" size={16} color="#A0A0A0" />
-          <TextInput
+          <AppTextInput
             placeholder="Search Shop"
             placeholderTextColor="#A0A0A0"
             value={searchQuery}
             onChangeText={setSearchQuery}
-            className="flex-1 text-[13px] font-inter-regular text-primary p-0"
-            style={{
-              paddingVertical: 0,
-              paddingTop: 0,
-              paddingBottom: 0,
-              margin: 0,
-              textAlignVertical: 'center',
-              transform: [{ translateY: -2 }],
-            }}
+            className="flex-1 p-0 font-inter-regular"
+            style={{ margin: 0 }}
           />
         </View>
         <Pressable

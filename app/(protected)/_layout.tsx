@@ -37,7 +37,8 @@ export default function ProtectedLayout() {
       <Stack
         screenOptions={{
           headerShown: false,
-          animation: 'none',
+          // Same slide as Admin → Broadcast: More → Admin Tools / Profile / etc.
+          animation: 'slide_from_right',
           animationTypeForReplace: 'pop',
         }}
       >

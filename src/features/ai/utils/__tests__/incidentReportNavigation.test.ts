@@ -1,5 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 import {
+  incidentReportPaths,
   leaveIncidentReport,
   parseIncidentReportReturnTo,
   reportReturnToForTab,
@@ -32,27 +33,21 @@ describe('incident report return navigation', () => {
     expect(calls).toEqual(['dismissTo:/security/more']);
   });
 
-  it('returns to each explicit entry destination', () => {
+  it('falls back to dismissTo when the stack cannot go back', () => {
     const calls: unknown[] = [];
     const router = {
+      canGoBack: () => false,
+      back: () => calls.push('back'),
       replace: (path: unknown) => calls.push(`replace:${JSON.stringify(path)}`),
       dismissTo: (path: unknown) => calls.push(`dismissTo:${path}`),
     };
     leaveIncidentReport('/security/more', router);
-    leaveIncidentReport('/security', router);
-    leaveIncidentReport('/settings', router);
     leaveIncidentReport('/admin', router);
     leaveIncidentReport('/user', router);
-    expect(calls).toEqual([
-      'dismissTo:/security/more',
-      'dismissTo:/security',
-      'dismissTo:/settings',
-      'replace:{"pathname":"/admin","params":{"returnTo":"/settings"}}',
-      'dismissTo:/user',
-    ]);
+    expect(calls).toEqual(['dismissTo:/security/more', 'dismissTo:/admin', 'dismissTo:/user']);
   });
 
-  it('pops the stack using router.back only for admin and replaces to exact returnTo for others', () => {
+  it('prefers stack back whenever possible so every entry gets the Broadcast slide', () => {
     const calls: string[] = [];
     const router = {
       canGoBack: () => true,
@@ -66,11 +61,21 @@ describe('incident report return navigation', () => {
     leaveIncidentReport('/profile', router);
     leaveIncidentReport('/security/more', router);
 
-    expect(calls).toEqual([
-      'back',
-      'dismissTo:/settings',
-      'dismissTo:/profile',
-      'dismissTo:/security/more',
-    ]);
+    expect(calls).toEqual(['back', 'back', 'back', 'back']);
+  });
+
+  it('maps admin vs user report pathnames to the matching list/detail routes', () => {
+    expect(incidentReportPaths('/admin/report')).toEqual({
+      list: '/admin/report',
+      detail: '/admin/report/[id]',
+    });
+    expect(incidentReportPaths('/admin/report/abc')).toEqual({
+      list: '/admin/report',
+      detail: '/admin/report/[id]',
+    });
+    expect(incidentReportPaths('/user/report')).toEqual({
+      list: '/user/report',
+      detail: '/user/report/[id]',
+    });
   });
 });

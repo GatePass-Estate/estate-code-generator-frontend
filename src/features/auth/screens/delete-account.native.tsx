@@ -1,32 +1,19 @@
 import { errorMessage as thrownMessage } from '@/src/shared/services/api/errors';
-import { useCallback, useState } from 'react';
 import { Alert, Pressable, Text, View } from 'react-native';
 import { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
 import Back from '@/src/shared/components/navigation/Back';
 import { sharedStyles } from '@/src/shared/theme/styles';
-import { deleteAccount } from '@/src/features/users/services/user';
-import { useAuth } from '@/src/features/auth/hooks/useAuthContext';
+import { useDeleteAccount } from '@/src/features/auth/hooks/useDeleteAccount';
+
+const showDeleteError = (error: unknown) =>
+  Alert.alert('Could not delete account', thrownMessage(error) || 'Please try again later.');
 
 export default function DeleteAccountScreen() {
-  const { signOut } = useAuth();
-  const [understood, setUnderstood] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-
-  const handleDelete = useCallback(async () => {
-    if (!understood || deleting) return;
-
-    setDeleting(true);
-    try {
-      await deleteAccount();
-      // Closing the account invalidates every session, so drop local auth too.
-      await signOut();
-    } catch (error: unknown) {
-      Alert.alert('Could not delete account', thrownMessage(error) || 'Please try again later.');
-      setDeleting(false);
-    }
-  }, [understood, deleting, signOut]);
+  const { understood, toggleUnderstood, deleting, handleDelete } = useDeleteAccount({
+    onError: showDeleteError,
+  });
 
   return (
     <SafeAreaView
@@ -44,7 +31,7 @@ export default function DeleteAccountScreen() {
         </Text>
 
         <Pressable
-          onPress={() => setUnderstood((value) => !value)}
+          onPress={toggleUnderstood}
           disabled={deleting}
           className="flex-row items-center gap-3 mt-7"
           hitSlop={8}

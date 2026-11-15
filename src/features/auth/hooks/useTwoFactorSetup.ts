@@ -7,7 +7,11 @@ import {
   setupTwoFactor,
 } from '@/src/features/auth/services/auth';
 import { writeTwoFactorFlag } from '@/src/features/auth/services/twoFactorState';
+import { setPendingRecoveryCodes } from '@/src/features/auth/services/recoveryCodes';
+import { isSixDigitCode, sanitizeTotpInput } from '@/src/features/auth/utils/accountSecurity';
 import { useUserStore } from '@/src/store/userStore';
+import { useRouter } from 'expo-router';
+import * as Clipboard from 'expo-clipboard';
 
 /**
  * Drives TOTP enrolment: fetches the provisioning URI on mount, then exchanges
@@ -17,6 +21,7 @@ import { useUserStore } from '@/src/store/userStore';
  */
 export function useTwoFactorSetup() {
   const userId = useUserStore((state) => state.user_id);
+  const router = useRouter();
 
   const [provisioningUri, setProvisioningUri] = useState('');
   const [secret, setSecret] = useState('');
@@ -84,7 +89,7 @@ export function useTwoFactorSetup() {
   const activate = useCallback(async (): Promise<string[] | null> => {
     const trimmed = code.trim();
 
-    if (trimmed.length !== 6 || !/^\d{6}$/.test(trimmed)) {
+    if (!isSixDigitCode(trimmed)) {
       setErrorMessage('Enter the 6-digit code from your authenticator app.');
       return null;
     }
@@ -110,11 +115,34 @@ export function useTwoFactorSetup() {
     }
   }, [code, userId]);
 
+  /**
+   * Activates, then hands the codes to the recovery screen out-of-band: they are shown once and
+   * must not sit in navigation params/history.
+   */
+  const activateAndShowRecoveryCodes = useCallback(async () => {
+    const recoveryCodes = await activate();
+    if (!recoveryCodes) return;
+
+    setPendingRecoveryCodes(recoveryCodes);
+    router.replace('/account-security/recovery-codes');
+  }, [activate, router]);
+
+  const copySecret = useCallback(async () => {
+    if (!secret) return;
+    await Clipboard.setStringAsync(secret);
+  }, [secret]);
+
+  /** Code field input: digits only, at most six. */
+  const changeCode = useCallback((raw: string) => setCode(sanitizeTotpInput(raw)), []);
+
   return {
     provisioningUri,
     secret,
     code,
     setCode,
+    changeCode,
+    copySecret,
+    activateAndShowRecoveryCodes,
     loading,
     activating,
     alreadyEnabled,

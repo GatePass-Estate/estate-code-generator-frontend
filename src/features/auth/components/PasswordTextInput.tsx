@@ -1,17 +1,14 @@
-import { TextInput, type TextInputProps } from 'react-native';
-import {
-  nextPasswordFromMaskedInput,
-  passwordDisplayValue,
-} from '@/src/features/auth/utils/passwordMask';
+import type { TextInputProps } from 'react-native';
+import AppTextInput from '@/src/shared/components/form/AppTextInput';
 
 type PasswordTextInputProps = Omit<TextInputProps, 'value' | 'onChangeText' | 'secureTextEntry'> & {
   value: string;
   onChangeText: (next: string) => void;
-  /** When true, show the real characters; when false, show `*`. */
+  /** When true, show the real characters; when false, hide them. */
   visible: boolean;
 };
 
-/** Password field that masks with `*` instead of the OS secure-entry bullets. */
+/** Password field. The real text is stored as typed; the OS hides it until the eye is on. */
 export default function PasswordTextInput({
   value,
   onChangeText,
@@ -19,11 +16,11 @@ export default function PasswordTextInput({
   ...props
 }: PasswordTextInputProps) {
   return (
-    <TextInput
+    <AppTextInput
       {...props}
-      value={passwordDisplayValue(value, visible)}
-      onChangeText={(text) => onChangeText(nextPasswordFromMaskedInput(value, text, visible))}
-      secureTextEntry={false}
+      value={value}
+      onChangeText={onChangeText}
+      secureTextEntry={!visible}
       autoCorrect={false}
       autoCapitalize="none"
       spellCheck={false}

@@ -1,7 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
-import ScreenLoading, { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
-import LoadError from '@/src/shared/components/feedback/LoadError';
-import { userFacingError } from '@/src/shared/services/api/errors';
+import ScreenLoading from '@/src/shared/components/feedback/ScreenLoading';
+import { ListFooter, ListPlaceholder } from '@/src/shared/components/lists/ListStates';
 import { View, Text, SectionList, Pressable, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
@@ -105,9 +104,6 @@ export default function AccessLogScreen() {
       .sort((a, b) => compareLogDatesDesc(a.timestamp, b.timestamp));
   }, [mode, visitorLogs.data, visitorLogs.isError, residentLogs.data, residentLogs.isError]);
   const loading = activeQuery.isLoading;
-  const error = activeQuery.isError
-    ? userFacingError(activeQuery.error, 'Could not load access history.')
-    : null;
   const { hasNextPage, isFetchingNextPage, fetchNextPage, refetch } = activeQuery;
   const loadMore = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) void fetchNextPage();
@@ -203,22 +199,28 @@ export default function AccessLogScreen() {
             ItemSeparatorComponent={AccessLogItemSeparator}
             SectionSeparatorComponent={AccessLogSectionSeparator}
             ListEmptyComponent={
-              error ? (
-                <LoadError message={error} onRetry={() => void refetch()} />
-              ) : (
-                <Text className="px-6 text-center text-sm text-grey">
-                  {mode === 'resident'
-                    ? 'No resident access logs yet.'
-                    : 'No guest access logs found.'}
-                </Text>
-              )
+              <ListPlaceholder
+                isLoading={false}
+                isError={activeQuery.isError}
+                error={activeQuery.error}
+                onRetry={() => void refetch()}
+                errorFallback="Could not load access history."
+                empty={
+                  <Text className="px-6 text-center text-sm text-grey">
+                    {mode === 'resident'
+                      ? 'No resident access logs yet.'
+                      : 'No guest access logs found.'}
+                  </Text>
+                }
+              />
             }
             ListFooterComponent={
-              isFetchingNextPage ? (
-                <View style={{ marginTop: 30 }}>
-                  <CircleLoader size={32} />
-                </View>
-              ) : null
+              <ListFooter
+                isFetchingNextPage={isFetchingNextPage}
+                hasNextPage={hasNextPage}
+                error={activeQuery.isFetchNextPageError ? activeQuery.error : undefined}
+                onRetry={() => void fetchNextPage()}
+              />
             }
           />
         )}

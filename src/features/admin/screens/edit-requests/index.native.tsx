@@ -1,111 +1,21 @@
 import Back from '@/src/shared/components/navigation/Back';
-import { Toast, ToastType } from '@/src/shared/components/feedback/Toast';
-import { useEditRequests } from '@/src/features/admin/hooks/requests';
+import { Toast } from '@/src/shared/components/feedback/Toast';
 import { sharedStyles } from '@/src/shared/theme/styles';
-import { EditRequestView, RequestItem, RequestType } from '@/src/features/admin/types/requests';
-import { router, Stack, useFocusEffect } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { router, Stack } from 'expo-router';
 import { FlatList, Pressable, RefreshControl, Text, View } from 'react-native';
 import { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-
-const REQUEST_ORDER: Partial<Record<RequestType, number>> = {
-  first_name_change: 0,
-  gender_change: 1,
-  email_change: 2,
-  last_name_change: 3,
-  id_change: 5,
-};
-
-const PENDING_REQUESTS = { page: 1, limit: 50, status: 'pending' } as const;
-
-function toEditRequestViews(items: RequestItem[]): EditRequestView[] {
-  return items
-    .map((item) => ({
-      id: item.id,
-      requestType: item.request_type,
-      oldValue: item.old_value,
-      newValue: item.new_value ?? null,
-      createdAt: item.created_at,
-    }))
-    .sort(
-      (first, second) =>
-        (REQUEST_ORDER[first.requestType] ?? 4) - (REQUEST_ORDER[second.requestType] ?? 4)
-    );
-}
-
-const REQUEST_LABELS: Record<RequestType, string> = {
-  first_name_change: 'First Name Edit',
-  last_name_change: 'Last Name Edit',
-  email_change: 'Email Address Edit',
-  home_address_change: 'Address Edit',
-  gender_change: 'Gender Edit',
-  vacate_residence: 'Residence Edit',
-  phone_number_change: 'Phone Number Edit',
-  id_change: 'ID Edit',
-};
-
-const formatRequestValue = (value: string | null, type: RequestType, isNewValue = false) => {
-  if (type === 'id_change') return isNewValue ? 'No Preview...' : 'No preview...';
-  return value?.trim() || 'Not provided';
-};
-
-const formatRequestDate = (value: string) => {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
-
-  return date.toLocaleDateString('en-GB', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
-};
+import { useEditRequestsMobile } from '@/src/features/admin/hooks/useEditRequestsList';
+import {
+  formatRequestDate,
+  formatRequestValue,
+  REQUEST_LABELS,
+} from '@/src/features/admin/utils/editRequests';
 
 const EditRequestMobile = () => {
-  const requestsQuery = useEditRequests(PENDING_REQUESTS);
-  const requests = useMemo(
-    () => toEditRequestViews(requestsQuery.data?.items ?? []),
-    [requestsQuery.data]
-  );
-  const loading = requestsQuery.isLoading;
-  const [refreshing, setRefreshing] = useState(false);
-  const [toastVisible, setToastVisible] = useState(false);
-  const [toastMessage, setToastMessage] = useState('');
-  const [toastType, setToastType] = useState<ToastType>('success');
-
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    const result = await requestsQuery.refetch();
-    if (result.isError) {
-      setToastMessage(
-        result.error instanceof Error ? result.error.message : 'Failed to refresh edit requests'
-      );
-      setToastType('error');
-      setToastVisible(true);
-    }
-    setRefreshing(false);
-  };
-
-  useEffect(() => {
-    if (!requestsQuery.isError) return;
-    setToastMessage(
-      requestsQuery.error instanceof Error
-        ? requestsQuery.error.message
-        : 'Failed to load edit requests'
-    );
-    setToastType('error');
-    setToastVisible(true);
-  }, [requestsQuery.error, requestsQuery.isError]);
-
-  const { isFetched: requestsFetched, refetch: refetchRequests } = requestsQuery;
-
-  useFocusEffect(
-    useCallback(() => {
-      if (requestsFetched) void refetchRequests();
-    }, [refetchRequests, requestsFetched])
-  );
-
+  const { requests, loading, refreshing, handleRefresh, toast, hideToast } =
+    useEditRequestsMobile();
   if (loading) {
     return (
       <SafeAreaView
@@ -207,12 +117,7 @@ const EditRequestMobile = () => {
         You can view all edit request sent by your residents.
       </Text>
 
-      <Toast
-        message={toastMessage}
-        type={toastType}
-        visible={toastVisible}
-        onHide={() => setToastVisible(false)}
-      />
+      <Toast message={toast.message} type={toast.type} visible={toast.visible} onHide={hideToast} />
 
       <FlatList
         data={requests}

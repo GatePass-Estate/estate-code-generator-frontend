@@ -1,5 +1,4 @@
 /** Pure billing helpers (no React) shared by the billing screens. */
-import * as Crypto from 'expo-crypto';
 import { UserRolesType } from '@/src/shared/types/general';
 import type { AllUsers } from '@/src/features/users/types/user';
 import {
@@ -418,18 +417,12 @@ export function getTierFeatureRows(tier: BillingTier | null | undefined): TierFe
 }
 
 /**
- * Unique UUID v4 key for the `Idempotency-Key` header. Uses `expo-crypto` (`Crypto.randomUUID`),
- * falling back to `globalThis.crypto.randomUUID` or a 36-character RFC 4122 v4 UUID.
+ * Unique UUID v4 key for the `Idempotency-Key` header.
+ * Prefer `globalThis.crypto` — do not statically import `expo-crypto` here: that native module
+ * loads during auth bootstrap (via checkoutAttempts) and crashes Expo Go when unavailable
+ * (`Cannot find native module 'ExpoCrypto'` → cascading ErrorBoundary/useMemo errors).
  */
 export function createIdempotencyKey(): string {
-  try {
-    if (typeof Crypto.randomUUID === 'function') {
-      const uuid = Crypto.randomUUID();
-      if (typeof uuid === 'string' && uuid.length === 36) return uuid;
-    }
-  } catch {
-    // Fall through if native module is unavailable in test environment
-  }
   const cryptoApi = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto;
   if (typeof cryptoApi?.randomUUID === 'function') return cryptoApi.randomUUID();
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (char) => {

@@ -1,40 +1,23 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback } from 'react';
 import { Pressable, ScrollView, Share, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, router } from 'expo-router';
-import * as Clipboard from 'expo-clipboard';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Back from '@/src/shared/components/navigation/Back';
 import { sharedStyles } from '@/src/shared/theme/styles';
-import { consumePendingRecoveryCodes } from '@/src/features/auth/services/recoveryCodes';
+import { useRecoveryCodes } from '@/src/features/auth/hooks/useRecoveryCodes';
 
 export default function RecoveryCodesScreen() {
-  const [codes, setCodes] = useState<string[]>([]);
-  const [copied, setCopied] = useState(false);
-  const [acknowledged, setAcknowledged] = useState(false);
-
-  // Read once on mount: consuming clears the codes so a back-navigation or a
-  // re-render cannot resurface them.
-  useEffect(() => {
-    setCodes(consumePendingRecoveryCodes() ?? []);
-  }, []);
-
-  const asText = codes.join('\n');
-
-  const handleCopy = useCallback(async () => {
-    await Clipboard.setStringAsync(asText);
-    setCopied(true);
-    const timer = setTimeout(() => setCopied(false), 2000);
-    return () => clearTimeout(timer);
-  }, [asText]);
+  const { codes, codesText, copied, copyCodes, acknowledged, toggleAcknowledged } =
+    useRecoveryCodes();
 
   const handleShare = useCallback(async () => {
     try {
-      await Share.share({ message: `GatePass recovery codes\n\n${asText}` });
+      await Share.share({ message: `GatePass recovery codes\n\n${codesText}` });
     } catch {
       // The user dismissing the share sheet is not an error worth surfacing.
     }
-  }, [asText]);
+  }, [codesText]);
 
   const handleDone = useCallback(() => {
     // Pop back to the Account Security screen already in the stack. A
@@ -80,7 +63,7 @@ export default function RecoveryCodesScreen() {
 
           <View className="flex-row gap-3 mt-5">
             <Pressable
-              onPress={handleCopy}
+              onPress={copyCodes}
               className="flex-1 flex-row items-center justify-center gap-2 border border-accent rounded-[8px] h-11"
             >
               <MaterialCommunityIcons
@@ -102,10 +85,7 @@ export default function RecoveryCodesScreen() {
             </Pressable>
           </View>
 
-          <Pressable
-            onPress={() => setAcknowledged((value) => !value)}
-            className="flex-row items-center gap-3 mt-8"
-          >
+          <Pressable onPress={toggleAcknowledged} className="flex-row items-center gap-3 mt-8">
             <View
               className="w-4 h-4 rounded-[4px] border border-[#878686] items-center justify-center"
               style={{ backgroundColor: acknowledged ? '#113E55' : 'transparent' }}

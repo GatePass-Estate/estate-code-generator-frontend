@@ -6,42 +6,29 @@ import Back from '@/src/shared/components/navigation/Back';
 import WebSidebar from '@/src/features/dashboard/components/WebSidebar';
 import Modal from '@/src/shared/components/feedback/Modal';
 import { getWidthBreakpoint } from '@/src/shared/utils/helpers';
-import { listSessions, revokeSession } from '@/src/features/auth';
-import { useAuthStore } from '@/src/features/auth/store/authStore';
-import { useAuth } from '@/src/features/auth/hooks/useAuthContext';
+import { useLinkedDevices } from '@/src/features/auth/hooks/useLinkedDevices';
 import { formatLastActive, friendlyDeviceName } from '@/src/shared/services/storage/deviceName';
 import type { SessionResponse } from '@/src/features/auth/types/auth';
 import { menuRoutes } from '@/src/features/dashboard/components/menuRoutes';
 
 export default function LinkedDevicesWeb() {
   const router = useRouter();
-  const { signOut } = useAuth();
   const { width } = useWindowDimensions();
   const isLargeScreen = width > getWidthBreakpoint();
 
-  const currentSessionId = useAuthStore((state) => state.session_id);
-
-  const [sessions, setSessions] = useState<SessionResponse[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState('');
+  const {
+    sessions,
+    loading,
+    loadError,
+    retry,
+    isCurrent: isCurrentDevice,
+    revokeDevice,
+    revoking,
+  } = useLinkedDevices();
   const [pending, setPending] = useState<SessionResponse | null>(null);
-  const [revoking, setRevoking] = useState(false);
-
-  const loadSessions = useCallback(async () => {
-    setErrorMessage('');
-    try {
-      const response = await listSessions();
-      setSessions(response?.items ?? []);
-    } catch (error: unknown) {
-      setErrorMessage(thrownMessage(error) || 'Could not load your devices.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadSessions();
-  }, [loadSessions]);
+  // A failed log-out replaces the list with the error and "Try again", as a failed load does.
+  const [revokeError, setRevokeError] = useState('');
+  const errorMessage = loadError || revokeError;
 
   useEffect(() => {
     if (Platform.OS === 'web') document.title = 'Linked Devices - GatePass';
@@ -49,28 +36,17 @@ export default function LinkedDevicesWeb() {
 
   const confirmRevoke = useCallback(async () => {
     if (!pending) return;
-    const isCurrent = !!currentSessionId && pending.id === currentSessionId;
-
-    setRevoking(true);
     try {
-      await revokeSession(pending.id);
-      // Revoking our own session kills this token, so sign out locally rather
-      // than continue with a dead credential.
-      if (isCurrent) {
-        await signOut();
-        return;
-      }
-      setSessions((current) => current.filter((item) => item.id !== pending.id));
-      setPending(null);
+      // Logging out this device also signs out locally (see useLinkedDevices).
+      const signedOut = await revokeDevice(pending);
+      if (!signedOut) setPending(null);
     } catch (error: unknown) {
-      setErrorMessage(thrownMessage(error) || 'Could not log that device out.');
+      setRevokeError(thrownMessage(error) || 'Could not log that device out.');
       setPending(null);
-    } finally {
-      setRevoking(false);
     }
-  }, [pending, currentSessionId, signOut]);
+  }, [pending, revokeDevice]);
 
-  const pendingIsCurrent = !!pending && !!currentSessionId && pending.id === currentSessionId;
+  const pendingIsCurrent = !!pending && isCurrentDevice(pending);
 
   return (
     <div className="flex h-full w-screen overflow-y-scroll bg-body">
@@ -96,8 +72,8 @@ export default function LinkedDevicesWeb() {
                 <p className="text-sm font-inter-regular text-danger">{errorMessage}</p>
                 <button
                   onClick={() => {
-                    setLoading(true);
-                    loadSessions();
+                    setRevokeError('');
+                    void retry();
                   }}
                   className="px-5 py-2 rounded-lg bg-primary text-white font-ubuntu-semibold text-sm"
                 >
@@ -111,7 +87,7 @@ export default function LinkedDevicesWeb() {
             ) : (
               <div className="flex flex-col gap-3">
                 {sessions.map((session) => {
-                  const isCurrent = !!currentSessionId && session.id === currentSessionId;
+                  const isCurrent = isCurrentDevice(session);
                   return (
                     <div
                       key={session.id}

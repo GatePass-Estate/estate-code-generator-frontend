@@ -3,18 +3,17 @@ import { Href, router, usePathname } from 'expo-router';
 import { Image, Platform, useWindowDimensions } from 'react-native';
 import WebNavLink from '@/src/shared/components/navigation/WebNavLink';
 import { adminRoutes, menuRoutes } from '@/src/features/dashboard/components/menuRoutes';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import icons from '@/src/shared/constants/icons';
 import Modal from '@/src/shared/components/feedback/Modal';
 import BroadcastMobile from './broadcast.native';
 import { getWidthBreakpoint } from '@/src/shared/utils/helpers';
-import { createBroadcast } from '@/src/features/notifications/services/broadcast';
-import { buildBroadcastPayload } from '@/src/features/notifications/utils/broadcastForm';
-import { userFacingError } from '@/src/shared/services/api/errors';
-
-type RecipientType = 'resident' | 'security' | 'admin' | 'all';
-type PriorityType = 'low' | 'medium' | 'high';
-type DurationType = '24_hours' | '3_days' | '7_days' | '14_days' | '30_days';
+import { useBroadcastWebForm } from '@/src/features/admin/hooks/useBroadcastForm';
+import type {
+  WebBroadcastDuration as DurationType,
+  WebBroadcastPriority as PriorityType,
+  WebBroadcastRecipient as RecipientType,
+} from '@/src/features/admin/utils/broadcastForm';
 
 const RECIPIENT_TYPES = [
   {
@@ -51,17 +50,18 @@ const DURATIONS = [
 
 function BroadcastWeb() {
   const pathname = usePathname();
-  const [step, setStep] = useState(1);
-  const [error, setError] = useState('');
-  const [messageType, setMessageType] = useState<'success' | 'error'>('error');
-  const [running, setRunning] = useState(false);
-
-  // Form fields
-  const [recipientType, setRecipientType] = useState<RecipientType>('resident');
-  const [subjectLine, setSubjectLine] = useState('');
-  const [message, setMessage] = useState('');
-  const [priority, setPriority] = useState<PriorityType>('medium');
-  const [duration, setDuration] = useState<DurationType>('24_hours');
+  const {
+    step,
+    form: { recipientType, subjectLine, message, priority, duration },
+    setField,
+    error,
+    setError,
+    messageType,
+    running,
+    handleNextStep,
+    handlePreviousStep,
+    handleSendBroadcast,
+  } = useBroadcastWebForm({ onExit: () => router.push('/admin') });
 
   function onNavigate(route: Href): void {
     router.push(route);
@@ -70,87 +70,6 @@ function BroadcastWeb() {
   useEffect(() => {
     if (Platform.OS === 'web') document.title = 'Send Broadcast - Admin Access - GatePass';
   }, []);
-
-  const validateStep1 = (): boolean => {
-    if (!recipientType) {
-      setError('Please select a recipient type.');
-      return false;
-    }
-    return true;
-  };
-
-  const validateStep2 = (): boolean => {
-    if (!subjectLine.trim()) {
-      setError('Please enter a subject line.');
-      return false;
-    }
-    if (!message.trim()) {
-      setError('Please enter a message.');
-      return false;
-    }
-    return true;
-  };
-
-  const validateStep3 = (): boolean => {
-    if (!priority) {
-      setError('Please select a priority level.');
-      return false;
-    }
-    if (!duration) {
-      setError('Please select a duration.');
-      return false;
-    }
-    return true;
-  };
-
-  const handleNextStep = () => {
-    if (step === 1 && validateStep1()) {
-      setStep(2);
-    } else if (step === 2 && validateStep2()) {
-      setStep(3);
-    }
-  };
-
-  const handlePreviousStep = () => {
-    if (step > 1) {
-      setStep(step - 1);
-    } else {
-      router.push('/admin');
-    }
-  };
-
-  const handleSendBroadcast = async () => {
-    if (validateStep3()) {
-      setRunning(true);
-      try {
-        await createBroadcast(
-          buildBroadcastPayload({
-            title: subjectLine,
-            message,
-            audience: recipientType,
-            priority,
-            duration,
-          })
-        );
-
-        setMessageType('success');
-        setError('Broadcast sent successfully!');
-
-        // Reset form
-        setRecipientType('resident');
-        setSubjectLine('');
-        setMessage('');
-        setPriority('medium');
-        setDuration('24_hours');
-        setStep(1);
-      } catch (err) {
-        setMessageType('error');
-        setError(userFacingError(err, 'An error occurred while sending broadcast'));
-      } finally {
-        setRunning(false);
-      }
-    }
-  };
 
   return (
     <div className="flex h-full w-screen overflow-y-scroll bg-body">
@@ -205,7 +124,7 @@ function BroadcastWeb() {
                       return (
                         <div
                           key={type.value + index}
-                          onClick={() => setRecipientType(type.value as RecipientType)}
+                          onClick={() => setField('recipientType', type.value as RecipientType)}
                           className={`border rounded-xl p-6 cursor-pointer transition-all ${isActive ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-primary'}`}
                         >
                           <div className="flex items-center gap-3 mb-3">
@@ -250,7 +169,7 @@ function BroadcastWeb() {
                         name="subjectLine"
                         placeholder="Enter Subject line"
                         value={subjectLine}
-                        onChange={(e) => setSubjectLine(e.target.value)}
+                        onChange={(e) => setField('subjectLine', e.target.value)}
                         className="input-style-web"
                       />
                     </div>
@@ -261,7 +180,7 @@ function BroadcastWeb() {
                       </label>
                       <textarea
                         value={message}
-                        onChange={(e) => setMessage(e.target.value)}
+                        onChange={(e) => setField('message', e.target.value)}
                         rows={6}
                         className="input-style-web resize-none"
                       />
@@ -305,7 +224,7 @@ function BroadcastWeb() {
                             <div
                               key={p.value + index}
                               className={`flex flex-row items-center px-4 py-2 rounded-md bg-light-grey ${active && 'bg-[#e6f4ef] border border-[#cfe7db]'} gap-3 cursor-pointer`}
-                              onClick={() => setPriority(p.value as PriorityType)}
+                              onClick={() => setField('priority', p.value as PriorityType)}
                             >
                               <p className="text-primary capitalize">{p.name}</p>
                               {active && (
@@ -335,7 +254,7 @@ function BroadcastWeb() {
                             <div
                               key={d.value + index}
                               className={`flex flex-row items-center px-4 py-2 rounded-md bg-light-grey ${active && 'bg-[#e6f4ef] border border-[#cfe7db]'} gap-3 cursor-pointer`}
-                              onClick={() => setDuration(d.value as DurationType)}
+                              onClick={() => setField('duration', d.value as DurationType)}
                             >
                               <p className="text-primary capitalize">{d.name}</p>
                               {active && (

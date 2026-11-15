@@ -2,6 +2,7 @@ import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { anomalyApi } from '@/src/features/ai/services/anomaly';
 import { normalizeAnomalyPredictions } from '@/src/features/ai/utils/anomalyShapes';
 import { queryKeys } from '@/src/shared/services/api/queryKeys';
+import { getUserDocumentViewUri } from '@/src/features/profile/services/userDocuments';
 
 export const useAnomalyOverview = (estate_id: string, from_date?: string, to_date?: string) => {
   return useQuery({
@@ -81,5 +82,19 @@ export const useAnomalyCaseResults = (
     enabled: !!estate_id && !!prediction_id,
     staleTime: 0,
     refetchOnMount: 'always',
+  });
+};
+
+/** Profile photo for the anomaly user overview; null when the user has none. */
+export const useAnomalyUserPicture = (userId: string | undefined) => {
+  return useQuery({
+    queryKey: queryKeys.anomaly.userPicture(userId ?? ''),
+    queryFn: async () =>
+      // Only the profile photo: never fall back to the government ID image (private, and may
+      // be a PDF). Without a photo the screen shows its normal placeholder avatar.
+      (await getUserDocumentViewUri(userId ?? '', 'profile_picture')) ?? null,
+    enabled: !!userId,
+    // A missing photo just shows the placeholder avatar; don't hold the loader for retries.
+    retry: false,
   });
 };

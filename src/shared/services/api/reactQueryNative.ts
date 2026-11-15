@@ -1,10 +1,14 @@
 import { AppState, Platform } from 'react-native';
 import type { AppStateStatus } from 'react-native';
-import { focusManager } from '@tanstack/react-query';
+import NetInfo from '@react-native-community/netinfo';
+import { focusManager, onlineManager } from '@tanstack/react-query';
 
 /**
- * PERF-05: refetch stale queries when the app returns to the foreground.
- * (Online manager skipped — no NetInfo dependency in this project.)
+ * Native lifecycle for TanStack Query (BlueSky wires the same two managers in src/lib/react-query.tsx):
+ * - focus (PERF-05): stale queries refetch when the app returns to the foreground;
+ * - online: while the device is offline, queries pause instead of failing and burning retries,
+ *   and resume as soon as the connection is back.
+ * Web uses TanStack's built-in window focus / online listeners.
  */
 export function installReactQueryNativeManagers() {
   if (Platform.OS === 'web') return;
@@ -16,4 +20,12 @@ export function installReactQueryNativeManagers() {
     const sub = AppState.addEventListener('change', onChange);
     return () => sub.remove();
   });
+
+  onlineManager.setEventListener((setOnline) =>
+    NetInfo.addEventListener((state) => {
+      // `isInternetReachable` is null until NetInfo has checked; only a definite `false` is offline,
+      // so a slow first check never pauses requests.
+      setOnline(Boolean(state.isConnected) && state.isInternetReachable !== false);
+    })
+  );
 }

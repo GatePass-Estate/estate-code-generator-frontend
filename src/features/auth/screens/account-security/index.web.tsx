@@ -1,13 +1,9 @@
-import { errorMessage as thrownMessage } from '@/src/shared/services/api/errors';
-import { useRouter, useFocusEffect } from 'expo-router';
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useRouter } from 'expo-router';
+import { useEffect } from 'react';
 import { Image, Platform, useWindowDimensions } from 'react-native';
 import icons from '@/src/shared/constants/icons';
-import { useUserStore } from '@/src/store/userStore';
-import { updatepassword } from '@/src/features/users/services/user';
-import { disableTwoFactor, regenerateRecoveryCodes } from '@/src/features/auth';
-import { useTwoFactorStatus } from '@/src/features/auth/hooks/useTwoFactorStatus';
-import { setPendingRecoveryCodes } from '@/src/features/auth/services/recoveryCodes';
+import { useAccountSecurity } from '@/src/features/auth/hooks/useAccountSecurity';
+import { useWebPasswordChange } from '@/src/features/auth/hooks/useWebPasswordChange';
 import Modal from '@/src/shared/components/feedback/Modal';
 import { getWidthBreakpoint } from '@/src/shared/utils/helpers';
 import UpdatePassword from '@/src/features/auth/components/UpdatePassword';
@@ -18,125 +14,24 @@ import { menuRoutes } from '@/src/features/dashboard/components/menuRoutes';
 
 export default function AccountSecurityWeb() {
   const router = useRouter();
-  const [showUpdatePassword, setShowUpdatePassword] = useState(false);
-  const [savingPassword, setSavingPassword] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [password, setPassword] = useState({
-    currentPassword: '',
-    newPassword: '',
-  });
-  const confirmPasswordRef = useRef<HTMLInputElement | null>(null);
-  const [showCurrent, setShowCurrent] = useState(false);
-  const [showNew, setShowNew] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
-
-  const user_id = useUserStore((state) => state.user_id);
   const { width } = useWindowDimensions();
-
-  const {
-    enabled: twoFactorEnabled,
-    setEnabled: setTwoFactorEnabled,
-    refresh: refreshTwoFactor,
-  } = useTwoFactorStatus();
-  // One code prompt serves both actions that require a current TOTP code.
-  const [codePrompt, setCodePrompt] = useState<'disable' | 'regenerate' | null>(null);
-  const [promptCode, setPromptCode] = useState('');
-  const [promptBusy, setPromptBusy] = useState(false);
-  const [promptError, setPromptError] = useState('');
-
   const isLargeScreen = width > getWidthBreakpoint();
 
-  const setNewPassword = useCallback(async () => {
-    setSavingPassword(true);
-    setError('');
-    setSuccess('');
-
-    const confirmValue = confirmPasswordRef.current?.value || '';
-
-    if (password.newPassword !== confirmValue) {
-      setError('The new password and the confirm password do not match');
-      setSavingPassword(false);
-      return;
-    }
-
-    if (password.newPassword.length < 8 || password.currentPassword.length < 8) {
-      setError('The password must be at least 8 characters long');
-      setSavingPassword(false);
-      return;
-    }
-
-    if (password.newPassword === password.currentPassword) {
-      setError('The new password cannot be the same as the current password');
-      setSavingPassword(false);
-      return;
-    }
-
-    try {
-      await updatepassword({
-        user_id,
-        current_password: password.currentPassword,
-        new_password: password.newPassword,
-      });
-      setSuccess('Password updated successfully');
-      setTimeout(() => setShowUpdatePassword(false), 1500);
-    } catch (err: unknown) {
-      const message = thrownMessage(err) || 'Failed to update password.';
-      setError(message);
-    } finally {
-      setSavingPassword(false);
-    }
-  }, [password, user_id]);
-
-  const openCodePrompt = useCallback((mode: 'disable' | 'regenerate') => {
-    setPromptCode('');
-    setPromptError('');
-    setCodePrompt(mode);
-  }, []);
-
-  const handleToggleTwoFactor = useCallback(() => {
-    if (!twoFactorEnabled) {
-      router.push('/account-security/two-factor');
-      return;
-    }
-    openCodePrompt('disable');
-  }, [twoFactorEnabled, router, openCodePrompt]);
-
-  const submitCodePrompt = useCallback(async () => {
-    const code = promptCode.trim();
-    if (code.length !== 6) {
-      setPromptError('Enter the 6-digit code from your authenticator app.');
-      return;
-    }
-
-    setPromptBusy(true);
-    setPromptError('');
-    try {
-      if (codePrompt === 'disable') {
-        await disableTwoFactor(code);
-        setTwoFactorEnabled(false);
-        setCodePrompt(null);
-        return;
-      }
-
-      const response = await regenerateRecoveryCodes(code);
-      // Handed over in memory so the codes never reach the URL or history.
-      setPendingRecoveryCodes(response.recovery_codes ?? []);
-      setCodePrompt(null);
-      router.push('/account-security/recovery-codes');
-    } catch (error: unknown) {
-      setPromptError(thrownMessage(error) || 'That code was not accepted.');
-    } finally {
-      setPromptBusy(false);
-    }
-  }, [promptCode, codePrompt, setTwoFactorEnabled, router]);
-
-  // Re-read the status on focus so returning from setup shows the new state.
-  useFocusEffect(
-    useCallback(() => {
-      refreshTwoFactor();
-    }, [refreshTwoFactor])
-  );
+  const {
+    twoFactorEnabled,
+    handleToggleTwoFactor,
+    codePrompt,
+    codePromptCopy,
+    openCodePrompt,
+    closeCodePrompt,
+    promptCode,
+    setPromptCode,
+    promptBusy,
+    promptError,
+    submitCodePrompt,
+  } = useAccountSecurity();
+  const { showUpdatePassword, setShowUpdatePassword, resetMessages, modalProps } =
+    useWebPasswordChange();
 
   useEffect(() => {
     if (Platform.OS === 'web') document.title = 'Account Security - GatePass';
@@ -166,8 +61,7 @@ export default function AccountSecurityWeb() {
             <div className="flex flex-col gap-4 mb-1">
               <div
                 onClick={() => {
-                  setError('');
-                  setSuccess('');
+                  resetMessages();
                   if (isLargeScreen) {
                     setShowUpdatePassword(true);
                     return;
@@ -199,7 +93,7 @@ export default function AccountSecurityWeb() {
               </span>
               <ToggleSwitch
                 value={twoFactorEnabled}
-                onValueChange={() => handleToggleTwoFactor()}
+                onValueChange={() => handleToggleTwoFactor(!twoFactorEnabled)}
               />
             </div>
 
@@ -217,32 +111,20 @@ export default function AccountSecurityWeb() {
 
       {codePrompt && (
         <Modal
-          heading={
-            codePrompt === 'disable'
-              ? 'Turn off two-factor authentication'
-              : 'Regenerate recovery codes'
-          }
-          message={
-            codePrompt === 'disable'
-              ? 'Enter the current code from your authenticator app to confirm.'
-              : 'Enter the current code from your authenticator app. Your previous recovery codes will stop working.'
-          }
+          heading={codePromptCopy.title}
+          message={codePromptCopy.message}
           cancelText="Cancel"
-          actionText={codePrompt === 'disable' ? 'Turn off' : 'Regenerate'}
+          actionText={codePromptCopy.confirmLabel}
           runningText="Working…"
           actionRunnig={promptBusy}
           btnDisabled={promptBusy}
           actionBtnClassName="bg-primary hover:bg-[#0d3145]"
-          closeModal={() => {
-            if (!promptBusy) setCodePrompt(null);
-          }}
+          closeModal={closeCodePrompt}
           action={submitCodePrompt}
         >
           <input
             value={promptCode}
-            onChange={(event) =>
-              setPromptCode(event.target.value.replace(/[^0-9]/g, '').slice(0, 6))
-            }
+            onChange={(event) => setPromptCode(event.target.value)}
             inputMode="numeric"
             maxLength={6}
             placeholder="6-digit code"
@@ -254,25 +136,7 @@ export default function AccountSecurityWeb() {
         </Modal>
       )}
 
-      {showUpdatePassword && (
-        <UpdatePassword
-          setShowUpdatePassword={setShowUpdatePassword}
-          error={error}
-          success={success}
-          savingPassword={savingPassword}
-          setPassword={setPassword}
-          password={password}
-          showCurrent={showCurrent}
-          showNew={showNew}
-          showConfirm={showConfirm}
-          confirmPasswordRef={confirmPasswordRef}
-          setError={setError}
-          setShowCurrent={setShowCurrent}
-          setShowNew={setShowNew}
-          setShowConfirm={setShowConfirm}
-          setNewPassword={setNewPassword}
-        />
-      )}
+      {showUpdatePassword && <UpdatePassword {...modalProps} />}
     </div>
   );
 }

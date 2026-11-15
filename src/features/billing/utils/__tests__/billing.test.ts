@@ -1,6 +1,5 @@
-import { describe, expect, it, jest } from '@jest/globals';
+import { describe, expect, it } from '@jest/globals';
 import type { User } from '@/src/features/users/types/user';
-import * as Crypto from 'expo-crypto';
 import {
   formatMonthlyCharge,
   formatPlanName,
@@ -418,9 +417,6 @@ describe('misc helpers', () => {
 
   it('falls back to a 36-character UUID v4 when crypto.randomUUID is unavailable', () => {
     const uuidV4Regex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    const spy = jest.spyOn(Crypto, 'randomUUID').mockImplementation(() => {
-      throw new Error('Native module unavailable');
-    });
     const originalCrypto = globalThis.crypto;
     Object.defineProperty(globalThis, 'crypto', { value: undefined, configurable: true });
     try {
@@ -428,7 +424,6 @@ describe('misc helpers', () => {
       expect(fallbackKey).toHaveLength(36);
       expect(fallbackKey).toMatch(uuidV4Regex);
     } finally {
-      spy.mockRestore();
       Object.defineProperty(globalThis, 'crypto', { value: originalCrypto, configurable: true });
     }
   });

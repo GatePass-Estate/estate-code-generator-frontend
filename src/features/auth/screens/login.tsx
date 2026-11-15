@@ -7,7 +7,6 @@ import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import {
   Platform,
   View,
-  TextInput,
   Image,
   Text,
   useWindowDimensions,
@@ -16,6 +15,7 @@ import {
   ScrollView,
   Keyboard,
 } from 'react-native';
+import AppTextInput from '@/src/shared/components/form/AppTextInput';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FontAwesome, AntDesign } from '@expo/vector-icons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -489,16 +489,10 @@ export default function Login() {
               <View className="flex-1 justify-center">
                 <View className="w-full max-w-xl self-center">
                   <View className="items-center">
-                    <Text
-                      className="text-center font-ubuntu-semibold text-primary"
-                      style={{ fontSize: 21.88, lineHeight: 26 }}
-                    >
+                    <Text className="text-center font-ubuntu-semibold text-2xl text-primary">
                       Sign in to
                     </Text>
-                    <Text
-                      className="text-center font-ubuntu-medium text-primary"
-                      style={{ fontSize: 27.34, lineHeight: 33, marginTop: 5 }}
-                    >
+                    <Text className="mt-1 text-center font-ubuntu-medium text-4xl text-primary">
                       {estate?.estate_name}
                     </Text>
                   </View>
@@ -506,31 +500,24 @@ export default function Login() {
                   {ErrorBanner}
 
                   <View className="mt-12">
-                    <Text
-                      className="font-inter-medium text-[#878686]"
-                      style={{ fontSize: 8.96, lineHeight: 11 }}
-                    >
+                    <Text className="mb-2 font-inter-medium text-sm text-[#878686]">
                       Email address
                     </Text>
-                    <TextInput
+                    <AppTextInput
                       placeholder="Enter your email address"
-                      placeholderTextColor="#878686"
                       keyboardType="email-address"
                       value={email}
                       onChangeText={(value) => setEmail(value)}
                       autoCapitalize="none"
                       editable={!isLoading}
-                      className="mt-2 h-14 rounded-2xl bg-[#EFF1F1] px-4 font-inter-light text-sm text-primary"
-                      style={{ paddingVertical: 0 }}
+                      className="h-14 rounded-2xl bg-[#EFF1F1] px-4 text-base"
+                      style={{ fontSize: 16, lineHeight: 20 }}
                     />
 
-                    <Text
-                      className="mt-[10px] font-inter-medium text-[#878686]"
-                      style={{ fontSize: 8.96, lineHeight: 11 }}
-                    >
+                    <Text className="mb-2 mt-[10px] font-inter-medium text-sm text-[#878686]">
                       Password
                     </Text>
-                    <View className="relative mt-2 h-14">
+                    <View className="relative mt-2">
                       <PasswordTextInput
                         placeholder="Enter your password"
                         placeholderTextColor="#878686"
@@ -538,7 +525,7 @@ export default function Login() {
                         value={password}
                         onChangeText={setPassword}
                         editable={!isLoading}
-                        className="h-14 rounded-2xl bg-[#EFF1F1] px-4 pr-14 font-inter-light text-sm text-primary"
+                        className="h-14 rounded-2xl bg-[#EFF1F1] px-4 pr-12 font-inter-light text-base text-primary"
                         style={{ paddingVertical: 0 }}
                       />
                       <Pressable
@@ -550,14 +537,14 @@ export default function Login() {
                           }, 500);
                         }}
                         hitSlop={8}
-                        className="absolute bottom-0 right-1 top-0 z-10 w-12 items-center justify-center active:opacity-70"
+                        className="absolute bottom-0 right-4 top-0 z-10 items-center justify-center active:opacity-70"
                         disabled={isLoading}
                         accessibilityRole="button"
                         accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
                       >
                         <Image
                           source={showPassword ? icons.eye : icons.hiddenEye}
-                          className="h-5 w-5"
+                          style={{ width: 20, height: 20 }}
                           resizeMode="contain"
                         />
                       </Pressable>
@@ -570,6 +557,7 @@ export default function Login() {
                   <View className={showBiometric ? 'flex-row items-center gap-4' : undefined}>
                     <Button
                       label="Continue"
+                      labelSize="md"
                       onPress={handleSignInPress}
                       loading={isLoading}
                       style={
@@ -595,6 +583,7 @@ export default function Login() {
                   </View>
                   <Button
                     label="Forgot Password"
+                    labelSize="md"
                     variant="secondary"
                     disabled={isLoading}
                     onPress={() => router.push('/auth/forgot-password')}

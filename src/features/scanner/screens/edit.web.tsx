@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
-import { EditProfileForm } from '@/src/features/profile/screens/edit/index.web';
+import EditProfileForm from '@/src/features/profile/components/EditProfileForm.web';
 
 export default function EditSecurityProfileWeb() {
   useEffect(() => {

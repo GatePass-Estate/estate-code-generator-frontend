@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Keyboard, Pressable, Text, TextInput, View } from 'react-native';
+import AppTextInput from '@/src/shared/components/form/AppTextInput';
 import { showAlert } from '@/src/shared/utils/alert';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -234,7 +235,7 @@ export default function InstitutionScreen() {
                 placeGroup();
               }}
             >
-              <Text className="text-center font-ubuntu-medium text-heading text-primary">
+              <Text className="text-center font-ubuntu-semibold text-4xl text-primary">
                 Which Institution are{'\n'}you signing in to?
               </Text>
             </View>
@@ -253,15 +254,15 @@ export default function InstitutionScreen() {
                   style={fieldStyle}
                   className="h-12 flex-1 flex-row items-center gap-2 rounded-full border-[0.5px] px-4"
                 >
-                  <View className="h-5 w-5 items-center justify-center">
+                  <View className="h-6 w-6 items-center justify-center">
                     <Animated.View style={idleIconStyle} className="absolute">
-                      <InstitutionSearchIdle />
+                      <InstitutionSearchIdle width={24} height={24} />
                     </Animated.View>
                     <Animated.View style={activeIconStyle} className="absolute">
-                      <InstitutionSearchActive />
+                      <InstitutionSearchActive width={24} height={24} />
                     </Animated.View>
                   </View>
-                  <TextInput
+                  <AppTextInput
                     ref={inputRef}
                     value={query}
                     onChangeText={setQuery}
@@ -269,8 +270,8 @@ export default function InstitutionScreen() {
                     placeholderTextColor="#9B9797"
                     autoCapitalize="none"
                     autoCorrect={false}
-                    className="h-9 flex-1 font-inter-light text-sm text-primary"
-                    style={{ paddingVertical: 0 }}
+                    className="h-10 flex-1 text-lg"
+                    style={{ fontSize: 18, lineHeight: 22 }}
                   />
                 </Animated.View>
 

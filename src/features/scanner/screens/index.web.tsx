@@ -1,6 +1,13 @@
 import { errorMessage as thrownMessage } from '@/src/shared/services/api/errors';
 import images from '@/src/shared/constants/images';
-import { useValidateCode } from '@/src/features/access-codes/hooks/codes';
+import { useAccessCodeValidation } from '@/src/features/scanner/hooks/useAccessCodeValidation';
+import {
+  ACCESS_CODE_LENGTH,
+  cleanCodeInput,
+  guestDetailsFromValidation,
+  passwordChangeError,
+  withResidentDetails,
+} from '@/src/features/scanner/utils/accessCode';
 import { fetchCachedUser } from '@/src/features/history/hooks/accessLogs';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Image, ImageBackground, Platform } from 'react-native';
@@ -103,18 +110,19 @@ function SearchCode({
   setResult: (data: GuestDetails) => void;
   setModalOpen: (open: boolean) => void;
 }) {
-  const inputCount = 6;
-  const [values, setValues] = useState(Array(inputCount).fill(''));
+  const inputCount = ACCESS_CODE_LENGTH;
+  const {
+    code: values,
+    setCode: setValues,
+    errorMessage,
+    setErrorMessage,
+    isValidating,
+    validate,
+  } = useAccessCodeValidation();
   const inputsRef = useRef<HTMLInputElement[]>([]);
-  const [isValidating, setIsValidating] = useState(false);
-  const validateCodeMutation = useValidateCode();
-  const [errorMessage, setErrorMessage] = useState<string>('');
 
   const handleChange = (index: number, value: string) => {
-    const cleaned = value
-      .replace(/[^0-9a-zA-Z]/g, '')
-      .slice(0, 1)
-      .toUpperCase();
+    const cleaned = cleanCodeInput(value).slice(0, 1);
     setErrorMessage('');
     const next = [...values];
     next[index] = cleaned;
@@ -147,56 +155,20 @@ function SearchCode({
   };
 
   const handleValidation = async () => {
-    const entered = values.join('');
-    if (entered.length < 6) {
-      setErrorMessage('Please fill all 6 digits');
-      return;
-    }
+    // Same rules as the native scanner (shared hook): a 200 can still carry a frozen or expired code.
+    const outcome = await validate(values.join(''), { errorFallback: 'Invalid Code' });
+    if (outcome.status !== 'valid') return;
 
-    setIsValidating(true);
-    setErrorMessage('');
+    const { result } = outcome;
+    // PERF-08: show the result immediately; fill resident fields from cache/network after.
+    const baseResult = guestDetailsFromValidation(result);
+    setResult(baseResult);
+    setModalOpen(true);
 
-    try {
-      const result = await validateCodeMutation.mutateAsync(entered);
-      // Same rule as the native scanner: a 200 can still carry a frozen or expired code.
-      if (result.is_valid === false || result.is_expired) {
-        setErrorMessage('This code does not exist or has expired.');
-        return;
-      }
-
-      // PERF-08: show the result immediately; fill resident fields from cache/network after.
-      setValues(['', '', '', '', '', '']);
-      const baseResult: GuestDetails = {
-        visitor_fullname: result.visitor_fullname ?? '',
-        relationship_with_resident: result.relationship_with_resident,
-        gender: result.gender,
-        resident_name: '',
-        resident_address: '',
-        resident_email: '',
-        resident_phone_number: '',
-        code: result.hashed_code,
-        isResident: result.receiver === 'resident',
-      };
-      setResult(baseResult);
-      setModalOpen(true);
-
-      if (result.user_id) {
-        void fetchCachedUser(result.user_id)
-          .then((resident) => {
-            setResult({
-              ...baseResult,
-              resident_name: `${resident.first_name ?? ''} ${resident.last_name ?? ''}`.trim(),
-              resident_address: resident.home_address ?? '',
-              resident_email: resident.email ?? '',
-              resident_phone_number: resident.phone_number ?? '',
-            });
-          })
-          .catch(() => null);
-      }
-    } catch (err: unknown) {
-      setErrorMessage(thrownMessage(err) ?? 'Invalid Code');
-    } finally {
-      setIsValidating(false);
+    if (result.user_id) {
+      void fetchCachedUser(result.user_id)
+        .then((resident) => setResult(withResidentDetails(baseResult, resident)))
+        .catch(() => null);
     }
   };
 
@@ -276,20 +248,13 @@ function Profile() {
 
     const confirmValue = confirmPasswordRef.current?.value || '';
 
-    if (password.newPassword !== confirmValue) {
-      setError('New Password and Confirm Password do not match');
-      setSavingPassword(false);
-      return;
-    }
-
-    if (password.newPassword.length < 8 || password.currentPassword.length < 8) {
-      setError('Password must be at least 8 characters long');
-      setSavingPassword(false);
-      return;
-    }
-
-    if (password.newPassword === password.currentPassword) {
-      setError('New Password cannot be the same as Current Password');
+    const validationError = passwordChangeError(
+      password.currentPassword,
+      password.newPassword,
+      confirmValue
+    );
+    if (validationError) {
+      setError(validationError);
       setSavingPassword(false);
       return;
     }

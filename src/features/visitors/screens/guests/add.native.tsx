@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { View, Text, TextInput, Pressable, Alert, ScrollView } from 'react-native';
+import { View, Text, Pressable, Alert, ScrollView } from 'react-native';
+import AppTextInput from '@/src/shared/components/form/AppTextInput';
 import BottomSheet from '@/src/shared/components/feedback/BottomSheet';
-import { Stack, useRouter } from 'expo-router';
+import { Stack } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useCreateGuest } from '@/src/features/visitors/hooks/guests';
-import { useUserStore } from '@/src/store/userStore';
-import { GenderType, RelationshipType } from '@/src/shared/types/general';
+import { useAddGuest } from '@/src/features/visitors/hooks/useAddGuest';
+import { GENDER_OPTIONS, RELATIONSHIP_OPTIONS } from '@/src/features/visitors/utils/addGuestForm';
 import { sharedStyles } from '@/src/shared/theme/styles';
 import { useAndroidBottomInset } from '@/src/shared/hooks/useAndroidBottomInset';
 import { CheckRingIcon, ExpandMoreIcon } from '@/src/assets/svgs';
@@ -16,103 +16,37 @@ import ScreenHeader from '@/src/shared/components/layout/ScreenHeader';
 import HeaderActions from '@/src/features/dashboard/components/HeaderActions';
 import { useFeatureGate } from '@/src/features/billing/hooks/usePlan';
 
-const GENDER_OPTIONS: { label: string; value: Exclude<GenderType, null> }[] = [
-  { label: 'Female', value: 'female' },
-  { label: 'Male', value: 'male' },
-  { label: "I'd prefer not to say", value: 'prefer_not_to_say' },
-];
-
-const RELATIONSHIP_OPTIONS: { label: string; value: Exclude<RelationshipType, null> }[] = [
-  { label: 'Partner', value: 'partner' },
-  { label: 'Friend', value: 'friend' },
-  { label: 'Family', value: 'family' },
-  { label: 'Taxi', value: 'taxi' },
-  { label: 'Delivery', value: 'delivery' },
-  { label: 'Technician', value: 'technician' },
-  { label: 'Other', value: 'other' },
-];
+function showError(message: string) {
+  Alert.alert('Error', message);
+}
 
 const AddGuestMobile = () => {
   const { tabContentPadding } = useAndroidBottomInset();
-  const [guestName, setGuestName] = useState('');
-  const [relationship, setRelationship] = useState<RelationshipType>(null);
-  const [gender, setGender] = useState<GenderType>(null);
   const [genderSheetVisible, setGenderSheetVisible] = useState(false);
   const [relationshipSheetVisible, setRelationshipSheetVisible] = useState(false);
-  const [addToGuestList, setAddToGuestList] = useState(false);
-  const [savingGuest, setSavingGuest] = useState(false);
-  const createGuestMutation = useCreateGuest();
   const saveGuestGate = useFeatureGate('guest_management');
-
-  const genderLabel = GENDER_OPTIONS.find((option) => option.value === gender)?.label;
-  const relationshipLabel = RELATIONSHIP_OPTIONS.find(
-    (option) => option.value === relationship
-  )?.label;
-  const router = useRouter();
-
-  const inputChecks = (): boolean => {
-    if (guestName.trim() === '') {
-      Alert.alert('Error', "Please enter the guest's name.");
-      return false;
-    }
-
-    if (relationship == null) {
-      Alert.alert('Error', 'Please select your relationship with the guest.');
-      return false;
-    }
-
-    if (gender == null) {
-      Alert.alert('Error', 'Please select a gender.');
-      return false;
-    }
-
-    return true;
-  };
+  const {
+    name: guestName,
+    setName: setGuestName,
+    gender,
+    setGender,
+    genderLabel,
+    relationship,
+    setRelationship,
+    relationshipLabel,
+    saveToList: addToGuestList,
+    setSaveToList: setAddToGuestList,
+    saving: savingGuest,
+    saveGuest,
+    continueToDuration,
+  } = useAddGuest({ platform: 'native', onError: showError });
 
   function handleContinue() {
-    if (savingGuest) return;
-    if (!inputChecks()) return;
-
-    router.push({
-      pathname: '/duration',
-      params: {
-        visitorName: guestName.trim(),
-        relationship: relationship as string,
-        gender: gender as string,
-        saveGuest: addToGuestList && saveGuestGate.allowed ? 'true' : 'false',
-      },
-    });
+    continueToDuration(addToGuestList && saveGuestGate.allowed);
   }
 
-  async function handleSaveGuest() {
-    if (!inputChecks()) return;
-    if (!saveGuestGate.requestAccess()) return;
-
-    setSavingGuest(true);
-    try {
-      await createGuestMutation.mutateAsync({
-        resident_id: useUserStore.getState().user_id,
-        guest_name: guestName.trim(),
-        relationship: relationship as RelationshipType,
-        gender: gender as GenderType,
-      });
-
-      setGuestName('');
-      setRelationship(null);
-      setGender(null);
-      setAddToGuestList(false);
-
-      router.push({
-        pathname: '/user/guests',
-        params: {
-          refresh: 'true',
-        },
-      });
-    } catch {
-      Alert.alert('Error', 'Failed to save guest. Please try again.');
-    } finally {
-      setSavingGuest(false);
-    }
+  function handleSaveGuest() {
+    void saveGuest(saveGuestGate.requestAccess);
   }
 
   return (
@@ -140,11 +74,9 @@ const AddGuestMobile = () => {
         <View style={{ gap: 19 }}>
           <View className="gap-2">
             <Text className="text-2xs font-inter-medium text-[#878686]">Name</Text>
-            <TextInput
-              className="rounded-[16px] bg-[#EFF1F1] px-4 py-4 font-inter-light text-primary"
-              style={{ fontSize: 14 }}
+            <AppTextInput
+              className="h-14 rounded-[16px] bg-[#EFF1F1] px-4"
               placeholder="Enter Guest Name..."
-              placeholderTextColor="#878686"
               value={guestName}
               onChangeText={setGuestName}
             />

@@ -63,18 +63,23 @@ export default function NotificationBell({
       className={className}
       hitSlop={8}
     >
-      <View className="h-[38px] w-[38px] items-center justify-center rounded-full bg-surface-bell">
-        <Image
-          source={icons.notificationBellIcon}
-          style={{ width: 24, height: 24 }}
-          resizeMode="contain"
-        />
-        {hasUnread && (
+      {/* Outer wrapper has no borderRadius — Android clips children outside a rounded view,
+          which was swallowing the unread red dot (top: -3). */}
+      <View className="relative h-[38px] w-[38px]">
+        <View className="h-full w-full items-center justify-center rounded-full bg-surface-bell">
+          <Image
+            source={icons.notificationBellIcon}
+            style={{ width: 24, height: 24 }}
+            resizeMode="contain"
+          />
+        </View>
+        {hasUnread ? (
           <View
+            pointerEvents="none"
             className="absolute h-[9px] w-[9px] rounded-full bg-danger-badge"
             style={{ right: 4, top: -3 }}
           />
-        )}
+        ) : null}
       </View>
     </Pressable>
   );

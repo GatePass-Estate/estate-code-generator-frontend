@@ -18,31 +18,21 @@ import {
   type TextInputProps,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { FormData, FormErrors, GenderType } from '@/src/shared/types/general';
-import { registerUser } from '@/src/features/users/services/user';
-import { userFacingError } from '@/src/shared/services/api/errors';
-import { useUserStore } from '@/src/store/userStore';
+import { GenderType } from '@/src/shared/types/general';
 import { Toast, ToastType } from '@/src/shared/components/feedback/Toast';
-import { RegisterUserPayload } from '@/src/features/users/types/user';
 import OptionSheet, { type OptionSheetItem } from '@/src/features/admin/components/OptionSheet';
 import SelectorField from '@/src/features/admin/components/SelectorField';
 import { useAndroidBottomInset } from '@/src/shared/hooks/useAndroidBottomInset';
 import { Feather } from '@expo/vector-icons';
-import { getEstateById } from '@/src/features/admin/services/estate';
-import { usePendingSeatReduction } from '@/src/features/admin/hooks/usePendingSeatReduction';
 import {
   SEAT_REDUCTION_BLOCKED_MESSAGE,
   SEAT_REDUCTION_BLOCKED_TITLE,
 } from '@/src/features/admin/utils/seatReduction';
 import HouseholdSelectorSheet from '@/src/features/admin/components/HouseholdSelectorSheet';
-import type { Household } from '@/src/features/admin/types/household';
+import { useRegisterUserForm } from '@/src/features/admin/hooks/useRegisterUserForm';
 import {
-  buildRegisterUserPayload,
   REGISTRATION_GENDER_OPTIONS,
   REGISTRATION_ROLE_OPTIONS,
-  validateRegistrationAddress,
-  validateRegistrationPersonalField,
-  validateRegistrationPersonalDetails,
 } from '@/src/features/auth/utils/registrationValidation';
 
 const GENDER_SHEET_ITEMS: OptionSheetItem[] = REGISTRATION_GENDER_OPTIONS.map((option) => ({
@@ -103,9 +93,33 @@ const RegisterUser = () => {
   const router = useRouter();
   const navigation = useNavigation();
   const { systemBottom } = useAndroidBottomInset();
-  const estateId = useUserStore((state) => state.estate_id) || '';
-  const [currentStep, setCurrentStep] = useState(1);
   const scrollViewRef = useRef<ScrollView>(null);
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState<ToastType>('success');
+  const [openSheet, setOpenSheet] = useState<'gender' | 'userType' | null>(null);
+  const {
+    estateId,
+    step: currentStep,
+    setStep: setCurrentStep,
+    formData,
+    setField,
+    updateField: updateFormData,
+    errors,
+    setErrors,
+    clearFieldError,
+    selectedHousehold,
+    selectHousehold,
+    householdSelectorVisible,
+    setHouseholdSelectorVisible,
+    seatReductionVisible: seatReductionOverlayVisible,
+    setSeatReductionVisible: setSeatReductionOverlayVisible,
+    blockIfSeatReductionPending,
+    validatePersonalDetails,
+    validateAddress,
+    submit,
+    saving: loading,
+  } = useRegisterUserForm({ initialUserType: null });
 
   useEffect(() => {
     const frame = requestAnimationFrame(() => {
@@ -113,45 +127,8 @@ const RegisterUser = () => {
     });
     return () => cancelAnimationFrame(frame);
   }, [currentStep]);
-  const [formData, setFormData] = useState<FormData>({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phoneNumber: '',
-    gender: null,
-    userType: null,
-    homeAddress: '',
-    householdId: null,
-    householdName: '',
-    apartmentNumber: '',
-    apartmentName: '',
-    city: '',
-    state: '',
-    postalCode: '',
-    identificationUri: null,
-    identificationName: '',
-  });
 
-  const [errors, setErrors] = useState<FormErrors>({});
-  const [loading, setLoading] = useState(false);
-  const [toastVisible, setToastVisible] = useState(false);
-  const [toastMessage, setToastMessage] = useState('');
-  const [toastType, setToastType] = useState<ToastType>('success');
-  const [selectedHousehold, setSelectedHousehold] = useState<Household | null>(null);
-  const [householdSelectorVisible, setHouseholdSelectorVisible] = useState(false);
-  const [openSheet, setOpenSheet] = useState<'gender' | 'userType' | null>(null);
-
-  const hasPendingSeatReduction = usePendingSeatReduction();
-  const [seatReductionOverlayVisible, setSeatReductionOverlayVisible] = useState(false);
-
-  useEffect(() => {
-    if (hasPendingSeatReduction) {
-      setSeatReductionOverlayVisible(true);
-    }
-  }, [hasPendingSeatReduction]);
-
-  const handleDismissSeatReduction = () => {
-    setSeatReductionOverlayVisible(false);
+  const leaveScreen = () => {
     if (router.canDismiss()) {
       router.dismiss(1);
     } else {
@@ -159,27 +136,12 @@ const RegisterUser = () => {
     }
   };
 
-  useEffect(() => {
-    if (!estateId) return;
+  const handleDismissSeatReduction = () => {
+    setSeatReductionOverlayVisible(false);
+    leaveScreen();
+  };
 
-    let active = true;
-    void getEstateById(estateId)
-      .then((estate) => {
-        if (!active) return;
-        setFormData((current) => ({
-          ...current,
-          city: estate.city || estate.lga || '',
-          state: estate.state || '',
-          postalCode: estate.postal_code || '',
-        }));
-      })
-      .catch(() => undefined);
-
-    return () => {
-      active = false;
-    };
-  }, [estateId]);
-
+  // Back from step 2 returns to step 1 instead of leaving the flow.
   useEffect(() => {
     const unsubscribe = navigation.addListener(
       'beforeRemove' as never,
@@ -196,96 +158,33 @@ const RegisterUser = () => {
     );
 
     return unsubscribe;
-  }, [navigation, currentStep]);
+  }, [navigation, currentStep, setCurrentStep, setErrors]);
 
-  const validateStep1 = (): boolean => {
-    const newErrors = validateRegistrationPersonalDetails(formData);
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const validateStep2 = (): boolean => {
-    const newErrors = validateRegistrationAddress(formData);
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const handleSaveUser = async () => {
+    if (blockIfSeatReductionPending()) return;
+    const result = await submit();
+    if (result.ok) {
+      leaveScreen();
+      return;
+    }
+    setToastMessage(result.message);
+    setToastType('error');
+    setToastVisible(true);
   };
 
   const handleContinue = () => {
-    if (hasPendingSeatReduction) {
-      setSeatReductionOverlayVisible(true);
-      return;
-    }
+    if (blockIfSeatReductionPending()) return;
     if (currentStep === 1) {
-      if (validateStep1()) {
+      if (validatePersonalDetails()) {
         Keyboard.dismiss();
         setCurrentStep(2);
         setErrors({});
       }
     } else if (currentStep === 2) {
-      if (validateStep2()) {
+      if (validateAddress()) {
         setErrors({});
         void handleSaveUser();
       }
-    }
-  };
-
-  const handleSaveUser = async () => {
-    if (hasPendingSeatReduction) {
-      setSeatReductionOverlayVisible(true);
-      return;
-    }
-    setLoading(true);
-
-    const { estate_id } = useUserStore.getState();
-
-    try {
-      const payload: RegisterUserPayload = buildRegisterUserPayload({
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        email: formData.email,
-        phoneNumber: formData.phoneNumber,
-        role: formData.userType,
-        gender: formData.gender,
-        estateId: estate_id || '',
-        householdId: formData.householdId,
-        address: formData,
-      });
-
-      const regiteredUser = await registerUser(payload);
-
-      if (regiteredUser && regiteredUser.id) {
-        if (router.canDismiss()) {
-          router.dismiss(1);
-        } else {
-          router.replace('/admin');
-        }
-      } else {
-        setToastMessage('Failed to register user. Please try again.');
-        setToastType('error');
-        setToastVisible(true);
-      }
-    } catch (error) {
-      setToastMessage(userFacingError(error, 'An error occurred while registering user'));
-      setToastType('error');
-      setToastVisible(true);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const updateFormData = <K extends keyof FormData>(key: K, value: FormData[K]) => {
-    setFormData((prev) => ({ ...prev, [key]: value }));
-
-    if (
-      typeof value === 'string' &&
-      (key === 'firstName' || key === 'lastName' || key === 'email' || key === 'phoneNumber')
-    ) {
-      const fieldError = validateRegistrationPersonalField(key, value);
-      setErrors((prev) => ({ ...prev, [key]: fieldError }));
-    } else if (errors[key as keyof FormErrors]) {
-      setErrors((prev) => ({ ...prev, [key]: undefined }));
     }
   };
 
@@ -308,18 +207,7 @@ const RegisterUser = () => {
         }}
       />
 
-      <Back
-        type="short-arrow"
-        showText={false}
-        showBorder
-        onPress={() => {
-          if (router.canDismiss()) {
-            router.dismiss(1);
-          } else {
-            router.replace('/admin');
-          }
-        }}
-      />
+      <Back type="short-arrow" showText={false} showBorder onPress={leaveScreen} />
 
       <Text
         numberOfLines={1}
@@ -490,11 +378,8 @@ const RegisterUser = () => {
           items={GENDER_SHEET_ITEMS}
           selected={formData.gender ? [formData.gender] : []}
           onChange={(next) => {
-            const value = (next[0] ?? null) as GenderType;
-            setFormData((prev) => ({ ...prev, gender: value }));
-            if (errors.gender) {
-              setErrors((prev) => ({ ...prev, gender: undefined }));
-            }
+            setField('gender', (next[0] ?? null) as GenderType);
+            clearFieldError('gender');
           }}
           onClose={() => setOpenSheet(null)}
         />
@@ -518,15 +403,7 @@ const RegisterUser = () => {
         estateId={estateId}
         selected={selectedHousehold}
         onClose={() => setHouseholdSelectorVisible(false)}
-        onSelect={(household) => {
-          setSelectedHousehold(household);
-          setFormData((current) => ({
-            ...current,
-            householdId: household.id,
-            householdName: household.name,
-          }));
-          setErrors((current) => ({ ...current, householdId: undefined }));
-        }}
+        onSelect={selectHousehold}
       />
 
       {/* Seat Reduction Active Overlay */}

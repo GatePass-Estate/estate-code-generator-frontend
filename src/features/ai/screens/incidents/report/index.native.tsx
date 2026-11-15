@@ -9,7 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useFocusEffect, useLocalSearchParams, usePathname, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ScreenHeader from '@/src/shared/components/layout/ScreenHeader';
 import { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
@@ -28,6 +28,7 @@ import {
 import { useFeatureGate } from '@/src/features/billing/hooks/usePlan';
 import { useUserStore } from '@/src/store/userStore';
 import {
+  incidentReportPaths,
   leaveIncidentReport,
   parseIncidentReportReturnTo,
 } from '@/src/features/ai/utils/incidentReportNavigation';
@@ -74,6 +75,8 @@ function ReportCard({ report, onPress }: { report: IncidentReport; onPress: () =
 
 export default function ReportTabScreen() {
   const router = useRouter();
+  const pathname = usePathname();
+  const reportPaths = incidentReportPaths(pathname);
   const { returnTo: returnToParam } = useLocalSearchParams<{ returnTo?: string }>();
   const returnTo = parseIncidentReportReturnTo(returnToParam);
   const role = useUserStore((state) => state.role);
@@ -254,7 +257,7 @@ export default function ReportTabScreen() {
               report={item}
               onPress={() =>
                 router.push({
-                  pathname: '/user/report/[id]',
+                  pathname: reportPaths.detail,
                   params: { id: item.id, returnTo },
                 })
               }

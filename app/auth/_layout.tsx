@@ -6,7 +6,7 @@ export const unstable_settings = {
 
 export default function AuthLayout() {
   return (
-    <Stack screenOptions={{ headerShown: false, animation: 'none' }}>
+    <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
       <Stack.Screen
         name="institution"
         options={{ animation: 'slide_from_left', animationTypeForReplace: 'pop' }}

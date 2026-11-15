@@ -3,23 +3,38 @@ import { Platform } from 'react-native';
 import { router, useNavigation } from 'expo-router';
 
 /**
- * Go back one screen, as fast as the Android back key.
+ * App-wide back: pop the navigation stack so the previous screen slides in
+ * (same motion as Broadcast → Admin Tools).
  *
- * Expo Router's `router.back()` does not navigate straight away: it queues the request in React
- * state and dispatches it from an effect after the next render (expo-router RoutingQueueDrainer).
- * On Android that costs a noticeable beat (measured ~180–230 ms in dev before anything moved),
- * while the hardware back key, which goes straight to React Navigation, reacts at once. This calls
- * React Navigation directly, the way BlueSky's `useGoBack` does.
+ * Rule for every screen:
+ * 1. Open with `router.push` on the **same** stack (e.g. `/admin/broadcast`, `/admin/report`).
+ * 2. Leave with `<Back />` / `useGoBack()` — do **not** `replace` / `dismissTo` when the stack
+ *    can pop; those skip the slide and often land on the wrong place.
+ * 3. Only `dismissTo` / `replace` when there is no history (deep link, cold start, cross-role).
  *
- * Web keeps `router.back()` so the browser's history and URL stay in step.
+ * Expo Router's `router.back()` queues through React state (~180–230 ms on Android). This calls
+ * React Navigation directly (like BlueSky's `useGoBack`). Web keeps `router.back()` for history.
  */
 export function useGoBack(): () => void {
   const navigation = useNavigation();
   return useCallback(() => {
-    if (Platform.OS !== 'web' && navigation.canGoBack()) {
-      navigation.goBack();
+    if (Platform.OS !== 'web') {
+      if (navigation.canGoBack()) {
+        navigation.goBack();
+        return;
+      }
+      let parent = navigation.getParent();
+      while (parent) {
+        if (parent.canGoBack()) {
+          parent.goBack();
+          return;
+        }
+        parent = parent.getParent();
+      }
+    }
+    if (router.canGoBack()) {
+      router.back();
       return;
     }
-    router.back();
   }, [navigation]);
 }

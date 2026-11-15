@@ -1,4 +1,3 @@
-import { errorMessage as thrownMessage } from '@/src/shared/services/api/errors';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Stack, useFocusEffect, useIsFocused, useLocalSearchParams, useRouter } from 'expo-router';
@@ -25,7 +24,12 @@ import { Ionicons as Icon } from '@expo/vector-icons';
 import NotificationBell from '@/src/features/notifications/components/NotificationBell';
 import MoreFill from '@/src/assets/icons/more-fill.svg';
 import ScanFrame from '@/src/assets/icons/scan-frame.svg';
-import { useValidateCode } from '@/src/features/access-codes/hooks/codes';
+import { useAccessCodeValidation } from '@/src/features/scanner/hooks/useAccessCodeValidation';
+import {
+  EMPTY_CODE,
+  cleanCodeInput,
+  extractScannedAccessCode,
+} from '@/src/features/scanner/utils/accessCode';
 import { fetchCachedUser } from '@/src/features/history/hooks/accessLogs';
 import { refreshEstateEntitlements } from '@/src/features/billing';
 import { getScanWarningSeverity } from '@/src/features/scanner/utils/securityScanWarning';
@@ -40,74 +44,7 @@ import SecurityTabBar from '@/src/features/scanner/components/SecurityTabBar';
 import { useExitAppOnRootBack } from '@/src/shared/hooks/useExitAppOnRootBack';
 import { InputRefsStorage } from '@/src/shared/types/general';
 
-const EMPTY_CODE = ['', '', '', '', '', ''];
 type VerificationMode = 'enter' | 'scan';
-
-const normalizeAccessCode = (value: string | null | undefined) => {
-  const candidate = value?.replace(/[^0-9a-zA-Z]/g, '').toUpperCase();
-  return candidate && /^[0-9A-Z]{6}$/.test(candidate) ? candidate : '';
-};
-
-const extractScannedAccessCode = (value: string) => {
-  const rawValue = value.trim();
-  const codeKeys = ['code', 'access_code', 'accessCode'];
-
-  try {
-    const parsed = JSON.parse(rawValue);
-
-    if (parsed && typeof parsed === 'object') {
-      for (const key of codeKeys) {
-        const candidate = normalizeAccessCode(String(parsed[key] ?? ''));
-        if (candidate) return candidate;
-      }
-    }
-  } catch {
-    // QR payloads are often plain text or URLs rather than JSON.
-  }
-
-  try {
-    const url = new URL(rawValue);
-
-    for (const key of codeKeys) {
-      const candidate = normalizeAccessCode(url.searchParams.get(key));
-      if (candidate) return candidate;
-    }
-
-    const pathCandidate = url.pathname
-      .split('/')
-      .reverse()
-      .map((part) => normalizeAccessCode(part))
-      .find(Boolean);
-
-    if (pathCandidate) return pathCandidate;
-  } catch {
-    // The scanner usually receives the raw access code, not a URL.
-  }
-
-  const groupedCandidate = rawValue
-    .toUpperCase()
-    .split(/[^0-9A-Z]+/)
-    .filter(Boolean)
-    .find((part) => /^[0-9A-Z]{6}$/.test(part));
-
-  if (groupedCandidate) return groupedCandidate;
-
-  const labelledCandidate = rawValue
-    .toUpperCase()
-    .match(/(?:CODE|ACCESS_CODE|ACCESSCODE|ACCESS)[^0-9A-Z]*([0-9A-Z][0-9A-Z\s-]{4,10}[0-9A-Z])/);
-
-  const normalizedLabelledCandidate = normalizeAccessCode(labelledCandidate?.[1]);
-  if (normalizedLabelledCandidate) return normalizedLabelledCandidate;
-
-  const visibleCandidate = rawValue
-    .toUpperCase()
-    .match(/(^|[^0-9A-Z])([0-9A-Z]{3}[\s-]?[0-9A-Z]{3})(?=$|[^0-9A-Z])/);
-
-  const normalizedVisibleCandidate = normalizeAccessCode(visibleCandidate?.[2]);
-  if (normalizedVisibleCandidate) return normalizedVisibleCandidate;
-
-  return normalizeAccessCode(rawValue);
-};
 
 export default function SecurityVerificationMobile() {
   useExitAppOnRootBack();
@@ -116,14 +53,18 @@ export default function SecurityVerificationMobile() {
   const isFocused = useIsFocused();
   const { width: windowWidth } = useWindowDimensions();
   const [mode, setMode] = useState<VerificationMode>(params.mode === 'scan' ? 'scan' : 'enter');
-  const [code, setCode] = useState<string[]>(EMPTY_CODE);
+  const {
+    code,
+    setCode,
+    errorMessage,
+    setErrorMessage,
+    isValidating: isSubmitting,
+    validate,
+  } = useAccessCodeValidation();
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
-  const [errorMessage, setErrorMessage] = useState('');
   const [invalidCode, setInvalidCode] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const { requireVerified } = useVerificationGate();
-  const validateCodeMutation = useValidateCode();
   const [permission, requestPermission] = useCameraPermissions();
   const inputs = useRef<InputRefsStorage>({});
   const scanNavigationInProgressRef = useRef(false);
@@ -172,61 +113,45 @@ export default function SecurityVerificationMobile() {
   }, [mode, resetScanState]);
 
   const validateEnteredCode = async (entered: string, source: VerificationMode = 'enter') => {
-    if (entered.length < 6) {
-      setErrorMessage('Please fill all 6 digits');
-      if (source === 'scan') scanNavigationInProgressRef.current = false;
+    const outcome = await validate(entered, {
+      guard: requireVerified,
+      onStart: () => Keyboard.dismiss(),
+      errorFallback: 'Invalid Access Code. This does not exist or has expired.',
+      onRejected: showInvalidOverlay,
+    });
+
+    if (outcome.status !== 'valid') {
+      // A rejected code keeps the scan lock until the overlay closes (see InvalidCodeOverlay below).
+      if (source === 'scan' && outcome.status !== 'rejected') {
+        scanNavigationInProgressRef.current = false;
+      }
       return;
     }
 
-    if (!requireVerified()) {
-      if (source === 'scan') scanNavigationInProgressRef.current = false;
-      return;
+    const { result } = outcome;
+    // PERF-08: navigate on validation alone; warm the resident cache for the result screen.
+    if (result.user_id) {
+      void fetchCachedUser(result.user_id).catch(() => null);
     }
+    const warningSeverity = getScanWarningSeverity(result);
 
-    setIsSubmitting(true);
-    setErrorMessage('');
-    Keyboard.dismiss();
-
-    try {
-      const result = await validateCodeMutation.mutateAsync(entered);
-      if (result.is_valid === false || result.is_expired) {
-        showInvalidOverlay(entered, 'This code does not exist or has expired.');
-        return;
-      }
-
-      // PERF-08: navigate on validation alone; warm the resident cache for the result screen.
-      if (result.user_id) {
-        void fetchCachedUser(result.user_id).catch(() => null);
-      }
-      const warningSeverity = getScanWarningSeverity(result);
-
-      router.push({
-        pathname: '/security/result',
-        params: {
-          visitor_fullname: result.visitor_fullname,
-          relationship_with_resident: result.relationship_with_resident,
-          gender: result.gender,
-          resident_household: result.household_name || 'Household',
-          resident_user_id: result.user_id ?? '',
-          code: result.hashed_code,
-          receiver: result.receiver,
-          ...(warningSeverity ? { warningSeverity } : {}),
-        },
-      });
-      setCode(EMPTY_CODE);
-    } catch (err: unknown) {
-      if (source === 'scan') scanNavigationInProgressRef.current = false;
-      showInvalidOverlay(
-        entered,
-        thrownMessage(err) ?? 'Invalid Access Code. This does not exist or has expired.'
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
+    router.push({
+      pathname: '/security/result',
+      params: {
+        visitor_fullname: result.visitor_fullname,
+        relationship_with_resident: result.relationship_with_resident,
+        gender: result.gender,
+        resident_household: result.household_name || 'Household',
+        resident_user_id: result.user_id ?? '',
+        code: result.hashed_code,
+        receiver: result.receiver,
+        ...(warningSeverity ? { warningSeverity } : {}),
+      },
+    });
   };
 
   const handleChange = (text: string, index: number) => {
-    const cleaned = text.replace(/[^0-9a-zA-Z]/g, '').toUpperCase();
+    const cleaned = cleanCodeInput(text);
     setErrorMessage('');
     const newCode = [...code];
 
@@ -476,7 +401,7 @@ export default function SecurityVerificationMobile() {
           onClose={() => {
             setInvalidCode('');
             setErrorMessage('');
-            setCode(EMPTY_CODE);
+            setCode([...EMPTY_CODE]);
             // A rejected scan (200 with is_valid false / expired) leaves the scan lock set so the
             // same QR is not re-read behind the overlay; closing it lets the guard scan again.
             resetScanState();

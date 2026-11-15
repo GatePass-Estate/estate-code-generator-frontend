@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getTwoFactorStatus } from '@/src/features/auth/services/auth';
 import { useUserStore } from '@/src/store/userStore';
 import { readTwoFactorFlag, writeTwoFactorFlag } from '@/src/features/auth/services/twoFactorState';
+import { queryKeys } from '@/src/shared/services/api/queryKeys';
 
 /**
  * Reports whether TOTP is enabled for the signed-in user.
@@ -16,35 +18,60 @@ import { readTwoFactorFlag, writeTwoFactorFlag } from '@/src/features/auth/servi
  */
 export function useTwoFactorStatus() {
   const userId = useUserStore((state) => state.user_id);
+  const queryClient = useQueryClient();
 
-  const [enabled, setEnabledState] = useState(false);
-  const [loading, setLoading] = useState(true);
-
-  const refresh = useCallback(async () => {
-    const cached = await readTwoFactorFlag(userId);
-    if (cached !== null) setEnabledState(cached);
-
-    const fromServer = await getTwoFactorStatus();
-    if (fromServer !== null) {
-      setEnabledState(fromServer);
-      void writeTwoFactorFlag(userId, fromServer);
-    }
-
-    setLoading(false);
+  // The device's last known value, shown until the server answers.
+  const [cachedFlag, setCachedFlag] = useState<boolean | null>(null);
+  useEffect(() => {
+    let mounted = true;
+    void readTwoFactorFlag(userId).then((value) => {
+      if (mounted && value !== null) setCachedFlag(value);
+    });
+    return () => {
+      mounted = false;
+    };
   }, [userId]);
 
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
+  const { data, isPending, refetch } = useQuery({
+    queryKey: queryKeys.auth.twoFactorStatus(userId ?? ''),
+    queryFn: async (): Promise<boolean | null> => {
+      const fromServer = await getTwoFactorStatus();
+      if (fromServer !== null) {
+        void writeTwoFactorFlag(userId, fromServer);
+        return fromServer;
+      }
+      // null = the server could not tell; keep showing what this device last knew.
+      return (
+        (await readTwoFactorFlag(userId)) ??
+        queryClient.getQueryData<boolean | null>(queryKeys.auth.twoFactorStatus(userId ?? '')) ??
+        null
+      );
+    },
+  });
+
+  const enabled = data ?? cachedFlag ?? false;
+
+  const refresh = useCallback(async () => {
+    // Show the device's flag straight away (e.g. just written by the setup screen), then let the
+    // server overwrite it.
+    const cached = await readTwoFactorFlag(userId);
+    if (cached !== null) {
+      setCachedFlag(cached);
+      queryClient.setQueryData(queryKeys.auth.twoFactorStatus(userId ?? ''), cached);
+    }
+    // Joins a request already in flight (mount + focus) instead of cancelling it.
+    await refetch({ cancelRefetch: false });
+  }, [userId, refetch, queryClient]);
 
   /** Records a change made on this device and persists it. */
   const setEnabled = useCallback(
     (value: boolean) => {
-      setEnabledState(value);
+      setCachedFlag(value);
+      queryClient.setQueryData(queryKeys.auth.twoFactorStatus(userId ?? ''), value);
       void writeTwoFactorFlag(userId, value);
     },
-    [userId]
+    [userId, queryClient]
   );
 
-  return { enabled, loading, setEnabled, refresh };
+  return { enabled, loading: isPending, setEnabled, refresh };
 }

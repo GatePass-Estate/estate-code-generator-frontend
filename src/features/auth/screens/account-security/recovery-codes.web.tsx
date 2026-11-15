@@ -1,11 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect } from 'react';
 import { Platform, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
-import * as Clipboard from 'expo-clipboard';
 import Back from '@/src/shared/components/navigation/Back';
 import WebSidebar from '@/src/features/dashboard/components/WebSidebar';
 import { getWidthBreakpoint } from '@/src/shared/utils/helpers';
-import { consumePendingRecoveryCodes } from '@/src/features/auth/services/recoveryCodes';
+import { useRecoveryCodes } from '@/src/features/auth/hooks/useRecoveryCodes';
 import { menuRoutes } from '@/src/features/dashboard/components/menuRoutes';
 
 export default function RecoveryCodesWeb() {
@@ -13,25 +12,11 @@ export default function RecoveryCodesWeb() {
   const { width } = useWindowDimensions();
   const isLargeScreen = width > getWidthBreakpoint();
 
-  const [codes, setCodes] = useState<string[]>([]);
-  const [copied, setCopied] = useState(false);
-  const [acknowledged, setAcknowledged] = useState(false);
-
-  // Consuming on mount clears the codes, so a refresh or back-navigation
-  // cannot show them a second time.
-  useEffect(() => {
-    setCodes(consumePendingRecoveryCodes() ?? []);
-  }, []);
+  const { codes, copied, copyCodes, acknowledged, setAcknowledged } = useRecoveryCodes();
 
   useEffect(() => {
     if (Platform.OS === 'web') document.title = 'Recovery Codes - GatePass';
   }, []);
-
-  const handleCopy = useCallback(async () => {
-    await Clipboard.setStringAsync(codes.join('\n'));
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }, [codes]);
 
   const handleDone = useCallback(() => {
     router.replace('/account-security');
@@ -74,7 +59,7 @@ export default function RecoveryCodesWeb() {
                 </div>
 
                 <button
-                  onClick={handleCopy}
+                  onClick={() => void copyCodes()}
                   className="mt-5 px-5 h-11 border border-accent rounded-lg text-primary font-ubuntu-regular text-xs hover:bg-[#EFF1F1] transition"
                 >
                   {copied ? 'Copied' : 'Copy all codes'}

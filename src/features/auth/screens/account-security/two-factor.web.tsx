@@ -1,13 +1,11 @@
-import { useCallback, useEffect } from 'react';
+import { useEffect } from 'react';
 import { Platform, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
-import * as Clipboard from 'expo-clipboard';
 import BrandedQRCode from '@/src/shared/components/BrandedQRCode';
 import Back from '@/src/shared/components/navigation/Back';
 import WebSidebar from '@/src/features/dashboard/components/WebSidebar';
 import { getWidthBreakpoint } from '@/src/shared/utils/helpers';
 import { useTwoFactorSetup } from '@/src/features/auth/hooks/useTwoFactorSetup';
-import { setPendingRecoveryCodes } from '@/src/features/auth/services/recoveryCodes';
 import { menuRoutes } from '@/src/features/dashboard/components/menuRoutes';
 
 export default function TwoFactorSetupWeb() {
@@ -19,26 +17,18 @@ export default function TwoFactorSetupWeb() {
     provisioningUri,
     secret,
     code,
-    setCode,
+    changeCode,
+    copySecret,
     loading,
     activating,
     errorMessage,
-    activate,
+    activateAndShowRecoveryCodes: handleActivate,
     retry,
   } = useTwoFactorSetup();
 
   useEffect(() => {
     if (Platform.OS === 'web') document.title = 'Two-Factor Authentication - GatePass';
   }, []);
-
-  const handleActivate = useCallback(async () => {
-    const recoveryCodes = await activate();
-    if (!recoveryCodes) return;
-
-    // Handed over in memory so the codes never reach the URL or history.
-    setPendingRecoveryCodes(recoveryCodes);
-    router.replace('/account-security/recovery-codes');
-  }, [activate, router]);
 
   return (
     <div className="flex h-full w-screen overflow-y-scroll bg-body">
@@ -87,7 +77,7 @@ export default function TwoFactorSetupWeb() {
                   </div>
 
                   <button
-                    onClick={() => Clipboard.setStringAsync(secret)}
+                    onClick={() => void copySecret()}
                     className="flex items-center gap-2 mt-5 hover:opacity-70 transition"
                   >
                     <span className="text-sm font-roboto-regular text-[#3E424E] tracking-[1px]">
@@ -99,9 +89,7 @@ export default function TwoFactorSetupWeb() {
 
                 <input
                   value={code}
-                  onChange={(event) =>
-                    setCode(event.target.value.replace(/[^0-9]/g, '').slice(0, 6))
-                  }
+                  onChange={(event) => changeCode(event.target.value)}
                   onKeyDown={(event) => {
                     if (event.key === 'Enter') handleActivate();
                   }}

@@ -21,6 +21,7 @@ import { useAuth } from '@/src/features/auth/hooks/useAuthContext';
 import { useVerificationGate } from '@/src/features/auth/hooks/useAccountVerification';
 import { useFeatureGate, useUpgradePromptStore } from '@/src/features/billing/hooks/usePlan';
 import { useUserStore } from '@/src/store/userStore';
+import { useGoBack } from '@/src/shared/hooks/useGoBack';
 import {
   refreshEstateEntitlements,
   refreshEstateEntitlementsIfOlderThan,
@@ -199,14 +200,16 @@ export default function MoreMenuScreen({
     }
   }, [navigation, requestIncidentReportAccess, requireVerified, role]);
 
+  const goBack = useGoBack();
   const handleBack = useCallback(() => {
     if (useUpgradePromptStore.getState().visible) return;
-    if (Platform.OS === 'web') {
-      navigation.goBack();
+    // Stack pop → slide (same as Broadcast). Only jump tabs when there is no history.
+    if (navigation.canGoBack() || navigation.getParent()?.canGoBack()) {
+      goBack();
       return;
     }
     router.dismissTo(role === 'security' ? '/security' : '/user');
-  }, [navigation, role]);
+  }, [goBack, navigation, role]);
 
   const estateId = useUserStore((s) => s.estate_id);
   const { data: entitlements, error: entitlementsError } = useEstateEntitlements();

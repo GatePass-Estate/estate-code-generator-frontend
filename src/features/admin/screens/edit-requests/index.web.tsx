@@ -4,50 +4,35 @@ import { Image, Platform, useWindowDimensions } from 'react-native';
 import { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
 import WebNavLink from '@/src/shared/components/navigation/WebNavLink';
 import { adminRoutes, menuRoutes } from '@/src/features/dashboard/components/menuRoutes';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import icons from '@/src/shared/constants/icons';
 import Modal from '@/src/shared/components/feedback/Modal';
-import {
-  getRequests,
-  approveRequests,
-  declineRequests,
-} from '@/src/features/admin/services/requests';
-import { getUserByIdAdmin } from '@/src/features/users/services/user';
-import { RequestItem, RequestType } from '@/src/features/admin/types/requests';
 import EditRequestMobile from './index.native';
 import { getWidthBreakpoint } from '@/src/shared/utils/helpers';
-
-interface EditRequest extends RequestItem {
-  selected: boolean;
-  userName: string;
-  userEmail: string;
-}
-
-const getFieldLabelFromType = (type: RequestType): string => {
-  const labels: Record<RequestType, string> = {
-    first_name_change: 'First Name',
-    last_name_change: 'Last Name',
-    email_change: 'Email Address',
-    home_address_change: 'Address',
-    gender_change: 'Gender',
-    vacate_residence: 'Vacate Residence',
-    phone_number_change: 'Phone Number',
-    id_change: 'ID Card',
-  };
-  return labels[type] || 'Unknown Field';
-};
+import { useEditRequestsReview } from '@/src/features/admin/hooks/useEditRequestsList';
+import { getFieldLabelFromType } from '@/src/features/admin/utils/editRequests';
 
 function EditRequestsWeb() {
   const pathname = usePathname();
-  const [editRequests, setEditRequests] = useState<EditRequest[]>([]);
-  const [selectedRequest, setSelectedRequest] = useState<EditRequest | null>(null);
-  const [error, setError] = useState('');
-  const [messageType, setMessageType] = useState<'success' | 'error'>('error');
-  const [running, setRunning] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [processingAction, setProcessingAction] = useState<
-    'approve-selected' | 'decline-selected' | 'approve-modal' | 'decline-modal' | null
-  >(null);
+  const {
+    editRequests,
+    loading,
+    selectedRequests,
+    allSelected,
+    toggleSelection,
+    toggleSelectAll,
+    selectedRequest,
+    setSelectedRequest,
+    error,
+    setError,
+    messageType,
+    running,
+    processingAction,
+    handleApproveSelected,
+    handleDeclineSelected,
+    handleApproveFromModal,
+    handleDeclineFromModal,
+  } = useEditRequestsReview();
 
   function onNavigate(route: Href): void {
     router.push(route);
@@ -56,171 +41,6 @@ function EditRequestsWeb() {
   useEffect(() => {
     if (Platform.OS === 'web') document.title = 'Edit Requests - Admin Access - GatePass';
   }, []);
-
-  useEffect(() => {
-    const loadRequests = async () => {
-      try {
-        setLoading(true);
-        const data = await getRequests({ page: 1, limit: 50, status: 'pending' });
-        const requestsWithUsers = await Promise.all(
-          data.items.map(async (item) => {
-            try {
-              const user = await getUserByIdAdmin(item.resident_id);
-              return {
-                ...item,
-                selected: false,
-                userName:
-                  `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Unknown User',
-                userEmail: user.email || 'N/A',
-              };
-            } catch {
-              return {
-                ...item,
-                selected: false,
-                userName: 'Unknown User',
-                userEmail: 'N/A',
-              };
-            }
-          })
-        );
-        setEditRequests(requestsWithUsers);
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to load edit requests';
-        setMessageType('error');
-        setError(errorMessage);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadRequests();
-  }, []);
-
-  const toggleSelection = (id: string) => {
-    setEditRequests((prev) =>
-      prev.map((request) =>
-        request.id === id ? { ...request, selected: !request.selected } : request
-      )
-    );
-  };
-
-  const toggleSelectAll = () => {
-    const allSelected = editRequests.every((r) => r.selected);
-    setEditRequests((prev) => prev.map((request) => ({ ...request, selected: !allSelected })));
-  };
-
-  const selectedRequests = editRequests.filter((r) => r.selected);
-  const allSelected = editRequests.length > 0 && editRequests.every((r) => r.selected);
-
-  const handleViewDetails = (request: EditRequest) => {
-    setSelectedRequest(request);
-  };
-
-  /**
-   * Approve/decline every selected request. Each one is settled on its own: the ones the server
-   * accepted leave the list even when others fail, and only the failures stay selected for retry.
-   */
-  const processSelected = async (action: 'approve' | 'decline') => {
-    const verb = action === 'approve' ? 'approve' : 'decline';
-    const done = action === 'approve' ? 'approved' : 'declined';
-    if (selectedRequests.length === 0) {
-      setMessageType('error');
-      setError(`Please select at least one request to ${verb}`);
-      return;
-    }
-
-    setRunning(true);
-    setProcessingAction(action === 'approve' ? 'approve-selected' : 'decline-selected');
-    try {
-      const send = action === 'approve' ? approveRequests : declineRequests;
-      const results = await Promise.allSettled(selectedRequests.map((r) => send(r.id)));
-      const succeeded = new Set(
-        selectedRequests.filter((_, i) => results[i].status === 'fulfilled').map((r) => r.id)
-      );
-      const failed = results.length - succeeded.size;
-
-      setEditRequests((prev) => prev.filter((r) => !succeeded.has(r.id)));
-      if (succeeded.size > 0) setSelectedRequest(null);
-
-      if (failed === 0) {
-        setMessageType('success');
-        setError(`${succeeded.size} request(s) ${done} successfully!`);
-        setTimeout(() => {
-          setError('');
-        }, 2000);
-      } else {
-        const firstError = results.find((r) => r.status === 'rejected') as
-          | PromiseRejectedResult
-          | undefined;
-        const reason =
-          firstError?.reason instanceof Error ? ` ${firstError.reason.message.trim()}` : '';
-        setMessageType('error');
-        setError(`${succeeded.size} request(s) ${done}, ${failed} could not be ${done}.${reason}`);
-      }
-    } finally {
-      setRunning(false);
-      setProcessingAction(null);
-    }
-  };
-
-  const handleApproveSelected = () => processSelected('approve');
-  const handleDeclineSelected = () => processSelected('decline');
-
-  const handleApproveFromModal = async () => {
-    if (!selectedRequest) return;
-    setRunning(true);
-    setProcessingAction('approve-modal');
-    try {
-      await approveRequests(selectedRequest.id);
-
-      setMessageType('success');
-      setError('Edit request approved successfully!');
-
-      // Remove the approved request from the list
-      setEditRequests(editRequests.filter((req) => req.id !== selectedRequest.id));
-      setSelectedRequest(null);
-
-      setTimeout(() => {
-        setError('');
-      }, 2000);
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'An error occurred while approving the request';
-      setMessageType('error');
-      setError(errorMessage);
-    } finally {
-      setRunning(false);
-      setProcessingAction(null);
-    }
-  };
-
-  const handleDeclineFromModal = async () => {
-    if (!selectedRequest) return;
-    setRunning(true);
-    setProcessingAction('decline-modal');
-    try {
-      await declineRequests(selectedRequest.id);
-
-      setMessageType('success');
-      setError('Edit request declined successfully!');
-
-      // Remove the declined request from the list
-      setEditRequests(editRequests.filter((req) => req.id !== selectedRequest.id));
-      setSelectedRequest(null);
-
-      setTimeout(() => {
-        setError('');
-      }, 2000);
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'An error occurred while declining the request';
-      setMessageType('error');
-      setError(errorMessage);
-    } finally {
-      setRunning(false);
-      setProcessingAction(null);
-    }
-  };
 
   return (
     <div className="flex h-full w-screen overflow-y-scroll bg-body">
@@ -332,7 +152,7 @@ function EditRequestsWeb() {
                             </td>
                             <td className="py-4 px-4">
                               <button
-                                onClick={() => handleViewDetails(request)}
+                                onClick={() => setSelectedRequest(request)}
                                 className="p-2 hover:bg-gray-200 rounded transition"
                                 title="View"
                               >

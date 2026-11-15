@@ -1,10 +1,6 @@
 import { useCallback } from 'react';
 import { Image, Pressable } from 'react-native';
 import icons from '@/src/shared/constants/icons';
-import {
-  nextPasswordFromMaskedInput,
-  passwordDisplayValue,
-} from '@/src/features/auth/utils/passwordMask';
 
 interface WebPasswordInputProps {
   label: string;
@@ -48,11 +44,11 @@ const WebPasswordInput = ({
       <label className="input-label-web text-left text-sm sm:text-base">{label}</label>
       <div className="relative w-full min-w-0">
         <input
-          type="text"
+          type={show ? 'text' : 'password'}
           placeholder={placeholder}
           className="input-style-web box-border w-full min-w-0 pr-12 text-base"
-          value={passwordDisplayValue(value, show)}
-          onChange={(e) => onChange(nextPasswordFromMaskedInput(value, e.target.value, show))}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
           disabled={disabled}
           ref={inputRef as React.Ref<HTMLInputElement | null>}
           autoComplete="current-password"

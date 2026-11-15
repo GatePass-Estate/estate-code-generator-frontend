@@ -24,11 +24,11 @@ export default function InstitutionResultCard({
       )}
     >
       <View className="flex-1 pr-3">
-        <Text className="font-inter-light text-sm leading-[17px] text-[#0A1F29]">
+        <Text className="font-inter-light text-base leading-[20px] text-[#0A1F29]">
           {estate.name}
         </Text>
         {!!estate.location && (
-          <Text className="mt-0.5 font-inter-regular leading-[14px] text-caption text-[#878686]">
+          <Text className="mt-0.5 font-inter-regular text-sm leading-[18px] text-[#878686]">
             {estate.location}
           </Text>
         )}

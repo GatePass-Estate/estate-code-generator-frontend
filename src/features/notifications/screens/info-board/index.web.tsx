@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useEffect } from 'react';
 import { Platform, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import Back from '@/src/shared/components/navigation/Back';
@@ -6,8 +6,8 @@ import WebSidebar from '@/src/features/dashboard/components/WebSidebar';
 import { getWidthBreakpoint } from '@/src/shared/utils/helpers';
 import { PriorityAlarmIcon } from '@/src/assets/svgs';
 import ActivityIcon from '@/src/features/notifications/components/ActivityIcon';
-import { useInfoBoard, type InfoBoardTab } from '@/src/features/notifications/hooks/useInfoBoard';
-import { useNotificationStore } from '@/src/features/notifications/store/notificationStore';
+import type { InfoBoardTab } from '@/src/features/notifications/hooks/useInfoBoard';
+import { useInfoBoardScreen } from '@/src/features/notifications/hooks/useInfoBoardScreen';
 import {
   isAlertNotification,
   priorityStyle,
@@ -28,28 +28,19 @@ export default function InfoBoardWeb() {
     loading,
     errorMessage,
     busy,
-    readBroadcast,
     removeBroadcast,
     readActivity,
     removeActivity,
     clearCurrentTab,
     hasItems,
-  } = useInfoBoard();
-
-  const broadcastUnread = useNotificationStore((state) => state.broadcastUnread);
-  const activityUnread = useNotificationStore((state) => state.activityUnread);
+    broadcastUnread,
+    activityUnread,
+    openBroadcast,
+  } = useInfoBoardScreen();
 
   useEffect(() => {
     if (Platform.OS === 'web') document.title = 'Info Board - GatePass';
   }, []);
-
-  const openBroadcast = useCallback(
-    (id: string) => {
-      void readBroadcast(id);
-      router.push(`/info-board/${id}`);
-    },
-    [readBroadcast, router]
-  );
 
   return (
     <div className="flex h-full w-screen overflow-y-scroll bg-body">

@@ -42,15 +42,26 @@ type ReportRouter = {
   canGoBack?: () => boolean;
 };
 
+/**
+ * Leave report the Broadcast way when the stack allows: `back()` → previous screen slides in.
+ * Fallback `dismissTo(returnTo)` only when there is nothing to pop (deep link / cold open).
+ * Screens must be opened with `push` on the same stack (e.g. `/admin/report`) for the slide.
+ */
 export function leaveIncidentReport(returnTo: IncidentReportReturnTo, router: ReportRouter): void {
-  if (returnTo === '/admin') {
-    if (router.canGoBack?.()) {
-      router.back?.();
-      return;
-    }
-    router.replace({ pathname: '/admin', params: { returnTo: '/settings' } });
+  if (router.canGoBack?.()) {
+    router.back?.();
     return;
   }
-  // Pop back so Home (and other entry screens) slide in from the left, not as a new push from the right.
   router.dismissTo(returnTo);
+}
+
+/** List + detail live under `/admin/report` when opened from Admin Tools. */
+export function incidentReportPaths(pathname: string): {
+  list: '/admin/report' | '/user/report';
+  detail: '/admin/report/[id]' | '/user/report/[id]';
+} {
+  if (pathname.startsWith('/admin/report')) {
+    return { list: '/admin/report', detail: '/admin/report/[id]' };
+  }
+  return { list: '/user/report', detail: '/user/report/[id]' };
 }

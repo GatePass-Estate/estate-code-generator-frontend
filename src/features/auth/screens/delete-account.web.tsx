@@ -1,42 +1,26 @@
 import { errorMessage as thrownMessage } from '@/src/shared/services/api/errors';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Platform, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import Back from '@/src/shared/components/navigation/Back';
 import WebSidebar from '@/src/features/dashboard/components/WebSidebar';
 import { getWidthBreakpoint } from '@/src/shared/utils/helpers';
-import { deleteAccount } from '@/src/features/users/services/user';
-import { useAuth } from '@/src/features/auth/hooks/useAuthContext';
+import { useDeleteAccount } from '@/src/features/auth/hooks/useDeleteAccount';
 import { menuRoutes } from '@/src/features/dashboard/components/menuRoutes';
 
 export default function DeleteAccountWeb() {
   const router = useRouter();
-  const { signOut } = useAuth();
   const { width } = useWindowDimensions();
   const isLargeScreen = width > getWidthBreakpoint();
 
-  const [understood, setUnderstood] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
+  const { understood, setUnderstood, deleting, error, handleDelete } = useDeleteAccount();
+  const errorMessage = error
+    ? thrownMessage(error) || 'Could not delete account. Please try again later.'
+    : '';
 
   useEffect(() => {
     if (Platform.OS === 'web') document.title = 'Delete Account - GatePass';
   }, []);
-
-  const handleDelete = useCallback(async () => {
-    if (!understood || deleting) return;
-
-    setDeleting(true);
-    setErrorMessage('');
-    try {
-      await deleteAccount();
-      // Closing the account invalidates every session, so drop local auth too.
-      await signOut();
-    } catch (error: unknown) {
-      setErrorMessage(thrownMessage(error) || 'Could not delete account. Please try again later.');
-      setDeleting(false);
-    }
-  }, [understood, deleting, signOut]);
 
   return (
     <div className="flex h-full w-screen overflow-y-scroll bg-body">

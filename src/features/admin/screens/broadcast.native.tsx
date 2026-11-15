@@ -1,74 +1,43 @@
 import { useGoBack } from '@/src/shared/hooks/useGoBack';
 import Back from '@/src/shared/components/navigation/Back';
-import { Toast, ToastType } from '@/src/shared/components/feedback/Toast';
+import { Toast } from '@/src/shared/components/feedback/Toast';
 import OptionSheet, { type OptionSheetItem } from '@/src/features/admin/components/OptionSheet';
 import SelectorField from '@/src/features/admin/components/SelectorField';
 import { sharedStyles } from '@/src/shared/theme/styles';
 import { Stack, useNavigation } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, View } from 'react-native';
 import Button, { BUTTON_MARGIN_BOTTOM } from '@/src/shared/components/Button';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   BroadcastFormData,
-  BroadcastFormErrors,
   DURATIONS,
   PRIORITY_LEVELS,
   USER_TYPES,
   type BroadcastAudienceChoice,
 } from '@/src/features/notifications/types/broadcast';
-import {
-  createBroadcast,
-  isBroadcastEntitlementError,
-} from '@/src/features/notifications/services/broadcast';
-import { userFacingError } from '@/src/shared/services/api/errors';
-import { toCreateBroadcastPayload } from '@/src/features/notifications/utils/broadcastForm';
-import { useFeatureGate } from '@/src/features/billing/hooks/usePlan';
-import { refreshEstateEntitlements } from '@/src/features/billing';
 import { PlanNoticeSlot } from '@/src/features/billing/components/FreePlanNotice';
+import { useBroadcastMobileForm } from '@/src/features/admin/hooks/useBroadcastForm';
+import { audienceSummary, labelFor } from '@/src/features/admin/utils/broadcastForm';
 
 type SheetName = 'userType' | 'priorityLevel' | 'duration' | null;
-
-const INITIAL_FORM: BroadcastFormData = {
-  userType: [],
-  priorityLevel: 'medium',
-  duration: '24_hours',
-  subjectLine: '',
-  bodyText: '',
-};
-
-/** Summarises the multi-select audience for the collapsed field. */
-function audienceSummary(selected: BroadcastAudienceChoice[]): string | null {
-  if (selected.length === 0) return null;
-
-  const allOption = USER_TYPES.find((item) => item.selectsAll);
-  if (allOption && selected.includes(allOption.value as BroadcastAudienceChoice)) {
-    return allOption.label;
-  }
-
-  return USER_TYPES.filter((item) => selected.includes(item.value as BroadcastAudienceChoice))
-    .map((item) => item.label)
-    .join(', ');
-}
-
-function labelFor(items: { label: string; value: string }[], value: string): string | null {
-  return items.find((item) => item.value === value)?.label ?? null;
-}
 
 const BroadcastMobile = () => {
   const goBack = useGoBack();
   const navigation = useNavigation();
-  const [currentStep, setCurrentStep] = useState(1);
-  const [formData, setFormData] = useState<BroadcastFormData>(INITIAL_FORM);
-
-  const [errors, setErrors] = useState<BroadcastFormErrors>({});
-  const [loading, setLoading] = useState(false);
   const [openSheet, setOpenSheet] = useState<SheetName>(null);
-  const broadcastGate = useFeatureGate('admin_broadcast');
-
-  const [toastVisible, setToastVisible] = useState(false);
-  const [toastMessage, setToastMessage] = useState('');
-  const [toastType, setToastType] = useState<ToastType>('success');
+  const {
+    currentStep,
+    formData,
+    errors,
+    loading,
+    updateFormData,
+    backToSettings,
+    handleContinue,
+    noticeProps,
+    toast,
+    hideToast,
+  } = useBroadcastMobileForm({ onSent: goBack });
 
   // Step 2's back gesture returns to step 1 rather than leaving the flow.
   useEffect(() => {
@@ -77,94 +46,12 @@ const BroadcastMobile = () => {
       (e: { preventDefault: () => void }) => {
         if (currentStep !== 2) return;
         e.preventDefault();
-        setCurrentStep(1);
-        setErrors({});
+        backToSettings();
       }
     );
 
     return unsubscribe;
-  }, [navigation, currentStep]);
-
-  const updateFormData = useCallback(
-    <K extends keyof BroadcastFormData>(key: K, value: BroadcastFormData[K]) => {
-      setFormData((prev) => ({ ...prev, [key]: value }));
-      setErrors((prev) => ({ ...prev, [key]: undefined }));
-    },
-    []
-  );
-
-  const validateStep1 = (): boolean => {
-    const newErrors: BroadcastFormErrors = {};
-
-    if (formData.userType.length === 0) newErrors.userType = 'Select at least one type of user';
-    if (!formData.priorityLevel) newErrors.priorityLevel = 'Priority level is required';
-    if (!formData.duration) newErrors.duration = 'Duration is required';
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const validateStep2 = (): boolean => {
-    const newErrors: BroadcastFormErrors = {};
-
-    if (!formData.subjectLine.trim()) newErrors.subjectLine = 'Subject line is required';
-    if (!formData.bodyText.trim()) newErrors.bodyText = 'Body text is required';
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSendBroadcast = async () => {
-    setLoading(true);
-
-    try {
-      // Admin home already checks the plan, but this screen can also be reached directly.
-      if (!(await broadcastGate.requestAccessWhenReady())) return;
-
-      await createBroadcast(toCreateBroadcastPayload(formData));
-
-      setToastMessage('Broadcast sent successfully!');
-      setToastType('success');
-      setToastVisible(true);
-
-      setFormData(INITIAL_FORM);
-      setCurrentStep(1);
-      setErrors({});
-
-      setTimeout(() => goBack(), 1500);
-    } catch (error: unknown) {
-      const raw = error instanceof Error ? error.message : '';
-      const message = userFacingError(error, 'An error occurred while sending broadcast');
-
-      // The server's plan check disagreed with the cached entitlements (e.g. the plan changed
-      // since sign-in): refresh the cache and show the same message the cache would have.
-      if (isBroadcastEntitlementError(raw) || isBroadcastEntitlementError(message)) {
-        refreshEstateEntitlements();
-        broadcastGate.showDenied();
-        return;
-      }
-
-      setToastMessage(message);
-      setToastType('error');
-      setToastVisible(true);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleContinue = () => {
-    if (currentStep === 1) {
-      if (validateStep1()) {
-        setCurrentStep(2);
-        setErrors({});
-      }
-      return;
-    }
-
-    if (validateStep2()) {
-      void handleSendBroadcast();
-    }
-  };
+  }, [navigation, currentStep, backToSettings]);
 
   const sheetConfig = useMemo(() => {
     if (openSheet === 'userType') {
@@ -211,12 +98,7 @@ const BroadcastMobile = () => {
         {currentStep === 1 ? 'Set Broadcast' : 'Send a broadcast'}
       </Text>
 
-      <Toast
-        message={toastMessage}
-        type={toastType}
-        visible={toastVisible}
-        onHide={() => setToastVisible(false)}
-      />
+      <Toast message={toast.message} type={toast.type} visible={toast.visible} onHide={hideToast} />
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -293,7 +175,7 @@ const BroadcastMobile = () => {
           )}
         </ScrollView>
 
-        <PlanNoticeSlot {...broadcastGate.noticeProps}>
+        <PlanNoticeSlot {...noticeProps}>
           <View className="items-center" style={{ marginBottom: BUTTON_MARGIN_BOTTOM }}>
             <Button
               label={currentStep === 1 ? 'Continue' : 'Send Broadcast'}

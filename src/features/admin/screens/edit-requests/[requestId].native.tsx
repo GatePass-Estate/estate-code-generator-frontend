@@ -1,22 +1,7 @@
-import { useGoBack } from '@/src/shared/hooks/useGoBack';
 import Back from '@/src/shared/components/navigation/Back';
-import { Toast, ToastType } from '@/src/shared/components/feedback/Toast';
-import {
-  getRequestById,
-  approveRequests,
-  declineRequests,
-} from '@/src/features/admin/services/requests';
-import { getUserById } from '@/src/features/users/services/user';
-import {
-  getPendingDocumentViewUri,
-  getUserDocuments,
-  getUserDocumentViewUri,
-} from '@/src/features/profile/services/userDocuments';
+import { Toast } from '@/src/shared/components/feedback/Toast';
 import { sharedStyles } from '@/src/shared/theme/styles';
-import { RequestItem } from '@/src/features/admin/types/requests';
-import { User } from '@/src/features/users/types/user';
 import { Stack, useLocalSearchParams } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
 import {
   Image,
   Modal,
@@ -31,37 +16,7 @@ import { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import IdDocumentPreview from '@/src/features/profile/components/IdDocumentPreview';
-
-type IdPreview = { uri: string; contentType: string } | null;
-
-async function loadIdPreviews(userId: string): Promise<{
-  current: IdPreview;
-  pending: IdPreview;
-}> {
-  const { documents } = await getUserDocuments(userId, 'id_card', ['active', 'pending']);
-  const active = documents.find(
-    (document) => document.document_type === 'id_card' && document.document_status === 'active'
-  );
-  const pending = documents.find(
-    (document) =>
-      document.document_type === 'id_card' &&
-      document.document_status === 'pending' &&
-      document.document_id
-  );
-  const [current, next] = await Promise.all([
-    active
-      ? getUserDocumentViewUri(userId, 'id_card', active.content_type)
-          .then((uri) => ({ uri, contentType: active.content_type }))
-          .catch(() => null)
-      : Promise.resolve(null),
-    pending?.document_id
-      ? getPendingDocumentViewUri(pending.document_id, pending.content_type)
-          .then((uri) => ({ uri, contentType: pending.content_type }))
-          .catch(() => null)
-      : Promise.resolve(null),
-  ]);
-  return { current, pending: next };
-}
+import { useEditRequestDetail } from '@/src/features/admin/hooks/useEditRequestDetail';
 
 const ComparisonRow = ({ label, value }: { label: string; value: string }) => (
   <View
@@ -105,142 +60,27 @@ const ComparisonRow = ({ label, value }: { label: string; value: string }) => (
 );
 
 export default function EditSingleRequestMobile() {
-  const goBack = useGoBack();
   const { requestId } = useLocalSearchParams();
-  const [loading, setLoading] = useState(true);
-  const [processing, setProcessing] = useState(false);
-  const [processingAction, setProcessingAction] = useState<'approve' | 'decline' | null>(null);
-  // Set once the request is approved/declined: the buttons stay disabled until we navigate back,
-  // and the delayed back is cancelled if the admin leaves first (no double pop).
-  const [done, setDone] = useState(false);
-  const backTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(
-    () => () => {
-      if (backTimerRef.current) clearTimeout(backTimerRef.current);
-    },
-    []
-  );
-  const [error, setError] = useState<string | null>(null);
-  const [requestData, setRequestData] = useState<RequestItem | null>(null);
-  const [requestingUser, setRequestingUser] = useState<User | null>(null);
-  const [currentId, setCurrentId] = useState<IdPreview>(null);
-  const [newId, setNewId] = useState<IdPreview>(null);
-  const [previewId, setPreviewId] = useState<'current' | 'new' | null>(null);
-  const [toastVisible, setToastVisible] = useState(false);
-  const [toastMessage, setToastMessage] = useState('');
-  const [toastType, setToastType] = useState<ToastType>('success');
-  const selectedId = previewId === 'current' ? currentId : previewId === 'new' ? newId : null;
-
-  useEffect(() => {
-    const loadRequest = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await getRequestById(requestId as string);
-
-        if (!data) {
-          setError('Edit request not found');
-        } else {
-          setRequestData(data);
-          if (data.request_type === 'id_change') {
-            try {
-              const previews = await loadIdPreviews(data.resident_id);
-              setCurrentId(previews.current);
-              setNewId(previews.pending);
-            } catch {
-              setCurrentId(null);
-              setNewId(null);
-            }
-          }
-          try {
-            const user = await getUserById(data.resident_id);
-            setRequestingUser(user);
-          } catch {
-            setRequestingUser(null);
-          }
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load edit request');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadRequest();
-  }, [requestId]);
-
-  const handleApprove = async () => {
-    if (!requestData?.new_value) {
-      setToastMessage('Cannot approve request: new value is missing');
-      setToastType('error');
-      setToastVisible(true);
-      return;
-    }
-
-    setProcessing(true);
-    setProcessingAction('approve');
-
-    try {
-      const response = await approveRequests(requestId as string);
-
-      if (response && response.id) {
-        setToastMessage('Edit request approved successfully!');
-        setToastType('success');
-        setToastVisible(true);
-        setDone(true);
-
-        backTimerRef.current = setTimeout(() => {
-          goBack();
-        }, 1500);
-      } else {
-        setToastMessage('Failed to approve request. Please try again.');
-        setToastType('error');
-        setToastVisible(true);
-      }
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'An error occurred while approving request';
-      setToastMessage(errorMessage);
-      setToastType('error');
-      setToastVisible(true);
-    } finally {
-      setProcessing(false);
-      setProcessingAction(null);
-    }
-  };
-
-  const handleDecline = async () => {
-    setProcessing(true);
-    setProcessingAction('decline');
-
-    try {
-      const response = await declineRequests(requestId as string);
-
-      if (response && response.id) {
-        setToastMessage('Edit request declined successfully!');
-        setToastType('success');
-        setToastVisible(true);
-        setDone(true);
-
-        backTimerRef.current = setTimeout(() => {
-          goBack();
-        }, 1500);
-      } else {
-        setToastMessage('Failed to decline request. Please try again.');
-        setToastType('error');
-        setToastVisible(true);
-      }
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'An error occurred while declining request';
-      setToastMessage(errorMessage);
-      setToastType('error');
-      setToastVisible(true);
-    } finally {
-      setProcessing(false);
-      setProcessingAction(null);
-    }
-  };
+  const {
+    loading,
+    error,
+    retry,
+    requestData,
+    requestingUser,
+    currentId,
+    newId,
+    markCurrentIdBroken,
+    markNewIdBroken,
+    setPreviewId,
+    selectedId,
+    processing,
+    processingAction,
+    done,
+    handleApprove,
+    handleDecline,
+    toast,
+    hideToast,
+  } = useEditRequestDetail(typeof requestId === 'string' ? requestId : undefined);
 
   return (
     <SafeAreaView
@@ -278,12 +118,7 @@ export default function EditSingleRequestMobile() {
         Edit Request
       </Text>
 
-      <Toast
-        message={toastMessage}
-        type={toastType}
-        visible={toastVisible}
-        onHide={() => setToastVisible(false)}
-      />
+      <Toast message={toast.message} type={toast.type} visible={toast.visible} onHide={hideToast} />
 
       {loading ? (
         <View className="flex-1 justify-center items-center">
@@ -296,44 +131,7 @@ export default function EditSingleRequestMobile() {
               Error Loading Request
             </Text>
             <Text className="text-red-600 text-center mb-4">{error}</Text>
-            <TouchableOpacity
-              className="bg-red-600 px-6 py-2 rounded-lg"
-              onPress={() => {
-                const loadRequest = async () => {
-                  try {
-                    setLoading(true);
-                    setError(null);
-                    const data = await getRequestById(requestId as string);
-                    if (data) {
-                      setRequestData(data);
-                      if (data.request_type === 'id_change') {
-                        try {
-                          const previews = await loadIdPreviews(data.resident_id);
-                          setCurrentId(previews.current);
-                          setNewId(previews.pending);
-                        } catch {
-                          setCurrentId(null);
-                          setNewId(null);
-                        }
-                      }
-                      try {
-                        const user = await getUserById(data.resident_id);
-                        setRequestingUser(user);
-                      } catch {
-                        setRequestingUser(null);
-                      }
-                    } else {
-                      setError('Edit request not found');
-                    }
-                  } catch (err) {
-                    setError(err instanceof Error ? err.message : 'Failed to load edit request');
-                  } finally {
-                    setLoading(false);
-                  }
-                };
-                loadRequest();
-              }}
-            >
+            <TouchableOpacity className="bg-red-600 px-6 py-2 rounded-lg" onPress={retry}>
               <Text className="text-white font-ubuntu-semibold">Retry</Text>
             </TouchableOpacity>
           </View>
@@ -398,7 +196,7 @@ export default function EditSingleRequestMobile() {
                     source={{ uri: currentId.uri }}
                     resizeMode="cover"
                     style={{ height: '100%', width: '100%' }}
-                    onError={() => setCurrentId(null)}
+                    onError={markCurrentIdBroken}
                   />
                 ) : (
                   <Feather name="credit-card" size={40} color="#C8CECE" />
@@ -447,7 +245,7 @@ export default function EditSingleRequestMobile() {
                     source={{ uri: newId.uri }}
                     resizeMode="cover"
                     style={{ height: '100%', width: '100%' }}
-                    onError={() => setNewId(null)}
+                    onError={markNewIdBroken}
                   />
                 ) : (
                   <Feather name="credit-card" size={40} color="#C8CECE" />

@@ -1,67 +1,15 @@
-import { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import Back from '@/src/shared/components/navigation/Back';
 import { sharedStyles } from '@/src/shared/theme/styles';
-import { errorMessage as thrownMessage } from '@/src/shared/services/api/errors';
-import { getBroadcast, markBroadcastRead } from '@/src/features/notifications/services/broadcast';
-import { useNotificationStore } from '@/src/features/notifications/store/notificationStore';
-import { useUserStore } from '@/src/store/userStore';
-import {
-  addLocallyReadBroadcasts,
-  markBroadcastOpened,
-} from '@/src/features/notifications/utils/readBroadcasts';
+import { useBroadcastDetail } from '@/src/features/notifications/hooks/useBroadcastDetail';
 import { formatSentDate } from '@/src/features/notifications/utils/broadcastStyle';
-import type { BroadcastItem } from '@/src/features/notifications/types/broadcast';
 
 export default function BroadcastDetailScreen() {
   const { broadcastId } = useLocalSearchParams<{ broadcastId?: string }>();
-  const refreshCounts = useNotificationStore((state) => state.refreshCounts);
-  const userId = useUserStore((state) => state.user_id);
-
-  const [broadcast, setBroadcast] = useState<BroadcastItem | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState('');
-
-  const load = useCallback(async () => {
-    if (!broadcastId) return;
-
-    setLoading(true);
-    setErrorMessage('');
-    try {
-      const item = await getBroadcast(broadcastId);
-      setBroadcast(item);
-
-      // Opening the message counts as reading it; the list may have navigated
-      // here without marking it (e.g. a deep link).
-      if (!item.is_read) {
-        // Recorded locally too: the list endpoint under-reports is_read.
-        void addLocallyReadBroadcasts(userId, broadcastId);
-
-        try {
-          await markBroadcastRead(broadcastId);
-          void refreshCounts();
-        } catch {
-          // Reading is best-effort — never block showing the message.
-        }
-      }
-    } catch (error: unknown) {
-      setErrorMessage(thrownMessage(error) || 'Could not load this message.');
-    } finally {
-      setLoading(false);
-    }
-  }, [broadcastId, refreshCounts, userId]);
-
-  // Before the fetch, so the popup never shows this message over its own page.
-  useEffect(() => {
-    if (broadcastId) markBroadcastOpened(broadcastId);
-  }, [broadcastId]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
+  const { broadcast, loading, errorMessage, reload } = useBroadcastDetail(broadcastId);
 
   return (
     <SafeAreaView
@@ -79,7 +27,7 @@ export default function BroadcastDetailScreen() {
           <Text className="text-danger font-inter-regular text-sm text-center mb-4">
             {errorMessage}
           </Text>
-          <Pressable onPress={load} className="px-5 py-3 rounded-[24px] bg-primary">
+          <Pressable onPress={reload} className="px-5 py-3 rounded-[24px] bg-primary">
             <Text className="text-white font-ubuntu-semibold text-sm">Try again</Text>
           </Pressable>
         </View>

@@ -12,13 +12,11 @@ import {
 import { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Stack, router } from 'expo-router';
-import * as Clipboard from 'expo-clipboard';
 import BrandedQRCode from '@/src/shared/components/BrandedQRCode';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Back from '@/src/shared/components/navigation/Back';
 import { sharedStyles } from '@/src/shared/theme/styles';
 import { useTwoFactorSetup } from '@/src/features/auth/hooks/useTwoFactorSetup';
-import { setPendingRecoveryCodes } from '@/src/features/auth/services/recoveryCodes';
 
 export default function TwoFactorSetupScreen() {
   const insets = useSafeAreaInsets();
@@ -26,30 +24,20 @@ export default function TwoFactorSetupScreen() {
     provisioningUri,
     secret,
     code,
-    setCode,
+    changeCode,
+    copySecret,
     loading,
     activating,
     alreadyEnabled,
     errorMessage,
-    activate,
+    activateAndShowRecoveryCodes,
     retry,
   } = useTwoFactorSetup();
 
-  const handleCopySecret = useCallback(async () => {
-    if (!secret) return;
-    await Clipboard.setStringAsync(secret);
-  }, [secret]);
-
   const handleActivate = useCallback(async () => {
     Keyboard.dismiss();
-    const recoveryCodes = await activate();
-    if (!recoveryCodes) return;
-
-    // Hand the codes to the recovery screen out-of-band: they are shown once
-    // and must not sit in navigation params/history.
-    setPendingRecoveryCodes(recoveryCodes);
-    router.replace('/account-security/recovery-codes');
-  }, [activate]);
+    await activateAndShowRecoveryCodes();
+  }, [activateAndShowRecoveryCodes]);
 
   const showActivateBar = !loading && !alreadyEnabled && !!provisioningUri;
 
@@ -118,7 +106,7 @@ export default function TwoFactorSetupScreen() {
                 />
 
                 <Pressable
-                  onPress={handleCopySecret}
+                  onPress={copySecret}
                   className="flex-row items-center gap-2 mt-5 active:opacity-70"
                 >
                   <Text className="text-[#3E424E] font-roboto-regular text-sm tracking-[1px]">
@@ -130,7 +118,7 @@ export default function TwoFactorSetupScreen() {
 
               <TextInput
                 value={code}
-                onChangeText={(next) => setCode(next.replace(/[^0-9]/g, '').slice(0, 6))}
+                onChangeText={changeCode}
                 placeholder="Enter Code in your Authenticator App"
                 placeholderTextColor="#878686"
                 keyboardType="number-pad"

@@ -9,6 +9,10 @@ export const queryKeys = {
   auth: {
     verifyEmailActivationToken: (token: string) =>
       ['verify-email-activation-token', token] as const,
+    /** Whether TOTP is on for this user (read-only; enabling/disabling stay service calls). */
+    twoFactorStatus: (userId: string) => ['auth', 'two-factor-status', userId] as const,
+    /** Signed-in devices (Linked Devices). */
+    sessions: () => ['auth', 'sessions'] as const,
   },
   billing: {
     all: ['billing'] as const,
@@ -51,6 +55,8 @@ export const queryKeys = {
       ['anomaly', 'case-summary', estateId, predictionId] as const,
     caseResults: (estateId: string, predictionId: string, fromDate?: string, toDate?: string) =>
       ['anomaly', 'case-results', estateId, predictionId, fromDate, toDate] as const,
+    /** Profile photo shown on the anomaly user overview. */
+    userPicture: (userId: string) => ['anomaly', 'user-picture', userId] as const,
   },
   incidents: {
     all: ['incident-reports'] as const,
@@ -104,5 +110,18 @@ export const queryKeys = {
     all: ['marketplace'] as const,
     list: (params?: unknown) => ['marketplace', 'list', params] as const,
     detail: (id: string) => ['marketplace', 'detail', id] as const,
+  },
+  admin: {
+    all: ['admin'] as const,
+    /** Desktop Admin Access table — one page at a time. Under `estate-users` so user changes refresh it. */
+    usersTable: (estateId: string, page: number, limit: number) =>
+      ['estate-users', 'table', estateId, page, limit] as const,
+    estate: (estateId: string) => ['admin', 'estate', estateId] as const,
+    household: (householdId: string) => ['admin', 'household', householdId] as const,
+    /** Current + pending ID previews for an ID edit request. */
+    idPreviews: (userId: string) => ['admin', 'id-previews', userId] as const,
+    /** A user's profile picture / ID card as shown on the admin user profile. */
+    userDocument: (userId: string, documentType: string) =>
+      ['admin', 'user-document', userId, documentType] as const,
   },
 };

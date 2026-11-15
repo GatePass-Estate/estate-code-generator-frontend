@@ -1,5 +1,5 @@
 import { useGoBack } from '@/src/shared/hooks/useGoBack';
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useRef, useEffect } from 'react';
 import BottomSheet from '@/src/shared/components/feedback/BottomSheet';
 import {
   View,
@@ -26,50 +26,40 @@ import { sharedStyles } from '@/src/shared/theme/styles';
 import StarRating from '@/src/shared/components/StarRating';
 import { GatePassLogo } from '@/src/features/support/components/GatePassLogo';
 import { DeviconStarshipIcon } from '@/src/assets/svgs';
-import { errorMessage } from '@/src/shared/services/api/errors';
-import { submitFeedback } from '@/src/features/support/services/help';
-import { uploadFeedbackAttachment } from '@/src/features/support/services/feedbackAttachment';
-
-type Tab = 'Suggestion' | 'Issue';
-
-/** The feedback payload carries one `attachment_url`. */
-const MAX_ATTACHMENTS = 1;
-
-const EXTENSION_MIME: Record<string, string> = {
-  jpg: 'image/jpeg',
-  jpeg: 'image/jpeg',
-  png: 'image/png',
-  gif: 'image/gif',
-  webp: 'image/webp',
-  heic: 'image/heic',
-  heif: 'image/heif',
-};
-
-/** Multipart file part for a picked image, using the picker's type/name when it has them. */
-function attachmentFile(asset: ImagePicker.ImagePickerAsset) {
-  const fromUri = asset.uri.split(/[?#]/)[0].split('/').pop() || '';
-  const name = asset.fileName || fromUri || 'upload.jpg';
-  const extension = name.includes('.') ? (name.split('.').pop() ?? '').toLowerCase() : '';
-  // Without a picker type or a known extension, fall back to JPEG (the picker's default output).
-  const type = asset.mimeType || EXTENSION_MIME[extension] || 'image/jpeg';
-  return { uri: asset.uri, type, name: extension ? name : `${name}.jpg` };
-}
+import { useFeedbackForm } from '@/src/features/support/hooks/useFeedbackForm';
+import { MAX_ATTACHMENTS, attachmentFile } from '@/src/features/support/utils/feedbackForm';
 
 export default function RatingFeedbackNative() {
   const goBack = useGoBack();
-  const [activeTab, setActiveTab] = useState<Tab>('Suggestion');
-  const [suggestionStep, setSuggestionStep] = useState(1);
-  const [showExitModal, setShowExitModal] = useState(false);
-
-  // Form Data
-  const [issueText, setIssueText] = useState('');
-  const [rating, setRating] = useState(3);
-  const [likeMost, setLikeMost] = useState('');
-  const [improve, setImprove] = useState('');
-  // The feedback payload has a single `attachment_url`, so only one image can be attached.
-  const [images, setImages] = useState<ImagePicker.ImagePickerAsset[]>([]);
-
-  const [isLoading, setIsLoading] = useState(false);
+  const {
+    activeTab,
+    selectTab,
+    suggestionStep,
+    showExitModal,
+    setShowExitModal,
+    issueText,
+    setIssueText,
+    rating,
+    setRating,
+    likeMost,
+    setLikeMost,
+    improve,
+    setImprove,
+    attachment,
+    setAttachment,
+    isLoading,
+    handleBackPress,
+    handleConfirmExit,
+    submitIssue,
+    nextOrSubmitSuggestion,
+  } = useFeedbackForm<ImagePicker.ImagePickerAsset>({
+    initialRating: 3,
+    exit: goBack,
+    goHome: () => router.dismissTo('/user'),
+    showError: (message) => Alert.alert('Error', message),
+    toUploadFile: attachmentFile,
+  });
+  const images = attachment ? [attachment] : [];
 
   const panY = useRef(new Animated.Value(0)).current;
 
@@ -109,35 +99,8 @@ export default function RatingFeedbackNative() {
     });
 
     if (!result.canceled && result.assets[0]) {
-      setImages([result.assets[0]]);
+      setAttachment(result.assets[0]);
     }
-  };
-
-  const hasData = () => {
-    return issueText.trim() !== '' || rating > 0 || likeMost.trim() !== '' || improve.trim() !== '';
-  };
-
-  const handleBackPress = () => {
-    if (suggestionStep === 4) {
-      router.dismissTo('/user');
-      return;
-    }
-
-    if (activeTab === 'Suggestion' && suggestionStep > 1) {
-      setSuggestionStep(suggestionStep - 1);
-      return;
-    }
-
-    if (hasData()) {
-      setShowExitModal(true);
-    } else {
-      goBack();
-    }
-  };
-
-  const handleConfirmExit = () => {
-    setShowExitModal(false);
-    goBack();
   };
 
   const renderTabs = () => (
@@ -148,10 +111,7 @@ export default function RatingFeedbackNative() {
         { value: 'Issue', label: 'Issue' },
       ]}
       value={activeTab}
-      onChange={(tab) => {
-        setActiveTab(tab);
-        setSuggestionStep(1);
-      }}
+      onChange={selectTab}
       width={260}
       activeWidth={130}
     />
@@ -173,13 +133,10 @@ export default function RatingFeedbackNative() {
           textAlignVertical="top"
         />
         <View style={styles.imagesContainer}>
-          {images.map((asset, index) => (
+          {images.map((asset) => (
             <View key={asset.uri} style={styles.imagePreviewWrapper}>
               <Image source={{ uri: asset.uri }} style={styles.imagePreview} />
-              <TouchableOpacity
-                style={styles.removeImageBtn}
-                onPress={() => setImages(images.filter((_, i) => i !== index))}
-              >
+              <TouchableOpacity style={styles.removeImageBtn} onPress={() => setAttachment(null)}>
                 <Icon name="close-circle" size={20} color="#FF3B30" />
               </TouchableOpacity>
             </View>
@@ -199,34 +156,7 @@ export default function RatingFeedbackNative() {
 
       <TouchableOpacity
         style={[styles.submitButton, isLoading && { opacity: 0.7 }]}
-        onPress={async () => {
-          setIsLoading(true);
-          try {
-            let uploadedUrl = '';
-
-            if (images.length > 0) {
-              uploadedUrl = await uploadFeedbackAttachment(
-                attachmentFile(images[0]) as unknown as Blob
-              );
-            }
-
-            await submitFeedback({
-              feedback_type: 'issue',
-              rating: 1,
-              liked: '',
-              improvement: '',
-              description: issueText,
-              attachment_url: uploadedUrl,
-            });
-            setSuggestionStep(4);
-            setActiveTab('Suggestion');
-            setImages([]);
-          } catch (error: unknown) {
-            Alert.alert('Error', errorMessage(error) || 'Failed to submit feedback');
-          } finally {
-            setIsLoading(false);
-          }
-        }}
+        onPress={submitIssue}
         disabled={!issueText.trim() || isLoading}
       >
         {isLoading ? (
@@ -319,28 +249,7 @@ export default function RatingFeedbackNative() {
           <TouchableOpacity
             style={[styles.nextStepButton, isLoading && { opacity: 0.7 }]}
             disabled={isLoading}
-            onPress={async () => {
-              if (suggestionStep === 3) {
-                setIsLoading(true);
-                try {
-                  await submitFeedback({
-                    feedback_type: 'suggestion',
-                    rating: rating,
-                    liked: likeMost,
-                    improvement: improve,
-                    description: '',
-                    attachment_url: '',
-                  });
-                  setSuggestionStep(4);
-                } catch (error: unknown) {
-                  Alert.alert('Error', errorMessage(error) || 'Failed to submit feedback');
-                } finally {
-                  setIsLoading(false);
-                }
-              } else {
-                setSuggestionStep(suggestionStep + 1);
-              }
-            }}
+            onPress={nextOrSubmitSuggestion}
           >
             {isLoading ? (
               <CircleLoader size={22} tone="light" />

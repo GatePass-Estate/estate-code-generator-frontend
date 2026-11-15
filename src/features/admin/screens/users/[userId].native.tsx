@@ -1,16 +1,6 @@
-import { useGoBack } from '@/src/shared/hooks/useGoBack';
 import Back from '@/src/shared/components/navigation/Back';
-import {
-  getUserByIdAdmin,
-  promoteToAdmin,
-  demoteToResident,
-  resendEmailVerification,
-  deleteUser,
-  deactivateUser,
-} from '@/src/features/users/services/user';
 import { sharedStyles } from '@/src/shared/theme/styles';
 import { Stack, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
 import {
   Image,
   Modal,
@@ -23,439 +13,61 @@ import {
 } from 'react-native';
 import { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { User } from '@/src/features/users/types/user';
 import HouseholdSelectorSheet from '@/src/features/admin/components/HouseholdSelectorSheet';
-import { getHouseholdById, transferUserHousehold } from '@/src/features/admin/services/households';
-import { transferPrimaryAdmin } from '@/src/features/admin/services/estate';
-import type { Household } from '@/src/features/admin/types/household';
-import { getUserDocuments } from '@/src/features/profile/services/userDocuments';
-import {
-  canChangeAdminRole,
-  hasApprovedIdDocument,
-  PROMOTE_REQUIRES_APPROVED_ID_MESSAGE,
-} from '@/src/features/admin/utils/roleChange';
-import {
-  getCachedUserDocument,
-  loadUserDocument,
-  removeCachedUserDocument,
-} from '@/src/features/profile/services/userDocumentCache';
 import { Feather } from '@expo/vector-icons';
 import IdDocumentPreview from '@/src/features/profile/components/IdDocumentPreview';
 import ResidentProfileFallback from '@/src/assets/icons/user-profile-placeholder.svg';
 import PrimaryAdminPromotionIcon from '@/src/assets/icons/primary-admin-promotion.svg';
 import AlertIcon from '@/src/assets/icons/alert.svg';
 import PromptModal from '@/src/shared/components/feedback/PromptModal';
-import { useAuthStore } from '@/src/features/auth/store/authStore';
-import { useUserStore } from '@/src/store/userStore';
-import { useAuth } from '@/src/features/auth/hooks/useAuthContext';
-import { userFacingError, errorStatus } from '@/src/shared/services/api/errors';
-import { queryClient } from '@/src/shared/services/api/queryClient';
-import { queryKeys } from '@/src/shared/services/api/queryKeys';
-
-type DocumentLoadState = 'loading' | 'loaded' | 'missing' | 'pending' | 'error';
-
-const emptyUser = (id: string): User => ({
-  first_name: '',
-  last_name: '',
-  home_address: '',
-  estate_name: '',
-  email: '',
-  phone_number: '',
-  user_id: id,
-  estate_id: '',
-  role: 'resident',
-  gender: null,
-  status: false,
-});
+import { useAdminUserProfile } from '@/src/features/admin/hooks/useAdminUserProfile';
 
 export default function SingleUserMobile() {
-  const goBack = useGoBack();
-  const { signOut } = useAuth();
-  const viewerRole = useAuthStore((state) => state.role);
-  const viewerUserId = useUserStore((state) => state.user_id);
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
-  // SEC-21 / PERF-19: pass ID only — never trust a user JSON blob from the route.
   const { userId } = useLocalSearchParams();
-  const cachedPicture =
-    typeof userId === 'string' ? getCachedUserDocument(userId, 'profile_picture') : null;
-  const cachedIdentification =
-    typeof userId === 'string' ? getCachedUserDocument(userId, 'id_card') : null;
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [deactivating, setDeactivating] = useState(false);
-  const [processing, setProcessing] = useState(false);
-  const [actionError, setActionError] = useState('');
-  const [promotionError, setPromotionError] = useState('');
-  const [pendingAction, setPendingAction] = useState<
-    'deactivate' | 'promote' | 'demote' | 'transferPrimary' | null
-  >(null);
-  const [showHouseholdSelector, setShowHouseholdSelector] = useState(false);
-  const [transferringHousehold, setTransferringHousehold] = useState(false);
-  const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(
-    cachedPicture?.uri ?? null
-  );
-  const [profilePictureState, setProfilePictureState] = useState<DocumentLoadState>(
-    cachedPicture ? 'loaded' : 'loading'
-  );
-  const [identificationExpanded, setIdentificationExpanded] = useState(true);
-  const [identificationUri, setIdentificationUri] = useState<string | null>(
-    cachedIdentification?.uri ?? null
-  );
-  const [identificationContentType, setIdentificationContentType] = useState<string | null>(
-    cachedIdentification?.contentType ?? null
-  );
-  const [identificationState, setIdentificationState] = useState<DocumentLoadState>(
-    cachedIdentification ? 'loaded' : 'loading'
-  );
-  const [userData, setUserData] = useState<User>(
-    emptyUser(typeof userId === 'string' ? userId : '')
-  );
-
-  const loadUser = useCallback(async () => {
-    try {
-      setError(null);
-      setLoading(true);
-      if (typeof userId !== 'string' || !userId) {
-        setError('User not found');
-        setUserData(emptyUser(''));
-        return;
-      }
-      try {
-        const resident = await getUserByIdAdmin(userId);
-        setUserData(resident);
-        setIdentificationExpanded(resident.role === 'resident');
-        queryClient.setQueryData(queryKeys.users.byIdAdmin(userId), resident);
-        return;
-      } catch (error) {
-        // `/users/profile/{id}` 404s inactive users — use the All Users row we cached on tap.
-        const cached = queryClient.getQueryData<User>(queryKeys.users.byIdAdmin(userId));
-        if (cached && (errorStatus(error) === 404 || errorStatus(error) === 403)) {
-          setUserData({
-            ...emptyUser(userId),
-            ...cached,
-            user_id: cached.user_id || userId,
-            id: cached.id || userId,
-          });
-          setIdentificationExpanded(cached.role === 'resident');
-          return;
-        }
-        throw error;
-      }
-    } catch (error) {
-      setError(userFacingError(error, 'Failed to load user data'));
-    } finally {
-      setLoading(false);
-    }
-  }, [userId]);
-  const isVerifiedProfile =
-    userData.status &&
-    (userData.role === 'resident' ||
-      userData.role === 'security' ||
-      userData.role === 'admin' ||
-      userData.role === 'primary_admin');
-  const isAdminProfile = userData.status && userData.role === 'admin';
-  const showRoleAction = canChangeAdminRole(viewerRole, userData.role);
-  const isOwnProfile = Boolean(
-    viewerUserId &&
-    (viewerUserId === userData.user_id || viewerUserId === userData.id || viewerUserId === userId)
-  );
-  const canTransferPrimary = isAdminProfile && viewerRole === 'primary_admin' && !isOwnProfile;
-  const hideProfileActions =
-    (isOwnProfile && (viewerRole === 'primary_admin' || viewerRole === 'admin')) ||
-    (userData.role === 'primary_admin' && viewerRole === 'admin');
-  const verifiedRoleLabel =
-    userData.role === 'security'
-      ? 'Security'
-      : userData.role === 'admin' || userData.role === 'primary_admin'
-        ? 'Admin'
-        : 'Resident';
+  const {
+    loading,
+    error,
+    retry,
+    userData,
+    isVerifiedProfile,
+    isAdminProfile,
+    showRoleAction,
+    canTransferPrimary,
+    hideProfileActions,
+    verifiedRoleLabel,
+    identificationExpanded,
+    toggleIdentification,
+    picture,
+    identification,
+    deactivating,
+    processing,
+    actionError,
+    promotionError,
+    clearPromotionError,
+    pendingAction,
+    setPendingAction,
+    confirmationCopy,
+    confirmProfileAction,
+    showHouseholdSelector,
+    setShowHouseholdSelector,
+    transferringHousehold,
+    handleHouseholdTransfer,
+    handleResendEmail,
+    handleDeleteUser,
+  } = useAdminUserProfile(userId);
+  const { uri: profilePictureUrl, state: profilePictureState } = picture;
+  const {
+    uri: identificationUri,
+    contentType: identificationContentType,
+    state: identificationState,
+  } = identification;
   const profileContentWidth = screenWidth - 40;
   const identificationPreviewWidth = profileContentWidth * (211 / 335);
   const identificationPreviewHeight = identificationPreviewWidth * (138.18 / 211);
   const identificationExpandedHeight = 52 + identificationPreviewHeight + 11.82;
   const residentActionScale = profileContentWidth / 335;
-
-  useEffect(() => {
-    void loadUser();
-  }, [loadUser]);
-
-  useEffect(() => {
-    if (!userData.household_id || userData.household_name) return;
-
-    let active = true;
-    const householdId = userData.household_id;
-    void getHouseholdById(householdId)
-      .then((household) => {
-        if (active) {
-          setUserData((current) =>
-            current.household_id === householdId
-              ? { ...current, household_name: household.name }
-              : current
-          );
-        }
-      })
-      .catch(() => undefined);
-
-    return () => {
-      active = false;
-    };
-  }, [userData.household_id, userData.household_name]);
-
-  useEffect(() => {
-    if (!isVerifiedProfile || !userId) {
-      setProfilePictureUrl(null);
-      setProfilePictureState('missing');
-      return;
-    }
-
-    let active = true;
-    const cached = getCachedUserDocument(userId as string, 'profile_picture');
-    setProfilePictureUrl(cached?.uri ?? null);
-    setProfilePictureState(cached ? 'loaded' : 'loading');
-
-    void getUserDocuments(userId as string, 'profile_picture', ['active', 'pending'])
-      .then(async ({ documents }) => {
-        const profilePicture = documents.find(
-          (document) =>
-            document.document_type === 'profile_picture' && document.document_status === 'active'
-        );
-        const pendingPicture = documents.find(
-          (document) =>
-            document.document_type === 'profile_picture' && document.document_status === 'pending'
-        );
-
-        if (!profilePicture) {
-          if (active) {
-            removeCachedUserDocument(userId as string, 'profile_picture');
-            setProfilePictureUrl(null);
-            setProfilePictureState(pendingPicture ? 'pending' : 'missing');
-          }
-          return;
-        }
-
-        const document = await loadUserDocument(
-          userId as string,
-          'profile_picture',
-          profilePicture
-        );
-        if (active) {
-          setProfilePictureUrl(document.uri);
-          setProfilePictureState('loaded');
-        }
-      })
-      .catch(() => {
-        if (active) {
-          setProfilePictureState(cached ? 'loaded' : 'error');
-        }
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [isVerifiedProfile, userId]);
-
-  useEffect(() => {
-    if (!isVerifiedProfile || !identificationExpanded || !userId) return;
-
-    let active = true;
-    const cached = getCachedUserDocument(userId as string, 'id_card');
-    setIdentificationUri(cached?.uri ?? null);
-    setIdentificationContentType(cached?.contentType ?? null);
-    setIdentificationState(cached ? 'loaded' : 'loading');
-
-    void getUserDocuments(userId as string, 'id_card', ['active', 'pending'])
-      .then(async ({ documents }) => {
-        const identification = documents.find(
-          (document) =>
-            document.document_type === 'id_card' && document.document_status === 'active'
-        );
-        const pendingIdentification = documents.find(
-          (document) =>
-            document.document_type === 'id_card' && document.document_status === 'pending'
-        );
-
-        if (!identification) {
-          if (active) {
-            removeCachedUserDocument(userId as string, 'id_card');
-            setIdentificationContentType(null);
-            setIdentificationUri(null);
-            setIdentificationState(pendingIdentification ? 'pending' : 'missing');
-          }
-          return;
-        }
-
-        const contentType = identification?.content_type ?? null;
-        const document = await loadUserDocument(userId as string, 'id_card', identification);
-
-        if (active) {
-          setIdentificationContentType(contentType);
-          setIdentificationUri(document.uri);
-          setIdentificationState('loaded');
-        }
-      })
-      .catch(() => {
-        if (active) {
-          setIdentificationState(cached ? 'loaded' : 'error');
-        }
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [isVerifiedProfile, identificationExpanded, userId]);
-
-  const handleDeactivate = async () => {
-    setDeactivating(true);
-    setActionError('');
-
-    try {
-      await deactivateUser(userId as string);
-      goBack();
-    } catch (err) {
-      setActionError(
-        err instanceof Error ? err.message : 'Failed to deactivate user. Please try again.'
-      );
-    } finally {
-      setDeactivating(false);
-    }
-  };
-
-  const handleResendEmail = async () => {
-    setProcessing(true);
-    setActionError('');
-    try {
-      await resendEmailVerification(userId as string);
-    } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Failed to resend email.');
-    } finally {
-      setProcessing(false);
-    }
-  };
-
-  const handleDeleteUser = async () => {
-    setProcessing(true);
-    setActionError('');
-    try {
-      await deleteUser(userId as string);
-      goBack();
-    } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Failed to delete user.');
-    } finally {
-      setProcessing(false);
-    }
-  };
-
-  const handlePromoteOrDemote = async (action: 'promote' | 'demote') => {
-    setProcessing(true);
-    setActionError('');
-    if (action === 'promote') setPromotionError('');
-    try {
-      if (action === 'promote') {
-        const { documents } = await getUserDocuments(userId as string, 'id_card', ['active']);
-        if (!hasApprovedIdDocument(documents)) {
-          setPromotionError(PROMOTE_REQUIRES_APPROVED_ID_MESSAGE);
-          return false;
-        }
-        await promoteToAdmin(userId as string);
-      } else {
-        await demoteToResident(userId as string);
-      }
-      setUserData((current) => ({ ...current, role: action === 'promote' ? 'admin' : 'resident' }));
-      return true;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to update user role.';
-      if (action === 'promote') setPromotionError(message);
-      else setActionError(message);
-      return false;
-    } finally {
-      setProcessing(false);
-    }
-  };
-
-  const handleTransferPrimary = async () => {
-    if (!userData.estate_id) {
-      setActionError('Estate information is unavailable for this user.');
-      return;
-    }
-
-    setProcessing(true);
-    setActionError('');
-    try {
-      await transferPrimaryAdmin(userData.estate_id, userId as string);
-      await signOut();
-    } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Failed to transfer primary admin.');
-    } finally {
-      setProcessing(false);
-    }
-  };
-
-  const confirmProfileAction = async () => {
-    const action = pendingAction;
-    if (!action) return;
-    setPendingAction(null);
-    if (action === 'deactivate') {
-      await handleDeactivate();
-    } else if (action === 'transferPrimary') {
-      await handleTransferPrimary();
-    } else {
-      await handlePromoteOrDemote(action);
-    }
-  };
-
-  const confirmationCopy =
-    pendingAction === 'deactivate'
-      ? {
-          title: 'Deactivate User?',
-          message: 'This user will lose access until their account is reactivated.',
-          button: 'Deactivate',
-        }
-      : pendingAction === 'promote'
-        ? {
-            title: 'Make Admin?',
-            message: 'This user will receive secondary admin access.',
-            button: 'Make Admin',
-          }
-        : pendingAction === 'transferPrimary'
-          ? {
-              title: 'Promote',
-              message:
-                'Promoting this user will revoke your primary admin rights and sign you out. Are you sure you want to proceed?',
-              button: 'Promote User',
-            }
-          : {
-              title: 'Make Resident?',
-              message: 'This admin will become a resident and lose admin access.',
-              button: 'Make Resident',
-            };
-
-  const handleHouseholdTransfer = async (household: Household) => {
-    if (household.id === userData.household_id) {
-      setShowHouseholdSelector(false);
-      setActionError(`${userData.first_name || 'This user'} is already in ${household.name}.`);
-      return;
-    }
-
-    setTransferringHousehold(true);
-    setActionError('');
-    try {
-      await transferUserHousehold({
-        user_id: userId as string,
-        household_id: household.id,
-      });
-      setUserData((current) => ({
-        ...current,
-        household_id: household.id,
-        household_name: household.name,
-      }));
-      setShowHouseholdSelector(false);
-    } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Failed to transfer household.');
-    } finally {
-      setTransferringHousehold(false);
-    }
-  };
 
   return (
     <>
@@ -518,12 +130,7 @@ export default function SingleUserMobile() {
                 Error Loading User
               </Text>
               <Text className="text-red-600 text-center mb-4">{error}</Text>
-              <TouchableOpacity
-                className="bg-red-600 px-6 py-2 rounded-lg"
-                onPress={() => {
-                  void loadUser();
-                }}
-              >
+              <TouchableOpacity className="bg-red-600 px-6 py-2 rounded-lg" onPress={retry}>
                 <Text className="text-white font-ubuntu-semibold">Retry</Text>
               </TouchableOpacity>
             </View>
@@ -542,15 +149,7 @@ export default function SingleUserMobile() {
                         source={{ uri: profilePictureUrl }}
                         className="h-full w-full"
                         resizeMode="cover"
-                        onError={() => {
-                          removeCachedUserDocument(
-                            userId as string,
-                            'profile_picture',
-                            profilePictureUrl
-                          );
-                          setProfilePictureUrl(null);
-                          setProfilePictureState('error');
-                        }}
+                        onError={picture.onRenderError}
                       />
                     ) : (
                       <ResidentProfileFallback width={87} height={87} />
@@ -670,7 +269,7 @@ export default function SingleUserMobile() {
                     <TouchableOpacity
                       accessibilityRole="button"
                       accessibilityState={{ expanded: identificationExpanded }}
-                      onPress={() => setIdentificationExpanded((current) => !current)}
+                      onPress={toggleIdentification}
                       activeOpacity={0.7}
                       className="ml-4 mr-[18px] mt-3 h-6 flex-row items-center justify-between"
                     >
@@ -708,15 +307,7 @@ export default function SingleUserMobile() {
                             source={{ uri: identificationUri }}
                             className="h-full w-full"
                             resizeMode="cover"
-                            onError={() => {
-                              removeCachedUserDocument(
-                                userId as string,
-                                'id_card',
-                                identificationUri
-                              );
-                              setIdentificationUri(null);
-                              setIdentificationState('error');
-                            }}
+                            onError={identification.onRenderError}
                           />
                         ) : identificationState === 'loading' ? (
                           <View className="h-full w-full items-center justify-center">
@@ -771,7 +362,7 @@ export default function SingleUserMobile() {
                     {showRoleAction && (
                       <TouchableOpacity
                         onPress={() => {
-                          setPromotionError('');
+                          clearPromotionError();
                           setPendingAction(isAdminProfile ? 'demote' : 'promote');
                         }}
                         disabled={deactivating || processing}
@@ -913,8 +504,8 @@ export default function SingleUserMobile() {
               icon={<AlertIcon width={44} height={44} />}
               message={promotionError}
               confirmLabel="Got it"
-              onConfirm={() => setPromotionError('')}
-              onClose={() => setPromotionError('')}
+              onConfirm={clearPromotionError}
+              onClose={clearPromotionError}
             />
           </>
         )}

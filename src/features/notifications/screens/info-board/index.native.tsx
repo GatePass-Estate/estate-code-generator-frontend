@@ -1,9 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, Text, View } from 'react-native';
 import { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { Stack, router, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import ScreenHeader from '@/src/shared/components/layout/ScreenHeader';
 import InfoBoardTabs from '@/src/features/notifications/components/InfoBoardTabs';
@@ -11,10 +10,8 @@ import ActivityDetailModal from '@/src/features/notifications/components/Activit
 import ConfirmSheet from '@/src/features/notifications/components/ConfirmSheet';
 import { ActivityRow, BroadcastRow } from '@/src/features/notifications/components/InfoBoardRows';
 import { sharedStyles } from '@/src/shared/theme/styles';
-import { useInfoBoard } from '@/src/features/notifications/hooks/useInfoBoard';
-import { useNotificationStore } from '@/src/features/notifications/store/notificationStore';
-import type { InfoBoardTab } from '@/src/features/notifications/hooks/useInfoBoard';
-import type { NotificationItem } from '@/src/features/notifications/types/notification';
+import { useInfoBoardScreen } from '@/src/features/notifications/hooks/useInfoBoardScreen';
+import { requestedInfoBoardTab } from '@/src/features/notifications/utils/pushTarget';
 
 /** Keeps virtualisation tight so switching tabs never mounts a long list. */
 const LIST_TUNING = {
@@ -34,12 +31,10 @@ export default function InfoBoardScreen() {
   // Set by a push-notification tap: which tab to land on, and which activity
   // to open once the list has loaded.
   const params = useLocalSearchParams<{ tab?: string; notificationId?: string }>();
-  const requestedTab: InfoBoardTab | undefined =
-    params.tab === 'activities' || params.tab === 'message' ? params.tab : undefined;
-
   const {
     tab,
     setTab,
+    isMessages,
     broadcasts,
     activities,
     loading,
@@ -47,83 +42,22 @@ export default function InfoBoardScreen() {
     refresh,
     errorMessage,
     busy,
-    readBroadcast,
-    removeBroadcast,
-    readActivity,
-    removeActivity,
-    clearCurrentTab,
     hasItems,
-    activitiesLoading,
-  } = useInfoBoard(requestedTab);
-
-  const broadcastUnread = useNotificationStore((state) => state.broadcastUnread);
-  const activityUnread = useNotificationStore((state) => state.activityUnread);
-
-  const [selectedActivity, setSelectedActivity] = useState<NotificationItem | null>(null);
-  const [confirmClear, setConfirmClear] = useState(false);
-
-  // A tap on another notification while this screen is already open changes
-  // the params in place rather than mounting a fresh screen.
-  useEffect(() => {
-    if (requestedTab) setTab(requestedTab);
-  }, [requestedTab, params.notificationId, setTab]);
-
-  const openActivity = useCallback(
-    (item: NotificationItem) => {
-      setSelectedActivity(item);
-      void readActivity(item.id);
-    },
-    [readActivity]
-  );
-
-  // Open the tapped activity's detail once, as soon as it is in the list. If
-  // the screen was already open, the list predates the push, so refetch once.
-  const pushTarget = useRef<{ id: string; refetched: boolean; done: boolean } | null>(null);
-  useEffect(() => {
-    const target = params.notificationId;
-    if (!target || activitiesLoading) return;
-
-    if (pushTarget.current?.id !== target) {
-      pushTarget.current = { id: target, refetched: false, done: false };
-    }
-    const state = pushTarget.current;
-    if (state.done) return;
-
-    const item = activities.find((activity) => activity.id === target);
-    if (item) {
-      state.done = true;
-      openActivity(item);
-    } else if (!state.refetched) {
-      state.refetched = true;
-      void refresh();
-    } else {
-      state.done = true;
-    }
-  }, [params.notificationId, activities, activitiesLoading, openActivity, refresh]);
-
-  const handleConfirmClear = useCallback(async () => {
-    await clearCurrentTab();
-    setConfirmClear(false);
-  }, [clearCurrentTab]);
-
-  const openBroadcast = useCallback(
-    (id: string) => {
-      void readBroadcast(id);
-      router.push(`/info-board/${id}`);
-    },
-    [readBroadcast]
-  );
-
-  const handleRemoveBroadcast = useCallback(
-    (id: string) => void removeBroadcast(id),
-    [removeBroadcast]
-  );
-  const handleRemoveActivity = useCallback(
-    (id: string) => void removeActivity(id),
-    [removeActivity]
-  );
-
-  const isMessages = tab === 'message';
+    broadcastUnread,
+    activityUnread,
+    openBroadcast,
+    openActivity,
+    handleRemoveBroadcast,
+    handleRemoveActivity,
+    selectedActivity,
+    closeActivity,
+    confirmClear,
+    setConfirmClear,
+    handleConfirmClear,
+  } = useInfoBoardScreen({
+    requestedTab: requestedInfoBoardTab(params.tab),
+    notificationId: params.notificationId,
+  });
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -212,10 +146,7 @@ export default function InfoBoardScreen() {
           onCancel={() => setConfirmClear(false)}
         />
 
-        <ActivityDetailModal
-          activity={selectedActivity}
-          onClose={() => setSelectedActivity(null)}
-        />
+        <ActivityDetailModal activity={selectedActivity} onClose={closeActivity} />
       </SafeAreaView>
     </GestureHandlerRootView>
   );

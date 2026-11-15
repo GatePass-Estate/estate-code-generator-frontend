@@ -1,45 +1,29 @@
 import { errorMessage as thrownMessage } from '@/src/shared/services/api/errors';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback } from 'react';
 import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
 import ScreenHeader from '@/src/shared/components/layout/ScreenHeader';
 import { sharedStyles } from '@/src/shared/theme/styles';
-import { listSessions, revokeSession } from '@/src/features/auth';
-import { useAuthStore } from '@/src/features/auth/store/authStore';
-import { useAuth } from '@/src/features/auth/hooks/useAuthContext';
+import { useLinkedDevices } from '@/src/features/auth/hooks/useLinkedDevices';
 import { formatLastActive, friendlyDeviceName } from '@/src/shared/services/storage/deviceName';
 import type { SessionResponse } from '@/src/features/auth/types/auth';
 
 export default function LinkedDevicesScreen() {
-  const { signOut } = useAuth();
-  const currentSessionId = useAuthStore((state) => state.session_id);
-
-  const [sessions, setSessions] = useState<SessionResponse[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState('');
-  const [revokingId, setRevokingId] = useState<string | null>(null);
-
-  const loadSessions = useCallback(async () => {
-    setErrorMessage('');
-    try {
-      const response = await listSessions();
-      setSessions(response?.items ?? []);
-    } catch (error: unknown) {
-      setErrorMessage(thrownMessage(error) || 'Could not load your devices.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadSessions();
-  }, [loadSessions]);
+  const {
+    sessions,
+    loading,
+    loadError: errorMessage,
+    retry,
+    isCurrent: isCurrentDevice,
+    revokeDevice,
+    revokingId,
+  } = useLinkedDevices();
 
   const handleRevoke = useCallback(
     (session: SessionResponse) => {
-      const isCurrent = !!currentSessionId && session.id === currentSessionId;
+      const isCurrent = isCurrentDevice(session);
       const label = friendlyDeviceName(session.device_name);
 
       Alert.alert(
@@ -53,27 +37,18 @@ export default function LinkedDevicesScreen() {
             text: 'Log Out',
             style: 'destructive',
             onPress: async () => {
-              setRevokingId(session.id);
               try {
-                await revokeSession(session.id);
-                // Revoking our own session invalidates this token, so sign out
-                // locally instead of re-fetching with a dead credential.
-                if (isCurrent) {
-                  await signOut();
-                  return;
-                }
-                setSessions((current) => current.filter((item) => item.id !== session.id));
+                // Logging out this device also signs out locally (see useLinkedDevices).
+                await revokeDevice(session);
               } catch (error: unknown) {
                 Alert.alert('Could not log out', thrownMessage(error) || 'Please try again.');
-              } finally {
-                setRevokingId(null);
               }
             },
           },
         ]
       );
     },
-    [currentSessionId, signOut]
+    [isCurrentDevice, revokeDevice]
   );
 
   return (
@@ -95,13 +70,7 @@ export default function LinkedDevicesScreen() {
           <Text className="mb-4 text-center font-inter-regular text-sm text-danger">
             {errorMessage}
           </Text>
-          <Pressable
-            onPress={() => {
-              setLoading(true);
-              loadSessions();
-            }}
-            className="rounded-[24px] bg-primary px-5 py-3"
-          >
+          <Pressable onPress={() => void retry()} className="rounded-[24px] bg-primary px-5 py-3">
             <Text className="font-ubuntu-semibold text-sm text-white">Try again</Text>
           </Pressable>
         </View>
@@ -116,7 +85,7 @@ export default function LinkedDevicesScreen() {
           contentContainerStyle={{ gap: 7 }}
         >
           {sessions.map((session) => {
-            const isCurrent = !!currentSessionId && session.id === currentSessionId;
+            const isCurrent = isCurrentDevice(session);
             return (
               <View
                 key={session.id}

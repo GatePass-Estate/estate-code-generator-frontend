@@ -1,19 +1,11 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Platform, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import Back from '@/src/shared/components/navigation/Back';
 import WebSidebar from '@/src/features/dashboard/components/WebSidebar';
 import { getWidthBreakpoint } from '@/src/shared/utils/helpers';
-import { errorMessage as thrownMessage } from '@/src/shared/services/api/errors';
-import { getBroadcast, markBroadcastRead } from '@/src/features/notifications/services/broadcast';
-import { useNotificationStore } from '@/src/features/notifications/store/notificationStore';
-import { useUserStore } from '@/src/store/userStore';
-import {
-  addLocallyReadBroadcasts,
-  markBroadcastOpened,
-} from '@/src/features/notifications/utils/readBroadcasts';
+import { useBroadcastDetail } from '@/src/features/notifications/hooks/useBroadcastDetail';
 import { formatSentDate } from '@/src/features/notifications/utils/broadcastStyle';
-import type { BroadcastItem } from '@/src/features/notifications/types/broadcast';
 import { menuRoutes } from '@/src/features/dashboard/components/menuRoutes';
 
 export default function BroadcastDetailWeb() {
@@ -21,49 +13,7 @@ export default function BroadcastDetailWeb() {
   const { broadcastId } = useLocalSearchParams<{ broadcastId?: string }>();
   const { width } = useWindowDimensions();
   const isLargeScreen = width > getWidthBreakpoint();
-  const refreshCounts = useNotificationStore((state) => state.refreshCounts);
-  const userId = useUserStore((state) => state.user_id);
-
-  const [broadcast, setBroadcast] = useState<BroadcastItem | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState('');
-
-  const load = useCallback(async () => {
-    if (!broadcastId) return;
-
-    setLoading(true);
-    setErrorMessage('');
-    try {
-      const item = await getBroadcast(broadcastId);
-      setBroadcast(item);
-
-      // Opening counts as reading, in case we arrived via a deep link.
-      if (!item.is_read) {
-        // Recorded locally too: the list endpoint under-reports is_read.
-        void addLocallyReadBroadcasts(userId, broadcastId);
-
-        try {
-          await markBroadcastRead(broadcastId);
-          void refreshCounts();
-        } catch {
-          // Best-effort: never block showing the message.
-        }
-      }
-    } catch (error: unknown) {
-      setErrorMessage(thrownMessage(error) || 'Could not load this message.');
-    } finally {
-      setLoading(false);
-    }
-  }, [broadcastId, refreshCounts, userId]);
-
-  // Before the fetch, so the popup never shows this message over its own page.
-  useEffect(() => {
-    if (broadcastId) markBroadcastOpened(broadcastId);
-  }, [broadcastId]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
+  const { broadcast, loading, errorMessage, reload } = useBroadcastDetail(broadcastId);
 
   useEffect(() => {
     if (Platform.OS === 'web') document.title = 'Message - GatePass';
@@ -84,7 +34,7 @@ export default function BroadcastDetailWeb() {
             <div className="flex flex-col items-start gap-3 mt-10">
               <p className="text-sm font-inter-regular text-danger">{errorMessage}</p>
               <button
-                onClick={load}
+                onClick={reload}
                 className="px-5 py-2 rounded-lg bg-primary text-white font-ubuntu-semibold text-sm"
               >
                 Try again

@@ -1,4 +1,3 @@
-import { useGoBack } from '@/src/shared/hooks/useGoBack';
 import {
   View,
   Text,
@@ -14,126 +13,48 @@ import {
 } from 'react-native';
 import { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
 import { Feather } from '@expo/vector-icons';
-import { Stack, useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
+import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';
-import { fetchEstateUsersFresh } from '@/src/features/admin/hooks/estateUsers';
-import { getSeatOccupancy } from '@/src/features/billing/utils/billing';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { AllUsers } from '@/src/features/users/types/user';
+import { useCallback } from 'react';
 import icons from '@/src/shared/constants/icons';
-import { isDataEqual } from '@/src/shared/utils/helpers';
 import RoleIcon from '@/src/shared/components/RoleIcon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useEstateEntitlements } from '@/src/features/billing';
-import { useEstateSubscription } from '@/src/features/billing/hooks/billing';
-import { useContactAdminNoticeStore, useFeatureGate } from '@/src/features/billing/hooks/usePlan';
-import { useUserStore } from '@/src/store/userStore';
 import AdminToolsSvg from '@/src/assets/images/admintools.svg';
 import AdminResidentsSvg from '@/src/assets/images/adminresidents.svg';
 import AdminSecuritySvg from '@/src/assets/images/adminsecurity.svg';
 import AdminIncidentResponseSvg from '@/src/assets/images/adminincidentresponse.svg';
 import SeatsSvg from '@/src/assets/images/seats.svg';
 import SeatCapacitySheet from '@/src/features/billing/components/SeatCapacitySheet';
-import { queryClient } from '@/src/shared/services/api/queryClient';
-import { queryKeys } from '@/src/shared/services/api/queryKeys';
+import { useAdminDashboard } from '@/src/features/admin/hooks/useAdminDashboard';
 
 export default function AdminUsersMobilePage() {
-  const goBack = useGoBack();
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
-  const [users, setUsers] = useState<AllUsers>({ total: 0, page: 1, limit: 30, items: [] });
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [seatModalVisible, setSeatModalVisible] = useState(false);
   const router = useRouter();
-  const navigation = useNavigation();
-  const usersRef = useRef<AllUsers>(users);
-  const { data: estateEntitlements } = useEstateEntitlements();
-  const showContactAdminNotice = useContactAdminNoticeStore((s) => s.show);
-  const userRole = useUserStore((s) => s.role);
-
-  const { requestAccessWhenReady: requestBroadcastAccess } = useFeatureGate('admin_broadcast', {
-    notice: 'floating',
-  });
-  const { requestAccessWhenReady: requestIncidentReportAccess } = useFeatureGate(
-    'incident_report',
-    {
-      notice: 'floating',
-    }
-  );
-  const openingBroadcastRef = useRef(false);
-  const openingIncidentReportRef = useRef(false);
-
-  const handleOpenBroadcast = useCallback(async () => {
-    if (openingBroadcastRef.current) return;
-    openingBroadcastRef.current = true;
-    try {
-      const allowed = await requestBroadcastAccess(() => navigation.isFocused());
-      if (allowed && navigation.isFocused()) router.push('/admin/broadcast');
-    } finally {
-      openingBroadcastRef.current = false;
-    }
-  }, [navigation, requestBroadcastAccess, router]);
-
-  const handleOpenIncidentReport = useCallback(async () => {
-    if (openingIncidentReportRef.current) return;
-    openingIncidentReportRef.current = true;
-    try {
-      const allowed = await requestIncidentReportAccess(() => navigation.isFocused());
-      if (allowed && navigation.isFocused()) {
-        router.push({ pathname: '/user/report', params: { returnTo: '/admin' } });
-      }
-    } finally {
-      openingIncidentReportRef.current = false;
-    }
-  }, [navigation, requestIncidentReportAccess, router]);
-
-  const { returnTo } = useLocalSearchParams<{ returnTo?: string }>();
-  const handleBack = useCallback(() => {
-    if (navigation.canGoBack()) {
-      navigation.goBack();
-      return;
-    }
-    let parent = navigation.getParent();
-    while (parent) {
-      if (parent.canGoBack()) {
-        parent.goBack();
-        return;
-      }
-      parent = parent.getParent();
-    }
-    if (router.canGoBack()) {
-      goBack();
-      return;
-    }
-    router.replace(returnTo === '/settings' ? '/settings' : '/user');
-  }, [goBack, navigation, returnTo, router]);
-
-  useEffect(() => {
-    usersRef.current = users;
-  }, [users]);
-
-  const fetchUsers = async (showLoading = false) => {
-    if (showLoading) setRefreshing(true);
-    try {
-      // Goes through the shared query cache so other screens (billing seat usage) reuse it.
-      const finalData = await fetchEstateUsersFresh(useUserStore.getState().estate_id ?? '');
-
-      if (!isDataEqual(finalData, usersRef.current)) {
-        setUsers(finalData);
-      }
-    } catch {
-      // Preserve the last successfully loaded totals when refreshing fails.
-    } finally {
-      setIsInitialLoading(false);
-      if (showLoading) setRefreshing(false);
-    }
-  };
-
-  const handleRefresh = async () => {
-    await fetchUsers(true);
-  };
+  const {
+    isInitialLoading,
+    refreshing,
+    handleRefresh,
+    handleBack,
+    handleOpenBroadcast,
+    handleOpenIncidentReport,
+    handleOpenAddSeats,
+    handleRegisterUser,
+    openUser,
+    residentsCount,
+    securityPersonnelCount,
+    seatResidentsCount,
+    occupiedSeats,
+    totalUsersCount,
+    estateUserCapacity,
+    isPrimaryAdmin,
+    limitedUsers,
+    seatModalVisible,
+    setSeatModalVisible,
+    blockedRegistrationReason,
+    setBlockedRegistrationReason,
+  } = useAdminDashboard();
 
   useFocusEffect(
     useCallback(() => {
@@ -145,69 +66,6 @@ export default function AdminUsersMobilePage() {
       return () => subscription.remove();
     }, [handleBack])
   );
-
-  // Load on every focus and poll only while focused. (A cleanup returned from a navigation
-  // 'focus' listener is discarded, which used to leave one 30s interval running per visit.)
-  const fetchUsersRef = useRef(fetchUsers);
-  fetchUsersRef.current = fetchUsers;
-  useFocusEffect(
-    useCallback(() => {
-      void fetchUsersRef.current();
-      const intervalId = setInterval(() => {
-        void fetchUsersRef.current(false);
-      }, 30000);
-      return () => clearInterval(intervalId);
-    }, [])
-  );
-
-  const verifiedUsers = users.items.filter((user) => user.status);
-  const {
-    security: securityPersonnelCount,
-    residents: residentsCount,
-    seatResidents: seatResidentsCount,
-    occupied: occupiedSeats,
-  } = getSeatOccupancy(users);
-  const totalUsersCount = users.total;
-  const { data: subscriptionData } = useEstateSubscription();
-  const subscription = subscriptionData?.subscription;
-  const isPrimaryAdmin = userRole === 'primary_admin' || userRole === 'root';
-  const estateUserCapacity =
-    estateEntitlements?.coveredUsers ?? subscription?.covered_users ?? null;
-  const isRegistrationAtCapacity =
-    estateUserCapacity !== null && occupiedSeats >= estateUserCapacity;
-  const pendingCoveredUsers = subscription?.pending_covered_users ?? null;
-  const hasPendingSeatReduction =
-    pendingCoveredUsers !== null &&
-    estateUserCapacity !== null &&
-    pendingCoveredUsers < estateUserCapacity;
-  const isBlockedByPendingReduction =
-    hasPendingSeatReduction && pendingCoveredUsers <= occupiedSeats;
-
-  const [blockedRegistrationReason, setBlockedRegistrationReason] = useState<
-    'capacity' | 'pending_reduction' | null
-  >(null);
-  const limitedUsers = verifiedUsers.slice(0, 3);
-
-  const handleOpenAddSeats = () => {
-    if (isPrimaryAdmin) {
-      router.push('/billing/manage-seats');
-    } else {
-      showContactAdminNotice('guest_management', 'Only the primary admin can add seats.');
-    }
-  };
-
-  const handleRegisterUser = () => {
-    // Check order: first if capacity is reached, then if capacity minus pending drop is at or below registered users
-    if (isRegistrationAtCapacity) {
-      setBlockedRegistrationReason('capacity');
-      return;
-    }
-    if (isBlockedByPendingReduction) {
-      setBlockedRegistrationReason('pending_reduction');
-      return;
-    }
-    router.push('/admin/users/add');
-  };
 
   const illustrationWidth = Math.min(screenWidth - 32, 340);
   const illustrationHeight = Math.round(illustrationWidth * (246 / 353));
@@ -270,29 +128,31 @@ export default function AdminUsersMobilePage() {
               paddingBottom: 16,
             }}
           >
-            {/* Top Bar with Back and Add Seats */}
+            {/* Top Bar with Back and Add Seats — same 20px edge as More / Broadcast */}
             <View
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 marginBottom: 8,
-                paddingHorizontal: 4,
               }}
             >
               <TouchableOpacity
                 onPress={handleBack}
-                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                accessibilityRole="button"
+                accessibilityLabel="Back"
+                hitSlop={12}
                 style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 18,
+                  // Match shared Back short-arrow hit target (30×30), light style for the dark header.
+                  width: 30,
+                  height: 30,
+                  borderRadius: 15,
                   backgroundColor: 'rgba(255, 255, 255, 0.25)',
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
               >
-                <Feather name="chevron-left" size={22} color="#FFFFFF" />
+                <Feather name="chevron-left" size={18} color="#FFFFFF" />
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -633,7 +493,6 @@ export default function AdminUsersMobilePage() {
               alignItems: 'center',
               justifyContent: 'space-between',
               marginBottom: 14,
-              paddingHorizontal: 4,
             }}
           >
             <Text
@@ -712,19 +571,7 @@ export default function AdminUsersMobilePage() {
                     alignItems: 'center',
                     justifyContent: 'space-between',
                   }}
-                  onPress={() => {
-                    const userId = item.id ?? item.user_id;
-                    if (!userId) return;
-                    queryClient.setQueryData(queryKeys.users.byIdAdmin(userId), {
-                      ...item,
-                      user_id: item.user_id || userId,
-                      id: userId,
-                    });
-                    router.push({
-                      pathname: '/admin/users/[userId]',
-                      params: { userId },
-                    });
-                  }}
+                  onPress={() => openUser(item)}
                 >
                   <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
                     <RoleIcon role={item.role} width={24} height={24} />
