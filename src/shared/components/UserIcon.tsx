@@ -19,7 +19,8 @@ export default function UserIcon({ variant = 'initials' }: { variant?: 'initials
       <Pressable
         onPress={() => {
           if (!allowAndroidAction(`open:${morePath}`)) return;
-          router.push(morePath);
+          // navigate (not push) so a double Android tap cannot stack More twice.
+          router.navigate(morePath);
         }}
         className="flex-row items-center gap-2"
       >

@@ -24,6 +24,7 @@ import { Ionicons as Icon } from '@expo/vector-icons';
 import NotificationBell from '@/src/features/notifications/components/NotificationBell';
 import MoreFill from '@/src/assets/icons/more-fill.svg';
 import ScanFrame from '@/src/assets/icons/scan-frame.svg';
+import { allowAndroidAction } from '@/src/shared/utils/androidActionLock';
 import { useAccessCodeValidation } from '@/src/features/scanner/hooks/useAccessCodeValidation';
 import {
   EMPTY_CODE,
@@ -348,7 +349,11 @@ export default function SecurityVerificationMobile() {
             <Pressable
               accessibilityLabel="Open more options"
               hitSlop={8}
-              onPress={() => router.push('/security/more')}
+              onPress={() => {
+                if (!allowAndroidAction('open:/security/more')) return;
+                // navigate (not push) so a double Android tap cannot stack More twice.
+                router.navigate('/security/more');
+              }}
               className="h-[38px] w-[38px] items-center justify-center"
               style={({ pressed }) => [pressed && styles.pressed]}
             >
