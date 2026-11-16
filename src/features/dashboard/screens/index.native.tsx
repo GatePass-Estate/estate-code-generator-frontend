@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useExitAppOnRootBack } from '@/src/shared/hooks/useExitAppOnRootBack';
 import images from '@/src/shared/constants/images';
-import { sharedStyles } from '@/src/shared/theme/styles';
+import { sharedStyles, TAB_BAR_FAB_OVERHANG } from '@/src/shared/theme/styles';
 import { UbuntuSans } from '@/src/shared/constants/fonts';
 import { useAndroidBottomInset } from '@/src/shared/hooks/useAndroidBottomInset';
 import ActiveCodeCard from '@/src/features/access-codes/components/ActiveCodeCard';
@@ -172,7 +172,13 @@ export default function HomeMobile() {
             extraData={frozenCodes}
             keyExtractor={(row) => row.item.hashed_code}
             scrollEnabled={!isEmpty}
-            contentContainerStyle={{ paddingBottom: tabContentPadding, flexGrow: 1, gap: 8 }}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{
+              // Clear the tab strip + FAB overhang, then leave a small gap under the last card.
+              paddingBottom: tabContentPadding + TAB_BAR_FAB_OVERHANG + 16,
+              flexGrow: 1,
+              gap: 8,
+            }}
             refreshControl={
               <RefreshControl
                 refreshing={refreshing}

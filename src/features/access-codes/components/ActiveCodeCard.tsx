@@ -35,7 +35,8 @@ const TIMER_CLUSTER_WIDTH = RING_WIDTH + CLUSTER_GAP + PLUS_SIZE;
 const DELETE_TIMER_SCREEN_LEFT = 38;
 const RING_TOP = 12;
 const PLUS_TOP = RING_TOP + (RING_WIDTH - PLUS_SIZE) / 2;
-const SPRING = { damping: 22, stiffness: 280, mass: 0.65, overshootClamping: true };
+/** Slightly snappier snap — layout/reveal design unchanged. */
+const SPRING = { damping: 18, stiffness: 320, mass: 0.6, overshootClamping: true };
 const FROZEN_TEXT = 'rgba(241, 248, 251, 0.6)';
 
 type ActiveCodeCardProps = {
@@ -291,8 +292,8 @@ function ActiveCodeCard({
   const freezeActionStyle = useAnimatedStyle(() => ({
     opacity: interpolate(
       translateX.value,
-      [0, ACTION_WIDTH * 0.2, ACTION_WIDTH],
-      [0, 0.9, 1],
+      [0, ACTION_WIDTH * 0.25, ACTION_WIDTH],
+      [0, 0.85, 1],
       Extrapolation.CLAMP
     ),
   }));
@@ -300,8 +301,8 @@ function ActiveCodeCard({
   const deleteActionStyle = useAnimatedStyle(() => ({
     opacity: interpolate(
       translateX.value,
-      [-ACTION_WIDTH, -ACTION_WIDTH * 0.2, 0],
-      [1, 0.9, 0],
+      [-ACTION_WIDTH, -ACTION_WIDTH * 0.25, 0],
+      [1, 0.85, 0],
       Extrapolation.CLAMP
     ),
   }));
