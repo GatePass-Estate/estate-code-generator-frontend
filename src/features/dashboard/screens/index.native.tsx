@@ -93,7 +93,7 @@ export default function HomeMobile() {
         <Animated.View layout={CODE_LIST_LAYOUT}>
           <ActiveCodeCard
             item={item}
-            guestName={item.visitor_name ?? 'Guest'}
+            guestName={item.visitor_number ?? 'Guest'}
             code={item.hashed_code.toUpperCase()}
             expiresAt={expiresAt}
             startAt={startAt}
