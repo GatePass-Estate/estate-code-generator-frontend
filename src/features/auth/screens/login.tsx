@@ -232,15 +232,14 @@ export default function Login() {
         await setLastLoginInstitution(estate ?? null);
         await AsyncStorage.setItem('gatepass-last-email', emailValue);
         setPendingTwoFactorToken(result.two_fa_token);
+        // Keep loading until this screen unmounts — clearing it first flashes Continue.
         router.push('/auth/two-factor');
-        setIsLoading(false);
         return;
       }
 
       if (result.requires_tos_acceptance && result.access_token) {
         setPendingTos(result.access_token, result.role || '');
         router.push('/auth/tos');
-        setIsLoading(false);
         return;
       }
 
@@ -249,7 +248,6 @@ export default function Login() {
         sessionId: result.session_id,
         refreshToken: result.refresh_token,
       });
-      setIsLoading(false);
       await setLastLoginInstitution(estate ?? null);
       await AsyncStorage.setItem('gatepass-last-email', emailValue);
       await AsyncStorage.setItem('gatepass-last-user-id', user.user_id);
@@ -289,7 +287,9 @@ export default function Login() {
       if (shouldPrompt) {
         setPendingAuth({ token: result.access_token, user });
         setShowBiometricPrompt(true);
+        setIsLoading(false);
       } else {
+        // Stay on the loader until routeForUser replaces this screen.
         routeForUser(user);
       }
     } catch (error: unknown) {
