@@ -22,7 +22,8 @@ import {
 import { toggleIncidentType } from '@/src/features/ai/utils/incidentTypeSelection';
 import SecurityTabBar from '@/src/features/scanner/components/SecurityTabBar';
 import ScreenHeader from '@/src/shared/components/layout/ScreenHeader';
-import { sharedStyles } from '@/src/shared/theme/styles';
+import { useAndroidBottomInset } from '@/src/shared/hooks/useAndroidBottomInset';
+import { sharedStyles, TAB_BAR_FAB_OVERHANG } from '@/src/shared/theme/styles';
 import { useUserStore } from '@/src/store/userStore';
 import { formatApiCategoryLabel } from '@/src/features/ai/components/incidents/categoryIcons';
 import {
@@ -44,6 +45,7 @@ export default function IncidentReportCategoryScreen() {
   const returnTo = parseIncidentReportReturnTo(returnToParam);
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
+  const { tabContentPadding } = useAndroidBottomInset();
   const { requestAccessWhenReady } = useFeatureGate('incident_report', { notice: 'floating' });
   const [selected, setSelected] = useState<string[]>([]);
   const [other, setOther] = useState('');
@@ -208,9 +210,14 @@ export default function IncidentReportCategoryScreen() {
         <ScrollView
           ref={scrollViewRef}
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
           contentContainerStyle={{
             flexGrow: 1,
-            paddingBottom: Math.max(isSecurity ? 96 : 32, height * (157 / 921) - insets.bottom),
+            // Same clearance as Active Codes so Continue clears the bottom bar.
+            paddingBottom: Math.max(
+              tabContentPadding + TAB_BAR_FAB_OVERHANG + 16,
+              height * (157 / 921) - insets.bottom
+            ),
           }}
         >
           {hasStoredDraft ? (

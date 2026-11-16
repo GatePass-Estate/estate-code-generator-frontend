@@ -15,7 +15,8 @@ import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-rou
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import ActionConfirmModal from '@/src/shared/components/feedback/ActionConfirmModal';
 import ScreenHeader from '@/src/shared/components/layout/ScreenHeader';
-import { sharedStyles } from '@/src/shared/theme/styles';
+import { useAndroidBottomInset } from '@/src/shared/hooks/useAndroidBottomInset';
+import { sharedStyles, TAB_BAR_FAB_OVERHANG } from '@/src/shared/theme/styles';
 import { useFeatureGate } from '@/src/features/billing/hooks/usePlan';
 import { useCreateIncidentReport } from '@/src/features/ai/hooks/operations';
 import {
@@ -60,6 +61,7 @@ export default function IncidentReportCreateScreen() {
   const userId = useUserStore((state) => state.user_id);
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
+  const { tabContentPadding } = useAndroidBottomInset();
   const { requestAccessWhenReady } = useFeatureGate('incident_report', { notice: 'floating' });
   const createReport = useCreateIncidentReport();
   const [checkingAccess, setCheckingAccess] = useState(true);
@@ -224,10 +226,12 @@ export default function IncidentReportCreateScreen() {
       >
         <ScrollView
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
           contentContainerStyle={{
             flexGrow: 1,
+            // Same clearance as Active Codes so Submit clears the bottom bar.
             paddingBottom: Math.max(
-              role === 'security' ? 96 : 32,
+              tabContentPadding + TAB_BAR_FAB_OVERHANG + 16,
               height * (126 / 847) - insets.bottom
             ),
           }}

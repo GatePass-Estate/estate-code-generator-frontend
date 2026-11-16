@@ -13,6 +13,8 @@ import type { IncidentRow } from '@/src/features/ai/components/incidents/inciden
 import { mapListItemToRow } from '@/src/features/ai/components/incidents/mapIncidentApi';
 import TableEmptyState from '@/src/features/ai/components/shared/TableEmptyState';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useAndroidBottomInset } from '@/src/shared/hooks/useAndroidBottomInset';
+import { TAB_BAR_FAB_OVERHANG } from '@/src/shared/theme/styles';
 
 function ReportListCard({ row }: { row: IncidentRow }) {
   return (
@@ -49,6 +51,7 @@ function ReportListCard({ row }: { row: IncidentRow }) {
 
 export default function IncidentReportsListScreen() {
   const estate_id = useUserStore((state) => state.estate_id) || '';
+  const { tabContentPadding } = useAndroidBottomInset();
   const filters = useMemo(() => getIncidentReportsListFilters(), []);
   const {
     data: reports,
@@ -104,7 +107,10 @@ export default function IncidentReportsListScreen() {
           <ScrollView
             className="mt-6 flex-1"
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ gap: 12, paddingBottom: 32 }}
+            contentContainerStyle={{
+              gap: 12,
+              paddingBottom: tabContentPadding + TAB_BAR_FAB_OVERHANG + 16,
+            }}
           >
             {rows.map((row) => (
               <ReportListCard key={row.id} row={row} />

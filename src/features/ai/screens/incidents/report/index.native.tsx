@@ -32,7 +32,8 @@ import {
   leaveIncidentReport,
   parseIncidentReportReturnTo,
 } from '@/src/features/ai/utils/incidentReportNavigation';
-import { sharedStyles } from '@/src/shared/theme/styles';
+import { useAndroidBottomInset } from '@/src/shared/hooks/useAndroidBottomInset';
+import { sharedStyles, TAB_BAR_FAB_OVERHANG } from '@/src/shared/theme/styles';
 
 type ReportSection = {
   key: 'new' | 'read';
@@ -81,6 +82,7 @@ export default function ReportTabScreen() {
   const returnTo = parseIncidentReportReturnTo(returnToParam);
   const role = useUserStore((state) => state.role);
   const isAdmin = role === 'admin' || role === 'primary_admin' || role === 'root';
+  const { tabContentPadding } = useAndroidBottomInset();
   const { requestAccessWhenReady } = useFeatureGate('incident_report', { notice: 'floating' });
   const [accessReady, setAccessReady] = useState(false);
   const reportsQuery = useManagedIncidentReports('all', isAdmin && accessReady);
@@ -184,7 +186,10 @@ export default function ReportTabScreen() {
         keyExtractor={(report) => report.id}
         extraData={`${loading}|${visibleError}|${clearing}|${newReportsEmpty}|${returnTo}`}
         stickySectionHeadersEnabled={false}
-        contentContainerStyle={{ paddingBottom: 32 }}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          paddingBottom: tabContentPadding + TAB_BAR_FAB_OVERHANG + 16,
+        }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}

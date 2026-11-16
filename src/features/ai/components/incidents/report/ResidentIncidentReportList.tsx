@@ -25,7 +25,8 @@ import {
   incidentReportSentLabel,
   incidentReportTitle,
 } from '@/src/features/ai/utils/incidentReportLabel';
-import { sharedStyles } from '@/src/shared/theme/styles';
+import { useAndroidBottomInset } from '@/src/shared/hooks/useAndroidBottomInset';
+import { sharedStyles, TAB_BAR_FAB_OVERHANG } from '@/src/shared/theme/styles';
 
 type DetailPath = '/incident-report/[id]' | '/user/report/mine/[id]';
 
@@ -44,6 +45,7 @@ export default function ResidentIncidentReportList({
   const router = useRouter();
   const { returnTo: returnToParam } = useLocalSearchParams<{ returnTo?: string }>();
   const returnTo = parseIncidentReportReturnTo(returnToParam);
+  const { tabContentPadding } = useAndroidBottomInset();
   const { requestAccessWhenReady } = useFeatureGate('incident_report', { notice: 'floating' });
   const [checkingAccess, setCheckingAccess] = useState(true);
   const [accessReady, setAccessReady] = useState(false);
@@ -104,7 +106,9 @@ export default function ResidentIncidentReportList({
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 32 }}
+        contentContainerStyle={{
+          paddingBottom: tabContentPadding + TAB_BAR_FAB_OVERHANG + 16,
+        }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
