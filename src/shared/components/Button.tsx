@@ -1,5 +1,5 @@
 import { useRef, type ReactNode } from 'react';
-import { Platform, Pressable, Text, type PressableProps } from 'react-native';
+import { Platform, Pressable, Text, View, type PressableProps } from 'react-native';
 import { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
 import { cn } from '@/src/shared/utils/cn';
 
@@ -19,8 +19,8 @@ type ButtonProps = Omit<PressableProps, 'children'> & {
 };
 
 const SIZE_CLASS = {
-  lg: 'w-[278px] max-w-[278px] min-w-[80px]',
-  md: 'w-[155px] min-w-[80px]',
+  lg: 'h-[44px] w-[278px] max-w-[278px] min-w-[80px]',
+  md: 'h-[44px] w-[155px] min-w-[80px]',
 } as const;
 
 const LABEL_METRICS = {
@@ -57,12 +57,11 @@ export default function Button({
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityState={{ busy: loading, disabled: isDisabled }}
       disabled={isDisabled}
       className={cn(
-        'items-center justify-center overflow-hidden rounded-full py-4',
-        icon
-          ? 'h-[44px] w-auto max-w-none flex-row gap-1 rounded-full px-4 py-0'
-          : SIZE_CLASS[size],
+        'items-center justify-center overflow-hidden rounded-full',
+        icon ? 'h-[44px] w-auto max-w-none flex-row gap-1 rounded-full px-4' : SIZE_CLASS[size],
         icon ? null : variant === 'secondary' ? 'px-6' : 'px-8',
         variant === 'secondary'
           ? 'bg-[#E5F6FF]'
@@ -74,35 +73,37 @@ export default function Button({
         className
       )}
       {...props}
-      style={
-        icon
-          ? (state) => [
-              { height: 44, paddingVertical: 0 },
-              typeof style === 'function' ? style(state) : style,
-            ]
-          : style
-      }
+      style={(state) => [
+        { height: 44, paddingVertical: 0 },
+        typeof style === 'function' ? style(state) : style,
+      ]}
       onPress={handlePress}
     >
+      {/* Keep label in layout (hidden) so the loader never stretches the button. */}
+      <View
+        className={cn(loading && 'opacity-0', icon && 'flex-row items-center gap-1')}
+        accessibilityElementsHidden={loading}
+        importantForAccessibility={loading ? 'no-hide-descendants' : 'auto'}
+      >
+        {icon}
+        <Text
+          allowFontScaling={false}
+          className="text-center font-ubuntu-semibold tracking-[-0.24px]"
+          style={{
+            fontSize: labelMetrics.fontSize,
+            lineHeight: labelMetrics.lineHeight,
+            letterSpacing: -0.24,
+            color: mutedPrimary ? '#878686' : variant === 'secondary' ? '#113E55' : '#F6F7F7',
+          }}
+        >
+          {label}
+        </Text>
+      </View>
       {loading ? (
-        <CircleLoader size={22} tone={variant === 'secondary' ? 'navy' : 'light'} />
-      ) : (
-        <>
-          {icon}
-          <Text
-            allowFontScaling={false}
-            className="text-center font-ubuntu-semibold tracking-[-0.24px]"
-            style={{
-              fontSize: labelMetrics.fontSize,
-              lineHeight: labelMetrics.lineHeight,
-              letterSpacing: -0.24,
-              color: mutedPrimary ? '#878686' : variant === 'secondary' ? '#113E55' : '#F6F7F7',
-            }}
-          >
-            {label}
-          </Text>
-        </>
-      )}
+        <View className="absolute inset-0 items-center justify-center" pointerEvents="none">
+          <CircleLoader size={20} tone={variant === 'secondary' ? 'navy' : 'light'} />
+        </View>
+      ) : null}
     </Pressable>
   );
 }
