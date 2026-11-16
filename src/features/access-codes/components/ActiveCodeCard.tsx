@@ -322,7 +322,7 @@ function ActiveCodeCard({
         tryAdvanced(() => {
           setSheetVisible(false);
           closeSwipe();
-          onToggleFreeze();
+          setTimeout(() => onToggleFreeze(), 120);
         });
       }}
       onExtend={() => {
@@ -418,7 +418,8 @@ function ActiveCodeCard({
             }
             const allowed = tryAdvanced(() => {
               closeSwipe();
-              onToggleFreeze();
+              // Let the rail close before the list reorders so the slide-down reads cleanly.
+              setTimeout(() => onToggleFreeze(), 120);
             });
             if (!allowed) closeSwipe();
           }}

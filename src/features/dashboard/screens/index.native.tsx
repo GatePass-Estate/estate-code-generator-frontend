@@ -1,6 +1,7 @@
 import { Stack, useIsFocused } from 'expo-router';
-import { View, Text, FlatList, Animated, Platform, Alert, RefreshControl } from 'react-native';
+import { View, Text, Animated as RNAnimated, Platform, Alert, RefreshControl } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import Animated, { LinearTransition } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useExitAppOnRootBack } from '@/src/shared/hooks/useExitAppOnRootBack';
@@ -16,6 +17,9 @@ import { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
 import { useActiveCodeActions, useHomeCodes } from '@/src/features/dashboard/hooks/useHomeCodes';
 import type { ActiveCodeRow } from '@/src/features/dashboard/utils/homeCodes';
 
+/** Freeze/unfreeze reorder — slide cards instead of snapping to the new spot. */
+const CODE_LIST_LAYOUT = LinearTransition.duration(320);
+
 function showExtendError(message: string) {
   Alert.alert('Could not extend code', message);
 }
@@ -24,7 +28,7 @@ export default function HomeMobile() {
   const { tabContentPadding } = useAndroidBottomInset();
   const isFocused = useIsFocused();
   useExitAppOnRootBack();
-  const bounceValue = useRef(new Animated.Value(0)).current;
+  const bounceValue = useRef(new RNAnimated.Value(0)).current;
   const [showCopiedToast, setShowCopiedToast] = useState(false);
   const copiedToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Refetches on every focus and polls only while focused.
@@ -60,14 +64,14 @@ export default function HomeMobile() {
       bounceValue.setValue(0);
       return;
     }
-    const anim = Animated.loop(
-      Animated.sequence([
-        Animated.timing(bounceValue, {
+    const anim = RNAnimated.loop(
+      RNAnimated.sequence([
+        RNAnimated.timing(bounceValue, {
           toValue: -10,
           duration: 500,
           useNativeDriver: Platform.OS !== 'web',
         }),
-        Animated.timing(bounceValue, {
+        RNAnimated.timing(bounceValue, {
           toValue: 0,
           duration: 500,
           useNativeDriver: Platform.OS !== 'web',
@@ -86,20 +90,22 @@ export default function HomeMobile() {
     ({ item: row }: { item: ActiveCodeRow }) => {
       const { item, expiresAt, startAt, frozen } = row;
       return (
-        <ActiveCodeCard
-          item={item}
-          guestName={item.visitor_fullname ?? 'Guest'}
-          code={item.hashed_code.toUpperCase()}
-          expiresAt={expiresAt}
-          startAt={startAt}
-          frozen={frozen}
-          onToggleFreeze={() => toggleFreeze(item.hashed_code, frozen)}
-          onDeleted={() => removeCode(item.hashed_code)}
-          onCopied={handleCopied}
-          onOpenHistory={() => openHistory(item)}
-          onOpenDetails={() => openInviteDetails(item)}
-          onExtend={() => extend(item)}
-        />
+        <Animated.View layout={CODE_LIST_LAYOUT}>
+          <ActiveCodeCard
+            item={item}
+            guestName={item.visitor_name ?? 'Guest'}
+            code={item.hashed_code.toUpperCase()}
+            expiresAt={expiresAt}
+            startAt={startAt}
+            frozen={frozen}
+            onToggleFreeze={() => toggleFreeze(item.hashed_code, frozen)}
+            onDeleted={() => removeCode(item.hashed_code)}
+            onCopied={handleCopied}
+            onOpenHistory={() => openHistory(item)}
+            onOpenDetails={() => openInviteDetails(item)}
+            onExtend={() => extend(item)}
+          />
+        </Animated.View>
       );
     },
     [handleCopied, removeCode, extend, toggleFreeze, openHistory, openInviteDetails]
@@ -140,7 +146,7 @@ export default function HomeMobile() {
               transform: [{ translateY: -32 }],
             }}
           >
-            <Animated.Image
+            <RNAnimated.Image
               source={images.ghostImg}
               style={{
                 width: 201,
@@ -167,10 +173,11 @@ export default function HomeMobile() {
         ) : null}
 
         <GestureHandlerRootView style={{ flex: 1 }}>
-          <FlatList
+          <Animated.FlatList
             data={listRows}
             extraData={frozenCodes}
             keyExtractor={(row) => row.item.hashed_code}
+            itemLayoutAnimation={CODE_LIST_LAYOUT}
             scrollEnabled={!isEmpty}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{
