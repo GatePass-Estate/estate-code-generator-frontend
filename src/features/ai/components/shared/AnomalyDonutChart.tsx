@@ -124,6 +124,7 @@ const AnomalyDonutChart = ({
   countText = '50k',
   countColor,
   ringColor: ringColorOverride,
+  isActive = true,
   residentPercentage = 0,
   guestPercentage = 0,
   securityPercentage = 0,
@@ -135,6 +136,7 @@ const AnomalyDonutChart = ({
   const pulse = useSharedValue(1);
 
   useEffect(() => {
+    if (!isActive) return;
     progress.value = 0;
     pulse.value = 1;
     // 200ms delay lets the tab pill switch settle before beginning the 1400ms fluid radial sweep
@@ -161,7 +163,7 @@ const AnomalyDonutChart = ({
         }
       )
     );
-  }, [progress, pulse]);
+  }, [isActive, progress, pulse]);
 
   const scale = size / DESIGN_SIZE;
   const tickRadius = TICK_RADIUS_AT_DESIGN * scale;

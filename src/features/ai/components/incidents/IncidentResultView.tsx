@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { router } from 'expo-router';
+import { useAndroidBottomInset } from '@/src/shared/hooks/useAndroidBottomInset';
+import { TAB_BAR_FAB_OVERHANG } from '@/src/shared/theme/styles';
 import AISummaryModal, {
   type AISummaryVariant,
 } from '@/src/features/ai/components/incidents/modals/IncidentAISummaryModal';
@@ -93,6 +95,7 @@ export default function IncidentResultView({
   const estate_id = useUserStore((state) => state.estate_id) || '';
   const estateName = useUserStore((state) => state.estate_name) || '';
   const userHomeAddress = useUserStore((state) => state.home_address);
+  const { tabContentPadding } = useAndroidBottomInset();
   const [selectedTimeframe, setSelectedTimeframe] = useState('Last Week');
   const [startDate, setStartDate] = useState<Date | null>(() => {
     const d = new Date();
@@ -455,11 +458,20 @@ export default function IncidentResultView({
     );
   }
 
+  // Android: Reanimated entering FadeIn often leaves the first paint fully blank (opacity 0).
+  const ResultRoot = Platform.OS === 'android' ? View : Animated.View;
+  const resultRootProps = Platform.OS === 'android' ? {} : { entering: FadeIn.duration(260) };
+
   return (
-    <Animated.View entering={FadeIn.duration(260)} className="flex-1 bg-[#F6F7F7]">
+    <ResultRoot {...resultRootProps} style={{ flex: 1, backgroundColor: '#F6F7F7' }}>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerClassName="px-5 pt-[61px] pb-[100px]"
+        contentContainerStyle={{
+          paddingHorizontal: 20,
+          paddingTop: 61,
+          // Same clearance as Active Codes: tab strip + FAB overhang + small gap.
+          paddingBottom: tabContentPadding + TAB_BAR_FAB_OVERHANG + 16,
+        }}
       >
         <View className="mb-[11px] flex-row items-start justify-between  pl-2 pr-1">
           <Text
@@ -733,6 +745,6 @@ export default function IncidentResultView({
         timelineSummary={inhouseInsight.timelineSummary}
         themes={inhouseInsight.themes}
       />
-    </Animated.View>
+    </ResultRoot>
   );
 }

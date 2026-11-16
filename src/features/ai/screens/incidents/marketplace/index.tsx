@@ -1,6 +1,6 @@
 import { useGoBack } from '@/src/shared/hooks/useGoBack';
-import React, { useState } from 'react';
-import { View, Text, Pressable, ScrollView } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { Platform, View, Text, Pressable, ScrollView } from 'react-native';
 import { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeIn } from 'react-native-reanimated';
@@ -68,9 +68,18 @@ export default function IncidentReportPreviewScreen() {
   const [isRatingModalVisible, setIsRatingModalVisible] = useState(false);
   const [dataInsightVisible, setDataInsightVisible] = useState(false);
   const [cardHeight, setCardHeight] = useState<number>(120);
+  // Keep Result mounted after the first successful open so Android doesn't flash blank on remount.
+  const hasOpenedResultRef = useRef(false);
+  if (activeTab === 'Result' && !resultBlocked) {
+    hasOpenedResultRef.current = true;
+  }
+  const mountResult = hasOpenedResultRef.current && !resultBlocked;
+  const isResultTab = activeTab === 'Result';
+  const OverviewFade = Platform.OS === 'android' ? View : Animated.View;
+  const overviewFadeProps = Platform.OS === 'android' ? {} : { entering: FadeIn.duration(280) };
 
   return (
-    <View style={{ flex: 1, backgroundColor: activeTab === 'Result' ? '#F6F7F7' : '#FFFFFF' }}>
+    <View style={{ flex: 1, backgroundColor: isResultTab ? '#F6F7F7' : '#FFFFFF' }}>
       <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1 }}>
         <View
           style={{
@@ -79,7 +88,7 @@ export default function IncidentReportPreviewScreen() {
             alignItems: 'center',
             justifyContent: 'space-between',
             paddingHorizontal: 20,
-            backgroundColor: activeTab === 'Result' ? '#F6F7F7' : '#FFFFFF',
+            backgroundColor: isResultTab ? '#F6F7F7' : '#FFFFFF',
           }}
         >
           <Back type="short-arrow" onPress={() => goBack()} />
@@ -107,19 +116,36 @@ export default function IncidentReportPreviewScreen() {
           </Pressable>
         </View>
 
-        {activeTab === 'Result' && resultBlocked ? (
-          <View style={{ flex: 1, backgroundColor: '#F6F7F7' }} />
-        ) : activeTab === 'Result' ? (
-          <IncidentResultView
-            isActive={activeTab === 'Result'}
-            onAccessDenied={onResultAccessDenied}
-            hasAiReviewTier={hasAiReviewTier}
-            aiSummaryNeedsInstall={aiSummaryNeedsInstall}
-            inHouseInstalled={inHouseInstalled}
-            thirdPartyInstalled={thirdPartyInstalled}
-            onUpgradeAiSummary={showAiSummaryTier}
-          />
-        ) : isLoading && !featureDetail ? (
+        {mountResult ? (
+          <View
+            collapsable={false}
+            pointerEvents={isResultTab ? 'auto' : 'none'}
+            style={{ flex: 1, display: isResultTab ? 'flex' : 'none' }}
+          >
+            <IncidentResultView
+              isActive={isResultTab}
+              onAccessDenied={onResultAccessDenied}
+              hasAiReviewTier={hasAiReviewTier}
+              aiSummaryNeedsInstall={aiSummaryNeedsInstall}
+              inHouseInstalled={inHouseInstalled}
+              thirdPartyInstalled={thirdPartyInstalled}
+              onUpgradeAiSummary={showAiSummaryTier}
+            />
+          </View>
+        ) : null}
+
+        {isResultTab && resultBlocked ? (
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: '#F6F7F7',
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+          >
+            <CircleLoader size={36} />
+          </View>
+        ) : isResultTab ? null : isLoading && !featureDetail ? (
           <View
             style={{
               flex: 1,
@@ -152,7 +178,7 @@ export default function IncidentReportPreviewScreen() {
               viewportHeightRef.current = e.nativeEvent.layout.height;
             }}
           >
-            <Animated.View entering={FadeIn.duration(280)}>
+            <OverviewFade {...overviewFadeProps}>
               <View style={{ width: '100%', position: 'relative' }}>
                 <View
                   style={{
@@ -217,7 +243,7 @@ export default function IncidentReportPreviewScreen() {
                   onInstall={(tier) => void handleInstall(tier)}
                 />
               </View>
-            </Animated.View>
+            </OverviewFade>
           </ScrollView>
         )}
       </SafeAreaView>

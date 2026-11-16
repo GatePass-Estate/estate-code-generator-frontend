@@ -6,6 +6,7 @@ import {
   ScrollView,
   NativeSyntheticEvent,
   NativeScrollEvent,
+  Platform,
   RefreshControl,
 } from 'react-native';
 import ScreenLoading from '@/src/shared/components/feedback/ScreenLoading';
@@ -299,8 +300,12 @@ export default function AnomalyResultView({
 
   const predictions = predictionsArray.slice(0, paginationLimit);
 
+  // Android: Reanimated entering FadeIn often leaves the first paint fully blank (opacity 0).
+  const ResultRoot = Platform.OS === 'android' ? View : Animated.View;
+  const resultRootProps = Platform.OS === 'android' ? {} : { entering: FadeIn.duration(260) };
+
   return (
-    <Animated.View entering={FadeIn.duration(260)} style={{ flex: 1, backgroundColor: '#F6F7F7' }}>
+    <ResultRoot {...resultRootProps} style={{ flex: 1, backgroundColor: '#F6F7F7' }}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 61, paddingBottom: 100 }}
@@ -427,6 +432,6 @@ export default function AnomalyResultView({
         onConfirm={() => setShowComingSoon(false)}
         onCancel={() => setShowComingSoon(false)}
       />
-    </Animated.View>
+    </ResultRoot>
   );
 }

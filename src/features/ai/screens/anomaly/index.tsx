@@ -1,6 +1,6 @@
 import { useGoBack } from '@/src/shared/hooks/useGoBack';
-import React, { useState } from 'react';
-import { View, Pressable, ScrollView, Image } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { Platform, View, Pressable, ScrollView, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LoadError from '@/src/shared/components/feedback/LoadError';
 import ScreenLoading from '@/src/shared/components/feedback/ScreenLoading';
@@ -67,6 +67,14 @@ export default function AnomalyDetectionPreviewScreen() {
   const [cardHeight, setCardHeight] = useState<number>(120);
 
   const isResultTab = activeTab === 'Result';
+  // Keep Result mounted after the first successful open so Android doesn't flash blank on remount.
+  const hasOpenedResultRef = useRef(false);
+  if (isResultTab && !resultBlocked) {
+    hasOpenedResultRef.current = true;
+  }
+  const mountResult = hasOpenedResultRef.current && !resultBlocked;
+  const OverviewFade = Platform.OS === 'android' ? View : Animated.View;
+  const overviewFadeProps = Platform.OS === 'android' ? {} : { entering: FadeIn.duration(280) };
 
   return (
     <View style={{ flex: 1, backgroundColor: isResultTab ? '#F6F7F7' : '#FFFFFF' }}>
@@ -107,14 +115,28 @@ export default function AnomalyDetectionPreviewScreen() {
           </Pressable>
         </View>
 
-        {activeTab === 'Result' && resultBlocked ? (
-          <View style={{ flex: 1, backgroundColor: '#F6F7F7' }} />
-        ) : activeTab === 'Result' ? (
-          <AnomalyResultView
-            isActive={activeTab === 'Result'}
-            onAccessDenied={onResultAccessDenied}
-          />
-        ) : loadError && !featureDetail ? (
+        {mountResult ? (
+          <View
+            collapsable={false}
+            pointerEvents={isResultTab ? 'auto' : 'none'}
+            style={{ flex: 1, display: isResultTab ? 'flex' : 'none' }}
+          >
+            <AnomalyResultView isActive={isResultTab} onAccessDenied={onResultAccessDenied} />
+          </View>
+        ) : null}
+
+        {isResultTab && resultBlocked ? (
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: '#F6F7F7',
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+          >
+            <ScreenLoading />
+          </View>
+        ) : isResultTab ? null : loadError && !featureDetail ? (
           <LoadError message={loadError} onRetry={() => void refetch()} />
         ) : isLoading && !featureDetail ? (
           <View
@@ -137,7 +159,7 @@ export default function AnomalyDetectionPreviewScreen() {
               viewportHeightRef.current = e.nativeEvent.layout.height;
             }}
           >
-            <Animated.View entering={FadeIn.duration(280)}>
+            <OverviewFade {...overviewFadeProps}>
               {/* Top Hero Container with split background */}
               <View style={{ width: '100%', position: 'relative' }}>
                 {/* White background: spans full width of device, no border radius, extending to half of the anomaly detection card */}
@@ -214,7 +236,7 @@ export default function AnomalyDetectionPreviewScreen() {
                   onInstall={(tier) => void handleInstall(tier)}
                 />
               </View>
-            </Animated.View>
+            </OverviewFade>
           </ScrollView>
         )}
       </SafeAreaView>
