@@ -43,12 +43,16 @@
   @apply flex flex-col gap-2;
 }
 
+/* Figma registration input error 5056:3716 */
 .registration-input-error-web {
-  @apply border-danger bg-red-50;
+  background-color: #ffe6e6;
+  border-color: #ff0d0d;
+  color: #c40707;
 }
 
 .registration-error-web {
-  @apply mt-1 text-xs text-danger font-inter-regular;
+  @apply mt-1 text-xs font-inter-regular;
+  color: #e30404;
 }
 
 .share-detail-style {

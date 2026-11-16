@@ -5,7 +5,7 @@ export default function IncidentReportLayout() {
     <Stack
       screenOptions={{
         headerShown: false,
-        animation: 'none',
+        animation: 'slide_from_right',
       }}
     >
       <Stack.Screen name="index" />

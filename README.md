@@ -1,106 +1,59 @@
-# Welcome to your Expo app 👋
+# GatePass (estate-code-generator-frontend)
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Expo / React Native app for GatePass estate access codes, admin tools, security scanning, billing, and AI marketplace features.
 
-## Get started
+## Stack
 
-1. Install dependencies
+- Expo Router (file-based routes in `app/`)
+- React Native + web
+- TanStack Query, Zustand
+- EAS Build (`eas.json`)
 
-   ```bash
-   npm install
-   ```
+## Setup
 
-2. Start the app
-
-   ```bash
-    npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+1. Use Node 22 (`nvm use` reads `.nvmrc`).
+2. Copy `.env.local.example` → `.env.local` and set HTTPS service URLs.
+3. Install and start:
 
 ```bash
-npm run reset-project
+npm install
+npx expo start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Native rebuilds: `npx expo run:ios` / `npx expo run:android`.
 
-## Learn more
+## Environment
 
-To learn more about developing your project with Expo, look at the following resources:
+| Variable                              | Purpose                               |
+| ------------------------------------- | ------------------------------------- |
+| `EXPO_PUBLIC_USER_SERVICE_API_URL`    | Auth / users API                      |
+| `EXPO_PUBLIC_CODE_SERVICE_API_URL`    | Access codes API                      |
+| `EXPO_PUBLIC_AI_SERVICE_API_URL`      | AI marketplace / insights             |
+| `EXPO_PUBLIC_REVENUE_SERVICE_API_URL` | Billing / Paystack                    |
+| `EXPO_PUBLIC_WIDTH_BREAKPOINT`        | Web layout breakpoint (default `768`) |
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+Set the same keys as **EAS secrets/env** for `preview` and `production` builds (HTTPS only).
 
-## Join the community
+## Web deploy
 
-Join our community of developers creating universal apps.
+`vercel.json` rewrites all paths to `/` for the SPA. Build with Expo web (`npx expo export -p web` or your CI export step) and point Vercel at the export output. Configure the `EXPO_PUBLIC_*` env vars in the Vercel project.
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## EAS / OTA / store submit
 
-## Push notifications
+- Config lives in `app.config.ts` (APNs: `development` for non-production profiles, `production` for production).
+- OTA: `expo-updates` + EAS `channel` per profile (`development` / `preview` / `production`).
+- Submit: set `submit.production.ios.ascAppId` in `eas.json`, place `google-play-service-account.json` locally (gitignored), then `eas submit --platform all`.
 
-The backend delivers push through **firebase-admin**
-(`messaging.send_multicast`), so it expects a raw **FCM registration token**.
-The app therefore calls `Notifications.getDevicePushTokenAsync()` — _not_
-`getExpoPushTokenAsync()`, whose `ExponentPushToken[...]` value FCM rejects.
+## Scripts
 
-Registration lives in [`src/lib/pushNotifications.ts`](src/lib/pushNotifications.ts)
-and is driven by [`PushNotificationsHost`](src/components/common/PushNotificationsHost.tsx),
-mounted in the protected layout. It registers on sign-in
-(`POST /api/v1/device-tokens`) and removes the token on sign-out
-(`DELETE /api/v1/device-tokens/by-token/{token}`).
+| Script                    | Purpose                 |
+| ------------------------- | ----------------------- |
+| `npm start`               | Expo dev server         |
+| `npm run test:ci`         | Unit tests (CI)         |
+| `npm run lint`            | ESLint + Prettier check |
+| `npm run android` / `ios` | Native run              |
 
-### Required before push will work
+## Notes
 
-Two Firebase config files are referenced from `app.json` and are **not** in the
-repo. Native builds fail until they are added:
-
-| File                       | Where it goes | Source                                                                   |
-| -------------------------- | ------------- | ------------------------------------------------------------------------ |
-| `google-services.json`     | project root  | Firebase console → Project settings → Android app (`com.gatepassng.gms`) |
-| `GoogleService-Info.plist` | project root  | Firebase console → Project settings → iOS app (`com.gatepassng.gms`)     |
-
-The server also needs `FCM_CREDENTIALS_JSON` set (a Firebase service-account
-key) or `notification_service` logs _"FCM not initialised"_ and silently skips
-delivery.
-
-### Platform status
-
-- **Android** — works once `google-services.json` is present.
-  `getDevicePushTokenAsync()` returns an FCM token directly.
-- **iOS** — `getDevicePushTokenAsync()` returns an **APNs** token, which
-  firebase-admin will not accept as a registration token. iOS needs the
-  Firebase iOS SDK (via `GoogleService-Info.plist`) to exchange APNs → FCM.
-  Verify an iOS token is accepted before relying on it.
-
-### Expo Go
-
-Expo Go dropped remote-notification support in SDK 53 and **throws on import**
-of `expo-notifications`. Because push registration is reached from the auth
-context, a static import crashes the whole app at startup in Expo Go.
-
-`expo-notifications` and `expo-device` are therefore loaded with a runtime
-`require()` behind a `pushSupported` guard (`Platform.OS !== 'web'` and not
-Expo Go). Nothing may import them at module scope — the guard is the only
-thing keeping Expo Go usable for day-to-day development.
-
-To actually test push, use a development build:
-
-```bash
-npx expo run:android      # or: eas build --profile development --platform android
-```
-
-Push tokens are only issued on physical devices; simulators, web and Expo Go
-are skipped, and `registerForPushNotifications()` simply returns `null`.
+- Firebase / Google service files are gitignored — copy from local secrets; do not commit real keys.
+- GitHub Actions are pinned by commit SHA under `.github/workflows/`.

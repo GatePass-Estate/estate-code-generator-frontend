@@ -1,4 +1,4 @@
-import LoadingTransition from '@/src/components/common/LoadingTransition';
+import LoadingTransition from '@/src/shared/components/feedback/LoadingTransition';
 
 export default function Index() {
   return <LoadingTransition />;

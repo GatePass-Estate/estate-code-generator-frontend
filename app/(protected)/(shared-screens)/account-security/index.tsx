@@ -1,8 +1,1 @@
-import { Platform } from 'react-native';
-import AccountSecurityMobile from './index.native';
-import AccountSecurityWeb from './index.web';
-
-export default Platform.select({
-  web: AccountSecurityWeb,
-  default: AccountSecurityMobile,
-});
+export { default } from '@/src/features/auth/screens/account-security/index';
