@@ -44,11 +44,12 @@ export default function InvitePage() {
     timeframe,
     address,
     fromScreen,
+    returnTo,
     cancelText,
     cancelInvite,
     shareMessage,
   } = useInvite({
-    onCancelled: () => handleBack(),
+    onCancelled: () => leaveInvite(),
     onCancelFailed: () =>
       Alert.alert(
         'Could not cancel invite',
@@ -65,15 +66,20 @@ export default function InvitePage() {
     };
   }, []);
 
-  const handleBack = () => {
+  /** Active codes → home; scheduled → History Upcoming; home share sheet → stack back. */
+  const leaveInvite = () => {
     if (fromScreen === 'home' && router.canGoBack()) {
       goBack();
       return;
     }
-    router.replace({
-      pathname: '/user/history',
-      params: { tab: 'upcoming' },
-    });
+    if (returnTo === 'upcoming') {
+      router.replace({
+        pathname: '/user/history',
+        params: { tab: 'upcoming' },
+      });
+      return;
+    }
+    router.replace('/user');
   };
 
   const copyToClipboard = useCallback(async () => {
@@ -106,7 +112,7 @@ export default function InvitePage() {
 
       <CopiedToast visible={showCopiedToast} />
 
-      <Back type="short-arrow" onPress={handleBack} />
+      <Back type="short-arrow" onPress={leaveInvite} />
 
       <ScrollView
         showsVerticalScrollIndicator={false}

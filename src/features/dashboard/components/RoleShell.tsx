@@ -67,7 +67,11 @@ export default function RoleShell({
                             // navigate() and leaves you stuck on Home/Guests/etc.
                             if (!navigation.isFocused()) return;
                             e.preventDefault();
-                            router.dismissTo('/user/history');
+                            // Re-tapping History always lands on Past (not a stale Upcoming param).
+                            router.dismissTo({
+                              pathname: '/user/history',
+                              params: { tab: 'past' },
+                            });
                           },
                         })
                       : undefined

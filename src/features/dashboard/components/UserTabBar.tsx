@@ -143,7 +143,15 @@ export default function UserTabBar(props: UserTabBarProps) {
 
             if (!focused && !event.defaultPrevented) {
               if (navigation?.navigate) {
-                navigation.navigate(route.name, route.params);
+                // History tab press should open Past, not a leftover `tab=upcoming` from create.
+                if (route.name === 'history') {
+                  navigation.navigate('history', {
+                    screen: 'index',
+                    params: { tab: 'past' },
+                  });
+                } else {
+                  navigation.navigate(route.name, route.params);
+                }
               } else if (typeof navigateToTab === 'function') {
                 navigateToTab(route.key);
               }

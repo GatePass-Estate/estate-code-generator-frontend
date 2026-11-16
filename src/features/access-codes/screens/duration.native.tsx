@@ -268,8 +268,10 @@ export default function SetAccessCodeDurationScreen() {
           .catch(() => {});
       }
 
+      const startsAt = customPeriod?.start ?? now;
+      const isUpcoming = startsAt.getTime() > now.getTime();
       const { formattedDate, timeframe } = formatInvitePeriodDisplay(
-        customPeriod?.start ?? now,
+        startsAt,
         customPeriod?.end ?? parseLogDate(result.valid_until)
       );
       router.push({
@@ -280,6 +282,8 @@ export default function SetAccessCodeDurationScreen() {
           address: `${home_address ?? ''}, ${estate_name ?? ''}`.replace(/^,\s*|,\s*$/g, ''),
           timeframe,
           date: formattedDate,
+          // Back from share: Active Codes on home, or History → Upcoming.
+          returnTo: isUpcoming ? 'upcoming' : 'active',
         },
       });
     } catch (error: unknown) {

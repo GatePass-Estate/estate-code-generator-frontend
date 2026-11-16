@@ -222,6 +222,8 @@ export default function HistoryTabScreen() {
   const handleModeChange = useCallback(
     (nextMode: HistoryMode) => {
       setMode(nextMode);
+      // Keep the URL in sync so focus / back do not snap to a stale tab param.
+      router.setParams({ tab: nextMode });
       if (nextMode === 'upcoming' && upcomingQuery.isFetched) {
         void refetchUpcoming();
       }
