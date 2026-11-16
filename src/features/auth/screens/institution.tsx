@@ -151,8 +151,8 @@ export default function InstitutionScreen() {
 
   const cancelStyle = useAnimatedStyle(() => ({
     opacity: progress.value,
-    width: progress.value * 72,
-    marginLeft: progress.value * 12,
+    width: progress.value * 54,
+    marginLeft: progress.value * 8,
     overflow: 'hidden' as const,
   }));
 
@@ -244,7 +244,7 @@ export default function InstitutionScreen() {
           <Animated.View style={searchStyle} className="absolute left-0 right-0">
             <Pressable onPress={() => inputRef.current?.blur()} className="w-full">
               <View
-                className="h-12 flex-row items-center"
+                className="h-14 flex-row items-center"
                 onLayout={(event) => {
                   metrics.current.row = event.nativeEvent.layout.height;
                   placeGroup();
@@ -252,7 +252,7 @@ export default function InstitutionScreen() {
               >
                 <Animated.View
                   style={fieldStyle}
-                  className="h-12 flex-1 flex-row items-center gap-2 rounded-full border-[0.5px] px-4"
+                  className="h-14 flex-1 flex-row items-center gap-2 rounded-full border-[0.5px] px-4"
                 >
                   <View className="h-6 w-6 items-center justify-center">
                     <Animated.View style={idleIconStyle} className="absolute">
@@ -270,12 +270,12 @@ export default function InstitutionScreen() {
                     placeholderTextColor="#9B9797"
                     autoCapitalize="none"
                     autoCorrect={false}
-                    className="h-10 flex-1 text-lg"
+                    className="h-12 flex-1 text-lg"
                     style={{ fontSize: 18, lineHeight: 22 }}
                   />
                 </Animated.View>
 
-                <Animated.View style={cancelStyle} className="h-12 justify-center">
+                <Animated.View style={cancelStyle} className="h-14 justify-center">
                   <Pressable onPress={handleCancel} className="active:opacity-70">
                     <Text numberOfLines={1} className="font-inter-medium text-sm text-[#167A6F]">
                       Cancel

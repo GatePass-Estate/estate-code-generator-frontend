@@ -19,8 +19,8 @@ type ButtonProps = Omit<PressableProps, 'children'> & {
 };
 
 const SIZE_CLASS = {
-  lg: 'h-[44px] w-[278px] max-w-[278px] min-w-[80px]',
-  md: 'h-[44px] w-[155px] min-w-[80px]',
+  lg: 'w-[278px] max-w-[278px] min-w-[80px]',
+  md: 'w-[155px] min-w-[80px]',
 } as const;
 
 const LABEL_METRICS = {
@@ -60,8 +60,10 @@ export default function Button({
       accessibilityState={{ busy: loading, disabled: isDisabled }}
       disabled={isDisabled}
       className={cn(
-        'items-center justify-center overflow-hidden rounded-full',
-        icon ? 'h-[44px] w-auto max-w-none flex-row gap-1 rounded-full px-4' : SIZE_CLASS[size],
+        'items-center justify-center overflow-hidden rounded-full py-4',
+        icon
+          ? 'h-[44px] w-auto max-w-none flex-row gap-1 rounded-full px-4 py-0'
+          : SIZE_CLASS[size],
         icon ? null : variant === 'secondary' ? 'px-6' : 'px-8',
         variant === 'secondary'
           ? 'bg-[#E5F6FF]'
@@ -73,13 +75,17 @@ export default function Button({
         className
       )}
       {...props}
-      style={(state) => [
-        { height: 44, paddingVertical: 0 },
-        typeof style === 'function' ? style(state) : style,
-      ]}
+      style={
+        icon
+          ? (state) => [
+              { height: 44, paddingVertical: 0 },
+              typeof style === 'function' ? style(state) : style,
+            ]
+          : style
+      }
       onPress={handlePress}
     >
-      {/* Keep label in layout (hidden) so the loader never stretches the button. */}
+      {/* Keep label in layout (hidden) so swapping in the loader never grows the button. */}
       <View
         className={cn(loading && 'opacity-0', icon && 'flex-row items-center gap-1')}
         accessibilityElementsHidden={loading}

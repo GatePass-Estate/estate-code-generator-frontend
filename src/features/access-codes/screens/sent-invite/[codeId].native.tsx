@@ -194,13 +194,18 @@ export default function UpcomingInviteScreen() {
             <Pressable
               onPress={handleCancel}
               disabled={cancelling || !hashedCode}
-              className="items-center justify-center rounded-full bg-primary p-4"
+              className="items-center justify-center overflow-hidden rounded-full bg-primary p-4"
             >
+              <Text
+                className={`text-sm font-ubuntu-semibold text-white ${cancelling ? 'opacity-0' : ''}`}
+              >
+                Cancel Scheduling
+              </Text>
               {cancelling ? (
-                <CircleLoader size={22} tone="light" />
-              ) : (
-                <Text className="text-sm font-ubuntu-semibold text-white">Cancel Scheduling</Text>
-              )}
+                <View className="absolute inset-0 items-center justify-center" pointerEvents="none">
+                  <CircleLoader size={20} tone="light" />
+                </View>
+              ) : null}
             </Pressable>
           </View>
         </>
