@@ -61,15 +61,17 @@ describe('isTierActive / isTierSubscribed', () => {
 });
 
 describe('tierPurchaseState / tierCardButtons (audit matrix)', () => {
-  it('maps API status + local cancel to purchase state', () => {
+  it('maps standardized API status + local cancel to purchase state', () => {
     expect(tierPurchaseState(tier())).toBe('not_purchased');
+    expect(tierPurchaseState(tier({ status: 'purchased' }))).toBe('purchased');
     expect(tierPurchaseState(tier({ status: 'active' }))).toBe('purchased');
     expect(tierPurchaseState(tier({ status: 'installed' }))).toBe('purchased');
     expect(tierPurchaseState(tier({ purchased: true }))).toBe('purchased');
     expect(tierPurchaseState(tier({ status: 'cancelled' }))).toBe('cancelled');
-    expect(tierPurchaseState(tier({ status: 'active' }), { tier_1: true })).toBe('cancelled');
-    expect(tierPurchaseState(tier({ status: 'expired' }))).toBe('expired');
-    expect(tierPurchaseState(tier({ status: 'past_due' }))).toBe('expired');
+    expect(tierPurchaseState(tier({ status: 'purchased' }), { tier_1: true })).toBe('cancelled');
+    expect(tierPurchaseState(tier({ status: 'past_due' }))).toBe('past_due');
+    expect(tierPurchaseState(tier({ status: 'expired' }))).toBe('not_purchased');
+    expect(tierPurchaseState(tier({ status: 'not_purchased' }))).toBe('not_purchased');
   });
 
   it('follows the Purchase × Install button matrix', () => {
@@ -108,14 +110,14 @@ describe('tierPurchaseState / tierCardButtons (audit matrix)', () => {
       install: true,
       uninstall: false,
     });
-    expect(tierCardButtons('expired', true)).toEqual({
+    expect(tierCardButtons('past_due', true)).toEqual({
       activate: false,
       cancel: false,
       reactivate: true,
       install: false,
       uninstall: true,
     });
-    expect(tierCardButtons('expired', false)).toEqual({
+    expect(tierCardButtons('past_due', false)).toEqual({
       activate: false,
       cancel: false,
       reactivate: true,

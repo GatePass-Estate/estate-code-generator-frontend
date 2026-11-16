@@ -52,6 +52,7 @@ export default function AnomalyDetectionPreviewScreen() {
     tierCardRefs,
     tierListBusy,
     handlePressActivate,
+    handleReactivate,
     handleCancelSubscription,
     handleUninstall,
     handleInstall,
@@ -207,6 +208,7 @@ export default function AnomalyDetectionPreviewScreen() {
                   installOverrides={installOverrides}
                   {...tierListBusy}
                   onActivate={handlePressActivate}
+                  onReactivate={(tier) => void handleReactivate(tier)}
                   onCancel={handleCancelSubscription}
                   onUninstall={handleUninstall}
                   onInstall={(tier) => void handleInstall(tier)}

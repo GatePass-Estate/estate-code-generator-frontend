@@ -35,6 +35,7 @@ export default function MarketplaceTierList({
   installingTierKey,
   actionsLocked,
   onActivate,
+  onReactivate,
   onCancel,
   onUninstall,
   onInstall,
@@ -61,6 +62,8 @@ export default function MarketplaceTierList({
     uninstall: boolean;
   };
   onActivate: (tier: MarketplaceTier) => void;
+  /** Cancelled → reactivate API. past_due keeps `onActivate` (checkout). */
+  onReactivate?: (tier: MarketplaceTier) => void;
   onCancel: (tier: MarketplaceTier) => void;
   onUninstall: (tier: MarketplaceTier) => void;
   onInstall: (tier: MarketplaceTier) => void;
@@ -103,7 +106,11 @@ export default function MarketplaceTierList({
               benefits={benefits}
               expanded={expandedTier === tierKey}
               onToggle={() => onToggle(tierKey)}
-              onActivate={() => onActivate(tier)}
+              onActivate={() => {
+                // cancelled → reactivate endpoint; past_due / Activate → checkout (or free install).
+                if (purchase === 'cancelled' && onReactivate) onReactivate(tier);
+                else onActivate(tier);
+              }}
               onCancelSubscription={() => onCancel(tier)}
               onUninstall={() => onUninstall(tier)}
               onInstall={() => onInstall(tier)}

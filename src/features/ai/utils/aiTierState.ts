@@ -9,19 +9,19 @@ import type { MarketplaceTier } from '@/src/features/marketplace/types/aiMarketp
 export type TierFlags = Record<string, boolean>;
 
 /**
- * Marketplace `status` means the estate has paid / holds the tier (including `installed`).
- * Actual install is only `is_installed` — paid+uninstalled keeps status but clears the flag.
+ * Marketplace / entitlement `status` is purchase state only; install is `is_installed`.
  *
- * Purchase-state values match the Gatepass App technical audit button matrix
- * (Not Purchased / Purchased / Cancelled / Expired). Grant statuses from revenue
- * (`AiFeatureGrantStatus`) include `active | expired | cancelled | past_due`.
+ * Standardized values: `not_purchased | purchased | cancelled | past_due`
+ * (`active→purchased`, `expired→not_purchased`). Legacy aliases still accepted.
  */
-const PURCHASED_STATUSES = ['active', 'purchased', 'subscribed', 'installed'];
+const PURCHASED_STATUSES = ['purchased', 'active', 'subscribed', 'installed'];
 const CANCELLED_STATUSES = ['cancelled'];
-const EXPIRED_STATUSES = ['expired', 'past_due'];
+const PAST_DUE_STATUSES = ['past_due'];
+/** Fully ended grants — treat like not purchased (Activate / checkout). */
+const NOT_PURCHASED_STATUSES = ['not_purchased', 'expired', 'available'];
 
-/** Audit matrix purchase column. */
-export type TierPurchaseState = 'not_purchased' | 'purchased' | 'cancelled' | 'expired';
+/** Audit matrix purchase column (matches AI Marketplace Status Standardization). */
+export type TierPurchaseState = 'not_purchased' | 'purchased' | 'cancelled' | 'past_due';
 
 /** Which CTAs the tier card shows (audit matrix × install state). */
 export type TierCardButtons = {
@@ -39,7 +39,7 @@ export function tierNumber(tierName: string): number {
 
 /**
  * Map marketplace tier + local cancel bookkeeping → audit Purchase State.
- * Local cancel wins while the API still reports an active/paid status.
+ * Local cancel wins while the API still reports a purchased status.
  */
 export function tierPurchaseState(
   tier: MarketplaceTier | null | undefined,
@@ -48,8 +48,9 @@ export function tierPurchaseState(
   if (!tier) return 'not_purchased';
   const status = (tier.status ?? '').toLowerCase();
   if (justCancelledTiers[tier.tier] || CANCELLED_STATUSES.includes(status)) return 'cancelled';
-  if (EXPIRED_STATUSES.includes(status)) return 'expired';
+  if (PAST_DUE_STATUSES.includes(status)) return 'past_due';
   if (PURCHASED_STATUSES.includes(status) || Boolean(tier.purchased)) return 'purchased';
+  if (NOT_PURCHASED_STATUSES.includes(status)) return 'not_purchased';
   return 'not_purchased';
 }
 
@@ -71,6 +72,8 @@ export function resolveTierInstalled(
 /**
  * Audit matrix: Purchase State × Install State → buttons.
  * Free tiers never show Cancel Subscription (nothing to cancel).
+ * `cancelled` and `past_due` share Re-activate + Install/Uninstall; callers route
+ * cancelled → reactivate API and past_due → checkout.
  */
 export function tierCardButtons(
   purchase: TierPurchaseState,
@@ -95,7 +98,7 @@ export function tierCardButtons(
       uninstall: installed,
     };
   }
-  // cancelled | expired
+  // cancelled | past_due
   return {
     activate: false,
     cancel: false,
@@ -111,8 +114,7 @@ export function isTierActive(tier: MarketplaceTier): boolean {
 }
 
 /**
- * Paid for (marketplace `status` / `purchased`), unless cancelled/expired here.
- * `status: 'installed'` means paid — not that the feature is currently installed.
+ * Paid for (marketplace `status` / `purchased`), unless cancelled/past_due here.
  */
 export function isTierSubscribed(
   tier: MarketplaceTier | null | undefined,
@@ -122,8 +124,8 @@ export function isTierSubscribed(
 }
 
 /**
- * Tier One unlocks Result. `is_installed` is the only install signal; `status` (e.g. `installed`)
- * means paid. Paid + not installed → Install modal. Until tiers load, both values are undefined.
+ * Tier One unlocks Result. `is_installed` is the only install signal; `status` means purchase.
+ * Paid + not installed → Install modal. Until tiers load, both values are undefined.
  */
 export function tierOneState(
   tierOne: MarketplaceTier | undefined,

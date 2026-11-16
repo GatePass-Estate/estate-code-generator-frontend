@@ -80,8 +80,17 @@ export function formatTierLabel(tier: string): string {
 }
 
 export function formatTierSubtitle(tier: MarketplaceTier): string {
-  /** Owned tiers use `tier.name` as the card headline — subtitle is purchase state / price. */
-  if (tier.is_installed || tier.status === 'installed' || tier.status === 'subscribed') {
+  /** Subtitle is purchase state (install is a separate flag), else FREE / price. */
+  const status = (tier.status ?? '').toLowerCase();
+  if (status === 'cancelled') return 'Cancelled';
+  if (status === 'past_due') return 'Past due';
+  if (
+    status === 'purchased' ||
+    status === 'active' ||
+    status === 'installed' ||
+    status === 'subscribed' ||
+    tier.purchased
+  ) {
     return 'Purchased';
   }
   if (tier.is_free) return 'FREE';
@@ -238,6 +247,30 @@ export async function cancelMarketplaceSubscription(
       );
     }
     raiseApiError(error, 'Failed to cancel subscription');
+  }
+}
+
+/** True when reactivate is refused because the grant period has ended (use checkout). */
+export function isReactivateExpiredError(error: unknown): boolean {
+  return isAxiosError(error) && error.response?.status === 409;
+}
+
+/**
+ * Undo a standalone AI cancellation (status → active, auto_renew on; no billing extension).
+ * Revenue: POST /ai-features/estate/{estate_id}/reactivate
+ * 409 when the grant has already expired — caller should fall back to checkout.
+ */
+export async function reactivateAiFeature(estateId: string, featureKey: string): Promise<void> {
+  requirePrimaryAdminForFeatureAction();
+  try {
+    const api = Api('revenue');
+    await api.post(`/ai-features/estate/${encodeURIComponent(estateId)}/reactivate`, {
+      feature_key: featureKey,
+    });
+    void invalidateMarketplace();
+  } catch (error: unknown) {
+    if (isReactivateExpiredError(error)) throw error;
+    throwFeatureActionError(error, 'Failed to reactivate subscription');
   }
 }
 

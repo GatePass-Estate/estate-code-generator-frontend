@@ -7,7 +7,9 @@ import { useBillingAccess } from '@/src/features/billing/hooks/billing';
 import {
   cancelMarketplaceSubscription,
   installAiFeature,
+  isReactivateExpiredError,
   rateMarketplaceFeature,
+  reactivateAiFeature,
   uninstallAiFeature,
 } from '@/src/features/marketplace/services/aiMarketplace';
 import type {
@@ -192,6 +194,42 @@ export function useAiTierActions({
     setConfirmModalVisible(true);
   };
 
+  /**
+   * Re-activate a cancelled standalone grant (no new charge).
+   * 409 (grant expired) → Paystack checkout instead — same path as past_due.
+   */
+  const handleReactivate = async (tier: MarketplaceTier) => {
+    if (denyIfUnauthorized()) return;
+    if (requireTierOne(tier)) return;
+    if (!estateId) {
+      showAlert('Error', 'Estate ID not found');
+      return;
+    }
+    if (!tier.feature_key) {
+      showAlert('Error', 'Feature key is missing for this tier.');
+      return;
+    }
+
+    await runSubscribe(tier.tier, async () => {
+      try {
+        await reactivateAiFeature(estateId, tier.feature_key!);
+        markTierCancelled(tier.tier, false);
+        showAlert('Success', 'Subscription reactivated successfully.');
+        void onTierChange();
+      } catch (err: unknown) {
+        if (isReactivateExpiredError(err)) {
+          openActivation(tier);
+          return;
+        }
+        notifyActionError(
+          'Reactivation Failed',
+          { message: errorMessage(err) },
+          'Failed to reactivate subscription.'
+        );
+      }
+    });
+  };
+
   const handleUninstall = (tier: MarketplaceTier) => {
     if (denyIfUnauthorized()) return;
     if (requireTierOneToUninstall && requireTierOne(tier)) return;
@@ -311,6 +349,7 @@ export function useAiTierActions({
     handleInstall,
     handleUninstall,
     handleCancelSubscription,
+    handleReactivate,
     handleRate,
     activation: {
       visible: activationModalVisible,

@@ -235,12 +235,25 @@ export type CheckoutStatusResponse = {
   estate_id_masked: string;
 };
 
-export type AiFeatureGrantStatus = 'active' | 'expired' | 'cancelled' | 'past_due';
+/**
+ * Standardized purchase status from revenue `list_ai_features` / `check_ai_feature`
+ * and AI marketplace tiers (`active→purchased`, `expired→not_purchased`).
+ * Legacy `active` / `expired` kept for older payloads.
+ */
+export type AiFeatureGrantStatus =
+  | 'not_purchased'
+  | 'purchased'
+  | 'cancelled'
+  | 'past_due'
+  | 'active'
+  | 'expired';
 
 export type AiFeatureGrant = {
   id: string;
   ai_feature_id: string;
   feature_key: string | null;
+  /** Catalog feature name from revenue entitlement endpoints. */
+  name?: string | null;
   source: string;
   status: AiFeatureGrantStatus;
   is_installed: boolean;

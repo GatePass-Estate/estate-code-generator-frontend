@@ -311,7 +311,7 @@ export async function getCheckoutStatus(
   }
 }
 
-/** GET /ai-features/estate/{estateId} — the estate's AI grants (keys only, no names). */
+/** GET /ai-features/estate/{estateId} — estate AI grants (includes catalog `name`). */
 export async function getEstateAiGrants(estateId: string): Promise<EstateAiGrantsResponse> {
   try {
     const { data } = await Api('revenue').get<EstateAiGrantsResponse>(

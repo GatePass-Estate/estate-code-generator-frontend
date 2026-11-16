@@ -56,6 +56,7 @@ export default function IncidentReportPreviewScreen() {
     tierCardRefs,
     tierListBusy,
     handleSubscribe,
+    handleReactivate,
     handleCancelSubscription,
     handleUninstall,
     handleInstall,
@@ -210,6 +211,7 @@ export default function IncidentReportPreviewScreen() {
                   installOverrides={installOverrides}
                   {...tierListBusy}
                   onActivate={(tier) => void handleSubscribe(tier)}
+                  onReactivate={(tier) => void handleReactivate(tier)}
                   onCancel={handleCancelSubscription}
                   onUninstall={handleUninstall}
                   onInstall={(tier) => void handleInstall(tier)}

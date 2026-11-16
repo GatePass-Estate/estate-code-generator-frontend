@@ -86,60 +86,45 @@ describe('buildStandaloneAiTools', () => {
     ).toEqual([]);
   });
 
-  it('prefers marketplace detail tier.name over invented Tier N', () => {
-    const productsWithTiers = [
-      {
-        id: 'p1',
-        name: 'Anomaly Detection',
-        ai_feature_ids: ['f1', 'f1b', 'f1c'],
-        tiers: [
-          { ai_feature_id: 'f1', feature_key: 'anomaly_detection_tier_1', name: 'Insights' },
-          { ai_feature_id: 'f1b', feature_key: 'anomaly_detection_tier_2', name: 'In house' },
-          { ai_feature_id: 'f1c', feature_key: 'anomaly_detection_tier_3', name: 'Third Party' },
-        ],
-      },
-      {
-        id: 'p2',
-        name: 'Incident Reports',
-        ai_feature_ids: ['f2'],
-        tiers: [{ ai_feature_id: 'f2', feature_key: 'incident_report_tier_1', name: 'Base Scan' }],
-      },
-    ];
+  it('prefers grant catalog name from entitlement endpoints', () => {
     const tools = buildStandaloneAiTools(
       [
         grant({
           id: 't1',
-          ai_feature_id: 'f1',
           feature_key: 'anomaly_detection_tier_1',
+          name: 'Anomaly Insights',
           status: 'cancelled',
         }),
         grant({
           id: 't2',
           ai_feature_id: 'f1b',
           feature_key: 'anomaly_detection_tier_2',
-          status: 'active',
+          name: 'Anomaly In house',
+          status: 'purchased',
         }),
         grant({
           id: 't3',
           ai_feature_id: 'f1c',
           feature_key: 'anomaly_detection_tier_3',
-          status: 'active',
+          name: 'Anomaly Third Party',
+          status: 'purchased',
         }),
         grant({
           id: 't4',
           ai_feature_id: 'f2',
           feature_key: 'incident_report_tier_1',
-          status: 'active',
+          name: 'Incident Base Scan',
+          status: 'past_due',
         }),
       ],
-      productsWithTiers,
+      undefined,
       NOW
     );
     expect(tools.map((tool) => tool.name)).toEqual([
-      'Anomaly Detection · Insights',
-      'Anomaly Detection · In house',
-      'Anomaly Detection · Third Party',
-      'Incident Reports · Base Scan',
+      'Anomaly Insights',
+      'Anomaly In house',
+      'Anomaly Third Party',
+      'Incident Base Scan',
     ]);
   });
 
@@ -160,14 +145,10 @@ describe('buildStandaloneAiTools', () => {
     ).toBe('Anomaly Detection · Tier Two');
   });
 
-  it('treats an active grant past its end date as expired', () => {
-    const [tool] = buildStandaloneAiTools(
-      [grant({ expires_at: '2026-05-15T00:00:00Z' })],
-      products,
-      NOW
-    );
-    expect(tool.status).toBe('expired');
-    expect(tool.purchaseLabel).toBe('Expired');
+  it('drops an active/purchased grant past its end date (expired → not_purchased)', () => {
+    expect(
+      buildStandaloneAiTools([grant({ expires_at: '2026-05-15T00:00:00Z' })], products, NOW)
+    ).toEqual([]);
   });
 
   it('carries purchase and install state from the grant', () => {
@@ -183,9 +164,10 @@ describe('buildStandaloneAiTools', () => {
 
 describe('aiToolPurchaseLabel', () => {
   it('maps grant status to the Purchase State tag', () => {
+    expect(aiToolPurchaseLabel('purchased')).toBe('Purchased');
     expect(aiToolPurchaseLabel('active')).toBe('Purchased');
     expect(aiToolPurchaseLabel('cancelled')).toBe('Cancelled');
-    expect(aiToolPurchaseLabel('expired')).toBe('Expired');
     expect(aiToolPurchaseLabel('past_due')).toBe('Expired');
+    expect(aiToolPurchaseLabel('not_purchased')).toBe('Expired');
   });
 });
