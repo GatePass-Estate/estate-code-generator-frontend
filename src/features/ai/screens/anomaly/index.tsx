@@ -73,8 +73,6 @@ export default function AnomalyDetectionPreviewScreen() {
     hasOpenedResultRef.current = true;
   }
   const mountResult = hasOpenedResultRef.current && !resultBlocked;
-  const OverviewFade = Platform.OS === 'android' ? View : Animated.View;
-  const overviewFadeProps = Platform.OS === 'android' ? {} : { entering: FadeIn.duration(280) };
 
   return (
     <View style={{ flex: 1, backgroundColor: isResultTab ? '#F6F7F7' : '#FFFFFF' }}>
@@ -159,7 +157,7 @@ export default function AnomalyDetectionPreviewScreen() {
               viewportHeightRef.current = e.nativeEvent.layout.height;
             }}
           >
-            <OverviewFade {...overviewFadeProps}>
+            <Animated.View entering={Platform.OS === 'android' ? undefined : FadeIn.duration(280)}>
               {/* Top Hero Container with split background */}
               <View style={{ width: '100%', position: 'relative' }}>
                 {/* White background: spans full width of device, no border radius, extending to half of the anomaly detection card */}
@@ -236,7 +234,7 @@ export default function AnomalyDetectionPreviewScreen() {
                   onInstall={(tier) => void handleInstall(tier)}
                 />
               </View>
-            </OverviewFade>
+            </Animated.View>
           </ScrollView>
         )}
       </SafeAreaView>

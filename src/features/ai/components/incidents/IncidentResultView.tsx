@@ -458,12 +458,12 @@ export default function IncidentResultView({
     );
   }
 
-  // Android: Reanimated entering FadeIn often leaves the first paint fully blank (opacity 0).
-  const ResultRoot = Platform.OS === 'android' ? View : Animated.View;
-  const resultRootProps = Platform.OS === 'android' ? {} : { entering: FadeIn.duration(260) };
-
+  // Android: skip entering FadeIn — it often leaves the first paint blank (opacity 0).
   return (
-    <ResultRoot {...resultRootProps} style={{ flex: 1, backgroundColor: '#F6F7F7' }}>
+    <Animated.View
+      entering={Platform.OS === 'android' ? undefined : FadeIn.duration(260)}
+      style={{ flex: 1, backgroundColor: '#F6F7F7' }}
+    >
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
@@ -745,6 +745,6 @@ export default function IncidentResultView({
         timelineSummary={inhouseInsight.timelineSummary}
         themes={inhouseInsight.themes}
       />
-    </ResultRoot>
+    </Animated.View>
   );
 }

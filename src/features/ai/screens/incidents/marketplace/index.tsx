@@ -75,8 +75,6 @@ export default function IncidentReportPreviewScreen() {
   }
   const mountResult = hasOpenedResultRef.current && !resultBlocked;
   const isResultTab = activeTab === 'Result';
-  const OverviewFade = Platform.OS === 'android' ? View : Animated.View;
-  const overviewFadeProps = Platform.OS === 'android' ? {} : { entering: FadeIn.duration(280) };
 
   return (
     <View style={{ flex: 1, backgroundColor: isResultTab ? '#F6F7F7' : '#FFFFFF' }}>
@@ -178,7 +176,7 @@ export default function IncidentReportPreviewScreen() {
               viewportHeightRef.current = e.nativeEvent.layout.height;
             }}
           >
-            <OverviewFade {...overviewFadeProps}>
+            <Animated.View entering={Platform.OS === 'android' ? undefined : FadeIn.duration(280)}>
               <View style={{ width: '100%', position: 'relative' }}>
                 <View
                   style={{
@@ -243,7 +241,7 @@ export default function IncidentReportPreviewScreen() {
                   onInstall={(tier) => void handleInstall(tier)}
                 />
               </View>
-            </OverviewFade>
+            </Animated.View>
           </ScrollView>
         )}
       </SafeAreaView>
