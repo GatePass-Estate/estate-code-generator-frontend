@@ -1,23 +1,16 @@
 import { useRef, useState } from 'react';
-import { Image, Pressable, ScrollView, Text, View } from 'react-native';
+import { Image, Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
 import { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
-import Animated, {
-  Easing,
-  FadeIn,
-  FadeInDown,
-  LayoutAnimationConfig,
-} from 'react-native-reanimated';
 import type { AISummaryVariant } from '@/src/features/ai/components/incidents/modals/IncidentAISummaryModal';
 import images from '@/src/shared/constants/images';
 import AiSummaryLockSvg from '@/src/assets/icons/ai-summary-lock.svg';
 import AiSummaryExpandSvg from '@/src/assets/icons/ai-summary-expand.svg';
 import MetaChips from '@/src/features/ai/components/incidents/AISummaryMetaChips';
 
-export type InsightMode = 'idle' | 'generated' | 'locked';
+/** Result page horizontal padding (px-5) — used until the slider measures itself. */
+const RESULT_PAGE_GUTTER = 40;
 
-const EASE_OUT = Easing.bezier(0.25, 0.1, 0.25, 1);
-const CONTENT_FADE_IN = FadeIn.duration(260).easing(EASE_OUT);
-const CARD_RISE_IN = FadeInDown.duration(380).easing(EASE_OUT);
+export type InsightMode = 'idle' | 'generated' | 'locked';
 
 export type AISummarySlide = {
   variant: AISummaryVariant;
@@ -176,45 +169,48 @@ function SummarySlider({
   onOpen: (variant: AISummaryVariant) => void;
 }) {
   const scrollRef = useRef<ScrollView>(null);
-  const [width, setWidth] = useState(0);
+  const { width: windowWidth } = useWindowDimensions();
+  // Seed width so the first paint is not empty (that blank frame pulled Category Distribution up).
+  const [width, setWidth] = useState(() => Math.max(windowWidth - RESULT_PAGE_GUTTER, 1));
   const [index, setIndex] = useState(0);
   const interval = width + SLIDE_GAP;
 
   return (
     <View
       className="mt-4 w-full"
-      onLayout={(e) => setWidth(Math.round(e.nativeEvent.layout.width))}
+      onLayout={(e) => {
+        const next = Math.round(e.nativeEvent.layout.width);
+        if (next > 0 && next !== width) setWidth(next);
+      }}
     >
-      {width > 0 ? (
-        <ScrollView
-          ref={scrollRef}
-          horizontal
-          nestedScrollEnabled
-          directionalLockEnabled
-          showsHorizontalScrollIndicator={false}
-          scrollEnabled={slides.length > 1}
-          snapToInterval={interval}
-          decelerationRate="fast"
-          disableIntervalMomentum
-          scrollEventThrottle={16}
-          contentContainerStyle={{ gap: SLIDE_GAP }}
-          onScroll={(e) => {
-            const next = Math.round(e.nativeEvent.contentOffset.x / interval);
-            setIndex((prev) => (prev === next ? prev : next));
-          }}
-        >
-          {slides.map((slide) => (
-            <View key={slide.variant} style={{ width }}>
-              <LoadedSummaryCard
-                summaryText={slide.text}
-                onExpand={() => onOpen(slide.variant)}
-                readTimeLabel={slide.readTimeLabel?.trim() || '2 mins Read'}
-                sourceLabel={slide.sourceLabel}
-              />
-            </View>
-          ))}
-        </ScrollView>
-      ) : null}
+      <ScrollView
+        ref={scrollRef}
+        horizontal
+        nestedScrollEnabled
+        directionalLockEnabled
+        showsHorizontalScrollIndicator={false}
+        scrollEnabled={slides.length > 1}
+        snapToInterval={interval}
+        decelerationRate="fast"
+        disableIntervalMomentum
+        scrollEventThrottle={16}
+        contentContainerStyle={{ gap: SLIDE_GAP }}
+        onScroll={(e) => {
+          const next = Math.round(e.nativeEvent.contentOffset.x / interval);
+          setIndex((prev) => (prev === next ? prev : next));
+        }}
+      >
+        {slides.map((slide) => (
+          <View key={slide.variant} style={{ width }}>
+            <LoadedSummaryCard
+              summaryText={slide.text}
+              onExpand={() => onOpen(slide.variant)}
+              readTimeLabel={slide.readTimeLabel?.trim() || '2 mins Read'}
+              sourceLabel={slide.sourceLabel}
+            />
+          </View>
+        ))}
+      </ScrollView>
 
       {slides.length > 1 ? (
         <View className="mt-3 flex-row items-center justify-center gap-1.5">
@@ -255,11 +251,7 @@ function EmptyGenerateCard({
       className="mt-4 h-[232px] w-full items-center justify-center overflow-hidden rounded-[16px] bg-[#F6F7F7]"
     >
       {isLoading ? (
-        <Animated.View
-          key="loading"
-          entering={CONTENT_FADE_IN}
-          className="w-[281px] items-center gap-3"
-        >
+        <View className="w-[281px] items-center gap-3">
           <CircleLoader size={36} />
           <Text
             allowFontScaling={false}
@@ -267,9 +259,9 @@ function EmptyGenerateCard({
           >
             {alreadyGenerated ? 'Loading AI insight…' : 'Generating AI insight…'}
           </Text>
-        </Animated.View>
+        </View>
       ) : (
-        <Animated.View key="idle" entering={CONTENT_FADE_IN} className="w-[281px] items-center">
+        <View className="w-[281px] items-center">
           <InsightLogo />
           <Text
             allowFontScaling={false}
@@ -277,7 +269,7 @@ function EmptyGenerateCard({
           >
             {alreadyGenerated ? 'Tap to view' : 'Tap to generate'} AI Insight on{'\n'}your report
           </Text>
-        </Animated.View>
+        </View>
       )}
     </Pressable>
   );
@@ -306,27 +298,26 @@ export default function IncidentAISummaryCard({
         ? 'generated'
         : 'empty';
 
+  // No enter/layout animation — on Android FadeIn/FadeInDown left a blank gap and
+  // shoved Category Distribution up before the summary painted.
   return (
-    // Skip the entrance on first paint; animate only when the card changes state.
-    <LayoutAnimationConfig skipEntering>
-      <Animated.View key={state} entering={state === 'empty' ? CONTENT_FADE_IN : CARD_RISE_IN}>
-        {state === 'locked' ? (
-          <LockedSummaryCard
-            onUpgradePress={onUpgradePress}
-            upgradeLabel={upgradeLabel}
-            readTimeLabel={resolvedReadTime}
-            sourceLabel={resolvedSource}
-          />
-        ) : state === 'generated' ? (
-          <SummarySlider slides={slides} onOpen={onOpenSlide ?? (() => onPress())} />
-        ) : (
-          <EmptyGenerateCard
-            onPress={onPress}
-            isLoading={isLoading}
-            alreadyGenerated={alreadyGenerated}
-          />
-        )}
-      </Animated.View>
-    </LayoutAnimationConfig>
+    <View>
+      {state === 'locked' ? (
+        <LockedSummaryCard
+          onUpgradePress={onUpgradePress}
+          upgradeLabel={upgradeLabel}
+          readTimeLabel={resolvedReadTime}
+          sourceLabel={resolvedSource}
+        />
+      ) : state === 'generated' ? (
+        <SummarySlider slides={slides} onOpen={onOpenSlide ?? (() => onPress())} />
+      ) : (
+        <EmptyGenerateCard
+          onPress={onPress}
+          isLoading={isLoading}
+          alreadyGenerated={alreadyGenerated}
+        />
+      )}
+    </View>
   );
 }

@@ -16,16 +16,28 @@ const COLLAPSE = {
 export function useCollapse(open: boolean) {
   const progress = useSharedValue(open ? 1 : 0);
   const measuredHeight = useSharedValue(0);
+  const hasMeasured = useSharedValue(0);
+  const isOpen = useSharedValue(open ? 1 : 0);
 
   useEffect(() => {
+    isOpen.value = open ? 1 : 0;
     progress.value = withTiming(open ? 1 : 0, COLLAPSE);
-  }, [open, progress]);
+  }, [open, progress, isOpen]);
 
-  const bodyStyle = useAnimatedStyle(() => ({
-    height: measuredHeight.value * progress.value,
-    opacity: progress.value,
-    overflow: 'hidden',
-  }));
+  const bodyStyle = useAnimatedStyle(() => {
+    // Until the first measure, don't clip open content to height 0 (Android modal blank).
+    if (hasMeasured.value === 0) {
+      return {
+        opacity: isOpen.value ? 1 : 0,
+        overflow: 'hidden' as const,
+      };
+    }
+    return {
+      height: measuredHeight.value * progress.value,
+      opacity: progress.value,
+      overflow: 'hidden' as const,
+    };
+  });
 
   const caretStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: `${(progress.value - 1) * 90}deg` }],
@@ -35,6 +47,7 @@ export function useCollapse(open: boolean) {
     const next = Math.ceil(event.nativeEvent.layout.height);
     if (next > 0 && Math.abs(next - measuredHeight.value) > 1) {
       measuredHeight.value = next;
+      hasMeasured.value = 1;
     }
   };
 
