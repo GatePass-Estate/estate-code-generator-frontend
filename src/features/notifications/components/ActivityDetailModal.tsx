@@ -78,13 +78,13 @@ export default function ActivityDetailModal({
             <>
               <Pressable
                 onPress={viewAnomaly}
-                className="bg-primary rounded-[24px] h-11 items-center justify-center mt-6"
+                className="bg-primary rounded-full h-11 items-center justify-center mt-6"
               >
                 <Text className="text-[#F6F7F7] font-ubuntu-semibold text-sm">View anomaly</Text>
               </Pressable>
               <Pressable
                 onPress={onClose}
-                className="rounded-[24px] h-11 items-center justify-center mt-2"
+                className="rounded-full h-11 items-center justify-center mt-2"
               >
                 <Text className="text-primary font-ubuntu-semibold text-sm">Close</Text>
               </Pressable>
@@ -92,7 +92,7 @@ export default function ActivityDetailModal({
           ) : (
             <Pressable
               onPress={onClose}
-              className="bg-primary rounded-[24px] h-11 items-center justify-center mt-6"
+              className="bg-primary rounded-full h-11 items-center justify-center mt-6"
             >
               <Text className="text-[#F6F7F7] font-ubuntu-semibold text-sm">Close</Text>
             </Pressable>

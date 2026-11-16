@@ -27,7 +27,7 @@ export default function BroadcastDetailScreen() {
           <Text className="text-danger font-inter-regular text-sm text-center mb-4">
             {errorMessage}
           </Text>
-          <Pressable onPress={reload} className="px-5 py-3 rounded-[24px] bg-primary">
+          <Pressable onPress={reload} className="px-5 py-3 rounded-full bg-primary">
             <Text className="text-white font-ubuntu-semibold text-sm">Try again</Text>
           </Pressable>
         </View>

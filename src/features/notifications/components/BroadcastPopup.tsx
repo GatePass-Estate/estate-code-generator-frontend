@@ -150,7 +150,7 @@ export default function BroadcastPopup({
                   <Pressable
                     onPress={() => void handleAcknowledge(item)}
                     disabled={acknowledging}
-                    className="bg-primary rounded-[24px] h-11 items-center justify-center self-stretch mt-7"
+                    className="bg-primary rounded-full h-11 items-center justify-center self-stretch mt-7"
                     style={{ opacity: acknowledging ? 0.7 : 1 }}
                   >
                     {acknowledging ? (

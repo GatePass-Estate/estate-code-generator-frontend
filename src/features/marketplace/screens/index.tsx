@@ -514,7 +514,7 @@ export default function AIStoreScreen() {
         {/* Confirm Button */}
         <Pressable
           onPress={() => setFilterModalVisible(false)}
-          className="mt-6 w-full max-w-[278px] min-w-[80px] self-center items-center justify-center rounded-[24px] border border-primary bg-primary px-[32px] py-[16px]"
+          className="mt-6 w-full max-w-[278px] min-w-[80px] self-center items-center justify-center rounded-full border border-primary bg-primary px-[32px] py-[16px]"
         >
           <Text className="text-[16px] font-ubuntu-medium text-white leading-[20px]">Confirm</Text>
         </Pressable>

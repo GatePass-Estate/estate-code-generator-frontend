@@ -137,7 +137,7 @@ export default function AiToolsSheet({
         <Pressable
           onPress={() => void refetch()}
           accessibilityRole="button"
-          className="rounded-[24px] bg-primary px-5 py-3"
+          className="rounded-full bg-primary px-5 py-3"
         >
           <Text className="font-ubuntu-semibold text-sm text-white">Try again</Text>
         </Pressable>
@@ -153,7 +153,7 @@ export default function AiToolsSheet({
         <Pressable
           onPress={openMarketplace}
           accessibilityRole="button"
-          className="rounded-[24px] bg-primary px-5 py-3"
+          className="rounded-full bg-primary px-5 py-3"
         >
           <Text className="font-ubuntu-semibold text-sm text-white">Go to AI marketplace</Text>
         </Pressable>

@@ -273,7 +273,7 @@ export default function IncidentReportCreateScreen() {
             onPress={requestSubmit}
             disabled={submitting || checkingAccess || !draftLoaded}
             accessibilityRole="button"
-            className="mx-auto h-[44px] w-[278px] max-w-[80%] items-center justify-center rounded-[24px] bg-primary"
+            className="mx-auto h-[44px] w-[278px] max-w-[80%] items-center justify-center rounded-full bg-primary"
           >
             {submitting ? (
               <CircleLoader size={22} tone="light" />

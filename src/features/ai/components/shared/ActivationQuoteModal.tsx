@@ -379,7 +379,7 @@ const styles = StyleSheet.create({
   confirmButton: {
     backgroundColor: '#113E55',
     height: 52,
-    borderRadius: 26,
+    borderRadius: 9999,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 20,

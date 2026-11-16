@@ -48,7 +48,7 @@ export default class AppErrorBoundary extends Component<Props, State> {
         <Pressable
           onPress={this.handleRetry}
           accessibilityRole="button"
-          className="rounded-[24px] bg-primary px-6 py-3 active:opacity-80"
+          className="rounded-full bg-primary px-6 py-3 active:opacity-80"
         >
           <Text className="font-ubuntu-semibold text-sm text-white">Try again</Text>
         </Pressable>

@@ -113,7 +113,7 @@ export default function EnterCodePanel({
 
       <View className="mt-[106.5px] h-[48px] w-full items-center">
         <Pressable
-          className="h-[48px] min-w-[80px] max-w-[278px] w-[171px] flex-row items-center justify-center gap-[10px] rounded-[24px] bg-primary px-[24px] py-[16px]"
+          className="h-[48px] min-w-[80px] max-w-[278px] w-[171px] flex-row items-center justify-center gap-[10px] rounded-full bg-primary px-[24px] py-[16px]"
           style={({ pressed }) => [pressed && styles.pressed]}
           onPress={onValidate}
           disabled={isSubmitting}

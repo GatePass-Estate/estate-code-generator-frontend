@@ -106,7 +106,7 @@ export default function TwoFactorSetupWeb() {
                 <button
                   onClick={handleActivate}
                   disabled={activating}
-                  className="w-full bg-primary rounded-[24px] h-11 mt-10 mb-10 text-[#F6F7F7] font-ubuntu-semibold text-sm disabled:opacity-70"
+                  className="w-full bg-primary rounded-full h-11 mt-10 mb-10 text-[#F6F7F7] font-ubuntu-semibold text-sm disabled:opacity-70"
                 >
                   {activating ? 'Activating…' : 'Activate'}
                 </button>

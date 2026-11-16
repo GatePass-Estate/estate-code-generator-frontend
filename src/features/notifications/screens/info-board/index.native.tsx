@@ -132,7 +132,7 @@ export default function InfoBoardScreen() {
           <Pressable
             onPress={() => setConfirmClear(true)}
             disabled={busy}
-            className="bg-primary rounded-[24px] h-11 items-center justify-center mb-6 mt-2"
+            className="bg-primary rounded-full h-11 items-center justify-center mb-6 mt-2"
           >
             <Text className="text-[#F6F7F7] font-ubuntu-semibold text-sm">Clear All</Text>
           </Pressable>

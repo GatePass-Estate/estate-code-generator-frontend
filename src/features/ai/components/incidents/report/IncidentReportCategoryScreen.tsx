@@ -278,7 +278,7 @@ export default function IncidentReportCategoryScreen() {
             onPress={() => void continueToDetails()}
             disabled={checkingAccess || !draftLoaded || deletingDraft}
             accessibilityRole="button"
-            className="mx-auto mt-5 h-[44px] w-[278px] max-w-[80%] items-center justify-center rounded-[24px] bg-primary"
+            className="mx-auto mt-5 h-[44px] w-[278px] max-w-[80%] items-center justify-center rounded-full bg-primary"
           >
             <Text className="font-ubuntu-semibold text-[14px] leading-[18px] tracking-[-0.24px] text-[#F6F7F7]">
               {hasStoredDraft ? 'Continue Draft' : 'Continue'}

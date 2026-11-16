@@ -100,7 +100,7 @@ export default function RecoveryCodesScreen() {
           <Pressable
             onPress={handleDone}
             disabled={!acknowledged}
-            className="bg-primary rounded-[24px] h-11 items-center justify-center mt-8 mb-8"
+            className="bg-primary rounded-full h-11 items-center justify-center mt-8 mb-8"
             style={{ opacity: acknowledged ? 1 : 0.5 }}
           >
             <Text className="text-[#F6F7F7] font-ubuntu-semibold text-sm">Done</Text>

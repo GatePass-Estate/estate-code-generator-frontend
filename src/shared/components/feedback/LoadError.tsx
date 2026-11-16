@@ -17,7 +17,7 @@ export default function LoadError({
         onPress={onRetry}
         accessibilityRole="button"
         hitSlop={8}
-        className="rounded-[24px] bg-primary px-5 py-3 active:opacity-80"
+        className="rounded-full bg-primary px-5 py-3 active:opacity-80"
       >
         <Text className="font-ubuntu-semibold text-sm text-white">{actionLabel}</Text>
       </Pressable>

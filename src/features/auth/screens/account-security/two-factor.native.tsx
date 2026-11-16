@@ -79,7 +79,7 @@ export default function TwoFactorSetupScreen() {
               </Text>
               <Pressable
                 onPress={() => router.dismissTo('/account-security')}
-                className="px-5 py-3 rounded-[24px] bg-primary"
+                className="px-5 py-3 rounded-full bg-primary"
               >
                 <Text className="text-white font-ubuntu-semibold text-sm">
                   Back to Account Security
@@ -91,7 +91,7 @@ export default function TwoFactorSetupScreen() {
               <Text className="text-danger font-inter-regular text-sm text-center mb-4">
                 {errorMessage || 'Could not start two-factor setup.'}
               </Text>
-              <Pressable onPress={retry} className="px-5 py-3 rounded-[24px] bg-primary">
+              <Pressable onPress={retry} className="px-5 py-3 rounded-full bg-primary">
                 <Text className="text-white font-ubuntu-semibold text-sm">Try again</Text>
               </Pressable>
             </View>
@@ -141,7 +141,7 @@ export default function TwoFactorSetupScreen() {
             <Pressable
               onPress={handleActivate}
               disabled={activating}
-              className="bg-primary rounded-[24px] h-11 items-center justify-center"
+              className="bg-primary rounded-full h-11 items-center justify-center"
               style={{ opacity: activating ? 0.7 : 1 }}
             >
               {activating ? (

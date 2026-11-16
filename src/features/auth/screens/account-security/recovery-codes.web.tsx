@@ -80,7 +80,7 @@ export default function RecoveryCodesWeb() {
                 <button
                   onClick={handleDone}
                   disabled={!acknowledged}
-                  className="w-full bg-primary rounded-[24px] h-11 mt-8 mb-10 text-[#F6F7F7] font-ubuntu-semibold text-sm disabled:opacity-50"
+                  className="w-full bg-primary rounded-full h-11 mt-8 mb-10 text-[#F6F7F7] font-ubuntu-semibold text-sm disabled:opacity-50"
                 >
                   Done
                 </button>

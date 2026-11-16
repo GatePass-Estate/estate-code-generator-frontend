@@ -181,7 +181,7 @@ export default function InfoBoardWeb() {
               <button
                 onClick={() => void clearCurrentTab()}
                 disabled={busy}
-                className="w-full bg-primary rounded-[24px] h-11 mt-8 mb-10 text-[#F6F7F7] font-ubuntu-semibold text-sm disabled:opacity-70"
+                className="w-full bg-primary rounded-full h-11 mt-8 mb-10 text-[#F6F7F7] font-ubuntu-semibold text-sm disabled:opacity-70"
               >
                 {busy ? 'Clearing…' : 'Clear All'}
               </button>

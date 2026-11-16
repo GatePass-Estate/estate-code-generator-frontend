@@ -188,7 +188,7 @@ export default function TwoFactorChallengeScreen() {
       <Pressable
         onPress={() => void handleSubmit()}
         disabled={submitting}
-        className="bg-primary rounded-[24px] h-11 items-center justify-center mb-8"
+        className="bg-primary rounded-full h-11 items-center justify-center mb-8"
         style={{ opacity: submitting ? 0.7 : 1 }}
       >
         {submitting ? (

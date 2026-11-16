@@ -77,7 +77,7 @@ export default function RatingModal({ visible, onClose, onSubmit }: RatingModalP
           <Pressable
             disabled={rating === 0 || isSubmitting}
             onPress={handleSubmit}
-            className={`w-full py-[14px] rounded-[24px] items-center justify-center ${
+            className={`w-full py-[14px] rounded-full items-center justify-center ${
               rating === 0 ? 'bg-[#A0AAB0]' : 'bg-primary'
             }`}
           >

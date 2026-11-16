@@ -61,7 +61,7 @@ export default function ConfirmSheet({
         <Pressable
           onPress={cancel}
           disabled={busy}
-          className="flex-1 h-12 rounded-[24px] bg-[#E5F6FF] items-center justify-center"
+          className="flex-1 h-12 rounded-full bg-[#E5F6FF] items-center justify-center"
         >
           <Text className="text-primary font-ubuntu-semibold text-sm">{cancelLabel}</Text>
         </Pressable>
@@ -69,7 +69,7 @@ export default function ConfirmSheet({
         <Pressable
           onPress={onConfirm}
           disabled={busy}
-          className="flex-1 h-12 rounded-[24px] bg-primary items-center justify-center"
+          className="flex-1 h-12 rounded-full bg-primary items-center justify-center"
           style={{ opacity: busy ? 0.7 : 1 }}
         >
           {busy ? (

@@ -71,7 +71,7 @@ export default function LinkedDevicesScreen() {
           <Text className="mb-4 text-center font-inter-regular text-sm text-danger">
             {errorMessage}
           </Text>
-          <Pressable onPress={() => void retry()} className="rounded-[24px] bg-primary px-5 py-3">
+          <Pressable onPress={() => void retry()} className="rounded-full bg-primary px-5 py-3">
             <Text className="font-ubuntu-semibold text-sm text-white">Try again</Text>
           </Pressable>
         </View>

@@ -208,7 +208,7 @@ export default function IncidentFilterModal({
             alignSelf: 'center',
             alignItems: 'center',
             justifyContent: 'center',
-            borderRadius: 24,
+            borderRadius: 9999,
             borderWidth: 1,
             borderColor: '#113E55',
             backgroundColor: '#113E55',

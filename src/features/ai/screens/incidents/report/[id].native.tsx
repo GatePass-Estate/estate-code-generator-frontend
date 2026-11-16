@@ -178,7 +178,7 @@ export default function IncidentReportDetailScreen() {
             accessibilityRole="button"
             onPress={() => setConfirmMarkRead(true)}
             disabled={saving}
-            className="h-[48px] w-full items-center justify-center rounded-[24px] border border-[#0A1F29] bg-primary"
+            className="h-[48px] w-full items-center justify-center rounded-full border border-[#0A1F29] bg-primary"
           >
             <Text className="text-[14px] leading-[14px] tracking-[-0.24px] text-[#F6F7F7] font-ubuntu-semibold">
               {saving ? 'Marking…' : 'Mark as Read'}

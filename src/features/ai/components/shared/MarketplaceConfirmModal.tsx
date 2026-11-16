@@ -43,7 +43,7 @@ export default function MarketplaceConfirmModal({
           <View className="flex-row gap-3.5">
             <Pressable
               onPress={onClose}
-              className="h-[50px] flex-1 items-center justify-center rounded-[25px] bg-[#EBEBEB]"
+              className="h-[50px] flex-1 items-center justify-center rounded-full bg-[#EBEBEB]"
             >
               <Text allowFontScaling={false} className="font-inter-medium text-base text-black">
                 {config.cancelText}
@@ -51,7 +51,7 @@ export default function MarketplaceConfirmModal({
             </Pressable>
             <Pressable
               onPress={config.onConfirm}
-              className="h-[50px] flex-1 items-center justify-center rounded-[25px] bg-[#EBEBEB]"
+              className="h-[50px] flex-1 items-center justify-center rounded-full bg-[#EBEBEB]"
             >
               <Text
                 allowFontScaling={false}
