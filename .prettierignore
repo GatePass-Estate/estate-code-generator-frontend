@@ -17,3 +17,6 @@ pnpm-lock.yaml
 # Env
 .env
 .env.*
+# Firebase config (keep as downloaded)
+google-services.json
+GoogleService-Info.plist

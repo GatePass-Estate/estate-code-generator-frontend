@@ -1,50 +1,59 @@
-# Welcome to your Expo app 👋
+# GatePass (estate-code-generator-frontend)
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Expo / React Native app for GatePass estate access codes, admin tools, security scanning, billing, and AI marketplace features.
 
-## Get started
+## Stack
 
-1. Install dependencies
+- Expo Router (file-based routes in `app/`)
+- React Native + web
+- TanStack Query, Zustand
+- EAS Build (`eas.json`)
 
-   ```bash
-   npm install
-   ```
+## Setup
 
-2. Start the app
-
-   ```bash
-    npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+1. Use Node 22 (`nvm use` reads `.nvmrc`).
+2. Copy `.env.local.example` → `.env.local` and set HTTPS service URLs.
+3. Install and start:
 
 ```bash
-npm run reset-project
+npm install
+npx expo start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Native rebuilds: `npx expo run:ios` / `npx expo run:android`.
 
-## Learn more
+## Environment
 
-To learn more about developing your project with Expo, look at the following resources:
+| Variable                              | Purpose                               |
+| ------------------------------------- | ------------------------------------- |
+| `EXPO_PUBLIC_USER_SERVICE_API_URL`    | Auth / users API                      |
+| `EXPO_PUBLIC_CODE_SERVICE_API_URL`    | Access codes API                      |
+| `EXPO_PUBLIC_AI_SERVICE_API_URL`      | AI marketplace / insights             |
+| `EXPO_PUBLIC_REVENUE_SERVICE_API_URL` | Billing / Paystack                    |
+| `EXPO_PUBLIC_WIDTH_BREAKPOINT`        | Web layout breakpoint (default `768`) |
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+Set the same keys as **EAS secrets/env** for `preview` and `production` builds (HTTPS only).
 
-## Join the community
+## Web deploy
 
-Join our community of developers creating universal apps.
+`vercel.json` rewrites all paths to `/` for the SPA. Build with Expo web (`npx expo export -p web` or your CI export step) and point Vercel at the export output. Configure the `EXPO_PUBLIC_*` env vars in the Vercel project.
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## EAS / OTA / store submit
+
+- Config lives in `app.config.ts` (APNs: `development` for non-production profiles, `production` for production).
+- OTA: `expo-updates` + EAS `channel` per profile (`development` / `preview` / `production`).
+- Submit: set `submit.production.ios.ascAppId` in `eas.json`, place `google-play-service-account.json` locally (gitignored), then `eas submit --platform all`.
+
+## Scripts
+
+| Script                    | Purpose                 |
+| ------------------------- | ----------------------- |
+| `npm start`               | Expo dev server         |
+| `npm run test:ci`         | Unit tests (CI)         |
+| `npm run lint`            | ESLint + Prettier check |
+| `npm run android` / `ios` | Native run              |
+
+## Notes
+
+- Firebase / Google service files are gitignored — copy from local secrets; do not commit real keys.
+- GitHub Actions are pinned by commit SHA under `.github/workflows/`.

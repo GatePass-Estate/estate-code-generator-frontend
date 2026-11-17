@@ -1,5 +1,1 @@
-import LoginPage from './login';
-
-export default function AuthIndex() {
-  return <LoginPage />;
-}
+export { default } from '@/src/features/auth/screens/index';

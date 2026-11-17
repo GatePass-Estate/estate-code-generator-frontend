@@ -1,13 +1,9 @@
-import { sharedStyles } from '@/src/theme/styles';
-import { menuRoutes } from '../user/_layout';
-import NavigationContainer from '@/src/components/common/NavigationContainer';
+import { sharedStyles } from '@/src/shared/theme/styles';
+import { menuRoutes } from '@/src/features/dashboard/components/menuRoutes';
+import RoleShell from '@/src/features/dashboard/components/RoleShell';
 
 export default function SharedScreenLayout() {
   return (
-    <NavigationContainer
-      routes={menuRoutes}
-      tabBarStyle={sharedStyles.tabBar}
-      enableForMobile={false}
-    />
+    <RoleShell routes={menuRoutes} tabBarStyle={sharedStyles.tabBar} enableForMobile={false} />
   );
 }
