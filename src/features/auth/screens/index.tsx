@@ -14,7 +14,7 @@ export default function AuthIndex() {
     const redirect = async () => {
       const institution = await getSelectedInstitution();
       router.replace(
-        Platform.OS === 'web' ? '/auth/institution' : getPostAuthRedirectRoute(institution)
+        Platform.OS === 'web' ? '/auth/web-portal' : getPostAuthRedirectRoute(institution)
       );
       setIsReady(true);
     };

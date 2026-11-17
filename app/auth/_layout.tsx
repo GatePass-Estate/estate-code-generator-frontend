@@ -19,6 +19,7 @@ export default function AuthLayout() {
       <Stack.Screen name="reset-password" />
       <Stack.Screen name="data-protection-policy" />
       <Stack.Screen name="email-activation-status" />
+      <Stack.Screen name="web-portal" />
       <Stack.Screen name="index" />
     </Stack>
   );

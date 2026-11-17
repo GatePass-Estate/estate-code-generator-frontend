@@ -14,12 +14,16 @@ import {
 import { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import { grantActivationStatusAccess } from '@/src/features/auth/services/authPersistence';
-import { takePendingAuthToken } from '@/src/features/auth/services/pendingAuthToken';
+import {
+  clearPendingAuthToken,
+  peekPendingAuthToken,
+} from '@/src/features/auth/services/pendingAuthToken';
 import { getWidthBreakpoint } from '@/src/shared/utils/helpers';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { cn } from '@/src/shared/utils/cn';
 import icons from '@/src/shared/constants/icons';
 import PasswordTextInput from '@/src/features/auth/components/PasswordTextInput';
+import WebPasswordInput from '@/src/features/auth/components/WebPasswordInput';
 
 const MIN_PASSWORD_LENGTH = 8;
 
@@ -63,61 +67,88 @@ const SetPasswordForm = ({
       </View>
     ) : null}
 
-    <View>
-      <Text className={cn(`pb-1 ${password ? 'text-primary' : 'text-grey'}`, 'text-base')}>
-        New password
-      </Text>
-      <View className="relative">
-        <PasswordTextInput
+    {Platform.OS === 'web' ? (
+      <>
+        <WebPasswordInput
+          label="New password"
           placeholder="Enter your new password"
-          visible={showPassword}
           value={password}
-          onChangeText={setPassword}
-          editable={!isSubmitting}
-          className="mt-1 rounded-2xl bg-light-grey px-4 py-5 pr-12 text-primary"
-          placeholderTextColor="#9B9797"
-        />
-        <Pressable
-          onPress={() => setShowPassword(!showPassword)}
-          className="absolute right-3 top-6"
+          onChange={setPassword}
+          show={showPassword}
+          onToggle={() => setShowPassword(!showPassword)}
           disabled={isSubmitting}
-        >
-          <Image
-            source={showPassword ? icons.eye : icons.hiddenEye}
-            style={{ width: 20, height: 20 }}
-            resizeMode="contain"
-          />
-        </Pressable>
-      </View>
-    </View>
-
-    <View>
-      <Text className={cn(`pb-1 ${confirmPassword ? 'text-primary' : 'text-grey'}`, 'text-base')}>
-        Confirm password
-      </Text>
-      <View className="relative">
-        <PasswordTextInput
+        />
+        <WebPasswordInput
+          label="Confirm password"
           placeholder="Confirm your password"
-          visible={showPassword}
           value={confirmPassword}
-          onChangeText={setConfirmPassword}
-          editable={!isSubmitting}
-          className="mt-1 rounded-2xl bg-light-grey px-4 py-5 pr-12 text-primary"
-          placeholderTextColor="#9B9797"
-        />
-        <Pressable
-          onPress={() => setShowPassword(!showPassword)}
-          className="absolute right-3 top-6"
+          onChange={setConfirmPassword}
+          show={showPassword}
+          onToggle={() => setShowPassword(!showPassword)}
           disabled={isSubmitting}
-        >
-          <Image
-            source={showPassword ? icons.eye : icons.hiddenEye}
-            style={{ width: 20, height: 20 }}
-            resizeMode="contain"
-          />
-        </Pressable>
-      </View>
-    </View>
+        />
+      </>
+    ) : (
+      <>
+        <View>
+          <Text className={cn(`pb-1 ${password ? 'text-primary' : 'text-grey'}`, 'text-base')}>
+            New password
+          </Text>
+          <View className="relative">
+            <PasswordTextInput
+              placeholder="Enter your new password"
+              visible={showPassword}
+              value={password}
+              onChangeText={setPassword}
+              editable={!isSubmitting}
+              className="mt-1 rounded-2xl bg-light-grey px-4 py-5 pr-12 text-primary"
+              placeholderTextColor="#9B9797"
+            />
+            <Pressable
+              onPress={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-6"
+              disabled={isSubmitting}
+            >
+              <Image
+                source={showPassword ? icons.eye : icons.hiddenEye}
+                style={{ width: 20, height: 20 }}
+                resizeMode="contain"
+              />
+            </Pressable>
+          </View>
+        </View>
+
+        <View>
+          <Text
+            className={cn(`pb-1 ${confirmPassword ? 'text-primary' : 'text-grey'}`, 'text-base')}
+          >
+            Confirm password
+          </Text>
+          <View className="relative">
+            <PasswordTextInput
+              placeholder="Confirm your password"
+              visible={showPassword}
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              editable={!isSubmitting}
+              className="mt-1 rounded-2xl bg-light-grey px-4 py-5 pr-12 text-primary"
+              placeholderTextColor="#9B9797"
+            />
+            <Pressable
+              onPress={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-6"
+              disabled={isSubmitting}
+            >
+              <Image
+                source={showPassword ? icons.eye : icons.hiddenEye}
+                style={{ width: 20, height: 20 }}
+                resizeMode="contain"
+              />
+            </Pressable>
+          </View>
+        </View>
+      </>
+    )}
 
     <View className="mx-10">
       <TouchableOpacity
@@ -154,9 +185,10 @@ const SetPasswordPage = () => {
     token?: string | string[];
     email?: string;
   }>();
-  // Prefer the in-memory stash from /activate so the token is not kept in route params.
+  // Prefer the stash from /activate (memory + web sessionStorage) so the token is not
+  // kept in route params. Peek — do not take — so Strict Mode remounts keep the token.
   const [token] = useState(() => {
-    const stashed = takePendingAuthToken();
+    const stashed = peekPendingAuthToken();
     if (stashed.token) return stashed.token;
     const tokenFromParams = Array.isArray(params.token) ? params.token[0] : params.token;
     if (tokenFromParams) return tokenFromParams;
@@ -209,6 +241,7 @@ const SetPasswordPage = () => {
         token,
         new_password: password,
       });
+      clearPendingAuthToken();
       grantActivationStatusAccess();
       router.replace('/auth/email-activation-status');
     } catch (error: unknown) {
