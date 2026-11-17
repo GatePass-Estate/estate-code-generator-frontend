@@ -23,9 +23,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { cn } from '@/src/shared/utils/cn';
 import icons from '@/src/shared/constants/icons';
 import PasswordTextInput from '@/src/features/auth/components/PasswordTextInput';
-import WebPasswordInput from '@/src/features/auth/components/WebPasswordInput';
 
 const MIN_PASSWORD_LENGTH = 8;
+
+/** Match phase-2 set-password field sizing (AppTextInput zeros vertical padding by default). */
+const FIELD_INPUT_STYLE = {
+  fontSize: 16,
+  lineHeight: 22,
+  paddingVertical: 18,
+} as const;
 
 interface SetPasswordFormProps {
   password: string;
@@ -53,116 +59,111 @@ const SetPasswordForm = ({
   isLargeScreen,
 }: SetPasswordFormProps) => (
   <View className={cn('w-full max-w-xl', isLargeScreen ? 'gap-8' : 'gap-6')}>
-    <View className="">
+    <View className={cn(!isLargeScreen && 'items-center')}>
       <Text
-        className={cn('text-primary font-ubuntu-medium', isLargeScreen ? 'text-5xl' : 'text-4xl')}
+        className={cn(
+          'text-primary font-ubuntu-medium',
+          isLargeScreen ? 'text-5xl' : 'text-3xl text-center'
+        )}
       >
         Set Password
       </Text>
+      {!isLargeScreen ? (
+        <Text className="mt-2 text-center font-Inter text-sm text-grey">
+          Create a password to activate your account.
+        </Text>
+      ) : null}
     </View>
 
     {errorMessage ? (
-      <View className="bg-red-50 p-4 rounded-lg">
-        <Text className="text-danger text-sm text-center">{errorMessage}</Text>
+      <View className="rounded-lg bg-red-50 p-4">
+        <Text className="text-center text-sm text-danger">{errorMessage}</Text>
       </View>
     ) : null}
 
-    {Platform.OS === 'web' ? (
-      <>
-        <WebPasswordInput
-          label="New password"
+    <View>
+      <Text
+        className={cn(
+          'pb-1',
+          password ? 'text-primary' : 'text-grey',
+          isLargeScreen ? 'text-base' : 'text-sm'
+        )}
+      >
+        New password
+      </Text>
+      <View className="relative">
+        <PasswordTextInput
           placeholder="Enter your new password"
+          visible={showPassword}
           value={password}
-          onChange={setPassword}
-          show={showPassword}
-          onToggle={() => setShowPassword(!showPassword)}
-          disabled={isSubmitting}
+          onChangeText={setPassword}
+          editable={!isSubmitting}
+          className="mt-1 rounded-2xl bg-[#F7F9F9] px-4 pr-12 text-primary"
+          placeholderTextColor="#9B9797"
+          style={FIELD_INPUT_STYLE}
         />
-        <WebPasswordInput
-          label="Confirm password"
+        <Pressable
+          onPress={() => setShowPassword(!showPassword)}
+          className="absolute right-3 top-6"
+          disabled={isSubmitting}
+        >
+          <Image
+            source={showPassword ? icons.eye : icons.hiddenEye}
+            style={{ width: 20, height: 20 }}
+            resizeMode="contain"
+          />
+        </Pressable>
+      </View>
+    </View>
+
+    <View>
+      <Text
+        className={cn(
+          'pb-1',
+          confirmPassword ? 'text-primary' : 'text-grey',
+          isLargeScreen ? 'text-base' : 'text-sm'
+        )}
+      >
+        Confirm password
+      </Text>
+      <View className="relative">
+        <PasswordTextInput
           placeholder="Confirm your password"
+          visible={showPassword}
           value={confirmPassword}
-          onChange={setConfirmPassword}
-          show={showPassword}
-          onToggle={() => setShowPassword(!showPassword)}
-          disabled={isSubmitting}
+          onChangeText={setConfirmPassword}
+          editable={!isSubmitting}
+          className="mt-1 rounded-2xl bg-[#F7F9F9] px-4 pr-12 text-primary"
+          placeholderTextColor="#9B9797"
+          style={FIELD_INPUT_STYLE}
         />
-      </>
-    ) : (
-      <>
-        <View>
-          <Text className={cn(`pb-1 ${password ? 'text-primary' : 'text-grey'}`, 'text-base')}>
-            New password
-          </Text>
-          <View className="relative">
-            <PasswordTextInput
-              placeholder="Enter your new password"
-              visible={showPassword}
-              value={password}
-              onChangeText={setPassword}
-              editable={!isSubmitting}
-              className="mt-1 rounded-2xl bg-light-grey px-4 py-5 pr-12 text-primary"
-              placeholderTextColor="#9B9797"
-            />
-            <Pressable
-              onPress={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-6"
-              disabled={isSubmitting}
-            >
-              <Image
-                source={showPassword ? icons.eye : icons.hiddenEye}
-                style={{ width: 20, height: 20 }}
-                resizeMode="contain"
-              />
-            </Pressable>
-          </View>
-        </View>
+        <Pressable
+          onPress={() => setShowPassword(!showPassword)}
+          className="absolute right-3 top-6"
+          disabled={isSubmitting}
+        >
+          <Image
+            source={showPassword ? icons.eye : icons.hiddenEye}
+            style={{ width: 20, height: 20 }}
+            resizeMode="contain"
+          />
+        </Pressable>
+      </View>
+    </View>
 
-        <View>
-          <Text
-            className={cn(`pb-1 ${confirmPassword ? 'text-primary' : 'text-grey'}`, 'text-base')}
-          >
-            Confirm password
-          </Text>
-          <View className="relative">
-            <PasswordTextInput
-              placeholder="Confirm your password"
-              visible={showPassword}
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              editable={!isSubmitting}
-              className="mt-1 rounded-2xl bg-light-grey px-4 py-5 pr-12 text-primary"
-              placeholderTextColor="#9B9797"
-            />
-            <Pressable
-              onPress={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-6"
-              disabled={isSubmitting}
-            >
-              <Image
-                source={showPassword ? icons.eye : icons.hiddenEye}
-                style={{ width: 20, height: 20 }}
-                resizeMode="contain"
-              />
-            </Pressable>
-          </View>
-        </View>
-      </>
-    )}
-
-    <View className="mx-10">
+    <View className={cn(isLargeScreen ? 'mx-10' : 'mx-0')}>
       <TouchableOpacity
         onPress={handleSubmit}
         disabled={isSubmitting}
         className={cn(
-          'h-14 bg-primary rounded-full justify-center items-center w-full',
+          'h-14 w-full items-center justify-center rounded-full bg-primary',
           isSubmitting && 'opacity-70'
         )}
       >
         {isSubmitting ? (
           <CircleLoader size={22} tone="light" />
         ) : (
-          <Text className="text-white font-ubuntu-semibold text-lg">Submit</Text>
+          <Text className="font-ubuntu-semibold text-lg text-white">Submit</Text>
         )}
       </TouchableOpacity>
     </View>
@@ -170,9 +171,9 @@ const SetPasswordForm = ({
 );
 
 const WebSetPasswordView = (props: SetPasswordFormProps) => (
-  <View className="flex-1 w-full bg-white items-center justify-center px-5 py-10">
+  <View className="w-full flex-1 items-center justify-center bg-white px-5 py-10">
     <View
-      className="w-full max-w-[600px] rounded-lg items-center px-8 py-10"
+      className="w-full max-w-[600px] items-center rounded-lg px-8 py-10"
       style={{ backgroundColor: '#fbfeff' }}
     >
       <SetPasswordForm {...props} />
@@ -276,7 +277,7 @@ const SetPasswordPage = () => {
   if (Platform.OS === 'web') {
     return (
       <SafeAreaView className="flex-1 bg-white">
-        <View className="flex-1 px-6 pb-10 justify-center max-w-xl w-full self-center mx-auto">
+        <View className="mx-auto w-full max-w-xl flex-1 justify-center self-center px-5 pb-10">
           <SetPasswordForm {...formProps} />
         </View>
       </SafeAreaView>

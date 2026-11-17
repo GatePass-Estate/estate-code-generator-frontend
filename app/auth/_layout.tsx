@@ -1,7 +1,9 @@
+import { Platform } from 'react-native';
 import { Stack } from 'expo-router';
 
 export const unstable_settings = {
-  anchor: 'institution',
+  // Web is email-link only; native still opens on the institution picker.
+  anchor: Platform.OS === 'web' ? 'web-portal' : 'institution',
 };
 
 export default function AuthLayout() {

@@ -1,4 +1,5 @@
 import 'react-native-reanimated';
+import { Platform } from 'react-native';
 import { Redirect, Stack } from 'expo-router';
 import PlanGuard from '@/src/features/billing/components/PlanGuard';
 import VerifyAccountGuard from '@/src/features/auth/components/VerifyAccountGuard';
@@ -23,6 +24,11 @@ export default function ProtectedLayout() {
   // clearUser() resets status to its default (true), so a signed-out user (e.g. browser Back
   // after sign-out) is only caught by the missing session token.
   const hasSession = useAuthStore((state) => Boolean(state.access_token));
+
+  // Web is email-link only — never mount the signed-in app shell in the browser.
+  if (Platform.OS === 'web') {
+    return <Redirect href="/auth/web-portal" />;
+  }
 
   if (!isReady) {
     return null;
