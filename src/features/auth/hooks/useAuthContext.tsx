@@ -98,12 +98,29 @@ async function clearUserData() {
   await clearCheckoutAttempts();
 }
 
+function matchesWebEmailFlowRoute(path: string): boolean {
+  return WEB_EMAIL_FLOW_ROUTES.some((r) => path === r || path.startsWith(`${r}/`));
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isReady, setIsReady] = useState(false);
   const [resetKey, setResetKey] = useState(0);
   const router = useRouter();
   const pathname = usePathname();
   const isProcessingRef = useRef(false);
+
+  // Keep locking after bootstrap — direct URLs like /auth/institution must not stay open on web.
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !isReady) return;
+    const path = (typeof window !== 'undefined' ? window.location?.pathname : '') || pathname || '';
+    if (!path || path === '/' || matchesWebEmailFlowRoute(path)) {
+      if (path === '/' || path === '') {
+        router.replace('/auth/web-portal');
+      }
+      return;
+    }
+    router.replace('/auth/web-portal');
+  }, [isReady, pathname, router]);
 
   const handleCrossTabLogout = useCallback(async () => {
     if (isProcessingRef.current) return;
