@@ -1,14 +1,18 @@
 import { Link, Stack } from 'expo-router';
-import { StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 
 export default function NotFoundScreen() {
+  const homeHref = Platform.OS === 'web' ? '/auth/web-portal' : '/auth/login';
+
   return (
     <>
       <Stack.Screen options={{ title: 'Not found' }} />
       <View style={styles.container}>
         <Text style={styles.title}>This screen doesn&apos;t exist.</Text>
-        <Link href="/auth/login" style={styles.link}>
-          <Text style={styles.linkText}>Go to login</Text>
+        <Link href={homeHref} style={styles.link}>
+          <Text style={styles.linkText}>
+            {Platform.OS === 'web' ? 'Back to GatePass web' : 'Go to login'}
+          </Text>
         </Link>
       </View>
     </>

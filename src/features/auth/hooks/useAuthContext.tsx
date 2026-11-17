@@ -64,8 +64,19 @@ const PUBLIC_AUTH_ROUTES = [
   '/auth/reset-password',
   '/auth/tos',
   '/auth/data-protection-policy',
+  '/auth/web-portal',
   // Paystack's return page after checkout (opened outside the signed-in app).
   '/payment/callback',
+];
+
+/** Web is email-link only: activation + password reset (and the portal fallback). */
+const WEB_EMAIL_FLOW_ROUTES = [
+  '/activate',
+  '/auth/set-password',
+  '/auth/email-activation-status',
+  '/auth/reset-password',
+  '/auth/forgot-password',
+  '/auth/web-portal',
 ];
 
 /** Prefetch documents, profile photo and plan entitlements without blocking navigation. */
@@ -87,12 +98,29 @@ async function clearUserData() {
   await clearCheckoutAttempts();
 }
 
+function matchesWebEmailFlowRoute(path: string): boolean {
+  return WEB_EMAIL_FLOW_ROUTES.some((r) => path === r || path.startsWith(`${r}/`));
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isReady, setIsReady] = useState(false);
   const [resetKey, setResetKey] = useState(0);
   const router = useRouter();
   const pathname = usePathname();
   const isProcessingRef = useRef(false);
+
+  // Keep locking after bootstrap — direct URLs like /auth/institution must not stay open on web.
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !isReady) return;
+    const path = (typeof window !== 'undefined' ? window.location?.pathname : '') || pathname || '';
+    if (!path || path === '/' || matchesWebEmailFlowRoute(path)) {
+      if (path === '/' || path === '') {
+        router.replace('/auth/web-portal');
+      }
+      return;
+    }
+    router.replace('/auth/web-portal');
+  }, [isReady, pathname, router]);
 
   const handleCrossTabLogout = useCallback(async () => {
     if (isProcessingRef.current) return;
@@ -105,7 +133,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       useNotificationStore.getState().clear();
       const institution = await getSelectedInstitution();
       router.replace(
-        Platform.OS === 'web' ? '/auth/institution' : getPostAuthRedirectRoute(institution)
+        Platform.OS === 'web' ? '/auth/web-portal' : getPostAuthRedirectRoute(institution)
       );
     } finally {
       isProcessingRef.current = false;
@@ -130,10 +158,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Force full component reset by incrementing key
       setResetKey((prev) => prev + 1);
       const institution = await getSelectedInstitution();
+      // Web is email-link only — never send the browser to institution / full login shell.
       const target =
-        Platform.OS === 'web' && !options?.signedOutBecause
-          ? '/auth/institution'
-          : getPostAuthRedirectRoute(institution);
+        Platform.OS === 'web' ? '/auth/web-portal' : getPostAuthRedirectRoute(institution);
 
       if (options?.signedOutBecause && target === '/auth/login') {
         router.replace({ pathname: target, params: { signed_out: options.signedOutBecause } });
@@ -169,6 +196,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const routeForUser = useCallback(
     (user: User) => {
+      if (Platform.OS === 'web') {
+        router.replace('/auth/web-portal');
+        return;
+      }
       if (['root', 'primary_admin', 'admin', 'resident'].includes(user.role!)) {
         router.replace('/user');
       } else if (user.role === 'security') {
@@ -235,18 +266,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let cleanupSync: (() => void) | undefined;
 
-    const isPublicRoute = (currentPath: string, initialURL: string | null) => {
-      return PUBLIC_AUTH_ROUTES.some(
+    const matchesRoutes = (routes: string[], currentPath: string, initialURL: string | null) =>
+      routes.some(
         (r) =>
           currentPath === r || currentPath.startsWith(r) || (initialURL && initialURL.includes(r))
       );
-    };
 
-    const enterWithProfile = (profile: User) => {
+    const isPublicRoute = (currentPath: string, initialURL: string | null) =>
+      matchesRoutes(PUBLIC_AUTH_ROUTES, currentPath, initialURL);
+
+    const isWebEmailFlowRoute = (currentPath: string, initialURL: string | null) =>
+      matchesRoutes(WEB_EMAIL_FLOW_ROUTES, currentPath, initialURL);
+
+    const hydrateProfile = (profile: User) => {
       useUserStore.setState({ ...profile });
       useAuthStore.setState({ role: profile.role });
       void storeCachedUser(profile);
       prefetchUserData(profile);
+    };
+
+    const enterWithProfile = (profile: User) => {
+      hydrateProfile(profile);
       try {
         routeForUser(profile);
       } catch {}
@@ -266,6 +306,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               : pathnameRef.current || ''
             : pathnameRef.current;
         const localData = await getAuthState();
+        const onWebEmailFlow =
+          Platform.OS === 'web' && isWebEmailFlowRoute(currentPath, initialURL);
 
         if (localData?.access_token) {
           adoptStoredSession(localData);
@@ -277,6 +319,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const myProfile = (await fetchMe(token)) as User;
 
             if (myProfile?.status) {
+              // Email activation / reset must not be stolen by a restored session on web.
+              if (onWebEmailFlow) {
+                hydrateProfile(myProfile);
+                setIsReady(true);
+                return;
+              }
+              // Web is email-link only — do not open the signed-in app shell in the browser.
+              if (Platform.OS === 'web') {
+                hydrateProfile(myProfile);
+                try {
+                  router.replace('/auth/web-portal');
+                } catch {}
+                setIsReady(true);
+                return;
+              }
               enterWithProfile(myProfile);
               return;
             }
@@ -285,10 +342,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (shouldKeepSessionOffline(error)) {
               const cached = await getCachedUser();
               if (cached?.status) {
+                if (onWebEmailFlow) {
+                  hydrateProfile(cached);
+                  setIsReady(true);
+                  return;
+                }
+                if (Platform.OS === 'web') {
+                  hydrateProfile(cached);
+                  try {
+                    router.replace('/auth/web-portal');
+                  } catch {}
+                  setIsReady(true);
+                  return;
+                }
                 enterWithProfile(cached);
                 return;
               }
               if (localData.role) {
+                if (Platform.OS === 'web') {
+                  try {
+                    router.replace(
+                      onWebEmailFlow ? currentPath || '/auth/web-portal' : '/auth/web-portal'
+                    );
+                  } catch {}
+                  setIsReady(true);
+                  return;
+                }
                 try {
                   if (['root', 'primary_admin', 'admin', 'resident'].includes(localData.role)) {
                     router.replace('/user');
@@ -303,12 +382,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         }
 
-        if (!isPublicRoute(currentPath, initialURL)) {
+        if (Platform.OS === 'web') {
+          if (!onWebEmailFlow) {
+            try {
+              router.replace('/auth/web-portal');
+            } catch {}
+          }
+        } else if (!isPublicRoute(currentPath, initialURL)) {
           const institution = await getSelectedInstitution();
           try {
-            router.replace(
-              Platform.OS === 'web' ? '/auth/institution' : getPostAuthRedirectRoute(institution)
-            );
+            router.replace(getPostAuthRedirectRoute(institution));
           } catch {}
         }
       } catch {

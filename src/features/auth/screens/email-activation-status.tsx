@@ -180,7 +180,7 @@ const WebSuccessView = ({ router }: { router: ReturnType<typeof useRouter> }) =>
           Your account is now verified and your password set.
         </Text>
         <TouchableOpacity
-          onPress={() => router.push('/auth/login')}
+          onPress={() => router.push(Platform.OS === 'web' ? '/auth/web-portal' : '/auth/login')}
           style={{
             marginTop: 74,
             width: 451,
@@ -199,7 +199,7 @@ const WebSuccessView = ({ router }: { router: ReturnType<typeof useRouter> }) =>
               lineHeight: 16,
             }}
           >
-            Go to Login Page
+            {Platform.OS === 'web' ? 'Done' : 'Go to Login Page'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -309,7 +309,7 @@ const EmailActivationStatusPage = () => {
   }
 
   if (!hasAccessRef.current) {
-    return <Redirect href="/auth/login" />;
+    return <Redirect href={Platform.OS === 'web' ? '/auth/web-portal' : '/auth/login'} />;
   }
 
   if (Platform.OS === 'web' && isLargeScreen) {
@@ -411,7 +411,9 @@ const EmailActivationStatusPage = () => {
                   </Text>
 
                   <TouchableOpacity
-                    onPress={() => router.push('/auth/login')}
+                    onPress={() =>
+                      router.push(Platform.OS === 'web' ? '/auth/web-portal' : '/auth/login')
+                    }
                     className="h-[48px] w-full max-w-[278px] bg-primary rounded-full justify-center items-center"
                   >
                     <Text
@@ -422,7 +424,7 @@ const EmailActivationStatusPage = () => {
                         letterSpacing: -0.24,
                       }}
                     >
-                      Go to Login Page
+                      {Platform.OS === 'web' ? 'Done' : 'Go to Login Page'}
                     </Text>
                   </TouchableOpacity>
                 </View>

@@ -8,6 +8,7 @@ import { Button } from '@/src/shared/components/nativewindui/Button';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { verifyPasswordReset, resetPassword } from '@/src/features/auth';
 import PasswordTextInput from '@/src/features/auth/components/PasswordTextInput';
+import WebPasswordInput from '@/src/features/auth/components/WebPasswordInput';
 import { getWidthBreakpoint } from '@/src/shared/utils/helpers';
 import Images from '@/src/shared/constants/images';
 import { cn } from '@/src/shared/utils/cn';
@@ -179,11 +180,13 @@ export default function ResetPassword() {
               </Text>
             </Button>
 
-            <Pressable className="self-center mt-2" onPress={() => router.replace('/auth/login')}>
-              <Text className="text-teal font-ubuntu-medium text-base underline">
-                Back to Login
-              </Text>
-            </Pressable>
+            {Platform.OS === 'web' ? null : (
+              <Pressable className="self-center mt-2" onPress={() => router.replace('/auth/login')}>
+                <Text className="text-teal font-ubuntu-medium text-base underline">
+                  Back to Login
+                </Text>
+              </Pressable>
+            )}
           </View>
         </View>
       </SafeAreaView>
@@ -228,10 +231,12 @@ export default function ResetPassword() {
             <Button
               className={`self-center rounded-lg flex-row items-center justify-center w-11/12 h-14`}
               size={Platform.select({ ios: 'lg', default: 'lg' })}
-              onPress={() => router.replace('/auth/login')}
+              onPress={() =>
+                router.replace(Platform.OS === 'web' ? '/auth/web-portal' : '/auth/login')
+              }
             >
               <Text className="text-white font-UbuntuSans font-semibold text-center">
-                Back to Login
+                {Platform.OS === 'web' ? 'Done' : 'Back to Login'}
               </Text>
             </Button>
           </View>
@@ -273,59 +278,84 @@ export default function ResetPassword() {
         <View className="gap-4 max-w-xl">
           {ErrorBanner}
 
-          <View>
-            <Text className={`pb-1 text-grey ${isLargeScreen ? 'text-base' : ''}`}>
-              New Password
-            </Text>
-            <View className="relative">
-              <PasswordTextInput
+          {Platform.OS === 'web' ? (
+            <>
+              <WebPasswordInput
+                label="New Password"
                 placeholder="Enter your new password..."
-                visible={showNewPassword}
                 value={newPassword}
-                onChangeText={setNewPassword}
-                editable={!isLoading}
-                className="mt-1 rounded-lg border border-input-border bg-light-grey px-4 py-5 pr-12"
-              />
-              <Pressable
-                onPress={() => setShowNewPassword(!showNewPassword)}
-                className="absolute right-3 top-6"
+                onChange={setNewPassword}
+                show={showNewPassword}
+                onToggle={() => setShowNewPassword(!showNewPassword)}
                 disabled={isLoading}
-              >
-                <Image
-                  source={showNewPassword ? icons.eye : icons.hiddenEye}
-                  style={{ width: 20, height: 20 }}
-                  resizeMode="contain"
-                />
-              </Pressable>
-            </View>
-          </View>
-
-          <View>
-            <Text className={`pb-1 text-grey ${isLargeScreen ? 'text-base' : ''}`}>
-              Confirm Password
-            </Text>
-            <View className="relative">
-              <PasswordTextInput
+              />
+              <WebPasswordInput
+                label="Confirm Password"
                 placeholder="Confirm your new password..."
-                visible={showConfirmPassword}
                 value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                editable={!isLoading}
-                className="mt-1 rounded-lg border border-input-border bg-light-grey px-4 py-5 pr-12"
-              />
-              <Pressable
-                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-3 top-6"
+                onChange={setConfirmPassword}
+                show={showConfirmPassword}
+                onToggle={() => setShowConfirmPassword(!showConfirmPassword)}
                 disabled={isLoading}
-              >
-                <Image
-                  source={showConfirmPassword ? icons.eye : icons.hiddenEye}
-                  style={{ width: 20, height: 20 }}
-                  resizeMode="contain"
-                />
-              </Pressable>
-            </View>
-          </View>
+              />
+            </>
+          ) : (
+            <>
+              <View>
+                <Text className={`pb-1 text-grey ${isLargeScreen ? 'text-base' : ''}`}>
+                  New Password
+                </Text>
+                <View className="relative">
+                  <PasswordTextInput
+                    placeholder="Enter your new password..."
+                    visible={showNewPassword}
+                    value={newPassword}
+                    onChangeText={setNewPassword}
+                    editable={!isLoading}
+                    className="mt-1 rounded-lg border border-input-border bg-light-grey px-4 py-5 pr-12"
+                  />
+                  <Pressable
+                    onPress={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute right-3 top-6"
+                    disabled={isLoading}
+                  >
+                    <Image
+                      source={showNewPassword ? icons.eye : icons.hiddenEye}
+                      style={{ width: 20, height: 20 }}
+                      resizeMode="contain"
+                    />
+                  </Pressable>
+                </View>
+              </View>
+
+              <View>
+                <Text className={`pb-1 text-grey ${isLargeScreen ? 'text-base' : ''}`}>
+                  Confirm Password
+                </Text>
+                <View className="relative">
+                  <PasswordTextInput
+                    placeholder="Confirm your new password..."
+                    visible={showConfirmPassword}
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    editable={!isLoading}
+                    className="mt-1 rounded-lg border border-input-border bg-light-grey px-4 py-5 pr-12"
+                  />
+                  <Pressable
+                    onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-6"
+                    disabled={isLoading}
+                  >
+                    <Image
+                      source={showConfirmPassword ? icons.eye : icons.hiddenEye}
+                      style={{ width: 20, height: 20 }}
+                      resizeMode="contain"
+                    />
+                  </Pressable>
+                </View>
+              </View>
+            </>
+          )}
 
           <View className="mt-4 gap-5">
             <Button
@@ -344,9 +374,13 @@ export default function ResetPassword() {
             </Button>
           </View>
 
-          <Pressable className="self-center mt-2" onPress={() => router.replace('/auth/login')}>
-            <Text className="text-teal font-ubuntu-medium text-base underline">Back to Login</Text>
-          </Pressable>
+          {Platform.OS === 'web' ? null : (
+            <Pressable className="self-center mt-2" onPress={() => router.replace('/auth/login')}>
+              <Text className="text-teal font-ubuntu-medium text-base underline">
+                Back to Login
+              </Text>
+            </Pressable>
+          )}
         </View>
       </View>
     </SafeAreaView>
