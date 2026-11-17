@@ -1,5 +1,4 @@
-import { useRef } from 'react';
-import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import {
   Image,
@@ -12,7 +11,6 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { Inter } from '@/src/shared/constants/fonts';
-import { consumeActivationStatusAccess } from '@/src/features/auth/services/authPersistence';
 import { getWidthBreakpoint } from '@/src/shared/utils/helpers';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -302,15 +300,6 @@ const EmailActivationStatusPage = () => {
   const { width } = useWindowDimensions();
   const isLargeScreen = width > getWidthBreakpoint();
   const isError = status === 'error';
-
-  const hasAccessRef = useRef<boolean | null>(null);
-  if (hasAccessRef.current === null) {
-    hasAccessRef.current = consumeActivationStatusAccess();
-  }
-
-  if (!hasAccessRef.current) {
-    return <Redirect href={Platform.OS === 'web' ? '/auth/web-portal' : '/auth/login'} />;
-  }
 
   if (Platform.OS === 'web' && isLargeScreen) {
     return isError ? <WebErrorView /> : <WebSuccessView router={router} />;

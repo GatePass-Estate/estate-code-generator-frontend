@@ -40,6 +40,8 @@ interface SetPasswordFormProps {
   setConfirmPassword: (value: string) => void;
   showPassword: boolean;
   setShowPassword: (value: boolean) => void;
+  showConfirmPassword: boolean;
+  setShowConfirmPassword: (value: boolean) => void;
   isSubmitting: boolean;
   errorMessage: string;
   handleSubmit: () => void;
@@ -53,6 +55,8 @@ const SetPasswordForm = ({
   setConfirmPassword,
   showPassword,
   setShowPassword,
+  showConfirmPassword,
+  setShowConfirmPassword,
   isSubmitting,
   errorMessage,
   handleSubmit,
@@ -129,7 +133,7 @@ const SetPasswordForm = ({
       <View className="relative">
         <PasswordTextInput
           placeholder="Confirm your password"
-          visible={showPassword}
+          visible={showConfirmPassword}
           value={confirmPassword}
           onChangeText={setConfirmPassword}
           editable={!isSubmitting}
@@ -138,12 +142,12 @@ const SetPasswordForm = ({
           style={FIELD_INPUT_STYLE}
         />
         <Pressable
-          onPress={() => setShowPassword(!showPassword)}
+          onPress={() => setShowConfirmPassword(!showConfirmPassword)}
           className="absolute right-3 top-6"
           disabled={isSubmitting}
         >
           <Image
-            source={showPassword ? icons.eye : icons.hiddenEye}
+            source={showConfirmPassword ? icons.eye : icons.hiddenEye}
             style={{ width: 20, height: 20 }}
             resizeMode="contain"
           />
@@ -205,6 +209,7 @@ const SetPasswordPage = () => {
   const [password, setPassword] = useState<string>('');
   const [confirmPassword, setConfirmPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -264,6 +269,8 @@ const SetPasswordPage = () => {
     setConfirmPassword,
     showPassword,
     setShowPassword,
+    showConfirmPassword,
+    setShowConfirmPassword,
     isSubmitting,
     errorMessage,
     handleSubmit,
