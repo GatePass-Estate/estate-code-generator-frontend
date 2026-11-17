@@ -46,7 +46,7 @@ const WebPasswordInput = ({
         <input
           type={show ? 'text' : 'password'}
           placeholder={placeholder}
-          className="input-style-web box-border w-full min-w-0 pr-12 text-base"
+          className="input-style-web box-border min-h-[56px] w-full min-w-0 pr-12 text-base leading-6"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           disabled={disabled}
