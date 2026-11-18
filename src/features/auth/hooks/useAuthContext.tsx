@@ -1,5 +1,5 @@
 import { AppState, Platform } from 'react-native';
-import { fetchMe } from '@/src/features/auth/services/auth';
+import { fetchMe, disableBiometricLogin } from '@/src/features/auth/services/auth';
 import { prefetchEstateEntitlements } from '@/src/features/billing/services/entitlements';
 import { clearQueryCache } from '@/src/shared/services/api/queryClient';
 import { clearCheckoutAttempts } from '@/src/features/billing/utils/checkoutAttempts';
@@ -15,6 +15,7 @@ import {
 } from '@/src/features/auth/services/authPersistence';
 import { setUnauthorizedHandler } from '@/src/features/auth/services/session';
 import type { SignOutReason } from '@/src/features/auth/services/signOutReason';
+import { invalidateLocalBiometricSession } from '@/src/features/auth/services/biometricAuth';
 import {
   adoptStoredSession,
   getValidAccessToken,
@@ -127,6 +128,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isProcessingRef.current = true;
 
     try {
+      await invalidateLocalBiometricSession();
       await clearUserData();
       useAuthStore.getState().clearAuth();
       resetBroadcastPopupSuppression();
@@ -146,9 +148,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsReady(false);
       // Done first, while the access token is still valid.
       await unregisterForPushNotifications();
-      // A user-initiated sign-out also ends the session server-side. An expired session has
-      // nothing left to end (and its token would only be refused).
-      if (!options?.signedOutBecause) await revokeCurrentSession();
+      // Voluntary logout: unbind biometrics and clear the local fingerprint binding so
+      // Face ID does not show on the login screen. Preference stays on so the next
+      // password login silently re-issues a token.
+      // Idle / timeout (`signedOutBecause`): keep local biometrics — the server session
+      // is usually still alive, so they can unlock with fingerprint instead of password.
+      const signedOutBecause = options?.signedOutBecause;
+      if (!signedOutBecause) {
+        try {
+          const accessToken = await getValidAccessToken();
+          if (accessToken) await disableBiometricLogin(accessToken);
+        } catch {
+          // Best-effort: logout should continue even if disable fails.
+        }
+        await invalidateLocalBiometricSession();
+        await revokeCurrentSession();
+      } else if (signedOutBecause === 'ended') {
+        // Session was revoked remotely — local biometric token is no longer valid.
+        await invalidateLocalBiometricSession();
+      }
       await clearUserData();
       useAuthStore.getState().clearAuth();
       resetBroadcastPopupSuppression();

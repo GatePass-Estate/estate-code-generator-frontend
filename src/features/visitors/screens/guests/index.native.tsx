@@ -9,7 +9,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { CircleLoader } from '@/src/shared/components/feedback/ScreenLoading';
-import { router, Stack, useIsFocused, useLocalSearchParams } from 'expo-router';
+import { router, Stack, useFocusEffect, useIsFocused, useLocalSearchParams } from 'expo-router';
 import { logger } from '@/src/shared/utils/logger';
 import ScreenHeader from '@/src/shared/components/layout/ScreenHeader';
 import AppTextInput from '@/src/shared/components/form/AppTextInput';
@@ -31,6 +31,7 @@ import {
   ListFooter,
   ListPlaceholder,
 } from '@/src/shared/components/lists/ListStates';
+import { useFeatureGate } from '@/src/features/billing/hooks/usePlan';
 
 const GUEST_PAGE_SIZE = 20;
 
@@ -44,12 +45,14 @@ function showDeleteError(error: unknown) {
 const MyGuestMobile = () => {
   const { tabContentPadding } = useAndroidBottomInset();
   const [searchQuery, setSearchQuery] = useState('');
-  const guestsQuery = useMyGuestsInfinite(GUEST_PAGE_SIZE);
+  const [accessReady, setAccessReady] = useState(false);
+  const { requestAccessWhenReady } = useFeatureGate('guest_management', { notice: 'floating' });
+  const guestsQuery = useMyGuestsInfinite(GUEST_PAGE_SIZE, { enabled: accessReady });
   const deleteGuestMutation = useDeleteGuest();
   const { refetch, data, isFetching, isError, hasNextPage, isFetchingNextPage, fetchNextPage } =
     guestsQuery;
   const guests = useMemo(() => data?.pages.flatMap((page) => page.items) ?? [], [data]);
-  const loading = isFetching && !isFetchingNextPage;
+  const loading = !accessReady || (isFetching && !isFetchingNextPage);
   const deleting = deleteGuestMutation.isPending;
   const isFocused = useIsFocused();
   const [confirmModalVisible, setConfirmModalVisible] = useState(false);
@@ -59,6 +62,29 @@ const MyGuestMobile = () => {
   const { refresh } = useLocalSearchParams();
 
   const filteredGuests = filterGuests(guests, searchQuery);
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      void (async () => {
+        const allowed = await requestAccessWhenReady(() => active);
+        if (!active) return;
+        if (allowed) {
+          setAccessReady(true);
+          return;
+        }
+        setAccessReady(false);
+        if (router.canGoBack()) {
+          router.back();
+        } else {
+          router.replace('/user');
+        }
+      })();
+      return () => {
+        active = false;
+      };
+    }, [requestAccessWhenReady])
+  );
 
   const fetchGuests = useCallback(() => {
     void refetch();

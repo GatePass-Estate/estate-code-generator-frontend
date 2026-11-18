@@ -30,12 +30,13 @@ export function useMyGuests(
 }
 
 /** Every saved guest, loaded a page at a time (mobile list with infinite scroll). */
-export function useMyGuestsInfinite(limit = GUEST_LIST_LIMIT) {
+export function useMyGuestsInfinite(limit = GUEST_LIST_LIMIT, options: { enabled?: boolean } = {}) {
   return useInfiniteQuery({
     queryKey: queryKeys.guests.infinite(limit),
     queryFn: ({ pageParam }) => getMyGuests(pageParam, limit),
     initialPageParam: GUEST_LIST_PAGE,
     getNextPageParam: nextGuestPage,
+    enabled: options.enabled ?? true,
   });
 }
 
