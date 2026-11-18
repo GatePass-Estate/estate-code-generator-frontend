@@ -178,7 +178,13 @@ const WebSuccessView = ({ router }: { router: ReturnType<typeof useRouter> }) =>
           Your account is now verified and your password set.
         </Text>
         <TouchableOpacity
-          onPress={() => router.push(Platform.OS === 'web' ? '/auth/web-portal' : '/auth/login')}
+          onPress={() =>
+            router.push(
+              Platform.OS === 'web'
+                ? { pathname: '/auth/web-portal', params: { from: 'activation' } }
+                : '/auth/login'
+            )
+          }
           style={{
             marginTop: 74,
             width: 451,
@@ -401,9 +407,13 @@ const EmailActivationStatusPage = () => {
 
                   <TouchableOpacity
                     onPress={() =>
-                      router.push(Platform.OS === 'web' ? '/auth/web-portal' : '/auth/login')
+                      router.push(
+                        Platform.OS === 'web'
+                          ? { pathname: '/auth/web-portal', params: { from: 'activation' } }
+                          : '/auth/login'
+                      )
                     }
-                    className="h-[48px] w-full max-w-[278px] bg-primary rounded-full justify-center items-center"
+                    className="h-[48px] w-full max-w-[278px] items-center justify-center rounded-full bg-primary"
                   >
                     <Text
                       style={{

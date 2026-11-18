@@ -4,7 +4,7 @@ import { BACK_TO_TITLE_GAP_CLASS } from '@/src/shared/components/layout/ScreenHe
 import { sharedStyles } from '@/src/shared/theme/styles';
 import { cn } from '@/src/shared/utils/cn';
 import { Stack, useNavigation, useRouter } from 'expo-router';
-import { useState, useEffect, useRef } from 'react';
+import { useCallback, useState, useEffect, useRef } from 'react';
 import {
   Keyboard,
   KeyboardAvoidingView,
@@ -20,6 +20,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GenderType } from '@/src/shared/types/general';
 import { Toast, ToastType } from '@/src/shared/components/feedback/Toast';
+import { showAlert } from '@/src/shared/utils/alert';
 import OptionSheet, { type OptionSheetItem } from '@/src/features/admin/components/OptionSheet';
 import SelectorField from '@/src/features/admin/components/SelectorField';
 import { useAndroidBottomInset } from '@/src/shared/hooks/useAndroidBottomInset';
@@ -89,14 +90,21 @@ function RegisterTextField({
   );
 }
 
+/** How long the "User registered" toast stays before the screen goes back. */
+const SUCCESS_TOAST_MS = 2000;
+
 const RegisterUser = () => {
   const router = useRouter();
   const navigation = useNavigation();
   const { systemBottom } = useAndroidBottomInset();
   const scrollViewRef = useRef<ScrollView>(null);
+  /** When true, allow navigation away (success toast finished / explicit leave). */
+  const allowLeaveRef = useRef(false);
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<ToastType>('success');
+  /** Registered: the screen leaves once the success toast has been shown and hidden. */
+  const [registered, setRegistered] = useState(false);
   const [openSheet, setOpenSheet] = useState<'gender' | 'userType' | null>(null);
   const {
     estateId,
@@ -129,12 +137,22 @@ const RegisterUser = () => {
   }, [currentStep]);
 
   const leaveScreen = () => {
+    allowLeaveRef.current = true;
     if (router.canDismiss()) {
       router.dismiss(1);
     } else {
       router.replace('/admin');
     }
   };
+  const leaveScreenRef = useRef(leaveScreen);
+  leaveScreenRef.current = leaveScreen;
+
+  // Stable: Toast restarts its hide timer whenever `onHide` changes, and the screen re-renders
+  // after a register (the users caches refresh), which would keep pushing the departure back.
+  const handleToastHide = useCallback(() => {
+    setToastVisible(false);
+    if (registered) leaveScreenRef.current();
+  }, [registered]);
 
   const handleDismissSeatReduction = () => {
     setSeatReductionOverlayVisible(false);
@@ -142,10 +160,13 @@ const RegisterUser = () => {
   };
 
   // Back from step 2 returns to step 1 instead of leaving the flow.
+  // After a successful register we set allowLeaveRef so dismiss is not turned into "back to step 1".
   useEffect(() => {
     const unsubscribe = navigation.addListener(
       'beforeRemove' as never,
       (e: { preventDefault: () => void; data?: { action?: object } }) => {
+        if (allowLeaveRef.current) return;
+
         e.preventDefault();
 
         if (currentStep > 1) {
@@ -161,10 +182,17 @@ const RegisterUser = () => {
   }, [navigation, currentStep, setCurrentStep, setErrors]);
 
   const handleSaveUser = async () => {
-    if (blockIfSeatReductionPending()) return;
+    if (registered || blockIfSeatReductionPending()) return;
     const result = await submit();
     if (result.ok) {
-      leaveScreen();
+      // Green toast first; the screen goes back from the toast's onHide, once it has been seen.
+      // (A fixed 1.5 s timer started with the 300 ms slide-in left ~1 s of toast, often less on
+      // Android, so it looked like the screen just went back.)
+      Keyboard.dismiss();
+      setRegistered(true);
+      setToastMessage('User registered successfully!');
+      setToastType('success');
+      setToastVisible(true);
       return;
     }
     setToastMessage(result.message);
@@ -229,7 +257,8 @@ const RegisterUser = () => {
         message={toastMessage}
         type={toastType}
         visible={toastVisible}
-        onHide={() => setToastVisible(false)}
+        duration={registered ? SUCCESS_TOAST_MS : undefined}
+        onHide={handleToastHide}
       />
 
       <KeyboardAvoidingView
@@ -363,7 +392,12 @@ const RegisterUser = () => {
                   error={errors.postalCode}
                 />
                 <View className="mt-3 items-center" style={{ marginBottom: BUTTON_MARGIN_BOTTOM }}>
-                  <Button label="Save User" onPress={handleContinue} loading={loading} />
+                  <Button
+                    label="Save User"
+                    onPress={handleContinue}
+                    loading={loading}
+                    disabled={registered}
+                  />
                 </View>
               </View>
             </>

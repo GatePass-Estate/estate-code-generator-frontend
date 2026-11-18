@@ -161,7 +161,8 @@ export function useRegisterUserForm({
           address: formData,
         })
       );
-      if (registered && registered.id) return { ok: true };
+      // Register API returns `user_id`; `id` is optional on User.
+      if (registered && (registered.id || registered.user_id)) return { ok: true };
       return { ok: false, message: 'Failed to register user. Please try again.' };
     } catch (error) {
       return {
