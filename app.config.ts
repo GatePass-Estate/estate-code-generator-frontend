@@ -103,6 +103,7 @@ const base = {
     favicon: './src/assets/gatepass_ng_Gp.png',
   },
   plugins: [
+    './plugins/withFirebaseManifestFix',
     'expo-router',
     'expo-font',
     'expo-web-browser',
@@ -156,8 +157,8 @@ const base = {
     ],
     // FCM registration token on both platforms (APNs -> FCM exchange on iOS).
     '@react-native-firebase/app',
-    // React Native Firebase iOS pods need static frameworks or the iOS build fails.
-    ['expo-build-properties', { ios: { useFrameworks: 'static' } }],
+    // React Native Firebase iOS pods need dynamic frameworks for SPM compatibility.
+    ['expo-build-properties', { ios: { useFrameworks: 'dynamic' } }],
   ],
   assetBundlePatterns: ['**/*'],
   extra: {
