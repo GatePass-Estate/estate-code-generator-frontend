@@ -22,7 +22,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import Button from '@/src/shared/components/Button';
 import { useAuth } from '@/src/features/auth/hooks/useAuthContext';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { enableBiometricLogin, fetchMe, loginBiometric, loginUser } from '@/src/features/auth';
+import { fetchMe, loginBiometric, loginUser } from '@/src/features/auth';
 import { User } from '@/src/features/users/types/user';
 import { applySession } from '@/src/features/auth/services/authRefresh';
 import {
@@ -40,15 +40,10 @@ import {
   canUseBiometricLogin,
   getBiometricToken,
   promptBiometrics,
-  isBiometricAvailable,
-  hasBiometricPromptBeenDismissed,
-  dismissBiometricPrompt,
   saveBiometricCredentials,
-  isBiometricPreferenceEnabled,
-  biometricTokenMatchesUser,
   invalidateLocalBiometricSession,
 } from '@/src/features/auth/services/biometricAuth';
-import { BiometricPromptModal } from '@/src/features/auth/components/BiometricPromptModal';
+import { useBiometricSignInPrompt } from '@/src/features/auth/hooks/useBiometricSignInPrompt';
 import PasswordTextInput from '@/src/features/auth/components/PasswordTextInput';
 import Back from '@/src/shared/components/navigation/Back';
 import { parseSignOutReason, signOutNotice } from '@/src/features/auth/services/signOutReason';
@@ -75,8 +70,7 @@ export default function Login() {
   const signedOutBecause = parseSignOutReason(searchParams.signed_out);
   const [sessionNoticeDismissed, setSessionNoticeDismissed] = useState(false);
   const [showBiometric, setShowBiometric] = useState(false);
-  const [showBiometricPrompt, setShowBiometricPrompt] = useState(false);
-  const [pendingAuth, setPendingAuth] = useState<{ token: string; user: User } | null>(null);
+  const { runPostSignIn, biometricPromptModal } = useBiometricSignInPrompt();
 
   const isLargeScreen = width > getWidthBreakpoint();
 
@@ -253,59 +247,27 @@ export default function Login() {
       await AsyncStorage.setItem('gatepass-last-email', emailValue);
       await AsyncStorage.setItem('gatepass-last-user-id', user.user_id);
 
-      const preferenceEnabled = await isBiometricPreferenceEnabled(user.user_id, user.estate_id);
-      const biometricsAvailable = Platform.OS !== 'web' && (await isBiometricAvailable());
-
-      // Always re-bind when preference is on and the device can do Face ID / fingerprint.
-      // Skip when biometrics aren't enrolled — SecureStore would otherwise prompt / fail.
-      if (preferenceEnabled && biometricsAvailable) {
-        try {
-          const biometricResponse = await enableBiometricLogin(result.access_token, user.estate_id);
-          await saveBiometricCredentials(
-            biometricResponse.biometric_token,
-            user.user_id,
-            user.estate_id
-          );
-        } catch {
-          // Keep the password flow working even if the silent refresh fails.
-        }
-      }
-
-      // Do not call getBiometricToken here — that unlocks the keychain and prompts Face ID.
-      const hasSavedBiometricForCurrentUser = await biometricTokenMatchesUser(
-        user.user_id,
-        user.estate_id
-      );
-      const hasPreferenceForCurrentUser = await isBiometricPreferenceEnabled(
-        user.user_id,
-        user.estate_id
-      );
-      const shouldPrompt =
-        biometricsAvailable &&
-        !hasSavedBiometricForCurrentUser &&
-        !hasPreferenceForCurrentUser &&
-        !(await hasBiometricPromptBeenDismissed(user.user_id));
-
-      if (shouldPrompt) {
-        setPendingAuth({ token: result.access_token, user });
-        setShowBiometricPrompt(true);
-        setIsLoading(false);
-      } else {
-        // Stay on the loader until routeForUser replaces this screen.
-        routeForUser(user);
-      }
+      // Silent re-bind when the preference is on, the enable prompt on first login, nothing
+      // otherwise. Shared with the 2FA and Terms of Service sign-in paths.
+      // Stay on the loader until routeForUser replaces this screen (or the prompt takes over).
+      const prompted = await runPostSignIn(result.access_token, user, () => routeForUser(user));
+      if (prompted) setIsLoading(false);
     } catch (error: unknown) {
       setErrorMessage(thrownMessage(error) || 'Login failed');
       setIsLoading(false);
     }
-  }, [email, password, estate, finishSignIn, routeForUser, router]);
+  }, [email, password, estate, finishSignIn, routeForUser, router, runPostSignIn]);
 
   const handleBiometricLogin = useCallback(async () => {
     setErrorMessage('');
+
+    // The token is stored without OS-level authentication, so the app enforces the check:
+    // confirm with Face ID / fingerprint first and stay on the login screen if that fails.
+    if (!(await promptBiometrics('Sign in to GatePass'))) return;
+
     setIsLoading(true);
 
     try {
-      // SecureStore.requireAuthentication prompts Face ID / fingerprint to unlock the token.
       const token = await getBiometricToken();
       if (!token || !estate?.estate_id) {
         setPassword('');
@@ -350,46 +312,6 @@ export default function Login() {
       setIsLoading(false);
     }
   }, [estate, finishSignIn, routeForUser]);
-
-  const handleEnableBiometricPrompt = useCallback(async () => {
-    if (!pendingAuth) return;
-    const { token, user } = pendingAuth;
-
-    try {
-      const success = await promptBiometrics('Enable biometric login');
-      if (success) {
-        const biometricResponse = await enableBiometricLogin(token, user.estate_id);
-        await saveBiometricCredentials(
-          biometricResponse.biometric_token,
-          user.user_id,
-          user.estate_id
-        );
-      } else {
-        await dismissBiometricPrompt(user.user_id);
-      }
-    } catch {
-      await dismissBiometricPrompt(user.user_id);
-    }
-
-    setShowBiometricPrompt(false);
-    setPendingAuth(null);
-    routeForUser(user);
-  }, [pendingAuth, routeForUser]);
-
-  const handleDismissBiometricPrompt = useCallback(async () => {
-    if (!pendingAuth) return;
-    const { user } = pendingAuth;
-
-    try {
-      await dismissBiometricPrompt(user.user_id);
-    } catch {
-      // ignore storage errors
-    }
-
-    setShowBiometricPrompt(false);
-    setPendingAuth(null);
-    routeForUser(user);
-  }, [pendingAuth, routeForUser]);
 
   const ErrorBanner = useMemo(
     () =>
@@ -603,11 +525,7 @@ export default function Login() {
         </View>
       </SafeAreaView>
 
-      <BiometricPromptModal
-        visible={showBiometricPrompt}
-        onEnable={handleEnableBiometricPrompt}
-        onDismiss={handleDismissBiometricPrompt}
-      />
+      {biometricPromptModal}
 
       {showTosRejected && isLargeScreen && (
         <View className="absolute top-10 left-0 right-0 items-center z-50">

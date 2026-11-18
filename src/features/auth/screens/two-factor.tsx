@@ -15,6 +15,7 @@ import { sharedStyles } from '@/src/shared/theme/styles';
 import { fetchMe, recoverTwoFactor, verifyTwoFactor } from '@/src/features/auth';
 import { applySession } from '@/src/features/auth/services/authRefresh';
 import { useAuth } from '@/src/features/auth/hooks/useAuthContext';
+import { useBiometricSignInPrompt } from '@/src/features/auth/hooks/useBiometricSignInPrompt';
 import { broadcastLogin } from '@/src/features/auth/services/authPersistence';
 import { writeTwoFactorFlag } from '@/src/features/auth/services/twoFactorState';
 import type { User } from '@/src/features/users/types/user';
@@ -22,6 +23,7 @@ import type { User } from '@/src/features/users/types/user';
 export default function TwoFactorChallengeScreen() {
   const router = useRouter();
   const { signIn } = useAuth();
+  const { runPostSignIn, biometricPromptModal } = useBiometricSignInPrompt();
   // Handed over in memory by the login screen, never through the URL (see pendingSignIn.ts).
   const [twoFaToken] = useState(() => peekPendingTwoFactorToken() ?? '');
   useEffect(() => clearPendingTwoFactorToken, []);
@@ -111,13 +113,26 @@ export default function TwoFactorChallengeScreen() {
         });
         broadcastLogin(user.role);
         signIn(user);
-        routeForUser(user);
+
+        // Same post-sign-in step as the password and Terms of Service paths: silent re-bind when
+        // the preference is on, the enable prompt on first login, nothing otherwise.
+        await runPostSignIn(result.access_token, user, () => routeForUser(user));
       } catch (error: unknown) {
         setErrorMessage(thrownMessage(error) || 'That code was not accepted. Try again.');
         setSubmitting(false);
       }
     },
-    [submitting, useRecovery, recoveryCode, code, twoFaToken, router, signIn, routeForUser]
+    [
+      submitting,
+      useRecovery,
+      recoveryCode,
+      code,
+      twoFaToken,
+      router,
+      signIn,
+      routeForUser,
+      runPostSignIn,
+    ]
   );
 
   return (
@@ -197,6 +212,8 @@ export default function TwoFactorChallengeScreen() {
           <Text className="text-[#F6F7F7] font-ubuntu-semibold text-sm">Submit</Text>
         )}
       </Pressable>
+
+      {biometricPromptModal}
     </SafeAreaView>
   );
 }

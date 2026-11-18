@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { Alert } from 'react-native';
 import { errorMessage as thrownMessage } from '@/src/shared/services/api/errors';
 import {
-  clearBiometricPreference,
   deleteBiometricToken,
   isBiometricAvailable,
   isBiometricPreferenceEnabled,
@@ -108,7 +107,6 @@ export function useBiometricLogin() {
         }
         await deleteBiometricToken();
         await setBiometricPreference(user_id, estate_id, false);
-        await clearBiometricPreference(user_id, estate_id);
         setBiometricEnabled(false);
       }
     },
