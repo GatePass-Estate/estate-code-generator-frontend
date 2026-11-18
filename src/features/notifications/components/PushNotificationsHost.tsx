@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { usePathname, useRouter } from 'expo-router';
 import {
   addPushListeners,
+  addPushTokenRefreshListener,
   pushSupported,
   registerForPushNotifications,
 } from '@/src/features/notifications/services/pushNotifications';
@@ -48,6 +49,15 @@ export default function PushNotificationsHost() {
     registeredFor.current = userId;
     void registerForPushNotifications(sessionId);
   }, [userId, sessionId]);
+
+  // FCM rotates tokens occasionally; send the new one to the backend while signed in.
+  const sessionIdRef = useRef(sessionId);
+  sessionIdRef.current = sessionId;
+  useEffect(() => {
+    if (!userId || !pushSupported) return;
+
+    return addPushTokenRefreshListener(() => sessionIdRef.current);
+  }, [userId]);
 
   useEffect(() => {
     if (!pushSupported) return;

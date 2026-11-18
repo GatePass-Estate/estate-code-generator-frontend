@@ -8,24 +8,80 @@ const BIOMETRIC_TOKEN_KEY = 'gatepass-biometric-auth-token';
 const BIOMETRIC_USER_KEY = 'gatepass-biometric-auth-user';
 const BIOMETRIC_ESTATE_KEY = `${BIOMETRIC_USER_KEY}-estate`;
 const BIOMETRIC_PREFERENCE_KEY = 'gatepass-biometric-auth-preferences';
+const BIOMETRIC_STORAGE_MIGRATION_KEY = 'gatepass-biometric-storage-v2';
 
 type BiometricPreferenceMap = Record<string, boolean>;
 
-/** Device-bound keychain; reading the token requires biometrics (SEC-10). */
+/**
+ * Device-bound keychain / keystore (SEC-10). The biometric token is stored in encrypted secure
+ * storage, readable only while the phone is unlocked and never synced off the device.
+ *
+ * It deliberately does NOT use `requireAuthentication`. With it, the OS asks for Face ID /
+ * fingerprint on every Android write and on every iOS update of an existing value, so re-binding
+ * the token after a password login could never be silent. The biometric check is enforced in app
+ * code instead: callers must run `promptBiometrics()` successfully before `getBiometricToken()`.
+ */
 const biometricTokenStoreOptions: SecureStore.SecureStoreOptions = {
   keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
-  requireAuthentication: Platform.OS !== 'web',
-  authenticationPrompt: 'Unlock GatePass',
 };
 
 const biometricMetaStoreOptions: SecureStore.SecureStoreOptions = {
   keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
 };
 
+/**
+ * How older builds stored the token (OS-enforced biometric on read/write). Only used to delete
+ * those entries once during migration; never to read or write.
+ */
+const legacyBiometricTokenStoreOptions: SecureStore.SecureStoreOptions = {
+  keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+  requireAuthentication: Platform.OS !== 'web',
+  authenticationPrompt: 'Unlock GatePass',
+};
+
+async function runBiometricStorageMigration(): Promise<void> {
+  if (Platform.OS === 'web') return;
+  if ((await AsyncStorage.getItem(BIOMETRIC_STORAGE_MIGRATION_KEY)) === 'true') return;
+
+  // Tokens saved by older builds are protected by `requireAuthentication` and can't be
+  // overwritten silently. Drop them (deletes don't prompt) along with the stored user/estate
+  // binding. The user's preference is left untouched, so the next password login re-enables
+  // biometrics silently with the new storage.
+  await SecureStore.deleteItemAsync(BIOMETRIC_TOKEN_KEY, legacyBiometricTokenStoreOptions).catch(
+    () => {}
+  );
+  await SecureStore.deleteItemAsync(BIOMETRIC_TOKEN_KEY, biometricTokenStoreOptions).catch(
+    () => {}
+  );
+  await SecureStore.deleteItemAsync(BIOMETRIC_USER_KEY, biometricMetaStoreOptions).catch(() => {});
+  await SecureStore.deleteItemAsync(BIOMETRIC_ESTATE_KEY, biometricMetaStoreOptions).catch(
+    () => {}
+  );
+
+  await AsyncStorage.setItem(BIOMETRIC_STORAGE_MIGRATION_KEY, 'true');
+}
+
+let biometricMigration: Promise<void> | null = null;
+
+/**
+ * Runs the one-time storage migration (guarded by an AsyncStorage flag) before any biometric
+ * credential is read or written. Safe to call repeatedly; a failed run is retried next time.
+ */
+export function ensureBiometricStorageMigrated(): Promise<void> {
+  if (!biometricMigration) {
+    biometricMigration = runBiometricStorageMigration().catch((error) => {
+      logger.error('Biometric storage migration failed', error);
+      biometricMigration = null;
+    });
+  }
+  return biometricMigration;
+}
+
 async function getSecureStoreItem(
   key: string,
   options?: SecureStore.SecureStoreOptions
 ): Promise<string | null> {
+  await ensureBiometricStorageMigrated();
   try {
     return await SecureStore.getItemAsync(key, options);
   } catch (error) {
@@ -91,9 +147,8 @@ export async function promptBiometrics(reason?: string): Promise<boolean> {
 }
 
 /**
- * Reads the stored biometric access token. On native this triggers the OS
- * biometric prompt (`requireAuthentication`) so the secret cannot be read
- * without the user proving presence.
+ * Reads the stored biometric token. The OS does not prompt for this read, so callers MUST
+ * confirm the user with `promptBiometrics()` first and stop if it fails.
  */
 export async function getBiometricToken(): Promise<string | null> {
   return getSecureStoreItem(BIOMETRIC_TOKEN_KEY, biometricTokenStoreOptions);
@@ -110,11 +165,29 @@ export async function getBiometricUserId(): Promise<string | null> {
  * Removes the stored biometric access token.
  */
 export async function deleteBiometricToken(): Promise<void> {
+  await ensureBiometricStorageMigrated();
   await SecureStore.deleteItemAsync(BIOMETRIC_TOKEN_KEY, biometricTokenStoreOptions).catch(
     () => {}
   );
   await SecureStore.deleteItemAsync(BIOMETRIC_USER_KEY, biometricMetaStoreOptions).catch(() => {});
   await SecureStore.deleteItemAsync(BIOMETRIC_ESTATE_KEY, biometricMetaStoreOptions).catch(
+    () => {}
+  );
+}
+
+/**
+ * Clears local biometric credentials after logout / expired session without
+ * touching the user's preference. The user/estate binding is removed first so
+ * biometric login is unavailable until a password login silently re-binds a
+ * fresh token to the new session.
+ */
+export async function invalidateLocalBiometricSession(): Promise<void> {
+  await ensureBiometricStorageMigrated();
+  await SecureStore.deleteItemAsync(BIOMETRIC_USER_KEY, biometricMetaStoreOptions).catch(() => {});
+  await SecureStore.deleteItemAsync(BIOMETRIC_ESTATE_KEY, biometricMetaStoreOptions).catch(
+    () => {}
+  );
+  await SecureStore.deleteItemAsync(BIOMETRIC_TOKEN_KEY, biometricTokenStoreOptions).catch(
     () => {}
   );
 }
@@ -187,7 +260,7 @@ export async function clearBiometricPreference(
 /**
  * Returns `true` only when biometrics are available, credentials have been saved,
  * and the biometric preference is enabled for the provided identity/estate.
- * Does not read the token itself (that would prompt Face ID / fingerprint).
+ * Does not read the token itself.
  */
 export async function canUseBiometricLogin(
   identity?: string | null,
@@ -215,7 +288,7 @@ export async function canUseBiometricLogin(
 
 /**
  * Returns the stored biometric credentials only if they belong to the given user.
- * Triggers the OS biometric prompt to unlock the token.
+ * Confirms the user with Face ID / fingerprint before the token is read.
  */
 export async function getBiometricCredentialsForUser(
   userId: string
@@ -223,6 +296,7 @@ export async function getBiometricCredentialsForUser(
   const storedUserId = await getBiometricUserId();
   if (storedUserId !== userId) return null;
 
+  if (!(await promptBiometrics('Unlock GatePass'))) return null;
   const token = await getBiometricToken();
   if (token == null) return null;
 
@@ -250,15 +324,17 @@ export async function biometricTokenMatchesUser(
 }
 
 /**
- * Stores the access token and user identity that will be used for biometric login.
+ * Stores the biometric token and user identity that will be used for biometric login.
  * We intentionally do NOT store the user's password. The token is device-bound and
- * reading it later requires biometric authentication.
+ * is only read after the app has confirmed the user with Face ID / fingerprint.
+ * Saving never prompts, so re-binding after a password login is silent.
  */
 export async function saveBiometricCredentials(
   token: string,
   userId: string,
   estateId?: string | null
 ): Promise<void> {
+  await ensureBiometricStorageMigrated();
   await SecureStore.setItemAsync(BIOMETRIC_TOKEN_KEY, token, biometricTokenStoreOptions);
   await SecureStore.setItemAsync(BIOMETRIC_USER_KEY, userId, biometricMetaStoreOptions);
   if (estateId != null) {
@@ -270,7 +346,7 @@ export async function saveBiometricCredentials(
 
 /**
  * Reads the stored biometric credentials if they match the given user and estate.
- * Triggers the OS biometric prompt to unlock the token.
+ * Confirms the user with Face ID / fingerprint before the token is read.
  */
 export async function getMatchingBiometricCredentials(
   userId: string,
@@ -279,6 +355,7 @@ export async function getMatchingBiometricCredentials(
   const matches = await biometricTokenMatchesUser(userId, estateId);
   if (!matches) return null;
 
+  if (!(await promptBiometrics('Unlock GatePass'))) return null;
   const token = await getBiometricToken();
   if (!token) return null;
 

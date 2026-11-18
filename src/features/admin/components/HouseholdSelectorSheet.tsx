@@ -326,7 +326,7 @@ export default function HouseholdSelectorSheet({
               selectionColor="#113E55"
               cursorColor="#113E55"
               accessibilityLabel="Search household"
-              placeholder="Search Guest List"
+              placeholder="Search"
               placeholderTextColor="#878686"
               className="h-full flex-1 text-[14px] leading-[17px] text-primary font-inter-light"
               style={{

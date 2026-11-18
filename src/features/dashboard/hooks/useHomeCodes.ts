@@ -180,8 +180,10 @@ export function useActiveCodeActions(
   }, []);
 
   const openHistory = useCallback((item: Codes) => {
+    // Root-level route (not the History tab's stack) so Back returns to Home and the History
+    // tab keeps showing its Past / Upcoming list instead of this code's detail.
     router.push({
-      pathname: '/user/history/[codeId]',
+      pathname: '/code-history/[codeId]',
       params: {
         codeId: item.hashed_code,
         name: item.visitor_fullname ?? '',

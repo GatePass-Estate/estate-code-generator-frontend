@@ -22,21 +22,14 @@ import { Button } from '@/src/shared/components/nativewindui/Button';
 import ScreenHeader from '@/src/shared/components/layout/ScreenHeader';
 import { useAuth } from '@/src/features/auth/hooks/useAuthContext';
 import { acceptTos, fetchMe } from '@/src/features/auth';
-import { User } from '@/src/features/users/types/user';
 import { applySession } from '@/src/features/auth/services/authRefresh';
 import { broadcastLogin } from '@/src/features/auth/services/authPersistence';
 import { getWidthBreakpoint } from '@/src/shared/utils/helpers';
 import {
   biometricTokenMatchesUser,
   deleteBiometricToken,
-  isBiometricAvailable,
-  canUseBiometricLogin,
-  hasBiometricPromptBeenDismissed,
-  dismissBiometricPrompt,
-  promptBiometrics,
-  saveBiometricCredentials,
 } from '@/src/features/auth/services/biometricAuth';
-import { BiometricPromptModal } from '@/src/features/auth/components/BiometricPromptModal';
+import { useBiometricSignInPrompt } from '@/src/features/auth/hooks/useBiometricSignInPrompt';
 import Images from '@/src/shared/constants/images';
 import { UserRolesType } from '@/src/shared/types/general';
 
@@ -248,12 +241,7 @@ export default function TermsOfService() {
   const [isAccepting, setIsAccepting] = useState(false);
   const [isRejecting, setIsRejecting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [showBiometricPrompt, setShowBiometricPrompt] = useState(false);
-  const [pendingAuth, setPendingAuth] = useState<{
-    token: string;
-    user: User;
-    role: UserRolesType;
-  } | null>(null);
+  const { runPostSignIn, biometricPromptModal } = useBiometricSignInPrompt();
   const [activeSection, setActiveSection] = useState('introduction');
   const scrollViewRef = useRef<ScrollView>(null);
   const sectionRefs = useRef<Record<string, number>>({});
@@ -323,62 +311,20 @@ export default function TermsOfService() {
         // ignore cleanup errors
       }
 
-      const shouldPrompt =
-        Platform.OS !== 'web' &&
-        (await isBiometricAvailable()) &&
-        !(await canUseBiometricLogin(user.user_id)) &&
-        !(await hasBiometricPromptBeenDismissed(user.user_id));
-
-      if (shouldPrompt) {
-        setPendingAuth({ token, user, role });
-        setShowBiometricPrompt(true);
-      } else {
-        routeForRole(role);
-      }
+      // Same post-sign-in step as the password and 2FA paths: silent re-bind when the preference
+      // is on, the enable prompt on first login, nothing otherwise.
+      await runPostSignIn(token, user, () => routeForRole(role));
     } catch (error: unknown) {
       setErrorMessage(thrownMessage(error) || 'Failed to accept Terms of Service');
     } finally {
       setIsAccepting(false);
     }
-  }, [pendingTos, signIn, routeForRole]);
+  }, [pendingTos, signIn, routeForRole, runPostSignIn]);
 
   const handleReject = useCallback(() => {
     setIsRejecting(true);
     router.replace({ pathname: '/auth/login', params: { tos_rejected: 'true' } });
   }, [router]);
-
-  const handleEnableBiometricPrompt = useCallback(async () => {
-    if (!pendingAuth) return;
-    const { token, user, role } = pendingAuth;
-
-    try {
-      const success = await promptBiometrics('Enable biometric login');
-      if (success) {
-        await saveBiometricCredentials(token, user.user_id, user.estate_id);
-      }
-    } catch {
-      // ignore biometric enable errors
-    }
-
-    setShowBiometricPrompt(false);
-    setPendingAuth(null);
-    routeForRole(role);
-  }, [pendingAuth, routeForRole]);
-
-  const handleDismissBiometricPrompt = useCallback(async () => {
-    if (!pendingAuth) return;
-    const { user, role } = pendingAuth;
-
-    try {
-      await dismissBiometricPrompt(user.user_id);
-    } catch {
-      // ignore storage errors
-    }
-
-    setShowBiometricPrompt(false);
-    setPendingAuth(null);
-    routeForRole(role);
-  }, [pendingAuth, routeForRole]);
 
   const handleSectionPress = (sectionId: string) => {
     setActiveSection(sectionId);
@@ -551,11 +497,7 @@ export default function TermsOfService() {
           </ScrollView>
         </View>
 
-        <BiometricPromptModal
-          visible={showBiometricPrompt}
-          onEnable={handleEnableBiometricPrompt}
-          onDismiss={handleDismissBiometricPrompt}
-        />
+        {biometricPromptModal}
       </SafeAreaView>
     );
   }
@@ -673,11 +615,7 @@ export default function TermsOfService() {
         )}
       </ScrollView>
 
-      <BiometricPromptModal
-        visible={showBiometricPrompt}
-        onEnable={handleEnableBiometricPrompt}
-        onDismiss={handleDismissBiometricPrompt}
-      />
+      {biometricPromptModal}
     </SafeAreaView>
   );
 }

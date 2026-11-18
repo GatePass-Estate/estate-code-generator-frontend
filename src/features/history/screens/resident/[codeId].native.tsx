@@ -66,7 +66,10 @@ export default function HistoryDetailScreen() {
   useFocusEffect(
     useCallback(() => {
       const parent = navigation.getParent();
-      parent?.setOptions({
+      // Opened from the History tab → hide that tab bar. Opened from Home's code card it is a
+      // root-level screen with no tab bar above it, so there is nothing to hide.
+      if (parent?.getState()?.type !== 'tab') return undefined;
+      parent.setOptions({
         tabBarStyle: { display: 'none' },
       });
 
