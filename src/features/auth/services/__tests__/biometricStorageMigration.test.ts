@@ -46,6 +46,7 @@ type BiometricModule = typeof import('@/src/features/auth/services/biometricAuth
 function loadFreshModule(): BiometricModule {
   let loaded!: BiometricModule;
   jest.isolateModules(() => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     loaded = require('@/src/features/auth/services/biometricAuth');
   });
   return loaded;

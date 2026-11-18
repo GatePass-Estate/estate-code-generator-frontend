@@ -1,4 +1,8 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import {
+  enableBiometricsFromPrompt,
+  runPostSignInBiometrics,
+} from '@/src/features/auth/services/postSignInBiometrics';
 
 const mockEnableBiometricLogin = jest.fn<(token: string, estateId?: string) => Promise<unknown>>();
 const mockIsBiometricAvailable = jest.fn<() => Promise<boolean>>();
@@ -24,11 +28,6 @@ jest.mock('@/src/features/auth/services/biometricAuth', () => ({
   promptBiometrics: (reason?: string) => mockPromptBiometrics(reason),
   saveBiometricCredentials: (t: string, u: string, e?: string) => mockSaveCredentials(t, u, e),
 }));
-
-import {
-  enableBiometricsFromPrompt,
-  runPostSignInBiometrics,
-} from '@/src/features/auth/services/postSignInBiometrics';
 
 const USER = { user_id: 'user-1', estate_id: 'estate-1' };
 const ACCESS_TOKEN = 'access-token';
