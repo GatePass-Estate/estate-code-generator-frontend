@@ -41,6 +41,7 @@ const base = {
       },
       {
         action: 'VIEW',
+        autoVerify: true,
         data: [
           {
             scheme: 'https',

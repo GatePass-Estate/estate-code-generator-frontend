@@ -1,0 +1,11 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "82TUZ74HC6.com.gatepassng.gms",
+        "paths": ["/activate", "/activate/*", "/auth/reset-password", "/auth/reset-password/*"]
+      }
+    ]
+  }
+}
