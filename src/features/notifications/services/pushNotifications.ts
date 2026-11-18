@@ -12,26 +12,31 @@ import {
  * Push registration.
  *
  * The backend delivers through firebase-admin (`messaging.send_multicast`), so
- * it needs a raw **FCM registration token** — not an Expo push token. That is
- * why this uses `getDevicePushTokenAsync()` rather than
- * `getExpoPushTokenAsync()`.
+ * it needs a raw **FCM registration token** — not an Expo push token. The token
+ * comes from React Native Firebase (`@react-native-firebase/messaging`), which
+ * returns an FCM token on both platforms (on iOS it exchanges the APNs token
+ * for an FCM one via `GoogleService-Info.plist`).
  *
- * `expo-notifications` is loaded lazily and only where remote notifications
+ * `expo-notifications` is still used for the permission prompt, foreground
+ * notification display and tap handling — only the token comes from Firebase.
+ *
+ * Both native modules are loaded lazily and only where remote notifications
  * actually exist. Expo Go dropped Android push support in SDK 53 and *throws
  * on import*, so a top-level import would crash the app at startup for anyone
  * running in Expo Go — the module is reached from the auth context, which every
  * screen pulls in. Use a development build to exercise push.
  *
  * Platform notes:
- *   - Android returns an FCM token directly, which is what the backend wants.
- *     Requires `google-services.json` in the build.
- *   - iOS returns an **APNs** token. firebase-admin will not accept that as a
- *     registration token, so iOS additionally needs the Firebase iOS SDK (via
- *     `GoogleService-Info.plist`) to exchange APNs -> FCM.
+ *   - Requires `google-services.json` (Android) / `GoogleService-Info.plist`
+ *     (iOS) in the build.
+ *   - If the installed binary predates `@react-native-firebase/messaging`,
+ *     Android falls back to the native FCM token from `expo-notifications`;
+ *     iOS cannot (that would be an APNs token), so it skips registration.
  */
 
 type NotificationsModule = typeof import('expo-notifications');
 type NotificationResponse = import('expo-notifications').NotificationResponse;
+type FirebaseMessagingModule = typeof import('@react-native-firebase/messaging');
 
 const STORED_TOKEN_KEY = 'gatepass-push-token';
 
@@ -86,6 +91,46 @@ function loadNotifications(): NotificationsModule | null {
   return cachedModule;
 }
 
+let cachedMessaging: FirebaseMessagingModule | null = null;
+
+/**
+ * Loads React Native Firebase messaging on first use, or null where it is
+ * unavailable (Expo Go, web, or a binary built before the module was added).
+ */
+function loadMessaging(): FirebaseMessagingModule | null {
+  if (!pushSupported) return null;
+  if (cachedMessaging) return cachedMessaging;
+
+  try {
+    // Runtime require for the same reason as expo-notifications: never run native
+    // module code in Expo Go, and tolerate older binaries that lack the module.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    cachedMessaging = require('@react-native-firebase/messaging') as FirebaseMessagingModule;
+  } catch {
+    return null;
+  }
+
+  return cachedMessaging;
+}
+
+/** The FCM registration token the backend needs, or null if none can be obtained. */
+async function getFcmToken(Notifications: NotificationsModule): Promise<string | null> {
+  const messaging = loadMessaging();
+  if (messaging) {
+    const token = await messaging.getToken(messaging.getMessaging());
+    return token ? String(token) : null;
+  }
+
+  // Older binary without the Firebase module: Android's native token is already an FCM token.
+  if (Platform.OS === 'android') {
+    const devicePushToken = await Notifications.getDevicePushTokenAsync();
+    const token = String(devicePushToken.data);
+    return token || null;
+  }
+
+  return null;
+}
+
 /** Android requires an explicit channel or notifications arrive silently. */
 async function ensureAndroidChannel(Notifications: NotificationsModule): Promise<void> {
   if (Platform.OS !== 'android') return;
@@ -131,8 +176,7 @@ export async function registerForPushNotifications(
 
     if (!(await requestPermission(Notifications))) return null;
 
-    const devicePushToken = await Notifications.getDevicePushTokenAsync();
-    const token = String(devicePushToken.data);
+    const token = await getFcmToken(Notifications);
     if (!token) return null;
 
     const platform: DevicePlatform = Platform.OS === 'ios' ? 'IOS' : 'ANDROID';
@@ -143,6 +187,37 @@ export async function registerForPushNotifications(
   } catch {
     // Push is an enhancement: never let it break sign-in.
     return null;
+  }
+}
+
+/**
+ * Re-registers with the backend whenever Firebase rotates this device's FCM token, so push keeps
+ * working without a fresh sign-in. Returns a cleanup function; a no-op where Firebase messaging
+ * is unavailable.
+ *
+ * `getSessionId` is read at refresh time so the latest session is always the one sent.
+ */
+export function addPushTokenRefreshListener(
+  getSessionId: () => string | null | undefined
+): () => void {
+  const messaging = loadMessaging();
+  if (!messaging) return () => {};
+
+  const platform: DevicePlatform = Platform.OS === 'ios' ? 'IOS' : 'ANDROID';
+
+  try {
+    return messaging.onTokenRefresh(messaging.getMessaging(), (newToken) => {
+      const token = String(newToken ?? '');
+      if (!token) return;
+
+      void registerDeviceToken(token, platform, getSessionId() ?? null)
+        .then(() => AsyncStorage.setItem(STORED_TOKEN_KEY, token))
+        .catch(() => {
+          // Push is an enhancement; the next sign-in registers again.
+        });
+    });
+  } catch {
+    return () => {};
   }
 }
 

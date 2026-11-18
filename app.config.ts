@@ -154,6 +154,10 @@ const base = {
         defaultChannel: 'default',
       },
     ],
+    // FCM registration token on both platforms (APNs -> FCM exchange on iOS).
+    '@react-native-firebase/app',
+    // React Native Firebase iOS pods need static frameworks or the iOS build fails.
+    ['expo-build-properties', { ios: { useFrameworks: 'static' } }],
   ],
   assetBundlePatterns: ['**/*'],
   extra: {
