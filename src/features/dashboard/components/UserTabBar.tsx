@@ -58,8 +58,13 @@ export default function UserTabBar(props: UserTabBarProps) {
     'incident_report',
     { notice: 'floating' }
   );
+  const { requestAccessWhenReady: requestGuestManagementAccess } = useFeatureGate(
+    'guest_management',
+    { notice: 'floating' }
+  );
   const { requireVerified } = useVerificationGate();
   const openingIncidentReportRef = useRef(false);
+  const openingGuestsRef = useRef(false);
   const focusedOptions = descriptors[state.routes[state.index].key].options;
 
   // Android: only lift for a real safe-area inset (gesture / edge-to-edge).
@@ -131,6 +136,28 @@ export default function UserTabBar(props: UserTabBarProps) {
                   }
                 } finally {
                   openingIncidentReportRef.current = false;
+                }
+              })();
+              return;
+            }
+
+            if (route.name === 'guests/index' && !event.defaultPrevented) {
+              if (focused) return;
+              if (openingGuestsRef.current) return;
+              openingGuestsRef.current = true;
+              void (async () => {
+                try {
+                  const allowed = await requestGuestManagementAccess(
+                    () => isScreenFocusedRef.current
+                  );
+                  if (!allowed || !isScreenFocusedRef.current) return;
+                  if (navigation?.navigate) {
+                    navigation.navigate(route.name, route.params);
+                  } else if (typeof navigateToTab === 'function') {
+                    navigateToTab(route.key);
+                  }
+                } finally {
+                  openingGuestsRef.current = false;
                 }
               })();
               return;

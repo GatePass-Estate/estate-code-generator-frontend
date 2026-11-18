@@ -46,6 +46,7 @@ import {
   saveBiometricCredentials,
   isBiometricPreferenceEnabled,
   biometricTokenMatchesUser,
+  invalidateLocalBiometricSession,
 } from '@/src/features/auth/services/biometricAuth';
 import { BiometricPromptModal } from '@/src/features/auth/components/BiometricPromptModal';
 import PasswordTextInput from '@/src/features/auth/components/PasswordTextInput';
@@ -253,9 +254,11 @@ export default function Login() {
       await AsyncStorage.setItem('gatepass-last-user-id', user.user_id);
 
       const preferenceEnabled = await isBiometricPreferenceEnabled(user.user_id, user.estate_id);
-      const tokenMatchesUser = await biometricTokenMatchesUser(user.user_id, user.estate_id);
+      const biometricsAvailable = Platform.OS !== 'web' && (await isBiometricAvailable());
 
-      if (preferenceEnabled && !tokenMatchesUser) {
+      // Always re-bind when preference is on and the device can do Face ID / fingerprint.
+      // Skip when biometrics aren't enrolled — SecureStore would otherwise prompt / fail.
+      if (preferenceEnabled && biometricsAvailable) {
         try {
           const biometricResponse = await enableBiometricLogin(result.access_token, user.estate_id);
           await saveBiometricCredentials(
@@ -278,8 +281,7 @@ export default function Login() {
         user.estate_id
       );
       const shouldPrompt =
-        Platform.OS !== 'web' &&
-        (await isBiometricAvailable()) &&
+        biometricsAvailable &&
         !hasSavedBiometricForCurrentUser &&
         !hasPreferenceForCurrentUser &&
         !(await hasBiometricPromptBeenDismissed(user.user_id));
@@ -335,10 +337,16 @@ export default function Login() {
         throw new Error('Biometric login did not return an access token.');
       }
     } catch (error: unknown) {
+      const message =
+        thrownMessage(error) || 'Biometric login failed. Please sign in with your password.';
+      // Only drop the local binding when the server says the token is gone — keep it
+      // after idle timeout so fingerprint stays available for another try.
+      if (/invalid or expired biometric|no session found/i.test(message)) {
+        await invalidateLocalBiometricSession().catch(() => {});
+        setShowBiometric(false);
+      }
       setPassword('');
-      setErrorMessage(
-        thrownMessage(error) || 'Biometric login failed. Please sign in with your password.'
-      );
+      setErrorMessage(message);
       setIsLoading(false);
     }
   }, [estate, finishSignIn, routeForUser]);

@@ -86,6 +86,18 @@ export function useBiometricLogin() {
           );
         }
       } else {
+        // Turning biometric login off is a security-sensitive change, so confirm with
+        // Face ID / fingerprint first. If the device no longer has biometrics enrolled,
+        // there is nothing to verify against, so let the user turn it off.
+        const available = await isBiometricAvailable();
+        if (available) {
+          const confirmed = await promptBiometrics('Turn off biometric login');
+          if (!confirmed) {
+            setBiometricEnabled(true);
+            return;
+          }
+        }
+
         try {
           const token = await getValidAccessToken();
           if (token) {

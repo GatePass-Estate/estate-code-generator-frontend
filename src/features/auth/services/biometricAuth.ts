@@ -119,6 +119,24 @@ export async function deleteBiometricToken(): Promise<void> {
   );
 }
 
+/**
+ * Clears local biometric credentials after logout / expired session without
+ * touching the user's preference. Meta keys are removed first (no Face ID
+ * prompt) so biometric login is unavailable until password login re-binds a
+ * fresh token to the new session.
+ */
+export async function invalidateLocalBiometricSession(): Promise<void> {
+  await SecureStore.deleteItemAsync(BIOMETRIC_USER_KEY, biometricMetaStoreOptions).catch(() => {});
+  await SecureStore.deleteItemAsync(BIOMETRIC_ESTATE_KEY, biometricMetaStoreOptions).catch(
+    () => {}
+  );
+  // Best-effort: may fail if the OS requires biometrics to delete the secret.
+  await SecureStore.deleteItemAsync(BIOMETRIC_TOKEN_KEY, biometricTokenStoreOptions).catch(
+    () => {}
+  );
+  await SecureStore.deleteItemAsync(BIOMETRIC_TOKEN_KEY, biometricMetaStoreOptions).catch(() => {});
+}
+
 function biometricPreferenceKey(identity?: string | null, estateId?: string | null): string {
   if (!identity) {
     return `estate:${estateId ?? ''}`;
