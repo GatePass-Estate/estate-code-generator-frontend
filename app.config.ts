@@ -4,7 +4,7 @@ const base = {
   name: 'GatePass',
   slug: 'gatepass',
   owner: 'gatepassng',
-  version: '1.0.1',
+  version: '2.0.0',
   scheme: 'gatepass',
   orientation: 'portrait',
   icon: './src/assets/gatepass_ng_Gp.png',
@@ -63,7 +63,7 @@ const base = {
         category: ['BROWSABLE', 'DEFAULT'],
       },
     ],
-    googleServicesFile: './google-services.json',
+    googleServicesFile: process.env.GOOGLE_SERVICES_JSON ?? './google-services.json',
     permissions: ['NOTIFICATIONS', 'POST_NOTIFICATIONS'],
   },
   ios: {
@@ -91,7 +91,7 @@ const base = {
       },
       UIBackgroundModes: ['remote-notification'],
     },
-    googleServicesFile: './GoogleService-Info.plist',
+    googleServicesFile: process.env.GOOGLE_SERVICES_PLIST ?? './GoogleService-Info.plist',
     entitlements: {
       'aps-environment': 'production',
     },
