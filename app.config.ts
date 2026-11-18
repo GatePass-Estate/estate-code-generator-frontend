@@ -4,7 +4,7 @@ const base = {
   name: 'GatePass',
   slug: 'gatepass',
   owner: 'gatepassng',
-  version: '1.0.1',
+  version: '2.0.0',
   scheme: 'gatepass',
   orientation: 'portrait',
   icon: './src/assets/gatepass_ng_Gp.png',
@@ -41,6 +41,7 @@ const base = {
       },
       {
         action: 'VIEW',
+        autoVerify: true,
         data: [
           {
             scheme: 'https',

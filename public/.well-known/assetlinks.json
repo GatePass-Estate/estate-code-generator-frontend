@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.gatepassng.gms",
+      "sha256_cert_fingerprints": [
+        "72:EB:90:1A:AE:28:50:CB:70:1E:81:9B:A5:55:EA:83:62:60:A8:07:2B:A4:76:A1:D7:72:11:D8:00:A9:57:FF"
+      ]
+    }
+  }
+]

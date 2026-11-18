@@ -122,8 +122,11 @@ export const Toast = ({
 
   return (
     <Animated.View
+      pointerEvents="box-none"
       style={{
-        zIndex: 999,
+        zIndex: 9999,
+        elevation: 9999,
+        transform: [{ translateY: slideAnim }],
       }}
     >
       <View
